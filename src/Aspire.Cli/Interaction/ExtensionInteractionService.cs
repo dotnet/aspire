@@ -308,9 +308,9 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayMarkdown(markdown);
     }
 
-    public void DisplayVersionUpdateNotification(string newerVersion)
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
-        _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion);
+        _consoleInteractionService.DisplayVersionUpdateNotification(newerVersion, updateCommand);
     }
 
     public void LogMessage(LogLevel logLevel, string message)

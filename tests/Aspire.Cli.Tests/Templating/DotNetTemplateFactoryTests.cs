@@ -396,7 +396,7 @@ public class DotNetTemplateFactoryTests
         public void DisplayMarkdown(string markdown) { }
         public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
         public void DisplayEmptyLine() { }
-        public void DisplayVersionUpdateNotification(string message) { }
+        public void DisplayVersionUpdateNotification(string message, string? updateCommand = null) { }
         public void WriteConsoleLog(string message, int? resourceHashCode, string? resourceName, bool isError) { }
     }
 
