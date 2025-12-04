@@ -95,7 +95,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             var deployStep = new PipelineStep
             {
                 Name = $"deploy-{targetResource.Name}",
-                Description = $"Coordination point for deploying {targetResource.Name} to Azure App Service.",
+                Description = $"Aggregation step for deploying {targetResource.Name} to Azure App Service.",
                 Action = _ => Task.CompletedTask,
                 Tags = [WellKnownPipelineTags.DeployCompute]
             };

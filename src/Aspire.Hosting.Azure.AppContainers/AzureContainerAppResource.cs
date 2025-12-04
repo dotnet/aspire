@@ -100,7 +100,7 @@ public class AzureContainerAppResource : AzureProvisioningResource
             var deployStep = new PipelineStep
             {
                 Name = $"deploy-{targetResource.Name}",
-                Description = $"Coordination point for deploying {targetResource.Name} to Azure Container Apps.",
+                Description = $"Aggregation step for deploying {targetResource.Name} to Azure Container Apps.",
                 Action = _ => Task.CompletedTask,
                 Tags = [WellKnownPipelineTags.DeployCompute]
             };

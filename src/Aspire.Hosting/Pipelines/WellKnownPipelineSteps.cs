@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Pipelines;
 public static class WellKnownPipelineSteps
 {
     /// <summary>
-    /// Coordination point for all publish operations.
+    /// Aggregation step for all publish operations.
     /// All publish steps should be required by this step.
     /// </summary>
     public const string Publish = "publish";
@@ -23,7 +23,7 @@ public static class WellKnownPipelineSteps
     public const string PublishPrereq = "publish-prereq";
 
     /// <summary>
-    /// Coordination point for all deploy operations.
+    /// Aggregation step for all deploy operations.
     /// All deploy steps should be required by this step.
     /// </summary>
     public const string Deploy = "deploy";

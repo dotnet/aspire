@@ -36,7 +36,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Deploy,
-            Description = "Coordination point for all deploy operations. All deploy steps should be required by this step.",
+            Description = "Aggregation step for all deploy operations. All deploy steps should be required by this step.",
             Action = _ => Task.CompletedTask,
         });
 
@@ -141,7 +141,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Build,
-            Description = "Coordination point for all build operations. All build steps should be required by this step.",
+            Description = "Aggregation step for all build operations. All build steps should be required by this step.",
             Action = _ => Task.CompletedTask,
         });
 
@@ -152,11 +152,11 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             Action = context => Task.CompletedTask
         });
 
-        // Add a default "Publish" coordination point that all publish steps should be required by
+        // Add a default "Publish" aggregation step that all publish steps should be required by
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Publish,
-            Description = "Coordination point for all publish operations. All publish steps should be required by this step.",
+            Description = "Aggregation step for all publish operations. All publish steps should be required by this step.",
             Action = _ => Task.CompletedTask
         });
 

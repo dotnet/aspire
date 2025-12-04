@@ -104,7 +104,7 @@ public sealed class AzureEnvironmentResource : Resource
             var provisionStep = new PipelineStep
             {
                 Name = ProvisionInfrastructureStepName,
-                Description = "Coordination point for all Azure infrastructure provisioning operations.",
+                Description = "Aggregation step for all Azure infrastructure provisioning operations.",
                 Action = _ => Task.CompletedTask,
                 Tags = [WellKnownPipelineTags.ProvisionInfrastructure],
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy],
