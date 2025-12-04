@@ -4,18 +4,18 @@
   "classifications": [
     "Common",
     "Aspire",
+    "Cloud",
     "Web",
     "Web API",
     "API",
     "Service",
-    "Cloud",
-    "JavaScript",
+    "TypeScript",
     "React"
   ],
-  "name": "React (Vite) & Minimal API starter",
+  "name": "Aspire Starter App (ASP.NET Core/React)",
   "defaultName": "AspireApp",
-  "description": "A project template for creating an Aspire app with a React (Vite) frontend and a Minimal API backend service, optionally using Redis for caching.",
-  "shortName": "aspire-js-frontend-starter",
+  "description": "A project template for creating an Aspire app with a React frontend and a C# Minimal API backend service, with optional Redis caching.",
+  "shortName": "aspire-starter-ts-cs",
   "sourceName": "Aspire-StarterApplication.1",
   "preferNameDirectory": false,
   "tags": {
@@ -24,9 +24,9 @@
     "editorTreatAs": "solution"
   },
   "precedence": "9000",
-  "identity": "Aspire.JsFrontendStarter.CSharp.!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!",
+  "identity": "Aspire.Starter.TypeScript.CSharp.!!REPLACE_WITH_LATEST_MAJOR_MINOR_VERSION!!",
   "thirdPartyNotices": "https://aka.ms/aspire/third-party-notices",
-  "groupIdentity": "Aspire.JsFrontendStarter",
+  "groupIdentity": "Aspire.Starter.TypeScript.CSharp",
   "guids": [
     "80B24B1B-1E78-4FCB-BDC9-13678F1789F4",
     "9FEB877E-015D-4E20-AE63-06C596E242E4",
@@ -43,12 +43,6 @@
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [
             "*.sln"
-          ]
-        },
-        {
-          "condition": "(hostIdentifier != \"vs\")",
-          "exclude": [
-            "frontend/frontend.esproj"
           ]
         }
       ]
@@ -85,7 +79,7 @@
       "datatype": "bool",
       "defaultValue": "false",
       "displayName": "_Use Redis for caching (requires a supported container runtime)",
-      "description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details."
+      "description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/aspire/containers for more details."
     },
     "appHostHttpPort": {
       "type": "parameter",
@@ -366,8 +360,7 @@
       "path": "Aspire-StarterApplication.1.Server\\Aspire-StarterApplication.1.Server.csproj"
     },
     {
-      "path": "frontend\\frontend.esproj",
-      "condition": "(hostIdentifier == \"vs\")"
+      "path": "frontend\\frontend.esproj"
     }
   ],
   "postActions": [
