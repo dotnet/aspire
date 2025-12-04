@@ -1,0 +1,3 @@
+<Project>
+  <!-- This file stops inheritance from parent Directory.Build.targets files -->
+</Project>
