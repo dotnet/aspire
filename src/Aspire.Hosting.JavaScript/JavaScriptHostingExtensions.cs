@@ -525,6 +525,8 @@ public static class JavaScriptHostingExtensions
                 }
             })
             .WithHttpEndpoint(env: "PORT")
+            // Making TLS opt-in for Vite for now
+            .WithoutServerAuthenticationCertificate()
             .WithServerAuthenticationCertificateConfiguration(async ctx =>
             {
                 string? configTarget = resource.ViteConfigPath;
