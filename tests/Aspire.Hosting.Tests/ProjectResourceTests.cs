@@ -753,8 +753,9 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        // Verify the project has a PipelineStepAnnotation
-        var pipelineStepAnnotation = Assert.Single(resource.Annotations.OfType<PipelineStepAnnotation>());
+        // Verify the project has PipelineStepAnnotations for build and push
+        var pipelineStepAnnotations = resource.Annotations.OfType<PipelineStepAnnotation>().ToList();
+        Assert.Equal(2, pipelineStepAnnotations.Count);
 
         // Create a factory context for testing the annotation
         var factoryContext = new PipelineStepFactoryContext
@@ -763,13 +764,24 @@ public class ProjectResourceTests
             Resource = resource
         };
 
-        var steps = (await pipelineStepAnnotation.CreateStepsAsync(factoryContext)).ToList();
+        // Get steps from the build annotation (first one)
+        var buildAnnotation = pipelineStepAnnotations[0];
+        var buildSteps = (await buildAnnotation.CreateStepsAsync(factoryContext)).ToList();
 
-        var buildStep = Assert.Single(steps);
+        var buildStep = Assert.Single(buildSteps);
         Assert.Equal("build-test-project", buildStep.Name);
         Assert.Contains(WellKnownPipelineTags.BuildCompute, buildStep.Tags);
         Assert.Contains(WellKnownPipelineSteps.Build, buildStep.RequiredBySteps);
         Assert.Contains(WellKnownPipelineSteps.BuildPrereq, buildStep.DependsOnSteps);
+
+        // Get steps from the push annotation (second one)
+        var pushAnnotation = pipelineStepAnnotations[1];
+        var pushSteps = (await pushAnnotation.CreateStepsAsync(factoryContext)).ToList();
+
+        var pushStep = Assert.Single(pushSteps);
+        Assert.Equal("push-test-project", pushStep.Name);
+        Assert.Contains(WellKnownPipelineTags.PushContainerImage, pushStep.Tags);
+        Assert.Contains(WellKnownPipelineSteps.Push, pushStep.RequiredBySteps);
     }
 
     [Fact]
@@ -800,7 +812,7 @@ public class ProjectResourceTests
         Assert.Equal("./wwwroot", containerFilesAnnotation.DestinationPath);
 
         var pipelineStepAnnotations = resource.Annotations.OfType<PipelineStepAnnotation>().ToList();
-        Assert.Single(pipelineStepAnnotations);
+        Assert.Equal(2, pipelineStepAnnotations.Count);
     }
 
     [Fact]

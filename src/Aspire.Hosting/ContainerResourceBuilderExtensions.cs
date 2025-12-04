@@ -75,7 +75,7 @@ public static class ContainerResourceBuilderExtensions
             }
 
             return steps;
-        }), ResourceAnnotationMutationBehavior.Replace);
+        }), ResourceAnnotationMutationBehavior.Append);
 
         return builder.WithAnnotation(new PipelineConfigurationAnnotation(context =>
         {
@@ -595,11 +595,13 @@ public static class ContainerResourceBuilderExtensions
             {
                 context.LocalImageName = dockerfileAnnotation.ImageName ?? context.Resource.Name;
                 context.LocalImageTag = dockerfileAnnotation.ImageTag ?? "latest";
+                context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
             }
             else
             {
                 context.LocalImageName = context.Resource.Name;
                 context.LocalImageTag = "latest";
+                context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
             }
             context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
         });
@@ -734,11 +736,13 @@ public static class ContainerResourceBuilderExtensions
             {
                 context.LocalImageName = dockerfileAnnotation.ImageName ?? context.Resource.Name;
                 context.LocalImageTag = dockerfileAnnotation.ImageTag ?? "latest";
+                context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
             }
             else
             {
                 context.LocalImageName = context.Resource.Name;
                 context.LocalImageTag = "latest";
+                context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
             }
             context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
         });

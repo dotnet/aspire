@@ -5,6 +5,8 @@ param userPrincipalId string = ''
 
 param tags object = { }
 
+param env_acr_outputs_name string
+
 var resourceToken = uniqueString(resourceGroup().id)
 
 resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
@@ -13,13 +15,8 @@ resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = 
   tags: tags
 }
 
-resource env_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
+resource env_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
   name: replace('acr-${resourceToken}', '-', '')
-  location: location
-  sku: {
-    name: 'Basic'
-  }
-  tags: tags
 }
 
 resource env_acr_env_mi_AcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
