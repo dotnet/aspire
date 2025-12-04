@@ -62,11 +62,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             var pushStep = new PipelineStep
             {
                 Name = $"push-{name}",
-                Action = async ctx =>
-                {
-                    var containerImageManager = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
-                    await containerImageManager.PushImageAsync(this, ctx.CancellationToken).ConfigureAwait(false);
-                },
+                Action = ctx => PipelineStepHelpers.PushImageToRegistryAsync(this, ctx),
                 Tags = [WellKnownPipelineTags.PushContainerImage],
                 RequiredBySteps = [WellKnownPipelineSteps.Push],
                 Resource = this

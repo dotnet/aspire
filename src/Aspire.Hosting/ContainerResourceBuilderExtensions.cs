@@ -63,11 +63,7 @@ public static class ContainerResourceBuilderExtensions
                 var pushStep = new PipelineStep
                 {
                     Name = $"push-{builder.Resource.Name}",
-                    Action = async ctx =>
-                    {
-                        var containerImageManager = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
-                        await containerImageManager.PushImageAsync(builder.Resource, ctx.CancellationToken).ConfigureAwait(false);
-                    },
+                    Action = ctx => PipelineStepHelpers.PushImageToRegistryAsync(builder.Resource, ctx),
                     Tags = [WellKnownPipelineTags.PushContainerImage],
                     RequiredBySteps = [WellKnownPipelineSteps.Push],
                     Resource = builder.Resource
@@ -76,7 +72,7 @@ public static class ContainerResourceBuilderExtensions
             }
 
             return steps;
-        }), ResourceAnnotationMutationBehavior.Append);
+        }), ResourceAnnotationMutationBehavior.Replace);
 
         return builder.WithAnnotation(new PipelineConfigurationAnnotation(context =>
         {
