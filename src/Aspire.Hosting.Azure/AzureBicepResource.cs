@@ -49,6 +49,7 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             var provisionStep = new PipelineStep
             {
                 Name = $"provision-{name}",
+                Description = $"Provisions the Azure Bicep resource {name} using Azure infrastructure.",
                 Action = async ctx => await ProvisionAzureBicepResourceAsync(ctx, this).ConfigureAwait(false),
                 Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
             };
