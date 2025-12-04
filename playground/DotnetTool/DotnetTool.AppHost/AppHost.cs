@@ -8,19 +8,19 @@ var builder = DistributedApplication.CreateBuilder(args);
 var simpleUsage = builder.AddDotnetTool("simpleUsage", "dotnet-ef");
 
 var wildcardVersion = builder.AddDotnetTool("wildcard", "dotnet-ef")
-    .WithPackageVersion("10.0.*")
+    .WithToolVersion("10.0.*")
     .WithParentRelationship(simpleUsage);
 
 var preRelease = builder.AddDotnetTool("prerelease", "dotnet-ef")
-    .WithPackagePrerelease()
+    .WithToolPrerelease()
     .WithParentRelationship(simpleUsage);
 
 // Multiple versions
 var differentVersion = builder.AddDotnetTool("sameToolDifferentVersion1", "dotnet-dump")
     .WithArgs("--version")
-    .WithPackageVersion("9.0.652701");
+    .WithToolVersion("9.0.652701");
 builder.AddDotnetTool("sameToolDifferentVersion2", "dotnet-dump")
-    .WithPackageVersion("9.0.621003")
+    .WithToolVersion("9.0.621003")
     .WithArgs("--version")
     .WithParentRelationship(differentVersion);
 
@@ -55,26 +55,26 @@ foreach(var toolAnnotation in substituted.Resource.Annotations.OfType<DotnetTool
 var fakeSourcesPath = Path.Combine(Path.GetTempPath(), "does-not-exist", Guid.NewGuid().ToString());
 var offline = builder.AddDotnetTool("offlineSimpleUsage", "dotnet-ef")
     .WaitForCompletion(simpleUsage)
-    .WithPackageSource(fakeSourcesPath)
-    .WithPackageIgnoreExistingFeeds()
-    .WithPackageIgnoreFailedSources()
+    .WithToolSource(fakeSourcesPath)
+    .WithToolIgnoreExistingFeeds()
+    .WithToolIgnoreFailedSources()
     ;
 
 builder.AddDotnetTool("offlineWildcard", "dotnet-ef")
-    .WithPackageVersion("10.0.*")
+    .WithToolVersion("10.0.*")
     .WaitForCompletion(wildcardVersion)
     .WithParentRelationship(offline)
-    .WithPackageSource(fakeSourcesPath)
-    .WithPackageIgnoreExistingFeeds()
-    .WithPackageIgnoreFailedSources();
+    .WithToolSource(fakeSourcesPath)
+    .WithToolIgnoreExistingFeeds()
+    .WithToolIgnoreFailedSources();
 
 builder.AddDotnetTool("offlinePrerelease", "dotnet-ef")
-    .WithPackagePrerelease()
+    .WithToolPrerelease()
     .WaitForCompletion(preRelease)
     .WithParentRelationship(offline)
-    .WithPackageSource(fakeSourcesPath)
-    .WithPackageIgnoreExistingFeeds()
-    .WithPackageIgnoreFailedSources();
+    .WithToolSource(fakeSourcesPath)
+    .WithToolIgnoreExistingFeeds()
+    .WithToolIgnoreFailedSources();
 
 var secret = builder.AddParameter("secret", "Shhhhhhh", secret: true);
 

@@ -178,7 +178,7 @@ public static class DotnetToolExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="packageId">The package identifier to assign to the tool configuration. Cannot be null.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
-    public static IResourceBuilder<T> WithPackageId<T>(this IResourceBuilder<T> builder, string packageId)
+    public static IResourceBuilder<T> WithToolPackage<T>(this IResourceBuilder<T> builder, string packageId)
         where T : DotnetToolResource
     {
         builder.Resource.ToolConfiguration?.PackageId = packageId;
@@ -192,7 +192,7 @@ public static class DotnetToolExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="version">The package version to use</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
-    public static IResourceBuilder<T> WithPackageVersion<T>(this IResourceBuilder<T> builder, string version)
+    public static IResourceBuilder<T> WithToolVersion<T>(this IResourceBuilder<T> builder, string version)
         where T : DotnetToolResource
     {
         builder.Resource.ToolConfiguration?.Version = version;
@@ -205,7 +205,7 @@ public static class DotnetToolExtensions
     /// <typeparam name="T">The type of resource being built. Must inherit from DotnetToolResource.</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
-    public static IResourceBuilder<T> WithPackagePrerelease<T>(this IResourceBuilder<T> builder)
+    public static IResourceBuilder<T> WithToolPrerelease<T>(this IResourceBuilder<T> builder)
         where T : DotnetToolResource
     {
         builder.Resource.ToolConfiguration?.Prerelease = true;
@@ -219,7 +219,7 @@ public static class DotnetToolExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="source"></param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
-    public static IResourceBuilder<T> WithPackageSource<T>(this IResourceBuilder<T> builder, string source)
+    public static IResourceBuilder<T> WithToolSource<T>(this IResourceBuilder<T> builder, string source)
         where T : DotnetToolResource
     {
         builder.Resource.ToolConfiguration?.Sources.Add(source);
@@ -232,7 +232,7 @@ public static class DotnetToolExtensions
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
-    public static IResourceBuilder<T> WithPackageIgnoreExistingFeeds<T>(this IResourceBuilder<T> builder)
+    public static IResourceBuilder<T> WithToolIgnoreExistingFeeds<T>(this IResourceBuilder<T> builder)
         where T : DotnetToolResource
     {
         builder.Resource.ToolConfiguration?.IgnoreExistingFeeds = true;
@@ -245,7 +245,7 @@ public static class DotnetToolExtensions
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
-    public static IResourceBuilder<T> WithPackageIgnoreFailedSources<T>(this IResourceBuilder<T> builder)
+    public static IResourceBuilder<T> WithToolIgnoreFailedSources<T>(this IResourceBuilder<T> builder)
         where T : DotnetToolResource
     {
         builder.Resource.ToolConfiguration?.IgnoreFailedSources = true;

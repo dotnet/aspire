@@ -89,7 +89,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackageVersion("10.0.0");
+            .WithToolVersion("10.0.0");
 
         using var app = builder.Build();
 
@@ -111,7 +111,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackagePrerelease();
+            .WithToolPrerelease();
 
         using var app = builder.Build();
 
@@ -132,7 +132,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackageSource("https://custom.nuget.org/v3/index.json");
+            .WithToolSource("https://custom.nuget.org/v3/index.json");
 
         using var app = builder.Build();
 
@@ -154,8 +154,8 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackageSource("https://source1.nuget.org/v3/index.json")
-            .WithPackageSource("https://source2.nuget.org/v3/index.json");
+            .WithToolSource("https://source1.nuget.org/v3/index.json")
+            .WithToolSource("https://source2.nuget.org/v3/index.json");
 
         using var app = builder.Build();
 
@@ -179,8 +179,8 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackageSource("https://custom.nuget.org/v3/index.json")
-            .WithPackageIgnoreExistingFeeds();
+            .WithToolSource("https://custom.nuget.org/v3/index.json")
+            .WithToolIgnoreExistingFeeds();
 
         using var app = builder.Build();
 
@@ -202,7 +202,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackageIgnoreFailedSources();
+            .WithToolIgnoreFailedSources();
 
         using var app = builder.Build();
 
@@ -245,9 +245,9 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackageVersion("9.0.1")
-            .WithPackageSource("https://custom.nuget.org/v3/index.json")
-            .WithPackageIgnoreFailedSources()
+            .WithToolVersion("9.0.1")
+            .WithToolSource("https://custom.nuget.org/v3/index.json")
+            .WithToolIgnoreFailedSources()
             .WithArgs("database", "update");
 
         using var app = builder.Build();
@@ -275,7 +275,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackageVersion("10.0.*");
+            .WithToolVersion("10.0.*");
 
         var annotation = tool.Resource.Annotations.OfType<DotnetToolAnnotation>().Single();
         Assert.Equal("10.0.*", annotation.Version);
@@ -286,7 +286,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackagePrerelease();
+            .WithToolPrerelease();
 
         var annotation = tool.Resource.Annotations.OfType<DotnetToolAnnotation>().Single();
         Assert.True(annotation.Prerelease);
@@ -297,7 +297,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackageSource("https://custom.nuget.org/v3/index.json");
+            .WithToolSource("https://custom.nuget.org/v3/index.json");
 
         var annotation = tool.Resource.Annotations.OfType<DotnetToolAnnotation>().Single();
         Assert.Single(annotation.Sources);
@@ -309,7 +309,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackageIgnoreExistingFeeds();
+            .WithToolIgnoreExistingFeeds();
 
         var annotation = tool.Resource.Annotations.OfType<DotnetToolAnnotation>().Single();
         Assert.True(annotation.IgnoreExistingFeeds);
@@ -320,7 +320,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("mytool", "dotnet-ef")
-            .WithPackageIgnoreFailedSources();
+            .WithToolIgnoreFailedSources();
 
         var annotation = tool.Resource.Annotations.OfType<DotnetToolAnnotation>().Single();
         Assert.True(annotation.IgnoreFailedSources);
@@ -349,7 +349,7 @@ public class AddDotnetToolTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var tool = builder.AddDotnetTool("ef-tool", "dotnet-ef")
-            .WithPackageVersion("10.0.0")
+            .WithToolVersion("10.0.0")
             .WithArgs("--version");
 
         using var app = builder.Build();

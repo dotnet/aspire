@@ -37,8 +37,8 @@ public class DotnetToolFunctionalTests(ITestOutputHelper testOutputHelper)
         var resource = builder
             .AddDotnetTool("tool", "dotnet-ef")
             .WithArgs("--help")
-            .WithPackageSource("./fake-package-feed")
-            .WithPackageIgnoreExistingFeeds();
+            .WithToolSource("./fake-package-feed")
+            .WithToolIgnoreExistingFeeds();
 
         using var app = builder.Build();
         await app.StartAsync(cts.Token);
