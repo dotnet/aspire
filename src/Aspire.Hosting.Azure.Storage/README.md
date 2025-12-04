@@ -103,6 +103,31 @@ This will register a singleton of type `QueueClient`.
 
 This approach allows you to define and use specific blob containers and queues as first-class resources in your Aspire application model.
 
+## Using multiple storage accounts with the emulator
+
+When running the Azure Storage emulator (Azurite), you can configure multiple storage accounts to enable isolation between different parts of your application. This is useful for scenarios such as:
+
+- Separating legacy and new table schemas
+- Isolating test data for parallel test execution
+- Preventing data pollution between different components
+
+Azurite supports custom storage accounts and keys as documented in the [Azurite documentation](https://learn.microsoft.com/azure/storage/common/storage-use-azurite#custom-storage-accounts-and-keys).
+
+### Configuring custom accounts
+
+```csharp
+// Configure the storage to use the emulator with multiple accounts
+var storage = builder.AddAzureStorage("storage")
+    .RunAsEmulator(c => c.WithAccounts("legacy", "newdata"));
+
+// Create resources using different accounts
+var legacyTables = storage.AddTables("legacy-tables").WithAccount("legacy");
+var newTables = storage.AddTables("new-tables").WithAccount("newdata");
+var defaultBlobs = storage.AddBlobs("default-blobs"); // Uses default account
+```
+
+Each account gets its own isolated storage space within the same Azurite container, reducing resource usage compared to running multiple emulator containers.
+
 ## Additional documentation
 
 * https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/storage/Azure.Storage.Blobs/README.md

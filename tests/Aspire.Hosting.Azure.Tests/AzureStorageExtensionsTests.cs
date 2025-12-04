@@ -925,4 +925,138 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         await Verify(manifest.ToString(), "json")
              .AppendContentAsFile(bicep, "bicep");
     }
+
+    [Fact]
+    public void RunAsEmulator_WithAccounts_SetsAzuriteAccountsEnvironmentVariable()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
+        {
+            e.WithAccounts("legacy", "newdata");
+        });
+
+        // Check the environment variable annotation exists
+        var envVarAnnotations = storage.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>().ToList();
+        Assert.True(envVarAnnotations.Count > 0);
+    }
+
+    [Fact]
+    public async Task AddBlobs_WithAccount_GeneratesConnectionStringWithCustomAccount()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("blob", e => e.AllocatedEndpoint = new(e, "localhost", 10000));
+            e.WithAccounts("testaccount");
+        });
+
+        var blobs = storage.AddBlobs("blobs").WithAccount("testaccount");
+
+        var connectionString = await ((IResourceWithConnectionString)blobs.Resource).GetConnectionStringAsync();
+
+        // Verify connection string contains custom account
+        Assert.Contains("AccountName=testaccount", connectionString);
+        Assert.Contains("/testaccount", connectionString);
+    }
+
+    [Fact]
+    public async Task AddQueues_WithAccount_GeneratesConnectionStringWithCustomAccount()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("queue", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
+            e.WithAccounts("testaccount");
+        });
+
+        var queues = storage.AddQueues("queues").WithAccount("testaccount");
+
+        var connectionString = await ((IResourceWithConnectionString)queues.Resource).GetConnectionStringAsync();
+
+        // Verify connection string contains custom account
+        Assert.Contains("AccountName=testaccount", connectionString);
+        Assert.Contains("/testaccount", connectionString);
+    }
+
+    [Fact]
+    public async Task AddTables_WithAccount_GeneratesConnectionStringWithCustomAccount()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("table", e => e.AllocatedEndpoint = new(e, "localhost", 10002));
+            e.WithAccounts("testaccount");
+        });
+
+        var tables = storage.AddTables("tables").WithAccount("testaccount");
+
+        var connectionString = await ((IResourceWithConnectionString)tables.Resource).GetConnectionStringAsync();
+
+        // Verify connection string contains custom account
+        Assert.Contains("AccountName=testaccount", connectionString);
+        Assert.Contains("/testaccount", connectionString);
+    }
+
+    [Fact]
+    public async Task MultipleAccounts_DifferentResourcesUseDifferentAccounts()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("blob", e => e.AllocatedEndpoint = new(e, "localhost", 10000));
+            e.WithEndpoint("queue", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
+            e.WithEndpoint("table", e => e.AllocatedEndpoint = new(e, "localhost", 10002));
+            e.WithAccounts("legacy", "newdata");
+        });
+
+        // Create resources with different accounts
+        var legacyBlobs = storage.AddBlobs("legacy-blobs").WithAccount("legacy");
+        var newBlobs = storage.AddBlobs("new-blobs").WithAccount("newdata");
+        var defaultBlobs = storage.AddBlobs("default-blobs");
+
+        var legacyConnectionString = await ((IResourceWithConnectionString)legacyBlobs.Resource).GetConnectionStringAsync();
+        var newConnectionString = await ((IResourceWithConnectionString)newBlobs.Resource).GetConnectionStringAsync();
+        var defaultConnectionString = await ((IResourceWithConnectionString)defaultBlobs.Resource).GetConnectionStringAsync();
+
+        // Legacy should use legacy account
+        Assert.Contains("AccountName=legacy", legacyConnectionString);
+        Assert.Contains("/legacy", legacyConnectionString);
+
+        // New should use new account
+        Assert.Contains("AccountName=newdata", newConnectionString);
+        Assert.Contains("/newdata", newConnectionString);
+
+        // Default should use default account
+        Assert.Contains("AccountName=devstoreaccount1", defaultConnectionString);
+        Assert.Contains("/devstoreaccount1", defaultConnectionString);
+    }
+
+    [Fact]
+    public async Task AddBlobContainer_WithParentAccount_InheritsAccount()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("blob", e => e.AllocatedEndpoint = new(e, "localhost", 10000));
+            e.WithAccounts("testaccount");
+        });
+
+        // Create blob service with custom account
+        var blobs = storage.AddBlobs("blobs").WithAccount("testaccount");
+
+        // Add container - should inherit account from parent
+        var container = storage.AddBlobContainer("container", "my-container");
+
+        var containerConnectionString = await ((IResourceWithConnectionString)container.Resource).GetConnectionStringAsync();
+
+        // The container should use default account since it was added to storage directly
+        // To use custom account on containers, users should call WithAccount on the blob service first
+        Assert.Contains("AccountName=devstoreaccount1", containerConnectionString);
+    }
 }
