@@ -5,12 +5,13 @@ using System.CommandLine;
 
 namespace Aspire.Cli;
 
-internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, DirectoryInfo hivesDirectory, DirectoryInfo cacheDirectory, DirectoryInfo sdksDirectory, bool debugMode = false, IReadOnlyDictionary<string, string?>? environmentVariables = null)
+internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, DirectoryInfo hivesDirectory, DirectoryInfo cacheDirectory, DirectoryInfo sdksDirectory, bool debugMode = false, IReadOnlyDictionary<string, string?>? environmentVariables = null, DirectoryInfo? homeDirectory = null)
 {
     public DirectoryInfo WorkingDirectory { get; } = workingDirectory;
     public DirectoryInfo HivesDirectory { get; } = hivesDirectory;
     public DirectoryInfo CacheDirectory { get; } = cacheDirectory;
     public DirectoryInfo SdksDirectory { get; } = sdksDirectory;
+    public DirectoryInfo HomeDirectory { get; } = homeDirectory ?? new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
     public bool DebugMode { get; } = debugMode;
 
     /// <summary>
@@ -21,15 +22,18 @@ internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, Direct
 
     /// <summary>
     /// Gets an environment variable value. Checks the context's environment variables first,
-    /// then falls back to the process environment if not found.
+    /// then falls back to the process environment if no custom environment was provided.
+    /// When a custom environment dictionary is provided (even if empty), only that dictionary is used
+    /// and no fallback to the process environment occurs.
     /// </summary>
     /// <param name="variable">The environment variable name.</param>
     /// <returns>The value of the environment variable, or null if not found.</returns>
     public string? GetEnvironmentVariable(string variable)
     {
-        if (EnvironmentVariables is not null && EnvironmentVariables.TryGetValue(variable, out var value))
+        if (EnvironmentVariables is not null)
         {
-            return value;
+            // If a custom environment dictionary was provided, only use it (don't fall back)
+            return EnvironmentVariables.TryGetValue(variable, out var value) ? value : null;
         }
 
         return Environment.GetEnvironmentVariable(variable);

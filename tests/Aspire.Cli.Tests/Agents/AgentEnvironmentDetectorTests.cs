@@ -12,8 +12,7 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
     public async Task DetectAsync_WithNoScanners_ReturnsEmptyArray()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var detector = new AgentEnvironmentDetector([], executionContext);
+        var detector = new AgentEnvironmentDetector([]);
 
         var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, workspace.WorkspaceRoot, CancellationToken.None);
 
@@ -25,8 +24,7 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var scanner = new TestAgentEnvironmentScanner();
-        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var detector = new AgentEnvironmentDetector([scanner], executionContext);
+        var detector = new AgentEnvironmentDetector([scanner]);
 
         var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, workspace.WorkspaceRoot, CancellationToken.None);
 
@@ -45,8 +43,7 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
                 "Test Environment",
                 _ => Task.CompletedTask)
         };
-        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var detector = new AgentEnvironmentDetector([scanner], executionContext);
+        var detector = new AgentEnvironmentDetector([scanner]);
 
         var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, workspace.WorkspaceRoot, CancellationToken.None);
 
@@ -70,25 +67,13 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
                 "Environment 2",
                 _ => Task.CompletedTask)
         };
-        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var detector = new AgentEnvironmentDetector([scanner1, scanner2], executionContext);
+        var detector = new AgentEnvironmentDetector([scanner1, scanner2]);
 
         var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, workspace.WorkspaceRoot, CancellationToken.None);
 
         Assert.True(scanner1.WasScanned);
         Assert.True(scanner2.WasScanned);
         Assert.Equal(2, applicators.Length);
-    }
-
-    private static CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory)
-    {
-        return new CliExecutionContext(
-            workingDirectory: workingDirectory,
-            hivesDirectory: workingDirectory,
-            cacheDirectory: workingDirectory,
-            sdksDirectory: workingDirectory,
-            debugMode: false,
-            environmentVariables: null);
     }
 
     private sealed class TestAgentEnvironmentScanner : IAgentEnvironmentScanner

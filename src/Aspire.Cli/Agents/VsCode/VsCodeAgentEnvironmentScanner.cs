@@ -15,22 +15,25 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 {
     private const string VsCodeFolderName = ".vscode";
     private const string McpConfigFileName = "mcp.json";
-    private const string VsCodeEnvironmentVariablePrefix = "VSCODE_";
     private const string AspireServerName = "aspire";
 
     private readonly IVsCodeCliRunner _vsCodeCliRunner;
+    private readonly CliExecutionContext _executionContext;
     private readonly ILogger<VsCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="VsCodeAgentEnvironmentScanner"/>.
     /// </summary>
     /// <param name="vsCodeCliRunner">The VS Code CLI runner for checking if VS Code is installed.</param>
+    /// <param name="executionContext">The CLI execution context for accessing environment variables and settings.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public VsCodeAgentEnvironmentScanner(IVsCodeCliRunner vsCodeCliRunner, ILogger<VsCodeAgentEnvironmentScanner> logger)
+    public VsCodeAgentEnvironmentScanner(IVsCodeCliRunner vsCodeCliRunner, CliExecutionContext executionContext, ILogger<VsCodeAgentEnvironmentScanner> logger)
     {
         ArgumentNullException.ThrowIfNull(vsCodeCliRunner);
+        ArgumentNullException.ThrowIfNull(executionContext);
         ArgumentNullException.ThrowIfNull(logger);
         _vsCodeCliRunner = vsCodeCliRunner;
+        _executionContext = executionContext;
         _logger = logger;
     }
 
@@ -120,17 +123,17 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// </summary>
     /// <param name="startDirectory">The directory to start searching from.</param>
     /// <param name="repositoryRoot">The workspace root to use as the boundary for searches.</param>
-    private static DirectoryInfo? FindVsCodeFolder(DirectoryInfo startDirectory, DirectoryInfo repositoryRoot)
+    private DirectoryInfo? FindVsCodeFolder(DirectoryInfo startDirectory, DirectoryInfo repositoryRoot)
     {
         var currentDirectory = startDirectory;
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var homeDirectory = _executionContext.HomeDirectory;
 
         while (currentDirectory is not null)
         {
             // Check for .vscode folder at current level, but ignore it if it's in the home directory
             // (the home directory's .vscode folder is for user settings, not workspace config)
             var vsCodePath = Path.Combine(currentDirectory.FullName, VsCodeFolderName);
-            if (Directory.Exists(vsCodePath) && !string.Equals(currentDirectory.FullName, homeDirectory, StringComparison.OrdinalIgnoreCase))
+            if (Directory.Exists(vsCodePath) && !string.Equals(currentDirectory.FullName, homeDirectory.FullName, StringComparison.OrdinalIgnoreCase))
             {
                 return new DirectoryInfo(vsCodePath);
             }
@@ -151,15 +154,11 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// <summary>
     /// Checks if any VS Code environment variables are present.
     /// </summary>
-    private static bool HasVsCodeEnvironmentVariables()
+    private bool HasVsCodeEnvironmentVariables()
     {
-        var environmentVariables = Environment.GetEnvironmentVariables();
-        foreach (var key in environmentVariables.Keys)
+        if (_executionContext.GetEnvironmentVariable("VSCODE_IPC_HOOK") is not null)
         {
-            if (key is string keyString && keyString.StartsWith(VsCodeEnvironmentVariablePrefix, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
+            return true;
         }
         return false;
     }

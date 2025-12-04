@@ -22,11 +22,6 @@ internal sealed class AgentEnvironmentScanContext
     /// </summary>
     public required DirectoryInfo RepositoryRoot { get; init; }
 
-    /// <summary>    
-    /// Gets the CLI execution context for accessing environment variables and other execution settings.
-    /// </summary>
-    public required CliExecutionContext ExecutionContext { get; init; }
-
     /// <summary>
     /// Adds an applicator to the collection of detected agent environments.
     /// </summary>

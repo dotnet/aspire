@@ -18,7 +18,8 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var vsCodeFolder = workspace.CreateDirectory(".vscode");
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -34,8 +35,9 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         var vsCodeFolder = workspace.CreateDirectory(".vscode");
         var childDir = workspace.CreateDirectory("subdir");
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
-        var context = CreateScanContext(childDir);
+        var executionContext = CreateExecutionContext(childDir);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(childDir, workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
 
@@ -49,8 +51,9 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         var childDir = workspace.CreateDirectory("subdir");
         // Repository root is the workspace root, so search should stop there
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
-        var context = CreateScanContext(childDir);
+        var executionContext = CreateExecutionContext(childDir);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(childDir, workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
 
@@ -62,7 +65,8 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(new SemVersion(1, 85, 0));
-        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -75,7 +79,8 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         // This test assumes no VSCODE_* environment variables are set
@@ -92,7 +97,8 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var vsCodePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".vscode");
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         
         // First, make the scanner find a parent .vscode folder to get an applicator
         var parentVsCode = workspace.CreateDirectory(".vscode");
@@ -116,7 +122,8 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var vsCodeFolder = workspace.CreateDirectory(".vscode");
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -171,7 +178,8 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(mcpJsonPath, existingConfig.ToJsonString());
 
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -211,7 +219,8 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(mcpJsonPath, existingConfig.ToJsonString());
 
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -242,21 +251,33 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         public Task<SemVersion?> GetVersionAsync(VsCodeRunOptions options, CancellationToken cancellationToken) => Task.FromResult(version);
     }
 
-    private static AgentEnvironmentScanContext CreateScanContext(DirectoryInfo workingDirectory)
+    private static AgentEnvironmentScanContext CreateScanContext(DirectoryInfo workingDirectory, DirectoryInfo? repositoryRoot = null)
     {
-        var executionContext = new CliExecutionContext(
+        repositoryRoot ??= workingDirectory;
+        return new AgentEnvironmentScanContext
+        {
+            WorkingDirectory = workingDirectory,
+            RepositoryRoot = repositoryRoot
+        };
+    }
+
+    private static CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory, DirectoryInfo? homeDirectory = null, Dictionary<string, string?>? environmentVariables = null)
+    {
+        // Default to an empty dictionary to prevent fallback to real system environment variables
+        // This ensures tests are isolated and don't fail based on the test environment (e.g., running from VS Code)
+        environmentVariables ??= [];
+
+        // Use a separate directory for home to avoid conflicts with .vscode folder detection
+        // (the scanner ignores .vscode in the home directory as that's for user settings, not workspace config)
+        homeDirectory ??= new DirectoryInfo(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()));
+
+        return new CliExecutionContext(
             workingDirectory: workingDirectory,
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
             debugMode: false,
-            environmentVariables: null);
-
-        return new AgentEnvironmentScanContext
-        {
-            WorkingDirectory = workingDirectory,
-            RepositoryRoot = workingDirectory,
-            ExecutionContext = executionContext
-        };
+            environmentVariables: environmentVariables,
+            homeDirectory: homeDirectory);
     }
 }

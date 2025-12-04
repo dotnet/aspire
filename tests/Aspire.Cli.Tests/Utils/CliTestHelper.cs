@@ -358,8 +358,7 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, IAgentEnvironmentDetector> AgentEnvironmentDetectorFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        return new AgentEnvironmentDetector([], executionContext);
+        return new AgentEnvironmentDetector([]);
     };
 
     public Func<IServiceProvider, IGitRepository> GitRepositoryFactory { get; set; } = (IServiceProvider serviceProvider) =>

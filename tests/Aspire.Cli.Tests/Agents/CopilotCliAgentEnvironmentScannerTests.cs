@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.CopilotCli;
@@ -18,7 +17,8 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -32,7 +32,8 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var copilotCliRunner = new FakeCopilotCliRunner(null);
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -50,7 +51,8 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         
         // Create a scanner that writes to a known test location
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
-        var scanner = new TestCopilotCliAgentEnvironmentScanner(copilotCliRunner, copilotFolder.FullName);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -116,7 +118,8 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         await File.WriteAllTextAsync(mcpConfigPath, existingConfig.ToJsonString());
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
-        var scanner = new TestCopilotCliAgentEnvironmentScanner(copilotCliRunner, copilotFolder.FullName);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -155,7 +158,8 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         await File.WriteAllTextAsync(mcpConfigPath, existingConfig.ToJsonString());
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
-        var scanner = new TestCopilotCliAgentEnvironmentScanner(copilotCliRunner, copilotFolder.FullName);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
         var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
@@ -168,8 +172,9 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var copilotCliRunner = new FakeCopilotCliRunner(null); // Return null to verify it's not called
-        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
-        var context = CreateScanContextWithVSCode(workspace.WorkspaceRoot);
+        var executionContext = CreateExecutionContextWithVSCode(workspace.WorkspaceRoot);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
 
@@ -199,8 +204,9 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         await File.WriteAllTextAsync(mcpConfigPath, existingConfig.ToJsonString());
 
         var copilotCliRunner = new FakeCopilotCliRunner(null);
-        var scanner = new TestCopilotCliAgentEnvironmentScanner(copilotCliRunner, copilotFolder.FullName);
-        var context = CreateScanContextWithVSCode(workspace.WorkspaceRoot);
+        var executionContext = CreateExecutionContextWithVSCode(workspace.WorkspaceRoot);
+        var scanner = new CopilotCliAgentEnvironmentScanner(copilotCliRunner, executionContext, NullLogger<CopilotCliAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
 
@@ -210,42 +216,40 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
     private static AgentEnvironmentScanContext CreateScanContext(DirectoryInfo workingDirectory)
     {
-        var executionContext = new CliExecutionContext(
+        return new AgentEnvironmentScanContext
+        {
+            WorkingDirectory = workingDirectory,
+            RepositoryRoot = workingDirectory
+        };
+    }
+
+    private static CliExecutionContext CreateExecutionContext(DirectoryInfo workingDirectory)
+    {
+        return new CliExecutionContext(
             workingDirectory: workingDirectory,
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
             debugMode: false,
-            environmentVariables: null);
-
-        return new AgentEnvironmentScanContext
-        {
-            WorkingDirectory = workingDirectory,
-            RepositoryRoot = workingDirectory,
-            ExecutionContext = executionContext
-        };
+            environmentVariables: null,
+            homeDirectory: workingDirectory);
     }
 
-    private static AgentEnvironmentScanContext CreateScanContextWithVSCode(DirectoryInfo workingDirectory)
+    private static CliExecutionContext CreateExecutionContextWithVSCode(DirectoryInfo workingDirectory)
     {
         var environmentVariables = new Dictionary<string, string?>
         {
             ["VSCODE_IPC_HOOK"] = "test-value"
         };
         
-        var executionContext = new CliExecutionContext(
+        return new CliExecutionContext(
             workingDirectory: workingDirectory,
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
             debugMode: false,
-            environmentVariables: environmentVariables);
-
-        return new AgentEnvironmentScanContext
-        {
-            WorkingDirectory = workingDirectory,
-            ExecutionContext = executionContext
-        };
+            environmentVariables: environmentVariables,
+            homeDirectory: workingDirectory);
     }
 
     /// <summary>
@@ -259,142 +263,6 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         {
             WasCalled = true;
             return Task.FromResult(version);
-        }
-    }
-
-    /// <summary>
-    /// A test implementation of the scanner that allows specifying a custom config directory.
-    /// </summary>
-    private sealed class TestCopilotCliAgentEnvironmentScanner : IAgentEnvironmentScanner
-    {
-        private const string McpConfigFileName = "mcp-config.json";
-        private const string AspireServerName = "aspire";
-
-        private readonly ICopilotCliRunner _copilotCliRunner;
-        private readonly string _configDirectory;
-
-        public TestCopilotCliAgentEnvironmentScanner(ICopilotCliRunner copilotCliRunner, string configDirectory)
-        {
-            _copilotCliRunner = copilotCliRunner;
-            _configDirectory = configDirectory;
-        }
-
-        public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
-        {
-            // Check if we're running in a VSCode terminal
-            var isVSCode = !string.IsNullOrEmpty(context.ExecutionContext.GetEnvironmentVariable("VSCODE_IPC_HOOK"));
-            
-            if (isVSCode)
-            {
-                // In VSCode, skip the version check and check if already configured
-                if (HasAspireServerConfigured())
-                {
-                    return;
-                }
-                
-                // Assume Copilot CLI is available and offer to configure
-                context.AddApplicator(CreateApplicator());
-                return;
-            }
-            
-            var copilotVersion = await _copilotCliRunner.GetVersionAsync(cancellationToken).ConfigureAwait(false);
-
-            if (copilotVersion is null)
-            {
-                return;
-            }
-
-            if (HasAspireServerConfigured())
-            {
-                return;
-            }
-
-            context.AddApplicator(CreateApplicator());
-        }
-
-        private string GetMcpConfigFilePath() => Path.Combine(_configDirectory, McpConfigFileName);
-
-        private bool HasAspireServerConfigured()
-        {
-            var configFilePath = GetMcpConfigFilePath();
-
-            if (!File.Exists(configFilePath))
-            {
-                return false;
-            }
-
-            try
-            {
-                var content = File.ReadAllText(configFilePath);
-                var config = JsonNode.Parse(content)?.AsObject();
-
-                if (config is null)
-                {
-                    return false;
-                }
-
-                if (config.TryGetPropertyValue("mcpServers", out var serversNode) && serversNode is JsonObject servers)
-                {
-                    return servers.ContainsKey(AspireServerName);
-                }
-
-                return false;
-            }
-            catch (JsonException)
-            {
-                return false;
-            }
-        }
-
-        private AgentEnvironmentApplicator CreateApplicator()
-        {
-            return new AgentEnvironmentApplicator(
-                "Configure GitHub Copilot CLI to use the Aspire MCP server",
-                ApplyMcpConfigurationAsync);
-        }
-
-        private async Task ApplyMcpConfigurationAsync(CancellationToken cancellationToken)
-        {
-            var configFilePath = GetMcpConfigFilePath();
-
-            if (!Directory.Exists(_configDirectory))
-            {
-                Directory.CreateDirectory(_configDirectory);
-            }
-
-            JsonObject config;
-
-            if (File.Exists(configFilePath))
-            {
-                var existingContent = await File.ReadAllTextAsync(configFilePath, cancellationToken);
-                config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
-            }
-            else
-            {
-                config = new JsonObject();
-            }
-
-            if (!config.ContainsKey("mcpServers") || config["mcpServers"] is not JsonObject)
-            {
-                config["mcpServers"] = new JsonObject();
-            }
-
-            var servers = config["mcpServers"]!.AsObject();
-
-            servers[AspireServerName] = new JsonObject
-            {
-                ["type"] = "local",
-                ["command"] = "aspire",
-                ["args"] = new JsonArray("mcp", "start"),
-                ["env"] = new JsonObject
-                {
-                    ["DOTNET_ROOT"] = "${DOTNET_ROOT}"
-                },
-                ["tools"] = new JsonArray("*")
-            };
-
-            var jsonContent = System.Text.Json.JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
-            await File.WriteAllTextAsync(configFilePath, jsonContent, cancellationToken);
         }
     }
 }
