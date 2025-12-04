@@ -333,24 +333,32 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public void ContainerRegistryResourceHasPipelineStepAnnotation()
+    public void ContainerWithDockerfileHasPushStepAndConfigurationAnnotations()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var container = builder.AddDockerfile("mycontainer", "../myapp");
 
-        var pipelineStepAnnotation = registry.Resource.Annotations.OfType<PipelineStepAnnotation>().SingleOrDefault();
-        Assert.NotNull(pipelineStepAnnotation);
+        var pipelineStepAnnotations = container.Resource.Annotations.OfType<PipelineStepAnnotation>().ToList();
+        var pipelineConfigAnnotations = container.Resource.Annotations.OfType<PipelineConfigurationAnnotation>().ToList();
+
+        Assert.NotEmpty(pipelineStepAnnotations);
+        Assert.NotEmpty(pipelineConfigAnnotations);
     }
 
     [Fact]
-    public void ContainerRegistryResourceHasPipelineConfigurationAnnotation()
+    public void ProjectResourceHasPushStepAndConfigurationAnnotations()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var project = builder.AddProject<Projects.ServiceA>("api");
 
-        var configurationAnnotation = registry.Resource.Annotations.OfType<PipelineConfigurationAnnotation>().SingleOrDefault();
-        Assert.NotNull(configurationAnnotation);
+        var pipelineStepAnnotations = project.Resource.Annotations.OfType<PipelineStepAnnotation>().ToList();
+        var pipelineConfigAnnotations = project.Resource.Annotations.OfType<PipelineConfigurationAnnotation>().ToList();
+
+        Assert.NotEmpty(pipelineStepAnnotations);
+        Assert.NotEmpty(pipelineConfigAnnotations);
     }
 }

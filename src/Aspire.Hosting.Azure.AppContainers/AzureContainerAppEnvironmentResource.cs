@@ -32,14 +32,6 @@ public class AzureContainerAppEnvironmentResource :
             var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
 
-            var loginToAcrStep = new PipelineStep
-            {
-                Name = $"login-to-acr-{name}",
-                Description = $"Logs in to Azure Container Registry for {name}.",
-                Action = context => AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, context),
-                Tags = ["acr-login"]
-            };
-
             // Add print-dashboard-url step
             var printDashboardUrlStep = new PipelineStep
             {
@@ -51,7 +43,6 @@ public class AzureContainerAppEnvironmentResource :
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy]
             };
 
-            steps.Add(loginToAcrStep);
             steps.Add(printDashboardUrlStep);
 
             // Expand deployment target steps for all compute resources
@@ -92,8 +83,6 @@ public class AzureContainerAppEnvironmentResource :
         // This is where we wire up the build steps created by the resources
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
         {
-            var acrLoginSteps = context.GetSteps(this, "acr-login");
-
             // Wire up build step dependencies
             // Build steps are created by ProjectResource and ContainerResource
             foreach (var computeResource in context.Model.GetComputeResources())
@@ -113,9 +102,6 @@ public class AzureContainerAppEnvironmentResource :
                         annotation.Callback(context);
                     }
                 }
-
-                context.GetSteps(deploymentTarget, WellKnownPipelineTags.PushContainerImage)
-                       .DependsOn(acrLoginSteps);
             }
 
             // This ensures that resources that have to be built before deployments are handled
@@ -130,8 +116,6 @@ public class AzureContainerAppEnvironmentResource :
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
             var printDashboardUrlSteps = context.GetSteps(this, "print-summary");
             printDashboardUrlSteps.DependsOn(provisionSteps);
-
-            acrLoginSteps.DependsOn(provisionSteps);
         }));
     }
 
@@ -179,19 +163,42 @@ public class AzureContainerAppEnvironmentResource :
     /// </summary>
     public BicepOutputReference NameOutputReference => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
 
-    /// <summary>
-    /// Gets the container registry name.
-    /// </summary>
-    private BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
-
     internal Dictionary<string, (IResource resource, ContainerMountAnnotation volume, int index, BicepOutputReference outputReference)> VolumeNames { get; } = [];
 
-    // Implement IAzureContainerRegistry interface
-    ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create($"{ContainerRegistryName}");
+    private IContainerRegistry? GetAssociatedRegistry()
+    {
+        return this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation)
+            ? annotation.Registry
+            : null;
+    }
 
-    ReferenceExpression IContainerRegistry.Endpoint => ReferenceExpression.Create($"{ContainerRegistryUrl}");
+    // Implement IAzureContainerRegistry interface by delegating to the associated registry
+    ReferenceExpression IContainerRegistry.Name
+    {
+        get
+        {
+            var registry = GetAssociatedRegistry();
+            return registry?.Name ?? throw new InvalidOperationException($"No container registry associated with environment '{Name}'");
+        }
+    }
 
-    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
+    ReferenceExpression IContainerRegistry.Endpoint
+    {
+        get
+        {
+            var registry = GetAssociatedRegistry();
+            return registry?.Endpoint ?? throw new InvalidOperationException($"No container registry associated with environment '{Name}'");
+        }
+    }
+
+    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId
+    {
+        get
+        {
+            var registry = GetAssociatedRegistry() as IAzureContainerRegistry;
+            return registry?.ManagedIdentityId ?? throw new InvalidOperationException($"No Azure container registry associated with environment '{Name}'");
+        }
+    }
 
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
