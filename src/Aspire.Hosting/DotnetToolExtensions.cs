@@ -87,7 +87,7 @@ public static class DotnetToolExtensions
             }
 
             x.Args.Add("--yes");
-            x.Args.Add("--");
+            x.Args.Add(ArgumentSeperator);
         }
 
         static async Task StartSourceFixer(T resource, InitializeResourceEvent evt, CancellationToken ct)
