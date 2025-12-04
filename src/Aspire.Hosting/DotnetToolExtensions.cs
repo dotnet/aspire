@@ -108,53 +108,44 @@ public static class DotnetToolExtensions
                         continue;
                     }
 
+                    var properties = x.Snapshot.Properties;
                     var expectedPath = toolConfig.PackageId;
+                    var existingPath = properties.FirstOrDefault(p => p.Name == KnownProperties.Executable.Path)?.Value;
 
-                    var existingPathProp = x.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Executable.Path);
-                    if (existingPathProp != null && existingPathProp.Value as string != expectedPath)
+                    if (existingPath as string == expectedPath)
                     {
-                        await rns.PublishUpdateAsync(resource, x =>
-                        {
-                            // Existing Path could have changed in the meantime, so make sure to get the updated version
-                            var existingPathProp = x.Properties.FirstOrDefault(p => p.Name == KnownProperties.Executable.Path);
-                            if (existingPathProp == null)
-                            {
-                                return x;
-                            }
-
-                            var argsProperty = x.Properties.FirstOrDefault(x => x.Name == KnownProperties.Resource.AppArgs);
-                            var argsSensitivityProperty = x.Properties.FirstOrDefault(x => x.Name == KnownProperties.Resource.AppArgsSensitivity);
-
-                            if (argsProperty?.Value is not ImmutableArray<string> originalArgs
-                                || argsSensitivityProperty?.Value is not ImmutableArray<int> originalSensitivity)
-                            {
-                                return x; ;
-                            }
-
-                            var argSeperatorPosition = originalArgs.IndexOf(ArgumentSeperator);
-                            if (argSeperatorPosition == 0)
-                            {
-                                return x;
-                            }
-
-                            var firstArgToDisplay = argSeperatorPosition + 1;
-                            var trimmedArgs = originalArgs[firstArgToDisplay..];
-                            var trimmedSensitivity = originalSensitivity[firstArgToDisplay..];
-
-                            return x with
-                            {
-                                Properties = x.Properties
-                                        .Replace(existingPathProp, existingPathProp with { Value = expectedPath })
-                                        .Replace(argsSensitivityProperty, argsSensitivityProperty with { Value = trimmedSensitivity })
-                                        //TODO: This could be overly agressive if any of the `dotnet tool exec` args are sensitive but no others are
-                                        // But I don't see how else to get argument sensitivity.
-                                        // I also don't see how you could end up with a sensitive argument specifically to `dotnet tool exec`, and not the tool itself
-                                        .Replace(argsProperty, argsProperty with { Value = trimmedArgs })
-                            };
-                        }).ConfigureAwait(false);
+                        continue;
                     }
-                }
 
+                    var argsProperty = properties.FirstOrDefault(x => x.Name == KnownProperties.Resource.AppArgs);
+                    var argsSensitivityProperty = properties.FirstOrDefault(x => x.Name == KnownProperties.Resource.AppArgsSensitivity);
+
+                    if (argsProperty?.Value is not ImmutableArray<string> originalArgs
+                        || argsSensitivityProperty?.Value is not ImmutableArray<int> originalSensitivity)
+                    {
+                        continue;
+                    }
+
+                    var argSeperatorPosition = originalArgs.IndexOf(ArgumentSeperator);
+                    if (argSeperatorPosition == 0)
+                    {
+                        return;
+                    }
+
+                    var firstArgToDisplay = argSeperatorPosition + 1;
+                    var trimmedArgs = originalArgs[firstArgToDisplay..];
+                    var trimmedSensitivity = originalSensitivity[firstArgToDisplay..];
+
+                    await rns.PublishUpdateAsync(resource, x => x with
+                    {
+                        Properties= [
+                            ..x.Properties.RemoveAll(p => p.Name is KnownProperties.Executable.Path or KnownProperties.Resource.AppArgs or KnownProperties.Resource.AppArgsSensitivity),
+                            new(KnownProperties.Executable.Path, expectedPath),
+                            new(KnownProperties.Resource.AppArgs, trimmedArgs),
+                            new(KnownProperties.Resource.AppArgsSensitivity, trimmedSensitivity)
+                            ]
+                    }).ConfigureAwait(false);
+                }
             }, ct);
         }
 
