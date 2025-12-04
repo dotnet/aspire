@@ -231,7 +231,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
             debugMode: false,
-            environmentVariables: null,
+            environmentVariables: new Dictionary<string, string?>(),
             homeDirectory: workingDirectory);
     }
 
@@ -239,7 +239,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     {
         var environmentVariables = new Dictionary<string, string?>
         {
-            ["VSCODE_IPC_HOOK"] = "test-value"
+            ["TERM_PROGRAM"] = "vscode"
         };
         
         return new CliExecutionContext(

@@ -156,7 +156,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// </summary>
     private bool HasVsCodeEnvironmentVariables()
     {
-        if (_executionContext.GetEnvironmentVariable("VSCODE_IPC_HOOK") is not null)
+        if (_executionContext.GetEnvironmentVariable("TERM_PROGRAM") == "vscode")
         {
             return true;
         }

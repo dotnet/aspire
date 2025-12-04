@@ -45,8 +45,7 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
         var homeDirectory = _executionContext.HomeDirectory;
         
         // Check if we're running in a VSCode terminal
-        // VSCode sets VSCODE_IPC_HOOK when running a terminal
-        var isVSCode = !string.IsNullOrEmpty(_executionContext.GetEnvironmentVariable("VSCODE_IPC_HOOK"));
+        var isVSCode = _executionContext.GetEnvironmentVariable("TERM_PROGRAM") == "vscode";
         
         if (isVSCode)
         {
