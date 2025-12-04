@@ -2080,6 +2080,7 @@ public class DcpExecutorTests
                 ServiceProvider = new TestServiceProvider(configuration)
                     .AddService<IDeveloperCertificateService>(developerCertificateService)
                     .AddService(Options.Create(dcpOptions))
+                    .AddService(resourceLoggerService)
             }),
             resourceLoggerService,
             new TestDcpDependencyCheckService(),
