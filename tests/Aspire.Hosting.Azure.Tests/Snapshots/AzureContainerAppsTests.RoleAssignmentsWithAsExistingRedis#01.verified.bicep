@@ -3,18 +3,22 @@ param location string = resourceGroup().location
 
 param principalId string
 
-param principalName string
-
-resource redis 'Microsoft.Cache/redis@2024-11-01' existing = {
+resource redis 'Microsoft.Cache/redisEnterprise@2025-04-01' existing = {
   name: 'myredis'
 }
 
-resource redis_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-11-01' = {
-  name: guid(redis.id, principalId, 'Data Contributor')
-  properties: {
-    accessPolicyName: 'Data Contributor'
-    objectId: principalId
-    objectIdAlias: principalName
-  }
+resource redis_default 'Microsoft.Cache/redisEnterprise/databases@2025-04-01' existing = {
+  name: 'default'
   parent: redis
+}
+
+resource redis_default_contributor 'Microsoft.Cache/redisEnterprise/databases/accessPolicyAssignments@2025-04-01' = {
+  name: guid(redis_default.id, principalId, 'default')
+  properties: {
+    accessPolicyName: 'default'
+    user: {
+      objectId: principalId
+    }
+  }
+  parent: redis_default
 }

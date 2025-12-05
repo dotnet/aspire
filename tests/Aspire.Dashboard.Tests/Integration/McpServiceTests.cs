@@ -1,12 +1,16 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Mcp;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration;
@@ -62,7 +66,7 @@ public class McpServiceTests
         var responseMessage = await httpClient.SendAsync(request).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
         // Assert
-        Assert.False(responseMessage.IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, responseMessage.StatusCode);
     }
 
     [Fact]
@@ -85,7 +89,7 @@ public class McpServiceTests
         var responseMessage = await httpClient.SendAsync(requestMessage).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
         // Assert
-        Assert.False(responseMessage.IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, responseMessage.StatusCode);
     }
 
     [Fact]
@@ -201,7 +205,7 @@ public class McpServiceTests
         var responseMessage = await httpClient.SendAsync(request).DefaultTimeout(TestConstants.LongTimeoutDuration);
 
         // Assert
-        Assert.False(responseMessage.IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, responseMessage.StatusCode);
     }
 
     [Fact]
@@ -236,6 +240,59 @@ public class McpServiceTests
         var tools = jsonResponse["result"]!["tools"]!.AsArray();
 
         Assert.NotEmpty(tools);
+    }
+
+    [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/13280")]
+    public async Task CallService_McpTool_TelemetryRecorded()
+    {
+        // Arrange
+        var testTelemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = true };
+
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
+            _testOutputHelper,
+            preConfigureBuilder: builder =>
+            {
+                // Replace the telemetry sender with our test version
+                builder.Services.AddSingleton<IDashboardTelemetrySender>(testTelemetrySender);
+            });
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Initialize telemetry service
+        var telemetryService = app.Services.GetRequiredService<DashboardTelemetryService>();
+        await telemetryService.InitializeAsync();
+
+        // Drain any initialization telemetry (properties posted during initialization)
+        while (testTelemetrySender.ContextChannel.Reader.TryRead(out _))
+        {
+            // Drain the channel
+        }
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.McpEndPointAccessor().EndPoint}");
+
+        var request = CreateListToolsRequest();
+
+        // Act
+        var responseMessage = await httpClient.SendAsync(request).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        responseMessage.EnsureSuccessStatusCode();
+
+        // Assert
+        // Read and assert the two expected telemetry items (StartOperation and EndOperation)
+        var startOperationContext = await testTelemetrySender.ContextChannel.Reader.ReadAsync().DefaultTimeout();
+        Assert.Contains(TelemetryEventKeys.McpToolCall, startOperationContext.Name);
+        Assert.Contains(TelemetryEndpoints.TelemetryStartOperation, startOperationContext.Name);
+        Assert.Equal(2, startOperationContext.Properties.Length); // StartOperation creates 2 properties (operationId and correlation)
+
+        var endOperationContext = await testTelemetrySender.ContextChannel.Reader.ReadAsync().DefaultTimeout();
+        Assert.Contains(TelemetryEndpoints.TelemetryEndOperation, endOperationContext.Name);
+
+        // Dispose the sender to complete the channel
+        await testTelemetrySender.DisposeAsync();
+
+        // Verify there is no other telemetry
+        var hasMore = await testTelemetrySender.ContextChannel.Reader.WaitToReadAsync().DefaultTimeout();
+        Assert.False(hasMore);
     }
 
     internal static HttpRequestMessage CreateListToolsRequest()

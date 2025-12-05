@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <DcpPlatform Condition=" '$(DcpPlatform)' == '' ">$([System.String]::Copy('$(DcpRuntime)').Replace('win-', 'windows-').Replace('osx-', 'darwin-').Replace('-x86', '-386').Replace('-x64', '-amd64'))</DcpPlatform>
+    <DcpPlatform Condition=" '$(DcpPlatform)' == '' ">$([System.String]::Copy('$(DcpRuntime)').Replace('win-', 'windows-').Replace('osx-', 'darwin-').Replace('-x64', '-amd64'))</DcpPlatform>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -41,7 +41,6 @@
     <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-amd64" Version="[$(MicrosoftDeveloperControlPlanelinuxamd64Version)]" />
     <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-arm64" Version="[$(MicrosoftDeveloperControlPlanelinuxarm64Version)]" />
     <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-musl-amd64" Version="[$(MicrosoftDeveloperControlPlanelinuxmuslamd64Version)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-386" Version="[$(MicrosoftDeveloperControlPlanewindows386Version)]" />
     <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-amd64" Version="[$(MicrosoftDeveloperControlPlanewindowsamd64Version)]" />
     <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-arm64" Version="[$(MicrosoftDeveloperControlPlanewindowsarm64Version)]" />
   </ItemGroup>

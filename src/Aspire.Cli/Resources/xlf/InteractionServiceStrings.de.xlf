@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="de" original="../InteractionServiceStrings.resx">
     <body>
+      <trans-unit id="AppHostConnectionLost">
+        <source>The connection to the app host was lost: {0}.</source>
+        <target state="translated">Die Verbindung mit dem App-Host wurde getrennt: {0}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
         <target state="translated">Die AppHost-Version ist nicht kompatibel. Aktualisieren Sie den AppHost oder die Aspire-CLI.</target>

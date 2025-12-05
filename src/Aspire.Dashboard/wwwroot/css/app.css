@@ -775,6 +775,11 @@ fluent-switch.table-switch::part(label) {
     margin-bottom: 0;
 }
 
+.input-container .fluent-input-label {
+    font-weight: 500 !important;
+    font-size: 13.5px !important;
+}
+
 .action-divider {
     display: inline;
     height: 20px;

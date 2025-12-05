@@ -9,8 +9,8 @@ using System.Text;
 using System.Text.Json;
 using Aspire.Dashboard.Authentication;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Utils;
 using Google.Protobuf;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
@@ -34,6 +34,7 @@ public static class OtlpHttpEndpointsBuilder
         if (httpEndpoint == null)
         {
             // Don't map OTLP HTTP route endpoints if there isn't a Kestrel endpoint to access them with.
+            // Note that we don't need to add map routing endpoints that return 404 here because they'll always return Unauthorized from another Kestrel endpoint.
             return;
         }
 
@@ -104,14 +105,14 @@ public static class OtlpHttpEndpointsBuilder
     {
         var logger = httpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.Dashboard.Otlp.Http");
         logger.LogDebug("OTLP HTTP request with unsupported content type '{ContentType}' was rejected. Only '{SupportedContentType}' is supported.", httpContext.Request.ContentType, ProtobufContentType);
-        
+
         httpContext.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
         httpContext.Response.ContentType = JsonContentType;
-        
+
         var status = new StatusResponse(
             Code: 15, // UNIMPLEMENTED from gRPC status codes
             Message: $"Content type '{httpContext.Request.ContentType}' is not supported. Only '{ProtobufContentType}' is supported.");
-        
+
         var json = JsonSerializer.Serialize(status, s_jsonOptions);
         await httpContext.Response.WriteAsync(json, Encoding.UTF8).ConfigureAwait(false);
     }
@@ -120,7 +121,7 @@ public static class OtlpHttpEndpointsBuilder
     {
         builder
             .RequireAuthorization(OtlpAuthorization.PolicyName)
-            .Add(b => b.Metadata.Add(new SkipStatusCodePagesAttribute()));
+            .SkipStatusCodePages();
         return builder;
     }
 

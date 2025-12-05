@@ -10,6 +10,7 @@ using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -50,7 +51,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
     internal Dictionary<IResource, DockerComposeServiceResource> ResourceMapping { get; } = new(new ResourceNameComparer());
 
-    internal PortAllocator PortAllocator { get; } = new();
+    internal IPortAllocator PortAllocator { get; } = new PortAllocator();
 
     /// <param name="name">The name of the Docker Compose environment.</param>
     public DockerComposeEnvironmentResource(string name) : base(name)
@@ -63,6 +64,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             var publishStep = new PipelineStep
             {
                 Name = $"publish-{Name}",
+                Description = $"Publishes the Docker Compose environment configuration for {Name}.",
                 Action = ctx => PublishAsync(ctx)
             };
             publishStep.RequiredBy(WellKnownPipelineSteps.Publish);
@@ -101,6 +103,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             var prepareStep = new PipelineStep
             {
                 Name = $"prepare-{Name}",
+                Description = $"Prepares the Docker Compose environment {Name} for deployment.",
                 Action = ctx => PrepareAsync(ctx)
             };
             prepareStep.DependsOn(WellKnownPipelineSteps.Publish);
@@ -182,7 +185,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     private Task PublishAsync(PipelineStepContext context)
     {
         var outputPath = PublishingContextUtils.GetEnvironmentOutputPath(context, this);
-        var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageManager>();
 
         var dockerComposePublishingContext = new DockerComposePublishingContext(
             context.ExecutionContext,
@@ -211,7 +214,8 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         {
             try
             {
-                var arguments = $"compose -f \"{dockerComposeFilePath}\"";
+                var projectName = GetDockerComposeProjectName(context);
+                var arguments = $"compose -f \"{dockerComposeFilePath}\" --project-name \"{projectName}\"";
 
                 if (File.Exists(envFilePath))
                 {
@@ -219,6 +223,8 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                 }
 
                 arguments += " up -d --remove-orphans";
+
+                context.Logger.LogDebug("Running docker compose up with project name: {ProjectName}, arguments: {Arguments}", projectName, arguments);
 
                 var spec = new ProcessSpec("docker")
                 {
@@ -278,7 +284,8 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         {
             try
             {
-                var arguments = $"compose -f \"{dockerComposeFilePath}\"";
+                var projectName = GetDockerComposeProjectName(context);
+                var arguments = $"compose -f \"{dockerComposeFilePath}\" --project-name \"{projectName}\"";
 
                 if (File.Exists(envFilePath))
                 {
@@ -286,6 +293,8 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                 }
 
                 arguments += " down";
+
+                context.Logger.LogDebug("Running docker compose down with project name: {ProjectName}, arguments: {Arguments}", projectName, arguments);
 
                 var spec = new ProcessSpec("docker")
                 {
@@ -358,6 +367,23 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         CapturedEnvironmentVariables[name] = (description, defaultValue, source);
 
         return $"${{{name}}}";
+    }
+
+    private string GetDockerComposeProjectName(PipelineStepContext context)
+    {
+        // Get the AppHost:PathSha256 from configuration to disambiguate projects
+        var configuration = context.Services.GetService<IConfiguration>();
+        var appHostSha = configuration?["AppHost:PathSha256"];
+
+        if (!string.IsNullOrEmpty(appHostSha) && appHostSha.Length >= 8)
+        {
+            // Use first 8 characters of the hash for readability
+            // Format: aspire-{environmentName}-{sha8}
+            return $"aspire-{Name.ToLowerInvariant()}-{appHostSha[..8].ToLowerInvariant()}";
+        }
+
+        // Fallback to just using the environment name if PathSha256 is not available
+        return $"aspire-{Name.ToLowerInvariant()}";
     }
 
     private string GetEnvFilePath(PipelineStepContext context)

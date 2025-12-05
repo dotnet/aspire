@@ -22,7 +22,7 @@ public static class AzureRedisExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AzureManagedRedisExtensions.AddAzureManagedRedis)} instead which provisions Azure Managed Redis.")]
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder)
         => PublishAsAzureRedisInternal(builder, useProvisioner: false);
 
@@ -81,7 +81,7 @@ public static class AzureRedisExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AzureManagedRedisExtensions.AddAzureManagedRedis)} instead which provisions Azure Managed Redis.")]
     public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder)
         => PublishAsAzureRedisInternal(builder, useProvisioner: true);
 
@@ -111,6 +111,7 @@ public static class AzureRedisExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AzureManagedRedisExtensions.AddAzureManagedRedis)} instead which provisions Azure Managed Redis.")]
     public static IResourceBuilder<AzureRedisCacheResource> AddAzureRedis(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name)
@@ -148,6 +149,7 @@ public static class AzureRedisExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AzureManagedRedisExtensions.AddAzureManagedRedis)} instead which provisions Azure Managed Redis.")]
     public static IResourceBuilder<AzureRedisCacheResource> RunAsContainer(
         this IResourceBuilder<AzureRedisCacheResource> builder,
         Action<IResourceBuilder<RedisResource>>? configureContainer = null)
@@ -192,6 +194,7 @@ public static class AzureRedisExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AzureManagedRedisExtensions.AddAzureManagedRedis)} instead which provisions Azure Managed Redis.")]
     public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -222,6 +225,7 @@ public static class AzureRedisExtensions
     /// <param name="builder">The Azure Cache for Redis resource builder.</param>
     /// <param name="keyVaultBuilder">The Azure Key Vault resource builder where the connection string used to connect to this AzureRedisCacheResource will be stored.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> builder.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AzureManagedRedisExtensions.AddAzureManagedRedis)} instead which provisions Azure Managed Redis.")]
     public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(this IResourceBuilder<AzureRedisCacheResource> builder, IResourceBuilder<IAzureKeyVaultResource> keyVaultBuilder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -265,6 +269,7 @@ public static class AzureRedisExtensions
         });
     }
 
+    [Obsolete]
     private static void ConfigureRedisInfrastructure(AzureResourceInfrastructure infrastructure)
     {
         var redis = CreateRedisResource(infrastructure);

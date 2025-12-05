@@ -120,4 +120,19 @@
   <data name="UpdateCliAfterProjectUpdatePrompt" xml:space="preserve">
     <value>An update is available for the Aspire CLI. Would you like to update it now?</value>
   </data>
+  <data name="ChannelOptionDescription" xml:space="preserve">
+    <value>Channel to update to (stable, daily)</value>
+  </data>
+  <data name="ChannelOptionDescriptionWithStaging" xml:space="preserve">
+    <value>Channel to update to (stable, staging, daily)</value>
+  </data>
+  <data name="QualityOptionDescription" xml:space="preserve">
+    <value>Quality level to update to (stable, daily)</value>
+  </data>
+  <data name="QualityOptionDescriptionWithStaging" xml:space="preserve">
+    <value>Quality level to update to (stable, staging, daily)</value>
+  </data>
+  <data name="DotNetToolSelfUpdateMessage" xml:space="preserve">
+    <value>To update the Aspire CLI when installed as a .NET tool, run:</value>
+  </data>
 </root>

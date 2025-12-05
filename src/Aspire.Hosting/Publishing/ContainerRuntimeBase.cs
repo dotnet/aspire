@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIRECONTAINERRUNTIME001
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Logging;
 
@@ -36,14 +37,14 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
 
     public abstract Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken);
 
-    public abstract Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
+    public abstract Task BuildImageAsync(string contextPath, string dockerfilePath, ContainerImageBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
 
     public virtual async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)
     {
         var arguments = $"tag \"{localImageName}\" \"{targetImageName}\"";
-        
+
         await ExecuteContainerCommandAsync(
-            arguments, 
+            arguments,
             $"{Name} tag for {{LocalImageName}} -> {{TargetImageName}} failed with exit code {{ExitCode}}.",
             $"{Name} tag for {{LocalImageName}} -> {{TargetImageName}} succeeded.",
             $"{Name} tag failed with exit code {{0}}.",
@@ -64,17 +65,25 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             imageName).ConfigureAwait(false);
     }
 
-    public virtual async Task PushImageAsync(string imageName, CancellationToken cancellationToken)
+    public virtual async Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
     {
-        var arguments = $"push \"{imageName}\"";
-        
+        var localImageName = resource.TryGetContainerImageName(out var imageName)
+            ? imageName
+            : resource.Name.ToLowerInvariant();
+
+        var remoteImageName = await resource.GetFullRemoteImageNameAsync(cancellationToken).ConfigureAwait(false);
+
+        await TagImageAsync(localImageName, remoteImageName, cancellationToken).ConfigureAwait(false);
+
+        var arguments = $"push \"{remoteImageName}\"";
+
         await ExecuteContainerCommandAsync(
-            arguments, 
+            arguments,
             $"{Name} push for {{ImageName}} failed with exit code {{ExitCode}}.",
             $"{Name} push for {{ImageName}} succeeded.",
             $"{Name} push failed with exit code {{0}}.",
             cancellationToken,
-            imageName).ConfigureAwait(false);
+            remoteImageName).ConfigureAwait(false);
     }
 
     public virtual async Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken)
@@ -83,7 +92,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         var escapedRegistryServer = registryServer.Replace("\"", "\\\"");
         var escapedUsername = username.Replace("\"", "\\\"");
         var arguments = $"login \"{escapedRegistryServer}\" --username \"{escapedUsername}\" --password-stdin";
-        
+
         var spec = new ProcessSpec(RuntimeExecutable)
         {
             Arguments = arguments,
@@ -99,7 +108,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
         };
-        
+
         _logger.LogDebug("Running {RuntimeName} with arguments: {Arguments}", RuntimeExecutable, arguments);
         _logger.LogDebug("Password length being passed to stdin: {PasswordLength}", password?.Length ?? 0);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
@@ -130,7 +139,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <param name="logArguments">Arguments to pass to the log templates.</param>
     private async Task ExecuteContainerCommandAsync(
-        string arguments, 
+        string arguments,
         string errorLogTemplate,
         string successLogTemplate,
         string exceptionMessageTemplate,
@@ -138,7 +147,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         params object[] logArguments)
     {
         var spec = CreateProcessSpec(arguments);
-        
+
         _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
@@ -170,7 +179,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// <param name="environmentVariables">Optional environment variables to set for the process.</param>
     /// <returns>The exit code of the process.</returns>
     protected async Task<int> ExecuteContainerCommandWithExitCodeAsync(
-        string arguments, 
+        string arguments,
         string errorLogTemplate,
         string successLogTemplate,
         CancellationToken cancellationToken,
@@ -178,7 +187,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         Dictionary<string, string>? environmentVariables = null)
     {
         var spec = CreateProcessSpec(arguments);
-        
+
         // Add environment variables if provided
         if (environmentVariables is not null)
         {
@@ -187,7 +196,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
                 spec.EnvironmentVariables[key] = value;
             }
         }
-        
+
         _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 

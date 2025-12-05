@@ -17,7 +17,7 @@ param(
     [string]$OS = "",
 
     [Parameter(HelpMessage = "Architecture")]
-    [ValidateSet("", "x64", "x86", "arm64")]
+    [ValidateSet("", "x64", "arm64")]
     [string]$Architecture = "",
 
     [Parameter(HelpMessage = "Keep downloaded archive files and temporary directory after installation")]
@@ -46,7 +46,7 @@ $Script:Config = @{
     MinimumPowerShellVersion = 4
     SupportedQualities = @("release", "staging", "dev")
     SupportedOperatingSystems = @("win", "linux", "linux-musl", "osx")
-    SupportedArchitectures = @("x64", "x86", "arm64")
+    SupportedArchitectures = @("x64", "arm64")
     BaseUrls = @{
         "dev" = "https://aka.ms/dotnet/9/aspire/daily"
         "staging" = "https://aka.ms/dotnet/9/aspire/rc/daily"
@@ -277,7 +277,6 @@ function Get-MachineArchitecture {
                 $runtimeArch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
                 switch ($runtimeArch) {
                     "X64" { return "x64" }
-                    "X86" { return "x86" }
                     "Arm64" { return "arm64" }
                     default {
                         Write-Message "Unknown runtime architecture: $runtimeArch" -Level Verbose
@@ -287,7 +286,6 @@ function Get-MachineArchitecture {
                             switch ($unameArch) {
                                 { @("x86_64", "amd64") -contains $_ } { return "x64" }
                                 { @("aarch64", "arm64") -contains $_ } { return "arm64" }
-                                { @("i386", "i686") -contains $_ } { return "x86" }
                                 default {
                                     Write-Message "Unknown uname architecture: $unameArch" -Level Verbose
                                     return "x64"  # Default fallback
@@ -333,9 +331,6 @@ function Get-CLIArchitectureFromArchitecture {
     switch ($normalizedArch) {
         { @("amd64", "x64") -contains $_ } {
             return "x64"
-        }
-        { $_ -eq "x86" } {
-            return "x86"
         }
         { $_ -eq "arm64" } {
             return "arm64"

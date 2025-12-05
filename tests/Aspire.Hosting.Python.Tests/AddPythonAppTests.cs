@@ -1693,15 +1693,15 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task FallbackDockerfile_GeneratesDockerfileWithoutUv_WithoutRequirementsTxt()
+    public async Task FallbackDockerfile_GeneratesDockerfileWithPyprojectToml()
     {
         using var sourceDir = new TempDirectory();
         using var outputDir = new TempDirectory();
         var projectDirectory = sourceDir.Path;
 
-        // Create a Python project without UV and without requirements.txt
+        // Create a Python project without UV but with pyproject.toml
         var scriptContent = """
-            print("Hello from non-UV project with no dependencies!")
+            print("Hello from non-UV project with pyproject.toml!")
             """;
 
         var pyprojectContent = """
@@ -1728,15 +1728,36 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var dockerfileContent = File.ReadAllText(dockerfilePath);
 
-        // Verify it's a fallback Dockerfile (single stage, no UV)
-        Assert.DoesNotContain("uv sync", dockerfileContent);
-        Assert.DoesNotContain("ghcr.io/astral-sh/uv", dockerfileContent);
+        await Verify(dockerfileContent);
+    }
 
-        // Verify it doesn't have pip install since there's no requirements.txt
-        Assert.DoesNotContain("pip install", dockerfileContent);
+    [Fact]
+    public async Task FallbackDockerfile_GeneratesDockerfileWithoutAnyDependencyFiles()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
 
-        // Verify it uses the same runtime image as UV workflow
-        Assert.Contains("FROM python:3.11-slim-bookworm", dockerfileContent);
+        // Create a Python project with NO pyproject.toml and NO requirements.txt
+        var scriptContent = """
+            print("Hello from Python app with no dependencies!")
+            """;
+
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
+
+        // Add Python resources without UV environment
+        builder.AddPythonApp("script-app", projectDirectory, "main.py");
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify that Dockerfile was generated
+        var dockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), "Dockerfile should be generated for Python app");
+
+        var dockerfileContent = File.ReadAllText(dockerfilePath);
 
         await Verify(dockerfileContent);
     }
@@ -2264,6 +2285,75 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         // Verify only one installer exists
         Assert.Single(appModel.Resources.OfType<PythonInstallerResource>());
+    }
+
+    [Fact]
+    public async Task WithPip_InstallFalse_CreatesInstallerWithExplicitStart()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "requests");
+
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
+            .WithPip(install: false);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Manually trigger BeforeStartEvent to wire up dependencies
+        await PublishBeforeStartEventAsync(app);
+
+        // Verify installer resource WAS created
+        var installerResource = Assert.Single(appModel.Resources.OfType<PythonInstallerResource>());
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+
+        // Verify it has explicit start annotation
+        Assert.True(installerResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _));
+
+        // Verify the app does NOT wait for the installer
+        var pythonAppResource = appModel.Resources.OfType<PythonAppResource>().Single();
+        var waitAnnotations = pythonAppResource.Annotations.OfType<WaitAnnotation>().ToList();
+        
+        // Should not wait for installer, only for venv creator
+        Assert.All(waitAnnotations, wait => Assert.NotEqual(installerResource, wait.Resource));
+    }
+
+    [Fact]
+    public async Task WithUv_InstallFalse_CreatesInstallerWithExplicitStart()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
+            .WithUv(install: false);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Manually trigger BeforeStartEvent to wire up dependencies
+        await PublishBeforeStartEventAsync(app);
+
+        // Verify installer resource WAS created
+        var installerResource = Assert.Single(appModel.Resources.OfType<PythonInstallerResource>());
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+
+        // Verify it has explicit start annotation
+        Assert.True(installerResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _));
+
+        // Verify the app does NOT wait for the installer
+        var pythonAppResource = appModel.Resources.OfType<PythonAppResource>().Single();
+        var waitAnnotations = pythonAppResource.Annotations.OfType<WaitAnnotation>().ToList();
+        
+        // Should not have any wait annotations since uv doesn't create venv
+        Assert.Empty(waitAnnotations);
     }
 
     /// <summary>

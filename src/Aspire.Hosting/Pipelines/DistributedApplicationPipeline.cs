@@ -36,12 +36,30 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Deploy,
+            Description = "Aggregation step for all deploy operations. All deploy steps should be required by this step.",
             Action = _ => Task.CompletedTask,
         });
+
+        var parameterPromptingStep = new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.ProcessParameters,
+            Description = "Prompts for parameter values before build, publish, or deployment operations.",
+            Action = async context =>
+            {
+                // Parameter processing - ensure all parameters are initialized and resolved
+                var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
+                await parameterProcessor.InitializeParametersAsync(context.Model, waitForResolution: true, context.CancellationToken).ConfigureAwait(false);
+            }
+        };
+        parameterPromptingStep.RequiredBy(WellKnownPipelineSteps.DeployPrereq);
+        parameterPromptingStep.RequiredBy(WellKnownPipelineSteps.BuildPrereq);
+        parameterPromptingStep.RequiredBy(WellKnownPipelineSteps.PublishPrereq);
+        _steps.Add(parameterPromptingStep);
 
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.DeployPrereq,
+            Description = "Prerequisite step that runs before any deploy operations. Initializes deployment environment and manages deployment state.",
             Action = async context =>
             {
                 // REVIEW: Break this up into smaller steps
@@ -67,7 +85,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         {
                             var result = await interactionService.PromptNotificationAsync(
                                 "Clear Deployment State",
-                                $"The deployment state for the '{hostEnvironment.EnvironmentName}' environment will be deleted. All Azure resources will be re-provisioned. Do you want to continue?",
+                                $"The deployment state for the '{hostEnvironment.EnvironmentName}' environment will be deleted. Do you want to continue?",
                                 new NotificationInteractionOptions
                                 {
                                     Intent = MessageIntent.Confirmation,
@@ -93,11 +111,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                     }
                 }
 
-                // Parameter processing - ensure all parameters are initialized and resolved
-
-                var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
-                await parameterProcessor.InitializeParametersAsync(context.Model, waitForResolution: true, context.CancellationToken).ConfigureAwait(false);
-
                 var computeResources = context.Model.Resources
                         .Where(r => r.RequiresImageBuild())
                         .ToList();
@@ -106,16 +119,21 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                 context.Logger.LogInformation("Setting default deploy tag '{Tag}' for compute resource(s).", uniqueDeployTag);
 
-                // Resources that were built, will get this tag unless they have a custom DeploymentImageTagCallbackAnnotation
+                // Resources that were built, will get this tag unless they have a custom ContainerImagePushOptionsCallbackAnnotation
+#pragma warning disable ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 foreach (var resource in context.Model.GetBuildResources())
                 {
-                    if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
+                    if (resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>().Any())
                     {
                         continue;
                     }
 
-                    resource.Annotations.Add(new DeploymentImageTagCallbackAnnotation(_ => uniqueDeployTag));
+                    resource.Annotations.Add(new ContainerImagePushOptionsCallbackAnnotation(context =>
+                    {
+                        context.Options.RemoteImageTag = uniqueDeployTag;
+                    }));
                 }
+#pragma warning restore ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             }
         });
 
@@ -123,25 +141,29 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Build,
+            Description = "Aggregation step for all build operations. All build steps should be required by this step.",
             Action = _ => Task.CompletedTask,
         });
 
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.BuildPrereq,
+            Description = "Prerequisite step that runs before any build operations.",
             Action = context => Task.CompletedTask
         });
 
-        // Add a default "Publish" meta-step that all publish steps should be required by
+        // Add a default "Publish" aggregation step that all publish steps should be required by
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Publish,
+            Description = "Aggregation step for all publish operations. All publish steps should be required by this step.",
             Action = _ => Task.CompletedTask
         });
 
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.PublishPrereq,
+            Description = "Prerequisite step that runs before any publish operations.",
             Action = _ => Task.CompletedTask,
         });
 
@@ -149,6 +171,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Diagnostics,
+            Description = "Dumps dependency graph information for troubleshooting pipeline execution.",
             Action = async context =>
             {
                 // Use the resolved pipeline data from the last ExecuteAsync call
@@ -790,13 +813,19 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         // Detailed step analysis
         sb.AppendLine("DETAILED STEP ANALYSIS");
         sb.AppendLine("======================");
-        sb.AppendLine("Shows each step's dependencies, associated resources, and tags.");
+        sb.AppendLine("Shows each step's dependencies, associated resources, tags, and descriptions.");
         sb.AppendLine("✓ = dependency exists, ? = dependency missing");
         sb.AppendLine();
 
         foreach (var step in allSteps.OrderBy(s => s.Name, StringComparer.Ordinal))
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"Step: {step.Name}");
+
+            // Show description if available
+            if (!string.IsNullOrWhiteSpace(step.Description))
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    Description: {step.Description}");
+            }
 
             // Show dependencies
             if (step.DependsOnSteps.Count > 0)

@@ -1,15 +1,18 @@
-#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECOMPUTE002
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES003
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 
 namespace Aspire.Hosting.Docker.Tests;
 
@@ -20,7 +23,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -41,7 +44,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -64,7 +67,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -123,7 +126,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         using var tempDir = new TempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         var env1 = builder.AddDockerComposeEnvironment("env1");
         var env2 = builder.AddDockerComposeEnvironment("env2");
@@ -148,7 +151,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         using var tempDir = new TempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("env")
                .WithDashboard(d => d.WithForwardedHeaders());
@@ -172,7 +175,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         using var tempDir = new TempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("swarm-env");
 
@@ -220,31 +223,71 @@ public class DockerComposeTests(ITestOutputHelper output)
         Assert.Empty(endpointReferenceEx.ValueProviders);
     }
 
-    private sealed class MockImageBuilder : IResourceContainerImageBuilder
+    private sealed class MockImageBuilder : IResourceContainerImageManager
     {
         public bool BuildImageCalled { get; private set; }
 
-        public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+        public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;
         }
 
-        public Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+        public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;
         }
 
-        public Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
+        public Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
+    }
 
-        public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
+    [Fact]
+    public void DockerComposeProjectNameIncludesAppHostShaInArguments()
+    {
+        using var tempDir = new TempDirectory();
+        var testSink = new TestSink();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: WellKnownPipelineSteps.Deploy);
+
+        // Add TestLoggerProvider to capture logs during publish, set minimum level to Debug
+        builder.Services.AddLogging(logging =>
         {
-            return Task.CompletedTask;
-        }
+            logging.AddProvider(new TestLoggerProvider(testSink));
+            logging.SetMinimumLevel(LogLevel.Debug);
+        });
+
+        // Set a known AppHost SHA in configuration
+        const string testSha = "ABC123DEF456789ABCDEF123456789ABCDEF123456789ABCDEF123456789ABC";
+        builder.Configuration["AppHost:PathSha256"] = testSha;
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        var composeEnv = builder.AddDockerComposeEnvironment("my-environment");
+        builder.AddContainer("service", "nginx");
+
+        var app = builder.Build();
+
+        app.Run();
+
+        // Verify that docker-compose.yaml was created
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        // Check for docker compose up command with project name
+        var expectedProjectName = "aspire-my-environment-abc123de";
+
+        // Check for docker compose up command with project name
+        var logMessages = testSink.Writes.Select(w => w.Message).ToList();
+        Assert.Contains(logMessages, msg =>
+            msg != null &&
+            msg.Contains("compose", StringComparison.OrdinalIgnoreCase) &&
+            msg.Contains("--project-name", StringComparison.OrdinalIgnoreCase) &&
+            msg.Contains(expectedProjectName, StringComparison.OrdinalIgnoreCase) &&
+            msg.Contains("up", StringComparison.OrdinalIgnoreCase));
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

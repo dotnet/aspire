@@ -160,13 +160,14 @@ public class WithEnvironmentTests
         var projectA = builder.AddProject<ProjectA>("projectA")
             .WithEnvironment("MY_PARAMETER", parameter);
 
-        var exception = await Assert.ThrowsAsync<MissingParameterValueException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+        var exception = await Assert.ThrowsAsync<AggregateException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             projectA.Resource,
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance
          )).DefaultTimeout();
 
-        Assert.Equal("Parameter resource could not be used because configuration key 'Parameters:parameter' is missing and the Parameter has no default value.", exception.Message);
+        var innerException = Assert.IsType<MissingParameterValueException>(exception.InnerException);
+        Assert.Equal("Parameter resource could not be used because configuration key 'Parameters:parameter' is missing and the Parameter has no default value.", innerException.Message);
     }
 
     [Fact]
@@ -241,7 +242,7 @@ public class WithEnvironmentTests
         var manifestConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerB.Resource, DistributedApplicationOperation.Publish).DefaultTimeout();
 
         Assert.Equal(4, config.Count);
-        Assert.Equal($"http://container1:10005/foo", config["URL"]);
+        Assert.Equal($"http://container1.dev.internal:10005/foo", config["URL"]);
         Assert.Equal("10005", config["PORT"]);
         Assert.Equal("10005", config["TARGET_PORT"]);
         Assert.Equal("connectionString;name=1", config["HOST"]);
@@ -373,15 +374,15 @@ public class WithEnvironmentTests
 
         // Call environment variable callbacks for runtime scenario
         var runtimeConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
-            projectA.Resource, 
-            DistributedApplicationOperation.Run, 
+            projectA.Resource,
+            DistributedApplicationOperation.Run,
             TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("test-runtime-value", runtimeConfig["TEST_VAR"]);
 
-        // Call environment variable callbacks for manifest scenario  
+        // Call environment variable callbacks for manifest scenario
         var manifestConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
-            projectA.Resource, 
+            projectA.Resource,
             DistributedApplicationOperation.Publish,
             TestServiceProvider.Instance).DefaultTimeout();
 
@@ -395,7 +396,7 @@ public class WithEnvironmentTests
 
         var resourceA = builder.AddContainer("containerA", "imageA");
         var testValue = new TestValueWithReferences("test-value", resourceA.Resource);
-        
+
         var projectA = builder.AddProject<ProjectA>("projectA")
                               .WithEnvironment("TEST_VAR", testValue);
 
@@ -422,15 +423,15 @@ public class WithEnvironmentTests
         var testValue = new TestValueAndManifestProvider("value", "expression");
 
         // Test null builder
-        Assert.Throws<ArgumentNullException>(() => 
+        Assert.Throws<ArgumentNullException>(() =>
             ResourceBuilderExtensions.WithEnvironment<ProjectResource, TestValueAndManifestProvider>(null!, "TEST_VAR", testValue));
 
         // Test null name
-        Assert.Throws<ArgumentNullException>(() => 
+        Assert.Throws<ArgumentNullException>(() =>
             projectA.WithEnvironment<ProjectResource, TestValueAndManifestProvider>(null!, testValue));
 
         // Test null value
-        Assert.Throws<ArgumentNullException>(() => 
+        Assert.Throws<ArgumentNullException>(() =>
             projectA.WithEnvironment("TEST_VAR", (TestValueAndManifestProvider)null!));
     }
 

@@ -1,3 +1,6 @@
+#pragma warning disable ASPIREEXTENSION001
+#pragma warning disable ASPIRECERTIFICATES001
+
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -23,7 +26,19 @@ var launchProfile = builder.Configuration["DOTNET_LAUNCH_PROFILE"];
 
 if (builder.Environment.IsDevelopment() && launchProfile == "https")
 {
-    frontend.RunWithHttpsDevCertificate("HTTPS_CERT_FILE", "HTTPS_CERT_KEY_FILE");
+    frontend
+        .WithHttpsEndpoint(env: "HTTPS_PORT")
+        .WithHttpsCertificateConfiguration(ctx =>
+        {
+            ctx.EnvironmentVariables["HTTPS_CERT_FILE"] = ctx.CertificatePath;
+            ctx.EnvironmentVariables["HTTPS_CERT_KEY_FILE"] = ctx.KeyPath;
+            return Task.CompletedTask;
+        })
+        .WithEnvironment(ctx =>
+        {
+            var httpsEndpoint = frontend.GetEndpoint("https");
+            ctx.EnvironmentVariables["HTTPS_REDIRECT_PORT"] = httpsEndpoint.Property(EndpointProperty.Port);
+        });
 }
 
 #if !SKIP_DASHBOARD_REFERENCE

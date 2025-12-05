@@ -49,6 +49,18 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     public bool Exists => GetEndpointAnnotation() is not null;
 
+    /// <summary>
+    /// Gets a value indicating whether the endpoint uses HTTP scheme.
+    /// </summary>
+    public bool IsHttp => StringComparers.EndpointAnnotationUriScheme.Equals(Scheme, "http");
+
+    /// <summary>
+    ///
+    /// </summary> <summary>
+    /// Gets a value indicating whether the endpoint uses HTTPS scheme.
+    /// </summary>
+    public bool IsHttps => StringComparers.EndpointAnnotationUriScheme.Equals(Scheme, "https");
+
     string IManifestExpressionProvider.ValueExpression => GetExpression();
 
     /// <summary>
@@ -293,10 +305,16 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         {
             // We are going to take the first snapshot that matches the context network ID. In general there might be multiple endpoints for a single service,
             // and in future we might need some sort of policy to choose between them, but for now we just take the first one.
-            var nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == networkContext).FirstOrDefault();
+            var endpointSnapshots = Endpoint.EndpointAnnotation.AllAllocatedEndpoints;
+            var nes = endpointSnapshots.Where(nes => nes.NetworkID == networkContext).FirstOrDefault();
             if (nes is null)
             {
-                return null;
+                nes = new NetworkEndpointSnapshot(new ValueSnapshot<AllocatedEndpoint>(), networkContext);
+                if (!endpointSnapshots.TryAdd(networkContext, nes.Snapshot))
+                {
+                    // Someone else added it first, use theirs.
+                    nes = endpointSnapshots.Where(nes => nes.NetworkID == networkContext).First();
+                }
             }
 
             var allocatedEndpoint = await nes.Snapshot.GetValueAsync(cancellationToken).ConfigureAwait(false);

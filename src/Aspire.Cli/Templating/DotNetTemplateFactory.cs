@@ -13,6 +13,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 using Semver;
+using Spectre.Console;
 
 namespace Aspire.Cli.Templating;
 
@@ -47,6 +48,16 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplyTemplateWithNoExtraArgsAsync
                 : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
+            );
+
+        yield return new CallbackTemplate(
+            "aspire-js-frontend-starter",
+            TemplatingStrings.AspireJsFrontendStarter_Description,
+            projectName => $"./{projectName}",
+            ApplyExtraAspireJsFrontendStarterOptions,
+            nonInteractive
+                ? ApplyTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireJsFrontendStarterOptionsAsync, ct)
             );
 
         // Single-file AppHost templates
@@ -178,6 +189,16 @@ internal class DotNetTemplateFactory(
         return extraArgs.ToArray();
     }
 
+    private async Task<string[]> PromptForExtraAspireJsFrontendStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
+    {
+        var extraArgs = new List<string>();
+
+        await PromptForDevLocalhostTldOptionAsync(result, extraArgs, cancellationToken);
+        await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
     private async Task<string[]> PromptForExtraAspireXUnitOptionsAsync(ParseResult result, CancellationToken cancellationToken)
     {
         var extraArgs = new List<string>();
@@ -300,6 +321,16 @@ internal class DotNetTemplateFactory(
         var xunitVersionOption = new Option<string?>("--xunit-version");
         xunitVersionOption.Description = TemplatingStrings.EnterXUnitVersion_Description;
         command.Options.Add(xunitVersionOption);
+    }
+
+    private static void ApplyExtraAspireJsFrontendStarterOptions(Command command)
+    {
+        ApplyDevLocalhostTldOption(command);
+
+        var useRedisCacheOption = new Option<bool?>("--use-redis-cache");
+        useRedisCacheOption.Description = TemplatingStrings.UseRedisCache_Description;
+        useRedisCacheOption.DefaultValueFactory = _ => false;
+        command.Options.Add(useRedisCacheOption);
     }
 
     private static void ApplyDevLocalhostTldOption(Command command)
@@ -448,7 +479,7 @@ internal class DotNetTemplateFactory(
             // working directory, create one in the newly created project's output directory.
             await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, outputPath, cancellationToken);
 
-            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
+            interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath.EscapeMarkup()));
 
             return new TemplateResult(ExitCodeConstants.Success, outputPath);
         }

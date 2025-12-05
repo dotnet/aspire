@@ -3,6 +3,7 @@
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECONTAINERRUNTIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -38,6 +39,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             var buildStep = new PipelineStep
             {
                 Name = $"build-{name}",
+                Description = $"Builds the container image for the {name} project.",
                 Action = BuildProjectImage,
                 Tags = [WellKnownPipelineTags.BuildCompute],
                 RequiredBySteps = [WellKnownPipelineSteps.Build],
@@ -45,6 +47,14 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             };
 
             return [buildStep];
+        }));
+
+        // Add default container build options annotation
+        Annotations.Add(new ContainerBuildOptionsCallbackAnnotation(context =>
+        {
+            context.LocalImageName = name.ToLowerInvariant();
+            context.LocalImageTag = "latest";
+            context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
         }));
 
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
@@ -88,17 +98,11 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
 
     private async Task BuildProjectImage(PipelineStepContext ctx)
     {
-        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
         var logger = ctx.Logger;
 
         // Build the container image for the project first
-        await containerImageBuilder.BuildImageAsync(
-            this,
-            new ContainerBuildOptions
-            {
-                TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-            },
-            ctx.CancellationToken).ConfigureAwait(false);
+        await containerImageBuilder.BuildImageAsync(this, ctx.CancellationToken).ConfigureAwait(false);
 
         // Check if we need to copy container files
         if (!this.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var _))
@@ -148,14 +152,22 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             logger.LogDebug("Generated temporary Dockerfile at {DockerfilePath}", tempDockerfilePath);
 
             // Build the final image from the generated Dockerfile
+            // Get the container build options from annotations to ensure consistency
+            var context = await this.ProcessContainerBuildOptionsCallbackAsync(
+                ctx.Services,
+                logger,
+                cancellationToken: ctx.CancellationToken).ConfigureAwait(false);
+
+            var buildOptions = new ContainerImageBuildOptions
+            {
+                ImageName = originalImageName,
+                TargetPlatform = context.TargetPlatform ?? ContainerTargetPlatform.LinuxAmd64
+            };
+
             await containerRuntime.BuildImageAsync(
                 projectDir,
                 tempDockerfilePath,
-                originalImageName,
-                new ContainerBuildOptions
-                {
-                    TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                },
+                buildOptions,
                 [],
                 [],
                 null,
