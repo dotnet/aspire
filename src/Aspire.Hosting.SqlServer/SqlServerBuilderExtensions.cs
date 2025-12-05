@@ -87,7 +87,31 @@ public static partial class SqlServerBuilderExtensions
                           {
                               await CreateDatabaseAsync(sqlConnection, sqlDatabase, @event.Services, ct).ConfigureAwait(false);
                           }
-                      });
+                      })
+                     .WithContainerFiles("/var/opt/mssql/", async (ctx, ct) => {
+#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                         var certContext = ctx.ServerAuthenticationCertificateContext;
+
+                         if (certContext == null)
+                         {
+                             return [];
+                         }
+
+                         var certPath = await certContext.CertificatePath.GetValueAsync(ct).ConfigureAwait(false);
+                         var keyPath = await certContext.KeyPath.GetValueAsync(ct).ConfigureAwait(false);
+
+                         return [ new ContainerFile
+                         {
+                             Name = "mssql.conf",
+                             Contents = $"""
+                                        [network]
+                                        tlscert = {certPath}
+                                        tlskey = {keyPath}
+                                        #forceencryption = 1
+                                        """
+                        }];
+#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                     });
     }
 
     /// <summary>
