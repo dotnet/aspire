@@ -6,6 +6,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
 
@@ -113,5 +114,95 @@ internal static class AzureAppServiceEnvironmentUtility
         });
 
         return dashboard;
+    }
+
+    public static void AddAzurePlaywrightWorkspaceResource(AzureResourceInfrastructure infra, AzureAppServiceEnvironmentResource resource, string prefix)
+    {
+        var playwrightWorkspaceResourceName = Infrastructure.NormalizeBicepIdentifier($"{prefix}_playwright");
+        
+        var playwrightWorkspace = new PlaywrightWorkspaceResource(playwrightWorkspaceResourceName);
+
+        // Set location if specified
+        if (resource.PlaywrightWorkspaceLocation is not null)
+        {
+            playwrightWorkspace.Location = new AzureLocation(resource.PlaywrightWorkspaceLocation);
+        }
+        else if (resource.PlaywrightWorkspaceLocationParameter is not null)
+        {
+            var locationParameter = resource.PlaywrightWorkspaceLocationParameter.AsProvisioningParameter(infra);
+            playwrightWorkspace.Location = locationParameter;
+        }
+
+        infra.Add(playwrightWorkspace);
+
+        infra.Add(new ProvisioningOutput("AZURE_PLAYWRIGHT_WORKSPACE_NAME", typeof(string))
+        {
+            Value = new MemberExpression(new IdentifierExpression(playwrightWorkspace.BicepIdentifier), "name")
+        });
+
+        infra.Add(new ProvisioningOutput("AZURE_PLAYWRIGHT_WORKSPACE_ID", typeof(string))
+        {
+            Value = new MemberExpression(new IdentifierExpression(playwrightWorkspace.BicepIdentifier), "id")
+        });
+        infra.Add(new ProvisioningOutput("AZURE_PLAYWRIGHT_WORKSPACE_DATA_PLANE_URI", typeof(string))
+        {
+            Value = new MemberExpression(new IdentifierExpression(playwrightWorkspace.BicepIdentifier), "properties.dataplaneUri")
+        });
+    }
+}
+
+/// <summary>
+/// Represents an Azure Playwright Testing Workspace resource.
+/// </summary>
+internal sealed class PlaywrightWorkspaceResource : ProvisionableResource
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PlaywrightWorkspaceResource"/> class.
+    /// </summary>
+    /// <param name="bicepIdentifier">The Bicep identifier for this resource.</param>
+    internal PlaywrightWorkspaceResource(string bicepIdentifier)
+        : base(bicepIdentifier, new("Microsoft.LoadTestService/playwrightworkspaces"), "2025-07-01-preview")
+    {
+    }
+
+    public BicepValue<AzureLocation> Location
+    {
+        get { Initialize(); return _location!; }
+        set { Initialize(); _location!.Assign(value); }
+    }
+    private BicepValue<AzureLocation>? _location;
+
+    public BicepValue<string> Name
+    {
+        get { Initialize(); return _name!; }
+        set { Initialize(); _name!.Assign(value); }
+    }
+    private BicepValue<string>? _name;
+
+    public BicepDictionary<string> Properties
+    {
+        get { Initialize(); return _properties!; }
+        set { Initialize(); AssignOrReplace(ref _properties, value); }
+    }
+    private BicepDictionary<string>? _properties;
+
+    protected override void DefineProvisionableProperties()
+    {
+        base.DefineProvisionableProperties();
+        
+        _location = DefineProperty<AzureLocation>(nameof(Location), ["location"], isOutput: false, isRequired: false);
+        
+        // Set the name using Bicep expression for unique naming
+        var nameExpression = BicepFunction.Take(
+            BicepFunction.Interpolate($"pw-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"),
+            24);
+        
+        _name = DefineProperty<string>(nameof(Name), ["name"], isOutput: false, isRequired: true);
+        _name.Assign(nameExpression);
+        
+        // Define properties
+        _properties = DefineDictionaryProperty<string>(nameof(Properties), ["properties"], isOutput: false);
+        _properties["regionalAffinity"] = "Enabled";
+        _properties["localAuth"] = "Disabled";
     }
 }
