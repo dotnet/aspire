@@ -332,7 +332,8 @@ public static class AzureSqlExtensions
         // We need to output name to externalize role assignments.
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name.ToBicepExpression() });
 
-        infrastructure.Add(new ProvisioningOutput("sqlServerAdminName", typeof(string)) { Value = sqlServer.Administrators.Login.ToBicepExpression() });
+        // don't use ToBicepExpression() here because it is being set to an IdentifierExpression above and we want the bicep to say 'sql.properties.administrators.login'
+        infrastructure.Add(new ProvisioningOutput("sqlServerAdminName", typeof(string)) { Value = sqlServer.Administrators.Login });
 
         return sqlServer;
     }

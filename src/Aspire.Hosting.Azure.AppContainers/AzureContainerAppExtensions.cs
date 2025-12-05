@@ -281,45 +281,45 @@ public static class AzureContainerAppExtensions
             // Exposed so that callers reference the LA workspace in other bicep modules
             infra.Add(new ProvisioningOutput("AZURE_LOG_ANALYTICS_WORKSPACE_NAME", typeof(string))
             {
-                Value = laWorkspace.Name.ToBicepExpression()
+                Value = laWorkspace.Name
             });
 
             infra.Add(new ProvisioningOutput("AZURE_LOG_ANALYTICS_WORKSPACE_ID", typeof(string))
             {
-                Value = laWorkspace.Id.ToBicepExpression()
+                Value = laWorkspace.Id
             });
 
             // Required by the IContaineRegistry interface
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {
-                Value = containerRegistry.Name.ToBicepExpression()
+                Value = containerRegistry.Name
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_ENDPOINT", typeof(string))
             {
-                Value = containerRegistry.LoginServer.ToBicepExpression()
+                Value = containerRegistry.LoginServer
             });
 
             // Required by the IAzureContainerRegistry interface
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", typeof(string))
             {
-                Value = identity.Id.ToBicepExpression()
+                Value = identity.Id
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", typeof(string))
             {
-                Value = containerAppEnvironment.Name.ToBicepExpression()
+                Value = containerAppEnvironment.Name
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", typeof(string))
             {
-                Value = containerAppEnvironment.Id.ToBicepExpression()
+                Value = containerAppEnvironment.Id
             });
 
             // Required for azd to output the dashboard URL
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", typeof(string))
             {
-                Value = containerAppEnvironment.DefaultDomain.ToBicepExpression()
+                Value = containerAppEnvironment.DefaultDomain
             });
         });
 
