@@ -71,15 +71,7 @@ var certbot = builder.AddCertbot("certbot", domain, email)
     .WithHttp01Challenge(port: 8080);
 ```
 
-### Permission Fixes
-
-If your containers run as non-root users, you can add permission fixes to make certificates readable:
-
-```csharp
-var certbot = builder.AddCertbot("certbot", domain, email)
-    .WithHttp01Challenge()
-    .WithPermissionFix();
-```
+Certificate permissions are automatically set to allow non-root containers to read them.
 
 ### Sharing Certificates with Other Resources
 

@@ -121,66 +121,17 @@ public class AddCertbotTests
               "image": "{{CertbotContainerImageTags.Registry}}/{{CertbotContainerImageTags.Image}}:{{CertbotContainerImageTags.Tag}}",
               "args": [
                 "certonly",
-                "--standalone",
                 "--non-interactive",
                 "--agree-tos",
                 "-v",
                 "--keep-until-expiring",
+                "--standalone",
+                "--deploy-hook",
+                "chmod -R 755 /etc/letsencrypt/live \u0026\u0026 chmod -R 755 /etc/letsencrypt/archive",
                 "--email",
                 "{email.value}",
                 "-d",
                 "{domain.value}"
-              ],
-              "volumes": [
-                {
-                  "name": "letsencrypt",
-                  "target": "/etc/letsencrypt",
-                  "readOnly": false
-                }
-              ],
-              "bindings": {
-                "http": {
-                  "scheme": "http",
-                  "protocol": "tcp",
-                  "transport": "http",
-                  "targetPort": 80,
-                  "external": true
-                }
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ToString());
-    }
-
-    [Fact]
-    public async Task VerifyManifestWithHttp01ChallengeAndPermissionFix()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var domain = builder.AddParameter("domain");
-        var email = builder.AddParameter("email");
-        var certbot = builder.AddCertbot("certbot", domain, email)
-            .WithHttp01Challenge()
-            .WithPermissionFix();
-
-        var manifest = await ManifestUtils.GetManifest(certbot.Resource);
-
-        var expectedManifest = $$"""
-            {
-              "type": "container.v0",
-              "image": "{{CertbotContainerImageTags.Registry}}/{{CertbotContainerImageTags.Image}}:{{CertbotContainerImageTags.Tag}}",
-              "args": [
-                "certonly",
-                "--standalone",
-                "--non-interactive",
-                "--agree-tos",
-                "-v",
-                "--keep-until-expiring",
-                "--email",
-                "{email.value}",
-                "-d",
-                "{domain.value}",
-                "--deploy-hook",
-                "chmod -R 755 /etc/letsencrypt/live \u0026\u0026 chmod -R 755 /etc/letsencrypt/archive"
               ],
               "volumes": [
                 {

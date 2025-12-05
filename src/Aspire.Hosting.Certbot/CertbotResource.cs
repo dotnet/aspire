@@ -33,6 +33,11 @@ public class CertbotResource(string name, ParameterResource domain, ParameterRes
     public ParameterResource EmailParameter { get; } = email ?? throw new ArgumentNullException(nameof(email));
 
     /// <summary>
+    /// Gets or sets the challenge method to use for domain validation.
+    /// </summary>
+    internal CertbotChallengeMethod? ChallengeMethod { get; set; }
+
+    /// <summary>
     /// Gets an expression representing the path to the SSL/TLS certificate (fullchain.pem) for the domain.
     /// </summary>
     /// <remarks>
@@ -53,4 +58,15 @@ public class CertbotResource(string name, ParameterResource domain, ParameterRes
     /// </remarks>
     public ReferenceExpression PrivateKeyPath =>
         ReferenceExpression.Create($"{CertificatesPath}/live/{DomainParameter}/privkey.pem");
+}
+
+/// <summary>
+/// Represents the ACME challenge method to use for domain validation.
+/// </summary>
+internal enum CertbotChallengeMethod
+{
+    /// <summary>
+    /// HTTP-01 challenge using standalone mode.
+    /// </summary>
+    Http01
 }

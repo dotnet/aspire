@@ -27,6 +27,9 @@ public static class CertbotBuilderExtensions
     /// The certificates are stored in a shared volume named "letsencrypt" at /etc/letsencrypt.
     /// Other resources can mount this volume to access the certificates.
     /// </para>
+    /// <para>
+    /// Certificate permissions are automatically set to allow non-root containers to read them.
+    /// </para>
     /// This version of the package defaults to the <inheritdoc cref="CertbotContainerImageTags.Tag"/> tag of the <inheritdoc cref="CertbotContainerImageTags.Image"/> container image.
     /// <example>
     /// Use in application host:
@@ -58,7 +61,42 @@ public static class CertbotBuilderExtensions
         return builder.AddResource(resource)
             .WithImage(CertbotContainerImageTags.Image, CertbotContainerImageTags.Tag)
             .WithImageRegistry(CertbotContainerImageTags.Registry)
-            .WithVolume(CertbotResource.CertificatesVolumeName, CertbotResource.CertificatesPath);
+            .WithVolume(CertbotResource.CertificatesVolumeName, CertbotResource.CertificatesPath)
+            .WithArgs(context =>
+            {
+                var certbotResource = (CertbotResource)context.Resource;
+
+                // Only add args if a challenge method is configured
+                if (certbotResource.ChallengeMethod is null)
+                {
+                    return;
+                }
+
+                // Common arguments for all challenge methods
+                context.Args.Add("certonly");
+                context.Args.Add("--non-interactive");
+                context.Args.Add("--agree-tos");
+                context.Args.Add("-v");
+                context.Args.Add("--keep-until-expiring");
+
+                // Challenge-specific arguments
+                switch (certbotResource.ChallengeMethod)
+                {
+                    case CertbotChallengeMethod.Http01:
+                        context.Args.Add("--standalone");
+                        break;
+                }
+
+                // Always set permissions to allow non-root containers to read certificates
+                context.Args.Add("--deploy-hook");
+                context.Args.Add("chmod -R 755 /etc/letsencrypt/live && chmod -R 755 /etc/letsencrypt/archive");
+
+                // Email and domain arguments
+                context.Args.Add("--email");
+                context.Args.Add(certbotResource.EmailParameter);
+                context.Args.Add("-d");
+                context.Args.Add(certbotResource.DomainParameter);
+            });
     }
 
     /// <summary>
@@ -70,8 +108,8 @@ public static class CertbotBuilderExtensions
     /// <remarks>
     /// <para>
     /// The HTTP-01 challenge requires Certbot to be accessible on port 80 from the internet.
-    /// This method configures the container to listen on the specified port and adds the necessary
-    /// command-line arguments for standalone mode.
+    /// This method configures the container to listen on the specified port and sets up
+    /// the standalone mode for ACME challenge validation.
     /// </para>
     /// <example>
     /// <code lang="csharp">
@@ -86,44 +124,11 @@ public static class CertbotBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        builder.Resource.ChallengeMethod = CertbotChallengeMethod.Http01;
+
         return builder
             .WithHttpEndpoint(port: port, targetPort: 80, name: CertbotResource.HttpEndpointName)
-            .WithExternalHttpEndpoints()
-            .WithArgs(context =>
-            {
-                var resource = (CertbotResource)context.Resource;
-                context.Args.Add("certonly");
-                context.Args.Add("--standalone");
-                context.Args.Add("--non-interactive");
-                context.Args.Add("--agree-tos");
-                context.Args.Add("-v");
-                context.Args.Add("--keep-until-expiring");
-                context.Args.Add("--email");
-                context.Args.Add(resource.EmailParameter);
-                context.Args.Add("-d");
-                context.Args.Add(resource.DomainParameter);
-            });
-    }
-
-    /// <summary>
-    /// Configures Certbot to fix permissions on certificate files so non-root containers can read them.
-    /// </summary>
-    /// <param name="builder">The Certbot resource builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// This method adds a deploy hook that changes permissions on the certificate directories
-    /// to allow non-root containers to read the certificates.
-    /// </remarks>
-    public static IResourceBuilder<CertbotResource> WithPermissionFix(
-        this IResourceBuilder<CertbotResource> builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        return builder.WithArgs(context =>
-        {
-            context.Args.Add("--deploy-hook");
-            context.Args.Add("chmod -R 755 /etc/letsencrypt/live && chmod -R 755 /etc/letsencrypt/archive");
-        });
+            .WithExternalHttpEndpoints();
     }
 
     /// <summary>
