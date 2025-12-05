@@ -29,9 +29,9 @@ module env_acr 'env-acr/env-acr.bicep' = {
   }
 }
 
-output env_acr_name string = env_acr.outputs.name
+output env_AZURE_CONTAINER_REGISTRY_NAME string = env.outputs.AZURE_CONTAINER_REGISTRY_NAME
 
-output env_acr_loginServer string = env_acr.outputs.loginServer
+output env_AZURE_CONTAINER_REGISTRY_ENDPOINT string = env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
 
 output env_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
 
