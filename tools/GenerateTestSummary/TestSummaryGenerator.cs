@@ -199,6 +199,140 @@ sealed partial class TestSummaryGenerator
         return overallTableBuilder.ToString();
     }
 
+    public static string CreateAllTestsSummaryReport(string basePath)
+    {
+        var resolved = Path.GetFullPath(basePath);
+        if (!Directory.Exists(resolved))
+        {
+            throw new DirectoryNotFoundException($"The directory '{resolved}' does not exist.");
+        }
+
+        int overallTotalTestCount = 0;
+        int overallPassedTestCount = 0;
+        int overallFailedTestCount = 0;
+        int overallSkippedTestCount = 0;
+
+        // Collect all individual test results with their details
+        var allTests = new List<TestResultEntry>();
+
+        var trxFiles = Directory.EnumerateFiles(basePath, "*.trx", SearchOption.AllDirectories);
+        foreach (var filePath in trxFiles)
+        {
+            TestRun? testRun;
+            try
+            {
+                testRun = TrxReader.DeserializeTrxFile(filePath);
+                if (testRun?.ResultSummary?.Counters is null)
+                {
+                    Console.WriteLine($"Failed to deserialize or find results in file: {filePath}, tr: {testRun}");
+                    continue;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to deserialize file: {filePath}, exception: {ex}");
+                continue;
+            }
+
+            var counters = testRun.ResultSummary.Counters;
+            overallTotalTestCount += counters.Total;
+            overallPassedTestCount += counters.Passed;
+            overallFailedTestCount += counters.Failed;
+            overallSkippedTestCount += counters.NotExecuted;
+
+            if (testRun.Results?.UnitTestResults is null)
+            {
+                continue;
+            }
+
+            foreach (var test in testRun.Results.UnitTestResults)
+            {
+                if (string.IsNullOrEmpty(test.TestName))
+                {
+                    continue;
+                }
+
+                allTests.Add(new TestResultEntry(
+                    TestName: test.TestName,
+                    Outcome: test.Outcome ?? "Unknown",
+                    ErrorInfo: test.Output?.ErrorInfo?.InnerText,
+                    StdOut: test.Output?.StdOut
+                ));
+            }
+        }
+
+        // Sort by test name
+        allTests.Sort((a, b) => string.Compare(a.TestName, b.TestName, StringComparison.OrdinalIgnoreCase));
+
+        var reportBuilder = new StringBuilder();
+        reportBuilder.AppendLine("# Test Summary");
+        reportBuilder.AppendLine();
+
+        reportBuilder.AppendLine("## Overall Summary");
+        reportBuilder.AppendLine("| Passed | Failed | Skipped | Total |");
+        reportBuilder.AppendLine("|--------|--------|---------|-------|");
+        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"| {overallPassedTestCount} | {overallFailedTestCount} | {overallSkippedTestCount} | {overallTotalTestCount} |");
+        reportBuilder.AppendLine();
+
+        reportBuilder.AppendLine("## All Tests");
+        reportBuilder.AppendLine();
+
+        foreach (var test in allTests)
+        {
+            if (test.Outcome == "Failed")
+            {
+                // Failed tests get expanded details with ❌
+                reportBuilder.AppendLine("<div>");
+                reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"""
+                    <details><summary>❌ <b>{test.TestName}</b></summary>
+
+                """);
+
+                reportBuilder.AppendLine();
+                reportBuilder.AppendLine("```yml");
+
+                reportBuilder.AppendLine(test.ErrorInfo);
+                if (test.StdOut is not null)
+                {
+                    const int halfLength = 25_000;
+                    var stdOutSpan = test.StdOut.AsSpan();
+
+                    reportBuilder.AppendLine();
+                    reportBuilder.AppendLine("### StdOut");
+
+                    var startSpan = stdOutSpan[..Math.Min(halfLength, stdOutSpan.Length)];
+                    reportBuilder.AppendLine(startSpan.ToString());
+
+                    if (stdOutSpan.Length > halfLength)
+                    {
+                        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}... (snip) ...{Environment.NewLine}");
+                        var endSpan = stdOutSpan[^halfLength..];
+                        reportBuilder.Append("... ");
+                        reportBuilder.Append(endSpan);
+                    }
+                }
+
+                reportBuilder.AppendLine("```");
+                reportBuilder.AppendLine();
+                reportBuilder.AppendLine("</details>");
+                reportBuilder.AppendLine("</div>");
+                reportBuilder.AppendLine();
+            }
+            else if (test.Outcome == "Passed")
+            {
+                // Passed tests get simple line with ✅
+                reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"- ✅ {test.TestName}");
+            }
+            else
+            {
+                // Skipped/NotExecuted tests get simple line with ⏭️
+                reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"- ⏭️ {test.TestName}");
+            }
+        }
+
+        return reportBuilder.ToString();
+    }
+
     public static void CreateSingleTestSummaryReport(string trxFilePath, StringBuilder reportBuilder, string? url)
     {
         if (!File.Exists(trxFilePath))
@@ -534,3 +668,5 @@ sealed partial class TestSummaryGenerator
 }
 
 internal sealed record TestRunSummary(string Icon, string Os, string Title, int Passed, int Failed, int Skipped, int Total, double DurationMinutes);
+
+internal sealed record TestResultEntry(string TestName, string Outcome, string? ErrorInfo, string? StdOut);

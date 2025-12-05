@@ -28,6 +28,11 @@ on:
         required: false
         type: boolean
         default: false
+      # Extra arguments to pass to GenerateTestSummary tool
+      extraSummaryArgs:
+        required: false
+        type: string
+        description: 'Extra arguments to pass to GenerateTestSummary (e.g., --show-all-tests)'
 
 jobs:
 
@@ -179,7 +184,7 @@ jobs:
           --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
           --
           ${{ github.workspace }}/testresults
-          --combined
+          ${{ inputs.extraSummaryArgs || '--combined' }}
 
       - name: Fail if any dependency failed
         # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.

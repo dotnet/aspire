@@ -39,3 +39,4 @@ jobs:
       extraRunSheetBuilderArgs: "-p:RunOuterloopTests=true"
       extraTestArgs: "--filter-trait outerloop=true"
       enablePlaywrightInstall: true
+      extraSummaryArgs: "--show-all-tests"
