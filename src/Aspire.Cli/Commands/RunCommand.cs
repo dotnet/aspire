@@ -2,7 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics;
 using System.Globalization;
+using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -121,6 +125,17 @@ internal sealed class RunCommand : BaseCommand
             if (effectiveAppHostFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
+            }
+
+            // Check for running instance if feature is enabled
+            if (_features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: false))
+            {
+                var canContinue = await CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, cancellationToken);
+                if (!canContinue)
+                {
+                    // User chose not to stop the running instance or stopping failed
+                    return ExitCodeConstants.Success;
+                }
             }
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
@@ -484,5 +499,143 @@ internal sealed class RunCommand : BaseCommand
 
             _resourceStates[resourceState.Resource] = resourceState;
         }
+    }
+
+    private static string ComputeAuxiliarySocketPath(string appHostPath)
+    {
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var backchannelsDir = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
+        
+        // Compute hash from the AppHost path for consistency
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostPath));
+        // Use first 16 characters to keep socket path length reasonable (Unix socket path limits)
+        var hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
+        
+        var socketPath = Path.Combine(backchannelsDir, $"aux.sock.{hash}");
+        return socketPath;
+    }
+
+    private async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, CancellationToken cancellationToken)
+    {
+        var auxiliarySocketPath = ComputeAuxiliarySocketPath(appHostFile.FullName);
+
+        // Check if the socket file exists
+        if (!File.Exists(auxiliarySocketPath))
+        {
+            return true; // No running instance, continue
+        }
+
+        // Prompt the user if they want to stop the running instance
+        var shouldStop = await _interactionService.ConfirmAsync(RunCommandStrings.RunningInstanceDetected, defaultValue: true, cancellationToken);
+        
+        if (!shouldStop)
+        {
+            return false; // User chose not to stop the running instance, abort
+        }
+
+        // Stop the running instance
+        var stopped = await StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
+        
+        return stopped;
+    }
+
+    private async Task<bool> StopRunningInstanceAsync(string socketPath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Connect to the auxiliary backchannel
+            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            var endpoint = new UnixDomainSocketEndPoint(socketPath);
+            
+            await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
+
+            // Create JSON-RPC connection
+            var stream = new NetworkStream(socket, ownsSocket: true);
+            var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
+            rpc.StartListening();
+
+            // Get the AppHost information to know which PIDs to monitor
+            var appHostInfo = await rpc.InvokeWithCancellationAsync<AppHostInformation?>(
+                "GetAppHostInformationAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
+
+            if (appHostInfo is null)
+            {
+                InteractionService.DisplayError(RunCommandStrings.RunningInstanceStopFailed);
+                return false;
+            }
+
+            // Call StopAppHostAsync on the auxiliary backchannel
+            await rpc.InvokeWithCancellationAsync(
+                "StopAppHostAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
+
+            // Dispose the RPC connection
+            rpc.Dispose();
+            
+            // Monitor the PIDs for termination
+            var stopped = await MonitorProcessesForTerminationAsync(appHostInfo, cancellationToken);
+
+            if (stopped)
+            {
+                InteractionService.DisplaySuccess(RunCommandStrings.RunningInstanceStopped);
+            }
+            else
+            {
+                InteractionService.DisplayError(RunCommandStrings.RunningInstanceStopFailed);
+            }
+
+            return stopped;
+        }
+        catch (Exception)
+        {
+            InteractionService.DisplayError(RunCommandStrings.RunningInstanceStopFailed);
+            return false;
+        }
+    }
+
+    private static async Task<bool> MonitorProcessesForTerminationAsync(AppHostInformation appHostInfo, CancellationToken cancellationToken)
+    {
+        const int maxWaitTimeMs = 10000; // Wait up to 10 seconds
+        const int pollIntervalMs = 250; // Check every 250ms
+
+        var startTime = DateTime.UtcNow;
+        var pidsToMonitor = new List<int> { appHostInfo.ProcessId };
+        
+        if (appHostInfo.CliProcessId.HasValue)
+        {
+            pidsToMonitor.Add(appHostInfo.CliProcessId.Value);
+        }
+
+        while ((DateTime.UtcNow - startTime).TotalMilliseconds < maxWaitTimeMs)
+        {
+            var allStopped = true;
+            
+            foreach (var pid in pidsToMonitor)
+            {
+                try
+                {
+                    var process = Process.GetProcessById(pid);
+                    // If we can get the process, it's still running
+                    allStopped = false;
+                }
+                catch (ArgumentException)
+                {
+                    // Process doesn't exist, it has stopped
+                }
+            }
+
+            if (allStopped)
+            {
+                return true;
+            }
+
+            await Task.Delay(pollIntervalMs, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Timeout reached
+        return false;
     }
 }

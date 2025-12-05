@@ -194,5 +194,29 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AgentConfigurationSelectPrompt", resourceCulture);
             }
         }
+        
+        public static string RunningInstanceDetected {
+            get {
+                return ResourceManager.GetString("RunningInstanceDetected", resourceCulture);
+            }
+        }
+        
+        public static string StoppingRunningInstance {
+            get {
+                return ResourceManager.GetString("StoppingRunningInstance", resourceCulture);
+            }
+        }
+        
+        public static string RunningInstanceStopped {
+            get {
+                return ResourceManager.GetString("RunningInstanceStopped", resourceCulture);
+            }
+        }
+        
+        public static string RunningInstanceStopFailed {
+            get {
+                return ResourceManager.GetString("RunningInstanceStopFailed", resourceCulture);
+            }
+        }
     }
 }
