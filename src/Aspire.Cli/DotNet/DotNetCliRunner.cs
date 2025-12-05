@@ -13,6 +13,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Caching;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
@@ -1154,7 +1155,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 continue;
             }
 
-            if (startParsing && line.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            if (startParsing && ProjectFileExtensions.Supported.Any(supportedProjectFileExtension => line.EndsWith(supportedProjectFileExtension, StringComparison.OrdinalIgnoreCase)))
             {
                 var projectPath = Path.IsPathRooted(line)
                     ? line
