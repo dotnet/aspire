@@ -57,6 +57,11 @@
         <target state="translated">Uç Noktalar</target>
         <note />
       </trans-unit>
+      <trans-unit id="ForceArgumentDescription">
+        <source>Stop any running instance of the AppHost without prompting.</source>
+        <target state="new">Stop any running instance of the AppHost without prompting.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">Kaynağın durumu, örneğin İyi Durumda</target>

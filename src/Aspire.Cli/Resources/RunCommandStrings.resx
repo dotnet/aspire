@@ -120,6 +120,9 @@
   <data name="Description" xml:space="preserve">
     <value>Run an Aspire apphost in development mode.</value>
   </data>
+  <data name="ForceArgumentDescription" xml:space="preserve">
+    <value>Stop any running instance of the AppHost without prompting.</value>
+  </data>
   <data name="ProjectArgumentDescription" xml:space="preserve">
     <value>The path to the Aspire AppHost project file.</value>
   </data>
