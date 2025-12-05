@@ -2393,7 +2393,7 @@ public static class ResourceBuilderExtensions
     /// <returns>The updated resource builder.</returns>
     /// <remarks>
     /// <example>
-    /// Add an environment variable that needs to reference the path to the certificate bundle for the container resource.
+    /// Add an environment variable that needs to reference the path to the certificate bundle for the container resource:
     /// <code lang="csharp">
     /// var container = builder.AddContainer("my-service", "my-service:latest")
     ///     .WithCertificateTrustConfigurationCallback(ctx =>
@@ -2427,6 +2427,7 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
     /// <remarks>
     /// <example>
+    /// Use the developer certificate for HTTPS/TLS endpoints on a container resource:
     /// <code lang="csharp">
     /// builder.AddContainer("my-service", "my-image")
     ///     .WithHttpsDeveloperCertificate()
@@ -2457,6 +2458,16 @@ public static class ResourceBuilderExtensions
     /// <param name="certificate">An <see cref="X509Certificate2"/> key pair to use for HTTPS/TLS endpoints on the resource.</param>
     /// <param name="password">A parameter specifying the password used to encrypt the certificate private key.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Use a custom certificate for HTTPS/TLS endpoints on a container resource:
+    /// <code lang="csharp">
+    /// var certificate = new X509Certificate2("path/to/certificate.pfx", "password");
+    /// builder.AddContainer("my-service", "my-image")
+    ///    .WithHttpsCertificate(certificate);
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<TResource> WithHttpsCertificate<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2 certificate, IResourceBuilder<ParameterResource>? password = null)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
@@ -2478,6 +2489,15 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Disable HTTPS certificate configuration for a Redis resource:
+    /// <code lang="csharp">
+    /// var redis = builder.AddRedis("cache")
+    ///     .WithoutHttpsCertificate();
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<TResource> WithoutHttpsCertificate<TResource>(this IResourceBuilder<TResource> builder)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
@@ -2500,6 +2520,20 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">The callback to configure the resource to use a certificate key pair.</param>
     /// <returns>The updated resource builder.</returns>
+    /// <remarks>
+    /// <example>
+    /// Pass the path to the PFX certificate file to the container arguments.
+    /// <code lang="csharp">
+    /// builder.AddContainer("my-service", "my-image")
+    ///     .WithHttpsCertificateConfiguration(ctx =>
+    ///     {
+    ///         ctx.Arguments.Add("--https-certificate-path");
+    ///         ctx.Arguments.Add(ctx.PfxPath);
+    ///         return Task.CompletedTask;
+    ///     });
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<TResource> WithHttpsCertificateConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<HttpsCertificateConfigurationCallbackAnnotationContext, Task> callback)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
