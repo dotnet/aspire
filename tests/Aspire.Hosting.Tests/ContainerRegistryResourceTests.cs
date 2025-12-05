@@ -361,4 +361,145 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
         Assert.NotEmpty(pipelineStepAnnotations);
         Assert.NotEmpty(pipelineConfigAnnotations);
     }
+
+    [Fact]
+    public async Task ProjectResourcePushStepHasPushContainerImageTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var project = builder.AddProject<Projects.ServiceA>("api");
+
+        var pipelineStepAnnotation = Assert.Single(project.Resource.Annotations.OfType<PipelineStepAnnotation>());
+
+        var factoryContext = new PipelineStepFactoryContext
+        {
+            PipelineContext = null!,
+            Resource = project.Resource
+        };
+
+        var steps = (await pipelineStepAnnotation.CreateStepsAsync(factoryContext)).ToList();
+
+        var pushStep = steps.FirstOrDefault(s => s.Name == "push-api");
+        Assert.NotNull(pushStep);
+        Assert.Contains(WellKnownPipelineTags.PushContainerImage, pushStep.Tags);
+        Assert.Contains(WellKnownPipelineSteps.Push, pushStep.RequiredBySteps);
+    }
+
+    [Fact]
+    public async Task ContainerWithDockerfilePushStepHasPushContainerImageTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var container = builder.AddDockerfile("mycontainer", "../myapp");
+
+        var pipelineStepAnnotation = Assert.Single(container.Resource.Annotations.OfType<PipelineStepAnnotation>());
+
+        var factoryContext = new PipelineStepFactoryContext
+        {
+            PipelineContext = null!,
+            Resource = container.Resource
+        };
+
+        var steps = (await pipelineStepAnnotation.CreateStepsAsync(factoryContext)).ToList();
+
+        var pushStep = steps.FirstOrDefault(s => s.Name == "push-mycontainer");
+        Assert.NotNull(pushStep);
+        Assert.Contains(WellKnownPipelineTags.PushContainerImage, pushStep.Tags);
+        Assert.Contains(WellKnownPipelineSteps.Push, pushStep.RequiredBySteps);
+    }
+
+    [Fact]
+    public async Task ContainerWithoutDockerfileHasNoPushStep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var pipelineStepAnnotations = container.Resource.Annotations.OfType<PipelineStepAnnotation>().ToList();
+
+        foreach (var annotation in pipelineStepAnnotations)
+        {
+            var factoryContext = new PipelineStepFactoryContext
+            {
+                PipelineContext = null!,
+                Resource = container.Resource
+            };
+
+            var steps = (await annotation.CreateStepsAsync(factoryContext)).ToList();
+
+            Assert.DoesNotContain(steps, s => s.Tags.Contains(WellKnownPipelineTags.PushContainerImage));
+        }
+    }
+
+    [Fact]
+    public async Task ProjectResourcePushStepDependsOnBuildStep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var project = builder.AddProject<Projects.ServiceA>("api");
+
+        var pipelineStepAnnotation = Assert.Single(project.Resource.Annotations.OfType<PipelineStepAnnotation>());
+
+        var factoryContext = new PipelineStepFactoryContext
+        {
+            PipelineContext = null!,
+            Resource = project.Resource
+        };
+
+        var steps = (await pipelineStepAnnotation.CreateStepsAsync(factoryContext)).ToList();
+
+        var buildStep = steps.FirstOrDefault(s => s.Name == "build-api");
+        var pushStep = steps.FirstOrDefault(s => s.Name == "push-api");
+
+        Assert.NotNull(buildStep);
+        Assert.NotNull(pushStep);
+
+        Assert.Contains(WellKnownPipelineTags.BuildCompute, buildStep.Tags);
+    }
+
+    [Fact]
+    public void WithContainerRegistryAddsAnnotationToProject()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var project = builder.AddProject<Projects.ServiceA>("api")
+            .WithContainerRegistry(registry);
+
+        var annotation = project.Resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().FirstOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Same(registry.Resource, annotation.Registry);
+    }
+
+    [Fact]
+    public void MultipleRegistriesCanBeAddedWithExplicitSelection()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry1 = builder.AddContainerRegistry("docker-hub", "docker.io", "user1");
+        var registry2 = builder.AddContainerRegistry("ghcr", "ghcr.io", "user2");
+
+        var project = builder.AddProject<Projects.ServiceA>("api")
+            .WithContainerRegistry(registry1);
+
+        var annotations = project.Resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().ToList();
+        Assert.Single(annotations);
+        Assert.Same(registry1.Resource, annotations[0].Registry);
+    }
+
+    [Fact]
+    public void ContainerRegistryReferenceAnnotationHoldsCorrectRegistry()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry = builder.AddContainerRegistry("acr", "myregistry.azurecr.io");
+
+        var annotation = new ContainerRegistryReferenceAnnotation(registry.Resource);
+
+        Assert.Same(registry.Resource, annotation.Registry);
+    }
 }

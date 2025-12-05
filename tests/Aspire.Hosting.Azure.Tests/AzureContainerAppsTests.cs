@@ -5,10 +5,12 @@
 #pragma warning disable ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.AppContainers;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
@@ -2050,5 +2052,90 @@ public class AzureContainerAppsTests
         var output = Assert.IsType<BicepOutputReference>(provider);
         Assert.Equal(env.Resource, output.Resource);
         Assert.Equal("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", output.Name);
+    }
+
+    [Fact]
+    public async Task ContainerAppProvisionDependsOnTargetPushStep()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResource = Assert.Single(model.GetProjectResources());
+
+        projectResource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var containerAppResource = target?.DeploymentTarget as AzureContainerAppResource;
+        Assert.NotNull(containerAppResource);
+
+        var configAnnotations = containerAppResource.Annotations.OfType<PipelineConfigurationAnnotation>().ToList();
+        Assert.NotEmpty(configAnnotations);
+    }
+
+    [Fact]
+    public async Task EnvironmentCreatesDefaultAcrWhenNoExplicitRegistry()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var acrResources = model.Resources.OfType<AzureContainerRegistryResource>().ToList();
+        Assert.Single(acrResources);
+
+        var defaultAcr = acrResources[0];
+        Assert.Contains("acr", defaultAcr.Name);
+    }
+
+    [Fact]
+    public async Task DefaultAcrNotAddedToModelWhenExplicitRegistryExists()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var customRegistry = builder.AddAzureContainerRegistry("customregistry");
+        builder.AddAzureContainerAppEnvironment("env")
+            .WithAzureContainerRegistry(customRegistry);
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var acrResources = model.Resources.OfType<AzureContainerRegistryResource>().ToList();
+        Assert.Single(acrResources);
+        Assert.Equal("customregistry", acrResources[0].Name);
+    }
+
+    [Fact]
+    public async Task EnvironmentDelegatesToAssociatedRegistry()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var customRegistry = builder.AddAzureContainerRegistry("customregistry");
+        var env = builder.AddAzureContainerAppEnvironment("env")
+            .WithAzureContainerRegistry(customRegistry);
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var containerRegistryInterface = env.Resource as IContainerRegistry;
+        Assert.NotNull(containerRegistryInterface);
+        Assert.NotNull(containerRegistryInterface.Endpoint);
+        Assert.NotNull(containerRegistryInterface.Name);
     }
 }
