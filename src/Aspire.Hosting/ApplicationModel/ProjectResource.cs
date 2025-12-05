@@ -39,6 +39,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             var buildStep = new PipelineStep
             {
                 Name = $"build-{name}",
+                Description = $"Builds the container image for the {name} project.",
                 Action = BuildProjectImage,
                 Tags = [WellKnownPipelineTags.BuildCompute],
                 RequiredBySteps = [WellKnownPipelineSteps.Build],

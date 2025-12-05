@@ -39,6 +39,7 @@ public static class ContainerResourceBuilderExtensions
             var buildStep = new PipelineStep
             {
                 Name = $"build-{builder.Resource.Name}",
+                Description = $"Builds the container image for the {builder.Resource.Name} container.",
                 Action = async ctx =>
                 {
                     var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
@@ -564,6 +565,7 @@ public static class ContainerResourceBuilderExtensions
                 context.LocalImageName = context.Resource.Name;
                 context.LocalImageTag = "latest";
             }
+            context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
         });
 
         // If there's already a ContainerImageAnnotation, don't overwrite it.
@@ -702,6 +704,7 @@ public static class ContainerResourceBuilderExtensions
                 context.LocalImageName = context.Resource.Name;
                 context.LocalImageTag = "latest";
             }
+            context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
         });
 
         // If there's already a ContainerImageAnnotation, don't overwrite it.

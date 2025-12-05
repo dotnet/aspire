@@ -967,6 +967,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         Assert.Equal("mycontainer", context.LocalImageName);
         Assert.Equal(expectedImageTag, context.LocalImageTag);
+        Assert.Equal(ContainerTargetPlatform.LinuxAmd64, context.TargetPlatform);
     }
 
     [Fact]

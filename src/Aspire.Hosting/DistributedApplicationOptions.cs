@@ -118,7 +118,7 @@ public sealed class DistributedApplicationOptions
     /// Whether to attempt to implicitly use a developer certificate (currently the ASP.NET Core development certificate) for server authentication for non-ASP.NET resources
     /// by default at runtime.
     /// </summary>
-    public bool? UseDeveloperCertificateForServerAuthentication { get; set; }
+    public bool? DeveloperCertificateDefaultHttpsTerminationEnabled { get; set; }
 
     private string? ResolveProjectDirectory()
     {
@@ -165,7 +165,7 @@ public sealed class DistributedApplicationOptions
         // For .csproj-based app hosts, check assembly metadata for the project path
         var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var projectPath = GetMetadataValue(assemblyMetadata, "AppHostProjectPath");
-        
+
         if (!string.IsNullOrEmpty(projectPath))
         {
             // The metadata may contain either the full path to the .csproj file or just the project directory.
@@ -194,7 +194,7 @@ public sealed class DistributedApplicationOptions
         // Fallback: construct the path from directory and project name
         var projectDirectory = ProjectDirectory;
         var projectName = ProjectName;
-        
+
         if (!string.IsNullOrEmpty(projectDirectory) && !string.IsNullOrEmpty(projectName))
         {
             var csprojPath = Path.Combine(projectDirectory, $"{projectName}.csproj");
