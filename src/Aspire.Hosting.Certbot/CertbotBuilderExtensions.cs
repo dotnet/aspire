@@ -187,8 +187,10 @@ public static class CertbotBuilderExtensions
     /// resource to complete certificate acquisition before starting.
     /// </para>
     /// <para>
-    /// <strong>Note:</strong> This method may conflict with <c>WithServerHttpsConfiguration</c>
-    /// if both are used on the same resource. Only use one certificate configuration method per resource.
+    /// <strong>Note:</strong> Do not use this method together with <c>WithHttpsCertificate</c>
+    /// or <c>WithHttpsCertificateConfiguration</c>
+    /// at runtime, as they will conflict. However, you can use Certbot in publish mode while using the other methods in development mode
+    /// by wrapping the Certbot configuration in an <c>ExecutionContext.IsPublishMode</c> check.
     /// </para>
     /// <example>
     /// <code lang="csharp">

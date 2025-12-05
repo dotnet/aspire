@@ -103,7 +103,29 @@ var myService = builder.AddContainer("myservice", "myimage")
                        .WaitForCompletion(certbot);
 ```
 
-**Important:** Do not use `WithCertbotCertificate` or `WithCertificateVolume` together with `WithServerHttpsConfiguration` on the same resource, as they may conflict. Choose one certificate configuration method per resource.
+**Important:** Do not use `WithCertbotCertificate` or `WithCertificateVolume` together with `WithHttpsCertificate` or `WithHttpsCertificateConfiguration` at runtime, as they will conflict. However, you can use Certbot for production while using development certificates locally by checking the execution mode:
+
+```csharp
+var gateway = builder.AddProject<Projects.Gateway>("gateway");
+
+if (builder.ExecutionContext.IsPublishMode)
+{
+    // Production: Use Certbot certificates
+    var certbot = builder.AddCertbot("certbot", domain, email)
+        .WithHttp01Challenge();
+    
+    gateway.WithCertbotCertificate(certbot)
+           .WithEnvironment("Yarp__Clusters__myservice__HttpsUrl", certbot.Resource.CertificatePath)
+           .WithEnvironment("Yarp__Clusters__myservice__PrivateKey", certbot.Resource.PrivateKeyPath);
+}
+else
+{
+    // Development: Use developer certificates
+    gateway.WithHttpsDeveloperCertificate();
+}
+```
+
+When using Certbot certificates, you'll need to configure your application manually to use them (e.g., via environment variables for YARP or similar reverse proxies).
 
 ### Certificate Locations
 
