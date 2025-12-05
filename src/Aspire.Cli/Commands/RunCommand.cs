@@ -26,6 +26,11 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RunCommand : BaseCommand
 {
+    // Constants for running instance detection
+    private const int SocketPathHashLength = 16; // Use 16 characters to keep Unix socket path length reasonable (Unix socket path limits are ~100 chars)
+    private const int ProcessTerminationTimeoutMs = 10000; // Wait up to 10 seconds for processes to terminate
+    private const int ProcessTerminationPollIntervalMs = 250; // Check process status every 250ms
+
     private readonly IDotNetCliRunner _runner;
     private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
@@ -508,8 +513,8 @@ internal sealed class RunCommand : BaseCommand
         
         // Compute hash from the AppHost path for consistency
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostPath));
-        // Use first 16 characters to keep socket path length reasonable (Unix socket path limits)
-        var hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
+        // Use limited characters to keep socket path length reasonable (Unix socket path limits)
+        var hash = Convert.ToHexString(hashBytes)[..SocketPathHashLength].ToLowerInvariant();
         
         var socketPath = Path.Combine(backchannelsDir, $"aux.sock.{hash}");
         return socketPath;
@@ -598,9 +603,6 @@ internal sealed class RunCommand : BaseCommand
 
     private static async Task<bool> MonitorProcessesForTerminationAsync(AppHostInformation appHostInfo, CancellationToken cancellationToken)
     {
-        const int maxWaitTimeMs = 10000; // Wait up to 10 seconds
-        const int pollIntervalMs = 250; // Check every 250ms
-
         var startTime = DateTime.UtcNow;
         var pidsToMonitor = new List<int> { appHostInfo.ProcessId };
         
@@ -609,7 +611,7 @@ internal sealed class RunCommand : BaseCommand
             pidsToMonitor.Add(appHostInfo.CliProcessId.Value);
         }
 
-        while ((DateTime.UtcNow - startTime).TotalMilliseconds < maxWaitTimeMs)
+        while ((DateTime.UtcNow - startTime).TotalMilliseconds < ProcessTerminationTimeoutMs)
         {
             var allStopped = true;
             
@@ -632,7 +634,7 @@ internal sealed class RunCommand : BaseCommand
                 return true;
             }
 
-            await Task.Delay(pollIntervalMs, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(ProcessTerminationPollIntervalMs, cancellationToken).ConfigureAwait(false);
         }
 
         // Timeout reached
