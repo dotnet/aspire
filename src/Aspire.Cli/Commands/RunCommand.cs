@@ -423,9 +423,9 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole.Write(ctrlCPadder);
     }
 
-    private static FileInfo GetAppHostLogFile()
+    private FileInfo GetAppHostLogFile()
     {
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var homeDirectory = ExecutionContext.HomeDirectory.FullName;
         var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
         var logFilePath = Path.Combine(logsPath, $"apphost-{Environment.ProcessId}-{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.log");
         var logFile = new FileInfo(logFilePath);
@@ -506,9 +506,9 @@ internal sealed class RunCommand : BaseCommand
         }
     }
 
-    private static string ComputeAuxiliarySocketPath(string appHostPath)
+    private string ComputeAuxiliarySocketPath(string appHostPath)
     {
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var homeDirectory = ExecutionContext.HomeDirectory.FullName;
         var backchannelsDir = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
         
         // Compute hash from the AppHost path for consistency
