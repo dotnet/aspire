@@ -7,13 +7,12 @@ namespace Aspire.TestUtilities;
 
 /// <summary>
 /// Indicates that a test requires write or export access to the certificate store.
-/// This is not supported on macOS currently as keychain requires user interaction for these operations.
+/// Will remove this if unlocking the keychain works.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequiresCertificateStoreAccessAttribute : Attribute, ITraitAttribute
 {
-    // Returns true if a valid ASP.NET Core development certificate is found in the current user's certificate store.
-    public static bool IsSupported => !OperatingSystem.IsMacOS(); // Can't get write or export access to the keychain in the CI currently
+    public static bool IsSupported => true;
 
     public string? Reason { get; init; }
     public RequiresCertificateStoreAccessAttribute(string? reason = null)
