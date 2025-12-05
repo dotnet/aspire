@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREUSERSECRETS001
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -9,6 +10,7 @@ using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.UserSecrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -244,6 +246,8 @@ public static class DistributedApplicationTestingBuilder
 
             public IDistributedApplicationPipeline Pipeline => innerBuilder.Pipeline;
 
+            public IUserSecretsManager UserSecretsManager => innerBuilder.UserSecretsManager;
+
             public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => innerBuilder.AddResource(resource);
 
             public DistributedApplication Build() => BuildAsync(CancellationToken.None).Result;
@@ -395,6 +399,8 @@ public static class DistributedApplicationTestingBuilder
         public IDistributedApplicationEventing Eventing => _innerBuilder.Eventing;
 
         public IDistributedApplicationPipeline Pipeline => _innerBuilder.Pipeline;
+
+        public IUserSecretsManager UserSecretsManager => _innerBuilder.UserSecretsManager;
 
         public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _innerBuilder.AddResource(resource);
 

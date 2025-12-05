@@ -7,6 +7,7 @@
 #pragma warning disable ASPIREPIPELINES004
 #pragma warning disable ASPIRECONTAINERRUNTIME001
 #pragma warning disable ASPIREFILESYSTEM001
+#pragma warning disable ASPIREUSERSECRETS001
 
 using System.Diagnostics;
 using System.Reflection;
@@ -101,10 +102,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <inheritdoc />
     public IFileSystemService FileSystemService => _directoryService;
 
-    /// <summary>
-    /// Gets the user secrets manager.
-    /// </summary>
-    internal IUserSecretsManager UserSecretsManager => _userSecretsManager;
+    /// <inheritdoc />
+    public IUserSecretsManager UserSecretsManager => _userSecretsManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
