@@ -282,4 +282,49 @@ public class AddCertbotTests
         Assert.Equal(80, endpoint.TargetPort);
         Assert.Equal(8080, endpoint.Port);
     }
+
+    [Fact]
+    public void WithCertbotCertificateAddsVolumeAndWaitAnnotations()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var domain = builder.AddParameter("domain");
+        var email = builder.AddParameter("email");
+        var certbot = builder.AddCertbot("certbot", domain, email);
+
+        var container = builder.AddContainer("test", "testimage")
+                               .WithCertbotCertificate(certbot);
+
+        // Check volume annotation
+        var volumes = container.Resource.Annotations.OfType<ContainerMountAnnotation>().ToList();
+        Assert.Single(volumes);
+        var volumeAnnotation = volumes[0];
+        Assert.Equal("letsencrypt", volumeAnnotation.Source);
+        Assert.Equal("/etc/letsencrypt", volumeAnnotation.Target);
+        Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
+
+        // Check wait annotation
+        var waitAnnotations = container.Resource.Annotations.OfType<WaitAnnotation>().ToList();
+        Assert.Single(waitAnnotations);
+        var waitAnnotation = waitAnnotations[0];
+        Assert.Equal(certbot.Resource, waitAnnotation.Resource);
+        Assert.Equal(WaitType.WaitForCompletion, waitAnnotation.WaitType);
+    }
+
+    [Fact]
+    public void WithCertbotCertificateWithCustomMountPath()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var domain = builder.AddParameter("domain");
+        var email = builder.AddParameter("email");
+        var certbot = builder.AddCertbot("certbot", domain, email);
+
+        var container = builder.AddContainer("test", "testimage")
+                               .WithCertbotCertificate(certbot, "/custom/certs");
+
+        var volumes = container.Resource.Annotations.OfType<ContainerMountAnnotation>().ToList();
+        Assert.Single(volumes);
+        var volumeAnnotation = volumes[0];
+        Assert.Equal("letsencrypt", volumeAnnotation.Source);
+        Assert.Equal("/custom/certs", volumeAnnotation.Target);
+    }
 }

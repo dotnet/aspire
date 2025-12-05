@@ -24,8 +24,7 @@ var certbot = builder.AddCertbot("certbot", domain, email)
     .WithHttp01Challenge();
 
 var myService = builder.AddContainer("myservice", "myimage")
-                       .WithCertificateVolume(certbot)
-                       .WaitForCompletion(certbot);
+                       .WithCertbotCertificate(certbot);
 ```
 
 The certbot container will:
@@ -33,6 +32,7 @@ The certbot container will:
 - Obtain certificates for the specified domain using the ACME protocol
 - Store certificates in a shared volume at `/etc/letsencrypt`
 - Use the configured challenge method (e.g., HTTP-01) for domain validation
+- Ensure dependent containers wait for certificate acquisition before starting
 
 ## Configuration
 
@@ -76,12 +76,23 @@ Certificate permissions are automatically set to allow non-root containers to re
 
 ### Sharing Certificates with Other Resources
 
-Use the `WithCertificateVolume` extension method to mount the certificates volume in other containers:
+Use the `WithCertbotCertificate` extension method to configure a container with certificates from Certbot:
 
 ```csharp
 var yarp = builder.AddContainer("yarp", "myimage")
-                  .WithCertificateVolume(certbot)
-                  .WaitForCompletion(certbot);
+                  .WithCertbotCertificate(certbot);
+```
+
+This method automatically:
+- Mounts the certificates volume at `/etc/letsencrypt`
+- Ensures the container waits for certificate acquisition to complete
+
+For more control, you can use `WithCertificateVolume` and `WaitForCompletion` separately:
+
+```csharp
+var myService = builder.AddContainer("myservice", "myimage")
+                       .WithCertificateVolume(certbot)
+                       .WaitForCompletion(certbot);
 ```
 
 Or mount the volume directly:
@@ -91,6 +102,8 @@ var myService = builder.AddContainer("myservice", "myimage")
                        .WithVolume("letsencrypt", "/etc/letsencrypt")
                        .WaitForCompletion(certbot);
 ```
+
+**Important:** Do not use `WithCertbotCertificate` or `WithCertificateVolume` together with `WithServerAuthenticationCertificateConfiguration` on the same resource, as they may conflict. Choose one certificate configuration method per resource.
 
 ### Certificate Locations
 
@@ -114,7 +127,7 @@ var privateKeyPath = certbot.Resource.PrivateKeyPath;     // /etc/letsencrypt/li
 
 The Certbot resource does not expose connection properties through `WithReference`. This is because the Certbot resource is a certificate provisioning tool, not a service that other resources connect to.
 
-Instead, use the `WithCertificateVolume` extension method to share certificates with other containers via a mounted volume. See the [Sharing Certificates with Other Resources](#sharing-certificates-with-other-resources) section above for usage examples.
+Instead, use the `WithCertbotCertificate` extension method to configure containers with certificates from Certbot. This method handles mounting the certificates volume and waiting for certificate acquisition. See the [Sharing Certificates with Other Resources](#sharing-certificates-with-other-resources) section above for usage examples.
 
 ## Additional documentation
 
