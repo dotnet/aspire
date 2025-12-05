@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREUSERSECRETS001
+#pragma warning disable ASPIREFILESYSTEM001
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -491,6 +492,12 @@ public interface IDistributedApplicationTestingBuilder : IDistributedApplication
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Resources" />
     new IResourceCollection Resources => ((IDistributedApplicationBuilder)this).Resources;
+
+    /// <inheritdoc cref="IDistributedApplicationBuilder.FileSystemService" />
+    new IFileSystemService FileSystemService => ((IDistributedApplicationBuilder)this).FileSystemService;
+
+    /// <inheritdoc cref="IDistributedApplicationBuilder.UserSecretsManager" />
+    new IUserSecretsManager UserSecretsManager => ((IDistributedApplicationBuilder)this).UserSecretsManager;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.AddResource{T}(T)" />
     new IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => ((IDistributedApplicationBuilder)this).AddResource(resource);
