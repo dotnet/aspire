@@ -154,6 +154,7 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
     {
         // Create a mock JsonRpc that won't be used
         var rpc = new JsonRpc(Stream.Null);
-        return new AppHostConnection(hash, socketPath, rpc, mcpInfo: null, appHostInfo, isInScope);
+        var backchannel = new AuxiliaryBackchannel(rpc);
+        return new AppHostConnection(hash, socketPath, rpc, backchannel, mcpInfo: null, appHostInfo, isInScope);
     }
 }

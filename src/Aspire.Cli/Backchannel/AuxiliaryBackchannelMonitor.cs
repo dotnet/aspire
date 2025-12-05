@@ -254,16 +254,19 @@ internal sealed class AuxiliaryBackchannelMonitor(
             var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
             rpc.StartListening();
 
+            // Create the auxiliary backchannel wrapper
+            var backchannel = new AuxiliaryBackchannel(rpc);
+
             // Get the AppHost information
-            var appHostInfo = await rpc.InvokeAsync<AppHostInformation?>("GetAppHostInformationAsync").ConfigureAwait(false);
+            var appHostInfo = await backchannel.GetAppHostInformationAsync(cancellationToken).ConfigureAwait(false);
 
             // Get the MCP connection info
-            var mcpInfo = await rpc.InvokeAsync<DashboardMcpConnectionInfo?>("GetDashboardMcpConnectionInfoAsync").ConfigureAwait(false);
+            var mcpInfo = await backchannel.GetDashboardMcpConnectionInfoAsync(cancellationToken).ConfigureAwait(false);
 
             // Determine if this AppHost is in scope of the MCP server's working directory
             var isInScope = IsAppHostInScope(appHostInfo?.AppHostPath);
 
-            var connection = new AppHostConnection(hash, socketPath, rpc, mcpInfo, appHostInfo, isInScope);
+            var connection = new AppHostConnection(hash, socketPath, rpc, backchannel, mcpInfo, appHostInfo, isInScope);
 
             // Set up disconnect handler
             rpc.Disconnected += (sender, args) =>
@@ -389,11 +392,12 @@ internal sealed class AppHostConnection
     /// <summary>
     /// Initializes a new instance of the <see cref="AppHostConnection"/> class.
     /// </summary>
-    public AppHostConnection(string hash, string socketPath, JsonRpc rpc, DashboardMcpConnectionInfo? mcpInfo, AppHostInformation? appHostInfo, bool isInScope)
+    public AppHostConnection(string hash, string socketPath, JsonRpc rpc, IAuxiliaryBackchannel backchannel, DashboardMcpConnectionInfo? mcpInfo, AppHostInformation? appHostInfo, bool isInScope)
     {
         Hash = hash;
         SocketPath = socketPath;
         Rpc = rpc;
+        Backchannel = backchannel;
         McpInfo = mcpInfo;
         AppHostInfo = appHostInfo;
         IsInScope = isInScope;
@@ -414,6 +418,11 @@ internal sealed class AppHostConnection
     /// Gets the JSON-RPC proxy for communicating with the AppHost.
     /// </summary>
     public JsonRpc Rpc { get; }
+
+    /// <summary>
+    /// Gets the auxiliary backchannel for communicating with the AppHost.
+    /// </summary>
+    public IAuxiliaryBackchannel Backchannel { get; }
 
     /// <summary>
     /// Gets the MCP connection information for the Dashboard.

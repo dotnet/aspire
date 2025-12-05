@@ -27,6 +27,7 @@ if not os.path.exists("static"):
         """Root endpoint."""
         return "API service is running. Navigate to /weatherforecast to see sample data."
 
+@app.get("/weatherforecast")
 async def weather_forecast():
     """Weather forecast endpoint."""
     # Generate fresh data if not in cache or cache unavailable.

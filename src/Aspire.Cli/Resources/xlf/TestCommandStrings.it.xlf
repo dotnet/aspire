@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="it" original="../TestCommandStrings.resx">
+    <body>
+      <trans-unit id="AppHostStarted">
+        <source>AppHost started. Waiting for completion...</source>
+        <target state="new">AppHost started. Waiting for completion...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConnectingToAppHost">
+        <source>Connecting to AppHost...</source>
+        <target state="new">Connecting to AppHost...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Run test resources to completion and then shutdown. Launches the AppHost, executes specified test resources, and exits after tests complete. (Preview)</source>
+        <target state="new">Run test resources to completion and then shutdown. Launches the AppHost, executes specified test resources, and exits after tests complete. (Preview)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</source>
+        <target state="new">The path to the Aspire AppHost project file. If not specified, searches for a project file in the current directory.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
