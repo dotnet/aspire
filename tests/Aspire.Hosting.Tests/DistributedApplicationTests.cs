@@ -1681,6 +1681,118 @@ public class DistributedApplicationTests
         await kubernetesLifecycle.HooksCompleted.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
     }
 
+    [Fact]
+    public async Task FinalizeResourceConfigurationCallbacksAreCalledAfterBeforeStartEvent()
+    {
+        const string testName = "finalize-callbacks-after-before-start";
+        using var testProgram = CreateTestProgram(testName);
+
+        var executionOrder = new List<string>();
+
+        // Subscribe to BeforeStartEvent
+        testProgram.AppBuilder.Eventing.Subscribe<BeforeStartEvent>(async (@event, cancellationToken) =>
+        {
+            executionOrder.Add("BeforeStartEvent");
+            await Task.CompletedTask;
+        });
+
+        testProgram.ServiceABuilder
+            .WithConfigurationFinalizer(async ctx =>
+            {
+                executionOrder.Add("FinalizeCallback1");
+                await Task.CompletedTask;
+            })
+            .WithConfigurationFinalizer(async ctx =>
+            {
+                executionOrder.Add("FinalizeCallback2");
+                await Task.CompletedTask;
+            });
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        // BeforeStartEvent should execute first, then callbacks in reverse order
+        Assert.Equal(["BeforeStartEvent", "FinalizeCallback2", "FinalizeCallback1"], executionOrder);
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    public async Task FinalizeResourceConfigurationCallbacksReceiveCorrectContext()
+    {
+        const string testName = "finalize-callbacks-context";
+        using var testProgram = CreateTestProgram(testName);
+
+        IResource? capturedResource = null;
+        DistributedApplicationExecutionContext? capturedExecutionContext = null;
+        CancellationToken capturedCancellationToken = default;
+
+        testProgram.ServiceABuilder
+            .WithConfigurationFinalizer(async ctx =>
+            {
+                capturedResource = ctx.Resource;
+                capturedExecutionContext = ctx.ExecutionContext;
+                capturedCancellationToken = ctx.CancellationToken;
+                await Task.CompletedTask;
+            });
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        // Verify context properties were populated
+        Assert.NotNull(capturedResource);
+        Assert.Equal(testProgram.ServiceABuilder.Resource, capturedResource);
+        Assert.NotNull(capturedExecutionContext);
+        Assert.False(capturedCancellationToken.IsCancellationRequested);
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    public async Task FinalizeResourceConfigurationCallbacksAreCalledForMultipleResources()
+    {
+        const string testName = "finalize-callbacks-multiple-resources";
+        using var testProgram = CreateTestProgram(testName);
+
+        var serviceACallbackExecuted = false;
+        var serviceBCallbackExecuted = false;
+        var serviceCCallbackExecuted = false;
+
+        testProgram.ServiceABuilder
+            .WithConfigurationFinalizer(async ctx =>
+            {
+                serviceACallbackExecuted = true;
+                await Task.CompletedTask;
+            });
+
+        testProgram.ServiceBBuilder
+            .WithConfigurationFinalizer(async ctx =>
+            {
+                serviceBCallbackExecuted = true;
+                await Task.CompletedTask;
+            });
+
+        testProgram.ServiceCBuilder
+            .WithConfigurationFinalizer(async ctx =>
+            {
+                serviceCCallbackExecuted = true;
+                await Task.CompletedTask;
+            });
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        // All callbacks should have executed
+        Assert.True(serviceACallbackExecuted);
+        Assert.True(serviceBCallbackExecuted);
+        Assert.True(serviceCCallbackExecuted);
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
     private static IResourceBuilder<ContainerResource> AddRedisContainer(IDistributedApplicationBuilder builder, string containerName)
     {
         return builder.AddContainer(containerName, RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
