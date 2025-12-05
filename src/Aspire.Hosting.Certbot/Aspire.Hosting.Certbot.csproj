@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire integration hosting certbot letsencrypt ssl tls https acme</PackageTags>
     <Description>Certbot support for Aspire.</Description>
     <!-- Disable package validation for new packages without a baseline version -->
