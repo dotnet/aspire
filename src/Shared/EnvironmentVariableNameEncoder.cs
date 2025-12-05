@@ -20,6 +20,8 @@ internal static partial class EnvironmentVariableNameEncoder
     /// <returns>A string that is safe to use as part of an environment variable.</returns>
     public static string Encode(string name)
     {
+        ArgumentNullException.ThrowIfNull(name);
+
         if (string.IsNullOrEmpty(name) || ValidNameRegex().IsMatch(name))
         {
             return name;

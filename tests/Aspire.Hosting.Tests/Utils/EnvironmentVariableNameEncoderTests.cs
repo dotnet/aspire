@@ -38,9 +38,14 @@ public class EnvironmentVariableNameEncoderTests
     }
 
     [Fact]
-    public void Encode_WhenNameIsNullOrEmpty_ReturnsEmptyString()
+    public void Encode_WhenNameIsEmpty_ReturnsEmptyString()
     {
-        Assert.Equal("", EnvironmentVariableNameEncoder.Encode(null!));
         Assert.Equal("", EnvironmentVariableNameEncoder.Encode(string.Empty));
+    }
+
+    [Fact]
+    public void Encode_WhenNameIsNull_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => EnvironmentVariableNameEncoder.Encode(null!));
     }
 }
