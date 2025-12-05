@@ -72,6 +72,7 @@ public class AzureUserAssignedIdentityTests
         Assert.Collection(model.Resources.OrderBy(r => r.Name),
             r => Assert.IsType<AzureEnvironmentResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r =>
             {
@@ -83,7 +84,7 @@ public class AzureUserAssignedIdentityTests
         var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>());
         var (_, identityBicep) = await GetManifestWithBicep(identityResource, skipPreparer: true);
 
-        var registryResource = Assert.Single(model.Resources.OfType<AzureContainerRegistryResource>());
+        var registryResource = Assert.Single(model.Resources.OfType<AzureContainerRegistryResource>(), r => r.Name == "myregistry");
         var (_, registryBicep) = await GetManifestWithBicep(registryResource, skipPreparer: true);
 
         var identityRoleAssignments = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "myidentity-roles-myregistry");
@@ -154,6 +155,7 @@ public class AzureUserAssignedIdentityTests
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r => Assert.IsType<ProjectResource>(r),
@@ -209,6 +211,7 @@ public class AzureUserAssignedIdentityTests
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
             r => Assert.IsType<AzureAppServiceEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r => Assert.IsType<ProjectResource>(r),
@@ -285,6 +288,7 @@ public class AzureUserAssignedIdentityTests
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r => Assert.IsType<ProjectResource>(r),
