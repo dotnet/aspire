@@ -95,21 +95,18 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             steps.Add(websiteExistsCheckStep);
 
-            var updateResourceStep = new PipelineStep
+            if (targetResource.TryGetLastAnnotation<AzureAppServiceWebsiteDoesNotExistAnnotation>(out _))
             {
-                Name = $"update-{targetResource.Name}",
-                Action = async ctx =>
+                var updateProvisionableResourceStep = new PipelineStep
                 {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-
-                    if (targetResource.TryGetLastAnnotation<AzureAppServiceWebsiteDoesNotExistAnnotation>(out var existsAnnotation) && !existsAnnotation.WebSiteExists)
+                    Name = $"update-{targetResource.Name}",
+                    Action = async ctx =>
                     {
-                        targetResource.Annotations.Add(new AzureAppServiceWebsiteDoesNotExistAnnotation());
+                        var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+
                         if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
                         {
                             var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
-                            ctx.ReportingStep.Log(LogLevel.Information, $"Fetched environment context", false);
-
                             var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
                             var provisioningResource = new AzureAppServiceWebSiteResource(targetResource.Name + "-website", context.BuildWebSite, targetResource)
                             {
@@ -118,19 +115,19 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
                             deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
 
-                            ctx.ReportingStep.Log(LogLevel.Information, $"Updated provisionable resource", false);
+                            ctx.ReportingStep.Log(LogLevel.Information, $"Updated provisionable resource to deploy website and deployment slot", false);
                         }
                         else
                         {
                             ctx.ReportingStep.Log(LogLevel.Warning, $"No environment context annotation on the environment resource", false);
                         }
-                    }
-                },
-                Tags = ["update-website-provisionable-resource"],
-                DependsOnSteps = new List<string> { "create-provisioning-context" },
-            };
+                    },
+                    Tags = ["update-website-provisionable-resource"],
+                    DependsOnSteps = new List<string> { "create-provisioning-context" },
+                };
 
-            steps.Add(updateResourceStep);
+                steps.Add(updateProvisionableResourceStep);
+            }
 
             if (!targetResource.TryGetEndpoints(out var endpoints))
             {
@@ -246,15 +243,12 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var resourceGroupName = provisioningContext.ResourceGroup.Name
             ?? throw new InvalidOperationException("ResourceGroup name is required.");
 
+        context.ReportingStep.Log(LogLevel.Information, $"Check if website {websiteName} exists", false);
         // Prepare ARM endpoint and request
-        var armEndpoint = "https://management.azure.com";
-        var apiVersion = "2025-03-01";
-
-        context.ReportingStep.Log(LogLevel.Information, $"Check if website exists: {websiteName}", false);
-        var url = $"{armEndpoint}/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{websiteName}?api-version={apiVersion}";
+        var url = $"{AzureManagementEndpoint}/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{websiteName}?api-version=2025-03-01";
 
         // Get access token for ARM
-        var tokenRequest = new TokenRequestContext(["https://management.azure.com/.default"]);
+        var tokenRequest = new TokenRequestContext([AzureManagementScope]);
         var token = await tokenCredentialProvider.TokenCredential
             .GetTokenAsync(tokenRequest, context.CancellationToken)
             .ConfigureAwait(false);
@@ -267,4 +261,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
         return response.StatusCode == System.Net.HttpStatusCode.OK;
     }
+
+    private const string AzureManagementScope = "https://management.azure.com/.default";
+    private const string AzureManagementEndpoint = "https://management.azure.com/";
 }

@@ -285,8 +285,9 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// Configures the slot to which the Azure App Services should be deployed.
     /// </summary>
     /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
-    /// <param name="deploymentSlot">The deployment slot for the App Service Environment.</param>
-    /// <returns></returns>
+    /// <param name="deploymentSlot">The deployment slot parameter for all App Services in the App Service Environment.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDeploymentSlot(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<ParameterResource> deploymentSlot)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -299,26 +300,15 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <summary>
     /// Configures the slot to which the Azure App Services should be deployed.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="deploymentSlot"></param>
-    /// <returns></returns>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="deploymentSlot">The deployment slot for all App Services in the App Service Environment.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDeploymentSlot(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, string deploymentSlot)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(deploymentSlot);
 
         builder.Resource.DeploymentSlot = deploymentSlot;
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures whether automatic scaling should be enabled for the app services in Azure App Service environment.
-    /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
-    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutomaticScaling(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder)
-    {
-        builder.Resource.EnableAutomaticScaling = true;
         return builder;
     }
 }

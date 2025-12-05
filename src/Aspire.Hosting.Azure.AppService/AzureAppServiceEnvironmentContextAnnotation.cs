@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
@@ -11,7 +12,7 @@ internal sealed class AzureAppServiceEnvironmentContextAnnotation (AzureAppServi
     : IResourceAnnotation
 {
     /// <summary>
-    /// 
+    /// Azure App Service environment context.
     /// </summary>
     public AzureAppServiceEnvironmentContext EnvironmentContext { get; } = context;
 }
