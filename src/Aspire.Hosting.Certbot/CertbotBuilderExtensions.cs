@@ -21,7 +21,7 @@ public static class CertbotBuilderExtensions
     /// <remarks>
     /// <para>
     /// This method adds a Certbot container that obtains SSL/TLS certificates using the ACME protocol.
-    /// Port 80 is published to the host for the ACME challenge.
+    /// By default, no challenge method is configured. Use <see cref="WithHttp01Challenge"/> or other challenge methods to configure how certificates are obtained.
     /// </para>
     /// <para>
     /// The certificates are stored in a shared volume named "letsencrypt" at /etc/letsencrypt.
@@ -34,7 +34,8 @@ public static class CertbotBuilderExtensions
     /// var domain = builder.AddParameter("domain");
     /// var email = builder.AddParameter("email");
     ///
-    /// var certbot = builder.AddCertbot("certbot", domain, email);
+    /// var certbot = builder.AddCertbot("certbot", domain, email)
+    ///     .WithHttp01Challenge();
     ///
     /// var myService = builder.AddContainer("myservice", "myimage")
     ///                        .WithVolume("letsencrypt", "/etc/letsencrypt");
@@ -57,25 +58,72 @@ public static class CertbotBuilderExtensions
         return builder.AddResource(resource)
             .WithImage(CertbotContainerImageTags.Image, CertbotContainerImageTags.Tag)
             .WithImageRegistry(CertbotContainerImageTags.Registry)
-            .WithVolume(CertbotResource.CertificatesVolumeName, CertbotResource.CertificatesPath)
-            .WithHttpEndpoint(port: 80, targetPort: 80, name: CertbotResource.HttpEndpointName)
+            .WithVolume(CertbotResource.CertificatesVolumeName, CertbotResource.CertificatesPath);
+    }
+
+    /// <summary>
+    /// Configures Certbot to use the HTTP-01 challenge for domain validation.
+    /// </summary>
+    /// <param name="builder">The Certbot resource builder.</param>
+    /// <param name="port">The host port to publish for the HTTP-01 challenge. Defaults to 80.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The HTTP-01 challenge requires Certbot to be accessible on port 80 from the internet.
+    /// This method configures the container to listen on the specified port and adds the necessary
+    /// command-line arguments for standalone mode.
+    /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var certbot = builder.AddCertbot("certbot", domain, email)
+    ///     .WithHttp01Challenge(port: 8080);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<CertbotResource> WithHttp01Challenge(
+        this IResourceBuilder<CertbotResource> builder,
+        int? port = 80)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder
+            .WithHttpEndpoint(port: port, targetPort: 80, name: CertbotResource.HttpEndpointName)
             .WithExternalHttpEndpoints()
             .WithArgs(context =>
             {
+                var resource = (CertbotResource)context.Resource;
                 context.Args.Add("certonly");
                 context.Args.Add("--standalone");
                 context.Args.Add("--non-interactive");
                 context.Args.Add("--agree-tos");
                 context.Args.Add("-v");
                 context.Args.Add("--keep-until-expiring");
-                // Fix permissions so non-root containers can read the certs
-                context.Args.Add("--deploy-hook");
-                context.Args.Add("chmod -R 755 /etc/letsencrypt/live && chmod -R 755 /etc/letsencrypt/archive");
                 context.Args.Add("--email");
                 context.Args.Add(resource.EmailParameter);
                 context.Args.Add("-d");
                 context.Args.Add(resource.DomainParameter);
             });
+    }
+
+    /// <summary>
+    /// Configures Certbot to fix permissions on certificate files so non-root containers can read them.
+    /// </summary>
+    /// <param name="builder">The Certbot resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method adds a deploy hook that changes permissions on the certificate directories
+    /// to allow non-root containers to read the certificates.
+    /// </remarks>
+    public static IResourceBuilder<CertbotResource> WithPermissionFix(
+        this IResourceBuilder<CertbotResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithArgs(context =>
+        {
+            context.Args.Add("--deploy-hook");
+            context.Args.Add("chmod -R 755 /etc/letsencrypt/live && chmod -R 755 /etc/letsencrypt/archive");
+        });
     }
 
     /// <summary>
@@ -96,14 +144,15 @@ public static class CertbotBuilderExtensions
     /// var domain = builder.AddParameter("domain");
     /// var email = builder.AddParameter("email");
     ///
-    /// var certbot = builder.AddCertbot("certbot", domain, email);
+    /// var certbot = builder.AddCertbot("certbot", domain, email)
+    ///     .WithHttp01Challenge();
     ///
     /// var yarp = builder.AddContainer("yarp", "myimage")
-    ///                   .WithServerCertificates(certbot);
+    ///                   .WithCertificateVolume(certbot);
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> WithServerCertificates<T>(
+    public static IResourceBuilder<T> WithCertificateVolume<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<CertbotResource> certbot,
         string mountPath = CertbotResource.CertificatesPath) where T : ContainerResource

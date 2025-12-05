@@ -11,13 +11,14 @@ namespace Aspire.Hosting.Certbot.Tests;
 public class AddCertbotTests
 {
     [Fact]
-    public void AddCertbotContainerAddsAnnotationMetadata()
+    public void AddCertbotContainerWithHttp01ChallengeAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var domain = appBuilder.AddParameter("domain");
         var email = appBuilder.AddParameter("email");
 
-        appBuilder.AddCertbot("certbot", domain, email);
+        appBuilder.AddCertbot("certbot", domain, email)
+            .WithHttp01Challenge();
 
         using var app = appBuilder.Build();
 
@@ -63,13 +64,14 @@ public class AddCertbotTests
     }
 
     [Fact]
-    public void AddCertbotContainerHasArgsAnnotation()
+    public void WithHttp01ChallengeAddsArgsAnnotation()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var domain = appBuilder.AddParameter("domain");
         var email = appBuilder.AddParameter("email");
 
-        appBuilder.AddCertbot("certbot", domain, email);
+        appBuilder.AddCertbot("certbot", domain, email)
+            .WithHttp01Challenge();
 
         using var app = appBuilder.Build();
 
@@ -77,8 +79,8 @@ public class AddCertbotTests
 
         var containerResource = Assert.Single(appModel.Resources.OfType<CertbotResource>());
 
-        var argsAnnotation = Assert.Single(containerResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>());
-        Assert.NotNull(argsAnnotation.Callback);
+        var argsAnnotations = containerResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().ToList();
+        Assert.NotEmpty(argsAnnotations);
     }
 
     [Fact]
@@ -103,12 +105,13 @@ public class AddCertbotTests
     }
 
     [Fact]
-    public async Task VerifyManifest()
+    public async Task VerifyManifestWithHttp01Challenge()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var domain = builder.AddParameter("domain");
         var email = builder.AddParameter("email");
-        var certbot = builder.AddCertbot("certbot", domain, email);
+        var certbot = builder.AddCertbot("certbot", domain, email)
+            .WithHttp01Challenge();
 
         var manifest = await ManifestUtils.GetManifest(certbot.Resource);
 
@@ -123,8 +126,6 @@ public class AddCertbotTests
                 "--agree-tos",
                 "-v",
                 "--keep-until-expiring",
-                "--deploy-hook",
-                "chmod -R 755 /etc/letsencrypt/live \u0026\u0026 chmod -R 755 /etc/letsencrypt/archive",
                 "--email",
                 "{email.value}",
                 "-d",
@@ -152,7 +153,58 @@ public class AddCertbotTests
     }
 
     [Fact]
-    public void WithServerCertificatesAddsVolumeAnnotation()
+    public async Task VerifyManifestWithHttp01ChallengeAndPermissionFix()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var domain = builder.AddParameter("domain");
+        var email = builder.AddParameter("email");
+        var certbot = builder.AddCertbot("certbot", domain, email)
+            .WithHttp01Challenge()
+            .WithPermissionFix();
+
+        var manifest = await ManifestUtils.GetManifest(certbot.Resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "image": "{{CertbotContainerImageTags.Registry}}/{{CertbotContainerImageTags.Image}}:{{CertbotContainerImageTags.Tag}}",
+              "args": [
+                "certonly",
+                "--standalone",
+                "--non-interactive",
+                "--agree-tos",
+                "-v",
+                "--keep-until-expiring",
+                "--email",
+                "{email.value}",
+                "-d",
+                "{domain.value}",
+                "--deploy-hook",
+                "chmod -R 755 /etc/letsencrypt/live \u0026\u0026 chmod -R 755 /etc/letsencrypt/archive"
+              ],
+              "volumes": [
+                {
+                  "name": "letsencrypt",
+                  "target": "/etc/letsencrypt",
+                  "readOnly": false
+                }
+              ],
+              "bindings": {
+                "http": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 80,
+                  "external": true
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public void WithCertificateVolumeAddsVolumeAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var domain = builder.AddParameter("domain");
@@ -160,7 +212,7 @@ public class AddCertbotTests
         var certbot = builder.AddCertbot("certbot", domain, email);
 
         var container = builder.AddContainer("test", "testimage")
-                               .WithServerCertificates(certbot);
+                               .WithCertificateVolume(certbot);
 
         var volumes = container.Resource.Annotations.OfType<ContainerMountAnnotation>().ToList();
         Assert.Single(volumes);
@@ -172,7 +224,7 @@ public class AddCertbotTests
     }
 
     [Fact]
-    public void WithServerCertificatesWithCustomMountPath()
+    public void WithCertificateVolumeWithCustomMountPath()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var domain = builder.AddParameter("domain");
@@ -180,7 +232,7 @@ public class AddCertbotTests
         var certbot = builder.AddCertbot("certbot", domain, email);
 
         var container = builder.AddContainer("test", "testimage")
-                               .WithServerCertificates(certbot, "/custom/certs");
+                               .WithCertificateVolume(certbot, "/custom/certs");
 
         var volumes = container.Resource.Annotations.OfType<ContainerMountAnnotation>().ToList();
         Assert.Single(volumes);
@@ -257,5 +309,26 @@ public class AddCertbotTests
 
         Assert.NotNull(privateKeyPath);
         Assert.Equal("/etc/letsencrypt/live/{domain.value}/privkey.pem", privateKeyPath.ValueExpression);
+    }
+
+    [Fact]
+    public void WithHttp01ChallengeWithCustomPort()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var domain = appBuilder.AddParameter("domain");
+        var email = appBuilder.AddParameter("email");
+
+        appBuilder.AddCertbot("certbot", domain, email)
+            .WithHttp01Challenge(port: 8080);
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var containerResource = Assert.Single(appModel.Resources.OfType<CertbotResource>());
+
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(80, endpoint.TargetPort);
+        Assert.Equal(8080, endpoint.Port);
     }
 }

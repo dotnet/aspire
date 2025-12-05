@@ -20,18 +20,18 @@ Then, in the _AppHost.cs_ file of `AppHost`, add a Certbot resource to obtain SS
 var domain = builder.AddParameter("domain");
 var email = builder.AddParameter("email");
 
-var certbot = builder.AddCertbot("certbot", domain, email);
+var certbot = builder.AddCertbot("certbot", domain, email)
+    .WithHttp01Challenge();
 
 var myService = builder.AddContainer("myservice", "myimage")
-                       .WithServerCertificates(certbot);
+                       .WithCertificateVolume(certbot);
 ```
 
 The certbot container will:
 
-- Run in standalone mode to handle ACME challenges on port 80
 - Obtain certificates for the specified domain using the ACME protocol
 - Store certificates in a shared volume at `/etc/letsencrypt`
-- Fix permissions so non-root containers can read the certificates
+- Use the configured challenge method (e.g., HTTP-01) for domain validation
 
 ## Configuration
 
@@ -51,13 +51,43 @@ Parameters__domain=example.com
 Parameters__email=admin@example.com
 ```
 
+### Challenge Methods
+
+Certbot supports different challenge methods for domain validation. You must configure at least one challenge method:
+
+#### HTTP-01 Challenge
+
+Use `WithHttp01Challenge()` to configure the HTTP-01 challenge, which requires Certbot to be accessible on port 80:
+
+```csharp
+var certbot = builder.AddCertbot("certbot", domain, email)
+    .WithHttp01Challenge();
+```
+
+You can optionally specify a custom port:
+
+```csharp
+var certbot = builder.AddCertbot("certbot", domain, email)
+    .WithHttp01Challenge(port: 8080);
+```
+
+### Permission Fixes
+
+If your containers run as non-root users, you can add permission fixes to make certificates readable:
+
+```csharp
+var certbot = builder.AddCertbot("certbot", domain, email)
+    .WithHttp01Challenge()
+    .WithPermissionFix();
+```
+
 ### Sharing Certificates with Other Resources
 
-Use the `WithServerCertificates` extension method to mount the certificates volume in other containers:
+Use the `WithCertificateVolume` extension method to mount the certificates volume in other containers:
 
 ```csharp
 var yarp = builder.AddContainer("yarp", "myimage")
-                  .WithServerCertificates(certbot);
+                  .WithCertificateVolume(certbot);
 ```
 
 Or mount the volume directly:
@@ -77,7 +107,8 @@ After Certbot obtains certificates, they are available at:
 The `CertbotResource` exposes these paths as `ReferenceExpression` properties that can be used to configure other resources:
 
 ```csharp
-var certbot = builder.AddCertbot("certbot", domain, email);
+var certbot = builder.AddCertbot("certbot", domain, email)
+    .WithHttp01Challenge();
 
 // Access the certificate and private key paths
 var certificatePath = certbot.Resource.CertificatePath;   // /etc/letsencrypt/live/{domain}/fullchain.pem
@@ -88,7 +119,7 @@ var privateKeyPath = certbot.Resource.PrivateKeyPath;     // /etc/letsencrypt/li
 
 The Certbot resource does not expose connection properties through `WithReference`. This is because the Certbot resource is a certificate provisioning tool, not a service that other resources connect to.
 
-Instead, use the `WithServerCertificates` extension method to share certificates with other containers via a mounted volume. See the [Sharing Certificates with Other Resources](#sharing-certificates-with-other-resources) section above for usage examples.
+Instead, use the `WithCertificateVolume` extension method to share certificates with other containers via a mounted volume. See the [Sharing Certificates with Other Resources](#sharing-certificates-with-other-resources) section above for usage examples.
 
 ## Additional documentation
 
