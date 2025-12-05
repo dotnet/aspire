@@ -92,6 +92,21 @@
         <target state="translated">Recurso</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="RunningInstanceDetected">
+        <source>An instance of this AppHost is already running. Would you like to stop it?</source>
+        <target state="new">An instance of this AppHost is already running. Would you like to stop it?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunningInstanceStopFailed">
+        <source>Failed to stop running instance. The process may have already exited.</source>
+        <target state="new">Failed to stop running instance. The process may have already exited.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunningInstanceStopped">
+        <source>Running instance stopped successfully.</source>
+        <target state="new">Running instance stopped successfully.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
         <target state="translated">Se deve iniciar uma sessão de depuração, se estiver em execução no Aspire Terminal.</target>
@@ -116,6 +131,11 @@
         <source>State</source>
         <target state="translated">Estado</target>
         <note>The state of the resource, eg Running</note>
+      </trans-unit>
+      <trans-unit id="StoppingRunningInstance">
+        <source>Stopping running instance...</source>
+        <target state="new">Stopping running instance...</target>
+        <note />
       </trans-unit>
       <trans-unit id="Type">
         <source>Type</source>
