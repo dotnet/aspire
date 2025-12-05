@@ -47,6 +47,17 @@ internal sealed class AzureAppServiceWebsiteContext(
         BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}-{BicepFunction.ToLower(deploymentSlot)}"), 60);
     }
 
+    /// <summary>
+    /// Sets the host name to be used for the website configuration.
+    /// </summary>
+    /// <param name="hostName">The host name to assign to the website.</param>
+    public void SetWebsiteHostName(string hostName)
+    {
+        _websiteHostNameParameter.Value = hostName;
+    }
+
+    private readonly ProvisioningParameter _websiteHostNameParameter = new ProvisioningParameter("websiteHostName", typeof(string));
+
     public async Task ProcessAsync(CancellationToken cancellationToken)
     {
         ProcessEndpoints();
@@ -126,7 +137,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             // TargetPort is null only for default ProjectResource endpoints (container port decides)
             _endpointMapping[endpoint.Name] = new(
                 Scheme: endpoint.UriScheme,
-                Host: HostName,
+                Host: _websiteHostNameParameter,
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
                 TargetPort: resolved.TargetPort,
                 IsHttpIngress: true,
@@ -247,6 +258,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     public void BuildWebSite(AzureResourceInfrastructure infra)
     {
+        infra.Add(_websiteHostNameParameter);
         bool buildWebAppAndSlot = resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteDoesNotExistAnnotation>(out _);
 
         _infrastructure = infra;
