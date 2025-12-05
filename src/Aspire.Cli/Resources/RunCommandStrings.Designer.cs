@@ -51,6 +51,12 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string ForceArgumentDescription {
+            get {
+                return ResourceManager.GetString("ForceArgumentDescription", resourceCulture);
+            }
+        }
+        
         public static string ProjectArgumentDescription {
             get {
                 return ResourceManager.GetString("ProjectArgumentDescription", resourceCulture);
