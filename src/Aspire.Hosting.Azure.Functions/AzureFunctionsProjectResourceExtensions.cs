@@ -51,6 +51,7 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <item><description><see cref="StorageBuiltInRole.StorageQueueDataContributor"/></description></item>
     /// <item><description><see cref="StorageBuiltInRole.StorageAccountContributor"/></description></item>
     /// </list>
+    /// For more information, see <a href="https://learn.microsoft.com/azure/azure-functions/dotnet-aspire-integration#azure-functions-host-storage">Azure Functions host storage</a>.
     /// </para>
     /// <para>
     /// Use <see cref="WithHostStorage"/> to specify a custom Azure Storage resource as the host storage instead of the
@@ -95,6 +96,7 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <item><description><see cref="StorageBuiltInRole.StorageQueueDataContributor"/></description></item>
     /// <item><description><see cref="StorageBuiltInRole.StorageAccountContributor"/></description></item>
     /// </list>
+    /// For more information, see <a href="https://learn.microsoft.com/azure/azure-functions/dotnet-aspire-integration#azure-functions-host-storage">Azure Functions host storage</a>.
     /// </para>
     /// <para>
     /// Use <see cref="WithHostStorage"/> to specify a custom Azure Storage resource as the host storage instead of the
