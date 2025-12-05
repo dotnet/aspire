@@ -19,14 +19,6 @@ resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   location: location
 }
 
-module acaEnv_acr 'acaEnv-acr/acaEnv-acr.bicep' = {
-  name: 'acaEnv-acr'
-  scope: rg
-  params: {
-    location: location
-  }
-}
-
 module acaEnv 'acaEnv/acaEnv.bicep' = {
   name: 'acaEnv'
   scope: rg
@@ -89,6 +81,14 @@ module mod 'mod/mod.bicep' = {
   }
 }
 
+module acaEnv_acr 'acaEnv-acr/acaEnv-acr.bicep' = {
+  name: 'acaEnv-acr'
+  scope: rg
+  params: {
+    location: location
+  }
+}
+
 module myapp_identity 'myapp-identity/myapp-identity.bicep' = {
   name: 'myapp-identity'
   scope: rg
@@ -129,6 +129,8 @@ output acaEnv_acr_name string = acaEnv_acr.outputs.name
 
 output acaEnv_acr_loginServer string = acaEnv_acr.outputs.loginServer
 
+output acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
+
 output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN
 
 output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = acaEnv.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
@@ -140,8 +142,6 @@ output account_connectionString string = account.outputs.connectionString
 output myapp_identity_clientId string = myapp_identity.outputs.clientId
 
 output acaEnv_AZURE_CONTAINER_REGISTRY_ENDPOINT string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
-
-output acaEnv_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = acaEnv.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
 
 output fe_identity_id string = fe_identity.outputs.id
 
