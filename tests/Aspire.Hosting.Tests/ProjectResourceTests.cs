@@ -753,33 +753,24 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        // Verify the project has PipelineStepAnnotations for build and push
-        var pipelineStepAnnotations = resource.Annotations.OfType<PipelineStepAnnotation>().ToList();
-        Assert.Equal(2, pipelineStepAnnotations.Count);
+        // Verify the project has a single PipelineStepAnnotation that emits build and push steps
+        var pipelineStepAnnotation = Assert.Single(resource.Annotations.OfType<PipelineStepAnnotation>());
 
-        // Create a factory context for testing the annotation
         var factoryContext = new PipelineStepFactoryContext
         {
-            PipelineContext = null!, // Not needed for this test
+            PipelineContext = null!,
             Resource = resource
         };
 
-        // Get steps from the build annotation (first one)
-        var buildAnnotation = pipelineStepAnnotations[0];
-        var buildSteps = (await buildAnnotation.CreateStepsAsync(factoryContext)).ToList();
+        var steps = (await pipelineStepAnnotation.CreateStepsAsync(factoryContext)).ToList();
+        Assert.Equal(2, steps.Count);
 
-        var buildStep = Assert.Single(buildSteps);
-        Assert.Equal("build-test-project", buildStep.Name);
+        var buildStep = steps.First(s => s.Name == "build-test-project");
         Assert.Contains(WellKnownPipelineTags.BuildCompute, buildStep.Tags);
         Assert.Contains(WellKnownPipelineSteps.Build, buildStep.RequiredBySteps);
         Assert.Contains(WellKnownPipelineSteps.BuildPrereq, buildStep.DependsOnSteps);
 
-        // Get steps from the push annotation (second one)
-        var pushAnnotation = pipelineStepAnnotations[1];
-        var pushSteps = (await pushAnnotation.CreateStepsAsync(factoryContext)).ToList();
-
-        var pushStep = Assert.Single(pushSteps);
-        Assert.Equal("push-test-project", pushStep.Name);
+        var pushStep = steps.First(s => s.Name == "push-test-project");
         Assert.Contains(WellKnownPipelineTags.PushContainerImage, pushStep.Tags);
         Assert.Contains(WellKnownPipelineSteps.Push, pushStep.RequiredBySteps);
     }
@@ -811,8 +802,7 @@ public class ProjectResourceTests
         Assert.Equal(sourceContainer.Resource, containerFilesAnnotation.Source);
         Assert.Equal("./wwwroot", containerFilesAnnotation.DestinationPath);
 
-        var pipelineStepAnnotations = resource.Annotations.OfType<PipelineStepAnnotation>().ToList();
-        Assert.Equal(2, pipelineStepAnnotations.Count);
+        Assert.Single(resource.Annotations.OfType<PipelineStepAnnotation>());
     }
 
     [Fact]
