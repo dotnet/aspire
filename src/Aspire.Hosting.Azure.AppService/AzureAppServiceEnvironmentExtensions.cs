@@ -109,12 +109,12 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             infra.Add(new ProvisioningOutput("name", typeof(string))
             {
-                Value = plan.Name
+                Value = plan.Name.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("planId", typeof(string))
             {
-                Value = plan.Id
+                Value = plan.Id.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("webSiteSuffix", typeof(string))
@@ -124,23 +124,23 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {
-                Value = containerRegistry.Name
+                Value = containerRegistry.Name.ToBicepExpression()
             });
 
             // AZD looks for this output to find the container registry endpoint
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_ENDPOINT", typeof(string))
             {
-                Value = containerRegistry.LoginServer
+                Value = containerRegistry.LoginServer.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", typeof(string))
             {
-                Value = identity.Id
+                Value = identity.Id.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID", typeof(string))
             {
-                Value = identity.ClientId
+                Value = identity.ClientId.ToBicepExpression()
             });
 
             if (resource.EnableDashboard)
@@ -200,12 +200,12 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
                 infra.Add(new ProvisioningOutput("AZURE_APPLICATION_INSIGHTS_INSTRUMENTATIONKEY", typeof(string))
                 {
-                    Value = applicationInsights.InstrumentationKey
+                    Value = applicationInsights.InstrumentationKey.ToBicepExpression()
                 });
 
                 infra.Add(new ProvisioningOutput("AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING", typeof(string))
                 {
-                    Value = applicationInsights.ConnectionString
+                    Value = applicationInsights.ConnectionString.ToBicepExpression()
                 });
             }
         });

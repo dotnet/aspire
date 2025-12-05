@@ -69,10 +69,10 @@ public static class AzureServiceBusExtensions
                     return resource;
                 });
 
-            infrastructure.Add(new ProvisioningOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint });
+            infrastructure.Add(new ProvisioningOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint.ToBicepExpression() });
 
             // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = serviceBusNamespace.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = serviceBusNamespace.Name.ToBicepExpression() });
 
             var azureResource = (AzureServiceBusResource)infrastructure.AspireResource;
 
