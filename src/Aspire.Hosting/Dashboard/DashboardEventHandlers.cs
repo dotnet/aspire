@@ -229,7 +229,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                 }
             };
 
-            var customConfigPath = directoryService.TempDirectory.CreateTempFile().Path;
+            var customConfigPath = directoryService.TempDirectory.CreateTempFile("runtimeconfig.json").Path;
             File.WriteAllText(customConfigPath, JsonSerializer.Serialize(defaultConfig, new JsonSerializerOptions { WriteIndented = true }));
 
             _customRuntimeConfigPath = customConfigPath;
@@ -271,7 +271,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
 
         // Create a temporary file for the custom runtime config
-        var tempPath = directoryService.TempDirectory.CreateTempFile().Path;
+        var tempPath = directoryService.TempDirectory.CreateTempFile("runtimeconfig.json").Path;
         File.WriteAllText(tempPath, configJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
 
         _customRuntimeConfigPath = tempPath;
