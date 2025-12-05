@@ -146,7 +146,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var dashboardEnvironmentVariables = new ConcurrentDictionary<string, string?>();
 
         (var dashboardEnvironment, _) = await dashboardResource.ExecutionConfigurationBuilder()
-            .WithEnvironmentVariables()
+            .WithEnvironmentVariablesConfig()
             .BuildAsync(context, new FakeLogger(), CancellationToken.None)
             .DefaultTimeout();
 

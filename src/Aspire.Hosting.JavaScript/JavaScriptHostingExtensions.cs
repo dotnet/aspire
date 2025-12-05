@@ -535,8 +535,8 @@ public static class JavaScriptHostingExtensions
             })
             .WithHttpEndpoint(env: "PORT")
             // Making TLS opt-in for Vite for now
-            .WithoutServerAuthenticationCertificate()
-            .WithServerAuthenticationCertificateConfiguration(async ctx =>
+            .WithoutHttpsCertificate()
+            .WithHttpsCertificateConfiguration(async ctx =>
             {
                 string? configTarget = resource.ViteConfigPath;
 
@@ -632,16 +632,16 @@ public static class JavaScriptHostingExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!resourceBuilder.Resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
+                if (!resourceBuilder.Resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
                 {
-                    if (developerCertificateService.UseForServerAuthentication)
+                    if (developerCertificateService.UseForHttps)
                     {
                         // If no certificate is configured, and the developer certificate service supports container trust,
                         // configure the resource to use the developer certificate for its key pair.
                         addHttps = true;
                     }
                 }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication) || annotation.Certificate is not null)
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }

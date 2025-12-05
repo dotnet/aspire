@@ -8,18 +8,10 @@ using System.Security.Cryptography.X509Certificates;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a resource that resolves to a certificate
-/// </summary>
-public interface ICertificateResource : IResource, IValueProvider, IManifestExpressionProvider
-{
-
-}
-
-/// <summary>
-/// An annotation that associates a certificate pair (public/private key) with a resource.
+/// An annotation that associates an HTTPS/TLS server certificate with a resource.
 /// </summary>
 [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class ServerAuthenticationCertificateAnnotation : IResourceAnnotation
+public sealed class HttpsCertificateAnnotation : IResourceAnnotation
 {
     private X509Certificate2? _certificate;
     private bool? _useDeveloperCertificate;

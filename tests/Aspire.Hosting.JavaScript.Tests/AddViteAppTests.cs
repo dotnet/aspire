@@ -299,16 +299,16 @@ public class AddViteAppTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var nodeResource = Assert.Single(appModel.Resources.OfType<ViteAppResource>());
 
-        // Get the ServerAuthenticationCertificateConfigurationCallbackAnnotation
+        // Get the HttpsCertificateConfigurationCallbackAnnotation
         var certConfigAnnotation = nodeResource.Annotations
-            .OfType<ServerAuthenticationCertificateConfigurationCallbackAnnotation>()
+            .OfType<HttpsCertificateConfigurationCallbackAnnotation>()
             .Single();
 
         // Set up a context to invoke the callback with an existing --config argument
         var args = new List<object> { "run", "dev", "--", "--port", "3000", "--config", "vite.config.js" };
         var env = new Dictionary<string, object>();
 
-        var context = new ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
+        var context = new HttpsCertificateConfigurationCallbackAnnotationContext
         {
             ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
             Resource = nodeResource,
@@ -359,16 +359,16 @@ public class AddViteAppTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var nodeResource = Assert.Single(appModel.Resources.OfType<ViteAppResource>());
 
-        // Get the ServerAuthenticationCertificateConfigurationCallbackAnnotation
+        // Get the HttpsCertificateConfigurationCallbackAnnotation
         var certConfigAnnotation = nodeResource.Annotations
-            .OfType<ServerAuthenticationCertificateConfigurationCallbackAnnotation>()
+            .OfType<HttpsCertificateConfigurationCallbackAnnotation>()
             .Single();
 
         // Set up a context without --config argument (simulating default behavior)
         var args = new List<object> { "run", "dev", "--", "--port", "3000" };
         var env = new Dictionary<string, object>();
 
-        var context = new ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
+        var context = new HttpsCertificateConfigurationCallbackAnnotationContext
         {
             ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
             Resource = nodeResource,
@@ -410,16 +410,16 @@ public class AddViteAppTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var nodeResource = Assert.Single(appModel.Resources.OfType<ViteAppResource>());
 
-        // Get the ServerAuthenticationCertificateConfigurationCallbackAnnotation
+        // Get the HttpsCertificateConfigurationCallbackAnnotation
         var certConfigAnnotation = nodeResource.Annotations
-            .OfType<ServerAuthenticationCertificateConfigurationCallbackAnnotation>()
+            .OfType<HttpsCertificateConfigurationCallbackAnnotation>()
             .Single();
 
         // Set up a context without --config argument
         var args = new List<object> { "run", "dev", "--", "--port", "3000" };
         var env = new Dictionary<string, object>();
 
-        var context = new ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
+        var context = new HttpsCertificateConfigurationCallbackAnnotationContext
         {
             ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
             Resource = nodeResource,
@@ -463,9 +463,9 @@ public class AddViteAppTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var nodeResource = Assert.Single(appModel.Resources.OfType<ViteAppResource>());
 
-        // Get the ServerAuthenticationCertificateConfigurationCallbackAnnotation
+        // Get the HttpsCertificateConfigurationCallbackAnnotation
         var certConfigAnnotation = nodeResource.Annotations
-            .OfType<ServerAuthenticationCertificateConfigurationCallbackAnnotation>()
+            .OfType<HttpsCertificateConfigurationCallbackAnnotation>()
             .Single();
 
         // Set up a context with a password
@@ -475,7 +475,7 @@ public class AddViteAppTests
         // Create a mock password provider
         var password = new TestValueProvider("test-password");
 
-        var context = new ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
+        var context = new HttpsCertificateConfigurationCallbackAnnotationContext
         {
             ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
             Resource = nodeResource,
@@ -524,16 +524,16 @@ public class AddViteAppTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var nodeResource = Assert.Single(appModel.Resources.OfType<ViteAppResource>());
 
-        // Get the ServerAuthenticationCertificateConfigurationCallbackAnnotation
+        // Get the HttpsCertificateConfigurationCallbackAnnotation
         var certConfigAnnotation = nodeResource.Annotations
-            .OfType<ServerAuthenticationCertificateConfigurationCallbackAnnotation>()
+            .OfType<HttpsCertificateConfigurationCallbackAnnotation>()
             .Single();
 
         // Set up a context without --config argument
         var args = new List<object> { "run", "dev", "--", "--port", "3000" };
         var env = new Dictionary<string, object>();
 
-        var context = new ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
+        var context = new HttpsCertificateConfigurationCallbackAnnotationContext
         {
             ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
             Resource = nodeResource,
