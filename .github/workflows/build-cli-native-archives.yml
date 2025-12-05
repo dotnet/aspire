@@ -26,33 +26,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
-      - name: Build CLI packages (Windows)
+      - name: Install Aspire CLI (Windows)
         if: ${{ matrix.targets.os == 'windows-latest' }}
         shell: pwsh
-        run: >
-          .\build.cmd
-          -ci
-          -build
-          -restore
-          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
-          /p:ContinuousIntegrationBuild=true
-          /p:SkipManagedBuild=true
-          /p:TargetRids=${{ matrix.targets.rids }}
-          ${{ inputs.versionOverrideArg }}
+        run: iex "& { $(irm https://aspire.dev/install.ps1) } -Quality dev"
 
-      - name: Build CLI packages (Unix)
+      - name: Install Aspire CLI (Unix)
         if: ${{ matrix.targets.os != 'windows-latest' }}
         shell: bash
-        run: >
-          ./build.sh
-          --ci
-          --build
-          --restore
-          /bl:${{ github.workspace }}/artifacts/log/Debug/BuildCli.binlog
-          /p:ContinuousIntegrationBuild=true
-          /p:SkipManagedBuild=true
-          /p:TargetRids=${{ matrix.targets.rids }}
-          ${{ inputs.versionOverrideArg }}
+        run: curl -sSL https://aspire.dev/install.sh | bash -s -- -q dev
+
+      - name: Build CLI packages
+        shell: bash
+        env:
+          CI: "true"
+          CONFIGURATION: Debug
+          TARGET_RIDS: ${{ matrix.targets.rids }}
+          SKIP_MANAGED_BUILD: "true"
+          ContinuousIntegrationBuild: "true"
+          VERSION_SUFFIX: ${{ inputs.versionOverrideArg }}
+          BINLOG_PATH: ${{ github.workspace }}/artifacts/log/Debug
+        working-directory: build
+        run: aspire do native-pack
 
       - name: Upload logs
         if: always()

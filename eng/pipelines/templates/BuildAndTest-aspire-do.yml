@@ -1,0 +1,185 @@
+parameters:
+  - name: runAsPublic
+    type: boolean
+    default: false
+  - name: buildConfig
+    type: string
+  - name: repoArtifactsPath
+    type: string
+  - name: repoLogPath
+    type: string
+  - name: repoTestResultsPath
+    type: string
+  - name: isWindows
+    type: string
+  - name: targetRids
+    type: object
+    default: ''
+  - name: runHelixTests
+    type: boolean
+    default: false
+  - name: runPipelineTests
+    type: boolean
+    default: false
+  - name: dockerCliVersion
+    type: string
+    default: '28.0.0'
+
+steps:
+  # Install Aspire CLI
+  - ${{ if eq(parameters.isWindows, 'true') }}:
+    - pwsh: iex "& { $(irm https://aspire.dev/install.ps1) } -Quality dev"
+      displayName: Install Aspire CLI
+
+  - ${{ if ne(parameters.isWindows, 'true') }}:
+    - bash: curl -sSL https://aspire.dev/install.sh | bash -s -- -q dev
+      displayName: Install Aspire CLI
+
+  # Internal pipeline: Build with pack+sign using aspire do
+  - ${{ if ne(parameters.runAsPublic, 'true') }}:
+    - script: aspire do pack
+      displayName: Build and Pack (aspire do)
+      workingDirectory: $(Build.SourcesDirectory)/build
+      env:
+        CI: "true"
+        TF_BUILD: "true"
+        CONFIGURATION: ${{ parameters.buildConfig }}
+        TARGET_RIDS: ${{ join(':', parameters.targetRids) }}
+        SIGN: $(_Sign)
+        SIGN_TYPE: $(_SignType)
+        TEAM_NAME: $(_TeamName)
+        BUILD_EXTENSION: "true"
+        SKIP_TESTS: "true"
+        ContinuousIntegrationBuild: "true"
+        BUILD_BUILDNUMBER: $(BUILD.BUILDNUMBER)
+        BINLOG_PATH: ${{ parameters.repoLogPath }}
+
+    - task: 1ES.PublishBuildArtifacts@1
+      displayName: Publish vscode extension
+      condition: always()
+      inputs:
+        PathtoPublish: '${{ parameters.repoArtifactsPath }}/packages/Release/vscode'
+        ArtifactName: aspire-vscode-extension
+
+    - script: dotnet build tests/workloads.proj /p:SkipPackageCheckForTemplatesTesting=true
+      displayName: Prepare sdks for templates testing
+      workingDirectory: $(Build.SourcesDirectory)
+
+    - script: aspire do test
+      displayName: Run Template tests (aspire do)
+      workingDirectory: $(Build.SourcesDirectory)/build
+      env:
+        CI: "true"
+        TF_BUILD: "true"
+        CONFIGURATION: ${{ parameters.buildConfig }}
+        RunOnlyBasicBuildTemplateTests: "true"
+        DEV_TEMP: $(Build.SourcesDirectory)/..
+        DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+        TEST_LOG_PATH: $(Build.SourcesDirectory)/artifacts/log/$(_BuildConfig)/Aspire.Templates.Tests
+        BINLOG_PATH: ${{ parameters.repoLogPath }}
+
+  # Public pipeline - build with aspire do
+  - ${{ if eq(parameters.runAsPublic, 'true') }}:
+    - script: aspire do pack
+      displayName: Build and Pack (aspire do)
+      workingDirectory: $(Build.SourcesDirectory)/build
+      env:
+        CI: "true"
+        CONFIGURATION: ${{ parameters.buildConfig }}
+        SKIP_TESTS: "true"
+        ContinuousIntegrationBuild: "true"
+        BINLOG_PATH: ${{ parameters.repoLogPath }}
+        DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+
+    - task: DockerInstaller@0
+      inputs:
+        dockerVersion: ${{ parameters.dockerCliVersion }}
+      displayName: Install Docker CLI
+
+  # Non-helix tests are run only on the public pipeline
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runPipelineTests, 'true')) }}:
+    # Install dev-certs
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: $(Build.SourcesDirectory)/tests/external-scripts/ubuntu-create-dotnet-devcert.sh
+        displayName: Install devcerts
+
+    - ${{ if eq(parameters.isWindows, 'true') }}:
+      - script: dotnet dev-certs https
+        displayName: Install dev-certs
+
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: |
+          docker info
+          docker container ls
+          docker volume ls
+          docker network ls
+          docker network prune -f
+        displayName: List Docker containers and networks, and prune networks (Before Tests)
+        condition: always()
+
+    - script: aspire do test
+      displayName: Run tests (aspire do)
+      workingDirectory: $(Build.SourcesDirectory)/build
+      env:
+        CI: "true"
+        CONFIGURATION: ${{ parameters.buildConfig }}
+        DOCKER_BUILDKIT: 1
+        DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
+        DCP_DIAGNOSTICS_LOG_LEVEL: debug
+        DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
+        DCP_PRESERVE_EXECUTABLE_LOGS: 1
+        DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+        BINLOG_PATH: ${{ parameters.repoLogPath }}
+
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: |
+          docker info
+          docker container ls
+          docker volume ls
+          docker network ls
+          docker network prune -f
+        displayName: List Docker containers and networks, and prune networks (After Tests always)
+        condition: always()
+
+  # Helix tests
+  - ${{ if and(eq(parameters.runAsPublic, 'true'), eq(parameters.runHelixTests, 'true')) }}:
+    - script: dotnet build tests/workloads.proj /p:Configuration=${{ parameters.buildConfig }}
+      displayName: Install sdk for testing
+      workingDirectory: $(Build.SourcesDirectory)
+      env:
+        BINLOG_PATH: ${{ parameters.repoLogPath }}
+
+    - template: /eng/pipelines/templates/send-to-helix.yml
+      parameters:
+        HelixProjectPath: '$(Build.SourcesDirectory)/tests/helix/send-to-helix-ci.proj'
+        HelixProjectArguments: /m /p:ContinuousIntegrationBuild=true /p:Configuration=${{ parameters.buildConfig }} /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+
+        ${{ if eq(parameters.isWindows, 'true') }}:
+          ${{ if eq(variables['System.TeamProject'], 'public') }}:
+            HelixTargetQueues: Windows.11.Amd64.Client.Open
+          ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+            HelixTargetQueues: Windows.11.Amd64.Client
+        ${{ if ne(parameters.isWindows, 'true') }}:
+          ${{ if eq(variables['System.TeamProject'], 'public') }}:
+            HelixTargetQueues: Ubuntu.2204.Amd64.Open
+          ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+            HelixTargetQueues: Ubuntu.2204.Amd64
+          ${{ if and(ne(parameters.isWindows, 'true'), ne(parameters.dockerCliVersion, '')) }}:
+            DockerCliPath: /opt/hostedtoolcache/docker-stable/${{ parameters.dockerCliVersion }}/x64/
+
+        IsWindows: ${{ parameters.isWindows }}
+        ${{ if eq(variables['System.TeamProject'], 'public') }}:
+          Creator: $(Build.DefinitionName)
+        HelixBuild: $(Build.BuildNumber)
+        HelixAccessToken: $(HelixApiAccessToken)
+
+  - ${{ if eq(parameters.runHelixTests, 'true') }}:
+    - task: CopyFiles@2
+      inputs:
+        Contents: '${{ parameters.repoArtifactsPath }}/helixresults/**/*.trx'
+        TargetFolder: '${{ parameters.repoArtifactsPath }}/log/$(_BuildConfig)/TestResults'
+        flattenFolders: true
+        OverWrite: true
+      displayName: Gather helix trx files
+      continueOnError: true
+      condition: always()
