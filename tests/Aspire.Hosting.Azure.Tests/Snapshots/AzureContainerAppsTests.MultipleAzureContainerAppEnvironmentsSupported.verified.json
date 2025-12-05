@@ -9,10 +9,6 @@
         "userPrincipalId": ""
       }
     },
-    "env1-acr": {
-      "type": "azure.bicep.v0",
-      "path": "env1-acr.module.bicep"
-    },
     "env2": {
       "type": "azure.bicep.v0",
       "path": "env2.module.bicep",
@@ -20,10 +16,6 @@
         "env2_acr_outputs_name": "{env2-acr.outputs.name}",
         "userPrincipalId": ""
       }
-    },
-    "env2-acr": {
-      "type": "azure.bicep.v0",
-      "path": "env2-acr.module.bicep"
     },
     "api1": {
       "type": "container.v1",
@@ -48,6 +40,14 @@
           "env2_outputs_azure_container_apps_environment_id": "{env2.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
         }
       }
+    },
+    "env1-acr": {
+      "type": "azure.bicep.v0",
+      "path": "env1-acr.module.bicep"
+    },
+    "env2-acr": {
+      "type": "azure.bicep.v0",
+      "path": "env2-acr.module.bicep"
     }
   }
 }
