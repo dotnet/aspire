@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -125,5 +126,44 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             EndpointUrl = $"{endpointUrl}/mcp",
             ApiToken = mcpApiKey
         };
+    }
+
+    /// <summary>
+    /// Requests the AppHost to stop gracefully.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that completes when the stop request has been initiated.</returns>
+    public Task StopAppHostAsync(CancellationToken cancellationToken = default)
+    {
+        // The cancellationToken parameter is not currently used, but is retained for API consistency and potential future support for cancellation.
+        _ = cancellationToken;
+
+        logger.LogInformation("Received request to stop AppHost");
+
+        // Start a background task to delay the stop by 500ms to allow the RPC response to be sent
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(500, CancellationToken.None).ConfigureAwait(false);
+                
+                var lifetime = serviceProvider.GetService<IHostApplicationLifetime>();
+                if (lifetime is not null)
+                {
+                    logger.LogInformation("Stopping AppHost application");
+                    lifetime.StopApplication();
+                }
+                else
+                {
+                    logger.LogWarning("IHostApplicationLifetime not found, cannot stop AppHost");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error while stopping AppHost");
+            }
+        }, CancellationToken.None);
+
+        return Task.CompletedTask;
     }
 }
