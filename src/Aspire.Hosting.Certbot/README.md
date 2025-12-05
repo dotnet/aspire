@@ -103,7 +103,7 @@ var myService = builder.AddContainer("myservice", "myimage")
                        .WaitForCompletion(certbot);
 ```
 
-**Important:** Do not use `WithCertbotCertificate` or `WithCertificateVolume` together with `WithServerAuthenticationCertificateConfiguration` on the same resource, as they may conflict. Choose one certificate configuration method per resource.
+**Important:** Do not use `WithCertbotCertificate` or `WithCertificateVolume` together with `WithServerHttpsConfiguration` on the same resource, as they may conflict. Choose one certificate configuration method per resource.
 
 ### Certificate Locations
 

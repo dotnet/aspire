@@ -187,7 +187,7 @@ public static class CertbotBuilderExtensions
     /// resource to complete certificate acquisition before starting.
     /// </para>
     /// <para>
-    /// <strong>Note:</strong> This method may conflict with <c>WithServerAuthenticationCertificateConfiguration</c>
+    /// <strong>Note:</strong> This method may conflict with <c>WithServerHttpsConfiguration</c>
     /// if both are used on the same resource. Only use one certificate configuration method per resource.
     /// </para>
     /// <example>
