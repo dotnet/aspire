@@ -43,12 +43,6 @@ rootCommand.SetAction(result =>
         return;
     }
 
-    if (showAllTests && !string.IsNullOrEmpty(url))
-    {
-        Console.WriteLine("Error: --url option is not supported with --show-all-tests option.");
-        return;
-    }
-
     if (showAllTests && combinedSummary)
     {
         Console.WriteLine("Error: --show-all-tests option is not supported with --combined option.");
@@ -56,11 +50,7 @@ rootCommand.SetAction(result =>
     }
 
     string report;
-    if (showAllTests)
-    {
-        report = TestSummaryGenerator.CreateAllTestsSummaryReport(dirPathOrTrxFilePath);
-    }
-    else if (combinedSummary)
+    if (combinedSummary)
     {
         report = TestSummaryGenerator.CreateCombinedTestSummaryReport(dirPathOrTrxFilePath);
     }
@@ -78,13 +68,13 @@ rootCommand.SetAction(result =>
             {
                 foreach (var trxFile in trxFiles)
                 {
-                    TestSummaryGenerator.CreateSingleTestSummaryReport(trxFile, reportBuilder, url);
+                    TestSummaryGenerator.CreateSingleTestSummaryReport(trxFile, reportBuilder, url, showAllTests);
                 }
             }
         }
         else
         {
-            TestSummaryGenerator.CreateSingleTestSummaryReport(dirPathOrTrxFilePath, reportBuilder, url);
+            TestSummaryGenerator.CreateSingleTestSummaryReport(dirPathOrTrxFilePath, reportBuilder, url, showAllTests);
         }
 
         report = reportBuilder.ToString();
