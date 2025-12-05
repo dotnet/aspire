@@ -104,7 +104,7 @@ internal sealed class McpStartCommand : BaseCommand
         if (_tools.TryGetValue(toolName, out var tool))
         {
             // Handle tools that don't need an MCP connection to the AppHost
-            if (toolName is "select_apphost" or "list_apphosts" or "list_integrations" or "get_resource_docs")
+            if (toolName is "select_apphost" or "list_apphosts" or "list_integrations" or "get_integration_docs")
             {
                 return await tool.CallToolAsync(null!, request.Params?.Arguments, cancellationToken);
             }
