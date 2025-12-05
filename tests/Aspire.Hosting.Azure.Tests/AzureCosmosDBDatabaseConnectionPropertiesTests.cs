@@ -18,14 +18,50 @@ public class AzureCosmosDBDatabaseConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureCosmosDBDatabaseResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have parent properties + Database
-        Assert.Equal(2, properties.Count);
+        // Should have parent properties (Uri, AccountKey) + Database
+        Assert.Equal(3, properties.Count);
         Assert.Collection(
             properties,
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("{cosmosdb.outputs.connectionString}", property.Value.ValueExpression);
+                Assert.Equal("{cosmosdb.outputs.accountEndpoint}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("AccountKey", property.Key);
+                Assert.Equal("", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Database", property.Key);
+                Assert.Equal("mydb", property.Value.ValueExpression);
+            });
+    }
+
+    [Fact]
+    public void AzureCosmosDBDatabaseResourceWithAccessKeyAuthenticationGetConnectionPropertiesReturnsExpectedValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmosdb = builder.AddAzureCosmosDB("cosmosdb").WithAccessKeyAuthentication();
+        var database = cosmosdb.AddCosmosDatabase("database", "mydb");
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureCosmosDBDatabaseResource>());
+        var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
+
+        // Should have parent properties (Uri, AccountKey) + Database
+        Assert.Equal(3, properties.Count);
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("{cosmosdb.outputs.accountEndpoint}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("AccountKey", property.Key);
+                Assert.Equal("{cosmosdb-kv.secrets.primaryaccesskey--cosmosdb}", property.Value.ValueExpression);
             },
             property =>
             {

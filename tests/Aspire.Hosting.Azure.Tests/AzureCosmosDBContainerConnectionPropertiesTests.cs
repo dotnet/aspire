@@ -19,14 +19,56 @@ public class AzureCosmosDBContainerConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureCosmosDBContainerResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have grandparent properties + parent Database + ContainerName
-        Assert.Equal(3, properties.Count);
+        // Should have grandparent properties (Uri, AccountKey) + parent Database + ContainerName
+        Assert.Equal(4, properties.Count);
         Assert.Collection(
             properties,
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("{cosmosdb.outputs.connectionString}", property.Value.ValueExpression);
+                Assert.Equal("{cosmosdb.outputs.accountEndpoint}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("AccountKey", property.Key);
+                Assert.Equal("", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Database", property.Key);
+                Assert.Equal("mydb", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("ContainerName", property.Key);
+                Assert.Equal("mycontainer", property.Value.ValueExpression);
+            });
+    }
+
+    [Fact]
+    public void AzureCosmosDBContainerResourceWithAccessKeyAuthenticationGetConnectionPropertiesReturnsExpectedValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmosdb = builder.AddAzureCosmosDB("cosmosdb").WithAccessKeyAuthentication();
+        var database = cosmosdb.AddCosmosDatabase("database", "mydb");
+        var container = database.AddContainer("container", "/id", "mycontainer");
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureCosmosDBContainerResource>());
+        var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
+
+        // Should have grandparent properties (Uri, AccountKey) + parent Database + ContainerName
+        Assert.Equal(4, properties.Count);
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("{cosmosdb.outputs.accountEndpoint}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("AccountKey", property.Key);
+                Assert.Equal("{cosmosdb-kv.secrets.primaryaccesskey--cosmosdb}", property.Value.ValueExpression);
             },
             property =>
             {

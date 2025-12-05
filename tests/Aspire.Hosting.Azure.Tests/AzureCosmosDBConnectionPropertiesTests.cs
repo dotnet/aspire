@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -14,13 +15,42 @@ public class AzureCosmosDBConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)cosmosDBResource).GetConnectionProperties().ToArray();
 
-        Assert.Single(properties);
+        Assert.Equal(2, properties.Length);
         Assert.Collection(
             properties,
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("{cosmos.outputs.connectionString}", property.Value.ValueExpression);
+                Assert.Equal("{cosmos.outputs.accountEndpoint}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("AccountKey", property.Key);
+                Assert.Equal("", property.Value.ValueExpression);
+            });
+    }
+
+    [Fact]
+    public void AzureCosmosDBResourceWithAccessKeyAuthenticationGetConnectionPropertiesReturnsExpectedValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmos = builder.AddAzureCosmosDB("cosmos").WithAccessKeyAuthentication();
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureCosmosDBResource>());
+        var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToArray();
+
+        Assert.Equal(2, properties.Length);
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("{cosmos.outputs.accountEndpoint}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("AccountKey", property.Key);
+                Assert.Equal("{cosmos-kv.secrets.primaryaccesskey--cosmos}", property.Value.ValueExpression);
             });
     }
 }
