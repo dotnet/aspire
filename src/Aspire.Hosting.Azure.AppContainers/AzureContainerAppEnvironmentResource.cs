@@ -165,12 +165,19 @@ public class AzureContainerAppEnvironmentResource :
 
     internal Dictionary<string, (IResource resource, ContainerMountAnnotation volume, int index, BicepOutputReference outputReference)> VolumeNames { get; } = [];
 
-    private IAzureContainerRegistry GetAssociatedRegistry()
+    internal AzureContainerRegistryResource? DefaultContainerRegistry { get; set; }
+
+    private IContainerRegistry GetAssociatedRegistry()
     {
         if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation) &&
-            annotation.Registry is IAzureContainerRegistry registry)
+            annotation.Registry is IContainerRegistry registry)
         {
             return registry;
+        }
+
+        if (DefaultContainerRegistry is not null)
+        {
+            return DefaultContainerRegistry;
         }
 
         throw new InvalidOperationException($"No Azure container registry associated with environment '{Name}'");
@@ -181,7 +188,7 @@ public class AzureContainerAppEnvironmentResource :
 
     ReferenceExpression IContainerRegistry.Endpoint => GetAssociatedRegistry().Endpoint;
 
-    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => GetAssociatedRegistry().ManagedIdentityId;
+    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {

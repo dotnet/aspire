@@ -198,19 +198,26 @@ public class AzureAppServiceEnvironmentResource :
     internal static BicepValue<string> GetWebSiteSuffixBicep() =>
         BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id);
 
-    private IAzureContainerRegistry GetAssociatedRegistry()
+    internal AzureContainerRegistryResource? DefaultContainerRegistry { get; set; }
+
+    private IContainerRegistry GetAssociatedRegistry()
     {
         if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation) &&
-            annotation.Registry is IAzureContainerRegistry registry)
+            annotation.Registry is IContainerRegistry registry)
         {
             return registry;
+        }
+
+        if (DefaultContainerRegistry is not null)
+        {
+            return DefaultContainerRegistry;
         }
 
         throw new InvalidOperationException($"No Azure container registry associated with environment '{Name}'");
     }
 
     // Implement IAzureContainerRegistry interface by delegating to the associated registry
-    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => GetAssociatedRegistry().ManagedIdentityId;
+    ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
     ReferenceExpression IContainerRegistry.Name => GetAssociatedRegistry().Name;
 
