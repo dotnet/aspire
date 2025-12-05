@@ -419,7 +419,8 @@ public static class ResourceBuilderExtensions
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
                 {
                     var serviceKey = name is null ? serviceName.ToUpperInvariant() : name;
-                    context.EnvironmentVariables[$"{serviceKey}_{endpointName.ToUpperInvariant()}"] = endpoint;
+                    var encodedEndpointName = EnvironmentVariableNameEncoder.Encode(endpointName);
+                    context.EnvironmentVariables[$"{EnvironmentVariableNameEncoder.Encode(serviceKey)}_{encodedEndpointName.ToUpperInvariant()}"] = endpoint;
                 }
 
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
@@ -492,7 +493,7 @@ public static class ResourceBuilderExtensions
                 var prefix = connectionName switch
                 {
                     "" => "",
-                    _ => $"{connectionName.ToUpperInvariant()}_"
+                    _ => $"{EnvironmentVariableNameEncoder.Encode(connectionName).ToUpperInvariant()}_"
                 };
 
                 SplatConnectionProperties(resource, prefix, context);
@@ -618,7 +619,7 @@ public static class ResourceBuilderExtensions
 
         if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
         {
-            builder.WithEnvironment($"{name}", uri.ToString());
+            builder.WithEnvironment(EnvironmentVariableNameEncoder.Encode(name), uri.ToString());
         }
 
         return builder;
@@ -648,8 +649,8 @@ public static class ResourceBuilderExtensions
         {
             if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
             {
-                var envVarName = $"{externalService.Resource.Name.ToUpperInvariant()}";
-                builder.WithEnvironment(envVarName, uri.ToString());
+                var encodedResourceName = EnvironmentVariableNameEncoder.Encode(externalService.Resource.Name);
+                builder.WithEnvironment(encodedResourceName.ToUpperInvariant(), uri.ToString());
             }
 
             if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
@@ -664,17 +665,19 @@ public static class ResourceBuilderExtensions
             {
                 string discoveryEnvVarName;
                 string endpointEnvVarName;
+                var encodedResourceName = EnvironmentVariableNameEncoder.Encode(externalService.Resource.Name);
 
                 if (context.ExecutionContext.IsPublishMode)
                 {
                     // In publish mode we can't read the parameter value to get the scheme so use 'default'
                     discoveryEnvVarName = $"services__{externalService.Resource.Name}__default__0";
-                    endpointEnvVarName = externalService.Resource.Name.ToUpperInvariant();
+                    endpointEnvVarName = encodedResourceName.ToUpperInvariant();
                 }
                 else if (ExternalServiceResource.UrlIsValidForExternalService(await externalService.Resource.UrlParameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false), out var uri, out var message))
                 {
                     discoveryEnvVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
-                    endpointEnvVarName = $"{externalService.Resource.Name.ToUpperInvariant()}_{uri.Scheme.ToUpperInvariant()}";
+                    var encodedScheme = EnvironmentVariableNameEncoder.Encode(uri.Scheme);
+                    endpointEnvVarName = $"{encodedResourceName.ToUpperInvariant()}_{encodedScheme.ToUpperInvariant()}";
                 }
                 else
                 {
