@@ -64,6 +64,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             var publishStep = new PipelineStep
             {
                 Name = $"publish-{Name}",
+                Description = $"Publishes the Docker Compose environment configuration for {Name}.",
                 Action = ctx => PublishAsync(ctx)
             };
             publishStep.RequiredBy(WellKnownPipelineSteps.Publish);
@@ -102,6 +103,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             var prepareStep = new PipelineStep
             {
                 Name = $"prepare-{Name}",
+                Description = $"Prepares the Docker Compose environment {Name} for deployment.",
                 Action = ctx => PrepareAsync(ctx)
             };
             prepareStep.DependsOn(WellKnownPipelineSteps.Publish);

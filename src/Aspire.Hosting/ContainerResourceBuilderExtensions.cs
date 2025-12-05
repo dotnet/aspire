@@ -39,6 +39,7 @@ public static class ContainerResourceBuilderExtensions
             var buildStep = new PipelineStep
             {
                 Name = $"build-{builder.Resource.Name}",
+                Description = $"Builds the container image for the {builder.Resource.Name} container.",
                 Action = async ctx =>
                 {
                     var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
