@@ -92,6 +92,13 @@ internal sealed class RunCommand : BaseCommand
             Options.Add(startDebugOption);
         }
 
+        if (features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: false))
+        {
+            var forceOption = new Option<bool>("--force", "-f");
+            forceOption.Description = RunCommandStrings.ForceArgumentDescription;
+            Options.Add(forceOption);
+        }
+
         TreatUnmatchedTokensAsErrors = false;
     }
 
@@ -100,6 +107,8 @@ internal sealed class RunCommand : BaseCommand
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
+        var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: false);
+        var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
 
         // A user may run `aspire run` in an Aspire terminal in VS Code. In this case, intercept and prompt
         // VS Code to start a debug session using the current directory
@@ -133,9 +142,9 @@ internal sealed class RunCommand : BaseCommand
             }
 
             // Check for running instance if feature is enabled
-            if (_features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: false))
+            if (runningInstanceDetectionEnabled)
             {
-                var canContinue = await CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, cancellationToken);
+                var canContinue = await CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, force, cancellationToken);
                 if (!canContinue)
                 {
                     // User chose not to stop the running instance or stopping failed
@@ -520,7 +529,7 @@ internal sealed class RunCommand : BaseCommand
         return socketPath;
     }
 
-    private async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, CancellationToken cancellationToken)
+    private async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, bool force, CancellationToken cancellationToken)
     {
         var auxiliarySocketPath = ComputeAuxiliarySocketPath(appHostFile.FullName);
 
@@ -530,12 +539,16 @@ internal sealed class RunCommand : BaseCommand
             return true; // No running instance, continue
         }
 
-        // Prompt the user if they want to stop the running instance
-        var shouldStop = await _interactionService.ConfirmAsync(RunCommandStrings.RunningInstanceDetected, defaultValue: true, cancellationToken);
-        
-        if (!shouldStop)
+        // If force is specified, skip the prompt and stop the instance
+        if (!force)
         {
-            return false; // User chose not to stop the running instance, abort
+            // Prompt the user if they want to stop the running instance
+            var shouldStop = await _interactionService.ConfirmAsync(RunCommandStrings.RunningInstanceDetected, defaultValue: true, cancellationToken);
+            
+            if (!shouldStop)
+            {
+                return false; // User chose not to stop the running instance, abort
+            }
         }
 
         // Stop the running instance
