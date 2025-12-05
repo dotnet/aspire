@@ -341,6 +341,66 @@ public static class PostgresBuilderExtensions
         }
     }
 
+    /// <summary>
+    /// Configures a container resource for an MCP server connected to the <see cref="PostgresServerResource"/> this method is used on.
+    /// The MCP endpoint is registered on the Postgres resource so Aspire MCP can proxy its tools.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="PostgresServerResource"/>.</param>
+    /// <param name="configureContainer">Configuration callback for the MCP container resource.</param>
+    /// <param name="containerName">Override the container name used for the MCP server.</param>
+    /// <param name="apiKey">Optional API key used to secure the MCP server; if specified it is injected into the container and advertised for proxy authentication.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<PostgresServerResource> WithPostgresMcp(this IResourceBuilder<PostgresServerResource> builder, Action<IResourceBuilder<PostgresMcpResource>>? configureContainer = null, string? containerName = null, string? apiKey = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        containerName ??= $"{builder.Resource.Name}-mcp";
+
+        const int mcpPort = 8000;
+
+        var resource = new PostgresMcpResource(containerName);
+        var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
+            .WithImage(PostgresContainerImageTags.PostgresMcpImage, PostgresContainerImageTags.PostgresMcpTag)
+            .WithImageRegistry(PostgresContainerImageTags.PostgresMcpRegistry)
+            .WithHttpEndpoint(targetPort: mcpPort, name: "mcp")
+            .WithReference(builder)
+            // crystaldba/postgres-mcp expects a PostgreSQL URI format: postgresql://user:password@host:port
+            .WithEnvironment("DATABASE_URI", builder.Resource.UriExpression)
+            // Enable SSE transport mode
+            .WithArgs("--access-mode=unrestricted", "--transport=sse");
+
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            resourceBuilder.WithEnvironment("MCP_API_KEY", apiKey);
+        }
+
+        // Automatically set up the parent relationship so the MCP container
+        // appears as a child of the PostgreSQL resource in the dashboard.
+        resourceBuilder.WithParentRelationship(builder.Resource);
+
+        configureContainer?.Invoke(resourceBuilder);
+
+        // Add the MCP endpoint annotation to the MCP container (not the PostgreSQL resource)
+        // so that when the container's state is updated and its endpoint is allocated,
+        // the mcpEndpoints property will be included in the resource state.
+        // The crystaldba/postgres-mcp SSE server expects the /sse path.
+        resourceBuilder.ApplicationBuilder.Eventing.Subscribe<ResourceEndpointsAllocatedEvent>(resource, async (@event, ct) =>
+        {
+            var mcpEndpoint = resource.GetEndpoint("mcp");
+            if (mcpEndpoint.IsAllocated)
+            {
+                // Construct the SSE endpoint URL by appending /sse to the base URL
+                var sseUri = new Uri(new Uri(mcpEndpoint.Url), "sse");
+                resourceBuilder.WithMcpEndpoint(new McpEndpointDefinition(sseUri, "http", apiKey, "postgres"));
+
+                var notificationService = @event.Services.GetRequiredService<ResourceNotificationService>();
+                await notificationService.PublishUpdateAsync(resource, s => s).ConfigureAwait(false);
+            }
+        });
+
+        return builder;
+    }
+
     private static void SetPgAdminEnvironmentVariables(EnvironmentCallbackContext context)
     {
         // Disables pgAdmin authentication.

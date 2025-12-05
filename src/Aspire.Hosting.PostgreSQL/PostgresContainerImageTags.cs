@@ -31,4 +31,13 @@ internal static class PostgresContainerImageTags
 
     /// <remarks>0.16.2</remarks>
     public const string PgWebTag = "0.16.2";
+
+    /// <remarks>docker.io</remarks>
+    public const string PostgresMcpRegistry = "docker.io";
+
+    /// <remarks>crystaldba/postgres-mcp</remarks>
+    public const string PostgresMcpImage = "crystaldba/postgres-mcp";
+
+    /// <remarks>0.3.0</remarks>
+    public const string PostgresMcpTag = "0.3.0";
 }

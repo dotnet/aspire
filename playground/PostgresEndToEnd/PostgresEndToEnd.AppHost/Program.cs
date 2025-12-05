@@ -3,9 +3,10 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db1 = builder.AddAzurePostgresFlexibleServer("pg")
-                 .RunAsContainer()
-                 .AddDatabase("db1");
+var pg = builder.AddPostgres("pg")
+              .WithPostgresMcp();
+
+var db1 = pg.AddDatabase("db1");
 
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()

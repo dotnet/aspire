@@ -42,7 +42,27 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <summary>
     /// Gets a value indicating whether the endpoint is allocated.
     /// </summary>
-    public bool IsAllocated => _isAllocated ??= GetAllocatedEndpoint() is not null;
+    public bool IsAllocated
+    {
+        get
+        {
+            // Return cached true value immediately.
+            // We only cache true because once allocated, endpoints stay allocated.
+            // We don't cache false because the endpoint may be allocated later.
+            if (_isAllocated == true)
+            {
+                return true;
+            }
+
+            var isAllocated = GetAllocatedEndpoint() is not null;
+            if (isAllocated)
+            {
+                _isAllocated = true;
+            }
+
+            return isAllocated;
+        }
+    }
 
     /// <summary>
     /// Gets a value indicating whether the endpoint exists.
