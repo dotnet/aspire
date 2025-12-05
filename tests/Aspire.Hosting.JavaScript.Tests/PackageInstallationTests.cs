@@ -454,7 +454,7 @@ public class PackageInstallationTests
     [Fact]
     public void WithNpm_DefaultsArgsInPublishMode()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         File.WriteAllText(Path.Combine(tempDir.Path, "package-lock.json"), "empty");
 
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -481,7 +481,7 @@ public class PackageInstallationTests
     [Fact]
     public void WithYarn_DefaultsArgsInPublishMode()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         File.WriteAllText(Path.Combine(tempDir.Path, "yarn.lock"), "empty");
 
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -502,7 +502,7 @@ public class PackageInstallationTests
     [Fact]
     public void WithYarn_ReturnsImmutable_WhenYarnRcYmlExists()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         File.WriteAllText(Path.Combine(tempDir.Path, "yarn.lock"), "empty");
         File.WriteAllText(Path.Combine(tempDir.Path, ".yarnrc.yml"), "empty");
 
@@ -518,7 +518,7 @@ public class PackageInstallationTests
     [Fact]
     public void WithYarn_ReturnsImmutable_WhenYarnReleasesDirExists()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         File.WriteAllText(Path.Combine(tempDir.Path, "yarn.lock"), "empty");
         Directory.CreateDirectory(Path.Combine(tempDir.Path, ".yarn", "releases"));
 
@@ -534,7 +534,7 @@ public class PackageInstallationTests
     [Fact]
     public void WithPnpm_DefaultsArgsInPublishMode()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         File.WriteAllText(Path.Combine(tempDir.Path, "pnpm-lock.yaml"), "empty");
 
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);

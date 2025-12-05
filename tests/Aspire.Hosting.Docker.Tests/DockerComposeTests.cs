@@ -123,7 +123,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     [Fact]
     public async Task MultipleDockerComposeEnvironmentsSupported()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
         builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
@@ -148,7 +148,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     [Fact]
     public async Task DashboardWithForwardedHeadersWritesEnvVar()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
         builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
@@ -172,7 +172,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     [Fact]
     public async Task DockerSwarmDeploymentLabelsSerializedCorrectly()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
         builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
@@ -248,7 +248,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     [Fact]
     public void DockerComposeProjectNameIncludesAppHostShaInArguments()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var testSink = new TestSink();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: WellKnownPipelineSteps.Deploy);
