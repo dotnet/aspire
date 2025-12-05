@@ -10,6 +10,7 @@
     "api_identity_outputs_id": "{api-identity.outputs.id}",
     "api_containerport": "{api.containerPort}",
     "mydb_outputs_connectionstring": "{mydb.outputs.connectionString}",
+    "mydb_outputs_accountendpoint": "{mydb.outputs.accountEndpoint}",
     "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
     "pg_kv_outputs_name": "{pg-kv.outputs.name}",
     "pg_outputs_hostname": "{pg.outputs.hostName}",

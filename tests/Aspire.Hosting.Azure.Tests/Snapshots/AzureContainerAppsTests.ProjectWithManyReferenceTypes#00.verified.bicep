@@ -17,6 +17,8 @@ param api_containerport string
 
 param mydb_outputs_connectionstring string
 
+param mydb_outputs_accountendpoint string
+
 param storage_outputs_blobendpoint string
 
 param pg_kv_outputs_name string
@@ -147,7 +149,11 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'MYDB_URI'
-              value: mydb_outputs_connectionstring
+              value: mydb_outputs_accountendpoint
+            }
+            {
+              name: 'MYDB_ACCOUNTKEY'
+              value: ''
             }
             {
               name: 'ConnectionStrings__blobs'

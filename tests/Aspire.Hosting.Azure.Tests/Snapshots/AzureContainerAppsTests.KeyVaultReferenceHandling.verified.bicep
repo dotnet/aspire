@@ -9,6 +9,8 @@ param api_identity_outputs_id string
 
 param mydb_kv_outputs_name string
 
+param mydb_outputs_accountendpoint string
+
 param kvName string
 
 param sharedRg string
@@ -21,6 +23,11 @@ resource mydb_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
 
 resource mydb_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--mydb'
+  parent: mydb_kv
+}
+
+resource mydb_kv_primaryaccesskey__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+  name: 'primaryaccesskey--mydb'
   parent: mydb_kv
 }
 
@@ -46,9 +53,9 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
           keyVaultUrl: mydb_kv_connectionstrings__mydb.properties.secretUri
         }
         {
-          name: 'mydb-uri'
+          name: 'mydb-accountkey'
           identity: api_identity_outputs_id
-          keyVaultUrl: mydb_kv_connectionstrings__mydb.properties.secretUri
+          keyVaultUrl: mydb_kv_primaryaccesskey__mydb.properties.secretUri
         }
         {
           name: 'secret-value'
@@ -71,7 +78,11 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
             }
             {
               name: 'MYDB_URI'
-              secretRef: 'mydb-uri'
+              value: mydb_outputs_accountendpoint
+            }
+            {
+              name: 'MYDB_ACCOUNTKEY'
+              secretRef: 'mydb-accountkey'
             }
             {
               name: 'SECRET_VALUE'
