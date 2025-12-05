@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../UpdateCommandStrings.resx">
     <body>
+      <trans-unit id="AddPackageFormat">
+        <source>Add package {0} version {1}</source>
+        <target state="new">Add package {0} version {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AddedFeedFormat">
         <source>Added: {0}</source>
         <target state="translated">Eklendi: {0}</target>
@@ -112,6 +117,11 @@
         <target state="translated">   Eşleme: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="MigratePackageFormat">
+        <source>Migrate package {0} to {1}</source>
+        <target state="new">Migrate package {0} to {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
         <source>No Aspire AppHost project found. Would you like to update the Aspire CLI instead?</source>
         <target state="translated">Aspire AppHost projesi bulunamadı. Bunun yerine Aspire CLI'yı güncelleştirmek ister misiniz?</target>
@@ -165,6 +175,11 @@
       <trans-unit id="QualityOptionDescriptionWithStaging">
         <source>Quality level to update to (stable, staging, daily)</source>
         <target state="translated">Güncelleştirilecek kalite seviyesi (kararlı, hazırlama, günlük)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovePackageFormat">
+        <source>Remove package {0}</source>
+        <target state="new">Remove package {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="RemovedFeedFormat">
