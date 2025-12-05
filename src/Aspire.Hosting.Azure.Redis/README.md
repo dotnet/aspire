@@ -67,6 +67,7 @@ When you reference Azure Redis resources using `WithReference`, the following co
 | `Host` | The hostname of the Azure Redis Enterprise database endpoint. |
 | `Port` | The port of the Azure Redis Enterprise database endpoint (10000 for Azure). |
 | `Uri` | The Redis connection URI. In Azure mode this is `redis://{Host}`; when running via `RunAsContainer` it matches `redis://[:{Password}@]{Host}:{Port}`. |
+| `Password` | The access key for the Redis server. Empty when using Entra ID authentication; populated when using `WithAccessKeyAuthentication()` or running as a container. |
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `cache` becomes `CACHE_URI`.
 

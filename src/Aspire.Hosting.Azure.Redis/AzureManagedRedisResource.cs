@@ -36,6 +36,13 @@ public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastr
     internal IAzureKeyVaultSecretReference? ConnectionStringSecretOutput { get; set; }
 
     /// <summary>
+    /// Gets the "primaryAccessKey" secret reference from the key vault associated with this resource.
+    ///
+    /// This is set when access key authentication is used. The primary access key is stored in a secret in the Azure Key Vault.
+    /// </summary>
+    internal IAzureKeyVaultSecretReference? PrimaryAccessKeySecretOutput { get; set; }
+
+    /// <summary>
     /// Gets the "name" output reference for the resource.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
@@ -49,6 +56,7 @@ public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastr
     /// Gets a value indicating whether the resource uses access key authentication.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
+    [MemberNotNullWhen(true, nameof(PrimaryAccessKeySecretOutput))]
     public bool UseAccessKeyAuthentication => ConnectionStringSecretOutput is not null;
 
     /// <summary>
@@ -95,16 +103,23 @@ public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastr
             ReferenceExpression.Create($"10000"); // Based on the ConfigureRedisInfrastructure method
 
     /// <summary>
-    /// Gets the password for the Redis server when running as a container.
+    /// Gets the password/access key for the Redis server.
     /// </summary>
     /// <remarks>
-    /// This property returns null when running in Azure mode, as Redis access is handled via connection strings.
-    /// When running as a container, it resolves to the password parameter value if one exists.
+    /// <list type="bullet">
+    /// <item>When running as a container, returns the password parameter value if one exists.</item>
+    /// <item>When using access key authentication in Azure mode, returns the primary access key from KeyVault.</item>
+    /// <item>When using Entra ID authentication in Azure mode, returns an empty expression.</item>
+    /// </list>
     /// </remarks>
-    public ReferenceExpression? Password =>
-        InnerResource is not null && InnerResource.PasswordParameter is not null ?
-            ReferenceExpression.Create($"{InnerResource.PasswordParameter}") :
-            null;
+    public ReferenceExpression Password =>
+        InnerResource is not null ?
+            (InnerResource.PasswordParameter is not null ?
+                ReferenceExpression.Create($"{InnerResource.PasswordParameter}") :
+                ReferenceExpression.Empty) :
+            UseAccessKeyAuthentication ?
+                ReferenceExpression.Create($"{PrimaryAccessKeySecretOutput}") :
+                ReferenceExpression.Empty;
 
     /// <summary>
     /// Gets the connection URI expression for the Redis server.
@@ -112,8 +127,23 @@ public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastr
     /// <remarks>
     /// Format: <c>redis://[:{password}@]{host}:{port}</c>. The password segment is omitted when using Entra ID authentication in Azure mode.
     /// </remarks>
-    public ReferenceExpression UriExpression =>
-        InnerResource?.UriExpression ?? ReferenceExpression.Create($"redis://{HostName}:{Port}");
+    public ReferenceExpression UriExpression
+    {
+        get
+        {
+            if (InnerResource is not null)
+            {
+                return InnerResource.UriExpression;
+            }
+
+            if (UseAccessKeyAuthentication)
+            {
+                return ReferenceExpression.Create($"redis://:{PrimaryAccessKeySecretOutput:uri}@{HostName}:{Port}");
+            }
+
+            return ReferenceExpression.Create($"redis://{HostName}:{Port}");
+        }
+    }
 
     internal void SetInnerResource(RedisResource innerResource)
     {
@@ -206,5 +236,6 @@ public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastr
         yield return new("Host", HostName);
         yield return new("Port", Port);
         yield return new("Uri", UriExpression);
+        yield return new("Password", Password);
     }
 }

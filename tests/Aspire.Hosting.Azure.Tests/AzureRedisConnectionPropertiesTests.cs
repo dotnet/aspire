@@ -16,7 +16,7 @@ public class AzureRedisConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)redis.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Equal(3, properties.Length);
+        Assert.Equal(4, properties.Length);
         Assert.Collection(
             properties,
             property =>
@@ -33,6 +33,95 @@ public class AzureRedisConnectionPropertiesTests
             {
                 Assert.Equal("Uri", property.Key);
                 Assert.Equal("redis://{redis.outputs.hostName}:10000", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Password", property.Key);
+                Assert.Equal("", property.Value.ValueExpression);
+            });
+    }
+
+    [Fact]
+    public void AzureManagedRedisResourceWithAccessKeyAuthenticationGetConnectionPropertiesReturnsExpectedValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddAzureManagedRedis("redis").WithAccessKeyAuthentication();
+
+        var properties = ((IResourceWithConnectionString)redis.Resource).GetConnectionProperties().ToArray();
+
+        Assert.Equal(4, properties.Length);
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Host", property.Key);
+                Assert.Equal("{redis.outputs.hostName}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Port", property.Key);
+                Assert.Equal("10000", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("redis://:{redis-kv.secrets.primaryaccesskey--redis}@{redis.outputs.hostName}:10000", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Password", property.Key);
+                Assert.Equal("{redis-kv.secrets.primaryaccesskey--redis}", property.Value.ValueExpression);
+            });
+    }
+
+    [Fact]
+    public void AzureRedisCacheResourceGetConnectionPropertiesReturnsExpectedValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+#pragma warning disable CS0618 // Type or member is obsolete
+        var redis = builder.AddAzureRedis("redis");
+#pragma warning restore CS0618
+
+        var properties = ((IResourceWithConnectionString)redis.Resource).GetConnectionProperties().ToArray();
+
+        Assert.Equal(2, properties.Length);
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Host", property.Key);
+                Assert.Equal("{redis.outputs.hostName}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("redis://{redis.outputs.hostName}", property.Value.ValueExpression);
+            });
+    }
+
+    [Fact]
+    public void AzureRedisCacheResourceWithAccessKeyAuthenticationGetConnectionPropertiesReturnsExpectedValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+#pragma warning disable CS0618 // Type or member is obsolete
+        var redis = builder.AddAzureRedis("redis").WithAccessKeyAuthentication();
+#pragma warning restore CS0618
+
+        var properties = ((IResourceWithConnectionString)redis.Resource).GetConnectionProperties().ToArray();
+
+        // Same properties as default - password is part of connection string via KeyVault
+        Assert.Equal(2, properties.Length);
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Host", property.Key);
+                Assert.Equal("{redis.outputs.hostName}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("redis://{redis.outputs.hostName}", property.Value.ValueExpression);
             });
     }
 }
