@@ -132,48 +132,6 @@ public static class CertbotBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a reference to the certificates volume from a Certbot resource.
-    /// </summary>
-    /// <typeparam name="T">The type of the container resource.</typeparam>
-    /// <param name="builder">The resource builder for the container resource that needs access to the certificates.</param>
-    /// <param name="certbot">The Certbot resource builder.</param>
-    /// <param name="mountPath">The path where the certificates volume should be mounted. Defaults to /etc/letsencrypt.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method adds the certificates volume to the specified container resource,
-    /// allowing it to access SSL/TLS certificates obtained by Certbot.
-    /// </para>
-    /// <para>
-    /// This method only mounts the volume. Consider using <see cref="WithCertbotCertificate{T}"/> instead,
-    /// which also ensures the container waits for certificate acquisition to complete.
-    /// </para>
-    /// <example>
-    /// <code lang="csharp">
-    /// var domain = builder.AddParameter("domain");
-    /// var email = builder.AddParameter("email");
-    ///
-    /// var certbot = builder.AddCertbot("certbot", domain, email)
-    ///     .WithHttp01Challenge();
-    ///
-    /// var yarp = builder.AddContainer("yarp", "myimage")
-    ///                   .WithCertificateVolume(certbot)
-    ///                   .WaitForCompletion(certbot);
-    /// </code>
-    /// </example>
-    /// </remarks>
-    public static IResourceBuilder<T> WithCertificateVolume<T>(
-        this IResourceBuilder<T> builder,
-        IResourceBuilder<CertbotResource> certbot,
-        string mountPath = CertbotResource.CertificatesPath) where T : ContainerResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(certbot);
-
-        return builder.WithVolume(CertbotResource.CertificatesVolumeName, mountPath);
-    }
-
-    /// <summary>
     /// Configures the container to use SSL/TLS certificates from a Certbot resource.
     /// </summary>
     /// <typeparam name="T">The type of the container resource.</typeparam>

@@ -87,23 +87,7 @@ This method automatically:
 - Mounts the certificates volume at `/etc/letsencrypt`
 - Ensures the container waits for certificate acquisition to complete
 
-For more control, you can use `WithCertificateVolume` and `WaitForCompletion` separately:
-
-```csharp
-var myService = builder.AddContainer("myservice", "myimage")
-                       .WithCertificateVolume(certbot)
-                       .WaitForCompletion(certbot);
-```
-
-Or mount the volume directly:
-
-```csharp
-var myService = builder.AddContainer("myservice", "myimage")
-                       .WithVolume("letsencrypt", "/etc/letsencrypt")
-                       .WaitForCompletion(certbot);
-```
-
-**Important:** Do not use `WithCertbotCertificate` or `WithCertificateVolume` together with `WithHttpsCertificate` or `WithHttpsCertificateConfiguration` at runtime, as they will conflict. However, you can use Certbot for production while using development certificates locally by checking the execution mode:
+**Important:** Do not use `WithCertbotCertificate` together with `WithHttpsCertificate` or `WithHttpsCertificateConfiguration` at runtime, as they will conflict. However, you can use Certbot for production while using development certificates locally by checking the execution mode:
 
 ```csharp
 var gateway = builder.AddProject<Projects.Gateway>("gateway");

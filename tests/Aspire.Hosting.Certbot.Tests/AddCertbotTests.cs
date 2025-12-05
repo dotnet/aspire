@@ -155,46 +155,6 @@ public class AddCertbotTests
     }
 
     [Fact]
-    public void WithCertificateVolumeAddsVolumeAnnotation()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var domain = builder.AddParameter("domain");
-        var email = builder.AddParameter("email");
-        var certbot = builder.AddCertbot("certbot", domain, email);
-
-        var container = builder.AddContainer("test", "testimage")
-                               .WithCertificateVolume(certbot);
-
-        var volumes = container.Resource.Annotations.OfType<ContainerMountAnnotation>().ToList();
-        Assert.Single(volumes);
-
-        var volumeAnnotation = volumes[0];
-        Assert.Equal("letsencrypt", volumeAnnotation.Source);
-        Assert.Equal("/etc/letsencrypt", volumeAnnotation.Target);
-        Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
-    }
-
-    [Fact]
-    public void WithCertificateVolumeWithCustomMountPath()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var domain = builder.AddParameter("domain");
-        var email = builder.AddParameter("email");
-        var certbot = builder.AddCertbot("certbot", domain, email);
-
-        var container = builder.AddContainer("test", "testimage")
-                               .WithCertificateVolume(certbot, "/custom/certs");
-
-        var volumes = container.Resource.Annotations.OfType<ContainerMountAnnotation>().ToList();
-        Assert.Single(volumes);
-
-        var volumeAnnotation = volumes[0];
-        Assert.Equal("letsencrypt", volumeAnnotation.Source);
-        Assert.Equal("/custom/certs", volumeAnnotation.Target);
-        Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
-    }
-
-    [Fact]
     public void AddCertbotThrowsWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
