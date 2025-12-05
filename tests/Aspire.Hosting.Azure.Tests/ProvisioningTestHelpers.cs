@@ -20,6 +20,7 @@ using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
 using Azure.Security.KeyVault.Secrets;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -105,6 +106,17 @@ internal static class ProvisioningTestHelpers
             ApplicationName = "TestApp"
         };
         return environment;
+    }
+
+    /// <summary>
+    /// Creates a test AppHost environment.
+    /// </summary>
+    public static AppHostEnvironment CreateAppHostEnvironment()
+    {
+        return new AppHostEnvironment(
+            new ConfigurationBuilder().Build(),
+            new TestHostEnvironment { ApplicationName = "TestApp" }
+        );
     }
 
     /// <summary>
