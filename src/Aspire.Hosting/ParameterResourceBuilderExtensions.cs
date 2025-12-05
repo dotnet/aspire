@@ -137,9 +137,9 @@ public static class ParameterResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(value);
 
         // If it needs persistence, wrap it in a UserSecretsParameterDefault
-        if (persist && builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
+        if (persist && builder.ExecutionContext.IsRunMode && builder is DistributedApplicationBuilder dab)
         {
-            value = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, value);
+            value = new UserSecretsParameterDefault(builder.Environment.ApplicationName, name, value, dab.UserSecretsManager);
         }
 
         return builder.AddParameter(
@@ -346,9 +346,9 @@ public static class ParameterResourceBuilderExtensions
             Default = parameterDefault
         };
 
-        if (builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
+        if (builder.ExecutionContext.IsRunMode && builder is DistributedApplicationBuilder dab)
         {
-            parameterResource.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, parameterResource.Default);
+            parameterResource.Default = new UserSecretsParameterDefault(builder.Environment.ApplicationName, name, parameterResource.Default, dab.UserSecretsManager);
         }
 
         return parameterResource;

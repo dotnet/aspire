@@ -102,6 +102,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public IFileSystemService FileSystemService => _directoryService;
 
     /// <summary>
+    /// Gets the user secrets manager.
+    /// </summary>
+    internal IUserSecretsManager UserSecretsManager => _userSecretsManager;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
     /// </summary>
     /// <param name="args">The arguments provided to the builder.</param>
@@ -298,14 +303,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         // Core things
-        // Create and register the user secrets manager
-        _userSecretsManager = UserSecretsManagerFactory.Instance.GetOrCreate(AppHostAssembly);
-        // Always register IUserSecretsManager so dependencies can resolve
-        _innerBuilder.Services.AddSingleton(_userSecretsManager);
-
-        // Create and register the directory service
+        // Create and register the directory service (first, so it can be used by other services)
         _directoryService = new FileSystemService();
         _innerBuilder.Services.AddSingleton<IFileSystemService>(_directoryService);
+
+        // Create and register the user secrets manager
+        var userSecretsFactory = new UserSecretsManagerFactory(_directoryService);
+        _userSecretsManager = userSecretsFactory.GetOrCreate(AppHostAssembly);
+        // Always register IUserSecretsManager so dependencies can resolve
+        _innerBuilder.Services.AddSingleton(_userSecretsManager);
         
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddSingleton<PipelineExecutor>();
