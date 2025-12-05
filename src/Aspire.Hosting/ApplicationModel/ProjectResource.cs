@@ -29,12 +29,14 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
     /// <param name="name">The name of the resource.</param>
     public ProjectResource(string name) : base(name)
     {
-        // Add pipeline step annotation to create a build step for this project
+        // Add pipeline step annotation to create build and push steps for this project
         Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
+            var steps = new List<PipelineStep>();
+
             if (factoryContext.Resource.IsExcludedFromPublish())
             {
-                return [];
+                return steps;
             }
 
             var buildStep = new PipelineStep
@@ -47,28 +49,22 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                 DependsOnSteps = [WellKnownPipelineSteps.BuildPrereq],
                 Resource = this
             };
+            steps.Add(buildStep);
 
-            return [buildStep];
-        }));
-
-        // Add pipeline step annotation to create a push step for this project
-        Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
-        {
-            if (!this.RequiresImageBuildAndPush() || factoryContext.Resource.IsExcludedFromPublish())
+            if (this.RequiresImageBuildAndPush())
             {
-                return [];
+                var pushStep = new PipelineStep
+                {
+                    Name = $"push-{name}",
+                    Action = ctx => PipelineStepHelpers.PushImageToRegistryAsync(this, ctx),
+                    Tags = [WellKnownPipelineTags.PushContainerImage],
+                    RequiredBySteps = [WellKnownPipelineSteps.Push],
+                    Resource = this
+                };
+                steps.Add(pushStep);
             }
 
-            var pushStep = new PipelineStep
-            {
-                Name = $"push-{name}",
-                Action = ctx => PipelineStepHelpers.PushImageToRegistryAsync(this, ctx),
-                Tags = [WellKnownPipelineTags.PushContainerImage],
-                RequiredBySteps = [WellKnownPipelineSteps.Push],
-                Resource = this
-            };
-
-            return [pushStep];
+            return steps;
         }));
 
         // Add default container build options annotation
