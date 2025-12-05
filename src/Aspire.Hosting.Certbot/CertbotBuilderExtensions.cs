@@ -41,7 +41,8 @@ public static class CertbotBuilderExtensions
     ///     .WithHttp01Challenge();
     ///
     /// var myService = builder.AddContainer("myservice", "myimage")
-    ///                        .WithVolume("letsencrypt", "/etc/letsencrypt");
+    ///                        .WithVolume("letsencrypt", "/etc/letsencrypt")
+    ///                        .WaitForCompletion(certbot);
     /// </code>
     /// </example>
     /// </remarks>
@@ -153,7 +154,8 @@ public static class CertbotBuilderExtensions
     ///     .WithHttp01Challenge();
     ///
     /// var yarp = builder.AddContainer("yarp", "myimage")
-    ///                   .WithCertificateVolume(certbot);
+    ///                   .WithCertificateVolume(certbot)
+    ///                   .WaitForCompletion(certbot);
     /// </code>
     /// </example>
     /// </remarks>

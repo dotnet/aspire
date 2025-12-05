@@ -24,7 +24,8 @@ var certbot = builder.AddCertbot("certbot", domain, email)
     .WithHttp01Challenge();
 
 var myService = builder.AddContainer("myservice", "myimage")
-                       .WithCertificateVolume(certbot);
+                       .WithCertificateVolume(certbot)
+                       .WaitForCompletion(certbot);
 ```
 
 The certbot container will:
@@ -79,14 +80,16 @@ Use the `WithCertificateVolume` extension method to mount the certificates volum
 
 ```csharp
 var yarp = builder.AddContainer("yarp", "myimage")
-                  .WithCertificateVolume(certbot);
+                  .WithCertificateVolume(certbot)
+                  .WaitForCompletion(certbot);
 ```
 
 Or mount the volume directly:
 
 ```csharp
 var myService = builder.AddContainer("myservice", "myimage")
-                       .WithVolume("letsencrypt", "/etc/letsencrypt");
+                       .WithVolume("letsencrypt", "/etc/letsencrypt")
+                       .WaitForCompletion(certbot);
 ```
 
 ### Certificate Locations
