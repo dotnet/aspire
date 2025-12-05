@@ -23,7 +23,7 @@ internal sealed class BicepCliCompiler : IBicepCompiler
     public async Task<string> CompileBicepToArmAsync(string bicepFilePath, CancellationToken cancellationToken = default)
     {
         // Try bicep command first for better performance
-        var bicepPath = FindFullPathFromPath("bicep");
+        var bicepPath = PathLookupHelper.FindFullPathFromPath("bicep");
         string commandPath;
         string arguments;
 
@@ -35,7 +35,7 @@ internal sealed class BicepCliCompiler : IBicepCompiler
         else
         {
             // Fall back to az bicep if bicep command is not available
-            var azPath = FindFullPathFromPath("az");
+            var azPath = PathLookupHelper.FindFullPathFromPath("az");
             if (azPath is null)
             {
                 throw new AzureCliNotOnPathException();
@@ -90,32 +90,5 @@ internal sealed class BicepCliCompiler : IBicepCompiler
         {
             await disposable.DisposeAsync().ConfigureAwait(false);
         }
-    }
-
-    internal static string? FindFullPathFromPath(string command)
-    {
-        return FindFullPathFromPath(command, Environment.GetEnvironmentVariable("PATH"), File.Exists);
-    }
-
-    private static string? FindFullPathFromPath(string command, string? pathVariable, Func<string, bool> fileExists)
-    {
-        Debug.Assert(!string.IsNullOrWhiteSpace(command));
-
-        if (OperatingSystem.IsWindows())
-        {
-            command += ".cmd";
-        }
-
-        foreach (var directory in (pathVariable ?? string.Empty).Split(Path.PathSeparator))
-        {
-            var fullPath = Path.Combine(directory, command);
-
-            if (fileExists(fullPath))
-            {
-                return fullPath;
-            }
-        }
-
-        return null;
     }
 }

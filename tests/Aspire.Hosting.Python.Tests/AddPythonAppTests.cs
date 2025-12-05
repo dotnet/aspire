@@ -2287,6 +2287,75 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Assert.Single(appModel.Resources.OfType<PythonInstallerResource>());
     }
 
+    [Fact]
+    public async Task WithPip_InstallFalse_CreatesInstallerWithExplicitStart()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var requirementsPath = Path.Combine(tempDir.Path, "requirements.txt");
+        File.WriteAllText(requirementsPath, "requests");
+
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
+            .WithPip(install: false);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Manually trigger BeforeStartEvent to wire up dependencies
+        await PublishBeforeStartEventAsync(app);
+
+        // Verify installer resource WAS created
+        var installerResource = Assert.Single(appModel.Resources.OfType<PythonInstallerResource>());
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+
+        // Verify it has explicit start annotation
+        Assert.True(installerResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _));
+
+        // Verify the app does NOT wait for the installer
+        var pythonAppResource = appModel.Resources.OfType<PythonAppResource>().Single();
+        var waitAnnotations = pythonAppResource.Annotations.OfType<WaitAnnotation>().ToList();
+        
+        // Should not wait for installer, only for venv creator
+        Assert.All(waitAnnotations, wait => Assert.NotEqual(installerResource, wait.Resource));
+    }
+
+    [Fact]
+    public async Task WithUv_InstallFalse_CreatesInstallerWithExplicitStart()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello')");
+
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, "main.py")
+            .WithUv(install: false);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Manually trigger BeforeStartEvent to wire up dependencies
+        await PublishBeforeStartEventAsync(app);
+
+        // Verify installer resource WAS created
+        var installerResource = Assert.Single(appModel.Resources.OfType<PythonInstallerResource>());
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+
+        // Verify it has explicit start annotation
+        Assert.True(installerResource.TryGetLastAnnotation<ExplicitStartupAnnotation>(out _));
+
+        // Verify the app does NOT wait for the installer
+        var pythonAppResource = appModel.Resources.OfType<PythonAppResource>().Single();
+        var waitAnnotations = pythonAppResource.Annotations.OfType<WaitAnnotation>().ToList();
+        
+        // Should not have any wait annotations since uv doesn't create venv
+        Assert.Empty(waitAnnotations);
+    }
+
     /// <summary>
     /// Helper method to manually trigger BeforeStartEvent for tests.
     /// This is needed because BeforeStartEvent is normally triggered during StartAsync(),

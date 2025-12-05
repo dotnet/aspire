@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -38,16 +39,13 @@ public static class ContainerResourceBuilderExtensions
             var buildStep = new PipelineStep
             {
                 Name = $"build-{builder.Resource.Name}",
+                Description = $"Builds the container image for the {builder.Resource.Name} container.",
                 Action = async ctx =>
                 {
-                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
 
                     await containerImageBuilder.BuildImageAsync(
                         builder.Resource,
-                        new ContainerBuildOptions
-                        {
-                            TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                        },
                         ctx.CancellationToken).ConfigureAwait(false);
                 },
                 Tags = [WellKnownPipelineTags.BuildCompute],
@@ -553,6 +551,23 @@ public static class ContainerResourceBuilderExtensions
         var imageTag = ImageNameGenerator.GenerateImageTag(builder);
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
 
+        // Add default container build options annotation that uses the DockerfileBuildAnnotation's ImageName and ImageTag
+        var defaultContainerBuildOptions = new ContainerBuildOptionsCallbackAnnotation(context =>
+        {
+            // Use DockerfileBuildAnnotation values if set, otherwise fall back to resource name
+            if (context.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileAnnotation))
+            {
+                context.LocalImageName = dockerfileAnnotation.ImageName ?? context.Resource.Name;
+                context.LocalImageTag = dockerfileAnnotation.ImageTag ?? "latest";
+            }
+            else
+            {
+                context.LocalImageName = context.Resource.Name;
+                context.LocalImageTag = "latest";
+            }
+            context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
+        });
+
         // If there's already a ContainerImageAnnotation, don't overwrite it.
         // Instead, store the generated image name and tag on the DockerfileBuildAnnotation.
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { })
@@ -560,10 +575,12 @@ public static class ContainerResourceBuilderExtensions
             annotation.ImageName = imageName;
             annotation.ImageTag = imageTag;
             return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                          .WithAnnotation(defaultContainerBuildOptions)
                           .EnsureBuildPipelineStepAnnotation();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                      .WithAnnotation(defaultContainerBuildOptions)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
                       .WithImageTag(imageTag)
@@ -673,6 +690,23 @@ public static class ContainerResourceBuilderExtensions
             DockerfileFactory = dockerfileFactory
         };
 
+        // Add default container build options annotation that uses the DockerfileBuildAnnotation's ImageName and ImageTag
+        var defaultContainerBuildOptions = new ContainerBuildOptionsCallbackAnnotation(context =>
+        {
+            // Use DockerfileBuildAnnotation values if set, otherwise fall back to resource name
+            if (context.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileAnnotation))
+            {
+                context.LocalImageName = dockerfileAnnotation.ImageName ?? context.Resource.Name;
+                context.LocalImageTag = dockerfileAnnotation.ImageTag ?? "latest";
+            }
+            else
+            {
+                context.LocalImageName = context.Resource.Name;
+                context.LocalImageTag = "latest";
+            }
+            context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
+        });
+
         // If there's already a ContainerImageAnnotation, don't overwrite it.
         // Instead, store the generated image name and tag on the DockerfileBuildAnnotation.
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { })
@@ -680,10 +714,12 @@ public static class ContainerResourceBuilderExtensions
             annotation.ImageName = imageName;
             annotation.ImageTag = imageTag;
             return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                          .WithAnnotation(defaultContainerBuildOptions, ResourceAnnotationMutationBehavior.Append)
                           .EnsureBuildPipelineStepAnnotation();
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                      .WithAnnotation(defaultContainerBuildOptions, ResourceAnnotationMutationBehavior.Append)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
                       .WithImageTag(imageTag)
@@ -1469,6 +1505,28 @@ public static class ContainerResourceBuilderExtensions
             BuildImage = buildImage,
             RuntimeImage = runtimeImage
         }, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Adds a network alias to container resource.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="alias">The network alias for the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Network aliases enable DNS resolution of the container on the network by custom names.
+    /// By default, containers are accessible on the network using their resource name as a DNS alias.
+    /// This method allows adding additional aliases for the same container.
+    /// </para>
+    /// <para>
+    /// Multiple aliases can be added by calling this method multiple times.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithContainerNetworkAlias<T>(this IResourceBuilder<T> builder, string alias) where T : ContainerResource
+    {
+        return builder.WithAnnotation(new ContainerNetworkAliasAnnotation(alias) { Network = KnownNetworkIdentifiers.DefaultAspireContainerNetwork });
     }
 }
 

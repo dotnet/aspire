@@ -1598,30 +1598,64 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
             var baseServerAuthOutputPath = Path.Join(certificatesRootDir, "private");
 
-            // Build the environment and args for the executable, including certificate trust configuration.
-            var configContext = await er.ModelResource.ProcessConfigurationValuesAsync(
-                _executionContext,
-                resourceLogger,
-                withCertificateTrustConfig: true,
-                withServerAuthCertificateConfig: true,
-                certificateTrustConfigContextFactory: (scope) => new()
+            (var configuration, var configException) = await er.ModelResource.ExecutionConfigurationBuilder()
+                .WithArgumentsConfig()
+                .WithEnvironmentVariablesConfig()
+                .WithCertificateTrustConfig(scope =>
                 {
-                    CertificateBundlePath = ReferenceExpression.Create($"{bundleOutputPath}"),
-                    CertificateDirectoriesPath = ReferenceExpression.Create($"{certificatesOutputPath}"),
-                },
-                serverAuthCertificateConfigContextFactory: (cert) => new()
+                    var dirs = new List<string> { certificatesOutputPath };
+                    if (scope == CertificateTrustScope.Append)
+                    {
+                        var existing = Environment.GetEnvironmentVariable("SSL_CERT_DIR");
+                        if (!string.IsNullOrEmpty(existing))
+                        {
+                            dirs.AddRange(existing.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
+                        }
+                    }
+
+                    return new()
+                    {
+                        CertificateBundlePath = ReferenceExpression.Create($"{bundleOutputPath}"),
+                        // Build the SSL_CERT_DIR value by combining the new certs directory with any existing directories.
+                        CertificateDirectoriesPath = ReferenceExpression.Create($"{string.Join(Path.PathSeparator, dirs)}"),
+                    };
+                })
+                .WithHttpsCertificateConfig(cert => new()
                 {
                     CertificatePath = ReferenceExpression.Create($"{Path.Join(baseServerAuthOutputPath, $"{cert.Thumbprint}.crt")}"),
                     KeyPath = ReferenceExpression.Create($"{Path.Join(baseServerAuthOutputPath, $"{cert.Thumbprint}.key")}"),
                     PfxPath = ReferenceExpression.Create($"{Path.Join(baseServerAuthOutputPath, $"{cert.Thumbprint}.pfx")}"),
-                },
-                cancellationToken).ConfigureAwait(false);
+                })
+                .BuildAsync(_executionContext, resourceLogger, cancellationToken)
+                .ConfigureAwait(false);
 
-            if (configContext.ServerAuthenticationCertificateConfiguration is not null)
+            // Add the certificates to the executable spec so they'll be placed in the DCP config
+            ExecutablePemCertificates? pemCertificates = null;
+            if (configuration.TryGetAdditionalData<CertificateTrustExecutionConfigurationData>(out var certificateTrustConfiguration)
+                && certificateTrustConfiguration.Scope != CertificateTrustScope.None
+                && certificateTrustConfiguration.Certificates.Count > 0)
             {
-                var thumbprint = configContext.ServerAuthenticationCertificateConfiguration.Certificate.Thumbprint;
-                var publicCetificatePem = configContext.ServerAuthenticationCertificateConfiguration.Certificate.ExportCertificatePem();
-                (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(configContext.ServerAuthenticationCertificateConfiguration, cancellationToken).ConfigureAwait(false);
+                pemCertificates = new ExecutablePemCertificates
+                {
+                    Certificates = certificateTrustConfiguration.Certificates.Select(c =>
+                    {
+                        return new PemCertificate
+                        {
+                            Thumbprint = c.Thumbprint,
+                            Contents = c.ExportCertificatePem(),
+                        };
+                    }).DistinctBy(cert => cert.Thumbprint).ToList(),
+                    ContinueOnError = true,
+                };
+            }
+
+            exe.Spec.PemCertificates = pemCertificates;
+
+            if (configuration.TryGetAdditionalData<HttpsCertificateExecutionConfigurationData>(out var tlsCertificateConfiguration))
+            {
+                var thumbprint = tlsCertificateConfiguration.Certificate.Thumbprint;
+                var publicCetificatePem = tlsCertificateConfiguration.Certificate.ExportCertificatePem();
+                (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(tlsCertificateConfiguration, cancellationToken).ConfigureAwait(false);
 
                 if (OperatingSystem.IsWindows())
                 {
@@ -1652,27 +1686,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             }
 
-            // Add the certificates to the executable spec so they'll be placed in the DCP config
-            ExecutablePemCertificates? pemCertificates = null;
-            if (configContext.CertificateTrustScope != CertificateTrustScope.None && configContext.TrustedCertificates?.Any() == true)
-            {
-                pemCertificates = new ExecutablePemCertificates
-                {
-                    Certificates = configContext.TrustedCertificates.Select(c =>
-                    {
-                        return new PemCertificate
-                        {
-                            Thumbprint = c.Thumbprint,
-                            Contents = c.ExportCertificatePem(),
-                        };
-                    }).DistinctBy(cert => cert.Thumbprint).ToList(),
-                    ContinueOnError = true,
-                };
-            }
-
-            exe.Spec.PemCertificates = pemCertificates;
-
-            var launchArgs = BuildLaunchArgs(er, spec, configContext.Arguments);
+            var launchArgs = BuildLaunchArgs(er, spec, configuration.Arguments);
             var executableArgs = launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value).ToList();
             if (executableArgs.Count > 0)
             {
@@ -1682,9 +1696,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // Arg annotations are what is displayed in the dashboard.
             er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
-            spec.Env = configContext.EnvironmentVariables;
+            spec.Env = configuration.EnvironmentVariables.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList();
 
-            if (configContext.Exception is not null)
+            if (configException is not null)
             {
                 throw new FailedToApplyEnvironmentException();
             }
@@ -1697,7 +1711,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private static List<(string Value, bool IsSensitive, bool AnnotationOnly)> BuildLaunchArgs(RenderedModelResource er, ExecutableSpec spec, List<(string Value, bool IsSensitive)> appHostArgs)
+    private static List<(string Value, bool IsSensitive, bool AnnotationOnly)> BuildLaunchArgs(RenderedModelResource er, ExecutableSpec spec, IEnumerable<(string Value, bool IsSensitive)> appHostArgs)
     {
         // Launch args is the final list of args that are displayed in the UI and possibly added to the executable spec.
         // They're built from app host resource model args and any args in the effective launch profile.
@@ -1711,14 +1725,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // Args in the launch profile is used when:
             // 1. The project is run as an executable. Launch profile args are combined with app host supplied args.
             // 2. The project is run by the IDE and no app host args are specified.
-            if (spec.ExecutionType == ExecutionType.Process || (spec.ExecutionType == ExecutionType.IDE && appHostArgs.Count == 0))
+            if (spec.ExecutionType == ExecutionType.Process || (spec.ExecutionType == ExecutionType.IDE && !appHostArgs.Any()))
             {
                 // When the .NET project is launched from an IDE the launch profile args are automatically added.
                 // We still want to display the args in the dashboard so only add them to the custom arg annotations.
                 var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
 
                 var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
-                if (launchProfileArgs.Count > 0 && appHostArgs.Count > 0)
+                if (launchProfileArgs.Count > 0 && appHostArgs.Any())
                 {
                     // If there are app host args, add a double-dash to separate them from the launch args.
                     launchProfileArgs.Insert(0, "--");
@@ -1786,12 +1800,21 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
             SetInitialResourceState(container, ctr);
 
+            var aanns = container.Annotations.OfType<ContainerNetworkAliasAnnotation>().ToImmutableArray();
+            if (aanns.Any(a => a.Network != KnownNetworkIdentifiers.DefaultAspireContainerNetwork))
+            {
+                throw new InvalidOperationException("Custom container networks are not supported yet.");
+            }
+
             ctr.Spec.Networks = new List<ContainerNetworkConnection>
             {
                 new ContainerNetworkConnection
                 {
                     Name = KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value,
-                    Aliases = [container.Name, $"{container.Name}.dev.internal"], // Alias to .dev.internal to support dev cert trust
+                    Aliases = aanns.Select(a => a.Alias)
+                                .Prepend($"{container.Name}.dev.internal") // Alias to .dev.internal to support dev cert trust
+                                .Prepend(container.Name)
+                                .ToList()
                 }
             };
 
@@ -1920,13 +1943,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             var serverAuthCertificatesBasePath = $"{certificatesDestination}/private";
 
-            // Build the environment and args for the executable, including certificate trust configuration.
-            var configContext = await cr.ModelResource.ProcessConfigurationValuesAsync(
-                _executionContext,
-                resourceLogger,
-                withCertificateTrustConfig: true,
-                withServerAuthCertificateConfig: true,
-                certificateTrustConfigContextFactory: (scope) =>
+            (var configuration, var configException) = await cr.ModelResource.ExecutionConfigurationBuilder()
+                .WithArgumentsConfig()
+                .WithEnvironmentVariablesConfig()
+                .WithCertificateTrustConfig(scope =>
                 {
                     var dirs = new List<string> { certificatesDestination + "/certs" };
                     if (scope == CertificateTrustScope.Append)
@@ -1941,22 +1961,25 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         // Build Linux PATH style colon-separated list of directories
                         CertificateDirectoriesPath = ReferenceExpression.Create($"{string.Join(':', dirs)}"),
                     };
-                },
-                serverAuthCertificateConfigContextFactory: (cert) => new()
+                })
+                .WithHttpsCertificateConfig(cert => new()
                 {
                     CertificatePath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.crt"),
                     KeyPath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.key"),
                     PfxPath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{cert.Thumbprint}.pfx"),
-                },
-                cancellationToken).ConfigureAwait(false);
+                })
+                .BuildAsync(_executionContext, resourceLogger, cancellationToken)
+                .ConfigureAwait(false);
 
             // Add the certificates to the executable spec so they'll be placed in the DCP config
             ContainerPemCertificates? pemCertificates = null;
-            if (configContext.CertificateTrustScope != CertificateTrustScope.None && configContext.TrustedCertificates?.Any() == true)
+            if (configuration.TryGetAdditionalData<CertificateTrustExecutionConfigurationData>(out var certificateTrustConfiguration)
+                && certificateTrustConfiguration.Scope != CertificateTrustScope.None
+                && certificateTrustConfiguration.Certificates.Count > 0)
             {
                 pemCertificates = new ContainerPemCertificates
                 {
-                    Certificates = configContext.TrustedCertificates.Select(c =>
+                    Certificates = certificateTrustConfiguration.Certificates.Select(c =>
                     {
                         return new PemCertificate
                         {
@@ -1968,7 +1991,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     ContinueOnError = true,
                 };
 
-                if (configContext.CertificateTrustScope != CertificateTrustScope.Append)
+                if (certificateTrustConfiguration.Scope != CertificateTrustScope.Append)
                 {
                     // If overriding the default resource CA bundle, then we want to copy our bundle to the well-known locations
                     // used by common Linux distributions to make it easier to ensure applications pick it up.
@@ -1982,19 +2005,19 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var buildCreateFilesContext = new BuildCreateFilesContext
             {
                 Resource = modelContainerResource,
-                CertificateTrustScope = configContext.CertificateTrustScope,
+                CertificateTrustScope = certificateTrustConfiguration?.Scope ?? CertificateTrustScope.None,
                 CertificateTrustBundlePath = $"{certificatesDestination}/cert.pem",
             };
 
-            if (configContext.ServerAuthenticationCertificateConfiguration is not null)
+            if (configuration.TryGetAdditionalData<HttpsCertificateExecutionConfigurationData>(out var tlsCertificateConfiguration))
             {
-                var thumbprint = configContext.ServerAuthenticationCertificateConfiguration.Certificate.Thumbprint;
-                buildCreateFilesContext.ServerAuthenticationCertificateContext = new ContainerFileSystemCallbackServerAuthenticationCertificateContext
+                var thumbprint = tlsCertificateConfiguration.Certificate.Thumbprint;
+                buildCreateFilesContext.HttpsCertificateContext = new ContainerFileSystemCallbackHttpsCertificateContext
                 {
                     CertificatePath = ReferenceExpression.Create($"{serverAuthCertificatesBasePath}/{thumbprint}.crt"),
-                    KeyPath = configContext.ServerAuthenticationCertificateConfiguration.KeyPathReference,
-                    PfxPath = configContext.ServerAuthenticationCertificateConfiguration.PfxReference,
-                    Password = configContext.ServerAuthenticationCertificateConfiguration.Password,
+                    KeyPath = tlsCertificateConfiguration.KeyPathReference,
+                    PfxPath = tlsCertificateConfiguration.PfxPathReference,
+                    Password = tlsCertificateConfiguration.Password,
                 };
             }
 
@@ -2003,12 +2026,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 buildCreateFilesContext,
                 cancellationToken).ConfigureAwait(false);
 
-            if (configContext.ServerAuthenticationCertificateConfiguration is not null)
+            if (tlsCertificateConfiguration is not null)
             {
-                var thumbprint = configContext.ServerAuthenticationCertificateConfiguration.Certificate.Thumbprint;
-                var publicCertificatePem = configContext.ServerAuthenticationCertificateConfiguration.Certificate.ExportCertificatePem();
-                (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(configContext.ServerAuthenticationCertificateConfiguration, cancellationToken).ConfigureAwait(false);
-
+                var thumbprint = tlsCertificateConfiguration.Certificate.Thumbprint;
+                var publicCertificatePem = tlsCertificateConfiguration.Certificate.ExportCertificatePem();
+                (var keyPem, var pfxBytes) = await GetCertificateKeyMaterialAsync(tlsCertificateConfiguration, cancellationToken).ConfigureAwait(false);
                 var certificateFiles = new List<ContainerFileSystemEntry>()
             {
                 new ContainerFileSystemEntry
@@ -2052,7 +2074,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
 
             // Set the final args, env vars, and create files on the container spec
-            var args = configContext.Arguments.Select(a => a.Value);
+            var args = configuration.Arguments.Select(a => a.Value);
             // Set the final args, env vars, and create files on the container spec
             if (modelContainerResource is ContainerResource { ShellExecution: true })
             {
@@ -2062,8 +2084,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 spec.Args = args.ToList();
             }
-            dcpContainerResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, configContext.Arguments.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
-            spec.Env = configContext.EnvironmentVariables;
+            dcpContainerResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, configuration.Arguments.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
+            spec.Env = configuration.EnvironmentVariables.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList();
             spec.CreateFiles = createFiles;
 
             if (modelContainerResource is ContainerResource containerResource)
@@ -2071,7 +2093,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 spec.Command = containerResource.Entrypoint;
             }
 
-            if (failedToApplyRunArgs || configContext.Exception is not null)
+            if (failedToApplyRunArgs || configException is not null)
             {
                 throw new FailedToApplyEnvironmentException();
             }
@@ -2473,7 +2495,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         public CertificateTrustScope CertificateTrustScope { get; init; }
         public string? CertificateTrustBundlePath { get; set; }
         public string? CertificateTrustDirectoriesPath { get; set; }
-        public ContainerFileSystemCallbackServerAuthenticationCertificateContext? ServerAuthenticationCertificateContext { get; set; }
+        public ContainerFileSystemCallbackHttpsCertificateContext? HttpsCertificateContext { get; set; }
     }
 
     private async Task<List<ContainerCreateFileSystem>> BuildCreateFilesAsync(BuildCreateFilesContext context, CancellationToken cancellationToken)
@@ -2489,9 +2511,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     {
                         Model = context.Resource,
                         ServiceProvider = _executionContext.ServiceProvider,
-                        ServerAuthenticationCertificateContext = context.ServerAuthenticationCertificateContext,
+                        HttpsCertificateContext = context.HttpsCertificateContext,
                     },
                     cancellationToken).ConfigureAwait(false);
+
+                if (entries?.Any() != true)
+                {
+                    continue;
+                }
 
                 createFiles.Add(new ContainerCreateFileSystem
                 {
@@ -2541,7 +2568,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
     /// <returns>A tuple containing the PEM-encoded key and PFX bytes, if appropriate for the configuration.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    private async Task<(char[]? keyPem, byte[]? pfxBytes)> GetCertificateKeyMaterialAsync(ResourceExtensions.ServerAuthenticationCertificateConfigurationDetails configuration, CancellationToken cancellationToken)
+    private async Task<(char[]? keyPem, byte[]? pfxBytes)> GetCertificateKeyMaterialAsync(HttpsCertificateExecutionConfigurationData configuration, CancellationToken cancellationToken)
     {
         var certificate = configuration.Certificate;
         var lookup = certificate.Thumbprint;
@@ -2559,7 +2586,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         await _serverCertificateCacheSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (configuration.KeyPathReference.WasResolved)
+            if (configuration.IsKeyPathReferenced)
             {
                 var keyFileName = Path.Join(s_macOSUserDevCertificateLocation, $"{lookup}.key");
                 if (OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())
@@ -2632,7 +2659,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             }
 
-            if (configuration.PfxReference.WasResolved)
+            if (configuration.IsPfxPathReferenced)
             {
                 var pfxFileName = Path.Join(s_macOSUserDevCertificateLocation, $"{lookup}.pfx");
                 if (OperatingSystem.IsMacOS() && certificate.IsAspNetCoreDevelopmentCertificate())

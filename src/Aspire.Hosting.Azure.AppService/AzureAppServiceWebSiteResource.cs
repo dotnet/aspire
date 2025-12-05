@@ -48,9 +48,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 var pushStep = new PipelineStep
                 {
                     Name = $"push-{targetResource.Name}",
+                    Description = $"Pushes the container image for {targetResource.Name} to Azure Container Registry.",
                     Action = async ctx =>
                     {
-                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
 
                         await AzureEnvironmentResourceHelpers.PushImageToRegistryAsync(
                             registry,
@@ -72,6 +73,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             var printResourceSummary = new PipelineStep
             {
                 Name = $"print-{targetResource.Name}-summary",
+                Description = $"Prints the deployment summary and URL for {targetResource.Name}.",
                 Action = async ctx =>
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
@@ -93,6 +95,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             var deployStep = new PipelineStep
             {
                 Name = $"deploy-{targetResource.Name}",
+                Description = $"Aggregation step for deploying {targetResource.Name} to Azure App Service.",
                 Action = _ => Task.CompletedTask,
                 Tags = [WellKnownPipelineTags.DeployCompute]
             };

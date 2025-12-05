@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIRECOMPUTE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
@@ -177,7 +178,9 @@ public class ResourceExtensionsTests
              context.EnvironmentVariables["ELASTIC_PASSWORD"] = "p@ssw0rd1";
          });
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var env = await container.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
+#pragma warning restore CS0618 // Type or member is obsolete
 
         Assert.Collection(env,
             env =>
@@ -210,7 +213,9 @@ public class ResourceExtensionsTests
          .WithEnvironment("xpack.security.enabled", "true")
          .WithEnvironment("ELASTIC_PASSWORD", passwordParameter);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var env = await container.Resource.GetEnvironmentVariableValuesAsync().DefaultTimeout();
+#pragma warning restore CS0618 // Type or member is obsolete
 
         Assert.Collection(env,
             env =>
@@ -243,7 +248,9 @@ public class ResourceExtensionsTests
          .WithEnvironment("xpack.security.enabled", "true")
          .WithEnvironment("ELASTIC_PASSWORD", passwordParameter);
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var env = await container.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Publish).DefaultTimeout();
+#pragma warning restore CS0618 // Type or member is obsolete
 
         Assert.Collection(env,
             env =>
@@ -266,6 +273,7 @@ public class ResourceExtensionsTests
     [Fact]
     public async Task GetArgumentValuesAsync_ReturnsCorrectValuesForSpecialCases()
     {
+#pragma warning disable CS0618 // Type or member is obsolete
         var builder = DistributedApplication.CreateBuilder();
         var surrogate = builder.AddResource(new ConnectionStringParameterResource("ResourceWithConnectionStringSurrogate", _ => "ConnectionString", null));
         var secretParameter = builder.AddResource(new ParameterResource("SecretParameter", _ => "SecretParameter", true));
@@ -290,166 +298,164 @@ public class ResourceExtensionsTests
             .Resource.GetArgumentValuesAsync().DefaultTimeout();
 
         Assert.Equal<IEnumerable<string>>(["ConnectionString", "SecretParameter", "NonSecretParameter"], executableArgs);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]
-    public void GetDeploymentTargetAnnotationWorks()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var compute1 = builder.AddResource(new ComputeEnvironmentResource("compute1"));
-        var compute2 = builder.AddResource(new ComputeEnvironmentResource("compute2"));
-
-        void RunTest<T>(IResourceBuilder<T> resourceBuilder) where T : IComputeResource
-        {
-            resourceBuilder
-                .WithAnnotation(new DeploymentTargetAnnotation(compute1.Resource) { ComputeEnvironment = compute1.Resource })
-                .WithAnnotation(new DeploymentTargetAnnotation(compute2.Resource) { ComputeEnvironment = compute2.Resource });
-
-            var ex = Assert.Throws<InvalidOperationException>(() => resourceBuilder.Resource.GetDeploymentTargetAnnotation());
-            Assert.Contains("'compute1, compute2'", ex.Message);
-
-            resourceBuilder.WithComputeEnvironment(compute2);
-
-            Assert.Equal(compute2.Resource, resourceBuilder.Resource.GetDeploymentTargetAnnotation()!.ComputeEnvironment);
-        }
-
-        RunTest(builder.AddContainer("myContainer", "nginx"));
-        RunTest(builder.AddProject<Projects.ServiceA>("ServiceA"));
-        RunTest(builder.AddExecutable("myExecutable", "nginx", string.Empty));
-    }
-
-    [Fact]
-    public async Task WithDeploymentImageTag_AddsDeploymentImageTagCallbackAnnotation()
+    public async Task WithImagePushOptions_AddsImagePushOptionsCallbackAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var containerResource = builder.AddContainer("test-container", "nginx")
-            .WithDeploymentImageTag(_ => "test-tag");
+            .WithImagePushOptions(context =>
+            {
+                context.Options.RemoteImageName = "myrepo/myimage";
+                context.Options.RemoteImageTag = "test-tag";
+            });
 
-        var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
-        
-        // Test that the callback works by creating a mock context and calling it
-        var context = new DeploymentImageTagCallbackAnnotationContext
+        var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>());
+
+        var options = new ContainerImagePushOptions
+        {
+            RemoteImageName = "",
+            RemoteImageTag = ""
+        };
+        var context = new ContainerImagePushOptionsCallbackContext
         {
             Resource = containerResource.Resource,
             CancellationToken = CancellationToken.None,
+            Options = options
         };
-        var result = await annotation.Callback(context);
-        Assert.Equal("test-tag", result);
+        await annotation.Callback(context);
+        Assert.Equal("myrepo/myimage", context.Options.RemoteImageName);
+        Assert.Equal("test-tag", context.Options.RemoteImageTag);
     }
 
     [Fact]
-    public void WithDeploymentImageTag_WithNullBuilder_ThrowsArgumentNullException()
+    public void WithImagePushOptions_WithNullBuilder_ThrowsArgumentNullException()
     {
         IResourceBuilder<ContainerResource> builder = null!;
 
-        var ex = Assert.Throws<ArgumentNullException>(() => builder.WithDeploymentImageTag(_ => "test-tag"));
+        var ex = Assert.Throws<ArgumentNullException>(() => builder.WithImagePushOptions(context => { }));
         Assert.Equal("builder", ex.ParamName);
     }
 
     [Fact]
-    public void WithDeploymentImageTag_WithNullCallback_ThrowsArgumentNullException()
+    public void WithImagePushOptions_WithNullCallback_ThrowsArgumentNullException()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var containerResource = builder.AddContainer("test-container", "nginx");
 
         var ex = Assert.Throws<ArgumentNullException>(() =>
-            containerResource.WithDeploymentImageTag((Func<DeploymentImageTagCallbackAnnotationContext,string>)null!));
+            containerResource.WithImagePushOptions((Action<ContainerImagePushOptionsCallbackContext>)null!));
         Assert.Equal("callback", ex.ParamName);
     }
 
     [Fact]
-    public async Task WithDeploymentImageTag_CanBeCalledMultipleTimes()
+    public async Task WithImagePushOptions_CanBeCalledMultipleTimes()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        
-        var containerResource = builder.AddContainer("test-container", "nginx")
-            .WithDeploymentImageTag(_ => "tag1")
-            .WithDeploymentImageTag(_ => "tag2");
 
-        var annotations = containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>().ToList();
+        var containerResource = builder.AddContainer("test-container", "nginx")
+            .WithImagePushOptions(context => context.Options.RemoteImageTag = "tag1")
+            .WithImagePushOptions(context => context.Options.RemoteImageName = "myrepo/myimage");
+
+        var annotations = containerResource.Resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>().ToList();
         Assert.Equal(2, annotations.Count);
-        
-        var context = new DeploymentImageTagCallbackAnnotationContext
+
+        var options = new ContainerImagePushOptions
+        {
+            RemoteImageName = "",
+            RemoteImageTag = ""
+        };
+        var context = new ContainerImagePushOptionsCallbackContext
         {
             Resource = containerResource.Resource,
             CancellationToken = CancellationToken.None,
+            Options = options
         };
-        
-        Assert.Equal("tag1", await annotations[0].Callback(context));
-        Assert.Equal("tag2", await annotations[1].Callback(context));
+
+        await annotations[0].Callback(context);
+        Assert.Equal("tag1", context.Options.RemoteImageTag);
+
+        await annotations[1].Callback(context);
+        Assert.Equal("myrepo/myimage", context.Options.RemoteImageName);
     }
 
     [Fact]
-    public void WithDeploymentImageTag_WorksWithDifferentResourceTypes()
+    public void WithImagePushOptions_WorksWithDifferentResourceTypes()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var callback = (DeploymentImageTagCallbackAnnotationContext _) => "test-tag";
+        static void callback(ContainerImagePushOptionsCallbackContext context) => context.Options.RemoteImageTag = "test-tag";
 
-        // Test with container resource
         var containerResource = builder.AddContainer("test-container", "nginx")
-            .WithDeploymentImageTag(callback);
-        Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
+            .WithImagePushOptions(callback);
+        Assert.Single(containerResource.Resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>());
 
-        // Test with project resource
         var projectResource = builder.AddProject<Projects.ServiceA>("ServiceA")
-            .WithDeploymentImageTag(callback);
-        Assert.Single(projectResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
+            .WithImagePushOptions(callback);
+        Assert.Single(projectResource.Resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>());
 
-        // Test with executable resource
         var executableResource = builder.AddExecutable("test-exec", "dotnet", "myapp.dll")
-            .WithDeploymentImageTag(callback);
-        Assert.Single(executableResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
+            .WithImagePushOptions(callback);
+        Assert.Single(executableResource.Resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>());
     }
 
     [Fact]
-    public async Task WithDeploymentImageTag_CallbackCanReturnDifferentValues()
+    public async Task WithImagePushOptions_WithAsyncCallback_AddsCorrectAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var counter = 0;
-        
-        var containerResource = builder.AddContainer("test-container", "nginx")
-            .WithDeploymentImageTag(_ => $"tag-{++counter}");
-
-        var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
-        
-        var context = new DeploymentImageTagCallbackAnnotationContext
-        {
-            Resource = containerResource.Resource,
-            CancellationToken = CancellationToken.None,
-        };
-        
-        // Callback should return different values when called multiple times
-        Assert.Equal("tag-1", await annotation.Callback(context));
-        Assert.Equal("tag-2", await annotation.Callback(context));
-        Assert.Equal("tag-3", await annotation.Callback(context));
-    }
-
-    [Fact]
-    public async Task WithDeploymentImageTag_WithAsyncCallback_AddsCorrectAnnotation()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var callback = async (DeploymentImageTagCallbackAnnotationContext context) =>
+        var callback = async (ContainerImagePushOptionsCallbackContext context) =>
         {
             await Task.Delay(1);
-            return $"async-tag-{context.Resource.Name}";
+            context.Options.RemoteImageName = $"myrepo/{context.Resource.Name}";
+            context.Options.RemoteImageTag = "async-tag";
         };
-        
-        var containerResource = builder.AddContainer("test-container", "nginx")
-            .WithDeploymentImageTag(callback);
 
-        var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
+        var containerResource = builder.AddContainer("test-container", "nginx")
+            .WithImagePushOptions(callback);
+
+        var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>());
         Assert.NotNull(annotation.Callback);
-        
-        // Test the async callback
-        var context = new DeploymentImageTagCallbackAnnotationContext
+
+        var options = new ContainerImagePushOptions
+        {
+            RemoteImageName = "",
+            RemoteImageTag = ""
+        };
+        var context = new ContainerImagePushOptionsCallbackContext
         {
             Resource = containerResource.Resource,
             CancellationToken = CancellationToken.None,
+            Options = options
         };
-        var result = await annotation.Callback(context);
-        Assert.Equal("async-tag-test-container", result);
+        await annotation.Callback(context);
+        Assert.Equal("myrepo/test-container", context.Options.RemoteImageName);
+        Assert.Equal("async-tag", context.Options.RemoteImageTag);
+    }
+
+    [Fact]
+    public void WithRemoteImageName_SetsImageNameViaAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var containerResource = builder.AddContainer("test-container", "nginx")
+            .WithRemoteImageName("myrepo/myimage");
+
+        var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>());
+        Assert.NotNull(annotation);
+    }
+
+    [Fact]
+    public void WithRemoteImageTag_SetsImageTagViaAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var containerResource = builder.AddContainer("test-container", "nginx")
+            .WithRemoteImageTag("v1.0.0");
+
+        var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>());
+        Assert.NotNull(annotation);
     }
 
     [Fact]

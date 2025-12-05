@@ -147,7 +147,7 @@ public static class RedisBuilderExtensions
 
                 return Task.CompletedTask;
             })
-            .WithServerAuthenticationCertificateConfiguration(ctx =>
+            .WithHttpsCertificateConfiguration(ctx =>
             {
                 ctx.Arguments.Add("--tls-cert-file");
                 ctx.Arguments.Add(ctx.CertificatePath);
@@ -178,14 +178,14 @@ public static class RedisBuilderExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!redis.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
+                if (!redis.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
                 {
-                    if (developerCertificateService.UseForServerAuthentication)
+                    if (developerCertificateService.UseForHttps)
                     {
                         addHttps = true;
                     }
                 }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication) || annotation.Certificate is not null)
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }
@@ -367,7 +367,7 @@ public static class RedisBuilderExtensions
 
                     return Task.CompletedTask;
                 })
-                .WithServerAuthenticationCertificateConfiguration(ctx =>
+                .WithHttpsCertificateConfiguration(ctx =>
                 {
                     ctx.EnvironmentVariables["RI_SERVER_TLS_CERT"] = ctx.CertificatePath;
                     ctx.EnvironmentVariables["RI_SERVER_TLS_KEY"] = ctx.KeyPath;
@@ -388,14 +388,14 @@ public static class RedisBuilderExtensions
                 var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
 
                 bool addHttps = false;
-                if (!resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
+                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
                 {
-                    if (developerCertificateService.UseForServerAuthentication)
+                    if (developerCertificateService.UseForHttps)
                     {
                         addHttps = true;
                     }
                 }
-                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication) || annotation.Certificate is not null)
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
                 {
                     addHttps = true;
                 }

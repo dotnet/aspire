@@ -693,9 +693,9 @@ public class AddPostgresTests
         var postgres = appBuilder.AddPostgres("postgres")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5432));
 
-        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
-        var config1 = await postgres.Resource.GetEnvironmentVariableValuesAsync();
-        var config2 = await postgres.Resource.GetEnvironmentVariableValuesAsync();
+        // Call GetEnvironmentVariablesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(postgres.Resource);
+        var config2 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(postgres.Resource);
 
         // Both calls should succeed and return the same values
         Assert.Equal(config1.Count, config2.Count);

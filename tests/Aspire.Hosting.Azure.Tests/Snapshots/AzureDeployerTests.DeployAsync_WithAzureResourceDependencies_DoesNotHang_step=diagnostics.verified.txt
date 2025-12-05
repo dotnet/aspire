@@ -41,105 +41,129 @@ Steps with no dependencies run first, followed by steps that depend on them.
 
 DETAILED STEP ANALYSIS
 ======================
-Shows each step's dependencies, associated resources, and tags.
+Shows each step's dependencies, associated resources, tags, and descriptions.
 ✓ = dependency exists, ? = dependency missing
 
 Step: build
+    Description: Aggregation step for all build operations. All build steps should be required by this step.
     Dependencies: ✓ build-api
 
 Step: build-api
+    Description: Builds the container image for the api project.
     Dependencies: ✓ build-prereq, ✓ deploy-prereq
     Resource: api (ProjectResource)
     Tags: build-compute
 
 Step: build-prereq
+    Description: Prerequisite step that runs before any build operations.
     Dependencies: ✓ process-parameters
 
 Step: create-provisioning-context
+    Description: Creates the Azure provisioning context for infrastructure deployment.
     Dependencies: ✓ deploy-prereq, ✓ validate-azure-login
     Resource: azure634f9 (AzureEnvironmentResource)
 
 Step: deploy
+    Description: Aggregation step for all deploy operations. All deploy steps should be required by this step.
     Dependencies: ✓ build-api, ✓ create-provisioning-context, ✓ print-api-summary, ✓ print-dashboard-url-env, ✓ provision-azure-bicep-resources, ✓ validate-azure-login
 
 Step: deploy-api
+    Description: Aggregation step for deploying api to Azure App Service.
     Dependencies: ✓ print-api-summary
     Resource: api-website (AzureAppServiceWebSiteResource)
     Tags: deploy-compute
 
 Step: deploy-prereq
+    Description: Prerequisite step that runs before any deploy operations. Initializes deployment environment and manages deployment state.
     Dependencies: ✓ process-parameters
 
 Step: diagnostics
+    Description: Dumps dependency graph information for troubleshooting pipeline execution.
     Dependencies: none
 
 Step: login-to-acr-env
+    Description: Logs in to Azure Container Registry for env.
     Dependencies: ✓ provision-env
     Resource: env (AzureAppServiceEnvironmentResource)
     Tags: acr-login
 
 Step: print-api-summary
+    Description: Prints the deployment summary and URL for api.
     Dependencies: ✓ provision-api-website
     Resource: api-website (AzureAppServiceWebSiteResource)
     Tags: print-summary
 
 Step: print-dashboard-url-env
+    Description: Prints the deployment summary and dashboard URL for env.
     Dependencies: ✓ provision-azure-bicep-resources, ✓ provision-env
     Resource: env (AzureAppServiceEnvironmentResource)
     Tags: print-summary
 
 Step: process-parameters
+    Description: Prompts for parameter values before build, publish, or deployment operations.
     Dependencies: none
 
 Step: provision-api-identity
+    Description: Provisions the Azure Bicep resource api-identity using Azure infrastructure.
     Dependencies: ✓ create-provisioning-context
     Resource: api-identity (AzureUserAssignedIdentityResource)
     Tags: provision-infra
 
 Step: provision-api-roles-kv
+    Description: Provisions the Azure Bicep resource api-roles-kv using Azure infrastructure.
     Dependencies: ✓ create-provisioning-context, ✓ provision-api-identity, ✓ provision-kv
     Resource: api-roles-kv (AzureProvisioningResource)
     Tags: provision-infra
 
 Step: provision-api-website
+    Description: Provisions the Azure Bicep resource api-website using Azure infrastructure.
     Dependencies: ✓ create-provisioning-context, ✓ provision-api-identity, ✓ provision-env, ✓ provision-kv, ✓ push-api
     Resource: api-website (AzureAppServiceWebSiteResource)
     Tags: provision-infra
 
 Step: provision-azure-bicep-resources
+    Description: Aggregation step for all Azure infrastructure provisioning operations.
     Dependencies: ✓ create-provisioning-context, ✓ deploy-prereq, ✓ provision-api-identity, ✓ provision-api-roles-kv, ✓ provision-api-website, ✓ provision-env, ✓ provision-kv
     Resource: azure634f9 (AzureEnvironmentResource)
     Tags: provision-infra
 
 Step: provision-env
+    Description: Provisions the Azure Bicep resource env using Azure infrastructure.
     Dependencies: ✓ create-provisioning-context
     Resource: env (AzureAppServiceEnvironmentResource)
     Tags: provision-infra
 
 Step: provision-kv
+    Description: Provisions the Azure Bicep resource kv using Azure infrastructure.
     Dependencies: ✓ create-provisioning-context
     Resource: kv (AzureKeyVaultResource)
     Tags: provision-infra
 
 Step: publish
+    Description: Aggregation step for all publish operations. All publish steps should be required by this step.
     Dependencies: ✓ publish-azure634f9
 
 Step: publish-azure634f9
+    Description: Publishes the Azure environment configuration for azure634f9.
     Dependencies: ✓ publish-prereq
     Resource: azure634f9 (AzureEnvironmentResource)
 
 Step: publish-manifest
+    Description: Publishes the Aspire application model as a JSON manifest file.
     Dependencies: none
 
 Step: publish-prereq
+    Description: Prerequisite step that runs before any publish operations.
     Dependencies: ✓ process-parameters
 
 Step: push-api
+    Description: Pushes the container image for api to Azure Container Registry.
     Dependencies: ✓ build-api, ✓ login-to-acr-env, ✓ provision-env
     Resource: api-website (AzureAppServiceWebSiteResource)
     Tags: push-container-image
 
 Step: validate-azure-login
+    Description: Validates Azure CLI authentication before deployment.
     Dependencies: ✓ deploy-prereq
     Resource: azure634f9 (AzureEnvironmentResource)
 
