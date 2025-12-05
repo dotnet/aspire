@@ -9,7 +9,7 @@ namespace Aspire.TestTools;
 
 sealed partial class TestSummaryGenerator
 {
-    public static string CreateCombinedTestSummaryReport(string basePath)
+    public static string CreateCombinedTestSummaryReport(string basePath, bool showAllTests = false)
     {
         var resolved = Path.GetFullPath(basePath);
         if (!Directory.Exists(resolved))
@@ -196,7 +196,70 @@ sealed partial class TestSummaryGenerator
         overallTableBuilder.AppendLine("## Duration Statistics");
         overallTableBuilder.Append(GenerateDurationStatistics(basePath));
 
+        // Add all individual test results if showAllTests is true
+        if (showAllTests)
+        {
+            overallTableBuilder.AppendLine();
+            overallTableBuilder.AppendLine("## All Test Results");
+            overallTableBuilder.AppendLine();
+            overallTableBuilder.Append(GenerateAllTestsSection(basePath));
+        }
+
         return overallTableBuilder.ToString();
+    }
+
+    private static string GenerateAllTestsSection(string basePath)
+    {
+        var resultBuilder = new StringBuilder();
+        var allTests = new List<(string TestName, string Outcome, string? ErrorInfo, string? StdOut)>();
+
+        var trxFiles = Directory.EnumerateFiles(basePath, "*.trx", SearchOption.AllDirectories);
+        foreach (var filePath in trxFiles)
+        {
+            TestRun? testRun;
+            try
+            {
+                testRun = TrxReader.DeserializeTrxFile(filePath);
+                if (testRun?.Results?.UnitTestResults is null)
+                {
+                    continue;
+                }
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var test in testRun.Results.UnitTestResults)
+            {
+                if (!string.IsNullOrEmpty(test.TestName))
+                {
+                    allTests.Add((test.TestName, test.Outcome ?? "Unknown", test.Output?.ErrorInfo?.InnerText, test.Output?.StdOut));
+                }
+            }
+        }
+
+        // Sort by test name
+        allTests.Sort((a, b) => string.Compare(a.TestName, b.TestName, StringComparison.OrdinalIgnoreCase));
+
+        foreach (var test in allTests)
+        {
+            if (test.Outcome == "Failed")
+            {
+                AppendFailedTestDetails(resultBuilder, test.TestName, test.ErrorInfo, test.StdOut);
+            }
+            else if (test.Outcome == "Passed")
+            {
+                resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"- ✅ {test.TestName}");
+            }
+            else
+            {
+                // Skipped/NotExecuted tests
+                resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"- ⏭️ {test.TestName}");
+            }
+        }
+
+        return resultBuilder.ToString();
     }
 
     public static void CreateSingleTestSummaryReport(string trxFilePath, StringBuilder reportBuilder, string? url, bool showAllTests = false)
@@ -259,43 +322,7 @@ sealed partial class TestSummaryGenerator
         {
             if (test.Outcome == "Failed")
             {
-                // Failed tests get expanded details
-                reportBuilder.AppendLine("<div>");
-                reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"""
-                    <details><summary>❌ <b>{test.TestName}</b></summary>
-
-                """);
-
-                reportBuilder.AppendLine();
-                reportBuilder.AppendLine("```yml");
-
-                reportBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText);
-                if (test.Output?.StdOut is not null)
-                {
-                    const int halfLength = 25_000;
-                    var stdOutSpan = test.Output.StdOut.AsSpan();
-
-                    reportBuilder.AppendLine();
-                    reportBuilder.AppendLine("### StdOut");
-
-                    var startSpan = stdOutSpan[..Math.Min(halfLength, stdOutSpan.Length)];
-                    reportBuilder.AppendLine(startSpan.ToString());
-
-                    if (stdOutSpan.Length > halfLength)
-                    {
-                        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}... (snip) ...{Environment.NewLine}");
-                        var endSpan = stdOutSpan[^halfLength..];
-                        // `endSpan` might not begin at the true beginning of the original line
-                        reportBuilder.Append("... ");
-                        reportBuilder.Append(endSpan);
-                    }
-                }
-
-                reportBuilder.AppendLine("```");
-                reportBuilder.AppendLine();
-                reportBuilder.AppendLine("</details>");
-                reportBuilder.AppendLine("</div>");
-                reportBuilder.AppendLine();
+                AppendFailedTestDetails(reportBuilder, test.TestName ?? "Unknown", test.Output?.ErrorInfo?.InnerText, test.Output?.StdOut);
             }
             else if (showAllTests)
             {
@@ -537,6 +564,46 @@ sealed partial class TestSummaryGenerator
         }
 
         return resultBuilder.ToString();
+    }
+
+    private static void AppendFailedTestDetails(StringBuilder builder, string testName, string? errorInfo, string? stdOut)
+    {
+        builder.AppendLine("<div>");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"""
+            <details><summary>❌ <b>{testName}</b></summary>
+
+        """);
+
+        builder.AppendLine();
+        builder.AppendLine("```yml");
+
+        builder.AppendLine(errorInfo);
+        if (stdOut is not null)
+        {
+            const int halfLength = 25_000;
+            var stdOutSpan = stdOut.AsSpan();
+
+            builder.AppendLine();
+            builder.AppendLine("### StdOut");
+
+            var startSpan = stdOutSpan[..Math.Min(halfLength, stdOutSpan.Length)];
+            builder.AppendLine(startSpan.ToString());
+
+            if (stdOutSpan.Length > halfLength)
+            {
+                builder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}... (snip) ...{Environment.NewLine}");
+                var endSpan = stdOutSpan[^halfLength..];
+                // `endSpan` might not begin at the true beginning of the original line
+                builder.Append("... ");
+                builder.Append(endSpan);
+            }
+        }
+
+        builder.AppendLine("```");
+        builder.AppendLine();
+        builder.AppendLine("</details>");
+        builder.AppendLine("</div>");
+        builder.AppendLine();
     }
 
     public static string GetTestTitle(string trxFileName)

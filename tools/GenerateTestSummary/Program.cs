@@ -43,16 +43,10 @@ rootCommand.SetAction(result =>
         return;
     }
 
-    if (showAllTests && combinedSummary)
-    {
-        Console.WriteLine("Error: --show-all-tests option is not supported with --combined option.");
-        return;
-    }
-
     string report;
     if (combinedSummary)
     {
-        report = TestSummaryGenerator.CreateCombinedTestSummaryReport(dirPathOrTrxFilePath);
+        report = TestSummaryGenerator.CreateCombinedTestSummaryReport(dirPathOrTrxFilePath, showAllTests);
     }
     else
     {

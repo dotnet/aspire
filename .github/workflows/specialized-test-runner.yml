@@ -28,11 +28,12 @@ on:
         required: false
         type: boolean
         default: false
-      # Extra arguments to pass to GenerateTestSummary tool
-      extraSummaryArgs:
+      # When true (default), only failed tests are shown in the summary. When false, all tests are shown.
+      showOnlyFailedTestsInSummary:
         required: false
-        type: string
-        description: 'Extra arguments to pass to GenerateTestSummary (e.g., --show-all-tests)'
+        type: boolean
+        default: true
+        description: 'When true, only failed tests are shown in the summary. When false, all tests are shown.'
 
 jobs:
 
@@ -184,7 +185,8 @@ jobs:
           --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
           --
           ${{ github.workspace }}/testresults
-          ${{ inputs.extraSummaryArgs || '--combined' }}
+          --combined
+          ${{ inputs.showOnlyFailedTestsInSummary == false && '--show-all-tests' || '' }}
 
       - name: Fail if any dependency failed
         # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.

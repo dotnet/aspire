@@ -41,4 +41,4 @@ jobs:
       extraTestArgs: "--filter-trait quarantined=true"
       enablePlaywrightInstall: true
       ignoreTestFailures: true
-      extraSummaryArgs: "--show-all-tests"
+      showOnlyFailedTestsInSummary: false
