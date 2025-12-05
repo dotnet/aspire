@@ -103,8 +103,8 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         Assert.Equal("{cosmos.outputs.connectionString}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
         // Endpoint-based connection info gets passed as a connection string to
         // support setting the correct properties on child resources.
-        Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("AccountEndpoint={cosmos.outputs.accountEndpoint};Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("AccountEndpoint={cosmos.outputs.accountEndpoint};Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Theory]
