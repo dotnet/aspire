@@ -86,7 +86,9 @@ jobs:
     steps:
       - name: Fail if any of the dependent jobs failed
         # Don't fail if the workflow is being skipped.
-        # Check skip_workflow on all declared dependencies.
+        # Check skip_workflow on all declared dependencies. Workflows without
+        # skip_workflow outputs (e.g., tests, build_cli_archives) evaluate to
+        # empty string, so the check still works ('!= true' is true for empty).
         #
         # For others 'skipped' can be when a transitive dependency fails and the dependent job gets
         # 'skipped'. For example, one of setup_* jobs failing and the Integration test jobs getting
