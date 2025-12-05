@@ -198,30 +198,16 @@ public class AzureAppServiceEnvironmentResource :
     internal static BicepValue<string> GetWebSiteSuffixBicep() =>
         BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id);
 
-    internal AzureContainerRegistryResource? DefaultContainerRegistry { get; set; }
+    /// <summary>
+    /// Gets the default container registry for this environment.
+    /// </summary>
+    internal AzureContainerRegistryResource DefaultContainerRegistry { get; init; } = null!;
 
-    private IContainerRegistry GetAssociatedRegistry()
-    {
-        if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation) &&
-            annotation.Registry is IContainerRegistry registry)
-        {
-            return registry;
-        }
+    ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create($"{ContainerRegistryName}");
 
-        if (DefaultContainerRegistry is not null)
-        {
-            return DefaultContainerRegistry;
-        }
+    ReferenceExpression IContainerRegistry.Endpoint => ReferenceExpression.Create($"{ContainerRegistryUrl}");
 
-        throw new InvalidOperationException($"No Azure container registry associated with environment '{Name}'");
-    }
-
-    // Implement IAzureContainerRegistry interface by delegating to the associated registry
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
-
-    ReferenceExpression IContainerRegistry.Name => GetAssociatedRegistry().Name;
-
-    ReferenceExpression IContainerRegistry.Endpoint => GetAssociatedRegistry().Endpoint;
 
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
