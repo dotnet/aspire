@@ -271,7 +271,7 @@ jobs:
 
       - name: Unlock macOS keychain for certificate tests
         if: runner.os == 'macOS'
-        uses: actions/unlock-macos-keychain
+        uses: ./.github/actions/unlock-macos-keychain
 
       - name: Run nuget dependent tests
         if: ${{ inputs.requiresNugets }}
