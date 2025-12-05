@@ -149,6 +149,11 @@ public class AzureContainerAppEnvironmentResource :
     internal BicepOutputReference ContainerAppDomain => new("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", this);
 
     /// <summary>
+    /// Gets the name of the associated Azure Container Registry.
+    /// </summary>
+    internal BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
+
+    /// <summary>
     /// Gets the URL endpoint of the associated Azure Container Registry.
     /// </summary>
     internal BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
@@ -165,28 +170,14 @@ public class AzureContainerAppEnvironmentResource :
 
     internal Dictionary<string, (IResource resource, ContainerMountAnnotation volume, int index, BicepOutputReference outputReference)> VolumeNames { get; } = [];
 
-    internal AzureContainerRegistryResource? DefaultContainerRegistry { get; set; }
+    /// <summary>
+    /// Gets the default container registry for this environment.
+    /// </summary>
+    internal AzureContainerRegistryResource DefaultContainerRegistry { get; init; } = null!;
 
-    private IContainerRegistry GetAssociatedRegistry()
-    {
-        if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation) &&
-            annotation.Registry is IContainerRegistry registry)
-        {
-            return registry;
-        }
+    ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create($"{ContainerRegistryName}");
 
-        if (DefaultContainerRegistry is not null)
-        {
-            return DefaultContainerRegistry;
-        }
-
-        throw new InvalidOperationException($"No Azure container registry associated with environment '{Name}'");
-    }
-
-    // Implement IAzureContainerRegistry interface by delegating to the associated registry
-    ReferenceExpression IContainerRegistry.Name => GetAssociatedRegistry().Name;
-
-    ReferenceExpression IContainerRegistry.Endpoint => GetAssociatedRegistry().Endpoint;
+    ReferenceExpression IContainerRegistry.Endpoint => ReferenceExpression.Create($"{ContainerRegistryUrl}");
 
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
