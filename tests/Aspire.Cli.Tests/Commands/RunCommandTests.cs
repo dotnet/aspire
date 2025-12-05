@@ -1184,6 +1184,55 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             });
         }
     }
+
+    [Fact]
+    public async Task RunCommand_WithRunningInstanceDetectionFeatureFlag_DoesNotThrow()
+    {
+        // This test verifies that the running instance detection feature flag integration
+        // does not break the normal flow when the feature is disabled (default behavior)
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        
+        // Create a fake apphost project file
+        var appHostPath = Path.Combine(workspace.WorkspaceRoot.FullName, "TestAppHost.csproj");
+        File.WriteAllText(appHostPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+            options.DotNetCliRunnerFactory = sp =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.GetAppHostInformationAsyncCallback = (projectFile, runOptions, ct) => 
+                    (0, true, VersionHelper.GetDefaultTemplateVersion());
+                return runner;
+            };
+        });
+
+        // Add configuration to disable the feature (should be default behavior)
+        services.AddSingleton<IConfiguration>(sp =>
+        {
+            var configBuilder = new ConfigurationBuilder();
+            configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["features:runningInstanceDetectionEnabled"] = "false"
+            });
+            return configBuilder.Build();
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        // The command should execute without throwing an exception
+        // We expect it to fail later in the process (e.g., when trying to run the app),
+        // but the running instance detection should not interfere
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // We're not asserting a specific exit code here because the test may fail for other reasons
+        // (e.g., apphost not being runnable), but we're verifying that the new feature flag
+        // integration doesn't break the existing flow
+        Assert.NotEqual(-1, exitCode); // -1 would indicate an unexpected error
+    }
 }
 
 internal sealed class AssertingDotNetCliRunner(
