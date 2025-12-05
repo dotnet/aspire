@@ -39,7 +39,7 @@ public class AzureBicepResourceTests
         {
             var id = new UserAssignedIdentity("id");
             infrastructure.Add(id);
-            infrastructure.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId });
+            infrastructure.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId.ToBicepExpression() });
         }
 
         return new()

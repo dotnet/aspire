@@ -17,7 +17,7 @@ param env_outputs_azure_website_contributor_managed_identity_id string
 
 param env_outputs_azure_website_contributor_managed_identity_principal_id string
 
-resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
+resource mainContainer 'Microsoft.Web/sites/sitecontainers@2025-03-01' = {
   name: 'main'
   properties: {
     authType: 'UserAssigned'
@@ -29,7 +29,7 @@ resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   parent: webapp
 }
 
-resource webapp 'Microsoft.Web/sites@2024-11-01' = {
+resource webapp 'Microsoft.Web/sites@2025-03-01' = {
   name: take('${toLower('project2')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {

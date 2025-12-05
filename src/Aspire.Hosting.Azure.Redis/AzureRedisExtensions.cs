@@ -312,10 +312,10 @@ public static class AzureRedisExtensions
         }
 
         // We need to output name to externalize role assignments.
-        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name });
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name.ToBicepExpression() });
 
         // Always output the hostName for the Redis server.
-        infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = redis.HostName });
+        infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = redis.HostName.ToBicepExpression() });
     }
 
     internal static void AddContributorPolicyAssignment(AzureResourceInfrastructure infra, CdkRedisResource redis, BicepValue<Guid> principalId, BicepValue<string> principalName)

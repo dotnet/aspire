@@ -69,7 +69,7 @@ public static class AzureSearchExtensions
             });
 
             // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = search.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = search.Name.ToBicepExpression() });
         }
     }
 
