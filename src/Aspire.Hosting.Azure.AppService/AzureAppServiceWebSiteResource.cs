@@ -155,40 +155,41 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             };
 
             steps.Add(websiteGetHostNameStep);
-
-            if (targetResource.TryGetLastAnnotation<AzureAppServiceWebsiteDoesNotExistAnnotation>(out _))
+            
+            var updateProvisionableResourceStep = new PipelineStep
             {
-                var updateProvisionableResourceStep = new PipelineStep
+                Name = $"update-{targetResource.Name}",
+                Action = async ctx =>
                 {
-                    Name = $"update-{targetResource.Name}",
-                    Action = async ctx =>
+                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                    if (!targetResource.TryGetLastAnnotation<AzureAppServiceWebsiteDoesNotExistAnnotation>(out _))
                     {
-                        var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                        return;
+                    }
 
-                        if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+                    if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+                    {
+                        var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
+                        var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
+                        var provisioningResource = new AzureAppServiceWebSiteResource(targetResource.Name + "-website", context.BuildWebSite, targetResource)
                         {
-                            var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
-                            var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
-                            var provisioningResource = new AzureAppServiceWebSiteResource(targetResource.Name + "-website", context.BuildWebSite, targetResource)
-                            {
-                                ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions
-                            };
+                            ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions
+                        };
 
-                            deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
+                        deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
 
-                            ctx.ReportingStep.Log(LogLevel.Information, $"Updated provisionable resource to deploy website and deployment slot", false);
-                        }
-                        else
-                        {
-                            ctx.ReportingStep.Log(LogLevel.Warning, $"No environment context annotation on the environment resource", false);
-                        }
-                    },
-                    Tags = ["update-website-provisionable-resource"],
-                    DependsOnSteps = new List<string> { "create-provisioning-context" },
-                };
+                        ctx.ReportingStep.Log(LogLevel.Information, $"Updated provisionable resource to deploy website and deployment slot", false);
+                    }
+                    else
+                    {
+                        ctx.ReportingStep.Log(LogLevel.Warning, $"No environment context annotation on the environment resource", false);
+                    }
+                },
+                Tags = ["update-website-provisionable-resource"],
+                DependsOnSteps = new List<string> { "create-provisioning-context" },
+            };
 
-                steps.Add(updateProvisionableResourceStep);
-            }
+            steps.Add(updateProvisionableResourceStep);
 
             if (!targetResource.TryGetEndpoints(out var endpoints))
             {
