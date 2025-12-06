@@ -64,6 +64,8 @@ namespace Aspire.Hosting.Azure
 
         IAzureKeyVaultResource IAzureKeyVaultSecretReference.Resource { get { throw null; } }
 
+        ApplicationModel.IResource? IAzureKeyVaultSecretReference.SecretOwner { get { throw null; } set { } }
+
         public AzureKeyVaultResource Parent { get { throw null; } }
 
         public string SecretName { get { throw null; } }
