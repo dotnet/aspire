@@ -10,7 +10,7 @@ namespace Aspire.Cli.Tests.Projects;
 public class FallbackProjectParserTests
 {
     [Fact]
-    public void ParseProject_ExtractsAspireAppHostSdk()
+    public void ParseProject_ExtractsAspireAppHostSdk_OldFormat()
     {
         // Arrange
         var tempDir = Directory.CreateTempSubdirectory();
@@ -36,6 +36,111 @@ public class FallbackProjectParserTests
 
             // Should have fallback flag
             Assert.True(result.RootElement.GetProperty("Fallback").GetBoolean());
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ParseProject_ExtractsAspireAppHostSdk_NewFormat()
+    {
+        // Arrange - tests the new <Project Sdk="Aspire.AppHost.Sdk/version"> format
+        var tempDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var projectFile = Path.Combine(tempDir.FullName, $"Test{Guid.NewGuid()}.csproj");
+            var projectContent = """
+                <Project Sdk="Aspire.AppHost.Sdk/13.0.1">
+                    <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net10.0</TargetFramework>
+                    </PropertyGroup>
+                </Project>
+                """;
+
+            File.WriteAllText(projectFile, projectContent);
+            var parser = new FallbackProjectParser(NullLogger<FallbackProjectParser>.Instance);
+
+            // Act
+            var result = parser.ParseProject(new FileInfo(projectFile));
+
+            // Assert
+            var properties = result.RootElement.GetProperty("Properties");
+            var sdkVersion = properties.GetProperty("AspireHostingSDKVersion").GetString();
+            Assert.Equal("13.0.1", sdkVersion);
+
+            // Should have fallback flag
+            Assert.True(result.RootElement.GetProperty("Fallback").GetBoolean());
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ParseProject_ExtractsAspireAppHostSdk_NewFormat_WithMultipleSdks()
+    {
+        // Arrange - tests parsing when multiple SDKs are in the attribute
+        var tempDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var projectFile = Path.Combine(tempDir.FullName, $"Test{Guid.NewGuid()}.csproj");
+            var projectContent = """
+                <Project Sdk="Aspire.AppHost.Sdk/13.0.1;Microsoft.NET.Sdk">
+                    <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net10.0</TargetFramework>
+                    </PropertyGroup>
+                </Project>
+                """;
+
+            File.WriteAllText(projectFile, projectContent);
+            var parser = new FallbackProjectParser(NullLogger<FallbackProjectParser>.Instance);
+
+            // Act
+            var result = parser.ParseProject(new FileInfo(projectFile));
+
+            // Assert - should extract only the version, not the other SDK
+            var properties = result.RootElement.GetProperty("Properties");
+            var sdkVersion = properties.GetProperty("AspireHostingSDKVersion").GetString();
+            Assert.Equal("13.0.1", sdkVersion);
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ParseProject_DoesNotMatchSimilarSdkName()
+    {
+        // Arrange - tests that Aspire.AppHost.SdkFoo doesn't match
+        var tempDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var projectFile = Path.Combine(tempDir.FullName, $"Test{Guid.NewGuid()}.csproj");
+            var projectContent = """
+                <Project Sdk="Aspire.AppHost.SdkFoo/1.0.0">
+                    <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+                    <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                    </PropertyGroup>
+                </Project>
+                """;
+
+            File.WriteAllText(projectFile, projectContent);
+            var parser = new FallbackProjectParser(NullLogger<FallbackProjectParser>.Instance);
+
+            // Act
+            var result = parser.ParseProject(new FileInfo(projectFile));
+
+            // Assert - should fall back to old format and get 9.5.0
+            var properties = result.RootElement.GetProperty("Properties");
+            var sdkVersion = properties.GetProperty("AspireHostingSDKVersion").GetString();
+            Assert.Equal("9.5.0", sdkVersion);
         }
         finally
         {

@@ -2386,6 +2386,253 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var directoryPackagesContent = await File.ReadAllTextAsync(directoryPackagesPropsFile.FullName);
         Assert.DoesNotContain("Aspire.Hosting.AppHost", directoryPackagesContent);
     }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_MigratesFromOldFormatToNewFormat()
+    {
+        // Arrange - tests migration from old <Sdk Name="..."> to new <Project Sdk="..."> format
+        var tempDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var projectFile = Path.Combine(tempDir.FullName, "AppHost.csproj");
+            var originalContent = """
+                <Project Sdk="Microsoft.NET.Sdk">
+                    <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+                    <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net9.0</TargetFramework>
+                    </PropertyGroup>
+                </Project>
+                """;
+
+            await File.WriteAllTextAsync(projectFile, originalContent);
+
+            var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+            // Act
+            await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+            // Assert
+            var updatedContent = await File.ReadAllTextAsync(projectFile);
+
+            // Should have new format (Aspire SDK replaces Microsoft.NET.Sdk since it includes it)
+            Assert.Contains("Sdk=\"Aspire.AppHost.Sdk/13.0.2\"", updatedContent);
+
+            // Should not have old format
+            Assert.DoesNotContain("<Sdk Name=\"Aspire.AppHost.Sdk\"", updatedContent);
+            // Microsoft.NET.Sdk should be replaced since Aspire SDK includes it
+            Assert.DoesNotContain("Microsoft.NET.Sdk", updatedContent);
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_UpdatesExistingNewFormat()
+    {
+        // Arrange - tests updating a project already using the new format
+        var tempDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var projectFile = Path.Combine(tempDir.FullName, "AppHost.csproj");
+            var originalContent = """
+                <Project Sdk="Aspire.AppHost.Sdk/13.0.1">
+                    <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net10.0</TargetFramework>
+                    </PropertyGroup>
+                </Project>
+                """;
+
+            await File.WriteAllTextAsync(projectFile, originalContent);
+
+            var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+            // Act
+            await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+            // Assert
+            var updatedContent = await File.ReadAllTextAsync(projectFile);
+
+            // Should have updated version
+            Assert.Contains("Sdk=\"Aspire.AppHost.Sdk/13.0.2\"", updatedContent);
+            Assert.DoesNotContain("13.0.1", updatedContent);
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_RemovesAspireHostingAppHostPackageReference()
+    {
+        // Arrange - tests removal of obsolete Aspire.Hosting.AppHost package reference
+        var tempDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var projectFile = Path.Combine(tempDir.FullName, "AppHost.csproj");
+            var originalContent = """
+                <Project Sdk="Microsoft.NET.Sdk">
+                    <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+                    <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net9.0</TargetFramework>
+                    </PropertyGroup>
+                    <ItemGroup>
+                        <PackageReference Include="Aspire.Hosting.AppHost" Version="9.5.0" />
+                        <PackageReference Include="Aspire.Hosting.Redis" Version="9.5.0" />
+                    </ItemGroup>
+                </Project>
+                """;
+
+            await File.WriteAllTextAsync(projectFile, originalContent);
+
+            var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+            // Act
+            await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+            // Assert
+            var updatedContent = await File.ReadAllTextAsync(projectFile);
+
+            // Should have migrated to new format (replaces Microsoft.NET.Sdk since Aspire SDK includes it)
+            Assert.Contains("Sdk=\"Aspire.AppHost.Sdk/13.0.2\"", updatedContent);
+            Assert.DoesNotContain("Microsoft.NET.Sdk", updatedContent);
+
+            // Should have removed Aspire.Hosting.AppHost package reference
+            Assert.DoesNotContain("Aspire.Hosting.AppHost", updatedContent);
+
+            // Should still have other packages
+            Assert.Contains("Aspire.Hosting.Redis", updatedContent);
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_RemovesEmptyItemGroupAfterPackageRemoval()
+    {
+        // Arrange - tests that empty ItemGroup is removed after Aspire.Hosting.AppHost removal
+        var tempDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var projectFile = Path.Combine(tempDir.FullName, "AppHost.csproj");
+            var originalContent = """
+                <Project Sdk="Microsoft.NET.Sdk">
+                    <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+                    <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net9.0</TargetFramework>
+                    </PropertyGroup>
+                    <ItemGroup>
+                        <PackageReference Include="Aspire.Hosting.AppHost" Version="9.5.0" />
+                    </ItemGroup>
+                </Project>
+                """;
+
+            await File.WriteAllTextAsync(projectFile, originalContent);
+
+            var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+            // Act
+            await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+            // Assert
+            var updatedContent = await File.ReadAllTextAsync(projectFile);
+
+            // Should not have empty ItemGroup (just check that the ItemGroup with PackageReference is gone)
+            Assert.DoesNotContain("Aspire.Hosting.AppHost", updatedContent);
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_PreservesOtherSdksInAttribute()
+    {
+        // Arrange - tests that other SDKs in the attribute are preserved
+        var tempDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var projectFile = Path.Combine(tempDir.FullName, "AppHost.csproj");
+            var originalContent = """
+                <Project Sdk="Aspire.AppHost.Sdk/13.0.1;Microsoft.NET.Sdk.Web">
+                    <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net10.0</TargetFramework>
+                    </PropertyGroup>
+                </Project>
+                """;
+
+            await File.WriteAllTextAsync(projectFile, originalContent);
+
+            var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+            // Act
+            await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+            // Assert
+            var updatedContent = await File.ReadAllTextAsync(projectFile);
+
+            // Should have updated version and preserved other SDK
+            Assert.Contains("Aspire.AppHost.Sdk/13.0.2", updatedContent);
+            Assert.Contains("Microsoft.NET.Sdk.Web", updatedContent);
+            Assert.DoesNotContain("13.0.1", updatedContent);
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_DoesNotMatchSimilarSdkName()
+    {
+        // Arrange - tests that Aspire.AppHost.SdkFoo doesn't match as the Aspire SDK
+        // In this case, the old <Sdk Name="..."> element is used, so it's a migration scenario
+        var tempDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var projectFile = Path.Combine(tempDir.FullName, "AppHost.csproj");
+            var originalContent = """
+                <Project Sdk="Aspire.AppHost.SdkFoo/1.0.0">
+                    <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+                    <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                    </PropertyGroup>
+                </Project>
+                """;
+
+            await File.WriteAllTextAsync(projectFile, originalContent);
+
+            var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+            // Act
+            await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+            // Assert
+            var updatedContent = await File.ReadAllTextAsync(projectFile);
+
+            // Should migrate from old format and replace the Sdk attribute entirely
+            // (Aspire SDK includes .NET SDK, so we don't need the SdkFoo anymore)
+            Assert.Contains("Sdk=\"Aspire.AppHost.Sdk/13.0.2\"", updatedContent);
+            // Old <Sdk> element should be removed
+            Assert.DoesNotContain("<Sdk Name=\"Aspire.AppHost.Sdk\"", updatedContent);
+            // SdkFoo should be replaced since Aspire SDK includes the base .NET SDK
+            Assert.DoesNotContain("Aspire.AppHost.SdkFoo", updatedContent);
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
 }
 
 internal static class MSBuildJsonDocumentExtensions
