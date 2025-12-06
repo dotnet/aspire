@@ -152,6 +152,68 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             Action = context => Task.CompletedTask
         });
 
+        // Add a default "Push" meta-step that all push steps should be required by
+        // Push unconditionally depends on PushPrereq to ensure annotations are set up
+        var pushStep = new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.Push,
+            Description = "Aggregation step for all push operations. All push steps should be required by this step.",
+            Action = _ => Task.CompletedTask
+        };
+        pushStep.DependsOn(WellKnownPipelineSteps.PushPrereq);
+        _steps.Add(pushStep);
+
+        _steps.Add(new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.PushPrereq,
+            Description = "Prerequisite step that runs before any push operations.",
+            Action = context =>
+            {
+                // Add ContainerRegistryReferenceAnnotation to resources that don't already have one
+                // so the remote image tag can be computed correctly during push
+                var allRegistries = context.Model.Resources.OfType<IContainerRegistry>().ToArray();
+
+                foreach (var resource in context.Model.Resources)
+                {
+                    if (!resource.RequiresImageBuildAndPush())
+                    {
+                        continue;
+                    }
+
+                    // Skip if resource already has a ContainerRegistryReferenceAnnotation
+                    if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var annotations) &&
+                        annotations.Any())
+                    {
+                        continue;
+                    }
+
+                    // Skip if resource has a deployment target with a ContainerRegistry set
+                    var deploymentTargetAnnotation = resource.GetDeploymentTargetAnnotation();
+                    if (deploymentTargetAnnotation?.ContainerRegistry is not null)
+                    {
+                        continue;
+                    }
+
+                    // When multiple registries exist, require explicit WithContainerRegistry call
+                    if (allRegistries.Length > 1)
+                    {
+                        var registryNames = string.Join(", ", allRegistries.Select(r => r is IResource res ? res.Name : r.ToString()));
+                        throw new InvalidOperationException(
+                            $"Resource '{resource.Name}' requires image push but has multiple container registries available - '{registryNames}'. " +
+                            $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
+                    }
+
+                    // Single registry - automatically add the annotation
+                    if (allRegistries.Length == 1)
+                    {
+                        resource.Annotations.Add(new ContainerRegistryReferenceAnnotation(allRegistries[0]));
+                    }
+                }
+
+                return Task.CompletedTask;
+            },
+        });
+
         // Add a default "Publish" aggregation step that all publish steps should be required by
         _steps.Add(new PipelineStep
         {

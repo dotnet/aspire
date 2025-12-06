@@ -9,15 +9,14 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Helper methods for Azure environment resources to handle container image operations.
+/// Helper methods for Azure Container Registry operations.
 /// </summary>
-internal static class AzureEnvironmentResourceHelpers
+internal static class AzureContainerRegistryHelpers
 {
     public static async Task LoginToRegistryAsync(IContainerRegistry registry, PipelineStepContext context)
     {
@@ -25,17 +24,13 @@ internal static class AzureEnvironmentResourceHelpers
         var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
 
         // Find the AzureEnvironmentResource from the application model
-        var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
-        if (azureEnvironment == null)
-        {
+        var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault() ??
             throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
-        }
-
         var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
-                         throw new InvalidOperationException("Failed to retrieve container registry information.");
-        
+            throw new InvalidOperationException("Failed to retrieve container registry information.");
+
         var registryEndpoint = await registry.Endpoint.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
-                              throw new InvalidOperationException("Failed to retrieve container registry endpoint.");
+            throw new InvalidOperationException("Failed to retrieve container registry endpoint.");
 
         var loginTask = await context.ReportingStep.CreateTaskAsync($"Logging in to **{registryName}**", context.CancellationToken).ConfigureAwait(false);
         await using (loginTask.ConfigureAwait(false))
@@ -59,34 +54,6 @@ internal static class AzureEnvironmentResourceHelpers
             catch (Exception ex)
             {
                 await loginTask.FailAsync($"Login to ACR **{registryEndpoint}** failed: {ex.Message}", cancellationToken: context.CancellationToken).ConfigureAwait(false);
-                throw;
-            }
-        }
-    }
-
-    public static async Task PushImageToRegistryAsync(IContainerRegistry registry, IResource resource, PipelineStepContext context, IResourceContainerImageManager containerImageBuilder)
-    {
-        var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
-                         throw new InvalidOperationException("Failed to retrieve container registry information.");
-
-        IValueProvider cir = new ContainerImageReference(resource);
-        var targetTag = await cir.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
-
-        var pushTask = await context.ReportingStep.CreateTaskAsync($"Pushing **{resource.Name}** to **{registryName}**", context.CancellationToken).ConfigureAwait(false);
-        await using (pushTask.ConfigureAwait(false))
-        {
-            try
-            {
-                if (targetTag == null)
-                {
-                    throw new InvalidOperationException($"Failed to get target tag for {resource.Name}");
-                }
-                await containerImageBuilder.PushImageAsync(resource, context.CancellationToken).ConfigureAwait(false);
-                await pushTask.CompleteAsync($"Successfully pushed **{resource.Name}** to `{targetTag}`", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                await pushTask.CompleteAsync($"Failed to push **{resource.Name}**: {ex.Message}", CompletionState.CompletedWithError, context.CancellationToken).ConfigureAwait(false);
                 throw;
             }
         }

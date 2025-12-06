@@ -69,21 +69,22 @@ public class AzureUserAssignedIdentityTests
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        Assert.Collection(model.Resources.OrderBy(r => r.Name),
+        Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r =>
             {
                 Assert.IsType<AzureProvisioningResource>(r);
                 Assert.Equal("myidentity-roles-myregistry", r.Name);
-            },
-            r => Assert.IsType<AzureContainerRegistryResource>(r));
+            });
 
         var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>());
         var (_, identityBicep) = await GetManifestWithBicep(identityResource, skipPreparer: true);
 
-        var registryResource = Assert.Single(model.Resources.OfType<AzureContainerRegistryResource>());
+        var registryResource = Assert.Single(model.Resources.OfType<AzureContainerRegistryResource>(), r => r.Name == "myregistry");
         var (_, registryBicep) = await GetManifestWithBicep(registryResource, skipPreparer: true);
 
         var identityRoleAssignments = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "myidentity-roles-myregistry");
@@ -157,6 +158,7 @@ public class AzureUserAssignedIdentityTests
             r => Assert.IsType<AzureStorageResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r => Assert.IsType<ProjectResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureProvisioningResource>(r));
 
         // Verify the identity resource is the only one that exists
@@ -212,6 +214,7 @@ public class AzureUserAssignedIdentityTests
             r => Assert.IsType<AzureStorageResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r => Assert.IsType<ProjectResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureProvisioningResource>(r));
 
         // Verify the identity resource is the only one that exists
@@ -289,6 +292,7 @@ public class AzureUserAssignedIdentityTests
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r => Assert.IsType<ProjectResource>(r),
             r => Assert.IsType<ProjectResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.True(r is AzureProvisioningResource { Name: "myapp-roles-mystorage" }),
             r => Assert.True(r is AzureProvisioningResource { Name: "myapp2-roles-mystorage" }));
 

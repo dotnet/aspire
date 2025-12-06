@@ -20,6 +20,7 @@ module acaEnv 'acaEnv/acaEnv.bicep' = {
   scope: rg
   params: {
     location: location
+    acaenv_acr_outputs_name: acaEnv_acr.outputs.name
     userPrincipalId: principalId
   }
 }
@@ -47,6 +48,14 @@ module storage 'storage/storage.bicep' = {
     location: location
     storage_Sku: storage_Sku
     sku_description: '${skuDescription} ${storage_Sku}'
+  }
+}
+
+module acaEnv_acr 'acaEnv-acr/acaEnv-acr.bicep' = {
+  name: 'acaEnv-acr'
+  scope: rg
+  params: {
+    location: location
   }
 }
 

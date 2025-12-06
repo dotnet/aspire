@@ -12,6 +12,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.AppContainers" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.AppService" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.ContainerRegistry" />

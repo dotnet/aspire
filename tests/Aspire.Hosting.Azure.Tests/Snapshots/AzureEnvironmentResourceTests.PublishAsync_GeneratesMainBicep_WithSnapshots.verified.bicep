@@ -24,6 +24,7 @@ module acaEnv 'acaEnv/acaEnv.bicep' = {
   scope: rg
   params: {
     location: location
+    acaenv_acr_outputs_name: acaEnv_acr.outputs.name
     userPrincipalId: principalId
   }
 }
@@ -77,6 +78,14 @@ module mod 'mod/mod.bicep' = {
   params: {
     location: location
     pgdb: '${pg.outputs.connectionString};Database=pgdb'
+  }
+}
+
+module acaEnv_acr 'acaEnv-acr/acaEnv-acr.bicep' = {
+  name: 'acaEnv-acr'
+  scope: rg
+  params: {
+    location: location
   }
 }
 

@@ -49,6 +49,17 @@ public static class WellKnownPipelineSteps
     public const string BuildPrereq = "build-prereq";
 
     /// <summary>
+    /// The meta-step that coordinates all push operations.
+    /// All push steps should be required by this step.
+    /// </summary>
+    public const string Push = "push";
+
+    /// <summary>
+    /// The prerequisite step that runs before any push operations.
+    /// </summary>
+    public const string PushPrereq = "push-prereq";
+
+    /// <summary>
     /// The diagnostic step that dumps dependency graph information for troubleshooting.
     /// </summary>
     public const string Diagnostics = "diagnostics";
