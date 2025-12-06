@@ -35,6 +35,7 @@ DRY_RUN=false
 HIVE_ONLY=false
 SKIP_EXTENSION_INSTALL=false
 USE_INSIDERS=false
+SKIP_PATH=false
 HOST_OS="unset"
 
 # Function to show help
@@ -67,6 +68,7 @@ USAGE:
     --hive-only                 Only install NuGet packages to the hive, skip CLI download
     --skip-extension.           Skip VS Code extension download and installation
     --use-insiders              Install extension to VS Code Insiders instead of VS Code
+    --skip-path                 Do not add the install path to PATH environment variable (useful for portable installs)
     -v, --verbose               Enable verbose output
     -k, --keep-archive          Keep downloaded archive files after installation
     --dry-run                   Show what would be done without performing actions
@@ -80,6 +82,7 @@ EXAMPLES:
     ./get-aspire-cli-pr.sh 1234 --hive-only
     ./get-aspire-cli-pr.sh 1234 --skip-extension
     ./get-aspire-cli-pr.sh 1234 --use-insiders
+    ./get-aspire-cli-pr.sh 1234 --skip-path
     ./get-aspire-cli-pr.sh 1234 --dry-run
 
     curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- <PR_NUMBER>
@@ -188,6 +191,10 @@ parse_args() {
                 ;;
             --use-insiders)
                 USE_INSIDERS=true
+                shift
+                ;;
+            --skip-path)
+                SKIP_PATH=true
                 shift
                 ;;
             --dry-run)
@@ -1058,14 +1065,18 @@ fi
 
 # Add to shell profile for persistent PATH
 if [[ "$HIVE_ONLY" != true ]]; then
-    add_to_shell_profile "$cli_install_dir" "$INSTALL_PATH_UNEXPANDED"
+    if [[ "$SKIP_PATH" == true ]]; then
+        say_info "Skipping PATH configuration due to --skip-path flag"
+    else
+        add_to_shell_profile "$cli_install_dir" "$INSTALL_PATH_UNEXPANDED"
 
-    # Add to current session PATH, if the path is not already in PATH
-    if  [[ ":$PATH:" != *":$cli_install_dir:"* ]]; then
-        if [[ "$DRY_RUN" == true ]]; then
-            say_info "[DRY RUN] Would add $cli_install_dir to PATH"
-        else
-            export PATH="$cli_install_dir:$PATH"
+        # Add to current session PATH, if the path is not already in PATH
+        if  [[ ":$PATH:" != *":$cli_install_dir:"* ]]; then
+            if [[ "$DRY_RUN" == true ]]; then
+                say_info "[DRY RUN] Would add $cli_install_dir to PATH"
+            else
+                export PATH="$cli_install_dir:$PATH"
+            fi
         fi
     fi
 fi

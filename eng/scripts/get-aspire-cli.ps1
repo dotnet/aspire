@@ -29,6 +29,9 @@ param(
     [Parameter(HelpMessage = "Install extension to VS Code Insiders instead of VS Code")]
     [switch]$UseInsiders,
 
+    [Parameter(HelpMessage = "Do not add the install path to PATH environment variable (useful for portable installs)")]
+    [switch]$SkipPath,
+
     [Parameter(HelpMessage = "Show help message")]
     [switch]$Help
 )
@@ -139,6 +142,7 @@ PARAMETERS:
     -Architecture <string>      Architecture (default: auto-detect)
     -InstallExtension           Install VS Code extension along with the CLI
     -UseInsiders                Install extension to VS Code Insiders instead of VS Code (requires -InstallExtension)
+    -SkipPath                   Do not add the install path to PATH environment variable (useful for portable installs)
     -KeepArchive                Keep downloaded archive files and temporary directory after installation
     -Help                       Show this help message
 
@@ -161,6 +165,7 @@ EXAMPLES:
     .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
     .\get-aspire-cli.ps1 -InstallExtension
     .\get-aspire-cli.ps1 -InstallExtension -UseInsiders
+    .\get-aspire-cli.ps1 -SkipPath
     .\get-aspire-cli.ps1 -KeepArchive
     .\get-aspire-cli.ps1 -WhatIf
     .\get-aspire-cli.ps1 -Help
@@ -1070,8 +1075,12 @@ function Start-AspireCliInstallation {
         # Download and install the Aspire CLI
         $targetOS = Install-AspireCli -InstallPath $resolvedInstallPath -Version $Version -Quality $Quality -OS $OS -Architecture $Architecture
 
-        # Update PATH environment variables
-        Update-PathEnvironment -InstallPath $resolvedInstallPath -TargetOS $targetOS
+        # Update PATH environment variables unless -SkipPath is specified
+        if ($SkipPath) {
+            Write-Message "Skipping PATH configuration due to -SkipPath flag" -Level Info
+        } else {
+            Update-PathEnvironment -InstallPath $resolvedInstallPath -TargetOS $targetOS
+        }
     }
     catch {
         # Display clean error message without stack trace

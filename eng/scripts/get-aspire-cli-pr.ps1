@@ -33,6 +33,9 @@
 .PARAMETER HiveOnly
     Only install NuGet packages to the hive, skip CLI download
 
+.PARAMETER SkipPath
+    Do not add the install path to PATH environment variable (useful for portable installs)
+
 .PARAMETER KeepArchive
     Keep downloaded archive files after installation
 
@@ -62,6 +65,9 @@
 
 .EXAMPLE
     .\get-aspire-cli-pr.ps1 1234 -UseInsiders
+
+.EXAMPLE
+    .\get-aspire-cli-pr.ps1 1234 -SkipPath
 
 .EXAMPLE
     Piped execution
@@ -106,6 +112,9 @@ param(
 
     [Parameter(HelpMessage = "Install extension to VS Code Insiders instead of VS Code")]
     [switch]$UseInsiders,
+
+    [Parameter(HelpMessage = "Do not add the install path to PATH environment variable (useful for portable installs)")]
+    [switch]$SkipPath,
 
     [Parameter(HelpMessage = "Keep downloaded archive files after installation")]
     [switch]$KeepArchive
@@ -1089,7 +1098,11 @@ function Start-DownloadAndInstall {
 
     # Update PATH environment variables
     if (-not $HiveOnly) {
-        Update-PathEnvironment -CliBinDir $cliBinDir
+        if ($SkipPath) {
+            Write-Message "Skipping PATH configuration due to -SkipPath flag" -Level Info
+        } else {
+            Update-PathEnvironment -CliBinDir $cliBinDir
+        }
     }
 }
 
