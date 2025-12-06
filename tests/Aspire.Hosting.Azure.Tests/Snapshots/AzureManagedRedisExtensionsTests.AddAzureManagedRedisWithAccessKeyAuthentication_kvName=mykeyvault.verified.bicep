@@ -35,6 +35,14 @@ resource connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   parent: keyVault
 }
 
+resource primaryAccessKey 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
+  name: 'primaryaccesskey--redis-cache'
+  properties: {
+    value: redis_cache_default.listKeys().primaryKey
+  }
+  parent: keyVault
+}
+
 output name string = redis_cache.name
 
 output hostName string = redis_cache.properties.hostName

@@ -128,6 +128,8 @@ output acaEnv_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = acaEnv.outputs.AZURE_
 
 output myapp_identity_id string = myapp_identity.outputs.id
 
+output account_accountEndpoint string = account.outputs.accountEndpoint
+
 output account_connectionString string = account.outputs.connectionString
 
 output myapp_identity_clientId string = myapp_identity.outputs.clientId

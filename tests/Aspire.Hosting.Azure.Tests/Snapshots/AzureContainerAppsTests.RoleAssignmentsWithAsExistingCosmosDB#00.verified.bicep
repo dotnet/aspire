@@ -15,6 +15,8 @@ param api_identity_outputs_id string
 
 param cosmos_outputs_connectionstring string
 
+param cosmos_outputs_accountendpoint string
+
 param api_identity_outputs_clientid string
 
 resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
@@ -57,6 +59,14 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'ConnectionStrings__cosmos'
               value: cosmos_outputs_connectionstring
+            }
+            {
+              name: 'COSMOS_URI'
+              value: cosmos_outputs_accountendpoint
+            }
+            {
+              name: 'COSMOS_ACCOUNTKEY'
+              value: ''
             }
             {
               name: 'AZURE_CLIENT_ID'

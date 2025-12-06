@@ -103,8 +103,8 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
         Assert.Equal("{cosmos.outputs.connectionString}", cosmos.Resource.ConnectionStringExpression.ValueExpression);
         // Endpoint-based connection info gets passed as a connection string to
         // support setting the correct properties on child resources.
-        Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("AccountEndpoint={cosmos.outputs.connectionString};Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("AccountEndpoint={cosmos.outputs.accountEndpoint};Database=db1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("AccountEndpoint={cosmos.outputs.accountEndpoint};Database=db1;Container=container1", container1.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Theory]
@@ -606,10 +606,13 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
             cosmos.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
         }
 
-        // Assert - Verify that the SecretOwner is set to the Cosmos resource
+        // Assert - Verify that the SecretOwner is set to the Cosmos resources
         Assert.NotNull(cosmos.Resource.ConnectionStringSecretOutput);
         Assert.Same(cosmos.Resource, cosmos.Resource.ConnectionStringSecretOutput.SecretOwner);
-        
+
+        Assert.NotNull(cosmos.Resource.PrimaryAccessKeySecretOutput);
+        Assert.Same(cosmos.Resource, cosmos.Resource.PrimaryAccessKeySecretOutput.SecretOwner);
+
         // Also verify that References includes both the KeyVault and the Cosmos resource
         var references = ((IValueWithReferences)cosmos.Resource.ConnectionStringSecretOutput).References.ToList();
         Assert.Contains(cosmos.Resource, references);

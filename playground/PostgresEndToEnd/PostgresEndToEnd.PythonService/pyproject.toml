@@ -1,0 +1,10 @@
+[project]
+name = "flask-app"
+version = "0.1.0"
+description = "Example Flask application for Aspire playground"
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=3.1.0",
+    "psycopg[binary]>=3.1.0",
+    "azure-identity>=1.15.0",
+]
