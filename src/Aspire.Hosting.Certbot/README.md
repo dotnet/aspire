@@ -14,7 +14,7 @@ dotnet add package Aspire.Hosting.Certbot
 
 ## Usage example
 
-Then, in the _AppHost.cs_ file of `AppHost`, add a Certbot resource to obtain SSL/TLS certificates:
+Then, in the _AppHost.cs_ file of `AppHost`, add a Certbot resource and consume the certificates:
 
 ```csharp
 var domain = builder.AddParameter("domain");
@@ -26,13 +26,6 @@ var certbot = builder.AddCertbot("certbot", domain, email)
 var myService = builder.AddContainer("myservice", "myimage")
                        .WithCertbotCertificate(certbot);
 ```
-
-The certbot container will:
-
-- Obtain certificates for the specified domain using the ACME protocol
-- Store certificates in a shared volume at `/etc/letsencrypt`
-- Use the configured challenge method (e.g., HTTP-01) for domain validation
-- Ensure dependent containers wait for certificate acquisition before starting
 
 ## Configuration
 
@@ -129,11 +122,7 @@ var certificatePath = certbot.Resource.CertificatePath;   // /etc/letsencrypt/li
 var privateKeyPath = certbot.Resource.PrivateKeyPath;     // /etc/letsencrypt/live/{domain}/privkey.pem
 ```
 
-## Connection Properties
 
-The Certbot resource does not expose connection properties through `WithReference`. This is because the Certbot resource is a certificate provisioning tool, not a service that other resources connect to.
-
-Instead, use the `WithCertbotCertificate` extension method to configure containers with certificates from Certbot. This method handles mounting the certificates volume and waiting for certificate acquisition. See the [Sharing Certificates with Other Resources](#sharing-certificates-with-other-resources) section above for usage examples.
 
 ## Additional documentation
 
