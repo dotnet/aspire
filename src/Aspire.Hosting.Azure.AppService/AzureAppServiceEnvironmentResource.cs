@@ -193,6 +193,11 @@ public class AzureAppServiceEnvironmentResource :
     internal bool EnableAutomaticScaling { get; set; }
 
     /// <summary>
+    /// Enables or disables regional DNL host name for the App Service Environment.
+    /// </summary>
+    internal bool EnableRegionalDnlHostName { get; set; }
+
+    /// <summary>
     /// Deployment slot parameter resource for the App Service Environment.
     /// </summary>
     internal ParameterResource? DeploymentSlotParameter { get; set; }

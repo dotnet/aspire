@@ -311,4 +311,18 @@ public static partial class AzureAppServiceEnvironmentExtensions
         builder.Resource.DeploymentSlot = deploymentSlot;
         return builder;
     }
+
+    /// <summary>
+    /// Configures the slot to which the Azure App Services should be deployed.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="enable">The regional DNL host name for all App Services in the App Service Environment.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithRegionalDNLHostName(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.EnableRegionalDnlHostName = enable;
+        return builder;
+    }
 }

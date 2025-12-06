@@ -80,14 +80,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                         return;
                     }
 
-                    ctx.ReportingStep.Log(LogLevel.Information, $"Running website check", false);
-                    var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
-                    var websiteName = $"{targetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
-                    ctx.ReportingStep.Log(LogLevel.Information, $"for {websiteName}", false);
-                    if (websiteName.Length > 60)
-                    {
-                        websiteName = websiteName.Substring(0, 60);
-                    }
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Running website exists check", false);
+                    var websiteName = await GetWebsiteNameAsync(computerEnv, ctx).ConfigureAwait(false);
                     var exists = await CheckWebSiteExistsAsync(websiteName, ctx).ConfigureAwait(false);
                     ctx.ReportingStep.Log(LogLevel.Information, $"website exists : {exists}", false);
 
@@ -109,21 +103,51 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
 
-                    ctx.ReportingStep.Log(LogLevel.Information, $"Running website check", false);
-                    var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
-                    var websiteName = $"{targetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
-                    ctx.ReportingStep.Log(LogLevel.Information, $"for {websiteName}", false);
-                    if (websiteName.Length > 60)
+                    if (!computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
                     {
-                        websiteName = websiteName.Substring(0, 60);
+                        ctx.ReportingStep.Log(LogLevel.Information, $"No environment context annotation found on the target resource", false);
+                        return;
                     }
-                    var hostName = await GetDnlHostNameAsync(websiteName, ctx).ConfigureAwait(false);
-                    ctx.ReportingStep.Log(LogLevel.Information, $"website host name : {hostName}", false);
 
-                    if (hostName is not null && computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+                    var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
+                    var websiteName = await GetWebsiteNameAsync(computerEnv, ctx).ConfigureAwait(false);
+
+                    string deploymentSlotValue = string.Empty;
+                    string websiteSlotName = string.Empty;
+
+                    if (computerEnv.DeploymentSlotParameter is not null || computerEnv.DeploymentSlot is not null)
                     {
-                        var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
-                        context.SetWebsiteHostName(hostName);
+                        deploymentSlotValue = computerEnv.DeploymentSlotParameter != null
+                            ? await computerEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? string.Empty
+                            : computerEnv.DeploymentSlot!;
+
+                        websiteSlotName = $"{websiteName}-{deploymentSlotValue.ToLowerInvariant()}";
+                        if (websiteSlotName.Length > 60)
+                        {
+                            websiteSlotName = websiteSlotName.Substring(0, 60);
+                        }
+                    }
+
+                    if (computerEnv.EnableRegionalDnlHostName is not true)
+                    {
+                        ctx.ReportingStep.Log(LogLevel.Information, $"Regional DNL host name not enabled, skipping ARM call to fetch website host name", false);
+                        context.SetWebsiteHostName($"{websiteName}.azurewebsites.net", string.IsNullOrWhiteSpace(websiteSlotName) ? null : $"{websiteSlotName}.azurewebsites.net");
+                        return;
+                    }
+
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Fetching host name for {websiteName} {websiteSlotName}", false);
+
+                    var hostName = await GetDnlHostNameAsync(websiteName, "Site", ctx).ConfigureAwait(false);
+                    string? slotHostName = null;
+
+                    if (!string.IsNullOrWhiteSpace(deploymentSlotValue))
+                    {
+                        slotHostName = await GetDnlHostNameAsync(websiteSlotName, "Slot", ctx).ConfigureAwait(false);
+                    }
+
+                    if (hostName is not null)
+                    {
+                        context.SetWebsiteHostName(hostName, slotHostName);
                     }
                 },
                 Tags = ["fetch-website-hostname"],
@@ -178,14 +202,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
 
-                    var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
-
-                    var hostName = $"{targetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
-                    if (hostName.Length > 60)
-                    {
-                        hostName = hostName.Substring(0, 60);
-                    }
-                    var endpoint = $"https://{hostName}.azurewebsites.net";
+                    var websiteName = await GetWebsiteNameAsync(computerEnv, ctx).ConfigureAwait(false);
+                    var endpoint = $"https://{websiteName}.azurewebsites.net";
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
                 },
                 Tags = ["print-summary"],
@@ -278,10 +296,11 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// Fetch the App Service hostname for a given resource.
     /// </summary>
     /// <param name="websiteName"></param>
+    /// <param name="resourceType"></param>
     /// <param name="context"></param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public static async Task<string?> GetDnlHostNameAsync(string websiteName, PipelineStepContext context)
+    public static async Task<string?> GetDnlHostNameAsync(string websiteName, string resourceType, PipelineStepContext context)
     {
         context.ReportingStep.Log(LogLevel.Information, $"Checking availability of site name: {websiteName}", false);
         var armContext = await GetArmContextAsync(context).ConfigureAwait(false);
@@ -291,7 +310,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var requestBody = new
         {
             name = websiteName,
-            type = "Microsoft.Web/sites",
+            type = resourceType,
             autoGeneratedDomainNameLabelScope = "TenantReuse"
         };
 
@@ -352,6 +371,19 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var httpClient = httpClientFactory.CreateClient();
 
         return new ArmContext(httpClient, subscriptionId, resourceGroupName, location, token.Token);
+    }
+
+    private async Task<string> GetWebsiteNameAsync(AzureAppServiceEnvironmentResource computerEnv, PipelineStepContext context)
+    {
+        var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+
+        var hostName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
+        if (hostName.Length > 60)
+        {
+            hostName = hostName.Substring(0, 60);
+        }
+
+        return hostName;
     }
 
     private const string AzureManagementScope = "https://management.azure.com/.default";
