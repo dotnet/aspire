@@ -20,6 +20,10 @@
 
   <ItemGroup>
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildProjectDirectory)\Snapshots\**\*"
+          CopyToOutputDirectory="PreserveNewest"
+          Link="Snapshots\%(RecursiveDir)%(FileName)%(Extension)"
+          Condition="'$(PrepareForHelix)' == 'true'" />
   </ItemGroup>
 
   <Target Name="ZipTestArchive" AfterTargets="Build"
