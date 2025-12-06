@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aplicación de inicio de Aspire",
-  "description": "Una plantilla de proyecto para crear una aplicación de Aspire con un front-end web de Blazor y un servicio back-end de API web, opcionalmente mediante Redis para el almacenamiento en caché.",
+  "name": "Inicio rápido de React (Vite) y API mínima",
+  "description": "A project template for creating an Aspire app with a React (Vite) frontend and a Minimal API backend service, optionally using Redis for caching.",
   "symbols/Framework/description": "Marco de destino del proyecto.",
   "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
   "symbols/Framework/choices/net9.0/description": "Net9.0 de destino",
