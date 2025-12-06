@@ -57,10 +57,6 @@ public static class AzureContainerAppExtensions
     {
         builder.AddAzureContainerAppsInfrastructureCore();
 
-        // Create the default container registry resource before creating the environment
-        var registryName = $"{name}-acr";
-        var defaultRegistry = AzureContainerRegistryHelpers.CreateDefaultContainerRegistry(builder, registryName);
-
         var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, static infra =>
         {
             var appEnvResource = (AzureContainerAppEnvironmentResource)infra.AspireResource;
@@ -329,10 +325,12 @@ public static class AzureContainerAppExtensions
             {
                 Value = containerAppEnvironment.DefaultDomain
             });
-        })
-        {
-            DefaultContainerRegistry = defaultRegistry
-        };
+        });
+
+        // Create the default container registry resource before creating the environment
+        var registryName = $"{name}-acr";
+        var defaultRegistry = CreateDefaultAzureContainerRegistry(builder, registryName, containerAppEnvResource);
+        containerAppEnvResource.DefaultContainerRegistry = defaultRegistry;
 
         builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
         {
@@ -399,5 +397,56 @@ public static class AzureContainerAppExtensions
         builder.WithAnnotation(new AzureLogAnalyticsWorkspaceReferenceAnnotation(workspaceBuilder.Resource));
 
         return builder;
+    }
+
+    private static AzureContainerRegistryResource CreateDefaultAzureContainerRegistry(IDistributedApplicationBuilder builder, string name, AzureContainerAppEnvironmentResource containerAppEnvironment)
+    {
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
+        {
+            var registry = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, resourceName) =>
+                {
+                    var resource = ContainerRegistryService.FromExisting(identifier);
+                    resource.Name = resourceName;
+                    return resource;
+                },
+                (infra) =>
+                {
+                    var newRegistry = new ContainerRegistryService(infra.AspireResource.GetBicepIdentifier())
+                    {
+                        Sku = new ContainerRegistrySku { Name = ContainerRegistrySkuName.Basic },
+                        Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
+                    };
+
+                    if (containerAppEnvironment.UseAzdNamingConvention)
+                    {
+                        var resourceToken = new ProvisioningVariable("resourceToken", typeof(string))
+                        {
+                            Value = BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)
+                        };
+                        infrastructure.Add(resourceToken);
+
+                        newRegistry.Name = new FunctionCallExpression(
+                            new IdentifierExpression("replace"),
+                            new InterpolatedStringExpression([
+                                new StringLiteralExpression("acr-"),
+                                new IdentifierExpression(resourceToken.BicepIdentifier)
+                            ]),
+                            new StringLiteralExpression("-"),
+                            new StringLiteralExpression(""));
+                    }
+
+                    return newRegistry;
+                });
+
+            infrastructure.Add(registry);
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = registry.Name });
+            infrastructure.Add(new ProvisioningOutput("loginServer", typeof(string)) { Value = registry.LoginServer });
+        };
+
+        var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
+        builder.CreateResourceBuilder(resource);
+
+        return resource;
     }
 }

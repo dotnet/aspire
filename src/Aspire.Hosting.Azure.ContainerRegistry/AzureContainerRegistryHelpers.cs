@@ -9,8 +9,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Pipelines;
-using Azure.Provisioning;
-using Azure.Provisioning.ContainerRegistry;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure;
@@ -20,40 +18,6 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 internal static class AzureContainerRegistryHelpers
 {
-    /// <summary>
-    /// Creates a default Azure Container Registry resource without adding it to the model.
-    /// </summary>
-    /// <param name="builder">The distributed application builder.</param>
-    /// <param name="name">The name of the container registry resource.</param>
-    /// <returns>The created <see cref="AzureContainerRegistryResource"/>.</returns>
-    public static AzureContainerRegistryResource CreateDefaultContainerRegistry(IDistributedApplicationBuilder builder, string name)
-    {
-        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
-        {
-            var registry = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
-                (identifier, resourceName) =>
-                {
-                    var resource = ContainerRegistryService.FromExisting(identifier);
-                    resource.Name = resourceName;
-                    return resource;
-                },
-                (infra) => new ContainerRegistryService(infra.AspireResource.GetBicepIdentifier())
-                {
-                    Sku = new ContainerRegistrySku { Name = ContainerRegistrySkuName.Basic },
-                    Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
-                });
-
-            infrastructure.Add(registry);
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = registry.Name });
-            infrastructure.Add(new ProvisioningOutput("loginServer", typeof(string)) { Value = registry.LoginServer });
-        };
-
-        var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
-        builder.CreateResourceBuilder(resource);
-
-        return resource;
-    }
-
     public static async Task LoginToRegistryAsync(IContainerRegistry registry, PipelineStepContext context)
     {
         var acrLoginService = context.Services.GetRequiredService<IAcrLoginService>();
