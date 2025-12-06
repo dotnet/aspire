@@ -38,8 +38,6 @@ Certificates obtained by Certbot are stored at:
 
 These paths are accessible via the `CertbotResource.CertificatePath` and `CertbotResource.PrivateKeyPath` properties.
 
-
-
 ## Additional documentation
 
 * https://certbot.eff.org/docs/
