@@ -258,7 +258,7 @@ public class AddMySqlTests(ITestOutputHelper testOutputHelper)
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        using var tempStore = new TempDirectory();
+        using var tempStore = new TestTempDirectory();
         builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var mysql1 = builder.AddMySql("mysql1").WithPhpMyAdmin(c => c.WithHostPort(8081));

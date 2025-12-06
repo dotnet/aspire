@@ -15,7 +15,7 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDefaultDockerfile()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
         // Create vite directory to ensure manifest generates correct relative build context path
@@ -77,7 +77,7 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDockerfileWithNodeVersionFromPackageJson()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         // Create a package.json with engines.node specification
         var packageJson = """
@@ -105,7 +105,7 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDockerfileWithNodeVersionFromNvmrc()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         // Create an .nvmrc file
         File.WriteAllText(Path.Combine(tempDir.Path, ".nvmrc"), "18.20.0");
@@ -125,7 +125,7 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDockerfileWithNodeVersionFromNodeVersion()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         // Create a .node-version file
         File.WriteAllText(Path.Combine(tempDir.Path, ".node-version"), "v21.5.0");
@@ -145,7 +145,7 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDockerfileWithNodeVersionFromToolVersions()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         // Create a .tool-versions file
         var toolVersions = """
@@ -170,7 +170,7 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDockerfileDefaultsTo22WhenNoVersionFound()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         // Don't create any version files - should default to 22
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
@@ -193,7 +193,7 @@ public class AddViteAppTests
     [InlineData("~19.5.0", "node:19-slim")]
     public async Task VerifyDockerfileHandlesVariousVersionFormats(string versionString, string expectedImage)
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         File.WriteAllText(Path.Combine(tempDir.Path, ".nvmrc"), versionString);
 
@@ -211,7 +211,7 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyCustomBaseImage()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
         var customImage = "node:22-myspecialimage";
@@ -280,7 +280,7 @@ public class AddViteAppTests
     [Fact]
     public async Task AddViteApp_ServerAuthCertConfig_WithExistingConfigArgument_ReplacesConfigPath()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         // Create node_modules/.bin directory for Aspire config generation
         var nodeModulesBinDir = Path.Combine(tempDir.Path, "node_modules", ".bin");
@@ -341,7 +341,7 @@ public class AddViteAppTests
     [Fact]
     public async Task AddViteApp_ServerAuthCertConfig_WithoutExistingConfigArgument_DetectsDefaultConfig()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         // Create node_modules/.bin directory for Aspire config generation
         var nodeModulesBinDir = Path.Combine(tempDir.Path, "node_modules", ".bin");
@@ -399,7 +399,7 @@ public class AddViteAppTests
     [Fact]
     public async Task AddViteApp_ServerAuthCertConfig_WithMissingConfigFile_DoesNotAddConfigArgument()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         // Don't create any vite config file
         var builder = DistributedApplication.CreateBuilder();
@@ -445,7 +445,7 @@ public class AddViteAppTests
     [Fact]
     public async Task AddViteApp_ServerAuthCertConfig_WithPassword_SetsPasswordEnvironmentVariable()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         // Create node_modules/.bin directory for Aspire config generation
         var nodeModulesBinDir = Path.Combine(tempDir.Path, "node_modules", ".bin");
@@ -506,7 +506,7 @@ public class AddViteAppTests
     [InlineData("vite.config.cts")]
     public async Task AddViteApp_ServerAuthCertConfig_DetectsAllDefaultConfigFileFormats(string configFileName)
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         // Create node_modules/.bin directory for Aspire config generation
         var nodeModulesBinDir = Path.Combine(tempDir.Path, "node_modules", ".bin");

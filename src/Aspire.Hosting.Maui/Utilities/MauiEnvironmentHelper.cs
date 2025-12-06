@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+
 using System.Globalization;
 using System.Text;
 using System.Xml.Linq;
@@ -22,12 +24,14 @@ internal static class MauiEnvironmentHelper
     /// <summary>
     /// Creates an MSBuild targets file for Android that sets environment variables.
     /// </summary>
+    /// <param name="fileSystemService">The file system service for managing temp files.</param>
     /// <param name="resource">The resource to collect environment variables from.</param>
     /// <param name="executionContext">The execution context.</param>
     /// <param name="logger">Logger for diagnostic output.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The path to the generated targets file, or null if no environment variables are present.</returns>
     public static async Task<string?> CreateAndroidEnvironmentTargetsFileAsync(
+        IFileSystemService fileSystemService,
         IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger logger,
@@ -62,8 +66,7 @@ internal static class MauiEnvironmentHelper
         }
 
         // Create a temporary targets file
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "aspire", "maui", "android-env");
-        Directory.CreateDirectory(tempDirectory);
+        var tempDirectory = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-maui-android-env").Path;
 
         // Prune old targets files
         PruneOldTargets(tempDirectory, logger);
@@ -209,12 +212,14 @@ internal static class MauiEnvironmentHelper
     /// <summary>
     /// Creates an MSBuild targets file for iOS that sets environment variables.
     /// </summary>
+    /// <param name="fileSystemService">The file system service for managing temp files.</param>
     /// <param name="resource">The resource to collect environment variables from.</param>
     /// <param name="executionContext">The execution context.</param>
     /// <param name="logger">Logger for diagnostic output.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The path to the generated targets file, or null if no environment variables are present.</returns>
     public static async Task<string?> CreateiOSEnvironmentTargetsFileAsync(
+        IFileSystemService fileSystemService,
         IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger logger,
@@ -232,8 +237,7 @@ internal static class MauiEnvironmentHelper
         }
 
         // Create a temporary targets file
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "aspire", "maui", "mlaunch-env");
-        Directory.CreateDirectory(tempDirectory);
+        var tempDirectory = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-maui-mlaunch-env").Path;
 
         // Prune old targets files
         PruneOldTargetsiOS(tempDirectory, logger);
