@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Tests;
@@ -123,7 +124,7 @@ public class AspireStoreTests
     [InlineData("obj/")]
     public void AspireStoreConstructor_ShouldThrow_IfNotAbsolutePath(string? basePath)
     {
-        var directoryService = new FileSystemService();
+        var directoryService = new FileSystemService(new ConfigurationBuilder().Build());
         Assert.ThrowsAny<Exception>(() => new AspireStore(basePath!, directoryService));
     }
 

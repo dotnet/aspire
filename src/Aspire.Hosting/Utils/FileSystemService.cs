@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
 
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -17,10 +18,15 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
     private ILogger<FileSystemService>? _logger;
     private readonly bool _preserveTempFiles;
 
-    public FileSystemService()
+    // Track allocated temp files and directories as disposable objects using path as key
+    private readonly ConcurrentDictionary<string, IDisposable> _allocatedItems = new();
+
+    public FileSystemService(IConfiguration configuration)
     {
-        // Check environment variable to preserve temp files for debugging
-        _preserveTempFiles = Environment.GetEnvironmentVariable("ASPIRE_PRESERVE_TEMP_FILES") is not null;
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        // Check configuration to preserve temp files for debugging
+        _preserveTempFiles = configuration["ASPIRE_PRESERVE_TEMP_FILES"] is not null;
         
         _tempDirectory = new TempFileSystemService(this);
     }
@@ -40,25 +46,19 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
     /// <inheritdoc/>
     public ITempFileSystemService TempDirectory => _tempDirectory;
 
-    // Track allocated temp files and directories
-    private readonly ConcurrentDictionary<string, bool> _allocatedPaths = new();
-
-    internal void TrackAllocatedPath(string path, bool isDirectory)
+    internal void TrackItem(string path, IDisposable item)
     {
-        _allocatedPaths.TryAdd(path, isDirectory);
-        
-        if (_logger?.IsEnabled(LogLevel.Debug) == true)
-        {
-            _logger.LogDebug("Allocated temporary {Type}: {Path}", isDirectory ? "directory" : "file", path);
-        }
+        _allocatedItems.TryAdd(path, item);
     }
 
-    internal void UntrackPath(string path)
+    internal void UntrackItem(string path)
     {
-        _allocatedPaths.TryRemove(path, out _);
+        _allocatedItems.TryRemove(path, out _);
     }
 
     internal bool ShouldPreserveTempFiles() => _preserveTempFiles;
+
+    internal ILogger<FileSystemService>? Logger => _logger;
 
     /// <summary>
     /// Cleans up any remaining temporary files and directories.
@@ -67,48 +67,28 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
     {
         if (_preserveTempFiles)
         {
-            _logger?.LogInformation("Skipping cleanup of {Count} temporary files/directories due to ASPIRE_PRESERVE_TEMP_FILES environment variable", _allocatedPaths.Count);
+            _logger?.LogInformation("Skipping cleanup of {Count} temporary files/directories due to ASPIRE_PRESERVE_TEMP_FILES configuration", _allocatedItems.Count);
             return;
         }
 
-        if (_allocatedPaths.IsEmpty)
+        if (_allocatedItems.IsEmpty)
         {
             return;
         }
 
-        _logger?.LogDebug("Cleaning up {Count} remaining temporary files/directories", _allocatedPaths.Count);
+        _logger?.LogDebug("Cleaning up {Count} remaining temporary files/directories", _allocatedItems.Count);
 
-        foreach (var kvp in _allocatedPaths)
+        foreach (var kvp in _allocatedItems)
         {
-            var path = kvp.Key;
-            var isDirectory = kvp.Value;
-
             try
             {
-                if (isDirectory)
-                {
-                    if (Directory.Exists(path))
-                    {
-                        Directory.Delete(path, recursive: true);
-                        _logger?.LogDebug("Cleaned up temporary directory: {Path}", path);
-                    }
-                }
-                else
-                {
-                    if (File.Exists(path))
-                    {
-                        File.Delete(path);
-                        _logger?.LogDebug("Cleaned up temporary file: {Path}", path);
-                    }
-                }
+                kvp.Value.Dispose();
             }
             catch (Exception ex)
             {
-                _logger?.LogWarning(ex, "Failed to clean up temporary {Type}: {Path}", isDirectory ? "directory" : "file", path);
+                _logger?.LogWarning(ex, "Failed to clean up temporary item");
             }
         }
-
-        _allocatedPaths.Clear();
     }
 
     /// <summary>
@@ -127,8 +107,9 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
         public TempDirectory CreateTempSubdirectory(string? prefix = null)
         {
             var path = Directory.CreateTempSubdirectory(prefix ?? "aspire").FullName;
-            _parent.TrackAllocatedPath(path, isDirectory: true);
-            return new DefaultTempDirectory(path, _parent);
+            var tempDir = new DefaultTempDirectory(path, _parent);
+            _parent.TrackItem(path, tempDir);
+            return tempDir;
         }
 
         /// <inheritdoc/>
@@ -137,16 +118,18 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
             if (fileName is null)
             {
                 var tempFile = Path.GetTempFileName();
-                _parent.TrackAllocatedPath(tempFile, isDirectory: false);
-                return new DefaultTempFile(tempFile, deleteParentDirectory: false, _parent);
+                var file = new DefaultTempFile(tempFile, deleteParentDirectory: false, _parent);
+                _parent.TrackItem(tempFile, file);
+                return file;
             }
 
             // Create a temp subdirectory and place the named file inside it
             var tempDir = Directory.CreateTempSubdirectory("aspire").FullName;
             var filePath = Path.Combine(tempDir, fileName);
             File.Create(filePath).Dispose();
-            _parent.TrackAllocatedPath(filePath, isDirectory: false);
-            return new DefaultTempFile(filePath, deleteParentDirectory: true, _parent);
+            var tempFileObj = new DefaultTempFile(filePath, deleteParentDirectory: true, _parent);
+            _parent.TrackItem(filePath, tempFileObj);
+            return tempFileObj;
         }
     }
 
@@ -163,6 +146,8 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
         {
             _path = path;
             _parent = parent;
+
+            _parent.Logger?.LogDebug("Allocated temporary directory: {Path}", path);
         }
 
         public override string Path => _path;
@@ -175,7 +160,9 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
             }
 
             _disposed = true;
-            _parent.UntrackPath(_path);
+
+            // Remove from tracking
+            _parent.UntrackItem(_path);
 
             // Skip deletion if preserve flag is set
             if (_parent.ShouldPreserveTempFiles())
@@ -188,6 +175,7 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
                 if (Directory.Exists(_path))
                 {
                     Directory.Delete(_path, recursive: true);
+                    _parent.Logger?.LogDebug("Cleaned up temporary directory: {Path}", _path);
                 }
             }
             catch
@@ -212,6 +200,8 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
             _path = path;
             _deleteParentDirectory = deleteParentDirectory;
             _parent = parent;
+
+            _parent.Logger?.LogDebug("Allocated temporary file: {Path}", path);
         }
 
         public override string Path => _path;
@@ -224,7 +214,9 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
             }
 
             _disposed = true;
-            _parent.UntrackPath(_path);
+
+            // Remove from tracking
+            _parent.UntrackItem(_path);
 
             // Skip deletion if preserve flag is set
             if (_parent.ShouldPreserveTempFiles())
@@ -237,6 +229,7 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
                 if (File.Exists(_path))
                 {
                     File.Delete(_path);
+                    _parent.Logger?.LogDebug("Cleaned up temporary file: {Path}", _path);
                 }
 
                 if (_deleteParentDirectory)

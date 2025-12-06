@@ -303,7 +303,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Core things
         // Create and register the directory service (first, so it can be used by other services)
-        _directoryService = new FileSystemService();
+        _directoryService = new FileSystemService(_innerBuilder.Configuration);
         _innerBuilder.Services.AddSingleton<IFileSystemService>(sp =>
         {
             _directoryService.SetLogger(sp.GetRequiredService<ILogger<FileSystemService>>());

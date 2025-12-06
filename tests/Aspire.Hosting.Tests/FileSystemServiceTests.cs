@@ -3,16 +3,29 @@
 
 #pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Tests;
 
 public class FileSystemServiceTests
 {
+    private static IConfiguration CreateConfiguration(bool preserveTempFiles = false)
+    {
+        var configDict = new Dictionary<string, string?>();
+        if (preserveTempFiles)
+        {
+            configDict["ASPIRE_PRESERVE_TEMP_FILES"] = "true";
+        }
+        return new ConfigurationBuilder()
+            .AddInMemoryCollection(configDict)
+            .Build();
+    }
+
     [Fact]
     public void CreateTempSubdirectory_CreatesDirectory()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
 
         using var tempDir = service.TempDirectory.CreateTempSubdirectory();
 
@@ -23,7 +36,7 @@ public class FileSystemServiceTests
     [Fact]
     public void CreateTempSubdirectory_WithPrefix_CreatesDirectoryWithPrefix()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
 
         using var tempDir = service.TempDirectory.CreateTempSubdirectory("test-prefix");
 
@@ -35,7 +48,7 @@ public class FileSystemServiceTests
     [Fact]
     public void CreateTempSubdirectory_Dispose_DeletesDirectory()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
         var tempDir = service.TempDirectory.CreateTempSubdirectory();
         var path = tempDir.Path;
 
@@ -49,7 +62,7 @@ public class FileSystemServiceTests
     [Fact]
     public void CreateTempFile_CreatesFile()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
 
         using var tempFile = service.TempDirectory.CreateTempFile();
 
@@ -60,7 +73,7 @@ public class FileSystemServiceTests
     [Fact]
     public void CreateTempFile_WithFileName_CreatesNamedFile()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
 
         using var tempFile = service.TempDirectory.CreateTempFile("config.json");
 
@@ -72,7 +85,7 @@ public class FileSystemServiceTests
     [Fact]
     public void CreateTempFile_Dispose_DeletesFile()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
         var tempFile = service.TempDirectory.CreateTempFile();
         var path = tempFile.Path;
 
@@ -86,7 +99,7 @@ public class FileSystemServiceTests
     [Fact]
     public void CreateTempFile_WithFileName_Dispose_DeletesFileAndParentDirectory()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
         var tempFile = service.TempDirectory.CreateTempFile("test-file.txt");
         var filePath = tempFile.Path;
         var parentDir = Path.GetDirectoryName(filePath);
@@ -105,7 +118,7 @@ public class FileSystemServiceTests
     {
         // This test verifies the intentional pattern of extracting .Path
         // without disposing, which is common in the codebase
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
         string? extractedPath;
 
         // Simulate the common pattern: extract path, let object go out of scope
@@ -127,7 +140,7 @@ public class FileSystemServiceTests
     {
         // This test verifies the intentional pattern of extracting .Path
         // without disposing, which is common in the codebase
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
         string? extractedPath;
 
         // Simulate the common pattern: extract path, let object go out of scope
@@ -147,7 +160,7 @@ public class FileSystemServiceTests
     [Fact]
     public void TempDirectory_Property_ReturnsSameInstance()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
 
         var tempDir1 = service.TempDirectory;
         var tempDir2 = service.TempDirectory;
@@ -158,7 +171,7 @@ public class FileSystemServiceTests
     [Fact]
     public void CreateTempSubdirectory_MultipleCallsCreateDifferentDirectories()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
 
         using var tempDir1 = service.TempDirectory.CreateTempSubdirectory();
         using var tempDir2 = service.TempDirectory.CreateTempSubdirectory();
@@ -171,7 +184,7 @@ public class FileSystemServiceTests
     [Fact]
     public void CreateTempFile_MultipleCallsCreateDifferentFiles()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
 
         using var tempFile1 = service.TempDirectory.CreateTempFile();
         using var tempFile2 = service.TempDirectory.CreateTempFile();
@@ -184,7 +197,7 @@ public class FileSystemServiceTests
     [Fact]
     public void Dispose_CalledMultipleTimes_DoesNotThrow()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
         var tempDir = service.TempDirectory.CreateTempSubdirectory();
         var tempFile = service.TempDirectory.CreateTempFile();
 
@@ -200,7 +213,7 @@ public class FileSystemServiceTests
     [Fact]
     public void ServiceDispose_CleansUpUndisposedFiles()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
         
         // Create temp files/dirs without disposing them
         var tempDir = service.TempDirectory.CreateTempSubdirectory();
@@ -219,104 +232,74 @@ public class FileSystemServiceTests
     }
 
     [Fact]
-    public void ServiceDispose_WithPreserveEnvironmentVariable_SkipsCleanup()
+    public void ServiceDispose_WithPreserveConfiguration_SkipsCleanup()
     {
-        try
-        {
-            // Set environment variable to preserve files
-            Environment.SetEnvironmentVariable("ASPIRE_PRESERVE_TEMP_FILES", "1");
-            
-            var service = new FileSystemService();
-            
-            var tempDir = service.TempDirectory.CreateTempSubdirectory();
-            var tempFile = service.TempDirectory.CreateTempFile();
-            var dirPath = tempDir.Path;
-            var filePath = tempFile.Path;
+        var service = new FileSystemService(CreateConfiguration(preserveTempFiles: true));
+        
+        var tempDir = service.TempDirectory.CreateTempSubdirectory();
+        var tempFile = service.TempDirectory.CreateTempFile();
+        var dirPath = tempDir.Path;
+        var filePath = tempFile.Path;
 
-            Assert.True(Directory.Exists(dirPath));
-            Assert.True(File.Exists(filePath));
+        Assert.True(Directory.Exists(dirPath));
+        Assert.True(File.Exists(filePath));
 
-            // Dispose the service - should NOT clean up files
-            service.Dispose();
+        // Dispose the service - should NOT clean up files
+        service.Dispose();
 
-            // Files should still exist
-            Assert.True(Directory.Exists(dirPath));
-            Assert.True(File.Exists(filePath));
+        // Files should still exist
+        Assert.True(Directory.Exists(dirPath));
+        Assert.True(File.Exists(filePath));
 
-            // Clean up manually
-            Directory.Delete(dirPath, recursive: true);
-            File.Delete(filePath);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("ASPIRE_PRESERVE_TEMP_FILES", null);
-        }
+        // Clean up manually
+        Directory.Delete(dirPath, recursive: true);
+        File.Delete(filePath);
     }
 
     [Fact]
-    public void TempDirectory_Dispose_WithPreserveEnvironmentVariable_SkipsCleanup()
+    public void TempDirectory_Dispose_WithPreserveConfiguration_SkipsCleanup()
     {
-        try
-        {
-            // Set environment variable to preserve files
-            Environment.SetEnvironmentVariable("ASPIRE_PRESERVE_TEMP_FILES", "1");
-            
-            var service = new FileSystemService();
-            
-            var tempDir = service.TempDirectory.CreateTempSubdirectory();
-            var dirPath = tempDir.Path;
+        var service = new FileSystemService(CreateConfiguration(preserveTempFiles: true));
+        
+        var tempDir = service.TempDirectory.CreateTempSubdirectory();
+        var dirPath = tempDir.Path;
 
-            Assert.True(Directory.Exists(dirPath));
+        Assert.True(Directory.Exists(dirPath));
 
-            // Dispose the temp directory - should NOT clean up
-            tempDir.Dispose();
+        // Dispose the temp directory - should NOT clean up
+        tempDir.Dispose();
 
-            // Directory should still exist
-            Assert.True(Directory.Exists(dirPath));
+        // Directory should still exist
+        Assert.True(Directory.Exists(dirPath));
 
-            // Clean up manually
-            Directory.Delete(dirPath, recursive: true);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("ASPIRE_PRESERVE_TEMP_FILES", null);
-        }
+        // Clean up manually
+        Directory.Delete(dirPath, recursive: true);
     }
 
     [Fact]
-    public void TempFile_Dispose_WithPreserveEnvironmentVariable_SkipsCleanup()
+    public void TempFile_Dispose_WithPreserveConfiguration_SkipsCleanup()
     {
-        try
-        {
-            // Set environment variable to preserve files
-            Environment.SetEnvironmentVariable("ASPIRE_PRESERVE_TEMP_FILES", "1");
-            
-            var service = new FileSystemService();
-            
-            var tempFile = service.TempDirectory.CreateTempFile();
-            var filePath = tempFile.Path;
+        var service = new FileSystemService(CreateConfiguration(preserveTempFiles: true));
+        
+        var tempFile = service.TempDirectory.CreateTempFile();
+        var filePath = tempFile.Path;
 
-            Assert.True(File.Exists(filePath));
+        Assert.True(File.Exists(filePath));
 
-            // Dispose the temp file - should NOT clean up
-            tempFile.Dispose();
+        // Dispose the temp file - should NOT clean up
+        tempFile.Dispose();
 
-            // File should still exist
-            Assert.True(File.Exists(filePath));
+        // File should still exist
+        Assert.True(File.Exists(filePath));
 
-            // Clean up manually
-            File.Delete(filePath);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("ASPIRE_PRESERVE_TEMP_FILES", null);
-        }
+        // Clean up manually
+        File.Delete(filePath);
     }
 
     [Fact]
     public void ServiceDispose_WithMixedDisposedAndUndisposedItems_CleansUpOnlyUndisposed()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
         
         // Create multiple temp items
         var tempDir1 = service.TempDirectory.CreateTempSubdirectory();
@@ -348,7 +331,7 @@ public class FileSystemServiceTests
     [Fact]
     public void ServiceDispose_EmptyTracking_DoesNotThrow()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
         
         // Dispose without creating any temp items
         service.Dispose();
@@ -360,7 +343,7 @@ public class FileSystemServiceTests
     [Fact]
     public void CreateTempFile_WithFileName_TracksOnlyFile()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
         
         var tempFile = service.TempDirectory.CreateTempFile("test.txt");
         var filePath = tempFile.Path;
@@ -380,7 +363,7 @@ public class FileSystemServiceTests
     [Fact]
     public void SetLogger_CanBeCalledWithoutError()
     {
-        var service = new FileSystemService();
+        var service = new FileSystemService(CreateConfiguration());
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         var logger = loggerFactory.CreateLogger<FileSystemService>();
         
