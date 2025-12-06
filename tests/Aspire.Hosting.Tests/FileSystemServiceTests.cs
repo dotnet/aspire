@@ -341,6 +341,27 @@ public class FileSystemServiceTests
     }
 
     [Fact]
+    public void ServiceDispose_CalledMultipleTimes_IsIdempotent()
+    {
+        var service = new FileSystemService(CreateConfiguration());
+        
+        // Create temp items
+        var tempDir = service.TempDirectory.CreateTempSubdirectory();
+        var tempFile = service.TempDirectory.CreateTempFile();
+        var dirPath = tempDir.Path;
+        var filePath = tempFile.Path;
+
+        // First dispose - should clean up
+        service.Dispose();
+
+        Assert.False(Directory.Exists(dirPath));
+        Assert.False(File.Exists(filePath));
+
+        // Second dispose - should be a no-op and not throw
+        service.Dispose();
+    }
+
+    [Fact]
     public void CreateTempFile_WithFileName_TracksOnlyFile()
     {
         var service = new FileSystemService(CreateConfiguration());

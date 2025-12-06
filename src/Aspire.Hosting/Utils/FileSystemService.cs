@@ -46,25 +46,46 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
     /// <inheritdoc/>
     public ITempFileSystemService TempDirectory => _tempDirectory;
 
+    /// <summary>
+    /// Tracks a temporary item for cleanup on service disposal.
+    /// </summary>
     internal void TrackItem(string path, IDisposable item)
     {
         _allocatedItems.TryAdd(path, item);
     }
 
+    /// <summary>
+    /// Removes a temporary item from tracking.
+    /// </summary>
     internal void UntrackItem(string path)
     {
         _allocatedItems.TryRemove(path, out _);
     }
 
+    /// <summary>
+    /// Gets whether temporary files should be preserved for debugging.
+    /// </summary>
     internal bool ShouldPreserveTempFiles() => _preserveTempFiles;
 
+    /// <summary>
+    /// Gets the logger for this service, if set.
+    /// </summary>
     internal ILogger<FileSystemService>? Logger => _logger;
+
+    private bool _disposed;
 
     /// <summary>
     /// Cleans up any remaining temporary files and directories.
     /// </summary>
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
         if (_preserveTempFiles)
         {
             _logger?.LogInformation("Skipping cleanup of {Count} temporary files/directories due to ASPIRE_PRESERVE_TEMP_FILES configuration", _allocatedItems.Count);
