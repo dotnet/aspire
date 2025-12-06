@@ -2138,4 +2138,30 @@ public class AzureContainerAppsTests
         Assert.NotNull(containerRegistryInterface.Endpoint);
         Assert.NotNull(containerRegistryInterface.Name);
     }
+
+    [Fact]
+    public async Task DefaultContainerRegistryUsesAzdNamingWhenEnvironmentDoes()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env")
+            .WithAzdResourceNaming();
+
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var acrResources = model.Resources.OfType<AzureContainerRegistryResource>().ToList();
+        Assert.Single(acrResources);
+
+        var defaultAcr = acrResources[0];
+        var (manifest, bicep) = await GetManifestWithBicep(defaultAcr);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
 }

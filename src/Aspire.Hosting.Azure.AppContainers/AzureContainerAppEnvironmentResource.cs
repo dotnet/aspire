@@ -173,7 +173,7 @@ public class AzureContainerAppEnvironmentResource :
     /// <summary>
     /// Gets the default container registry for this environment.
     /// </summary>
-    internal AzureContainerRegistryResource DefaultContainerRegistry { get; init; } = null!;
+    internal AzureContainerRegistryResource? DefaultContainerRegistry { get; set; }
 
     ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create($"{ContainerRegistryName}");
 
