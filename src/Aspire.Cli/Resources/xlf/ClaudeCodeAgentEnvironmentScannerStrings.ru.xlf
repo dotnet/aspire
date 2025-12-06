@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ApplicatorDescription">
         <source>Configure Claude Code to use the Aspire MCP server</source>
-        <target state="new">Configure Claude Code to use the Aspire MCP server</target>
+        <target state="translated">Настройка Claude Code для использования сервера MCP Aspire</target>
         <note />
       </trans-unit>
     </body>

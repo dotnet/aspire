@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="AspireJsFrontendStarter_Description">
         <source>React (Vite) &amp; Minimal API starter</source>
-        <target state="new">React (Vite) &amp; Minimal API starter</target>
+        <target state="translated">Начальный пакет React (Vite) и минимального API</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
