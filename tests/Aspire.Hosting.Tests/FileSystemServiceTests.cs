@@ -382,6 +382,30 @@ public class FileSystemServiceTests
     }
 
     [Fact]
+    public void CreateTempFile_AfterServiceDisposed_ThrowsObjectDisposedException()
+    {
+        var service = new FileSystemService(CreateConfiguration());
+        
+        // Dispose the service
+        service.Dispose();
+
+        // Attempting to create a temp file after disposal should throw
+        Assert.Throws<ObjectDisposedException>(() => service.TempDirectory.CreateTempFile());
+    }
+
+    [Fact]
+    public void CreateTempDirectory_AfterServiceDisposed_ThrowsObjectDisposedException()
+    {
+        var service = new FileSystemService(CreateConfiguration());
+        
+        // Dispose the service
+        service.Dispose();
+
+        // Attempting to create a temp directory after disposal should throw
+        Assert.Throws<ObjectDisposedException>(() => service.TempDirectory.CreateTempSubdirectory());
+    }
+
+    [Fact]
     public void SetLogger_CanBeCalledWithoutError()
     {
         var service = new FileSystemService(CreateConfiguration());

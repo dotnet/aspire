@@ -51,6 +51,11 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
     /// </summary>
     internal void TrackItem(string path, IDisposable item)
     {
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(FileSystemService), "Cannot allocate temporary files after the service has been disposed.");
+        }
+
         _allocatedItems.TryAdd(path, item);
     }
 
