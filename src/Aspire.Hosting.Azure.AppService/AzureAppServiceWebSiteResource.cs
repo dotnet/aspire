@@ -287,7 +287,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var armContext = await GetArmContextAsync(context).ConfigureAwait(false);
 
         // Prepare ARM endpoint and request
-        var url = $"{AzureManagementEndpoint}/subscriptions/{armContext.SubscriptionId}/providers/Microsoft.Web/locations/{armContext.Location}/CheckNameAvailability?api-version=2025-3-01";
+        var url = $"{AzureManagementEndpoint}/subscriptions/{armContext.SubscriptionId}/providers/Microsoft.Web/locations/{armContext.Location}/CheckNameAvailability?api-version=2025-03-01";
         var requestBody = new
         {
             name = websiteName,
@@ -355,5 +355,5 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     }
 
     private const string AzureManagementScope = "https://management.azure.com/.default";
-    private const string AzureManagementEndpoint = "https://management.azure.com/";
+    private const string AzureManagementEndpoint = "https://management.azure.com";
 }
