@@ -27,100 +27,16 @@ var myService = builder.AddContainer("myservice", "myimage")
                        .WithCertbotCertificate(certbot);
 ```
 
-## Configuration
+## Certificate Locations
 
-### Required Parameters
+Certificates obtained by Certbot are stored at:
 
-The Certbot resource requires two parameters:
+| Path | Description |
+|------|-------------|
+| `/etc/letsencrypt/live/{domain}/fullchain.pem` | The full certificate chain |
+| `/etc/letsencrypt/live/{domain}/privkey.pem` | The private key |
 
-| Parameter | Description |
-|-----------|-------------|
-| `domain` | The domain name to obtain a certificate for |
-| `email` | The email address for certificate registration and notifications |
-
-These parameters can be set via environment variables or configuration:
-
-```bash
-Parameters__domain=example.com
-Parameters__email=admin@example.com
-```
-
-### Challenge Methods
-
-Certbot supports different challenge methods for domain validation. You must configure at least one challenge method:
-
-#### HTTP-01 Challenge
-
-Use `WithHttp01Challenge()` to configure the HTTP-01 challenge, which requires Certbot to be accessible on port 80:
-
-```csharp
-var certbot = builder.AddCertbot("certbot", domain, email)
-    .WithHttp01Challenge();
-```
-
-You can optionally specify a custom port:
-
-```csharp
-var certbot = builder.AddCertbot("certbot", domain, email)
-    .WithHttp01Challenge(port: 8080);
-```
-
-Certificate permissions are automatically set to allow non-root containers to read them.
-
-### Sharing Certificates with Other Resources
-
-Use the `WithCertbotCertificate` extension method to configure a container with certificates from Certbot:
-
-```csharp
-var yarp = builder.AddContainer("yarp", "myimage")
-                  .WithCertbotCertificate(certbot);
-```
-
-This method automatically:
-- Mounts the certificates volume at `/etc/letsencrypt`
-- Ensures the container waits for certificate acquisition to complete
-
-**Important:** Do not use `WithCertbotCertificate` together with `WithHttpsCertificate` or `WithHttpsCertificateConfiguration` at runtime, as they will conflict. However, you can use Certbot for production while using development certificates locally by checking the execution mode:
-
-```csharp
-var gateway = builder.AddProject<Projects.Gateway>("gateway");
-
-if (builder.ExecutionContext.IsPublishMode)
-{
-    // Production: Use Certbot certificates
-    var certbot = builder.AddCertbot("certbot", domain, email)
-        .WithHttp01Challenge();
-    
-    gateway.WithCertbotCertificate(certbot)
-           .WithEnvironment("Yarp__Clusters__myservice__HttpsUrl", certbot.Resource.CertificatePath)
-           .WithEnvironment("Yarp__Clusters__myservice__PrivateKey", certbot.Resource.PrivateKeyPath);
-}
-else
-{
-    // Development: Use developer certificates
-    gateway.WithHttpsDeveloperCertificate();
-}
-```
-
-When using Certbot certificates, you'll need to configure your application manually to use them (e.g., via environment variables for YARP or similar reverse proxies).
-
-### Certificate Locations
-
-After Certbot obtains certificates, they are available at:
-
-- Certificate: `/etc/letsencrypt/live/{domain}/fullchain.pem`
-- Private Key: `/etc/letsencrypt/live/{domain}/privkey.pem`
-
-The `CertbotResource` exposes these paths as `ReferenceExpression` properties that can be used to configure other resources:
-
-```csharp
-var certbot = builder.AddCertbot("certbot", domain, email)
-    .WithHttp01Challenge();
-
-// Access the certificate and private key paths
-var certificatePath = certbot.Resource.CertificatePath;   // /etc/letsencrypt/live/{domain}/fullchain.pem
-var privateKeyPath = certbot.Resource.PrivateKeyPath;     // /etc/letsencrypt/live/{domain}/privkey.pem
-```
+These paths are accessible via the `CertbotResource.CertificatePath` and `CertbotResource.PrivateKeyPath` properties.
 
 
 
