@@ -44,7 +44,7 @@ internal class ResourceSnapshotBuilder
 
         return previous with
         {
-            ResourceType = KnownResourceTypes.Container,
+            ResourceType = previous.ResourceType ?? KnownResourceTypes.Container,
             State = state,
             // Map a container exit code of -1 (unknown) to null
             ExitCode = container.Status?.ExitCode is null or Conventions.UnknownExitCode ? null : container.Status.ExitCode,
@@ -108,7 +108,7 @@ internal class ResourceSnapshotBuilder
 
         return previous with
         {
-            ResourceType = KnownResourceTypes.Executable,
+            ResourceType = previous.ResourceType ?? KnownResourceTypes.Executable,
             State = state,
             ExitCode = executable.Status?.ExitCode,
             Properties = previous.Properties.SetResourcePropertyRange([
@@ -159,7 +159,7 @@ internal class ResourceSnapshotBuilder
         {
             return previous with
             {
-                ResourceType = KnownResourceTypes.Project,
+                ResourceType = previous.ResourceType ?? KnownResourceTypes.Project,
                 State = state,
                 ExitCode = executable.Status?.ExitCode,
                 Properties = previous.Properties.SetResourcePropertyRange([
@@ -183,7 +183,7 @@ internal class ResourceSnapshotBuilder
 
         return previous with
         {
-            ResourceType = KnownResourceTypes.Executable,
+            ResourceType = previous.ResourceType ?? KnownResourceTypes.Executable,
             State = state,
             ExitCode = executable.Status?.ExitCode,
             Properties = previous.Properties.SetResourcePropertyRange([
