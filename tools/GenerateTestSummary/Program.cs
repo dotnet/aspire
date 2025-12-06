@@ -5,7 +5,7 @@ using System.Text;
 using System.CommandLine;
 using Aspire.TestTools;
 
-// Usage: dotnet tools run GenerateTestSummary --dirPathOrTrxFilePath <path> [--output <output>] [--combined]
+// Usage: dotnet tools run GenerateTestSummary --dirPathOrTrxFilePath <path> [--output <output>] [--combined] [--show-all-tests]
 // Generate a summary report from trx files.
 // And write to $GITHUB_STEP_SUMMARY if running in GitHub Actions.
 
@@ -13,13 +13,15 @@ var dirPathOrTrxFilePathArgument = new Argument<string>("dirPathOrTrxFilePath");
 var outputOption = new Option<string>("--output", "-o") { Description = "Output file path" };
 var combinedSummaryOption = new Option<bool>("--combined", "-c") { Description = "Generate combined summary report" };
 var urlOption = new Option<string>("--url", "-u") { Description = "URL for test links" };
+var showAllTestsOption = new Option<bool>("--show-all-tests", "-a") { Description = "Show all tests (passing, failing, skipped) in a single list ordered by name" };
 
 var rootCommand = new RootCommand
 {
     dirPathOrTrxFilePathArgument,
     outputOption,
     combinedSummaryOption,
-    urlOption
+    urlOption,
+    showAllTestsOption
 };
 
 rootCommand.SetAction(result =>
@@ -33,6 +35,7 @@ rootCommand.SetAction(result =>
 
     var combinedSummary = result.GetValue<bool>(combinedSummaryOption);
     var url = result.GetValue<string>(urlOption);
+    var showAllTests = result.GetValue<bool>(showAllTestsOption);
 
     if (combinedSummary && !string.IsNullOrEmpty(url))
     {
@@ -43,7 +46,7 @@ rootCommand.SetAction(result =>
     string report;
     if (combinedSummary)
     {
-        report = TestSummaryGenerator.CreateCombinedTestSummaryReport(dirPathOrTrxFilePath);
+        report = TestSummaryGenerator.CreateCombinedTestSummaryReport(dirPathOrTrxFilePath, showAllTests);
     }
     else
     {
@@ -59,13 +62,13 @@ rootCommand.SetAction(result =>
             {
                 foreach (var trxFile in trxFiles)
                 {
-                    TestSummaryGenerator.CreateSingleTestSummaryReport(trxFile, reportBuilder, url);
+                    TestSummaryGenerator.CreateSingleTestSummaryReport(trxFile, reportBuilder, url, showAllTests);
                 }
             }
         }
         else
         {
-            TestSummaryGenerator.CreateSingleTestSummaryReport(dirPathOrTrxFilePath, reportBuilder, url);
+            TestSummaryGenerator.CreateSingleTestSummaryReport(dirPathOrTrxFilePath, reportBuilder, url, showAllTests);
         }
 
         report = reportBuilder.ToString();
