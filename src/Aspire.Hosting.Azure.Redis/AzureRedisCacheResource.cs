@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning.Primitives;
 using CdkRedisResource = Azure.Provisioning.Redis.RedisResource;
-using RedisResource = Aspire.Hosting.ApplicationModel.RedisResource;
 
 namespace Aspire.Hosting.Azure;
 
@@ -92,16 +91,6 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
             ReferenceExpression.Create($"{InnerResource.PasswordParameter}") :
             null;
 
-    /// <summary>
-    /// Gets the connection URI expression for the Redis server.
-    /// </summary>
-    /// <remarks>
-    /// In Azure mode, resolves to <c>redis://{host}</c>. When running as a container, inherits the standard Redis URI format of <c>redis://[:{password}@]{host}:{port}</c>.
-    /// </remarks>
-    public ReferenceExpression UriExpression =>
-        InnerResource?.UriExpression ??
-            ReferenceExpression.Create($"redis://{HostName}");
-
     internal void SetInnerResource(RedisResource innerResource)
     {
         // Copy the annotations to the inner resource before making it the inner resource
@@ -111,22 +100,6 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
         }
 
         InnerResource = innerResource;
-    }
-
-    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
-    {
-        if (InnerResource is not null)
-        {
-            foreach (var property in ((IResourceWithConnectionString)InnerResource).GetConnectionProperties())
-            {
-                yield return property;
-            }
-
-            yield break;
-        }
-
-        yield return new("Host", HostName);
-        yield return new("Uri", UriExpression);
     }
 
     /// <inheritdoc/>

@@ -14,8 +14,6 @@ public class AzureCosmosDBConnectionPropertiesTests
         var cosmosDBResource = new AzureCosmosDBResource("cosmos", _ => { });
 
         var properties = ((IResourceWithConnectionString)cosmosDBResource).GetConnectionProperties().ToArray();
-
-        Assert.Equal(2, properties.Length);
         Assert.Collection(
             properties,
             property =>
@@ -38,8 +36,7 @@ public class AzureCosmosDBConnectionPropertiesTests
 
         var resource = Assert.Single(builder.Resources.OfType<AzureCosmosDBResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToArray();
-
-        Assert.Equal(2, properties.Length);
+        
         Assert.Collection(
             properties,
             property =>

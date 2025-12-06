@@ -18,8 +18,6 @@ public class AzureOpenAIDeploymentConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureOpenAIDeploymentResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have Uri from parent + Deployment name
-        Assert.Equal(2, properties.Count);
         Assert.Collection(
             properties,
             property =>

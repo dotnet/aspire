@@ -18,8 +18,6 @@ public class AzureEventHubConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureEventHubResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have parent properties + EventHubName
-        Assert.Equal(3, properties.Count);
         Assert.Collection(
             properties,
             property =>

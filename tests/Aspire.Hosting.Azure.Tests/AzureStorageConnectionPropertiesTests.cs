@@ -17,7 +17,6 @@ public class AzureStorageConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)blobs.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Single(properties);
         Assert.Collection(
             properties,
             property =>
@@ -36,7 +35,6 @@ public class AzureStorageConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)queues.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Single(properties);
         Assert.Collection(
             properties,
             property =>
@@ -55,7 +53,6 @@ public class AzureStorageConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)tables.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Single(properties);
         Assert.Collection(
             properties,
             property =>

@@ -16,7 +16,6 @@ public class AzureKeyVaultConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)keyVault.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Single(properties);
         Assert.Collection(
             properties,
             property =>

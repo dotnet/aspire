@@ -17,7 +17,6 @@ public class AzurePostgresFlexibleServerConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzurePostgresFlexibleServerResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        Assert.Equal(4, properties.Count);
         Assert.Collection(
             properties,
             property =>
@@ -51,8 +50,6 @@ public class AzurePostgresFlexibleServerConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzurePostgresFlexibleServerResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have 6 properties: Host, Port, Uri, JdbcConnectionString, Username, Password
-        Assert.Equal(6, properties.Count);
         Assert.Collection(
             properties.OrderBy(p => p.Key),
             property =>

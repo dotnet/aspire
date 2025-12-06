@@ -18,8 +18,6 @@ public class AzureServiceBusQueueConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureServiceBusQueueResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have parent properties + QueueName
-        Assert.Equal(3, properties.Count);
         Assert.Collection(
             properties,
             property =>

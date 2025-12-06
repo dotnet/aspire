@@ -19,8 +19,6 @@ public class AzureServiceBusSubscriptionConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureServiceBusSubscriptionResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have parent properties + SubscriptionName
-        Assert.Equal(4, properties.Count);
         Assert.Collection(
             properties,
             property =>

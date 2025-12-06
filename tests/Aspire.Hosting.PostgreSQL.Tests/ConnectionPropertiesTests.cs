@@ -15,7 +15,6 @@ public class ConnectionPropertiesTests
         var resource = new PostgresServerResource("postgres", user, password);
 
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToArray();
-        Assert.Equal(6, properties.Length);
 
         Assert.Collection(
             properties,

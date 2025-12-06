@@ -6,7 +6,7 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureRedisConnectionPropertiesTests
+public class AzureManagedRedisConnectionPropertiesTests
 {
     [Fact]
     public void AzureManagedRedisResourceGetConnectionPropertiesReturnsExpectedValues()
@@ -16,7 +16,6 @@ public class AzureRedisConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)redis.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Equal(4, properties.Length);
         Assert.Collection(
             properties,
             property =>
@@ -33,11 +32,6 @@ public class AzureRedisConnectionPropertiesTests
             {
                 Assert.Equal("Uri", property.Key);
                 Assert.Equal("redis://{redis.outputs.hostName}:10000", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("Password", property.Key);
-                Assert.Equal("", property.Value.ValueExpression);
             });
     }
 
@@ -49,7 +43,6 @@ public class AzureRedisConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)redis.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Equal(4, properties.Length);
         Assert.Collection(
             properties,
             property =>
@@ -84,7 +77,6 @@ public class AzureRedisConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)redis.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Equal(2, properties.Length);
         Assert.Collection(
             properties,
             property =>
@@ -109,8 +101,6 @@ public class AzureRedisConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)redis.Resource).GetConnectionProperties().ToArray();
 
-        // Same properties as default - password is part of connection string via KeyVault
-        Assert.Equal(2, properties.Length);
         Assert.Collection(
             properties,
             property =>

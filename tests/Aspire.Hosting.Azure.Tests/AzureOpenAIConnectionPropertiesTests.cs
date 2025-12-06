@@ -17,7 +17,6 @@ public class AzureOpenAIConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureOpenAIResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        Assert.Single(properties);
         Assert.Collection(
             properties,
             property =>

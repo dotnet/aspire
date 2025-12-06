@@ -34,8 +34,7 @@ public class AzureSearchResource(string name, Action<AzureResourceInfrastructure
     /// <remarks>
     /// Format: <c>https://{name}.search.windows.net</c>.
     /// </remarks>
-    public ReferenceExpression Endpoint =>
-        ReferenceExpression.Create($"{ConnectionString}");
+    public BicepOutputReference Endpoint => new("endpoint", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
@@ -74,6 +73,6 @@ public class AzureSearchResource(string name, Action<AzureResourceInfrastructure
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        yield return new("Uri", Endpoint);
+        yield return new("Uri", ReferenceExpression.Create($"{Endpoint}"));
     }
 }

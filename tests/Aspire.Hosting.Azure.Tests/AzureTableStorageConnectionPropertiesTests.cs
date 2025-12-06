@@ -18,8 +18,6 @@ public class AzureTableStorageConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureTableStorageResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have Uri property
-        Assert.Single(properties);
         Assert.Collection(
             properties,
             property =>

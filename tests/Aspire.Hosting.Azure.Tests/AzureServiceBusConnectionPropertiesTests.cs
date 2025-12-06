@@ -16,7 +16,6 @@ public class AzureServiceBusConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)serviceBus.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Equal(2, properties.Length);
         Assert.Collection(
             properties,
             property =>

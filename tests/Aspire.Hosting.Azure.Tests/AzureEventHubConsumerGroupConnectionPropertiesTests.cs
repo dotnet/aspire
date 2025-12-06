@@ -19,8 +19,6 @@ public class AzureEventHubConsumerGroupConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureEventHubConsumerGroupResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have grandparent properties + parent EventHubName + ConsumerGroup
-        Assert.Equal(4, properties.Count);
         Assert.Collection(
             properties,
             property =>

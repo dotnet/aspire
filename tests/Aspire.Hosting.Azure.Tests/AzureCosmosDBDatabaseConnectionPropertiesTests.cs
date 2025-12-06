@@ -18,8 +18,6 @@ public class AzureCosmosDBDatabaseConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureCosmosDBDatabaseResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have parent properties (Uri, AccountKey) + Database
-        Assert.Equal(3, properties.Count);
         Assert.Collection(
             properties,
             property =>
@@ -49,8 +47,6 @@ public class AzureCosmosDBDatabaseConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureCosmosDBDatabaseResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have parent properties (Uri, AccountKey) + Database
-        Assert.Equal(3, properties.Count);
         Assert.Collection(
             properties,
             property =>

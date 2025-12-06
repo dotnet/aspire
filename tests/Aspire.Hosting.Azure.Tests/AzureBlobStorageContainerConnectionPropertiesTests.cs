@@ -18,8 +18,6 @@ public class AzureBlobStorageContainerConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureBlobStorageContainerResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have parent properties + BlobContainerName
-        Assert.Equal(2, properties.Count);
         Assert.Collection(
             properties,
             property =>

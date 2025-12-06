@@ -35,6 +35,9 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     ///
     /// This is used when Entra ID authentication is used. The connection string is an output of the bicep template.
     /// </summary>
+    /// <remarks>
+    /// The value is taken from the cosmos.properties.documentEndpoint bicep property.
+    /// </remarks>
     public BicepOutputReference ConnectionStringOutput => new("connectionString", this);
 
     /// <summary>
@@ -64,11 +67,6 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
-    /// Gets the "accountEndpoint" output reference for the resource.
-    /// </summary>
-    public BicepOutputReference AccountEndpointOutputReference => new("accountEndpoint", this);
-
-    /// <summary>
     /// Gets a value indicating whether the resource uses access key authentication.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ConnectionStringSecretOutput))]
@@ -90,12 +88,12 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// <remarks>
     /// Format: <c>https://{name}.documents.azure.com:443/</c>.
     /// </remarks>
-    public ReferenceExpression AccountEndpoint =>
+    public ReferenceExpression Uri =>
         IsEmulator ?
             IsPreviewEmulator ?
                 ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Url)}") :
                 ReferenceExpression.Create($"https://{EmulatorEndpoint.Property(EndpointProperty.IPV4Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)}") :
-            ReferenceExpression.Create($"{AccountEndpointOutputReference}");
+            ReferenceExpression.Create($"{ConnectionStringOutput}");
 
     /// <summary>
     /// Gets the account key expression for the Cosmos DB account.
@@ -218,7 +216,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
             }
             else
             {
-                builder.Append($"AccountEndpoint={AccountEndpointOutputReference}");
+                builder.Append($"AccountEndpoint={ConnectionStringOutput}");
             }
 
             if (!string.IsNullOrEmpty(databaseName))
@@ -240,7 +238,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        yield return new("Uri", AccountEndpoint);
+        yield return new("Uri", ReferenceExpression.Create($"{ConnectionStringOutput}"));
         yield return new("AccountKey", AccountKey);
     }
 }

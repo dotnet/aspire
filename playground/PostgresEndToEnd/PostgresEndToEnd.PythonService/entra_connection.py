@@ -1,4 +1,6 @@
 # Copyright (c) Microsoft. All rights reserved.
+# Copied from https://github.com/MicrosoftDocs/semantic-kernel-docs/blob/24f4a9b84cd1c97932d3116216c49a88b28d8dd4/semantic-kernel/concepts/vector-store-connectors/out-of-the-box-connectors/postgres-connector.md
+
 import base64
 import json
 import logging

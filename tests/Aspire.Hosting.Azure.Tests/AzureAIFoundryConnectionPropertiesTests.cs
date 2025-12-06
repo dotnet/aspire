@@ -16,7 +16,6 @@ public class AzureAIFoundryConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)aiFoundry.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Single(properties);
         Assert.Collection(
             properties,
             property =>
@@ -38,7 +37,6 @@ public class AzureAIFoundryConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)aiFoundry.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Equal(2, properties.Length);
         Assert.Collection(
             properties,
             property =>

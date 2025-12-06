@@ -57,11 +57,9 @@ async function getPool() {
         if (!user)
             user = connInfo.user;
         password = connInfo.password;
-    } else {
-        
-    }
+    } 
 
-    // NB: we can't use DB1_URI here as the pool would not take the password into account
+    // NB: DB1_URI contains a password and hence can't be used in the Pool which will reject it
     return new Pool({
         host: process.env.DB1_HOST,
         port: parseInt(process.env.DB1_PORT || '5432'),

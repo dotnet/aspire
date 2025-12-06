@@ -16,7 +16,6 @@ public class AzureEventHubsConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)eventHubs.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Equal(2, properties.Length);
         Assert.Collection(
             properties,
             property =>

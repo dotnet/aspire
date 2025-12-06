@@ -18,9 +18,6 @@ public class AzureSqlDatabaseConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureSqlDatabaseResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have parent properties (Host, Port, Uri) combined with child properties (Database, Uri-overridden, JdbcConnectionString)
-        // Result: Host, Port, Database, Uri (from child, which includes /database), JdbcConnectionString = 5 properties
-        Assert.Equal(5, properties.Count);
         Assert.Collection(
             properties.OrderBy(p => p.Key),
             property =>

@@ -16,7 +16,6 @@ public class AzureKustoConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)kusto.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Single(properties);
         Assert.Collection(
             properties,
             property =>
@@ -34,7 +33,6 @@ public class AzureKustoConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)kusto.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Single(properties);
         Assert.Collection(
             properties,
             property =>
@@ -54,8 +52,6 @@ public class AzureKustoConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureKustoReadWriteDatabaseResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have parent properties (Uri) + Database
-        Assert.Equal(2, properties.Count);
         Assert.Collection(
             properties,
             property =>
@@ -80,8 +76,6 @@ public class AzureKustoConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureKustoReadWriteDatabaseResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have parent properties (Uri from emulator endpoint) + Database
-        Assert.Equal(2, properties.Count);
         Assert.Collection(
             properties,
             property =>

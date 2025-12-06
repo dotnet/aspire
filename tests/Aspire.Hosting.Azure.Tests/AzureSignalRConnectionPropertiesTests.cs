@@ -16,7 +16,6 @@ public class AzureSignalRConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)signalr.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Single(properties);
         Assert.Collection(
             properties,
             property =>

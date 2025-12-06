@@ -17,7 +17,6 @@ public class AzureSearchConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureSearchResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        Assert.Single(properties);
         Assert.Collection(
             properties,
             property =>

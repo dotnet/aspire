@@ -35,7 +35,6 @@ The Redis resource exposes the following connection properties:
 |---------------|-------------|
 | `Host` | The hostname or IP address of the Redis server |
 | `Port` | The port number the Redis server is listening on |
-| `HostName` | The host and port number the Redis server is listening on |
 | `Password` | The password for authentication |
 | `Uri` | The connection URI, with the format `redis://:{Password}@{Host}:{Port}` |
 

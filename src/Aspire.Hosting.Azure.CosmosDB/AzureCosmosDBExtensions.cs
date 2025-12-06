@@ -581,8 +581,6 @@ public static class AzureCosmosExtensions
             });
         }
 
-        infrastructure.Add(new ProvisioningOutput("accountEndpoint", typeof(string)) { Value = cosmosAccount.DocumentEndpoint });
-
         // We need to output name to externalize role assignments.
         infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cosmosAccount.Name });
     }

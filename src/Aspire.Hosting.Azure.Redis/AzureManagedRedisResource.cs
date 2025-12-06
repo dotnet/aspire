@@ -91,10 +91,10 @@ public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastr
             ReferenceExpression.Create($"{HostNameOutput}");
 
     /// <summary>
-    /// Gets the host name for the Redis server.
+    /// Gets the port for the Redis server.
     /// </summary>
     /// <remarks>
-    /// In container mode, resolves to the container's primary endpoint host and port.
+    /// In container mode, resolves to the container's primary endpoint port.
     /// In Azure mode, resolves to 10000.
     /// </remarks>
     public ReferenceExpression Port =>
@@ -112,14 +112,14 @@ public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastr
     /// <item>When using Entra ID authentication in Azure mode, returns an empty expression.</item>
     /// </list>
     /// </remarks>
-    public ReferenceExpression Password =>
+    public ReferenceExpression? Password =>
         InnerResource is not null ?
             (InnerResource.PasswordParameter is not null ?
                 ReferenceExpression.Create($"{InnerResource.PasswordParameter}") :
-                ReferenceExpression.Empty) :
+                null) :
             UseAccessKeyAuthentication ?
                 ReferenceExpression.Create($"{PrimaryAccessKeySecretOutput}") :
-                ReferenceExpression.Empty;
+                null;
 
     /// <summary>
     /// Gets the connection URI expression for the Redis server.
@@ -236,6 +236,10 @@ public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastr
         yield return new("Host", HostName);
         yield return new("Port", Port);
         yield return new("Uri", UriExpression);
-        yield return new("Password", Password);
+        
+        if (Password is not null)
+        {
+            yield return new("Password", Password);
+        }
     }
 }

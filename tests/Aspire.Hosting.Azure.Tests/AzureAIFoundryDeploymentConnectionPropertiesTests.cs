@@ -22,8 +22,6 @@ public class AzureAIFoundryDeploymentConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)deployment.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Equal(5, properties.Length);
-
         Assert.Collection(
             properties,
             property =>
@@ -61,8 +59,6 @@ public class AzureAIFoundryDeploymentConnectionPropertiesTests
             .AddDeployment("chat", AIFoundryModel.Microsoft.Phi4);
 
         var properties = ((IResourceWithConnectionString)deployment.Resource).GetConnectionProperties().ToArray();
-
-        Assert.Equal(4, properties.Length);
 
         Assert.Collection(
             properties,

@@ -18,8 +18,6 @@ public class AzureServiceBusTopicConnectionPropertiesTests
         var resource = Assert.Single(builder.Resources.OfType<AzureServiceBusTopicResource>());
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
 
-        // Should have parent properties + TopicName
-        Assert.Equal(3, properties.Count);
         Assert.Collection(
             properties,
             property =>
