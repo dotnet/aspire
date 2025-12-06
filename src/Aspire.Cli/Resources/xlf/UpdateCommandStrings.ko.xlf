@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="DotNetToolSelfUpdateMessage">
         <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
-        <target state="new">To update the Aspire CLI when installed as a .NET tool, run:</target>
+        <target state="translated">.NET 도구로 설치된 Aspire CLI를 업데이트하려면 다음 명령을 실행합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
