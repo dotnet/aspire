@@ -15,7 +15,7 @@ namespace Aspire.Hosting;
 internal sealed class FileSystemService : IFileSystemService, IDisposable
 {
     private readonly TempFileSystemService _tempDirectory;
-    private ILogger<FileSystemService>? _logger;
+    private ILogger? _logger;
     private readonly bool _preserveTempFiles;
 
     // Track allocated temp files and directories as disposable objects using path as key
@@ -47,16 +47,32 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
     public ITempFileSystemService TempDirectory => _tempDirectory;
 
     /// <summary>
+    /// Gets whether temporary files should be preserved for debugging.
+    /// </summary>
+    internal bool ShouldPreserveTempFiles => _preserveTempFiles;
+
+    /// <summary>
+    /// Gets the logger for this service, if set.
+    /// </summary>
+    internal ILogger? Logger => _logger;
+
+    private bool _disposed;
+    private readonly object _disposeLock = new();
+
+    /// <summary>
     /// Tracks a temporary item for cleanup on service disposal.
     /// </summary>
     internal void TrackItem(string path, IDisposable item)
     {
-        if (_disposed)
+        lock (_disposeLock)
         {
-            throw new ObjectDisposedException(nameof(FileSystemService), "Cannot allocate temporary files after the service has been disposed.");
-        }
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(FileSystemService), "Cannot allocate temporary files after the service has been disposed.");
+            }
 
-        _allocatedItems.TryAdd(path, item);
+            _allocatedItems.TryAdd(path, item);
+        }
     }
 
     /// <summary>
@@ -68,28 +84,19 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
     }
 
     /// <summary>
-    /// Gets whether temporary files should be preserved for debugging.
-    /// </summary>
-    internal bool ShouldPreserveTempFiles() => _preserveTempFiles;
-
-    /// <summary>
-    /// Gets the logger for this service, if set.
-    /// </summary>
-    internal ILogger<FileSystemService>? Logger => _logger;
-
-    private bool _disposed;
-
-    /// <summary>
     /// Cleans up any remaining temporary files and directories.
     /// </summary>
     public void Dispose()
     {
-        if (_disposed)
+        lock (_disposeLock)
         {
-            return;
-        }
+            if (_disposed)
+            {
+                return;
+            }
 
-        _disposed = true;
+            _disposed = true;
+        }
 
         if (_preserveTempFiles)
         {
@@ -191,7 +198,7 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
             _parent.UntrackItem(_path);
 
             // Skip deletion if preserve flag is set
-            if (_parent.ShouldPreserveTempFiles())
+            if (_parent.ShouldPreserveTempFiles)
             {
                 return;
             }
@@ -245,7 +252,7 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
             _parent.UntrackItem(_path);
 
             // Skip deletion if preserve flag is set
-            if (_parent.ShouldPreserveTempFiles())
+            if (_parent.ShouldPreserveTempFiles)
             {
                 return;
             }
