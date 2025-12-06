@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Resources;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -18,7 +19,7 @@ public sealed class DcpHostNotificationTests
 {
     private static Locations CreateTestLocations()
     {
-        var directoryService = new FileSystemService();
+        var directoryService = new FileSystemService(new ConfigurationBuilder().Build());
         return new Locations(directoryService);
     }
 
