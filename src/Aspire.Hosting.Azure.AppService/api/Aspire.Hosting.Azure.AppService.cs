@@ -18,6 +18,8 @@ namespace Aspire.Hosting
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> AddAzureAppServiceEnvironment(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithAutomaticScaling(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> applicationInsightsLocation) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, ApplicationModel.IResourceBuilder<Azure.AzureApplicationInsightsResource> applicationInsightsBuilder) { throw null; }

@@ -43,6 +43,8 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithConfiguration(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, System.Action<IYarpConfigurationBuilder> configurationBuilder) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithHostHttpsPort(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, int? port) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithHostPort(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, int? port) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithStaticFiles(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, string sourcePath) { throw null; }
