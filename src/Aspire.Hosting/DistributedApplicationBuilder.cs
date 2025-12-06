@@ -67,7 +67,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
     private readonly IUserSecretsManager _userSecretsManager;
-    private readonly IFileSystemService _directoryService;
+    private readonly FileSystemService _directoryService;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -304,7 +304,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Core things
         // Create and register the directory service (first, so it can be used by other services)
         _directoryService = new FileSystemService();
-        _innerBuilder.Services.AddSingleton<IFileSystemService>(_directoryService);
+        _innerBuilder.Services.AddSingleton<IFileSystemService>(sp =>
+        {
+            _directoryService.SetLogger(sp.GetRequiredService<ILogger<FileSystemService>>());
+            return _directoryService;
+        });
 
         // Create and register the user secrets manager
         var userSecretsFactory = new UserSecretsManagerFactory(_directoryService);
