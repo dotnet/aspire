@@ -135,4 +135,10 @@
   <data name="DotNetToolSelfUpdateMessage" xml:space="preserve">
     <value>To update the Aspire CLI when installed as a .NET tool, run:</value>
   </data>
+  <data name="MigratedToNewSdkFormat" xml:space="preserve">
+    <value>Migrated to new project format: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</value>
+  </data>
+  <data name="RemovedObsoleteAppHostPackage" xml:space="preserve">
+    <value>Removed obsolete Aspire.Hosting.AppHost package reference</value>
+  </data>
 </root>
