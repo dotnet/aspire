@@ -199,12 +199,6 @@
   <data name="AgentConfigurationSelectPrompt" xml:space="preserve">
     <value>Select agent environments to configure:</value>
   </data>
-  <data name="RunningInstanceDetected" xml:space="preserve">
-    <value>An instance of this AppHost is already running. Would you like to stop it?</value>
-  </data>
-  <data name="StoppingRunningInstance" xml:space="preserve">
-    <value>Stopping running instance...</value>
-  </data>
   <data name="RunningInstanceStopped" xml:space="preserve">
     <value>Running instance stopped successfully.</value>
   </data>
