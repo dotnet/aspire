@@ -164,8 +164,14 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (value is EndpointReference ep)
         {
             var context = environmentContext.GetAppServiceContext(ep.Resource);
-            Infra.Add(context._websiteHostNameParameter);
-            Infra.Add(context._websiteSlotHostNameParameter);
+            if (isSlot)
+            {
+                Infra.Add(context._websiteSlotHostNameParameter);
+            }
+            else
+            {
+                Infra.Add(context._websiteHostNameParameter);
+            }
             return isSlot ?
                 (GetEndpointValue(context._slotEndpointMapping[ep.EndpointName], EndpointProperty.Url, context._websiteSlotHostNameParameter), secretType) :
                 (GetEndpointValue(context._endpointMapping[ep.EndpointName], EndpointProperty.Url, context._websiteHostNameParameter), secretType);
@@ -207,8 +213,14 @@ internal sealed class AzureAppServiceWebsiteContext(
             var context = environmentContext.GetAppServiceContext(epExpr.Endpoint.Resource);
             var mapping = isSlot ? context._slotEndpointMapping[epExpr.Endpoint.EndpointName] : context._endpointMapping[epExpr.Endpoint.EndpointName];
             var val = GetEndpointValue(mapping, epExpr.Property, isSlot ? context._websiteSlotHostNameParameter : context._websiteHostNameParameter);
-            Infra.Add(context._websiteHostNameParameter);
-            Infra.Add(context._websiteSlotHostNameParameter);
+            if (isSlot)
+            {
+                Infra.Add(context._websiteSlotHostNameParameter);
+            }
+            else
+            {
+                Infra.Add(context._websiteHostNameParameter);
+            }
             return (val, secretType);
         }
 
