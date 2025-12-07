@@ -162,9 +162,13 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
         // Act
         var result = parser.ParseProject(new FileInfo(projectFile));
 
-        // Assert - scrub the FullPath since it contains temp directory paths
+        // Assert - scrub the temp path and normalize path separators for cross-platform consistency
+        var tempPath = Path.GetTempPath();
         await Verify(FormatJson(result), extension: "json")
-            .ScrubMember("FullPath");
+            .ScrubLinesWithReplace(line => line
+                .Replace($"/private{tempPath}", "{TempPath}") // Handle macOS temp symlinks
+                .Replace(tempPath, "{TempPath}")
+                .Replace(Path.DirectorySeparatorChar, '/'));
     }
 
     [Fact]
