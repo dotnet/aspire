@@ -35,7 +35,8 @@ internal interface IDotNetCliRunner
     Task<(int ExitCode, string? TemplateVersion)> InstallTemplateAsync(string packageName, string version, FileInfo? nugetConfigFile, string? nugetSource, bool force, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string? packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> RemovePackageAsync(FileInfo projectFilePath, string packageName, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
@@ -770,7 +771,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             options: options,
             cancellationToken: cancellationToken);
     }
-    public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string? packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
@@ -784,16 +785,23 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         if (isSingleFileAppHost)
         {
             cliArgsList.AddRange(["package", "--file", projectFilePath.FullName]);
-            // For single-file AppHost, use packageName@version format
+            // For single-file AppHost, use packageName@version format (version required)
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                throw new ArgumentException("Package version is required for single-file AppHost projects.", nameof(packageVersion));
+            }
             cliArgsList.Add($"{packageName}@{packageVersion}");
         }
         else
         {
             cliArgsList.AddRange([projectFilePath.FullName, "package"]);
-            // For non single-file scenarios, use separate --version flag
             cliArgsList.Add(packageName);
-            cliArgsList.Add("--version");
-            cliArgsList.Add(packageVersion);
+            // Only add --version if a version is specified (for CPM, version comes from Directory.Packages.props)
+            if (!string.IsNullOrEmpty(packageVersion))
+            {
+                cliArgsList.Add("--version");
+                cliArgsList.Add(packageVersion);
+            }
         }
 
         if (string.IsNullOrEmpty(nugetSource))
@@ -826,6 +834,51 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         else
         {
             logger.LogInformation("Package {PackageName} with version {PackageVersion} added to project {ProjectFilePath}", packageName, packageVersion, projectFilePath.FullName);
+        }
+
+        return result;
+    }
+
+    public async Task<int> RemovePackageAsync(FileInfo projectFilePath, string packageName, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        var cliArgsList = new List<string>();
+
+        // For single-file AppHost (apphost.cs), use "dotnet package remove --file <file> <packageName>"
+        var isSingleFileAppHost = projectFilePath.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase);
+        if (isSingleFileAppHost)
+        {
+            cliArgsList.AddRange(["package", "remove", "--file", projectFilePath.FullName]);
+            cliArgsList.Add(packageName);
+        }
+        else
+        {
+            // For regular projects, use "dotnet remove <project> package <packageName>"
+            cliArgsList.AddRange(["remove", projectFilePath.FullName, "package"]);
+            cliArgsList.Add(packageName);
+        }
+
+        string[] cliArgs = [.. cliArgsList];
+
+        logger.LogInformation("Removing package {PackageName} from project {ProjectFilePath}", packageName, projectFilePath.FullName);
+
+        var result = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: projectFilePath,
+            workingDirectory: projectFilePath.Directory!,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (result != 0)
+        {
+            logger.LogError("Failed to remove package {PackageName} from project {ProjectFilePath}. See debug logs for more details.", packageName, projectFilePath.FullName);
+        }
+        else
+        {
+            logger.LogInformation("Package {PackageName} removed from project {ProjectFilePath}", packageName, projectFilePath.FullName);
         }
 
         return result;

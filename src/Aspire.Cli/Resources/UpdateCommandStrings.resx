@@ -135,4 +135,13 @@
   <data name="DotNetToolSelfUpdateMessage" xml:space="preserve">
     <value>To update the Aspire CLI when installed as a .NET tool, run:</value>
   </data>
+  <data name="RemovePackageFormat" xml:space="preserve">
+    <value>Remove package {0}</value>
+  </data>
+  <data name="AddPackageFormat" xml:space="preserve">
+    <value>Add package {0} version {1}</value>
+  </data>
+  <data name="MigratePackageFormat" xml:space="preserve">
+    <value>Migrate package {0} to {1}</value>
+  </data>
 </root>
