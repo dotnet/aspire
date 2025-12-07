@@ -233,7 +233,7 @@ internal sealed class ConsoleActivityLogger
                     summaryParts.Add($"{FailureSymbol} {failedSteps} failed");
                 }
             }
-            summaryParts.Add($"Total time: {totalSeconds.ToString("0.0", CultureInfo.InvariantCulture)}s");
+            summaryParts.Add($"Total time: {FormatDuration(totalSeconds)}");
             AnsiConsole.MarkupLine(string.Join(" • ", summaryParts));
 
             if (_durationRecords is { Count: > 0 })
@@ -242,7 +242,7 @@ internal sealed class ConsoleActivityLogger
                 AnsiConsole.MarkupLine("Steps Summary:");
                 foreach (var rec in _durationRecords)
                 {
-                    var durStr = rec.Duration.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture).PadLeft(4);
+                    var durStr = FormatDuration(rec.Duration.TotalSeconds).PadLeft(6);
                     var symbol = rec.State switch
                     {
                         ActivityState.Success => _enableColor ? "[green]" + SuccessSymbol + "[/]" : SuccessSymbol,
@@ -256,7 +256,7 @@ internal sealed class ConsoleActivityLogger
                         : string.Empty;
                     var lineSb = new StringBuilder();
                     lineSb.Append("  ")
-                        .Append(durStr).Append(" s  ")
+                        .Append(durStr).Append("  ")
                         .Append(symbol).Append(' ')
                         .Append("[dim]").Append(name).Append("[/]")
                         .Append(reason);
@@ -318,7 +318,7 @@ internal sealed class ConsoleActivityLogger
 
     private void WriteCompletion(string taskKey, string symbol, string message, ActivityState state, double? seconds)
     {
-        var text = seconds.HasValue ? $"{message} ({seconds.Value.ToString("0.0", CultureInfo.InvariantCulture)}s)" : message;
+        var text = seconds.HasValue ? $"{message} ({FormatDuration(seconds.Value)})" : message;
         WriteLine(taskKey, symbol, text, state);
     }
 
@@ -416,6 +416,25 @@ internal sealed class ConsoleActivityLogger
         }
 
         return message;
+    }
+
+    /// <summary>
+    /// Formats a duration for display, using milliseconds for very small values (less than 0.1s)
+    /// and seconds with one decimal place for larger values.
+    /// </summary>
+    /// <param name="seconds">The duration in seconds.</param>
+    /// <returns>A formatted string like "25ms" or "1.5s".</returns>
+    private static string FormatDuration(double seconds)
+    {
+        // Use milliseconds when the value is less than 0.1 seconds
+        // This prevents displaying "0.0s" for very quick operations
+        if (seconds < 0.1)
+        {
+            var milliseconds = (int)Math.Round(seconds * 1000);
+            return $"{milliseconds}ms";
+        }
+        
+        return $"{seconds.ToString("0.0", CultureInfo.InvariantCulture)}s";
     }
 
     // Note: DetectColorSupport is no longer needed as we use _hostEnvironment.SupportsAnsi directly
