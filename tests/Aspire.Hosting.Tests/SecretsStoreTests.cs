@@ -16,7 +16,12 @@ public class SecretsStoreTests
 {
     private static readonly ConstructorInfo s_userSecretsIdAttrCtor = typeof(UserSecretsIdAttribute).GetConstructor([typeof(string)])!;
 
-    private static UserSecretsManagerFactory CreateFactory() => new UserSecretsManagerFactory(new FileSystemService(new ConfigurationBuilder().Build()));
+    private static UserSecretsManagerFactory CreateFactory()
+    {
+        return new UserSecretsManagerFactory(
+            new FileSystemService(
+                new ConfigurationBuilder().Build()));
+    }
 
     [Fact]
     public void GetOrSetUserSecret_SavesValueToUserSecrets()

@@ -523,7 +523,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             new TestHostApplicationLifetime(),
             new Hosting.Eventing.DistributedApplicationEventing(),
             rewriter,
-            new FileSystemService(new ConfigurationBuilder().Build())
+            new FileSystemService(configuration)
             );
     }
 

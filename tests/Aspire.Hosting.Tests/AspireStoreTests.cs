@@ -120,8 +120,10 @@ public class AspireStoreTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("./folder")]
+    [InlineData(".\\folder")]
     [InlineData("folder")]
     [InlineData("obj/")]
+    [InlineData("obj\\")]
     public void AspireStoreConstructor_ShouldThrow_IfNotAbsolutePath(string? basePath)
     {
         var directoryService = new FileSystemService(new ConfigurationBuilder().Build());
