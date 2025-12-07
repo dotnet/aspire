@@ -163,12 +163,17 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
         var result = parser.ParseProject(new FileInfo(projectFile));
 
         // Assert - scrub the temp path and normalize path separators for cross-platform consistency
-        var tempPath = Path.GetTempPath();
+        var tempPath = Path.GetTempPath().Replace('\\', '/');
         await Verify(FormatJson(result), extension: "json")
-            .ScrubLinesWithReplace(line => line
-                .Replace($"/private{tempPath}", "{TempPath}") // Handle macOS temp symlinks
-                .Replace(tempPath, "{TempPath}")
-                .Replace(Path.DirectorySeparatorChar, '/'));
+            .ScrubLinesWithReplace(line =>
+            {
+                // First normalize all path separators to forward slashes
+                line = line.Replace('\\', '/');
+                // Then replace the temp path
+                line = line.Replace($"/private{tempPath}", "{TempPath}"); // Handle macOS temp symlinks
+                line = line.Replace(tempPath, "{TempPath}");
+                return line;
+            });
     }
 
     [Fact]
