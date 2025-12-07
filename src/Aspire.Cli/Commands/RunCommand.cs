@@ -18,6 +18,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using StreamJsonRpc;
@@ -108,7 +109,8 @@ internal sealed class RunCommand : BaseCommand
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
         var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: false);
-        var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
+        // Force option kept for backward compatibility but no longer used since prompt was removed
+        // var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
 
         // A user may run `aspire run` in an Aspire terminal in VS Code. In this case, intercept and prompt
         // VS Code to start a debug session using the current directory
@@ -144,10 +146,10 @@ internal sealed class RunCommand : BaseCommand
             // Check for running instance if feature is enabled
             if (runningInstanceDetectionEnabled)
             {
-                var canContinue = await CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, force, cancellationToken);
+                var canContinue = await CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, cancellationToken);
                 if (!canContinue)
                 {
-                    // User chose not to stop the running instance or stopping failed
+                    // Stopping the running instance failed
                     return ExitCodeConstants.Success;
                 }
             }
@@ -529,7 +531,7 @@ internal sealed class RunCommand : BaseCommand
         return socketPath;
     }
 
-    private async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, bool force, CancellationToken cancellationToken)
+    private async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, CancellationToken cancellationToken)
     {
         var auxiliarySocketPath = ComputeAuxiliarySocketPath(appHostFile.FullName);
 
@@ -539,19 +541,7 @@ internal sealed class RunCommand : BaseCommand
             return true; // No running instance, continue
         }
 
-        // If force is specified, skip the prompt and stop the instance
-        if (!force)
-        {
-            // Prompt the user if they want to stop the running instance
-            var shouldStop = await _interactionService.ConfirmAsync(RunCommandStrings.RunningInstanceDetected, defaultValue: true, cancellationToken);
-            
-            if (!shouldStop)
-            {
-                return false; // User chose not to stop the running instance, abort
-            }
-        }
-
-        // Stop the running instance
+        // Stop the running instance (no prompt per mitchdenny's request)
         var stopped = await StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
         
         return stopped;
@@ -562,14 +552,14 @@ internal sealed class RunCommand : BaseCommand
         try
         {
             // Connect to the auxiliary backchannel
-            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            using var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             var endpoint = new UnixDomainSocketEndPoint(socketPath);
             
             await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
 
             // Create JSON-RPC connection
-            var stream = new NetworkStream(socket, ownsSocket: true);
-            var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
+            using var stream = new NetworkStream(socket, ownsSocket: true);
+            using var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
             rpc.StartListening();
 
             // Get the AppHost information to know which PIDs to monitor
@@ -584,15 +574,16 @@ internal sealed class RunCommand : BaseCommand
                 return false;
             }
 
+            // Display message that we're stopping the previous instance
+            var cliPidText = appHostInfo.CliProcessId.HasValue ? appHostInfo.CliProcessId.Value.ToString(CultureInfo.InvariantCulture) : "N/A";
+            InteractionService.DisplayMessage("🛑", $"Stopping previous instance (AppHost PID: {appHostInfo.ProcessId.ToString(CultureInfo.InvariantCulture)}, CLI PID: {cliPidText})");
+
             // Call StopAppHostAsync on the auxiliary backchannel
             await rpc.InvokeWithCancellationAsync(
                 "StopAppHostAsync",
                 [],
                 cancellationToken).ConfigureAwait(false);
 
-            // Dispose the RPC connection
-            rpc.Dispose();
-            
             // Monitor the PIDs for termination
             var stopped = await MonitorProcessesForTerminationAsync(appHostInfo, cancellationToken);
 
@@ -607,8 +598,10 @@ internal sealed class RunCommand : BaseCommand
 
             return stopped;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            var logger = _serviceProvider.GetService<ILogger<RunCommand>>();
+            logger?.LogWarning(ex, "Failed to stop running instance");
             InteractionService.DisplayError(RunCommandStrings.RunningInstanceStopFailed);
             return false;
         }

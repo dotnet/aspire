@@ -129,10 +129,12 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     }
 
     /// <summary>
-    /// Requests the AppHost to stop gracefully.
+    /// Requests the AppHost to stop gracefully. The stop is initiated asynchronously in the background.
     /// </summary>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A task that completes when the stop request has been initiated.</returns>
+    /// <returns>
+    /// A task that completes immediately after initiating the stop request. The actual stop occurs asynchronously.
+    /// </returns>
 #pragma warning disable IDE0060 // Remove unused parameter - kept for API consistency
     public Task StopAppHostAsync(CancellationToken cancellationToken = default)
 #pragma warning restore IDE0060 // Remove unused parameter
