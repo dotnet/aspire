@@ -458,9 +458,9 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             return;
         }
 
-        // Remove preceding whitespace (text node with only whitespace)
+        // Remove preceding whitespace (any text/whitespace node type)
         var previousSibling = node.PreviousSibling;
-        if (previousSibling is XmlText textNode && string.IsNullOrWhiteSpace(textNode.Value))
+        if (previousSibling is XmlCharacterData charData && string.IsNullOrWhiteSpace(charData.Data))
         {
             parent.RemoveChild(previousSibling);
         }
@@ -492,15 +492,17 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
     {
         foreach (XmlNode child in node.ChildNodes)
         {
-            if (child is XmlText textNode)
+            // Check for any type of text/whitespace node (XmlText, XmlWhitespace, XmlSignificantWhitespace)
+            if (child is XmlCharacterData charData)
             {
-                if (!string.IsNullOrWhiteSpace(textNode.Value))
+                if (!string.IsNullOrWhiteSpace(charData.Data))
                 {
                     return false;
                 }
             }
             else
             {
+                // Non-text node found (element, comment, etc.)
                 return false;
             }
         }
