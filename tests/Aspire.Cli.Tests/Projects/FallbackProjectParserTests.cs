@@ -163,12 +163,15 @@ public class FallbackProjectParserTests(ITestOutputHelper output)
         var result = parser.ParseProject(new FileInfo(projectFile));
 
         // Assert - scrub the temp path and normalize path separators for cross-platform consistency
-        var tempPath = Path.GetTempPath().Replace('\\', '/');
+        // Note: In JSON, backslashes are escaped as \\, so we need to replace \\\\ (which represents \\)
+        // with / to get a single forward slash
+        var tempPath = Path.GetTempPath().Replace("\\", "/");
         await Verify(FormatJson(result), extension: "json")
             .ScrubLinesWithReplace(line =>
             {
-                // First normalize all path separators to forward slashes
-                line = line.Replace('\\', '/');
+                // First normalize JSON-escaped backslashes (\\) to forward slashes
+                // In JSON, a single backslash is represented as \\, so we replace that with /
+                line = line.Replace("\\\\", "/");
                 // Then replace the temp path
                 line = line.Replace($"/private{tempPath}", "{TempPath}"); // Handle macOS temp symlinks
                 line = line.Replace(tempPath, "{TempPath}");
