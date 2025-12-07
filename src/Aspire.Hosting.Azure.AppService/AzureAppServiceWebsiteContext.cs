@@ -165,8 +165,8 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             var context = environmentContext.GetAppServiceContext(ep.Resource);
             return isSlot ?
-                (GetEndpointValue(context._slotEndpointMapping[ep.EndpointName], EndpointProperty.Url), secretType) :
-                (GetEndpointValue(context._endpointMapping[ep.EndpointName], EndpointProperty.Url), secretType);
+                (GetEndpointValue(context._slotEndpointMapping[ep.EndpointName], EndpointProperty.Url, context._websiteSlotHostNameParameter), secretType) :
+                (GetEndpointValue(context._endpointMapping[ep.EndpointName], EndpointProperty.Url, context._websiteHostNameParameter), secretType);
         }
 
         if (value is ParameterResource param)
@@ -204,7 +204,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             var context = environmentContext.GetAppServiceContext(epExpr.Endpoint.Resource);
             var mapping = isSlot ? context._slotEndpointMapping[epExpr.Endpoint.EndpointName] : context._endpointMapping[epExpr.Endpoint.EndpointName];
-            var val = GetEndpointValue(mapping, epExpr.Property);
+            var val = GetEndpointValue(mapping, epExpr.Property, isSlot ? context._websiteSlotHostNameParameter : context._websiteHostNameParameter);
             return (val, secretType);
         }
 
@@ -616,6 +616,21 @@ internal sealed class AzureAppServiceWebsiteContext(
             EndpointProperty.Scheme => mapping.Scheme,
             EndpointProperty.HostAndPort => BicepFunction.Interpolate($"{mapping.Host}"),
             EndpointProperty.IPV4Host => BicepFunction.Interpolate($"{mapping.Host}"),
+            _ => throw new NotSupportedException($"Unsupported endpoint property {property}")
+        };
+    }
+
+    private BicepValue<string> GetEndpointValue(EndpointMapping mapping, EndpointProperty property, BicepValue<string> referencedHost)
+    {
+        return property switch
+        {
+            EndpointProperty.Url => BicepFunction.Interpolate($"{mapping.Scheme}://{referencedHost}"),
+            EndpointProperty.Host => BicepFunction.Interpolate($"{referencedHost}"),
+            EndpointProperty.Port => mapping.Port.ToString(CultureInfo.InvariantCulture),
+            EndpointProperty.TargetPort => mapping.TargetPort?.ToString(CultureInfo.InvariantCulture) ?? (BicepValue<string>)AllocateParameter(new ContainerPortReference(Resource)),
+            EndpointProperty.Scheme => mapping.Scheme,
+            EndpointProperty.HostAndPort => BicepFunction.Interpolate($"{referencedHost}"),
+            EndpointProperty.IPV4Host => BicepFunction.Interpolate($"{referencedHost}"),
             _ => throw new NotSupportedException($"Unsupported endpoint property {property}")
         };
     }
