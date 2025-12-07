@@ -22,7 +22,6 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -127,26 +126,14 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
-        var armClientProvider = new TestArmClientProvider(deploymentName =>
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
-            return deploymentName switch
-            {
-                string name when name.StartsWith("env-acr") => new Dictionary<string, object>
-                {
-                    ["name"] = new { type = "String", value = "testregistry" },
-                    ["loginServer"] = new { type = "String", value = "testregistry.azurecr.io" }
-                },
-                string name when name.StartsWith("env") => new Dictionary<string, object>
-                {
-                    ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
-                    ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
-                    ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
-                    ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
-                    ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
-                },
-                _ => []
-            };
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
         });
         ConfigureTestServices(builder, armClientProvider: armClientProvider, activityReporter: mockActivityReporter);
 
@@ -171,7 +158,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         await app.WaitForShutdownAsync();
 
         // Assert that publish completed without errors
-        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.CompletionState);
+        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.ResultCompletionState);
 
         // Assert - Verify MockImageBuilder was only called to build an image and not push it
         var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>() as MockImageBuilder;
@@ -186,7 +173,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithAzureStorageResourcesWorks()
     {
         // Arrange
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
@@ -225,7 +212,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         await app.WaitForShutdownAsync();
 
         // Assert that publish completed without errors
-        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.CompletionState);
+        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.ResultCompletionState);
 
         // Assert that ACR login was not called given no compute resources
         Assert.False(fakeContainerRuntime.WasLoginToRegistryCalled);
@@ -244,7 +231,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithContainer_Works()
     {
         // Arrange
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
@@ -280,7 +267,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         await app.WaitForShutdownAsync();
 
         // Assert that publish completed without errors
-        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.CompletionState);
+        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.ResultCompletionState);
 
         // Assert that container environment outputs are propagated to outputs because they are
         // hoisted up for the container resource
@@ -304,7 +291,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithDockerfile_Works()
     {
         // Arrange
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
@@ -340,7 +327,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         await app.WaitForShutdownAsync();
 
         // Assert that publish completed without errors
-        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.CompletionState);
+        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.ResultCompletionState);
 
         // Assert that container environment outputs are propagated to outputs because they are
         // hoisted up for the container resource
@@ -372,7 +359,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
@@ -406,7 +393,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         await app.WaitForShutdownAsync();
 
         // Assert that publish completed without errors
-        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.CompletionState);
+        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.ResultCompletionState);
 
         // Assert that container environment outputs are propagated to outputs because they are
         // hoisted up for the container resource
@@ -441,7 +428,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -501,7 +488,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         await app.WaitForShutdownAsync();
 
         // Assert that publish completed without errors
-        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.CompletionState);
+        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.ResultCompletionState);
 
         if (step == "diagnostics")
         {
@@ -673,7 +660,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
@@ -709,7 +696,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         await app.WaitForShutdownAsync();
 
         // Assert that publish completed without errors
-        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.CompletionState);
+        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.ResultCompletionState);
 
         // Assert that container environment outputs are propagated
         Assert.Equal("testregistry", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_NAME"]);
@@ -737,7 +724,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Arrange
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
@@ -771,7 +758,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         await app.WaitForShutdownAsync();
 
         // Assert that publish completed without errors
-        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.CompletionState);
+        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.ResultCompletionState);
 
         // Assert that container environment outputs are propagated
         Assert.Equal("test.westus.azurecontainerapps.io", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"]);
@@ -958,7 +945,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             _ => []
         };
 
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider(deploymentOutputsProvider);
         ConfigureTestServices(builder, armClientProvider: armClientProvider, activityReporter: mockActivityReporter, processRunner: mockProcessRunner, containerRuntime: fakeContainerRuntime);
 
@@ -979,7 +966,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         await app.WaitForShutdownAsync();
 
         // Assert that publish completed without errors
-        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.CompletionState);
+        Assert.NotEqual(CompletionState.CompletedWithError, mockActivityReporter.ResultCompletionState);
 
         // Assert that container environment outputs are propagated
         Assert.Equal("testregistry", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_NAME"]);
@@ -1022,7 +1009,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -1093,7 +1080,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         var mockProcessRunner = new MockProcessRunner();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "diagnostics");
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
         {
             return deploymentName switch
@@ -1591,107 +1578,5 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
         builder.Services.AddSingleton<IContainerRuntime>(new FakeContainerRuntime());
         builder.Services.AddSingleton<IAcrLoginService>(sp => new FakeAcrLoginService(sp.GetRequiredService<IContainerRuntime>()));
-    }
-
-    private sealed class TestPublishingActivityReporter : IPipelineActivityReporter
-    {
-        private readonly ITestOutputHelper? _output;
-
-        public TestPublishingActivityReporter(ITestOutputHelper? output = null)
-        {
-            _output = output;
-        }
-
-        public bool CompletePublishCalled { get; private set; }
-        public string? CompletionMessage { get; private set; }
-        public CompletionState? CompletionState { get; private set; }
-        public List<string> CreatedSteps { get; } = [];
-        public List<(string StepTitle, string TaskStatusText)> CreatedTasks { get; } = [];
-        public List<(string StepTitle, string CompletionText, CompletionState CompletionState)> CompletedSteps { get; } = [];
-        public List<(string TaskStatusText, string? CompletionMessage, CompletionState CompletionState)> CompletedTasks { get; } = [];
-        public List<(string TaskStatusText, string StatusText)> UpdatedTasks { get; } = [];
-        public List<(string StepTitle, LogLevel LogLevel, string Message)> LoggedMessages { get; } = [];
-
-        public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
-        {
-            CompletePublishCalled = true;
-            CompletionMessage = completionMessage;
-            CompletionState = completionState;
-            _output?.WriteLine($"[CompletePublish] {completionMessage} (State: {completionState})");
-            return Task.CompletedTask;
-        }
-
-        public Task<IReportingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
-        {
-            CreatedSteps.Add(title);
-            _output?.WriteLine($"[CreateStep] {title}");
-            return Task.FromResult<IReportingStep>(new TestReportingStep(this, title, _output));
-        }
-
-        private sealed class TestReportingStep : IReportingStep
-        {
-            private readonly TestPublishingActivityReporter _reporter;
-            private readonly string _title;
-            private readonly ITestOutputHelper? _output;
-
-            public TestReportingStep(TestPublishingActivityReporter reporter, string title, ITestOutputHelper? output)
-            {
-                _reporter = reporter;
-                _title = title;
-                _output = output;
-            }
-
-            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-
-            public Task CompleteAsync(string completionText, Pipelines.CompletionState completionState = Pipelines.CompletionState.Completed, CancellationToken cancellationToken = default)
-            {
-                _reporter.CompletedSteps.Add((_title, completionText, completionState));
-                _output?.WriteLine($"  [CompleteStep:{_title}] {completionText} (State: {completionState})");
-                return Task.CompletedTask;
-            }
-
-            public Task<IReportingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
-            {
-                _reporter.CreatedTasks.Add((_title, statusText));
-                _output?.WriteLine($"    [CreateTask:{_title}] {statusText}");
-                return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText, _output));
-            }
-
-            public void Log(LogLevel logLevel, string message, bool enableMarkdown)
-            {
-                _reporter.LoggedMessages.Add((_title, logLevel, message));
-                _output?.WriteLine($"    [{logLevel}:{_title}] {message}");
-            }
-        }
-
-        private sealed class TestReportingTask : IReportingTask
-        {
-            private readonly TestPublishingActivityReporter _reporter;
-            private readonly string _initialStatusText;
-            private readonly ITestOutputHelper? _output;
-
-            public TestReportingTask(TestPublishingActivityReporter reporter, string initialStatusText, ITestOutputHelper? output)
-            {
-                _reporter = reporter;
-                _initialStatusText = initialStatusText;
-                _output = output;
-            }
-
-            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-
-            public Task CompleteAsync(string? completionMessage = null, Pipelines.CompletionState completionState = Pipelines.CompletionState.Completed, CancellationToken cancellationToken = default)
-            {
-                _reporter.CompletedTasks.Add((_initialStatusText, completionMessage, completionState));
-                _output?.WriteLine($"      [CompleteTask:{_initialStatusText}] {completionMessage} (State: {completionState})");
-                return Task.CompletedTask;
-            }
-
-            public Task UpdateAsync(string statusText, CancellationToken cancellationToken = default)
-            {
-                _reporter.UpdatedTasks.Add((_initialStatusText, statusText));
-                _output?.WriteLine($"      [UpdateTask:{_initialStatusText}] {statusText}");
-                return Task.CompletedTask;
-            }
-        }
     }
 }
