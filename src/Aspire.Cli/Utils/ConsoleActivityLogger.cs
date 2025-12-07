@@ -242,6 +242,7 @@ internal sealed class ConsoleActivityLogger
                 AnsiConsole.MarkupLine("Steps Summary:");
                 foreach (var rec in _durationRecords)
                 {
+                    // PadLeft(6) accommodates both "100ms" (5 chars) and "10.0s" (5 chars) with extra space
                     var durStr = FormatDuration(rec.Duration.TotalSeconds).PadLeft(6);
                     var symbol = rec.State switch
                     {
