@@ -74,20 +74,19 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Action = async ctx =>
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-                    ctx.ReportingStep.Log(LogLevel.Information, $"Running website check", false);
-                    var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
-                    var websiteName = $"{targetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
-                    ctx.ReportingStep.Log(LogLevel.Information, $"for {websiteName}", false);
-                    if (websiteName.Length > 60)
+                    var isSlotDeployment = computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null;
+                    if (!isSlotDeployment)
                     {
-                        websiteName = websiteName.Substring(0, 60);
+                        return;
                     }
-                    var exists = await CheckWebSiteExistsAsync(websiteName, ctx).ConfigureAwait(false);
-                    ctx.ReportingStep.Log(LogLevel.Information, $"website exists : {exists}", false);
 
+                    var websiteName = await GetAppServiceWebsiteNameAsync(ctx).ConfigureAwait(false);
+                    var exists = await CheckWebSiteExistsAsync(websiteName, ctx).ConfigureAwait(false);
+                    
                     if (!exists)
                     {
-                        targetResource.Annotations.Add(new AzureAppServiceWebsiteDoesNotExistAnnotation());
+                        ctx.ReportingStep.Log(LogLevel.Information, $"Website {websiteName} does not exist. Adding annotation to refresh provisionable resource", false);
+                        targetResource.Annotations.Add(new AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation());
                     }
                 },
                 Tags = ["check-website-exists"],
@@ -96,39 +95,41 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             steps.Add(websiteExistsCheckStep);
 
-            if (targetResource.TryGetLastAnnotation<AzureAppServiceWebsiteDoesNotExistAnnotation>(out _))
+            var updateProvisionableResourceStep = new PipelineStep
             {
-                var updateProvisionableResourceStep = new PipelineStep
+                Name = $"update-{targetResource.Name}-provisionable-resource",
+                Action = async ctx =>
                 {
-                    Name = $"update-{targetResource.Name}",
-                    Action = async ctx =>
+                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+
+                    if (!targetResource.TryGetLastAnnotation<AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation>(out _))
                     {
-                        var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                        return;
+                    } 
 
-                        if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+                    if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+                    {
+                        var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
+                        var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
+                        var provisioningResource = new AzureAppServiceWebSiteResource(targetResource.Name + "-website", context.BuildWebSite, targetResource)
                         {
-                            var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
-                            var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
-                            var provisioningResource = new AzureAppServiceWebSiteResource(targetResource.Name + "-website", context.BuildWebSite, targetResource)
-                            {
-                                ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions
-                            };
+                            ProvisioningBuildOptions = provisioningOptions.Value.ProvisioningBuildOptions
+                        };
 
-                            deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
+                        deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
 
-                            ctx.ReportingStep.Log(LogLevel.Information, $"Updated provisionable resource to deploy website and deployment slot", false);
-                        }
-                        else
-                        {
-                            ctx.ReportingStep.Log(LogLevel.Warning, $"No environment context annotation on the environment resource", false);
-                        }
-                    },
-                    Tags = ["update-website-provisionable-resource"],
-                    DependsOnSteps = new List<string> { "create-provisioning-context" },
-                };
+                        ctx.ReportingStep.Log(LogLevel.Information, $"Updated provisionable resource to deploy website and deployment slot", false);
+                    }
+                    else
+                    {
+                        ctx.ReportingStep.Log(LogLevel.Warning, $"No environment context annotation on the environment resource", false);
+                    }
+                },
+                Tags = ["update-website-provisionable-resource"],
+                DependsOnSteps = new List<string> { "create-provisioning-context" },
+            };
 
-                steps.Add(updateProvisionableResourceStep);
-            }
+            steps.Add(updateProvisionableResourceStep);
 
             if (!targetResource.TryGetEndpoints(out var endpoints))
             {
@@ -143,13 +144,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
 
-                    var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
-
-                    var hostName = $"{targetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
-                    if (hostName.Length > 60)
-                    {
-                        hostName = hostName.Substring(0, 60);
-                    }
+                    var hostName = await GetAppServiceWebsiteNameAsync(ctx).ConfigureAwait(false);
                     var endpoint = $"https://{hostName}.azurewebsites.net";
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
                 },
@@ -263,6 +258,18 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         using var response = await httpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
 
         return response.StatusCode == System.Net.HttpStatusCode.OK;
+    }
+
+    private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context)
+    {
+        var computerEnv = (AzureAppServiceEnvironmentResource)TargetResource.GetDeploymentTargetAnnotation()!.ComputeEnvironment!;
+        var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        var websiteName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
+        if (websiteName.Length > 60)
+        {
+            websiteName = websiteName.Substring(0, 60);
+        }
+        return websiteName;
     }
 
     private const string AzureManagementScope = "https://management.azure.com/.default";

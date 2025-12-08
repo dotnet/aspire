@@ -247,7 +247,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     public void BuildWebSite(AzureResourceInfrastructure infra)
     {
-        bool buildWebAppAndSlot = resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteDoesNotExistAnnotation>(out _);
+        bool buildWebAppAndSlot = resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation>(out _);
 
         _infrastructure = infra;
 
