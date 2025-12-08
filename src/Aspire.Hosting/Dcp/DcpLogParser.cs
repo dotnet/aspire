@@ -123,12 +123,14 @@ internal static class DcpLogParser
     /// <returns>The formatted message with [sys] prefix and human-readable format.</returns>
     public static string FormatSystemLog(string message)
     {
+        const string SystemLogPrefix = "[sys] ";
+        
         // Try to find JSON portion in the message (starts with a tab followed by '{')
         var jsonStart = message.IndexOf('\t');
         if (jsonStart < 0)
         {
             // No JSON metadata, return message as-is with [sys] prefix
-            return $"[sys] {message}";
+            return $"{SystemLogPrefix}{message}";
         }
 
         var textPart = message[..jsonStart];
@@ -149,7 +151,7 @@ internal static class DcpLogParser
 
             // Build the formatted message
             var sb = new StringBuilder();
-            sb.Append("[sys] ");
+            sb.Append(SystemLogPrefix);
             
             // Add the text part if it exists
             if (!string.IsNullOrWhiteSpace(textPart))
@@ -160,7 +162,7 @@ internal static class DcpLogParser
             // Add Cmd and Args if present and text doesn't already mention "process"
             if (cmd != null && !string.IsNullOrWhiteSpace(cmd))
             {
-                if (sb.Length > 6) // "[sys] " is 6 chars
+                if (sb.Length > SystemLogPrefix.Length)
                 {
                     sb.Append(": ");
                 }
@@ -177,7 +179,7 @@ internal static class DcpLogParser
             // Add error if present
             if (!string.IsNullOrWhiteSpace(error))
             {
-                if (sb.Length > 6) // "[sys] " is 6 chars
+                if (sb.Length > SystemLogPrefix.Length)
                 {
                     // Check if error is multi-line
                     if (error.Contains('\n'))
@@ -186,15 +188,15 @@ internal static class DcpLogParser
                         sb.AppendLine();
                         // Indent each line of the error
                         var errorLines = error.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                        foreach (var line in errorLines)
+                        for (int i = 0; i < errorLines.Length; i++)
                         {
                             sb.Append("    - ");
-                            sb.AppendLine(line.Trim());
-                        }
-                        // Remove the last newline
-                        if (sb.Length > 0 && sb[^1] == '\n')
-                        {
-                            sb.Length--;
+                            sb.Append(errorLines[i].Trim());
+                            // Only add newline if not the last line
+                            if (i < errorLines.Length - 1)
+                            {
+                                sb.AppendLine();
+                            }
                         }
                     }
                     else
@@ -214,7 +216,7 @@ internal static class DcpLogParser
         catch
         {
             // If JSON parsing fails, return the original message with [sys] prefix
-            return $"[sys] {message}";
+            return $"{SystemLogPrefix}{message}";
         }
     }
 }
