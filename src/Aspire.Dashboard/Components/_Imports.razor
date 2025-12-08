@@ -19,8 +19,12 @@
 @using Aspire.Dashboard.Components.Layout
 @using Aspire.Dashboard.Configuration
 @using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.Otlp
+@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.ServiceClient
+@using Aspire.Dashboard.Utils
 @using Microsoft.Extensions.Localization
+@using System.Globalization
 
 @* Require authorization for all pages of the web app *@
 @attribute [Authorize(Policy = FrontendAuthorizationDefaults.PolicyName)]
