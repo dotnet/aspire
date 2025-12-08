@@ -239,7 +239,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         };
     }
 
-    private static string GetToolHeadingToolTip(ToolDefinitionViewModel vm)
+    private static string GetToolHeadingTooltip(ToolDefinitionViewModel vm)
     {
         if (string.IsNullOrEmpty(vm.ToolDefinition.Description))
         {
