@@ -23,12 +23,12 @@ public class TestDialogService : IDialogService
     public event Action<IDialogReference, DialogResult>? OnDialogCloseRequested;
 #pragma warning restore CS0067
 
-    public Task CloseAsync(DialogReference dialog)
+    public Task CloseAsync(IDialogReference dialog)
     {
         throw new NotImplementedException();
     }
 
-    public Task CloseAsync(DialogReference dialog, DialogResult result)
+    public Task CloseAsync(IDialogReference dialog, DialogResult result)
     {
         throw new NotImplementedException();
     }

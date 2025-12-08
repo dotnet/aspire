@@ -35,6 +35,7 @@ public class AzureContainerAppEnvironmentResource :
             var loginToAcrStep = new PipelineStep
             {
                 Name = $"login-to-acr-{name}",
+                Description = $"Logs in to Azure Container Registry for {name}.",
                 Action = context => AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, context),
                 Tags = ["acr-login"]
             };
@@ -43,6 +44,7 @@ public class AzureContainerAppEnvironmentResource :
             var printDashboardUrlStep = new PipelineStep
             {
                 Name = $"print-dashboard-url-{name}",
+                Description = $"Prints the deployment summary and dashboard URL for {name}.",
                 Action = ctx => PrintDashboardUrlAsync(ctx),
                 Tags = ["print-summary"],
                 DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
@@ -140,7 +142,7 @@ public class AzureContainerAppEnvironmentResource :
         var dashboardUrl = $"https://aspire-dashboard.ext.{domainValue}";
 
         await context.ReportingStep.CompleteAsync(
-            $"Dashboard available at [dashboard URL]({dashboardUrl})",
+            $"Dashboard available at [{dashboardUrl}]({dashboardUrl})",
             CompletionState.Completed,
             context.CancellationToken).ConfigureAwait(false);
     }

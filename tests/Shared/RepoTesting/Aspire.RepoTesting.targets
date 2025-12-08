@@ -146,6 +146,14 @@
 
     <WriteLinesToFile Lines="$(_HelixPropsContent)" File="$(GeneratedPackagesVersionsPropsPath)" Overwrite="true" />
   </Target>
+  
+  <PropertyGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
+    <!--
+    When building in the repo, we don't want our Aspire.Hosting.Tasks assembly to be loaded because it causes problems with MSBuild locking the assembly.
+    Disable validation of Aspire Host project resources to avoid loading the Aspire.Hosting.Tasks assembly.
+    -->
+    <SkipValidateAspireHostProjectResources>true</SkipValidateAspireHostProjectResources>
+  </PropertyGroup>
 
   <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
     <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets')" />

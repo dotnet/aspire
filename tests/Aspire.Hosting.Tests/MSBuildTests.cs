@@ -15,7 +15,7 @@ public class MSBuildTests
     public void EnsureWarningsAreEmittedWhenProjectReferencingLibraries()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
-        using var tempDirectory = new TempDirectory();
+        using var tempDirectory = new TestTempDirectory();
 
         CreateLibraryProject(tempDirectory.Path, "Library");
 
@@ -39,6 +39,7 @@ public class MSBuildTests
                 -->
                 <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
                 <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
+                <_AspireUseTaskHostFactory>true</_AspireUseTaskHostFactory>
               </PropertyGroup>
 
               <ItemGroup>
@@ -71,7 +72,7 @@ public class MSBuildTests
     public async Task ValidateMetadataSources()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
-        using var tempDirectory = new TempDirectory();
+        using var tempDirectory = new TestTempDirectory();
 
         CreateAppProject(tempDirectory.Path, "App");
 
@@ -95,6 +96,7 @@ public class MSBuildTests
                 -->
                 <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
                 <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
+                <_AspireUseTaskHostFactory>true</_AspireUseTaskHostFactory>
               </PropertyGroup>
 
               <ItemGroup>
@@ -138,6 +140,12 @@ public class MSBuildTests
 
     private static void CreateDirectoryBuildFiles(string basePath, string repoRoot)
     {
+#if DEBUG
+        var config = "Debug";
+#else
+        var config = "Release";
+#endif
+
         File.WriteAllText(Path.Combine(basePath, "Directory.Build.props"),
         $"""
         <Project>
@@ -151,6 +159,10 @@ public class MSBuildTests
         File.WriteAllText(Path.Combine(basePath, "Directory.Build.targets"),
         $"""
         <Project>
+          <PropertyGroup>
+            <_AspireTasksAssembly>{repoRoot}\artifacts\bin\Aspire.Hosting.Tasks\{config}\net8.0\Aspire.Hosting.Tasks.dll</_AspireTasksAssembly>
+          </PropertyGroup>
+
           <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" />
           <Import Project="{repoRoot}\src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" />
         </Project>
@@ -249,7 +261,7 @@ public class MSBuildTests
     public void TreatProjectReferencesAsResourcesFalse_DisablesMutation()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
-        using var tempDirectory = new TempDirectory();
+        using var tempDirectory = new TestTempDirectory();
 
         CreateLibraryProject(tempDirectory.Path, "Library");
 
@@ -274,6 +286,7 @@ public class MSBuildTests
                 -->
                 <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
                 <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
+                <_AspireUseTaskHostFactory>true</_AspireUseTaskHostFactory>
               </PropertyGroup>
 
               <ItemGroup>
@@ -307,7 +320,7 @@ public class MSBuildTests
     public void TreatProjectReferencesAsResourcesTrue_EnablesMutation()
     {
         var repoRoot = MSBuildUtils.GetRepoRoot();
-        using var tempDirectory = new TempDirectory();
+        using var tempDirectory = new TestTempDirectory();
 
         CreateLibraryProject(tempDirectory.Path, "Library");
 
@@ -332,6 +345,7 @@ public class MSBuildTests
                 -->
                 <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
                 <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
+                <_AspireUseTaskHostFactory>true</_AspireUseTaskHostFactory>
               </PropertyGroup>
 
               <ItemGroup>

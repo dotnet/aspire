@@ -15,9 +15,9 @@
 		<PackageReference Include="Microsoft.Maui.Core" Version="10.0.0-rc.1.25452.6" />
 		<PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.0.0-alpha.1.25208.3" />
 		<PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="9.4.2" />
-		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
-		<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
+		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.14.0" />
+		<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.14.0" />
 	</ItemGroup>
 </Project>

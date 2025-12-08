@@ -14,7 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Redis.Tests;
 
-public class AddRedisTests
+public class AddRedisTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddRedisAddsHealthCheckAnnotationToResource()
@@ -134,7 +134,7 @@ public class AddRedisTests
     [Fact]
     public async Task VerifyDefaultManifest()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis = builder.AddRedis("redis");
 
         var manifest = await ManifestUtils.GetManifest(redis.Resource);
@@ -168,7 +168,7 @@ public class AddRedisTests
     [Fact]
     public async Task VerifyWithoutPasswordManifest()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis = builder.AddRedis("redis").WithPassword(null);
 
         var manifest = await ManifestUtils.GetManifest(redis.Resource);
@@ -199,7 +199,7 @@ public class AddRedisTests
     [Fact]
     public async Task VerifyWithPasswordManifest()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var password = "p@ssw0rd1";
         builder.Configuration["Parameters:pass"] = password;
@@ -237,7 +237,7 @@ public class AddRedisTests
     [Fact]
     public async Task VerifyWithPasswordValueNotProvidedManifest()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var pass = builder.AddParameter("pass");
         var redis = builder.AddRedis("redis", password: pass);
@@ -305,7 +305,7 @@ public class AddRedisTests
         redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002));
 
         var redisInsight = Assert.Single(builder.Resources.OfType<RedisInsightResource>());
-        var envs = await redisInsight.GetEnvironmentVariableValuesAsync();
+        var envs = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(redisInsight);
 
         Assert.Collection(envs,
             (item) =>
@@ -451,7 +451,7 @@ public class AddRedisTests
     [InlineData(true)]
     public async Task VerifyRedisResourceWithPassword(bool withPassword)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var redis = builder
             .AddRedis("myRedis")
@@ -563,7 +563,7 @@ public class AddRedisTests
     [InlineData(false)]
     public void WithDataVolumeAddsVolumeAnnotation(bool? isReadOnly)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis = builder.AddRedis("myRedis");
         if (isReadOnly.HasValue)
         {
@@ -588,7 +588,7 @@ public class AddRedisTests
     [InlineData(false)]
     public void WithDataBindMountAddsMountAnnotation(bool? isReadOnly)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis = builder.AddRedis("myRedis");
         if (isReadOnly.HasValue)
         {
@@ -610,7 +610,7 @@ public class AddRedisTests
     [Fact]
     public async Task WithDataVolumeAddsPersistenceAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis = builder.AddRedis("myRedis")
                               .WithDataVolume();
 
@@ -621,7 +621,7 @@ public class AddRedisTests
     [Fact]
     public async Task WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis = builder.AddRedis("myRedis")
                            .WithDataVolume(isReadOnly: true);
 
@@ -632,7 +632,7 @@ public class AddRedisTests
     [Fact]
     public async Task WithDataBindMountAddsPersistenceAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis = builder.AddRedis("myRedis")
                            .WithDataBindMount("myredisdata");
 
@@ -643,7 +643,7 @@ public class AddRedisTests
     [Fact]
     public async Task WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis = builder.AddRedis("myRedis")
                            .WithDataBindMount("myredisdata", isReadOnly: true);
 
@@ -654,7 +654,7 @@ public class AddRedisTests
     [Fact]
     public async Task WithPersistenceReplacesPreviousAnnotationInstances()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis = builder.AddRedis("myRedis")
                            .WithDataVolume()
                            .WithPersistence(TimeSpan.FromSeconds(10), 2);
@@ -676,7 +676,7 @@ public class AddRedisTests
     [Fact]
     public void WithPersistenceAddsCommandLineArgsAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis = builder.AddRedis("myRedis")
                            .WithPersistence(TimeSpan.FromSeconds(60));
 
@@ -687,7 +687,7 @@ public class AddRedisTests
     [Fact]
     public async Task AddRedisContainerWithPasswordAnnotationMetadata()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var password = "p@ssw0rd1";
         var pass = builder.AddParameter("pass", password);
@@ -710,7 +710,7 @@ public class AddRedisTests
     [Fact]
     public async Task RedisInsightEnvironmentCallbackIsIdempotent()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var redis = appBuilder.AddRedis("redis")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6379))
@@ -720,9 +720,9 @@ public class AddRedisTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var redisInsightResource = Assert.Single(appModel.Resources.OfType<RedisInsightResource>());
 
-        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
-        var config1 = await redisInsightResource.GetEnvironmentVariableValuesAsync();
-        var config2 = await redisInsightResource.GetEnvironmentVariableValuesAsync();
+        // Call GetEnvironmentVariablesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(redisInsightResource);
+        var config2 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(redisInsightResource);
 
         // Both calls should succeed and return the same values
         Assert.Equal(config1.Count, config2.Count);
@@ -737,9 +737,9 @@ public class AddRedisTests
     public void WithoutCertificateKeyPairDisablesTlsConfiguration()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var redis = builder.AddRedis("myredis").WithoutServerAuthenticationCertificate();
+        var redis = builder.AddRedis("myredis").WithoutHttpsCertificate();
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<HttpsCertificateAnnotation>());
         Assert.False(annotation.UseDeveloperCertificate);
         Assert.Null(annotation.Certificate);
         Assert.Null(annotation.Password);
@@ -750,9 +750,9 @@ public class AddRedisTests
     public void WithDeveloperCertificateKeyPairEnablesDeveloperCertificate()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var redis = builder.AddRedis("myredis").WithServerAuthenticationDeveloperCertificate();
+        var redis = builder.AddRedis("myredis").WithHttpsDeveloperCertificate();
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<HttpsCertificateAnnotation>());
         Assert.True(annotation.UseDeveloperCertificate);
         Assert.Null(annotation.Certificate);
         Assert.Null(annotation.Password);
@@ -764,30 +764,32 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var password = builder.AddParameter("certpass", "test123");
-        var redis = builder.AddRedis("myredis").WithServerAuthenticationDeveloperCertificate(password);
+        var redis = builder.AddRedis("myredis").WithHttpsDeveloperCertificate(password);
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<HttpsCertificateAnnotation>());
         Assert.True(annotation.UseDeveloperCertificate);
         Assert.Null(annotation.Certificate);
         Assert.Equal(password.Resource, annotation.Password);
     }
 
     [Fact]
+    [RequiresCertificateStoreAccess]
     public void WithCertificateKeyPairUsesProvidedCertificate()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         // Create a test certificate with private key
         using var cert = CreateTestCertificate();
-        var redis = builder.AddRedis("myredis").WithServerAuthenticationCertificate(cert);
+        var redis = builder.AddRedis("myredis").WithHttpsCertificate(cert);
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<HttpsCertificateAnnotation>());
         Assert.Null(annotation.UseDeveloperCertificate);
         Assert.Equal(cert, annotation.Certificate);
         Assert.Null(annotation.Password);
     }
 
     [Fact]
+    [RequiresCertificateStoreAccess]
     public void WithCertificateKeyPairWithPasswordStoresPassword()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -795,21 +797,22 @@ public class AddRedisTests
 
         // Create a test certificate with private key
         using var cert = CreateTestCertificate();
-        var redis = builder.AddRedis("myredis").WithServerAuthenticationCertificate(cert, password);
+        var redis = builder.AddRedis("myredis").WithHttpsCertificate(cert, password);
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<HttpsCertificateAnnotation>());
         Assert.Null(annotation.UseDeveloperCertificate);
         Assert.Equal(cert, annotation.Certificate);
         Assert.Equal(password.Resource, annotation.Password);
     }
 
     [Fact]
+    [RequiresCertificateStoreAccess]
     public async Task RedisWithCertificateHasCorrectConnectionString()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         using var cert = CreateTestCertificate();
 
-        var redis = builder.AddRedis("myredis").WithServerAuthenticationCertificate(cert);
+        var redis = builder.AddRedis("myredis").WithHttpsCertificate(cert);
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -824,9 +827,9 @@ public class AddRedisTests
     [Fact]
     public void RedisWithoutCertificateHasCorrectConnectionString()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
-        var redis = builder.AddRedis("myredis").WithoutServerAuthenticationCertificate();
+        var redis = builder.AddRedis("myredis").WithoutHttpsCertificate();
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();

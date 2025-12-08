@@ -808,7 +808,7 @@ public class ProjectResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "build-projectName");
         builder.Services.AddSingleton<IContainerRuntime, FakeContainerRuntime>();
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         // Create a test container resource that implements IResourceWithContainerFiles
         var sourceContainerResource = new TestContainerFilesResource("source");
@@ -825,7 +825,7 @@ public class ProjectResourceTests
         using var app = builder.Build();
         var fakeContainerRuntime = (FakeContainerRuntime)app.Services.GetRequiredService<IContainerRuntime>();
 
-        fakeContainerRuntime.BuildImageAsyncCallback = async (contextPath, dockerfilePath, imageName, options, buildArgs, buildSecrets, stage, cancellationToken) =>
+        fakeContainerRuntime.BuildImageAsyncCallback = async (contextPath, dockerfilePath, options, buildArgs, buildSecrets, stage, cancellationToken) =>
         {
             // Verify that the Dockerfile contains the expected COPY command
             var dockerFileContent = File.ReadAllText(dockerfilePath);
@@ -838,7 +838,7 @@ public class ProjectResourceTests
         await app.StartAsync();
         await app.WaitForShutdownAsync();
 
-        var mockImageBuilder = (MockImageBuilder)app.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var mockImageBuilder = (MockImageBuilder)app.Services.GetRequiredService<IResourceContainerImageManager>();
         Assert.True(mockImageBuilder.BuildImageCalled);
         var builtImage = Assert.Single(mockImageBuilder.BuildImageResources);
         Assert.Equal("projectName", builtImage.Name);
@@ -851,7 +851,7 @@ public class ProjectResourceTests
 
         Assert.True(fakeContainerRuntime.WasBuildImageCalled);
         var buildCall = Assert.Single(fakeContainerRuntime.BuildImageCalls);
-        Assert.Equal("projectname", buildCall.imageName);
+        Assert.Equal("projectname", buildCall.options?.ImageName);
         Assert.Empty(buildCall.contextPath);
         Assert.NotEmpty(buildCall.dockerfilePath);
 
