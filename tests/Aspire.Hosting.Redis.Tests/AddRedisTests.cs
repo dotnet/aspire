@@ -773,7 +773,6 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public void WithCertificateKeyPairUsesProvidedCertificate()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -789,7 +788,6 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public void WithCertificateKeyPairWithPasswordStoresPassword()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -806,7 +804,6 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task RedisWithCertificateHasCorrectConnectionString()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
