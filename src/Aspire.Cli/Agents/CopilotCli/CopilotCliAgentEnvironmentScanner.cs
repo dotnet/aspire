@@ -232,7 +232,7 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
             {
                 ["type"] = "local",
                 ["command"] = "npx",
-                ["args"] = new JsonArray("-y", "@executeautomation/playwright-mcp-server"),
+                ["args"] = new JsonArray("-y", "@playwright/mcp@latest"),
                 ["tools"] = new JsonArray("*")
             };
         }

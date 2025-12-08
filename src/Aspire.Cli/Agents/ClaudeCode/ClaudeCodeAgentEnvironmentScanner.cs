@@ -226,7 +226,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
             servers["playwright"] = new JsonObject
             {
                 ["command"] = "npx",
-                ["args"] = new JsonArray("-y", "@executeautomation/playwright-mcp-server")
+                ["args"] = new JsonArray("-y", "@playwright/mcp@latest")
             };
         }
 

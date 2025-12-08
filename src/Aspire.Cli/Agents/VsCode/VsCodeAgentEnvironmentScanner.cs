@@ -269,7 +269,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             {
                 ["type"] = "stdio",
                 ["command"] = "npx",
-                ["args"] = new JsonArray("-y", "@executeautomation/playwright-mcp-server")
+                ["args"] = new JsonArray("-y", "@playwright/mcp@latest")
             };
         }
 
