@@ -64,7 +64,8 @@ The Event Hubs namespace resource exposes the following connection properties:
 | Property Name | Description |
 |---------------|-------------|
 | `Host`        | The hostname of the Event Hubs namespace |
-| `Uri`         | The connection URI for the Event Hubs namespace, with the format `sb://myeventhubs.servicebus.windows.net` |
+| `Port`        | The port of the Event Hubs namespace (fixed at `9093` on Azure) |
+| `Uri`         | The connection URI for the Event Hubs namespace, with the format `sb://myeventhubs.servicebus.windows.net` on azure and `sb://localhost:62824` for the emulator |
 
 ### Event Hub
 

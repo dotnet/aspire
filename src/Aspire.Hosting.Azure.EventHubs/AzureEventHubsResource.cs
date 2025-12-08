@@ -48,25 +48,29 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     /// <summary>
     /// Gets the host name for the Event Hubs namespace.
     /// </summary>
-    /// <remarks>
-    /// In container mode (emulator), resolves to the container's endpoint host and port.
-    /// In Azure mode, resolves to the Azure Event Hubs namespace endpoint.
-    /// </remarks>
-    public ReferenceExpression HostName =>
+    public ReferenceExpression Host =>
         IsEmulator ?
-            ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)}") :
+            ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Host)}") :
             ReferenceExpression.Create($"{EventHubsEndpoint}");
+
+    /// <summary>
+    /// Gets the port for the Event Hubs namespace.
+    /// </summary>
+    public ReferenceExpression Port =>
+        IsEmulator ?
+            ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Host)}") :
+            ReferenceExpression.Create($"9093");
 
     /// <summary>
     /// Gets the connection URI expression for the Event Hubs namespace.
     /// </summary>
     /// <remarks>
-    /// Format: <c>sb://{host}</c>.
+    /// Format: <c>sb://{host}:{port}</c>.
     /// </remarks>
     public ReferenceExpression UriExpression =>
         IsEmulator ?
             ReferenceExpression.Create($"sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)}") :
-            ReferenceExpression.Create($"{EventHubsEndpoint}");
+            ReferenceExpression.Create($"{EventHubsEndpoint}:9093");
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Event Hubs endpoint.
@@ -178,7 +182,8 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        yield return new("Host", HostName);
+        yield return new("Host", Host);
+        yield return new("Port", Port);
         yield return new("Uri", UriExpression);
     }
 }
