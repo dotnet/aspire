@@ -142,11 +142,6 @@ internal static class DcpLogParser
             using var doc = JsonDocument.Parse(jsonPart);
             var root = doc.RootElement;
 
-            // Extract relevant fields
-            var cmd = root.TryGetProperty("Cmd", out var cmdProp) ? cmdProp.GetString() : null;
-            var args = root.TryGetProperty("Args", out var argsProp) ? argsProp : (JsonElement?)null;
-            var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
-
             // Build the formatted message
             var sb = new StringBuilder();
             sb.Append(SystemLogPrefix);
@@ -157,35 +152,29 @@ internal static class DcpLogParser
                 sb.Append(textPart);
             }
 
-            // Add Cmd and Args if present
-            if (cmd != null && !string.IsNullOrWhiteSpace(cmd))
+            // Extract and add JSON fields in a loop
+            var fields = new (string Name, string? Value)[]
             {
-                if (sb.Length > SystemLogPrefix.Length)
-                {
-                    sb.Append(", ");
-                }
-                sb.Append("Cmd=");
-                sb.Append(cmd);
+                ("Cmd", root.TryGetProperty("Cmd", out var cmdProp) ? cmdProp.GetString() : null),
+                ("Args", root.TryGetProperty("Args", out var argsProp) ? argsProp.ToString() : null),
+                ("Error", root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null)
+            };
 
-                if (args.HasValue)
-                {
-                    sb.Append(", Args=");
-                    sb.Append(args.Value.ToString());
-                }
-            }
-
-            // Add error if present
-            if (!string.IsNullOrWhiteSpace(error))
+            var hasAddedField = false;
+            foreach (var (name, value) in fields)
             {
-                if (sb.Length > SystemLogPrefix.Length)
+                if (!string.IsNullOrWhiteSpace(value))
                 {
-                    // Check if error is multi-line
-                    if (error.Contains('\n'))
+                    // Handle multi-line errors
+                    if (name == "Error" && value.Contains('\n'))
                     {
-                        sb.Append(':');
+                        if (sb.Length > SystemLogPrefix.Length || hasAddedField)
+                        {
+                            sb.Append(':');
+                        }
                         sb.AppendLine();
                         // Prefix each line with [sys]
-                        var errorLines = error.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                        var errorLines = value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                         for (int i = 0; i < errorLines.Length; i++)
                         {
                             sb.Append(SystemLogPrefix);
@@ -199,13 +188,18 @@ internal static class DcpLogParser
                     }
                     else
                     {
-                        sb.Append(": ");
-                        sb.Append(error);
+                        // Add delimiter
+                        if (sb.Length > SystemLogPrefix.Length)
+                        {
+                            sb.Append(hasAddedField ? ", " : ": ");
+                        }
+                        
+                        // Add field in format "Name = Value"
+                        sb.Append(name);
+                        sb.Append(" = ");
+                        sb.Append(value);
+                        hasAddedField = true;
                     }
-                }
-                else
-                {
-                    sb.Append(error);
                 }
             }
 

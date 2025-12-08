@@ -261,7 +261,7 @@ public sealed class DcpLogParserTests
         var formatted = DcpLogParser.FormatSystemLog(message);
 
         // Assert
-        Assert.Equal("[sys] Starting process..., Cmd=bla, Args=[]", formatted);
+        Assert.Equal("[sys] Starting process...: Cmd = bla, Args = []", formatted);
     }
 
     [Fact]
@@ -274,7 +274,7 @@ public sealed class DcpLogParserTests
         var formatted = DcpLogParser.FormatSystemLog(message);
 
         // Assert
-        Assert.Equal("[sys] Failed to start process, Cmd=bla, Args=[]: exec: \"bla\": executable file not found in $PATH", formatted);
+        Assert.Equal("[sys] Failed to start process: Cmd = bla, Args = [], Error = exec: \"bla\": executable file not found in $PATH", formatted);
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public sealed class DcpLogParserTests
         var formatted = DcpLogParser.FormatSystemLog(message);
 
         // Assert
-        Assert.Equal("[sys] Failed to start Executable: exec: \"bla\": executable file not found in $PATH", formatted);
+        Assert.Equal("[sys] Failed to start Executable: Error = exec: \"bla\": executable file not found in $PATH", formatted);
     }
 
     [Fact]
@@ -340,6 +340,6 @@ public sealed class DcpLogParserTests
         var formatted = DcpLogParser.FormatSystemLog(message);
 
         // Assert
-        Assert.Equal("[sys] Cmd=mycommand, Args=[\"arg1\", \"arg2\"]", formatted);
+        Assert.Equal("[sys] Cmd = mycommand, Args = [\"arg1\", \"arg2\"]", formatted);
     }
 }
