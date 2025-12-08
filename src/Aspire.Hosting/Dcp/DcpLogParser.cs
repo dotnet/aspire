@@ -172,7 +172,7 @@ internal static class DcpLogParser
                         {
                             sb.Append(':');
                         }
-                        sb.AppendLine();
+                        sb.Append('\n');
                         // Prefix each line with [sys]
                         var lines = value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                         for (int i = 0; i < lines.Length; i++)
@@ -182,7 +182,7 @@ internal static class DcpLogParser
                             // Only add newline if not the last line
                             if (i < lines.Length - 1)
                             {
-                                sb.AppendLine();
+                                sb.Append('\n');
                             }
                         }
                     }
