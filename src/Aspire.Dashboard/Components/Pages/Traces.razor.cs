@@ -462,27 +462,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         public required IReadOnlyCollection<FieldTelemetryFilter> Filters { get; set; }
     }
 
-    /// <summary>
-    /// Safely converts a duration to milliseconds as an integer.
-    /// If the value exceeds int.MaxValue, returns int.MaxValue.
-    /// </summary>
-    internal static int SafeConvertToMilliseconds(TimeSpan duration)
-    {
-        var milliseconds = duration.TotalMilliseconds;
-        
-        if (milliseconds >= int.MaxValue)
-        {
-            return int.MaxValue;
-        }
-        
-        if (milliseconds <= int.MinValue)
-        {
-            return int.MinValue;
-        }
-        
-        return (int)milliseconds;
-    }
-
     // IComponentWithTelemetry impl
     public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.Traces);
 }

@@ -102,6 +102,27 @@ internal static class DashboardUIHelpers
 
         return value is { Length: > TooltipLengthThreshold } ? value : null;
     }
+
+    /// <summary>
+    /// Safely converts a duration to milliseconds as an integer.
+    /// If the value exceeds int.MaxValue, returns int.MaxValue.
+    /// </summary>
+    public static int SafeConvertToMilliseconds(TimeSpan duration)
+    {
+        var milliseconds = duration.TotalMilliseconds;
+        
+        if (milliseconds >= int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+        
+        if (milliseconds <= int.MinValue)
+        {
+            return int.MinValue;
+        }
+        
+        return (int)milliseconds;
+    }
 }
 
 internal record TextMask(MarkupString MarkupString, string Text);

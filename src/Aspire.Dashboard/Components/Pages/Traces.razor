@@ -167,8 +167,8 @@
                                     {
                                         <FluentProgressRing Class="duration-ring"
                                                             Min="0"
-                                                            Max="@SafeConvertToMilliseconds(TracesViewModel.MaxDuration)"
-                                                            Value="@SafeConvertToMilliseconds(context.Duration)"
+                                                            Max="@DashboardUIHelpers.SafeConvertToMilliseconds(TracesViewModel.MaxDuration)"
+                                                            Value="@DashboardUIHelpers.SafeConvertToMilliseconds(context.Duration)"
                                                             aria-label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]" />
                                         <span class="trace-duration">
                                             @DurationFormatter.FormatDuration(context.Duration)
