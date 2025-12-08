@@ -139,4 +139,7 @@
   <data name="SelectAProjectTemplate" xml:space="preserve">
     <value>Select a template:</value>
   </data>
+  <data name="ChannelArgumentDescription" xml:space="preserve">
+    <value>The channel to use for Aspire packages (e.g., stable, daily).</value>
+  </data>
 </root>

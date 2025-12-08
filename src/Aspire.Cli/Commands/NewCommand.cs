@@ -31,6 +31,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
+    private readonly IChannelResolver _channelResolver;
+    private readonly IPackagingService _packagingService;
 
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
@@ -53,7 +55,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment,
+        IChannelResolver channelResolver,
+        IPackagingService packagingService)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -64,6 +69,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(channelResolver);
+        ArgumentNullException.ThrowIfNull(packagingService);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -75,6 +82,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
+        _channelResolver = channelResolver;
+        _packagingService = packagingService;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -95,6 +104,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         templateVersionOption.Description = NewCommandStrings.VersionArgumentDescription;
         templateVersionOption.Recursive = true;
         Options.Add(templateVersionOption);
+
+        var channelOption = new Option<string?>("--channel");
+        channelOption.Description = NewCommandStrings.ChannelArgumentDescription;
+        channelOption.Recursive = true;
+        Options.Add(channelOption);
 
         _templates = templateProvider.GetTemplates();
 

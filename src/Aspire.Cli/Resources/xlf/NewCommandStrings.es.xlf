@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="../NewCommandStrings.resx">
     <body>
+      <trans-unit id="ChannelArgumentDescription">
+        <source>The channel to use for Aspire packages (e.g., stable, daily).</source>
+        <target state="new">The channel to use for Aspire packages (e.g., stable, daily).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Create a new Aspire project.</source>
         <target state="translated">Crear un nuevo proyecto Aspire.</target>
