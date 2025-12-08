@@ -39,7 +39,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         IsEmulator
-        ? ReferenceExpression.Create($"Endpoint={EmulatorServiceUri?.ToString()};Key={ApiKey}")
+        ? ReferenceExpression.Create($"Endpoint={EmulatorServiceUri?.ToString()}")
         : ReferenceExpression.Create($"Endpoint={Endpoint};EndpointAIInference={AIFoundryApiEndpoint}models");
 
     /// <summary>
@@ -51,11 +51,6 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     /// Gets whether the resource is running in the Foundry Local.
     /// </summary>
     public bool IsEmulator => this.IsEmulator();
-
-    /// <summary>
-    /// The API key to access Foundry Local
-    /// </summary>
-    public string? ApiKey { get; internal set; }
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)

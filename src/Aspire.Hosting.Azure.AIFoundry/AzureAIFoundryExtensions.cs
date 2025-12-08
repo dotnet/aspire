@@ -135,7 +135,7 @@ public static class AzureAIFoundryExtensions
         var resource = builder.Resource;
         resource.Annotations.Add(new EmulatorResourceAnnotation());
 
-        builder.ApplicationBuilder.Services.AddSingleton<FoundryLocalManager>();
+        builder.ApplicationBuilder.Services.AddSingleton(_ => FoundryLocalManager.Instance);
 
         builder.WithInitializer();
 
@@ -177,7 +177,7 @@ public static class AzureAIFoundryExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var aiFoundry = builder.AddAzureAIFoundry("aiFoundry");
-    /// 
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithRoleAssignments(aiFoundry, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor)
     ///   .WithReference(aiFoundry);
@@ -199,12 +199,30 @@ public static class AzureAIFoundryExtensions
             => Task.Run(async () =>
             {
                 var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
-                var manager = @event.Services.GetRequiredService<FoundryLocalManager>();
                 var logger = @event.Services.GetRequiredService<ResourceLoggerService>().GetLogger(resource);
+
+                var foundryLocalConfig = new Configuration
+                {
+                    AppName = resource.Name
+                };
+                await FoundryLocalManager.CreateAsync(foundryLocalConfig, ct).ConfigureAwait(false);
+                var manager = FoundryLocalManager.Instance;
+
+                if (manager is null)
+                {
+                    logger.LogInformation("Foundry Local Manager could not be created.");
+                    await rns.PublishUpdateAsync(resource, state => state with
+                    {
+                        State = KnownResourceStates.FailedToStart,
+                        Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, "Foundry Local")]
+                    }).ConfigureAwait(false);
+                    return;
+                }
 
                 await rns.PublishUpdateAsync(resource, state => state with
                 {
-                    State = new ResourceStateSnapshot(KnownResourceStates.Starting, KnownResourceStateStyles.Info)
+                    State = new ResourceStateSnapshot(KnownResourceStates.Starting, KnownResourceStateStyles.Info),
+                    Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, "Foundry Local")]
                 }).ConfigureAwait(false);
 
                 try
@@ -218,7 +236,7 @@ public static class AzureAIFoundryExtensions
 
                 if (FoundryLocalManager.IsInitialized)
                 {
-                    resource.EmulatorServiceUri = manager.Conf;
+                    resource.EmulatorServiceUri = foundryLocalConfig.Web?.ExternalUrl;
 
                     await rns.PublishUpdateAsync(resource, state => state with
                     {
@@ -254,78 +272,82 @@ public static class AzureAIFoundryExtensions
             var manager = @event.Services.GetRequiredService<FoundryLocalManager>();
             var eventing = @event.Services.GetRequiredService<IDistributedApplicationEventing>();
 
-            var model = deployment.ModelName;
+            var modelName = deployment.ModelName;
 
             _ = Task.Run(async () =>
             {
                 await rns.PublishUpdateAsync(deployment, state => state with
                 {
-                    State = new ResourceStateSnapshot($"Downloading model {model}", KnownResourceStateStyles.Info),
-                    Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, model)]
+                    State = new ResourceStateSnapshot($"Downloading model {modelName}", KnownResourceStateStyles.Info),
+                    Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, modelName)]
                 }).ConfigureAwait(false);
 
-                var result = manager.DownloadModelWithProgressAsync(model, ct: ct);
+                var catalog = await manager.GetCatalogAsync(ct).ConfigureAwait(false);
 
-                await foreach (var progress in result.ConfigureAwait(false))
+                var model = await catalog.GetModelAsync(modelName, ct).ConfigureAwait(false);
+
+                if (model is null)
                 {
-                    if (progress.IsCompleted && progress.ModelInfo is not null)
+                    logger.LogInformation("Model {Model} not found in local catalog.", modelName);
+                    await rns.PublishUpdateAsync(deployment, state => state with
                     {
-                        // Set the model id that was actually downloaded. This is the value that is used in the
-                        // connection string
+                        State = KnownResourceStates.FailedToStart
+                    }).ConfigureAwait(false);
+                    return;
+                }
 
-                        deployment.ModelId = progress.ModelInfo.ModelId;
-                        logger.LogInformation("Model {Model} downloaded successfully ({ModelId}).", model, deployment.ModelId);
-
-                        // Re-publish the connection string since the model id is now known
-                        var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(deployment, @event.Services);
-                        await eventing.PublishAsync(connectionStringAvailableEvent, ct).ConfigureAwait(false);
-
-                        await rns.PublishUpdateAsync(deployment, state => state with
-                        {
-                            Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, $"{model} ({deployment.ModelId})")]
-                        }).ConfigureAwait(false);
-
-                        await rns.PublishUpdateAsync(deployment, state => state with
-                        {
-                            State = new ResourceStateSnapshot("Loading model", KnownResourceStateStyles.Info)
-                        }).ConfigureAwait(false);
-
-                        try
-                        {
-                            _ = await manager.LoadModelAsync(deployment.ModelId, ct: ct).ConfigureAwait(false);
-
-                            await rns.PublishUpdateAsync(deployment, state => state with
-                            {
-                                State = KnownResourceStates.Running
-                            }).ConfigureAwait(false);
-                        }
-                        catch (Exception e)
-                        {
-                            // LoadModelAsync throws IOE when the model is invalid.
-                            logger.LogInformation("Failed to start {Model}. Error: {Error}", model, e.Message);
-
-                            await rns.PublishUpdateAsync(deployment, state => state with
-                            {
-                                State = KnownResourceStates.FailedToStart
-                            }).ConfigureAwait(false);
-                        }
-                    }
-                    else if (progress.IsCompleted && !string.IsNullOrEmpty(progress.ErrorMessage))
+                if (await model.IsCachedAsync(ct).ConfigureAwait(false))
+                {
+                    logger.LogInformation("Model {Model} is already cached locally.", modelName);
+                }
+                else
+                {
+                    await model.DownloadAsync(async progress =>
                     {
-                        logger.LogInformation("Failed to start {Model}. Error: {Error}", model, progress.ErrorMessage);
+                        logger.LogInformation("Downloading model {Model}: {Progress:F2}%", modelName, progress);
                         await rns.PublishUpdateAsync(deployment, state => state with
                         {
-                            State = KnownResourceStates.FailedToStart
+                            State = new ResourceStateSnapshot($"Downloading model {modelName}: {progress:F2}%", KnownResourceStateStyles.Info)
                         }).ConfigureAwait(false);
-                    }
-                    else
+                    }, ct).ConfigureAwait(false);
+
+                    logger.LogInformation("Model {Model} downloaded successfully ({ModelId}).", modelName, model.Id);
+                }
+
+                deployment.ModelId = model.Id;
+
+                // Re-publish the connection string since the model id is now known
+                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(deployment, @event.Services);
+                await eventing.PublishAsync(connectionStringAvailableEvent, ct).ConfigureAwait(false);
+
+                await rns.PublishUpdateAsync(deployment, state => state with
+                {
+                    Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, $"{modelName} ({model.Id})")]
+                }).ConfigureAwait(false);
+
+                await rns.PublishUpdateAsync(deployment, state => state with
+                {
+                    State = new ResourceStateSnapshot("Loading model", KnownResourceStateStyles.Info)
+                }).ConfigureAwait(false);
+
+                try
+                {
+                    await model.LoadAsync(ct).ConfigureAwait(false);
+
+                    await rns.PublishUpdateAsync(deployment, state => state with
                     {
-                        logger.LogInformation("Downloading model {Model}: {Progress:F2}%", model, progress.Percentage);
-                        await rns.PublishUpdateAsync(deployment, state => state with
-                        {
-                            State = new ResourceStateSnapshot($"Downloading model {model}: {progress.Percentage:F2}%", KnownResourceStateStyles.Info)
-                        }).ConfigureAwait(false);
-                    }
+                        State = KnownResourceStates.Running
+                    }).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    // LoadModelAsync throws IOE when the model is invalid.
+                    logger.LogInformation("Failed to start {Model}. Error: {Error}", modelName, e.Message);
+
+                    await rns.PublishUpdateAsync(deployment, state => state with
+                    {
+                        State = KnownResourceStates.FailedToStart
+                    }).ConfigureAwait(false);
                 }
             }, ct);
 

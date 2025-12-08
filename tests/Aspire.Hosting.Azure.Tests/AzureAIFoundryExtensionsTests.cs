@@ -75,7 +75,6 @@ public class AzureAIFoundryExtensionsTests
         var resourceBuilder = builder.AddAzureAIFoundry("myAIFoundry");
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         Assert.False(resource.IsEmulator);
-        Assert.Null(resource.ApiKey);
 
         var localBuilder = resourceBuilder.RunAsFoundryLocal();
 
@@ -91,9 +90,9 @@ public class AzureAIFoundryExtensionsTests
         // Wait until it's not in Starting state anymore (started or failed whether the Foundry Local service is setup or not)
         await rns.WaitForResourceAsync(resource.Name, [KnownResourceStates.FailedToStart, KnownResourceStates.Running], cts.Token);
 
-        var foundryManager = app.Services.GetRequiredService<FoundryLocalManager>();
+        var foundryManager = app.Services.GetService<FoundryLocalManager>();
 
-        Assert.Equal(foundryManager.ApiKey, localResource.ApiKey);
+        Assert.NotNull(foundryManager);
     }
 
     [Fact]
