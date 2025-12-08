@@ -146,8 +146,6 @@ internal static class DcpLogParser
             var cmd = root.TryGetProperty("Cmd", out var cmdProp) ? cmdProp.GetString() : null;
             var args = root.TryGetProperty("Args", out var argsProp) ? argsProp : (JsonElement?)null;
             var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
-            var executable = root.TryGetProperty("Executable", out var execProp) ? execProp.GetString() : null;
-            var container = root.TryGetProperty("Container", out var containerProp) ? containerProp.GetString() : null;
 
             // Build the formatted message
             var sb = new StringBuilder();
@@ -159,7 +157,7 @@ internal static class DcpLogParser
                 sb.Append(textPart);
             }
 
-            // Add Cmd and Args if present and text doesn't already mention "process"
+            // Add Cmd and Args if present
             if (cmd != null && !string.IsNullOrWhiteSpace(cmd))
             {
                 if (sb.Length > SystemLogPrefix.Length)
@@ -186,11 +184,11 @@ internal static class DcpLogParser
                     {
                         sb.Append(':');
                         sb.AppendLine();
-                        // Indent each line of the error
+                        // Prefix each line with [sys]
                         var errorLines = error.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                         for (int i = 0; i < errorLines.Length; i++)
                         {
-                            sb.Append("    - ");
+                            sb.Append(SystemLogPrefix);
                             sb.Append(errorLines[i].Trim());
                             // Only add newline if not the last line
                             if (i < errorLines.Length - 1)

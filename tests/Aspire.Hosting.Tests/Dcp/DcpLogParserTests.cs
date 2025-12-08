@@ -291,7 +291,7 @@ public sealed class DcpLogParserTests
     }
 
     [Fact]
-    public void FormatSystemLog_MultiLineError_FormatsWithBullets()
+    public void FormatSystemLog_MultiLineError_FormatsWithSysPrefix()
     {
         // Arrange
         var message = "Failed to start Container\t{\"Container\": \"/nginx-duqbgyrt\", \"Reconciliation\": 16, \"ContainerID\": \"1f1f348abff1\", \"ContainerName\": \"nginx-duqbgyrt\", \"error\": \"container 'nginx-duqbgyrt' start failed (exit code 123)\\nwriter is closed\\nnot all requested objects were returned\\nonly 0 out of 1 containers were successfully started\"}";
@@ -300,7 +300,7 @@ public sealed class DcpLogParserTests
         var formatted = DcpLogParser.FormatSystemLog(message);
 
         // Assert
-        var expected = "[sys] Failed to start Container:\n    - container 'nginx-duqbgyrt' start failed (exit code 123)\n    - writer is closed\n    - not all requested objects were returned\n    - only 0 out of 1 containers were successfully started";
+        var expected = "[sys] Failed to start Container:\n[sys] container 'nginx-duqbgyrt' start failed (exit code 123)\n[sys] writer is closed\n[sys] not all requested objects were returned\n[sys] only 0 out of 1 containers were successfully started";
         Assert.Equal(expected, formatted);
     }
 
