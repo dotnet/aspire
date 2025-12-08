@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Packaging;
 using ModelContextProtocol.Protocol;
+using Semver;
 
 namespace Aspire.Cli.Mcp;
 
@@ -95,14 +96,32 @@ internal sealed class ListIntegrationsTool(IPackagingService packagingService, C
             // Get integration packages from the default channel
             var integrationPackages = await defaultChannel.GetIntegrationPackagesAsync(workingDirectory, cancellationToken);
 
-            var integrations = integrationPackages
-                .Select(package => new Integration
+            // Group by package ID and select the latest version using semantic version comparison
+            // Parse version once and include it in the result to avoid redundant parsing
+            var packagesWithParsedVersions = integrationPackages
+                .Select(p => new
                 {
-                    Name = GetFriendlyName(package.Id),
-                    PackageId = package.Id,
-                    Version = package.Version
+                    FriendlyName = GetFriendlyName(p.Id),
+                    PackageId = p.Id,
+                    Version = p.Version,
+                    ParsedVersion = SemVersion.TryParse(p.Version, SemVersionStyles.Any, out var v) ? v : null
                 })
-                .OrderBy(i => i.Name)
+                .Where(p => p.ParsedVersion is not null)
+                .ToList();
+
+            var distinctPackages = packagesWithParsedVersions
+                .GroupBy(p => p.PackageId)
+                .Select(g => g.OrderByDescending(p => p.ParsedVersion!, SemVersion.PrecedenceComparer).First())
+                .OrderBy(p => p.FriendlyName)
+                .ToList();
+
+            var integrations = distinctPackages
+                .Select(p => new Integration
+                {
+                    Name = p.FriendlyName,
+                    PackageId = p.PackageId,
+                    Version = p.Version
+                })
                 .ToList();
 
             var response = new ListIntegrationsResponse
