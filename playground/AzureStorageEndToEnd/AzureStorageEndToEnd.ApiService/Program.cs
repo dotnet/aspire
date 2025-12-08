@@ -18,18 +18,15 @@ var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-app.MapGet("/", async (BlobServiceClient bsc, [FromKeyedServices("myqueue")] QueueClient queue, [FromKeyedServices("foocontainer")] BlobContainerClient keyedContainerClient1) =>
+app.MapGet("/", async (BlobServiceClient bsc, [FromKeyedServices("myqueue")] QueueClient queue) =>
 {
     var blobNames = new List<string>();
     var blobNameAndContent = Guid.NewGuid().ToString();
-
-    await keyedContainerClient1.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
 
     var directContainerClient = bsc.GetBlobContainerClient(blobContainerName: "test-container-1");
     await directContainerClient.UploadBlobAsync(blobNameAndContent, new BinaryData(blobNameAndContent));
 
     await ReadBlobsAsync(directContainerClient, blobNames);
-    await ReadBlobsAsync(keyedContainerClient1, blobNames);
 
     await queue.SendMessageAsync("Hello, world!");
 

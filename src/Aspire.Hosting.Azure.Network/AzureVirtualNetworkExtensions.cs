@@ -44,6 +44,13 @@ public static class AzureVirtualNetworkExtensions
         builder.AddAzureProvisioning();
 
         AzureVirtualNetworkResource resource = new(name, ConfigureVirtualNetwork);
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            // In run mode, we don't want to add the resource to the builder.
+            return builder.CreateResourceBuilder(resource);
+        }
+
         return builder.AddResource(resource);
 
         void ConfigureVirtualNetwork(AzureResourceInfrastructure infra)
@@ -131,6 +138,13 @@ public static class AzureVirtualNetworkExtensions
         var subnet = new AzureSubnetResource(name, subnetName, addressPrefix, builder.Resource);
 
         builder.Resource.Subnets.Add(subnet);
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            // In run mode, we don't want to add the resource to the builder.
+            return builder.ApplicationBuilder.CreateResourceBuilder(subnet);
+        }
+
         return builder.ApplicationBuilder.AddResource(subnet)
             .ExcludeFromManifest();
     }

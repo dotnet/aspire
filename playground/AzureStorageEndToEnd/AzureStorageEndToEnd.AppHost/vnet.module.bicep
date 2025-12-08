@@ -19,12 +19,20 @@ resource vnet 'Microsoft.Network/virtualNetworks@2025-01-01' = {
 resource subnet1 'Microsoft.Network/virtualNetworks/subnets@2025-01-01' = {
   name: 'subnet1'
   properties: {
-    addressPrefix: '10.0.1.0/24'
+    addressPrefix: '10.0.0.0/23'
+    delegations: [
+      {
+        properties: {
+          serviceName: 'Microsoft.App/environments'
+        }
+        name: 'ContainerAppsDelegation'
+      }
+    ]
   }
   parent: vnet
 }
 
-output subnet1_SubnetId string = subnet1.id
+output subnet1_Id string = subnet1.id
 
 output id string = vnet.id
 

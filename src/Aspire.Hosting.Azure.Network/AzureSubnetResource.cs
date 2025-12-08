@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Network;
 using Azure.Provisioning;
 using Azure.Provisioning.Network;
 
@@ -76,6 +77,15 @@ public class AzureSubnetResource(string name, string subnetName, string addressP
         if (NatGateway is not null)
         {
             subnet.NatGatewayId = NatGateway.Id.AsProvisioningParameter(infra);
+        }
+
+        if (this.TryGetLastAnnotation<AzureSubnetServiceDelegationAnnotation>(out var serviceDelegationAnnotation))
+        {
+            subnet.Delegations.Add(new ServiceDelegation()
+            {
+                Name = serviceDelegationAnnotation.Name,
+                ServiceName = serviceDelegationAnnotation.ServiceName
+            });
         }
 
         // add a provisioning output for the subnet ID so it can be referenced by other resources
