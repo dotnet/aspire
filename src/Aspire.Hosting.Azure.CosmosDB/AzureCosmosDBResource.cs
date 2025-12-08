@@ -36,7 +36,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// This is used when Entra ID authentication is used. The connection string is an output of the bicep template.
     /// </summary>
     /// <remarks>
-    /// The value is taken from the cosmos.properties.documentEndpoint bicep property.
+    /// The value is taken from the cosmos.properties.documentEndpoint bicep property and contains an endpoint.
     /// </remarks>
     public BicepOutputReference ConnectionStringOutput => new("connectionString", this);
 
@@ -216,6 +216,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
             }
             else
             {
+                // The ConnectionString output contains the account endpoint URI.
                 builder.Append($"AccountEndpoint={ConnectionStringOutput}");
             }
 
@@ -238,6 +239,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
+        // The ConnectionString output contains the account endpoint URI.
         yield return new("Uri", ReferenceExpression.Create($"{ConnectionStringOutput}"));
         yield return new("AccountKey", AccountKey);
     }

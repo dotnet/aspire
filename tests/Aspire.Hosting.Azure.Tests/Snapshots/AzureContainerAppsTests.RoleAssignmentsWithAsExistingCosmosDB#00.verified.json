@@ -9,7 +9,6 @@
     "api_containerimage": "{api.containerImage}",
     "api_identity_outputs_id": "{api-identity.outputs.id}",
     "cosmos_outputs_connectionstring": "{cosmos.outputs.connectionString}",
-    "cosmos_outputs_accountendpoint": "{cosmos.outputs.accountEndpoint}",
     "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
   }
 }

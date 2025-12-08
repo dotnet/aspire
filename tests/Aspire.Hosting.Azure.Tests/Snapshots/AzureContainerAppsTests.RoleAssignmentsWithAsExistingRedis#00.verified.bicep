@@ -73,10 +73,6 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: 'redis://${redis_outputs_hostname}:10000'
             }
             {
-              name: 'REDIS_PASSWORD'
-              value: ''
-            }
-            {
               name: 'AZURE_CLIENT_ID'
               value: api_identity_outputs_clientid
             }

@@ -9,7 +9,7 @@ param api_identity_outputs_id string
 
 param mydb_kv_outputs_name string
 
-param mydb_outputs_accountendpoint string
+param mydb_outputs_connectionstring string
 
 param kvName string
 
@@ -78,7 +78,7 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
             }
             {
               name: 'MYDB_URI'
-              value: mydb_outputs_accountendpoint
+              value: mydb_outputs_connectionstring
             }
             {
               name: 'MYDB_ACCOUNTKEY'

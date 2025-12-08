@@ -92,8 +92,6 @@ output fe_identity_id string = fe_identity.outputs.id
 
 output storage_blobEndpoint string = storage.outputs.blobEndpoint
 
-output account_accountEndpoint string = account.outputs.accountEndpoint
-
 output account_connectionString string = account.outputs.connectionString
 
 output fe_identity_clientId string = fe_identity.outputs.clientId

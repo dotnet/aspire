@@ -22,7 +22,7 @@ public class AzureSearchConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("{search.outputs.connectionString}", property.Value.ValueExpression);
+                Assert.Equal("{search.outputs.endpoint}", property.Value.ValueExpression);
             });
     }
 }

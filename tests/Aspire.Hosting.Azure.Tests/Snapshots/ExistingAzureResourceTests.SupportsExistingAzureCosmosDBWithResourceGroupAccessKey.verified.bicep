@@ -73,6 +73,4 @@ resource container_connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-0
   parent: keyVault
 }
 
-output accountEndpoint string = cosmos.properties.documentEndpoint
-
 output name string = existingResourceName

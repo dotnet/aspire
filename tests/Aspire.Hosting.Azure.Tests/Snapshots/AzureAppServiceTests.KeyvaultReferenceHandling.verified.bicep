@@ -15,7 +15,7 @@ param api_containerport string
 
 param mydb_kv_outputs_name string
 
-param mydb_outputs_accountendpoint string
+param mydb_outputs_connectionstring string
 
 param kvName string
 
@@ -101,7 +101,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
         }
         {
           name: 'MYDB_URI'
-          value: mydb_outputs_accountendpoint
+          value: mydb_outputs_connectionstring
         }
         {
           name: 'MYDB_ACCOUNTKEY'

@@ -77,18 +77,8 @@ public class AzureManagedRedisConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)redis.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Collection(
-            properties,
-            property =>
-            {
-                Assert.Equal("Host", property.Key);
-                Assert.Equal("{redis.outputs.hostName}", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("Uri", property.Key);
-                Assert.Equal("redis://{redis.outputs.hostName}", property.Value.ValueExpression);
-            });
+        // Not implemented for the obsolete resource
+        Assert.Empty(properties);
     }
 
     [Fact]
@@ -101,17 +91,7 @@ public class AzureManagedRedisConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)redis.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Collection(
-            properties,
-            property =>
-            {
-                Assert.Equal("Host", property.Key);
-                Assert.Equal("{redis.outputs.hostName}", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("Uri", property.Key);
-                Assert.Equal("redis://{redis.outputs.hostName}", property.Value.ValueExpression);
-            });
+        // Not implemented for the obsolete resource
+        Assert.Empty(properties);
     }
 }

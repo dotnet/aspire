@@ -37,6 +37,4 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
 
 output connectionString string = cosmos.properties.documentEndpoint
 
-output accountEndpoint string = cosmos.properties.documentEndpoint
-
 output name string = existingResourceName

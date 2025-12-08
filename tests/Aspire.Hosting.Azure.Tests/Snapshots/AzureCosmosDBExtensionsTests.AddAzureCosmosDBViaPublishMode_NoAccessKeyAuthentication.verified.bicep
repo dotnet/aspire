@@ -58,6 +58,4 @@ resource mycontainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contain
 
 output connectionString string = cosmos.properties.documentEndpoint
 
-output accountEndpoint string = cosmos.properties.documentEndpoint
-
 output name string = cosmos.name

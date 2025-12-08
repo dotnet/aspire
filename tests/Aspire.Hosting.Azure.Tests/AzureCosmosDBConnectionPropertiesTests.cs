@@ -19,7 +19,7 @@ public class AzureCosmosDBConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("{cosmos.outputs.accountEndpoint}", property.Value.ValueExpression);
+                Assert.Equal("{cosmos.outputs.connectionString}", property.Value.ValueExpression);
             },
             property =>
             {
@@ -42,7 +42,7 @@ public class AzureCosmosDBConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("{cosmos.outputs.accountEndpoint}", property.Value.ValueExpression);
+                Assert.Equal("{cosmos.outputs.connectionString}", property.Value.ValueExpression);
             },
             property =>
             {
