@@ -58,6 +58,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                             targetResource,
                             ctx,
                             containerImageBuilder).ConfigureAwait(false);
+
+                        ctx.ReportingStep.Log(LogLevel.Information, $"Successfully pushed image for **{targetResource.Name}**.", enableMarkdown: true);
                     },
                     Tags = [WellKnownPipelineTags.PushContainerImage]
                 };
