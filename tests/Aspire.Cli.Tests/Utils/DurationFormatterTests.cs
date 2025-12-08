@@ -28,7 +28,7 @@ public class DurationFormatterTests
     public void FormatDuration_FormatsSmallDurationsCorrectly(double seconds, string expected)
     {
         // Act
-        var result = Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds));
+        var result = Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds), System.Globalization.CultureInfo.InvariantCulture);
         
         // Assert
         Assert.Equal(expected, result);
@@ -44,7 +44,7 @@ public class DurationFormatterTests
     public void FormatDuration_FormatsLongerDurationsWithMultipleUnits(double seconds, string expected)
     {
         // Act
-        var result = Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds));
+        var result = Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds), System.Globalization.CultureInfo.InvariantCulture);
         
         // Assert
         Assert.Equal(expected, result);
@@ -59,7 +59,7 @@ public class DurationFormatterTests
     {
         // This test verifies the core issue: we should never see "0.0s" for small durations
         // Act
-        var result = Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds));
+        var result = Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds), System.Globalization.CultureInfo.InvariantCulture);
         
         // Assert - should never be "0.0s" and should match expected format
         Assert.NotEqual("0.0s", result);

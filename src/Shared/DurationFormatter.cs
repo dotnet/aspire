@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 
 namespace Aspire.Shared;
 
@@ -26,8 +27,10 @@ internal static class DurationFormatter
         new UnitStep { Unit = "μs", Ticks = TimeSpan.TicksPerMicrosecond, Threshold = TimeSpan.TicksPerMicrosecond, IsDecimal = true },
     };
 
-    public static string FormatDuration(TimeSpan duration)
+    public static string FormatDuration(TimeSpan duration, CultureInfo? culture = null)
     {
+        culture ??= CultureInfo.InvariantCulture;
+        
         var (primaryUnit, secondaryUnit) = ResolveUnits(duration.Ticks);
         var ofPrevious = primaryUnit.Ticks / secondaryUnit.Ticks;
         var ticks = (double)duration.Ticks;
@@ -35,7 +38,7 @@ internal static class DurationFormatter
         if (primaryUnit.IsDecimal)
         {
             // If the unit is decimal based, display as a decimal
-            return $"{ticks / primaryUnit.Ticks:0.##}{primaryUnit.Unit}";
+            return string.Create(culture, $"{ticks / primaryUnit.Ticks:0.##}{primaryUnit.Unit}");
         }
 
         var primaryValue = Math.Floor(ticks / primaryUnit.Ticks);
