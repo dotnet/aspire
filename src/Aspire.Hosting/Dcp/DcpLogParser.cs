@@ -157,6 +157,8 @@ internal static class DcpLogParser
             {
                 ("Cmd", root.TryGetProperty("Cmd", out var cmdProp) ? cmdProp.GetString() : null),
                 ("Args", root.TryGetProperty("Args", out var argsProp) ? argsProp.ToString() : null),
+                ("ContainerName", root.TryGetProperty("ContainerName", out var containerNameProp) ? containerNameProp.GetString() : null),
+                ("ContainerId", root.TryGetProperty("ContainerID", out var containerIdProp) ? containerIdProp.GetString() : null),
                 ("Error", root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null)
             };
 

@@ -300,7 +300,7 @@ public sealed class DcpLogParserTests
         var formatted = DcpLogParser.FormatSystemLog(message);
 
         // Assert
-        var expected = "[sys] Failed to start Container:\n[sys] container 'nginx-duqbgyrt' start failed (exit code 123)\n[sys] writer is closed\n[sys] not all requested objects were returned\n[sys] only 0 out of 1 containers were successfully started";
+        var expected = "[sys] Failed to start Container: ContainerName = nginx-duqbgyrt, ContainerId = 1f1f348abff1:\n[sys] container 'nginx-duqbgyrt' start failed (exit code 123)\n[sys] writer is closed\n[sys] not all requested objects were returned\n[sys] only 0 out of 1 containers were successfully started";
         Assert.Equal(expected, formatted);
     }
 
@@ -314,7 +314,7 @@ public sealed class DcpLogParserTests
         var formatted = DcpLogParser.FormatSystemLog(message);
 
         // Assert
-        Assert.Equal("[sys] Container created", formatted);
+        Assert.Equal("[sys] Container created: ContainerName = nginx-duqbgyrt", formatted);
     }
 
     [Fact]
@@ -341,5 +341,57 @@ public sealed class DcpLogParserTests
 
         // Assert
         Assert.Equal("[sys] Cmd = mycommand, Args = [\"arg1\", \"arg2\"]", formatted);
+    }
+
+    [Fact]
+    public void FormatSystemLog_ContainerWithNameAndId_FormatsCorrectly()
+    {
+        // Arrange
+        var message = "Container started\t{\"Container\": \"/nginx-abc123\", \"ContainerName\": \"nginx-abc123\", \"ContainerID\": \"1f1f348abff1\"}";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        Assert.Equal("[sys] Container started: ContainerName = nginx-abc123, ContainerId = 1f1f348abff1", formatted);
+    }
+
+    [Fact]
+    public void FormatSystemLog_ContainerWithNameIdAndError_FormatsCorrectly()
+    {
+        // Arrange
+        var message = "Failed to start Container\t{\"Container\": \"/nginx-duqbgyrt\", \"Reconciliation\": 16, \"ContainerID\": \"1f1f348abff1\", \"ContainerName\": \"nginx-duqbgyrt\", \"error\": \"container failed to start\"}";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        Assert.Equal("[sys] Failed to start Container: ContainerName = nginx-duqbgyrt, ContainerId = 1f1f348abff1, Error = container failed to start", formatted);
+    }
+
+    [Fact]
+    public void FormatSystemLog_ContainerWithOnlyName_FormatsCorrectly()
+    {
+        // Arrange
+        var message = "Container created\t{\"Container\": \"/nginx-xyz\", \"ContainerName\": \"nginx-xyz\"}";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        Assert.Equal("[sys] Container created: ContainerName = nginx-xyz", formatted);
+    }
+
+    [Fact]
+    public void FormatSystemLog_ContainerWithOnlyId_FormatsCorrectly()
+    {
+        // Arrange
+        var message = "Container removed\t{\"Container\": \"/nginx-xyz\", \"ContainerID\": \"abc123def456\"}";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        Assert.Equal("[sys] Container removed: ContainerId = abc123def456", formatted);
     }
 }
