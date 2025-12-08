@@ -97,7 +97,6 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
         {
             WorkingDirectory = ExecutionContext.WorkingDirectory,
             RepositoryRoot = workspaceRoot,
-            CreateAgentInstructions = createAgentInstructions,
             ConfigurePlaywrightMcpServer = configurePlaywright
         };
 
@@ -123,8 +122,41 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
             await applicator.ApplyAsync(cancellationToken);
         }
 
+        // Create agent instructions file if requested
+        if (createAgentInstructions)
+        {
+            await CreateAgentInstructionsAsync(workspaceRoot, cancellationToken);
+        }
+
         _interactionService.DisplaySuccess(McpCommandStrings.InitCommand_ConfigurationComplete);
 
         return ExitCodeConstants.Success;
+    }
+
+    /// <summary>
+    /// Creates agent instruction file (AGENTS.md or AGENTS.aspire.md if AGENTS.md already exists).
+    /// </summary>
+    private static async Task CreateAgentInstructionsAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
+    {
+        var agentsFilePath = Path.Combine(workspaceRoot.FullName, "AGENTS.md");
+        var targetFilePath = agentsFilePath;
+
+        // If AGENTS.md already exists, use AGENTS.aspire.md instead
+        if (File.Exists(agentsFilePath))
+        {
+            targetFilePath = Path.Combine(workspaceRoot.FullName, "AGENTS.aspire.md");
+        }
+
+        // Only create the file if it doesn't already exist
+        if (!File.Exists(targetFilePath))
+        {
+            const string placeholderContent = @"# Agent Instructions
+
+This file contains instructions for AI agents working on this repository.
+
+<!-- TODO: Add agent-specific instructions here -->
+";
+            await File.WriteAllTextAsync(targetFilePath, placeholderContent, cancellationToken);
+        }
     }
 }

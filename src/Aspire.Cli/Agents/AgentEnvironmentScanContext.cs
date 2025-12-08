@@ -23,11 +23,6 @@ internal sealed class AgentEnvironmentScanContext
     public required DirectoryInfo RepositoryRoot { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether agent-specific instruction files should be created.
-    /// </summary>
-    public bool CreateAgentInstructions { get; init; }
-
-    /// <summary>
     /// Gets a value indicating whether the Playwright MCP server should be pre-configured.
     /// </summary>
     public bool ConfigurePlaywrightMcpServer { get; init; }
