@@ -6,10 +6,16 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.Azure.AIFoundry;
 
-internal sealed class LocalModelHealthCheck(string? modelId, FoundryLocalManager manager) : IHealthCheck
+internal sealed class LocalModelHealthCheck(string? modelId) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
+        var manager = FoundryLocalManager.Instance;
+        if (manager is null)
+        {
+            return HealthCheckResult.Unhealthy("Foundry Local has not been initialised successfully.");
+        }
+
         if (string.IsNullOrEmpty(modelId))
         {
             return HealthCheckResult.Unhealthy("Model has not been loaded.");

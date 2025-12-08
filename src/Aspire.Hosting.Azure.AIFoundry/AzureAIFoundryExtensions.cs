@@ -359,7 +359,7 @@ public static class AzureAIFoundryExtensions
         builder.ApplicationBuilder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
                     healthCheckKey,
-                    sp => new LocalModelHealthCheck(modelId: deployment.ModelId, sp.GetRequiredService<FoundryLocalManager>()),
+                    sp => new LocalModelHealthCheck(modelId: deployment.ModelId),
                     failureStatus: default,
                     tags: default,
                     timeout: default
