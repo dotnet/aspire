@@ -125,7 +125,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                             if (testAgentProjectDoesNotExist)
                             {
                                 ctx.ReportingStep.Log(LogLevel.Information, $"Test Agent project **{targetResource.Name}** does not exist. Creating ...", enableMarkdown: true);
-                                await CreateTestAgentProjectAsync(targetResource.Name, workspace, ctx).ConfigureAwait(false);
+                                await CreateTestAgentProjectAsync(hostName, workspace, ctx).ConfigureAwait(false);
                                 await CreateTestAgentJobAsync(hostName, workspace, "Define and implement ~10 e2e tests, execute them, auto-heal failures, rerun tests, and generate recommendations.", ctx).ConfigureAwait(false);
                             }
                             else
