@@ -9,6 +9,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
@@ -178,10 +179,8 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
                 if (json.RootElement.TryGetProperty("appHostPath", out var appHostPathProperty) && appHostPathProperty.GetString() is { } appHostPath)
                 {
-
                     var qualifiedAppHostPath = Path.IsPathRooted(appHostPath) ? appHostPath : Path.Combine(settingsFile.Directory!.FullName, appHostPath);
-                    // Normalize the path to handle forward slashes and relative segments (e.g., ..) on all platforms
-                    qualifiedAppHostPath = Path.GetFullPath(qualifiedAppHostPath);
+                    qualifiedAppHostPath = PathNormalizer.NormalizePathForCurrentPlatform(qualifiedAppHostPath);
                     var appHostFile = new FileInfo(qualifiedAppHostPath);
 
                     if (appHostFile.Exists)
