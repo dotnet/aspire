@@ -744,21 +744,6 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
         Assert.Equal("Aspire.Hosting.Redis", selectedPackageId);
     }
-
-    private sealed class FakeNuGetPackageCache : Aspire.Cli.NuGet.INuGetPackageCache
-    {
-        public Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) 
-            => Task.FromResult<IEnumerable<NuGetPackage>>([]);
-        
-        public Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) 
-            => Task.FromResult<IEnumerable<NuGetPackage>>([]);
-        
-        public Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) 
-            => Task.FromResult<IEnumerable<NuGetPackage>>([]);
-        
-        public Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken) 
-            => Task.FromResult<IEnumerable<NuGetPackage>>([]);
-    }
 }
 
 internal sealed class TestAddCommandPrompter(IInteractionService interactionService) : AddCommandPrompter(interactionService)

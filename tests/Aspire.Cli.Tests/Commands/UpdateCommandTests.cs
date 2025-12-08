@@ -13,7 +13,6 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
-using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -992,19 +991,4 @@ internal sealed class TestPackagingService : IPackagingService
         var testChannel = new PackageChannel("test", PackageChannelQuality.Stable, null, null!);
         return Task.FromResult<IEnumerable<PackageChannel>>(new[] { testChannel });
     }
-}
-
-internal sealed class FakeNuGetPackageCache : Aspire.Cli.NuGet.INuGetPackageCache
-{
-    public Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
-        => Task.FromResult<IEnumerable<NuGetPackage>>([]);
-
-    public Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
-        => Task.FromResult<IEnumerable<NuGetPackage>>([]);
-
-    public Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
-        => Task.FromResult<IEnumerable<NuGetPackage>>([]);
-
-    public Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken)
-        => Task.FromResult<IEnumerable<NuGetPackage>>([]);
 }
