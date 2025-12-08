@@ -214,12 +214,17 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         Assert.False(copilotCliRunner.WasCalled); // Verify GetVersionAsync was not called
     }
 
-    private static AgentEnvironmentScanContext CreateScanContext(DirectoryInfo workingDirectory)
+    private static AgentEnvironmentScanContext CreateScanContext(
+        DirectoryInfo workingDirectory,
+        bool createAgentInstructions = false,
+        bool configurePlaywrightMcpServer = false)
     {
         return new AgentEnvironmentScanContext
         {
             WorkingDirectory = workingDirectory,
-            RepositoryRoot = workingDirectory
+            RepositoryRoot = workingDirectory,
+            CreateAgentInstructions = createAgentInstructions,
+            ConfigurePlaywrightMcpServer = configurePlaywrightMcpServer
         };
     }
 

@@ -243,6 +243,74 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         Assert.NotNull(otherServer);
     }
 
+    [Fact]
+    public async Task ApplyAsync_WithConfigurePlaywrightTrue_AddsPlaywrightServer()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var vsCodeFolder = workspace.CreateDirectory(".vscode");
+        var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(workspace.WorkspaceRoot, configurePlaywrightMcpServer: true);
+
+        await scanner.ScanAsync(context, CancellationToken.None);
+        await context.Applicators[0].ApplyAsync(CancellationToken.None);
+
+        var mcpJsonPath = Path.Combine(vsCodeFolder.FullName, "mcp.json");
+        var content = await File.ReadAllTextAsync(mcpJsonPath);
+        var config = JsonNode.Parse(content)?.AsObject();
+        Assert.NotNull(config);
+
+        var servers = config["servers"]?.AsObject();
+        Assert.NotNull(servers);
+        
+        // Both aspire and playwright servers should exist
+        Assert.True(servers.ContainsKey("aspire"));
+        Assert.True(servers.ContainsKey("playwright"));
+
+        var playwrightServer = servers["playwright"]?.AsObject();
+        Assert.NotNull(playwrightServer);
+        Assert.Equal("stdio", playwrightServer["type"]?.GetValue<string>());
+        Assert.Equal("npx", playwrightServer["command"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WithCreateAgentInstructionsTrue_CreatesInstructionsFile()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var vsCodeFolder = workspace.CreateDirectory(".vscode");
+        var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(workspace.WorkspaceRoot, createAgentInstructions: true);
+
+        await scanner.ScanAsync(context, CancellationToken.None);
+        await context.Applicators[0].ApplyAsync(CancellationToken.None);
+
+        var instructionsPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "agents", "vscode", "instructions.md");
+        Assert.True(File.Exists(instructionsPath));
+
+        var content = await File.ReadAllTextAsync(instructionsPath);
+        Assert.Contains("VS Code Agent Instructions", content);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WithCreateAgentInstructionsFalse_DoesNotCreateInstructionsFile()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var vsCodeFolder = workspace.CreateDirectory(".vscode");
+        var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
+        var context = CreateScanContext(workspace.WorkspaceRoot, createAgentInstructions: false);
+
+        await scanner.ScanAsync(context, CancellationToken.None);
+        await context.Applicators[0].ApplyAsync(CancellationToken.None);
+
+        var instructionsPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "agents", "vscode", "instructions.md");
+        Assert.False(File.Exists(instructionsPath));
+    }
+
     /// <summary>
     /// A fake implementation of <see cref="IVsCodeCliRunner"/> for testing.
     /// </summary>
@@ -251,13 +319,19 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         public Task<SemVersion?> GetVersionAsync(VsCodeRunOptions options, CancellationToken cancellationToken) => Task.FromResult(version);
     }
 
-    private static AgentEnvironmentScanContext CreateScanContext(DirectoryInfo workingDirectory, DirectoryInfo? repositoryRoot = null)
+    private static AgentEnvironmentScanContext CreateScanContext(
+        DirectoryInfo workingDirectory,
+        DirectoryInfo? repositoryRoot = null,
+        bool createAgentInstructions = false,
+        bool configurePlaywrightMcpServer = false)
     {
         repositoryRoot ??= workingDirectory;
         return new AgentEnvironmentScanContext
         {
             WorkingDirectory = workingDirectory,
-            RepositoryRoot = repositoryRoot
+            RepositoryRoot = repositoryRoot,
+            CreateAgentInstructions = createAgentInstructions,
+            ConfigurePlaywrightMcpServer = configurePlaywrightMcpServer
         };
     }
 
