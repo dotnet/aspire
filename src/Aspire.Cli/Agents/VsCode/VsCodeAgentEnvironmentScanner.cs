@@ -60,7 +60,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
             // Found a .vscode folder - add an applicator to configure MCP
             _logger.LogDebug("Adding VS Code applicator for .vscode folder at: {VsCodeFolder}", vsCodeFolder.FullName);
-            context.AddApplicator(CreateApplicator(vsCodeFolder));
+            context.AddApplicator(CreateApplicator(vsCodeFolder, context));
         }
         else if (await IsVsCodeAvailableAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -69,7 +69,7 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             // Use workspace root for new .vscode folder
             var targetVsCodeFolder = new DirectoryInfo(Path.Combine(context.RepositoryRoot.FullName, VsCodeFolderName));
             _logger.LogDebug("Adding VS Code applicator for new .vscode folder at: {VsCodeFolder}", targetVsCodeFolder.FullName);
-            context.AddApplicator(CreateApplicator(targetVsCodeFolder));
+            context.AddApplicator(CreateApplicator(targetVsCodeFolder, context));
         }
         else
         {
@@ -204,17 +204,27 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// <summary>
     /// Creates an applicator for configuring the MCP server in the specified .vscode folder.
     /// </summary>
-    private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo vsCodeFolder)
+    private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo vsCodeFolder, AgentEnvironmentScanContext context)
     {
         return new AgentEnvironmentApplicator(
             VsCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
-            async cancellationToken => await ApplyMcpConfigurationAsync(vsCodeFolder, cancellationToken));
+            async cancellationToken => await ApplyMcpConfigurationAsync(
+                vsCodeFolder,
+                context.RepositoryRoot,
+                context.CreateAgentInstructions,
+                context.ConfigurePlaywrightMcpServer,
+                cancellationToken));
     }
 
     /// <summary>
     /// Creates or updates the mcp.json file in the .vscode folder.
     /// </summary>
-    private static async Task ApplyMcpConfigurationAsync(DirectoryInfo vsCodeFolder, CancellationToken cancellationToken)
+    private static async Task ApplyMcpConfigurationAsync(
+        DirectoryInfo vsCodeFolder,
+        DirectoryInfo repositoryRoot,
+        bool createAgentInstructions,
+        bool configurePlaywrightMcpServer,
+        CancellationToken cancellationToken)
     {
         // Ensure the .vscode folder exists
         if (!vsCodeFolder.Exists)
@@ -252,8 +262,51 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             ["args"] = new JsonArray("mcp", "start")
         };
 
+        // Add Playwright MCP server if requested
+        if (configurePlaywrightMcpServer && !servers.ContainsKey("playwright"))
+        {
+            servers["playwright"] = new JsonObject
+            {
+                ["type"] = "stdio",
+                ["command"] = "npx",
+                ["args"] = new JsonArray("-y", "@executeautomation/playwright-mcp-server")
+            };
+        }
+
         // Write the updated config with indentation using AOT-compatible serialization
         var jsonContent = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(mcpConfigPath, jsonContent, cancellationToken);
+
+        // Create agent-specific instruction files if requested
+        if (createAgentInstructions)
+        {
+            await CreateVsCodeInstructionsAsync(repositoryRoot, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Creates VS Code agent-specific instruction files.
+    /// </summary>
+    private static async Task CreateVsCodeInstructionsAsync(DirectoryInfo repositoryRoot, CancellationToken cancellationToken)
+    {
+        var githubDir = Path.Combine(repositoryRoot.FullName, ".github");
+        var agentsDir = Path.Combine(githubDir, "agents");
+        var vsCodeAgentDir = Path.Combine(agentsDir, "vscode");
+
+        // Ensure directories exist
+        Directory.CreateDirectory(vsCodeAgentDir);
+
+        // Create placeholder instruction file
+        var instructionsPath = Path.Combine(vsCodeAgentDir, "instructions.md");
+        if (!File.Exists(instructionsPath))
+        {
+            const string placeholderContent = @"# VS Code Agent Instructions
+
+This file contains instructions for the VS Code agent environment.
+
+<!-- TODO: Add agent-specific instructions here -->
+";
+            await File.WriteAllTextAsync(instructionsPath, placeholderContent, cancellationToken);
+        }
     }
 }

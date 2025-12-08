@@ -13,7 +13,14 @@ internal interface IAgentEnvironmentDetector
     /// </summary>
     /// <param name="workingDirectory">The working directory to scan.</param>
     /// <param name="repositoryRoot">The root directory of the repository/workspace. Scanners use this as the boundary for searches.</param>
+    /// <param name="createAgentInstructions">Whether to create agent-specific instruction files.</param>
+    /// <param name="configurePlaywrightMcpServer">Whether to pre-configure the Playwright MCP server.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An array of applicators for detected agent environments.</returns>
-    Task<AgentEnvironmentApplicator[]> DetectAsync(DirectoryInfo workingDirectory, DirectoryInfo repositoryRoot, CancellationToken cancellationToken);
+    Task<AgentEnvironmentApplicator[]> DetectAsync(
+        DirectoryInfo workingDirectory,
+        DirectoryInfo repositoryRoot,
+        bool createAgentInstructions,
+        bool configurePlaywrightMcpServer,
+        CancellationToken cancellationToken);
 }

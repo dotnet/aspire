@@ -58,7 +58,7 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
             // Config file exists but aspire is not configured - offer to add it
             _logger.LogDebug("Adding OpenCode applicator to update existing opencode.jsonc");
-            context.AddApplicator(CreateApplicator(configDirectory));
+            context.AddApplicator(CreateApplicator(configDirectory, context));
         }
         else
         {
@@ -71,7 +71,7 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 _logger.LogDebug("Found OpenCode CLI version: {Version}", openCodeVersion);
                 // OpenCode is installed - offer to create config
                 _logger.LogDebug("Adding OpenCode applicator to create new opencode.jsonc at: {ConfigDirectory}", configDirectory.FullName);
-                context.AddApplicator(CreateApplicator(configDirectory));
+                context.AddApplicator(CreateApplicator(configDirectory, context));
             }
             else
             {
@@ -152,17 +152,25 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// <summary>
     /// Creates an applicator for configuring the MCP server in the opencode.jsonc file.
     /// </summary>
-    private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo configDirectory)
+    private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo configDirectory, AgentEnvironmentScanContext context)
     {
         return new AgentEnvironmentApplicator(
             OpenCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
-            async cancellationToken => await ApplyMcpConfigurationAsync(configDirectory, cancellationToken));
+            async cancellationToken => await ApplyMcpConfigurationAsync(
+                configDirectory,
+                context.CreateAgentInstructions,
+                context.ConfigurePlaywrightMcpServer,
+                cancellationToken));
     }
 
     /// <summary>
     /// Creates or updates the opencode.jsonc file with the Aspire MCP server configuration.
     /// </summary>
-    private static async Task ApplyMcpConfigurationAsync(DirectoryInfo configDirectory, CancellationToken cancellationToken)
+    private static async Task ApplyMcpConfigurationAsync(
+        DirectoryInfo configDirectory,
+        bool createAgentInstructions,
+        bool configurePlaywrightMcpServer,
+        CancellationToken cancellationToken)
     {
         var configFilePath = Path.Combine(configDirectory.FullName, OpenCodeConfigFileName);
         JsonObject config;
@@ -200,8 +208,51 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             ["enabled"] = true
         };
 
+        // Add Playwright MCP server if requested
+        if (configurePlaywrightMcpServer && !mcp.ContainsKey("playwright"))
+        {
+            mcp["playwright"] = new JsonObject
+            {
+                ["type"] = "local",
+                ["command"] = new JsonArray("npx", "-y", "@executeautomation/playwright-mcp-server"),
+                ["enabled"] = true
+            };
+        }
+
         // Write the updated config using AOT-compatible serialization
         var jsonOutput = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(configFilePath, jsonOutput, cancellationToken);
+
+        // Create agent-specific instruction files if requested
+        if (createAgentInstructions)
+        {
+            await CreateOpenCodeInstructionsAsync(configDirectory, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Creates OpenCode agent-specific instruction files.
+    /// </summary>
+    private static async Task CreateOpenCodeInstructionsAsync(DirectoryInfo configDirectory, CancellationToken cancellationToken)
+    {
+        var githubDir = Path.Combine(configDirectory.FullName, ".github");
+        var agentsDir = Path.Combine(githubDir, "agents");
+        var openCodeAgentDir = Path.Combine(agentsDir, "opencode");
+
+        // Ensure directories exist
+        Directory.CreateDirectory(openCodeAgentDir);
+
+        // Create placeholder instruction file
+        var instructionsPath = Path.Combine(openCodeAgentDir, "instructions.md");
+        if (!File.Exists(instructionsPath))
+        {
+            const string placeholderContent = @"# OpenCode Agent Instructions
+
+This file contains instructions for the OpenCode agent environment.
+
+<!-- TODO: Add agent-specific instructions here -->
+";
+            await File.WriteAllTextAsync(instructionsPath, placeholderContent, cancellationToken);
+        }
     }
 }
