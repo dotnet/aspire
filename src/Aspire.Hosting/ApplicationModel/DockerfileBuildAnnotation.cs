@@ -9,10 +9,11 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="contextPath">The path to the context directory for the build. </param>
 /// <param name="dockerfilePath">The path to the Dockerfile to use for the build.</param>
 /// <param name="stage">The name of the build stage to use for the build.</param>
-public class DockerfileBuildAnnotation(string contextPath, string dockerfilePath, string? stage) : IResourceAnnotation
+public class DockerfileBuildAnnotation(string contextPath, string dockerfilePath, string? stage) : IResourceAnnotation, IDisposable
 {
     private readonly SemaphoreSlim _materializationLock = new(1, 1);
     private bool _isMaterialized;
+    private bool _disposed;
 
     /// <summary>
     /// Gets the path to the context directory for the build.
@@ -80,6 +81,12 @@ public class DockerfileBuildAnnotation(string contextPath, string dockerfilePath
             return;
         }
 
+        // Fast path: check if already materialized before acquiring lock
+        if (_isMaterialized)
+        {
+            return;
+        }
+
         await _materializationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -96,6 +103,18 @@ public class DockerfileBuildAnnotation(string contextPath, string dockerfilePath
         finally
         {
             _materializationLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Disposes the resources used by this annotation.
+    /// </summary>
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _materializationLock.Dispose();
+            _disposed = true;
         }
     }
 }
