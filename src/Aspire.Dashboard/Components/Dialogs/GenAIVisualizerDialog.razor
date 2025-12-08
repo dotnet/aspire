@@ -304,7 +304,7 @@
                                     <FluentAccordion Class="tools-list">
                                         @foreach (var toolVM in Content.ToolDefinitions.Where(t => t.ToolDefinition.Type == "function"))
                                         {
-                                            <FluentAccordionItem @bind-Expanded="toolVM.Expanded" HeadingTooltip="@GetToolHeadingToolTip(toolVM)">
+                                            <FluentAccordionItem @bind-Expanded="toolVM.Expanded" HeadingTooltip="@GetToolHeadingTooltip(toolVM)">
                                                 <HeadingTemplate>
                                                     <div class="tool-heading">
                                                         <FluentBadge Appearance="Appearance.Accent" Style="min-width: 80px; text-align: center;">
