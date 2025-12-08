@@ -227,6 +227,102 @@ public class DcpExecutorTests
     }
 
     [Fact]
+    public async Task ResourceRestarted_OnResourceStartingContextFiredOnce()
+    {
+        // This test verifies that OnResourceStartingContext is only fired once when a resource is restarted,
+        // not twice. The bug was that DcpExecutor.StartResourceAsync would fire OnResourceStartingContext
+        // and then CreateContainerAsync/CreateExecutableAsync would fire it again, leading to duplicate
+        // BeforeResourceStartedEvent events in ApplicationOrchestrator.
+        
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        var resource = builder.AddProject<Projects.ServiceA>("ServiceA").Resource;
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+
+        var events = new DcpExecutorEvents();
+        var onResourceStartingCount = 0;
+        events.Subscribe<OnResourceStartingContext>((ctx) =>
+        {
+            if (ctx.Resource == resource)
+            {
+                Interlocked.Increment(ref onResourceStartingCount);
+            }
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
+        
+        // Act - Initial start
+        await appExecutor.RunApplicationAsync();
+        var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        var exe1 = Assert.Single(executables);
+        
+        // Assert - Initial start should fire event exactly once
+        Assert.Equal(1, onResourceStartingCount);
+
+        // Act - Restart
+        var reference = appExecutor.GetResource(exe1.Metadata.Name);
+        await appExecutor.StopResourceAsync(reference, CancellationToken.None);
+        await appExecutor.StartResourceAsync(reference, CancellationToken.None);
+
+        // Assert - Restart should fire event exactly once more (total 2, not 3)
+        // NOTE: This currently passes, but the bug manifests as 3 because StartResourceAsync 
+        // fires the event then calls Create which fires it again
+        Assert.Equal(2, onResourceStartingCount);
+    }
+
+    [Fact]
+    public async Task ContainerRestarted_OnResourceStartingContextFiredOnce()
+    {
+        // This test verifies that OnResourceStartingContext is only fired once when a container is restarted.
+        // The bug report specifically mentioned containers.
+        
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("test-nginx", "nginx").Resource;
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+
+        var events = new DcpExecutorEvents();
+        var onResourceStartingCount = 0;
+        events.Subscribe<OnResourceStartingContext>((ctx) =>
+        {
+            if (ctx.Resource == container)
+            {
+                Interlocked.Increment(ref onResourceStartingCount);
+            }
+            return Task.CompletedTask;
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
+        
+        // Act - Initial start
+        await appExecutor.RunApplicationAsync();
+        var containers = kubernetesService.CreatedResources.OfType<Container>().ToList();
+        var ctr1 = Assert.Single(containers);
+        
+        // Assert - Initial start should fire event exactly once
+        Assert.Equal(1, onResourceStartingCount);
+
+        // Act - Restart
+        var reference = appExecutor.GetResource(ctr1.Metadata.Name);
+        await appExecutor.StopResourceAsync(reference, CancellationToken.None);
+        await appExecutor.StartResourceAsync(reference, CancellationToken.None);
+
+        // Assert - Restart should fire event exactly once more (total 2, not 3)
+        Assert.Equal(2, onResourceStartingCount);
+    }
+
+    [Fact]
     public async Task EndpointPortsExecutableNotReplicatedProxiedNoPortNoTargetPort()
     {
         var builder = DistributedApplication.CreateBuilder();

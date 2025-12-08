@@ -2402,7 +2402,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     // Ensure we explicitly start the container
                     c.Spec.Start = true;
 
-                    await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, appResource.ModelResource, appResource.DcpResourceName)).ConfigureAwait(false);
+                    // OnResourceStartingContext will be published by CreateContainerAsync
                     await CreateContainerAsync(appResource, resourceLogger, cancellationToken).ConfigureAwait(false);
                     break;
                 case Executable e:
