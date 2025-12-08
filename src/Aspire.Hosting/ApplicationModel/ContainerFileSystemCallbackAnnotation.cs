@@ -282,14 +282,14 @@ public sealed class ContainerFileSystemCallbackContext
     /// The path to the server authentication certificate file inside the container.
     /// </summary>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public ContainerFileSystemCallbackServerAuthenticationCertificateContext? ServerAuthenticationCertificateContext { get; set; }
+    public ContainerFileSystemCallbackHttpsCertificateContext? HttpsCertificateContext { get; set; }
 }
 
 /// <summary>
 /// Represents the context for server authentication certificate files in a <see cref="ContainerFileSystemCallbackContext"/>.
 /// </summary>
 [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class ContainerFileSystemCallbackServerAuthenticationCertificateContext
+public sealed class ContainerFileSystemCallbackHttpsCertificateContext
 {
     /// <summary>
     /// A reference expression that resolves to the path to the server authentication certificate file inside the container.

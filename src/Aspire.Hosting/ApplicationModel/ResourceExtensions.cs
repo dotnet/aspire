@@ -2,14 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography.X509Certificates;
-using Aspire.Hosting.Dcp.Model;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-#pragma warning disable ASPIRECERTIFICATES001
 #pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIRECOMPUTE002
 
@@ -158,6 +154,41 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Gets a <see cref="IResourceExecutionConfigurationBuilder"/> for the given resource.
+    /// </summary>
+    /// <param name="resource">The resource to generate configuration for</param>
+    /// <returns>A <see cref="IResourceExecutionConfigurationBuilder"/> instance for the given resource.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method is useful for building resource execution configurations (command line arguments and environment variables)
+    /// in a fluent manner. Individual configuration sources can be added to the builder before finalizing the configuration to
+    /// allow only supported configuration sources to be applied in a given execution context (run vs. publish, etc).
+    /// </para>
+    /// <para>
+    /// In particular, this is used to allow certificate-related features to contribute to the final config, but only in execution
+    /// contexts where they're supported.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// var resolvedConfiguration = await myResource.ExecutionConfigurationBuilder()
+    ///     .WithArguments()
+    ///     .WithEnvironmentVariables()
+    ///     .BuildAsync(executionContext, resourceLogger: null, cancellationToken: cancellationToken)
+    ///     .ConfigureAwait(false);
+    ///
+    /// foreach (var argument in resolveConfiguration.Arguments)
+    /// {
+    ///     Console.WriteLine($"Argument: {argument.Value}");
+    /// }
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceExecutionConfigurationBuilder ExecutionConfigurationBuilder(this IResource resource)
+    {
+        return ResourceExecutionConfigurationBuilder.Create(resource);
+    }
+
+    /// <summary>
     /// Get the environment variables from the given resource.
     /// </summary>
     /// <param name="resource">The resource to get the environment variables from.</param>
@@ -192,23 +223,15 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var env = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            executionContext,
-            (key, unprocessed, value, ex) =>
-            {
-                if (value is string s)
-                {
-                    env[key] = s;
-                }
-            },
-            NullLogger.Instance).ConfigureAwait(false);
+        (var executionConfiguration, _) = await resource.ExecutionConfigurationBuilder()
+            .WithEnvironmentVariablesConfig()
+            .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 
-        return env;
+        return executionConfiguration.EnvironmentVariables.ToDictionary();
     }
 
     /// <summary>
@@ -244,25 +267,15 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     public static async ValueTask<string[]> GetArgumentValuesAsync(this IResourceWithArgs resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var args = new List<string>();
+        (var argumentConfiguration, _) = await resource.ExecutionConfigurationBuilder()
+            .WithArgumentsConfig()
+            .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 
-        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
-        await resource.ProcessArgumentValuesAsync(
-            executionContext,
-            (unprocessed, value, ex, _) =>
-            {
-                if (value is string s)
-                {
-                    args.Add(s);
-                }
-
-            },
-            NullLogger.Instance).ConfigureAwait(false);
-
-        return [.. args];
+        return argumentConfiguration.Arguments.Select(a => a.Value).ToArray();
     }
 
     /// <summary>
@@ -274,6 +287,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the retrieval of argument values.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A list of unprocessed argument values.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     internal static async ValueTask<List<object>> GatherArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -308,6 +322,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     internal static async ValueTask ProcessGatheredArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -347,6 +362,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     public static async ValueTask ProcessArgumentValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -369,6 +385,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used for logging information or errors during the gathering process.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
     /// <returns>A dictionary of unprocessed environment variable values.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     internal static async ValueTask<Dictionary<string, object>> GatherEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -402,6 +419,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     internal static async ValueTask ProcessGatheredEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -437,6 +455,7 @@ public static class ResourceExtensions
     /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     public static async ValueTask ProcessEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
@@ -530,399 +549,6 @@ public static class ResourceExtensions
     internal static IEnumerable<NetworkIdentifier> GetSupportedNetworks(this IResource resource)
     {
         return resource.IsContainer() ? [KnownNetworkIdentifiers.DefaultAspireContainerNetwork, KnownNetworkIdentifiers.LocalhostNetwork] : [KnownNetworkIdentifiers.LocalhostNetwork];
-    }
-
-    /// <summary>
-    /// Holds the resolved configuration for a resource, including arguments, environment variables, and certificate trust settings.
-    /// </summary>
-    internal class ResourceConfigurationContext
-    {
-        /// <summary>
-        /// The resolved command-line arguments for the resource.
-        /// </summary>
-        public required List<(string Value, bool IsSensitive)> Arguments { get; init; }
-
-        /// <summary>
-        /// The resolved environment variables for the resource.
-        /// </summary>
-        public required List<EnvVar> EnvironmentVariables { get; init; }
-
-        /// <summary>
-        /// The trusted certificates for the resource, if any.
-        /// </summary>
-        public required X509Certificate2Collection TrustedCertificates { get; init; }
-
-        /// <summary>
-        /// The certificate trust scope for the resource, if any.
-        /// </summary>
-        public required CertificateTrustScope CertificateTrustScope { get; init; }
-
-        /// <summary>
-        /// The server authentication certificate for the resource, if any.
-        /// </summary>
-        public ServerAuthenticationCertificateConfigurationDetails? ServerAuthenticationCertificateConfiguration { get; init; }
-
-        /// <summary>
-        /// Any exception that occurred during the configuration processing.
-        /// </summary>
-        public Exception? Exception { get; init; }
-    }
-
-    /// <summary>
-    /// Process arguments and environment variable values for the specified resource in the given execution context.
-    /// </summary>
-    /// <param name="resource">The resource to process configuration values for.</param>
-    /// <param name="executionContext">The execution context used during the processing of configuration values.</param>
-    /// <param name="resourceLogger">The resource specific logger used for logging information or errors during the processing of configuration values.</param>
-    /// <param name="withCertificateTrustConfig">Should certificate trust callbacks be applied during processing.</param>
-    /// <param name="withServerAuthCertificateConfig">Should server authentication certificate callbacks be applied during processing.</param>
-    /// <param name="certificateTrustConfigContextFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="CertificateTrustConfigBuilderContext"/> with the paths to certificate resources. Required if withCertificateTrustConfig is true.</param>
-    /// <param name="serverAuthCertificateConfigContextFactory">A factory function to create the context for building server authentication certificate configuration; provides the paths for the certificate, key, and PFX files. Required if withServerAuthCertificateConfig is true.</param>
-    /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
-    /// <returns>A <see cref="ResourceConfigurationContext"/> containing resolved configuration.</returns>
-    internal static async ValueTask<ResourceConfigurationContext> ProcessConfigurationValuesAsync(
-        this IResource resource,
-        DistributedApplicationExecutionContext executionContext,
-        ILogger resourceLogger,
-        bool withCertificateTrustConfig,
-        bool withServerAuthCertificateConfig,
-        Func<CertificateTrustScope, CertificateTrustConfigBuilderContext>? certificateTrustConfigContextFactory = null,
-        Func<X509Certificate2, ServerAuthCertificateConfigBuilderContext>? serverAuthCertificateConfigContextFactory = null,
-        CancellationToken cancellationToken = default)
-    {
-        if (withCertificateTrustConfig)
-        {
-            ArgumentNullException.ThrowIfNull(certificateTrustConfigContextFactory);
-        }
-
-        if (withServerAuthCertificateConfig)
-        {
-            ArgumentNullException.ThrowIfNull(serverAuthCertificateConfigContextFactory);
-        }
-
-        var args = await GatherArgumentValuesAsync(resource, executionContext, resourceLogger, cancellationToken).ConfigureAwait(false);
-        var envVars = await GatherEnvironmentVariableValuesAsync(resource, executionContext, resourceLogger, cancellationToken).ConfigureAwait(false);
-
-        var trustedCertificates = new X509Certificate2Collection();
-        var certificateTrustScope = CertificateTrustScope.None;
-        if (withCertificateTrustConfig)
-        {
-            // If certificate trust is requested, apply the additional required argument and environment variable configuration
-            (args, envVars, certificateTrustScope, trustedCertificates) = await resource.GatherCertificateTrustConfigAsync(
-                executionContext,
-                args,
-                envVars,
-                resourceLogger,
-                certificateTrustConfigContextFactory!,
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        ServerAuthenticationCertificateConfigurationDetails? serverAuthCertificateConfiguration = null;
-        if (withServerAuthCertificateConfig)
-        {
-            (args, envVars, serverAuthCertificateConfiguration) = await resource.GatherServerAuthCertificateConfigAsync(
-                executionContext,
-                args,
-                envVars,
-                serverAuthCertificateConfigContextFactory!,
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        var resolvedArgs = new List<(string, bool)>();
-        var resolvedEnvVars = new List<EnvVar>();
-
-        List<Exception> exceptions = [];
-
-        await ProcessGatheredArgumentValuesAsync(
-            resource,
-            executionContext,
-            args,
-            (unprocessed, processed, ex, isSensitive) =>
-            {
-                if (ex is not null)
-                {
-                    exceptions.Add(ex);
-
-                    resourceLogger.LogCritical(ex, "Failed to apply argument value '{ArgKey}'. A dependency may have failed to start.", ex.Data["ArgKey"]);
-                }
-                else if (processed is { } argument)
-                {
-                    resolvedArgs.Add((argument, isSensitive));
-                }
-            },
-            resourceLogger,
-            cancellationToken).ConfigureAwait(false);
-
-        await ProcessGatheredEnvironmentVariableValuesAsync(
-            resource,
-            executionContext,
-            envVars,
-            (key, unprocessed, processed, ex) =>
-            {
-                if (ex is not null)
-                {
-                    exceptions.Add(ex);
-
-                    resourceLogger.LogCritical(ex, "Failed to apply environment variable '{EnvVarKey}'. A dependency may have failed to start.", key);
-                }
-                else if (processed is string s)
-                {
-                    resolvedEnvVars.Add(new EnvVar { Name = key, Value = s });
-                }
-            },
-            resourceLogger,
-            cancellationToken).ConfigureAwait(false);
-
-        Exception? exception = null;
-        if (exceptions.Any())
-        {
-            exception = new AggregateException("One or more errors occurred while processing resource configuration.", exceptions);
-        }
-
-        return new ResourceConfigurationContext
-        {
-            Arguments = resolvedArgs,
-            EnvironmentVariables = resolvedEnvVars,
-            CertificateTrustScope = certificateTrustScope,
-            TrustedCertificates = trustedCertificates!,
-            ServerAuthenticationCertificateConfiguration = serverAuthCertificateConfiguration,
-            Exception = exception,
-        };
-    }
-
-    /// <summary>
-    /// Context for building certificate trust configuration paths.
-    /// </summary>
-    internal class CertificateTrustConfigBuilderContext
-    {
-        /// <summary>
-        /// The path to the certificate bundle file in the resource context (e.g., container filesystem).
-        /// </summary>
-        public required ReferenceExpression CertificateBundlePath { get; init; }
-
-        /// <summary>
-        /// The path(s) to the certificate directories in the resource context (e.g., container filesystem).
-        /// </summary>
-        public required ReferenceExpression CertificateDirectoriesPath { get; init; }
-    }
-
-    /// <summary>
-    /// Gathers trusted certificates configuration for the specified resource within the given execution context.
-    /// This may produce additional <see cref="CommandLineArgsCallbackAnnotation"/> and <see cref="EnvironmentCallbackAnnotation"/>
-    /// annotations on the resource to configure certificate trust as needed and therefore must be run before
-    /// <see cref="ProcessArgumentValuesAsync(IResource, DistributedApplicationExecutionContext, Action{object?, string?, Exception?, bool}, ILogger, CancellationToken)"/>
-    /// and <see cref="ProcessEnvironmentVariableValuesAsync(IResource, DistributedApplicationExecutionContext, Action{string, object?, string?, Exception?}, ILogger, CancellationToken)"/> are called.
-    /// </summary>
-    /// <param name="resource">The resource for which to process the certificate trust configuration.</param>
-    /// <param name="executionContext">The execution context used during the processing.</param>
-    /// <param name="arguments">Existing arguments that will be used to initialize the context for the config callback.</param>
-    /// <param name="environmentVariables">Existing environment variables that will be used to initialize the context for the config callback.</param>
-    /// <param name="logger">The logger used for logging information during the processing.</param>
-    /// <param name="configContextFactory">A function that takes the active <see cref="CertificateTrustScope"/> and returns a <see cref="CertificateTrustConfigBuilderContext"/> representing the paths to a custom certificate bundle and directories for the resource.</param>
-    /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    internal static async ValueTask<(List<object>, Dictionary<string, object>, CertificateTrustScope, X509Certificate2Collection)> GatherCertificateTrustConfigAsync(
-        this IResource resource,
-        DistributedApplicationExecutionContext executionContext,
-        List<object> arguments,
-        Dictionary<string, object> environmentVariables,
-        ILogger logger,
-        Func<CertificateTrustScope, CertificateTrustConfigBuilderContext> configContextFactory,
-        CancellationToken cancellationToken = default)
-    {
-        var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
-        var trustDevCert = developerCertificateService.TrustCertificate;
-
-        var certificates = new X509Certificate2Collection();
-        var scope = CertificateTrustScope.Append;
-        if (resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
-        {
-            foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
-            {
-                certificates.AddRange(certCollection.Certificates);
-            }
-
-            trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
-            scope = caAnnotation.Scope.GetValueOrDefault(scope);
-        }
-
-        if (scope == CertificateTrustScope.None)
-        {
-            return (arguments, environmentVariables, scope, new X509Certificate2Collection());
-        }
-
-        if (scope == CertificateTrustScope.System)
-        {
-            // Read the system root certificates and add them to the collection
-            certificates.AddRootCertificates();
-        }
-
-        if (executionContext.IsRunMode && trustDevCert)
-        {
-            foreach (var cert in developerCertificateService.Certificates)
-            {
-                certificates.Add(cert);
-            }
-        }
-
-        if (!certificates.Any())
-        {
-            logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", resource.Name);
-            return (arguments, environmentVariables, scope, new X509Certificate2Collection());
-        }
-
-        var configBuilderContext = configContextFactory(scope);
-
-        // Apply default OpenSSL environment configuration for certificate trust
-        environmentVariables["SSL_CERT_DIR"] = configBuilderContext.CertificateDirectoriesPath;
-
-        if (scope != CertificateTrustScope.Append)
-        {
-            environmentVariables["SSL_CERT_FILE"] = configBuilderContext.CertificateBundlePath;
-        }
-
-        var context = new CertificateTrustConfigurationCallbackAnnotationContext
-        {
-            ExecutionContext = executionContext,
-            Resource = resource,
-            Scope = scope,
-            CertificateBundlePath = configBuilderContext.CertificateBundlePath,
-            CertificateDirectoriesPath = configBuilderContext.CertificateDirectoriesPath,
-            Arguments = arguments,
-            EnvironmentVariables = environmentVariables,
-            CancellationToken = cancellationToken,
-        };
-
-        if (resource.TryGetAnnotationsOfType<CertificateTrustConfigurationCallbackAnnotation>(out var callbacks))
-        {
-            foreach (var callback in callbacks)
-            {
-                await callback.Callback(context).ConfigureAwait(false);
-            }
-        }
-
-        if (scope == CertificateTrustScope.System)
-        {
-            logger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", resource.Name, Enum.GetName(scope));
-        }
-
-        return (context.Arguments, context.EnvironmentVariables, scope, certificates);
-    }
-
-    /// <summary>
-    /// Provides paths for server authentication certificate configuration
-    /// </summary>
-    internal class ServerAuthCertificateConfigBuilderContext
-    {
-        public required ReferenceExpression CertificatePath { get; init; }
-        public required ReferenceExpression KeyPath { get; init; }
-        public required ReferenceExpression PfxPath { get; init; }
-    }
-
-    /// <summary>
-    /// Holds the details of server authentication certificate configuration.
-    /// </summary>
-    internal sealed class ServerAuthenticationCertificateConfigurationDetails
-    {
-        /// <summary>
-        /// The server authentication certificate for the resource, if any.
-        /// </summary>
-        public required X509Certificate2 Certificate { get; init; }
-
-        /// <summary>
-        /// Indicates whether the resource references a PEM key for server authentication.
-        /// </summary>
-        public required ReferenceExpression KeyPathReference { get; set; }
-
-        /// <summary>
-        /// Indicates whether the resource references a PFX file for server authentication.
-        /// </summary>
-        public required ReferenceExpression PfxReference { get; set; }
-
-        /// <summary>
-        /// The passphrase for the server authentication certificate, if any.
-        /// </summary>
-        public string? Password { get; init; }
-    }
-
-    /// <summary>
-    /// Gathers server authentication certificate configuration for the specified resource within the given execution context.
-    /// </summary>
-    /// <param name="resource">The resource for which to gather server authentication certificate configuration.</param>
-    /// <param name="executionContext">The execution context within which the configuration is being gathered.</param>
-    /// <param name="arguments">Existing arguments that will be used to initialize the context for the config callback.</param>
-    /// <param name="environmentVariables">Existing environment variables that will be used to initialize the context for the config callback.</param>
-    /// <param name="certificateConfigContextFactory">A factory function to create the context for building server authentication certificate configuration; provides the paths for the certificate, key, and PFX files.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <returns>The resulting command line arguments, environment variables, and optionally the specific server authentication certificate configuration details.</returns>
-    internal static async ValueTask<(List<object> arguments, Dictionary<string, object> environmentVariables, ServerAuthenticationCertificateConfigurationDetails? details)> GatherServerAuthCertificateConfigAsync(
-        this IResource resource,
-        DistributedApplicationExecutionContext executionContext,
-        List<object> arguments,
-        Dictionary<string, object> environmentVariables,
-        Func<X509Certificate2, ServerAuthCertificateConfigBuilderContext> certificateConfigContextFactory,
-        CancellationToken cancellationToken = default)
-    {
-        var effectiveAnnotation = new ServerAuthenticationCertificateAnnotation();
-        if (resource.TryGetLastAnnotation<ServerAuthenticationCertificateAnnotation>(out var annotation))
-        {
-            effectiveAnnotation = annotation;
-        }
-
-        if (effectiveAnnotation is null)
-        {
-            // Should never happen
-            return (arguments, environmentVariables, null);
-        }
-
-        X509Certificate2? certificate = effectiveAnnotation.Certificate;
-        if (certificate is null)
-        {
-            var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
-            if (effectiveAnnotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForServerAuthentication))
-            {
-                certificate = developerCertificateService.Certificates.FirstOrDefault();
-            }
-        }
-
-        if (certificate is null)
-        {
-            // No certificate to configure, do nothing
-            return (arguments, environmentVariables, null);
-        }
-
-        var configBuilderContext = certificateConfigContextFactory(certificate);
-
-        var context = new ServerAuthenticationCertificateConfigurationCallbackAnnotationContext
-        {
-            ExecutionContext = executionContext,
-            Resource = resource,
-            Arguments = arguments,
-            EnvironmentVariables = environmentVariables,
-            CertificatePath = configBuilderContext.CertificatePath,
-            KeyPath = configBuilderContext.KeyPath,
-            PfxPath = configBuilderContext.PfxPath,
-            Password = effectiveAnnotation.Password,
-            CancellationToken = cancellationToken,
-        };
-
-        foreach (var callback in resource.TryGetAnnotationsOfType<ServerAuthenticationCertificateConfigurationCallbackAnnotation>(out var callbacks) ? callbacks : Enumerable.Empty<ServerAuthenticationCertificateConfigurationCallbackAnnotation>())
-        {
-            await callback.Callback(context).ConfigureAwait(false);
-        }
-
-        string? password = effectiveAnnotation.Password is not null ? await effectiveAnnotation.Password.GetValueAsync(cancellationToken).ConfigureAwait(false) : null;
-
-        return (
-            arguments,
-            environmentVariables,
-            new ServerAuthenticationCertificateConfigurationDetails()
-            {
-                Certificate = certificate,
-                Password = password,
-                KeyPathReference = context.KeyPath,
-                PfxReference = context.PfxPath,
-            });
     }
 
     internal static async ValueTask<ResolvedValue?> ResolveValueAsync(
@@ -1542,5 +1168,17 @@ public static class ResourceExtensions
         var pushOptions = await resource.ProcessImagePushOptionsCallbackAsync(cancellationToken).ConfigureAwait(false);
         var registry = resource.GetContainerRegistry();
         return await pushOptions.GetFullRemoteImageNameAsync(registry, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets a logger for the specified resource using the provided service provider.
+    /// </summary>
+    /// <param name="resource">The resource to get the logger for.</param>
+    /// <param name="serviceProvider">The service provider to resolve dependencies.</param>
+    /// <returns>A logger instance for the specified resource.</returns>
+    internal static ILogger GetLogger(this IResource resource, IServiceProvider serviceProvider)
+    {
+        var resourceLoggerService = serviceProvider.GetRequiredService<ResourceLoggerService>();
+        return resourceLoggerService.GetLogger(resource);
     }
 }

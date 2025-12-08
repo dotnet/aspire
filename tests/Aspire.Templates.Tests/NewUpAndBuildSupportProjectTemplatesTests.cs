@@ -19,8 +19,7 @@ public abstract class NewUpAndBuildSupportProjectTemplatesBase(ITestOutputHelper
             TestSdk.Current => BuildEnvironment.ForCurrentSdkOnly,
             TestSdk.Previous => BuildEnvironment.ForPreviousSdkOnly,
             TestSdk.Next => BuildEnvironment.ForNextSdkOnly,
-            TestSdk.CurrentSdkAndPreviousRuntime => BuildEnvironment.ForCurrentSdkAndPreviousRuntime,
-            TestSdk.NextSdkAndCurrentRuntime => BuildEnvironment.ForNextSdkAndCurrentRuntime,
+            TestSdk.NextSdkWithCurrentAndPreviousRuntime => BuildEnvironment.ForNextSdkWithCurrentAndPreviousRuntimes,
             _ => throw new ArgumentOutOfRangeException(nameof(sdk))
         };
 

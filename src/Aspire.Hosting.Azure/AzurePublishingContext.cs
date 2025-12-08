@@ -1,10 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
+using Microsoft.Extensions.DependencyInjection;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
@@ -118,6 +121,9 @@ public sealed class AzurePublishingContext(
             outputDirectory.Create();
         }
 
+        var fileSystemService = ServiceProvider.GetRequiredService<IFileSystemService>();
+        var tempDirectory = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-bicep").Path;
+
         var bicepResourcesToPublish = model.Resources.OfType<AzureBicepResource>()
             .Where(r => !r.IsExcludedFromPublish())
             .ToList();
@@ -145,7 +151,7 @@ public sealed class AzurePublishingContext(
 
         foreach (var resource in bicepResourcesToPublish)
         {
-            var file = resource.GetBicepTemplateFile();
+            var file = resource.GetBicepTemplateFile(tempDirectory);
 
             var moduleDirectory = outputDirectory.CreateSubdirectory(resource.Name);
 
@@ -315,10 +321,7 @@ public sealed class AzurePublishingContext(
                         Resource = resource,
                         CancellationToken = cancellationToken
                     };
-                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
-
-                    // Always write to the original DockerfilePath so code looking at that path still works
-                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+                    await dockerfileBuildAnnotation.MaterializeDockerfileAsync(context, cancellationToken).ConfigureAwait(false);
 
                     // Copy to a resource-specific path in the output folder for publishing
                     var resourceDockerfilePath = Path.Combine(outputPath, $"{resource.Name}.Dockerfile");
@@ -336,7 +339,7 @@ public sealed class AzurePublishingContext(
 
                 var modulePath = Path.Combine(moduleDirectory.FullName, $"{resource.Name}.bicep");
 
-                var file = br.GetBicepTemplateFile();
+                var file = br.GetBicepTemplateFile(tempDirectory);
 
                 File.Copy(file.Path, modulePath, true);
 

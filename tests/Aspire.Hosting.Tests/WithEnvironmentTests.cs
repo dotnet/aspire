@@ -160,13 +160,14 @@ public class WithEnvironmentTests
         var projectA = builder.AddProject<ProjectA>("projectA")
             .WithEnvironment("MY_PARAMETER", parameter);
 
-        var exception = await Assert.ThrowsAsync<MissingParameterValueException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+        var exception = await Assert.ThrowsAsync<AggregateException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             projectA.Resource,
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance
          )).DefaultTimeout();
 
-        Assert.Equal("Parameter resource could not be used because configuration key 'Parameters:parameter' is missing and the Parameter has no default value.", exception.Message);
+        var innerException = Assert.IsType<MissingParameterValueException>(exception.InnerException);
+        Assert.Equal("Parameter resource could not be used because configuration key 'Parameters:parameter' is missing and the Parameter has no default value.", innerException.Message);
     }
 
     [Fact]

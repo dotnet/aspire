@@ -2080,12 +2080,13 @@ public class DcpExecutorTests
                 ServiceProvider = new TestServiceProvider(configuration)
                     .AddService<IDeveloperCertificateService>(developerCertificateService)
                     .AddService(Options.Create(dcpOptions))
+                    .AddService(resourceLoggerService)
             }),
             resourceLoggerService,
             new TestDcpDependencyCheckService(),
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
-            new Locations(),
+            new Locations(new FileSystemService(configuration ?? new ConfigurationBuilder().Build())),
             developerCertificateService);
 #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
