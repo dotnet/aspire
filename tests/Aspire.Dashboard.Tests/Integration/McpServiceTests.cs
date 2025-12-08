@@ -273,24 +273,26 @@ public class McpServiceTests
         // Assert
         // Read telemetry items until we find the McpToolCall event
         bool foundMcpToolCall = false;
-        while (!foundMcpToolCall && await testTelemetrySender.ContextChannel.Reader.WaitToReadAsync().DefaultTimeout())
+        while (await testTelemetrySender.ContextChannel.Reader.WaitToReadAsync().DefaultTimeout())
         {
             var context = await testTelemetrySender.ContextChannel.Reader.ReadAsync().DefaultTimeout();
             if (context.Name.Contains(TelemetryEventKeys.McpToolCall))
             {
                 foundMcpToolCall = true;
+                break;
             }
         }
         Assert.True(foundMcpToolCall, "Expected to find McpToolCall telemetry event");
 
         // Then read until we find the EndOperation event
         bool foundEndOperation = false;
-        while (!foundEndOperation && await testTelemetrySender.ContextChannel.Reader.WaitToReadAsync().DefaultTimeout())
+        while (await testTelemetrySender.ContextChannel.Reader.WaitToReadAsync().DefaultTimeout())
         {
             var context = await testTelemetrySender.ContextChannel.Reader.ReadAsync().DefaultTimeout();
             if (context.Name.Contains(TelemetryEndpoints.TelemetryEndOperation))
             {
                 foundEndOperation = true;
+                break;
             }
         }
         Assert.True(foundEndOperation, "Expected to find EndOperation telemetry event");
