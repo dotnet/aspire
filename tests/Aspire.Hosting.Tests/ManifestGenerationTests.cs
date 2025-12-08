@@ -698,7 +698,7 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
     private TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeIntegrationServices = false, bool includeNodeApp = false)
     {
         var program = TestProgram.Create<ManifestGenerationTests>(GetJsonManifestArgs(), includeIntegrationServices, includeNodeApp);
-        program.AppBuilder.Services.AddTestAndResourceLogging(testOutputHelper);
+        program.AppBuilder.WithTestAndResourceLogging(testOutputHelper);
         program.AppBuilder.Pipeline.AddJsonDocumentManifestPublishing();
         return program;
     }
@@ -718,14 +718,14 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
     private IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOptions options)
     {
         var builder = DistributedApplication.CreateBuilder(options);
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         return builder;
     }
 
     private IDistributedApplicationBuilder CreateBuilder()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
         return builder;
     }
 }

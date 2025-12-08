@@ -87,7 +87,8 @@ internal sealed class ResourceLogSource<TResource>(
                     // Parse DCP logs if requested
                     if (parseDcpLogs && DcpLogParser.TryParseDcpLog(line, out var parsedMessage, out _, out var isErrorLevel))
                     {
-                        line = parsedMessage;
+                        // Format system logs with [sys] prefix and improved readability
+                        line = DcpLogParser.FormatSystemLog(parsedMessage);
                         isError = isErrorLevel;
                     }
 
