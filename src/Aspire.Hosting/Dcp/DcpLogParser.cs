@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dcp;
@@ -113,5 +114,107 @@ internal static class DcpLogParser
         var result = TryParseDcpLog(bytes.AsSpan(), out message, out logLevel, out _);
         isErrorLevel = logLevel == LogLevel.Error;
         return result;
+    }
+
+    /// <summary>
+    /// Formats a system-level log message by parsing JSON metadata and applying the [sys] prefix format.
+    /// </summary>
+    /// <param name="message">The raw message which may contain a text portion and JSON metadata.</param>
+    /// <returns>The formatted message with [sys] prefix and human-readable format.</returns>
+    public static string FormatSystemLog(string message)
+    {
+        // Try to find JSON portion in the message (starts with a tab followed by '{')
+        var jsonStart = message.IndexOf('\t');
+        if (jsonStart < 0)
+        {
+            // No JSON metadata, return message as-is with [sys] prefix
+            return $"[sys] {message}";
+        }
+
+        var textPart = message[..jsonStart];
+        var jsonPart = message[(jsonStart + 1)..];
+
+        // Try to parse the JSON metadata
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonPart);
+            var root = doc.RootElement;
+
+            // Extract relevant fields
+            var cmd = root.TryGetProperty("Cmd", out var cmdProp) ? cmdProp.GetString() : null;
+            var args = root.TryGetProperty("Args", out var argsProp) ? argsProp : (JsonElement?)null;
+            var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
+            var executable = root.TryGetProperty("Executable", out var execProp) ? execProp.GetString() : null;
+            var container = root.TryGetProperty("Container", out var containerProp) ? containerProp.GetString() : null;
+
+            // Build the formatted message
+            var sb = new StringBuilder();
+            sb.Append("[sys] ");
+            
+            // Add the text part if it exists
+            if (!string.IsNullOrWhiteSpace(textPart))
+            {
+                sb.Append(textPart);
+            }
+
+            // Add Cmd and Args if present and text doesn't already mention "process"
+            if (cmd != null && !string.IsNullOrWhiteSpace(cmd))
+            {
+                if (sb.Length > 6) // "[sys] " is 6 chars
+                {
+                    sb.Append(": ");
+                }
+                sb.Append("Cmd=");
+                sb.Append(cmd);
+
+                if (args.HasValue)
+                {
+                    sb.Append(" Args=");
+                    sb.Append(args.Value.ToString());
+                }
+            }
+
+            // Add error if present
+            if (!string.IsNullOrWhiteSpace(error))
+            {
+                if (sb.Length > 6) // "[sys] " is 6 chars
+                {
+                    // Check if error is multi-line
+                    if (error.Contains('\n'))
+                    {
+                        sb.Append(':');
+                        sb.AppendLine();
+                        // Indent each line of the error
+                        var errorLines = error.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                        foreach (var line in errorLines)
+                        {
+                            sb.Append("    - ");
+                            sb.AppendLine(line.Trim());
+                        }
+                        // Remove the last newline
+                        if (sb.Length > 0 && sb[^1] == '\n')
+                        {
+                            sb.Length--;
+                        }
+                    }
+                    else
+                    {
+                        sb.Append(": ");
+                        sb.Append(error);
+                    }
+                }
+                else
+                {
+                    sb.Append(error);
+                }
+            }
+
+            return sb.ToString();
+        }
+        catch
+        {
+            // If JSON parsing fails, return the original message with [sys] prefix
+            return $"[sys] {message}";
+        }
     }
 }
