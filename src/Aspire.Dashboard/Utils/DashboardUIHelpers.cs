@@ -105,7 +105,7 @@ internal static class DashboardUIHelpers
 
     /// <summary>
     /// Safely converts a duration to milliseconds as an integer.
-    /// If the value exceeds int.MaxValue, returns int.MaxValue.
+    /// If the value exceeds int.MaxValue, returns int.MaxValue. A duration must be longer than 24 days to hit this limit. That should almost never happen and it's ok to truncate at this point.
     /// </summary>
     public static int SafeConvertToMilliseconds(TimeSpan duration)
     {
