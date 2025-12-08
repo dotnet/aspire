@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
 
 using System.Collections.Concurrent;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -17,6 +18,8 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
     private readonly TempFileSystemService _tempDirectory;
     private ILogger? _logger;
     private readonly bool _preserveTempFiles;
+    private readonly string? _outputPath;
+    private readonly string _pipelineTempDirectory;
 
     // Track allocated temp files and directories as disposable objects using path as key
     private readonly ConcurrentDictionary<string, IDisposable> _allocatedItems = new();
@@ -29,6 +32,13 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
         _preserveTempFiles = configuration["ASPIRE_PRESERVE_TEMP_FILES"] is not null;
         
         _tempDirectory = new TempFileSystemService(this);
+
+        // Initialize output path from configuration
+        var configuredOutputPath = configuration["Pipeline:OutputPath"];
+        _outputPath = configuredOutputPath is not null ? Path.GetFullPath(configuredOutputPath) : null;
+        
+        // Create a temp directory for pipeline operations
+        _pipelineTempDirectory = _tempDirectory.CreateTempSubdirectory("aspire-pipelines").Path;
     }
 
     /// <summary>
@@ -45,6 +55,36 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
 
     /// <inheritdoc/>
     public ITempFileSystemService TempDirectory => _tempDirectory;
+
+    /// <inheritdoc/>
+    public string GetOutputDirectory()
+    {
+        return _outputPath ?? Path.Combine(Environment.CurrentDirectory, "aspire-output");
+    }
+
+    /// <inheritdoc/>
+    public string GetOutputDirectory(IResource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        var baseOutputDir = GetOutputDirectory();
+        return Path.Combine(baseOutputDir, resource.Name);
+    }
+
+    /// <inheritdoc/>
+    public string GetTempDirectory()
+    {
+        return _pipelineTempDirectory;
+    }
+
+    /// <inheritdoc/>
+    public string GetTempDirectory(IResource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        var baseTempDir = GetTempDirectory();
+        return Path.Combine(baseTempDir, resource.Name);
+    }
 
     /// <summary>
     /// Gets whether temporary files should be preserved for debugging.

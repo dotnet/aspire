@@ -4,7 +4,7 @@
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPIPELINES004 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
@@ -126,9 +126,9 @@ public sealed class AzureEnvironmentResource : Resource
     private Task PublishAsync(PipelineStepContext context)
     {
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
-        var outputService = context.Services.GetRequiredService<IPipelineOutputService>();
+        var fileSystemService = context.Services.GetRequiredService<IFileSystemService>();
         var publishingContext = new AzurePublishingContext(
-            outputService.GetOutputDirectory(),
+            fileSystemService.GetOutputDirectory(),
             azureProvisioningOptions.Value,
             context.Services,
             context.Logger,

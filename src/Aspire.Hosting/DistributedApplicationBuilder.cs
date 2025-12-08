@@ -498,7 +498,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IResourceContainerImageManager, ResourceContainerImageManager>();
         _innerBuilder.Services.AddSingleton<PipelineActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
-        _innerBuilder.Services.AddSingleton<IPipelineOutputService, PipelineOutputService>();
         _innerBuilder.Services.AddSingleton(Pipeline);
 
         // Configure pipeline logging options
