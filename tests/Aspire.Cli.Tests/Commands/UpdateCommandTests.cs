@@ -707,6 +707,10 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
+        // Create a hive directory so the channel prompt is shown
+        var hivesDir = workspace.CreateDirectory(".aspire").CreateSubdirectory("hives");
+        hivesDir.CreateSubdirectory("pr-12345");
+
         var cancellationMessageDisplayed = false;
         
         var wrappedService = new CancellationTrackingInteractionService(new TestConsoleInteractionService()
@@ -760,6 +764,10 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     public async Task UpdateCommand_SelfUpdate_WhenCancelled_DisplaysCancellationMessage()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a hive directory so the channel prompt is shown
+        var hivesDir = workspace.CreateDirectory(".aspire").CreateSubdirectory("hives");
+        hivesDir.CreateSubdirectory("pr-12345");
 
         var cancellationMessageDisplayed = false;
         

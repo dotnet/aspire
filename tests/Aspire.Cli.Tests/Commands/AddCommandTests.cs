@@ -628,12 +628,11 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         };
 
         // Act
-        await prompter.PromptForIntegrationVersionAsync(packages, CancellationToken.None);
+        var result = await prompter.PromptForIntegrationVersionAsync(packages, CancellationToken.None);
 
-        // Assert - For implicit channel, should only show highest version (9.2.0) directly
-        // The root menu shows: (string Label, Func<...> Action) tuples
-        Assert.NotNull(displayedChoices);
-        Assert.Single(displayedChoices!); // Only one choice for implicit channel
+        // Assert - For implicit channel with no explicit channels, should automatically select highest version without prompting
+        Assert.Null(displayedChoices); // No prompt should be shown
+        Assert.Equal("9.2.0", result.Package.Version); // Should return highest version
     }
 
     [Fact]
