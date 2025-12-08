@@ -9,7 +9,7 @@
       "type": "azure.bicep.v0",
       "path": "env.module.bicep",
       "params": {
-        "vnet_outputs_subnet1_subnetid": "{vnet.outputs.subnet1_SubnetId}",
+        "vnet_outputs_subnet1_id": "{vnet.outputs.subnet1_Id}",
         "userPrincipalId": ""
       }
     },

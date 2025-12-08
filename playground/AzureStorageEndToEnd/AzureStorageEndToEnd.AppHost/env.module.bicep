@@ -5,7 +5,7 @@ param userPrincipalId string = ''
 
 param tags object = { }
 
-param vnet_outputs_subnet1_subnetid string
+param vnet_outputs_subnet1_id string
 
 resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: take('env_mi-${uniqueString(resourceGroup().id)}', 128)
@@ -55,7 +55,7 @@ resource env 'Microsoft.App/managedEnvironments@2025-01-01' = {
       }
     }
     vnetConfiguration: {
-      infrastructureSubnetId: vnet_outputs_subnet1_subnetid
+      infrastructureSubnetId: vnet_outputs_subnet1_id
     }
     workloadProfiles: [
       {

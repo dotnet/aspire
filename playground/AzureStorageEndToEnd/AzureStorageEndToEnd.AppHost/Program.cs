@@ -1,12 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Azure.Network;
 using Azure.Provisioning.AppContainers;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 var vnet = builder.AddAzureVirtualNetwork("vnet");
-var subnet1 = vnet.AddSubnet("subnet1", subnetName: null, "10.0.1.0/24");
+var subnet1 = vnet.AddSubnet("subnet1", subnetName: null, "10.0.0.0/23")
+    .WithAnnotation(
+        new AzureSubnetServiceDelegationAnnotation("ContainerAppsDelegation", "Microsoft.App/environments"));
 
 builder.AddAzureContainerAppEnvironment("env")
     .ConfigureInfrastructure(infra =>
