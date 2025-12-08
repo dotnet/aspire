@@ -98,7 +98,14 @@ internal sealed class AddCommand : BaseCommand
                 async () =>
                 {
                     // Get channels and find the implicit channel, similar to how templates are handled
-                    var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+                    var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+
+                    // If there are hives (PR build directories), include all channels.
+                    // Otherwise, only use the implicit/default channel to avoid prompting.
+                    var hasHives = ExecutionContext.HivesDirectory.Exists && ExecutionContext.HivesDirectory.GetDirectories().Length > 0;
+                    var channels = hasHives 
+                        ? allChannels 
+                        : allChannels.Where(c => c.Type is PackageChannelType.Implicit);
 
                     var packages = new List<(NuGetPackage Package, PackageChannel Channel)>();
                     var packagesLock = new object();
@@ -315,6 +322,12 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         var explicitGroups = byChannel
             .Where(g => g.Channel.Type is Packaging.PackageChannelType.Explicit)
             .ToArray();
+
+        // If there are no explicit channels, automatically select from the implicit channel
+        if (explicitGroups.Length == 0 && implicitGroup is not null)
+        {
+            return implicitGroup.HighestVersion;
+        }
 
         // Build the root menu: implicit channel packages directly, explicit channels as submenus
         var rootChoices = new List<(string Label, Func<CancellationToken, Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>> Action)>();

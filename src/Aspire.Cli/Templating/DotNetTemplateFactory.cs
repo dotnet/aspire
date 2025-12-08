@@ -524,7 +524,14 @@ internal class DotNetTemplateFactory(
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         _ = parseResult;
-        var channels = await packagingService.GetChannelsAsync(cancellationToken);
+        var allChannels = await packagingService.GetChannelsAsync(cancellationToken);
+
+        // If there are hives (PR build directories), include all channels.
+        // Otherwise, only use the implicit/default channel to avoid prompting.
+        var hasHives = executionContext.HivesDirectory.Exists && executionContext.HivesDirectory.GetDirectories().Length > 0;
+        var channels = hasHives 
+            ? allChannels 
+            : allChannels.Where(c => c.Type is PackageChannelType.Implicit);
 
         var packagesFromChannels = await interactionService.ShowStatusAsync(TemplatingStrings.SearchingForAvailableTemplateVersions, async () =>
         {
