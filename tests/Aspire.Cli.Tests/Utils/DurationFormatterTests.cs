@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Utils;
-
 namespace Aspire.Cli.Tests.Utils;
 
 /// <summary>
@@ -30,7 +28,7 @@ public class DurationFormatterTests
     public void FormatDuration_FormatsSmallDurationsCorrectly(double seconds, string expected)
     {
         // Act
-        var result = DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds));
+        var result = Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds));
         
         // Assert
         Assert.Equal(expected, result);
@@ -46,7 +44,7 @@ public class DurationFormatterTests
     public void FormatDuration_FormatsLongerDurationsWithMultipleUnits(double seconds, string expected)
     {
         // Act
-        var result = DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds));
+        var result = Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds));
         
         // Assert
         Assert.Equal(expected, result);
@@ -61,7 +59,7 @@ public class DurationFormatterTests
     {
         // This test verifies the core issue: we should never see "0.0s" for small durations
         // Act
-        var result = DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds));
+        var result = Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds));
         
         // Assert - should never be "0.0s" and should match expected format
         Assert.NotEqual("0.0s", result);
@@ -75,7 +73,7 @@ public class DurationFormatterTests
         // regardless of current culture
         
         // Act - test with a value that would format differently in some cultures
-        var result = DurationFormatter.FormatDuration(TimeSpan.FromSeconds(1.5));
+        var result = Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(1.5));
         
         // Assert - should use dot, not comma
         Assert.Equal("1.5s", result);
@@ -89,7 +87,7 @@ public class DurationFormatterTests
         var oneDayInSeconds = 24 * 60 * 60;
         
         // Act
-        var result = DurationFormatter.FormatDuration(TimeSpan.FromSeconds(oneDayInSeconds));
+        var result = Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(oneDayInSeconds));
         
         // Assert - should show days (no hours when 0)
         Assert.Equal("1d", result);
@@ -102,7 +100,7 @@ public class DurationFormatterTests
         var duration = TimeSpan.FromMinutes(2) + TimeSpan.FromSeconds(30) + TimeSpan.FromMilliseconds(555);
         
         // Act
-        var result = DurationFormatter.FormatDuration(duration);
+        var result = Shared.DurationFormatter.FormatDuration(duration);
         
         // Assert - should round seconds appropriately
         Assert.Equal("2m 31s", result);

@@ -233,7 +233,7 @@ internal sealed class ConsoleActivityLogger
                     summaryParts.Add($"{FailureSymbol} {failedSteps} failed");
                 }
             }
-            summaryParts.Add($"Total time: {DurationFormatter.FormatDuration(TimeSpan.FromSeconds(totalSeconds))}");
+            summaryParts.Add($"Total time: {Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(totalSeconds))}");
             AnsiConsole.MarkupLine(string.Join(" • ", summaryParts));
 
             if (_durationRecords is { Count: > 0 })
@@ -243,7 +243,7 @@ internal sealed class ConsoleActivityLogger
                 foreach (var rec in _durationRecords)
                 {
                     // PadLeft(8) accommodates split units like "2h 30m" or decimal units like "1.5s"
-                    var durStr = DurationFormatter.FormatDuration(rec.Duration).PadLeft(8);
+                    var durStr = Shared.DurationFormatter.FormatDuration(rec.Duration).PadLeft(8);
                     var symbol = rec.State switch
                     {
                         ActivityState.Success => _enableColor ? "[green]" + SuccessSymbol + "[/]" : SuccessSymbol,
@@ -319,7 +319,7 @@ internal sealed class ConsoleActivityLogger
 
     private void WriteCompletion(string taskKey, string symbol, string message, ActivityState state, double? seconds)
     {
-        var text = seconds.HasValue ? $"{message} ({DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds.Value))})" : message;
+        var text = seconds.HasValue ? $"{message} ({Shared.DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds.Value))})" : message;
         WriteLine(taskKey, symbol, text, state);
     }
 

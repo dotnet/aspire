@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace Aspire.Cli.Utils;
+namespace Aspire.Shared;
 
 internal static class DurationFormatter
 {
