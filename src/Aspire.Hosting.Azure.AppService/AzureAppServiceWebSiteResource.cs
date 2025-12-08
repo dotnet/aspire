@@ -121,17 +121,19 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                                 hostName = hostName.Substring(0, 60);
                             }
 
+                            var projectId = Guid.NewGuid().ToString();
+
                             var testAgentProjectDoesNotExist = await TestAgentProjectDoesNotExistAsync(hostName, workspace, ctx).ConfigureAwait(false);
                             if (testAgentProjectDoesNotExist)
                             {
                                 ctx.ReportingStep.Log(LogLevel.Information, $"Test Agent project **{targetResource.Name}** does not exist. Creating ...", enableMarkdown: true);
-                                await CreateTestAgentProjectAsync(hostName, workspace, ctx).ConfigureAwait(false);
-                                await CreateTestAgentJobAsync(hostName, workspace, "Define and implement ~10 e2e tests, execute them, auto-heal failures, rerun tests, and generate recommendations.", ctx).ConfigureAwait(false);
+                                await CreateTestAgentProjectAsync(projectId, hostName, workspace, ctx).ConfigureAwait(false);
+                                await CreateTestAgentJobAsync(projectId, workspace, "Define and implement ~10 e2e tests, execute them, auto-heal failures, rerun tests, and generate recommendations.", ctx).ConfigureAwait(false);
                             }
                             else
                             {
                                 ctx.ReportingStep.Log(LogLevel.Information, $"Test Agent project **{targetResource.Name}** already exists.", enableMarkdown: true);
-                                await CreateTestAgentJobAsync(hostName, workspace, "Execute all tests, auto-heal failures, rerun tests, generate recommendations.", ctx).ConfigureAwait(false);
+                                await CreateTestAgentJobAsync(projectId, workspace, "Execute all tests, auto-heal failures, rerun tests, generate recommendations.", ctx).ConfigureAwait(false);
                             }
                         }
                         else
@@ -218,7 +220,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         return (response.StatusCode == System.Net.HttpStatusCode.NotFound);
     }
 
-    private static async Task CreateTestAgentProjectAsync(string projectName, string workspaceResourceId, PipelineStepContext context)
+    private static async Task CreateTestAgentProjectAsync(string projectId, string projectName, string workspaceResourceId, PipelineStepContext context)
     {
         // Get required services
         var httpClientFactory = context.Services.GetService<IHttpClientFactory>();
@@ -228,7 +230,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             throw new InvalidOperationException("IHttpClientFactory is not registered in the service provider.");
         }
 
-        var url = $"https://testingagentdataplane.azurewebsites.net/projects/{projectName}?resourceId={workspaceResourceId}";
+        var url = $"https://testingagentdataplane.azurewebsites.net/projects/{projectId}?resourceId={workspaceResourceId}";
         
         var requestBody = new
         {
@@ -241,7 +243,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
         context.ReportingStep.Log(LogLevel.Information, $"create url for {projectName}", enableMarkdown: true);
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        using var request = new HttpRequestMessage(HttpMethod.Patch, url)
         {
             Content = new StringContent(JsonSerializer.Serialize(requestBody), System.Text.Encoding.UTF8, "application/json")
         };
