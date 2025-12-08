@@ -5,8 +5,6 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
-using System.Security.Cryptography;
-using System.Text;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -28,7 +26,6 @@ namespace Aspire.Cli.Commands;
 internal sealed class RunCommand : BaseCommand
 {
     // Constants for running instance detection
-    private const int SocketPathHashLength = 16; // Use 16 characters to keep Unix socket path length reasonable (Unix socket path limits are ~100 chars)
     private const int ProcessTerminationTimeoutMs = 10000; // Wait up to 10 seconds for processes to terminate
     private const int ProcessTerminationPollIntervalMs = 250; // Check process status every 250ms
 
@@ -522,16 +519,7 @@ internal sealed class RunCommand : BaseCommand
 
     private string ComputeAuxiliarySocketPath(string appHostPath)
     {
-        var homeDirectory = ExecutionContext.HomeDirectory.FullName;
-        var backchannelsDir = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
-        
-        // Compute hash from the AppHost path for consistency
-        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostPath));
-        // Use limited characters to keep socket path length reasonable (Unix socket path limits)
-        var hash = Convert.ToHexString(hashBytes)[..SocketPathHashLength].ToLowerInvariant();
-        
-        var socketPath = Path.Combine(backchannelsDir, $"aux.sock.{hash}");
-        return socketPath;
+        return AppHostHelper.ComputeAuxiliarySocketPath(appHostPath, ExecutionContext.HomeDirectory.FullName);
     }
 
     private async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, CancellationToken cancellationToken)
