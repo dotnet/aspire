@@ -175,6 +175,22 @@ public class AzureAppServiceEnvironmentResource :
     internal bool EnableApplicationInsights { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether Azure Playwright Workspace should be created for the app service environment.
+    /// Default is false.
+    /// </summary>
+    internal bool AddAzurePlaywrightWorkspace { get; set; }
+
+    /// <summary>
+    /// Gets the location for the Playwright workspace resource. If <c>null</c>, the resource group location is used.
+    /// </summary>
+    internal string? PlaywrightWorkspaceLocation { get; set; }
+
+    /// <summary>
+    /// Gets the location parameter for the Playwright workspace resource.
+    /// </summary>
+    internal ParameterResource? PlaywrightWorkspaceLocationParameter { get; set; }
+
+    /// <summary>
     /// Gets the location for the Application Insights resource. If <c>null</c>, the resource group location is used.
     /// </summary>
     internal string? ApplicationInsightsLocation { get; set; }
@@ -215,6 +231,21 @@ public class AzureAppServiceEnvironmentResource :
     /// </summary>
     public BicepOutputReference AzureAppInsightsConnectionStringReference =>
         new("AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING", this);
+
+    /// <summary>
+    /// Gets the Playwright Workspace Name.
+    /// </summary>
+    public BicepOutputReference PlaywrightWorkspaceName => new("AZURE_PLAYWRIGHT_WORKSPACE_NAME", this);
+
+    /// <summary>
+    /// Gets the Playwright Workspace Id.
+    /// </summary>
+    public BicepOutputReference PlaywrightWorkspaceId => new("AZURE_PLAYWRIGHT_WORKSPACE_ID", this);
+
+    /// <summary>
+    /// Gets the Playwright Workspace DataPlane Uri.
+    /// </summary>
+    public BicepOutputReference PlaywrightWorkspaceDataPlaneUri => new("AZURE_PLAYWRIGHT_WORKSPACE_DATA_PLANE_URI", this);
 
     internal static BicepValue<string> GetWebSiteSuffixBicep() =>
         BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id);
