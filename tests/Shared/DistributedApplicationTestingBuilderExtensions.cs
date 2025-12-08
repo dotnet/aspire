@@ -22,11 +22,11 @@ public static class DistributedApplicationTestingBuilderExtensions
 
     public static T WithTestAndResourceLogging<T>(this T builder, ITestOutputHelper testOutputHelper) where T : IDistributedApplicationBuilder
     {
-        builder.Services.AddTestAndResourceLogging(testOutputHelper, builder.Configuration, builder.Environment.ApplicationName);
+        builder.Services.AddTestAndResourceLogging(testOutputHelper, builder.Configuration, builder.Environment.ApplicationName, isPublishMode: builder.ExecutionContext.IsPublishMode);
         return builder;
     }
 
-    public static IServiceCollection AddTestAndResourceLogging(this IServiceCollection services, ITestOutputHelper testOutputHelper, IConfigurationManager configuration, string? applicationName = null)
+    public static IServiceCollection AddTestAndResourceLogging(this IServiceCollection services, ITestOutputHelper testOutputHelper, IConfigurationManager configuration, string? applicationName = null, bool isPublishMode = false)
     {
         services.AddXunitLogging(testOutputHelper);
         services.AddLogging(builder =>
@@ -35,7 +35,12 @@ public static class DistributedApplicationTestingBuilderExtensions
             // Suppress all console logging during tests to reduce noise
             builder.AddFilter<ConsoleLoggerProvider>(null, LogLevel.None);
         });
-        services.AddDcpDiagnostics(configuration, applicationName, testOutputHelper);
+
+        if (!isPublishMode)
+        {
+            services.AddDcpDiagnostics(configuration, applicationName, testOutputHelper);
+        }
+
         return services;
     }
 
@@ -92,6 +97,9 @@ public static class DistributedApplicationTestingBuilderExtensions
 /// Forwards DCP log files to xUnit test output when stopped.
 /// Implements IHostedService so it gets automatically resolved and stopped when the app shuts down.
 /// </summary>
+/// <remarks>
+/// DCP is not started in publish mode, so no logs will be available.
+/// </remarks>
 internal sealed class DcpLogForwarder : IHostedService
 {
     private readonly ITestOutputHelper _testOutputHelper;
@@ -105,11 +113,12 @@ internal sealed class DcpLogForwarder : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
         if (!Directory.Exists(_logFolder))
         {
-            return Task.CompletedTask;
+            _testOutputHelper.WriteLine($"DCP log folder not found: {_logFolder}");
+            return;
         }
 
         foreach (var logFile in Directory.GetFiles(_logFolder, "*.log"))
@@ -117,7 +126,7 @@ internal sealed class DcpLogForwarder : IHostedService
             try
             {
                 _testOutputHelper.WriteLine($"=== DCP Log: {Path.GetFileName(logFile)} ===");
-                var content = File.ReadAllText(logFile);
+                var content = await File.ReadAllTextAsync(logFile, cancellationToken);
                 _testOutputHelper.WriteLine(content);
             }
             catch (Exception ex)
@@ -125,7 +134,5 @@ internal sealed class DcpLogForwarder : IHostedService
                 _testOutputHelper.WriteLine($"Failed to read DCP log {logFile}: {ex.Message}");
             }
         }
-
-        return Task.CompletedTask;
     }
 }
