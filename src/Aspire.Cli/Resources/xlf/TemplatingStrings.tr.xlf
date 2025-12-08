@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AspireJsFrontendStarter_Description">
-        <source>React (Vite) &amp; Minimal API starter</source>
-        <target state="translated">React (Vite) &amp; Minimal API başlatıcısı</target>
+        <source>Starter App (ASP.NET Core/React)</source>
+        <target state="new">Starter App (ASP.NET Core/React)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireMSTest_Description">
@@ -28,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AspirePyStarter_Description">
-        <source>React (Vite) &amp; FastAPI starter</source>
-        <target state="translated">React (Vite) ve FastAPI başlangıç seti</target>
+        <source>Starter App (FastAPI/React)</source>
+        <target state="new">Starter App (FastAPI/React)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Blazor &amp; Minimal API starter</source>
-        <target state="translated">Blazor ve Minimal API başlangıç seti</target>
+        <source>Starter App (ASP.NET Core/Blazor)</source>
+        <target state="new">Starter App (ASP.NET Core/Blazor)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
