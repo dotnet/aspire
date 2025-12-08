@@ -10,6 +10,7 @@ using Aspire.Cli.Mcp;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Aspire.Shared.Mcp;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
@@ -52,12 +53,15 @@ internal sealed class McpStartCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var icons = McpIconHelper.GetAspireIcons(typeof(McpStartCommand).Assembly, "Aspire.Cli.Mcp.Resources");
+
         var options = new McpServerOptions
         {
             ServerInfo = new Implementation
             {
                 Name = "aspire-mcp-server",
-                Version = VersionHelper.GetDefaultTemplateVersion()
+                Version = VersionHelper.GetDefaultTemplateVersion(),
+                Icons = icons
             },
             Handlers = new McpServerHandlers()
             {
