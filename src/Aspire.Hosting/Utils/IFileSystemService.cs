@@ -28,6 +28,18 @@ public interface IFileSystemService
     ITempFileSystemService TempDirectory { get; }
 
     /// <summary>
+    /// Gets the output directory service for managing pipeline output and deployment artifacts.
+    /// </summary>
+    IOutputFileSystemService OutputDirectory { get; }
+}
+
+/// <summary>
+/// Service for managing output directories for deployment artifacts.
+/// </summary>
+[Experimental("ASPIREFILESYSTEM001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public interface IOutputFileSystemService
+{
+    /// <summary>
     /// Gets the output directory for deployment artifacts.
     /// If no output path is configured, defaults to <c>{CurrentDirectory}/aspire-output</c>.
     /// </summary>

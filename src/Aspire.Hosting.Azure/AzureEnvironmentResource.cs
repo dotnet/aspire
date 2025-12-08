@@ -128,7 +128,7 @@ public sealed class AzureEnvironmentResource : Resource
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
         var fileSystemService = context.Services.GetRequiredService<IFileSystemService>();
         var publishingContext = new AzurePublishingContext(
-            fileSystemService.GetOutputDirectory(),
+            fileSystemService.OutputDirectory.GetOutputDirectory(),
             azureProvisioningOptions.Value,
             context.Services,
             context.Logger,

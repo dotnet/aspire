@@ -18,10 +18,10 @@ internal static class PublishingContextUtils
         if (context.Model.Resources.OfType<IComputeEnvironmentResource>().Count() > 1)
         {
             // If there are multiple compute environments, use resource-specific output path
-            return fileSystemService.GetOutputDirectory(environment);
+            return fileSystemService.OutputDirectory.GetOutputDirectory(environment);
         }
 
         // If there is only one compute environment, use the root output path
-        return fileSystemService.GetOutputDirectory();
+        return fileSystemService.OutputDirectory.GetOutputDirectory();
     }
 }
