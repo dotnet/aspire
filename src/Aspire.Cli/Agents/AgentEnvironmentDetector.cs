@@ -10,20 +10,9 @@ internal sealed class AgentEnvironmentDetector(IEnumerable<IAgentEnvironmentScan
 {
     /// <inheritdoc />
     public async Task<AgentEnvironmentApplicator[]> DetectAsync(
-        DirectoryInfo workingDirectory,
-        DirectoryInfo repositoryRoot,
-        bool createAgentInstructions,
-        bool configurePlaywrightMcpServer,
+        AgentEnvironmentScanContext context,
         CancellationToken cancellationToken)
     {
-        var context = new AgentEnvironmentScanContext
-        {
-            WorkingDirectory = workingDirectory,
-            RepositoryRoot = repositoryRoot,
-            CreateAgentInstructions = createAgentInstructions,
-            ConfigurePlaywrightMcpServer = configurePlaywrightMcpServer
-        };
-
         foreach (var scanner in scanners)
         {
             await scanner.ScanAsync(context, cancellationToken);
