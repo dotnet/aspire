@@ -19,7 +19,6 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
     private ILogger? _logger;
     private readonly bool _preserveTempFiles;
     private readonly string? _outputPath;
-    private readonly string _pipelineTempDirectory;
 
     // Track allocated temp files and directories as disposable objects using path as key
     private readonly ConcurrentDictionary<string, IDisposable> _allocatedItems = new();
@@ -36,9 +35,6 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
         // Initialize output path from configuration
         var configuredOutputPath = configuration["Pipeline:OutputPath"];
         _outputPath = configuredOutputPath is not null ? Path.GetFullPath(configuredOutputPath) : null;
-        
-        // Create a temp directory for pipeline operations
-        _pipelineTempDirectory = _tempDirectory.CreateTempSubdirectory("aspire-pipelines").Path;
     }
 
     /// <summary>
@@ -69,21 +65,6 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
 
         var baseOutputDir = GetOutputDirectory();
         return Path.Combine(baseOutputDir, resource.Name);
-    }
-
-    /// <inheritdoc/>
-    public string GetTempDirectory()
-    {
-        return _pipelineTempDirectory;
-    }
-
-    /// <inheritdoc/>
-    public string GetTempDirectory(IResource resource)
-    {
-        ArgumentNullException.ThrowIfNull(resource);
-
-        var baseTempDir = GetTempDirectory();
-        return Path.Combine(baseTempDir, resource.Name);
     }
 
     /// <summary>
