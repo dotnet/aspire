@@ -189,7 +189,6 @@ public class AzureAppServiceEnvironmentResource :
     /// </summary>
     internal AzureApplicationInsightsResource? ApplicationInsightsResource { get; set; }
 
-
     /// <summary>
     /// Deployment slot parameter resource for the App Service Environment.
     /// </summary>
