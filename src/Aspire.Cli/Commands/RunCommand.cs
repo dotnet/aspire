@@ -43,6 +43,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IServiceProvider _serviceProvider;
     private readonly IFeatures _features;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly TimeProvider _timeProvider;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -57,7 +58,8 @@ internal sealed class RunCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         IServiceProvider serviceProvider,
         CliExecutionContext executionContext,
-        ICliHostEnvironment hostEnvironment)
+        ICliHostEnvironment hostEnvironment,
+        TimeProvider? timeProvider = null)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -81,6 +83,7 @@ internal sealed class RunCommand : BaseCommand
         _sdkInstaller = sdkInstaller;
         _features = features;
         _hostEnvironment = hostEnvironment;
+        _timeProvider = timeProvider ?? TimeProvider.System;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -585,7 +588,7 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken).ConfigureAwait(false);
 
             // Monitor the PIDs for termination
-            var stopped = await MonitorProcessesForTerminationAsync(appHostInfo, cancellationToken);
+            var stopped = await MonitorProcessesForTerminationAsync(appHostInfo, cancellationToken).ConfigureAwait(false);
 
             if (stopped)
             {
@@ -607,9 +610,9 @@ internal sealed class RunCommand : BaseCommand
         }
     }
 
-    private static async Task<bool> MonitorProcessesForTerminationAsync(AppHostInformation appHostInfo, CancellationToken cancellationToken)
+    private async Task<bool> MonitorProcessesForTerminationAsync(AppHostInformation appHostInfo, CancellationToken cancellationToken)
     {
-        var startTime = DateTime.UtcNow;
+        var startTime = _timeProvider.GetUtcNow();
         var pidsToMonitor = new List<int> { appHostInfo.ProcessId };
         
         if (appHostInfo.CliProcessId.HasValue)
@@ -617,7 +620,7 @@ internal sealed class RunCommand : BaseCommand
             pidsToMonitor.Add(appHostInfo.CliProcessId.Value);
         }
 
-        while ((DateTime.UtcNow - startTime).TotalMilliseconds < ProcessTerminationTimeoutMs)
+        while ((_timeProvider.GetUtcNow() - startTime).TotalMilliseconds < ProcessTerminationTimeoutMs)
         {
             var allStopped = true;
             
