@@ -143,6 +143,7 @@ public class Program
             var configuration = provider.GetRequiredService<IConfiguration>();
             return new CliHostEnvironment(configuration, nonInteractive);
         });
+        builder.Services.AddSingleton(TimeProvider.System);
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
         builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();

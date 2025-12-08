@@ -71,6 +71,7 @@ internal static class CliTestHelper
         services.AddMemoryCache();
 
         services.AddSingleton(options.AnsiConsoleFactory);
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton(options.TelemetryFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.SolutionLocatorFactory);
