@@ -34,6 +34,8 @@ public sealed class AzureEnvironmentResource : Resource
     /// </summary>
     public const string ProvisionInfrastructureStepName = "provision-azure-bicep-resources";
 
+    private const string MissingComputeEnvironmentErrorMessage = "Deployment requires an Azure compute environment (e.g., AddAzureContainerAppEnvironment) when compute resources reference Azure resources. Please add a compute environment to your app model.";
+
     /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.
     /// </summary>
@@ -197,10 +199,10 @@ public sealed class AzureEnvironmentResource : Resource
             if (!hasComputeEnvironment)
             {
                 await context.ReportingStep.CompleteAsync(
-                    "Deployment requires an Azure compute environment (e.g., AddAzureContainerAppEnvironment) when compute resources reference Azure resources. Please add a compute environment to your app model.",
+                    MissingComputeEnvironmentErrorMessage,
                     CompletionState.CompletedWithError,
                     context.CancellationToken).ConfigureAwait(false);
-                throw new InvalidOperationException("Deployment requires an Azure compute environment (e.g., AddAzureContainerAppEnvironment) when compute resources reference Azure resources. Please add a compute environment to your app model.");
+                throw new InvalidOperationException(MissingComputeEnvironmentErrorMessage);
             }
         }
 
