@@ -67,6 +67,7 @@ public static class DistributedApplicationTestingBuilderExtensions
             var uniqueFolder = Path.Combine(baseDcpLogFolder, folderName);
             configuration["DcpPublisher:DiagnosticsLogFolder"] = uniqueFolder;
             configuration["DcpPublisher:DiagnosticsLogLevel"] = "debug";
+            configuration["DcpPublisher:PreserveExecutableLogs"] = "true";
 
             // Register as hosted service to forward DCP logs to test output when app stops
             services.AddSingleton<IHostedService>(sp => new DcpLogForwarder(testOutputHelper, uniqueFolder));
