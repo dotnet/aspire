@@ -63,7 +63,7 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
             // In VSCode, assume Copilot CLI is available and offer to configure
             // The user will be prompted to install it when they try to use it if not already installed
             _logger.LogDebug("Adding Copilot CLI applicator for global MCP configuration");
-            context.AddApplicator(CreateApplicator(homeDirectory));
+            context.AddApplicator(CreateApplicator(homeDirectory, context));
             return;
         }
         
@@ -91,7 +91,7 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
 
         // Copilot CLI is installed and aspire is not configured - offer to configure
         _logger.LogDebug("Adding Copilot CLI applicator for global MCP configuration");
-        context.AddApplicator(CreateApplicator(homeDirectory));
+        context.AddApplicator(CreateApplicator(homeDirectory, context));
     }
 
     /// <summary>
@@ -154,19 +154,33 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
     /// Creates an applicator for configuring the MCP server in the Copilot CLI global configuration.
     /// </summary>
     /// <param name="homeDirectory">The user's home directory.</param>
-    private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo homeDirectory)
+    /// <param name="context">The scan context containing user preferences.</param>
+    private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo homeDirectory, AgentEnvironmentScanContext context)
     {
         return new AgentEnvironmentApplicator(
             CopilotCliAgentEnvironmentScannerStrings.ApplicatorDescription,
-            ct => ApplyMcpConfigurationAsync(homeDirectory, ct));
+            ct => ApplyMcpConfigurationAsync(
+                homeDirectory,
+                context.RepositoryRoot,
+                context.CreateAgentInstructions,
+                context.ConfigurePlaywrightMcpServer,
+                ct));
     }
 
     /// <summary>
     /// Creates or updates the mcp-config.json file in the Copilot CLI global configuration directory.
     /// </summary>
     /// <param name="homeDirectory">The user's home directory.</param>
+    /// <param name="repositoryRoot">The repository root directory.</param>
+    /// <param name="createAgentInstructions">Whether to create agent-specific instruction files.</param>
+    /// <param name="configurePlaywrightMcpServer">Whether to pre-configure the Playwright MCP server.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    private static async Task ApplyMcpConfigurationAsync(DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    private static async Task ApplyMcpConfigurationAsync(
+        DirectoryInfo homeDirectory,
+        DirectoryInfo repositoryRoot,
+        bool createAgentInstructions,
+        bool configurePlaywrightMcpServer,
+        CancellationToken cancellationToken)
     {
         var configDirectory = GetCopilotConfigDirectory(homeDirectory);
         var configFilePath = GetMcpConfigFilePath(homeDirectory);
@@ -211,8 +225,52 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
             ["tools"] = new JsonArray("*")
         };
 
+        // Add Playwright MCP server if requested
+        if (configurePlaywrightMcpServer && !servers.ContainsKey("playwright"))
+        {
+            servers["playwright"] = new JsonObject
+            {
+                ["type"] = "local",
+                ["command"] = "npx",
+                ["args"] = new JsonArray("-y", "@executeautomation/playwright-mcp-server"),
+                ["tools"] = new JsonArray("*")
+            };
+        }
+
         // Write the updated config using AOT-compatible serialization
         var jsonContent = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(configFilePath, jsonContent, cancellationToken);
+
+        // Create agent-specific instruction files if requested
+        if (createAgentInstructions)
+        {
+            await CreateCopilotCliInstructionsAsync(repositoryRoot, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Creates Copilot CLI agent-specific instruction files.
+    /// </summary>
+    private static async Task CreateCopilotCliInstructionsAsync(DirectoryInfo repositoryRoot, CancellationToken cancellationToken)
+    {
+        var githubDir = Path.Combine(repositoryRoot.FullName, ".github");
+        var agentsDir = Path.Combine(githubDir, "agents");
+        var copilotAgentDir = Path.Combine(agentsDir, "copilot-cli");
+
+        // Ensure directories exist
+        Directory.CreateDirectory(copilotAgentDir);
+
+        // Create placeholder instruction file
+        var instructionsPath = Path.Combine(copilotAgentDir, "instructions.md");
+        if (!File.Exists(instructionsPath))
+        {
+            const string placeholderContent = @"# Copilot CLI Agent Instructions
+
+This file contains instructions for the Copilot CLI agent environment.
+
+<!-- TODO: Add agent-specific instructions here -->
+";
+            await File.WriteAllTextAsync(instructionsPath, placeholderContent, cancellationToken);
+        }
     }
 }

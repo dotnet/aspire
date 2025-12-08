@@ -17,6 +17,16 @@
         <target state="translated">代理程式環境設定完成。</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
+        <source>Pre-configure Playwright MCP server?</source>
+        <target state="new">Pre-configure Playwright MCP server?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
+        <source>Create agent environment specific instruction files?</source>
+        <target state="new">Create agent environment specific instruction files?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments.</source>
         <target state="translated">為偵測到的代理程式環境初始化 MCP 伺服器設定。</target>

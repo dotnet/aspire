@@ -81,9 +81,26 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
 
         var workspaceRoot = new DirectoryInfo(workspaceRootPath);
 
+        // Prompt for whether to create agent-specific instruction files
+        var createAgentInstructions = await _interactionService.ConfirmAsync(
+            McpCommandStrings.InitCommand_CreateAgentInstructionsPrompt,
+            defaultValue: true,
+            cancellationToken: cancellationToken);
+
+        // Prompt for whether to pre-configure Playwright MCP server
+        var configurePlaywright = await _interactionService.ConfirmAsync(
+            McpCommandStrings.InitCommand_ConfigurePlaywrightPrompt,
+            defaultValue: false,
+            cancellationToken: cancellationToken);
+
         var applicators = await _interactionService.ShowStatusAsync(
             McpCommandStrings.InitCommand_DetectingAgentEnvironments,
-            async () => await _agentEnvironmentDetector.DetectAsync(ExecutionContext.WorkingDirectory, workspaceRoot, cancellationToken));
+            async () => await _agentEnvironmentDetector.DetectAsync(
+                ExecutionContext.WorkingDirectory,
+                workspaceRoot,
+                createAgentInstructions,
+                configurePlaywright,
+                cancellationToken));
 
         if (applicators.Length == 0)
         {

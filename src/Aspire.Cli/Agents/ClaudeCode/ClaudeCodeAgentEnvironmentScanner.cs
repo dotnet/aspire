@@ -64,7 +64,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
 
             // Found a .claude folder - add an applicator to configure MCP
             _logger.LogDebug("Adding Claude Code applicator for .mcp.json at: {WorkspaceRoot}", workspaceRoot.FullName);
-            context.AddApplicator(CreateApplicator(workspaceRoot));
+            context.AddApplicator(CreateApplicator(workspaceRoot, context));
         }
         else
         {
@@ -86,7 +86,7 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
 
                 // Claude Code is installed - offer to create config at workspace root
                 _logger.LogDebug("Adding Claude Code applicator for .mcp.json at workspace root: {WorkspaceRoot}", context.RepositoryRoot.FullName);
-                context.AddApplicator(CreateApplicator(context.RepositoryRoot));
+                context.AddApplicator(CreateApplicator(context.RepositoryRoot, context));
             }
             else
             {
@@ -171,17 +171,25 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     /// <summary>
     /// Creates an applicator for configuring the MCP server in the .mcp.json file at the repo root.
     /// </summary>
-    private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo repoRoot)
+    private static AgentEnvironmentApplicator CreateApplicator(DirectoryInfo repoRoot, AgentEnvironmentScanContext context)
     {
         return new AgentEnvironmentApplicator(
             ClaudeCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
-            async cancellationToken => await ApplyMcpConfigurationAsync(repoRoot, cancellationToken));
+            async cancellationToken => await ApplyMcpConfigurationAsync(
+                repoRoot,
+                context.CreateAgentInstructions,
+                context.ConfigurePlaywrightMcpServer,
+                cancellationToken));
     }
 
     /// <summary>
     /// Creates or updates the .mcp.json file at the repo root.
     /// </summary>
-    private static async Task ApplyMcpConfigurationAsync(DirectoryInfo repoRoot, CancellationToken cancellationToken)
+    private static async Task ApplyMcpConfigurationAsync(
+        DirectoryInfo repoRoot,
+        bool createAgentInstructions,
+        bool configurePlaywrightMcpServer,
+        CancellationToken cancellationToken)
     {
         var configFilePath = Path.Combine(repoRoot.FullName, McpConfigFileName);
         JsonObject config;
@@ -212,8 +220,50 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
             ["args"] = new JsonArray("mcp", "start")
         };
 
+        // Add Playwright MCP server if requested
+        if (configurePlaywrightMcpServer && !servers.ContainsKey("playwright"))
+        {
+            servers["playwright"] = new JsonObject
+            {
+                ["command"] = "npx",
+                ["args"] = new JsonArray("-y", "@executeautomation/playwright-mcp-server")
+            };
+        }
+
         // Write the updated config using AOT-compatible serialization
         var jsonContent = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(configFilePath, jsonContent, cancellationToken);
+
+        // Create agent-specific instruction files if requested
+        if (createAgentInstructions)
+        {
+            await CreateClaudeCodeInstructionsAsync(repoRoot, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Creates Claude Code agent-specific instruction files.
+    /// </summary>
+    private static async Task CreateClaudeCodeInstructionsAsync(DirectoryInfo repoRoot, CancellationToken cancellationToken)
+    {
+        var githubDir = Path.Combine(repoRoot.FullName, ".github");
+        var agentsDir = Path.Combine(githubDir, "agents");
+        var claudeAgentDir = Path.Combine(agentsDir, "claude");
+
+        // Ensure directories exist
+        Directory.CreateDirectory(claudeAgentDir);
+
+        // Create placeholder instruction file
+        var instructionsPath = Path.Combine(claudeAgentDir, "instructions.md");
+        if (!File.Exists(instructionsPath))
+        {
+            const string placeholderContent = @"# Claude Code Agent Instructions
+
+This file contains instructions for the Claude Code agent environment.
+
+<!-- TODO: Add agent-specific instructions here -->
+";
+            await File.WriteAllTextAsync(instructionsPath, placeholderContent, cancellationToken);
+        }
     }
 }
