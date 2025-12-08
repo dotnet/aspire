@@ -2,6 +2,31 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AgentConfigurationMaybeLater">
+        <source>Maybe later</source>
+        <target state="translated">Možná později</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationNo">
+        <source>No</source>
+        <target state="translated">Ne</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationPrompt">
+        <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
+        <target state="translated">Aspire zjistil agentní programovací prostředí (celkem {0}), která je potřeba nakonfigurovat. Chcete teď provést konfiguraci?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationSelectPrompt">
+        <source>Select agent environments to configure:</source>
+        <target state="translated">Vyberte prostředí agentů, která se mají nakonfigurovat:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationYes">
+        <source>Yes</source>
+        <target state="translated">Ano</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHost">
         <source>AppHost</source>
         <target state="translated">AppHost</target>

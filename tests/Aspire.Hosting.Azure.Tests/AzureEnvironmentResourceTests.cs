@@ -184,7 +184,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
     public async Task AzurePublishingContext_IgnoresAzureBicepResourcesWithIgnoreAnnotation()
     {
         // Arrange
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish,
             tempDir.Path);
 
@@ -218,7 +218,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
     [Fact]
     public async Task PublishAsync_WithDockerfileFactory_WritesDockerfileToOutputFolder()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");

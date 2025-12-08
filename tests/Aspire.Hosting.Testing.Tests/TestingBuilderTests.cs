@@ -181,8 +181,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
@@ -240,8 +241,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
@@ -278,8 +280,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
@@ -321,8 +324,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
@@ -372,8 +376,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", null, opts =>
         {
@@ -421,8 +426,9 @@ public class TestingBuilderTests(ITestOutputHelper output)
         var profileName = config["DOTNET_LAUNCH_PROFILE"];
         Assert.Equal("https", profileName);
 
-        // Wait for the application to be ready
-        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        // Wait for the application to be ready - must specify "mywebapp1" to avoid race condition
+        // where myworker1 logs "Application started." first
+        await app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1", "https", opts =>

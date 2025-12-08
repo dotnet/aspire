@@ -338,7 +338,7 @@ public class AzureAppServiceTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task MultipleAzureAppServiceEnvironmentsSupported()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "publish-manifest");
 
@@ -368,7 +368,7 @@ public class AzureAppServiceTests
     [Fact]
     public async Task ResourceWithProbes()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
@@ -449,27 +449,6 @@ public class AzureAppServiceTests
         Assert.NotNull(resource);
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
-
-        await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep");
-    }
-
-    [Fact]
-    public async Task AddAppServiceToEnvironmentWithAutomaticScaling()
-    {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        builder.AddAzureAppServiceEnvironment("env").WithAutomaticScaling();
-
-        using var app = builder.Build();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var environment = Assert.Single(model.Resources.OfType<AzureAppServiceEnvironmentResource>());
-
-        var (manifest, bicep) = await GetManifestWithBicep(environment);
 
         await Verify(manifest.ToString(), "json")
               .AppendContentAsFile(bicep, "bicep");

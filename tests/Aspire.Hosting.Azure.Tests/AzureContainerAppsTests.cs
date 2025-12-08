@@ -1066,7 +1066,7 @@ public class AzureContainerAppsTests
 
         builder.AddAzureContainerAppEnvironment("env");
 
-        var redis = builder.AddAzureRedisEnterprise("redis")
+        var redis = builder.AddAzureManagedRedis("redis")
             .PublishAsExisting("myredis", "myRG");
 
         builder.AddProject<Project>("api", launchProfileName: null)
@@ -1614,7 +1614,7 @@ public class AzureContainerAppsTests
     [Fact]
     public async Task MultipleAzureContainerAppEnvironmentsSupported()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "publish-manifest");
 
@@ -2003,7 +2003,7 @@ public class AzureContainerAppsTests
 
         builder.AddAzureContainerAppEnvironment("env");
 
-        using var tempDirectory = new TempDirectory();
+        using var tempDirectory = new TestTempDirectory();
 
         // Contents of the Dockerfile are not important for this test
         File.WriteAllText(Path.Combine(tempDirectory.Path, "Dockerfile"), "FROM alpine");

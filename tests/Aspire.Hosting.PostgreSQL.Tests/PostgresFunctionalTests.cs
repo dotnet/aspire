@@ -235,6 +235,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
@@ -297,6 +298,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
+                    hb.AddTestLogging(testOutputHelper);
 
                     hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
@@ -534,7 +536,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
         // Use the same path for both runs
-        using var aspireStore = new TempDirectory();
+        using var aspireStore = new TestTempDirectory();
 
         var before = await RunContainersAsync();
         var after = await RunContainersAsync();
@@ -607,6 +609,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -648,6 +651,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -717,6 +721,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app.StartAsync(cts.Token);
 
                 var hb = Host.CreateApplicationBuilder();
+                hb.AddTestLogging(testOutputHelper);
 
                 hb.Configuration[$"ConnectionStrings:{newDb.Resource.Name}"] = await newDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
@@ -774,6 +779,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync(cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         foreach (var db in dbs)
         {

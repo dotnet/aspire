@@ -7,6 +7,46 @@
         <target state="translated">Zarządzaj serwerem MCP (Model Context Protocol).</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
+        <source>Select agent environments to configure:</source>
+        <target state="translated">Wybierz środowiska agentów do skonfigurowania:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_ConfigurationComplete">
+        <source>Agent environment configuration complete.</source>
+        <target state="translated">Ukończono konfigurację środowiska agenta.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_Description">
+        <source>Initialize MCP server configuration for detected agent environments.</source>
+        <target state="translated">Zainicjuj konfigurację serwera MCP dla wykrytych środowisk agentów.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_DetectingAgentEnvironments">
+        <source>Detecting agent environments...</source>
+        <target state="translated">Wykrywanie środowisk agentów...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_NoAgentEnvironmentsDetected">
+        <source>No agent environments were detected.</source>
+        <target state="translated">Nie wykryto żadnych środowisk agentów.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_WorkspaceRootNotFound">
+        <source>Directory not found: {0}</source>
+        <target state="translated">Katalog nie został znaleziony: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_WorkspaceRootPrompt">
+        <source>Enter the path to the root of your workspace:</source>
+        <target state="translated">Wprowadź ścieżkę do katalogu głównego obszaru roboczego:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_WorkspaceRootRequired">
+        <source>Workspace root path is required.</source>
+        <target state="translated">Ścieżka główna obszaru roboczego jest wymagana.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartCommand_Description">
         <source>Start the MCP (Model Context Protocol) server.</source>
         <target state="translated">Uruchom serwer MCP (Model Context Protocol).</target>

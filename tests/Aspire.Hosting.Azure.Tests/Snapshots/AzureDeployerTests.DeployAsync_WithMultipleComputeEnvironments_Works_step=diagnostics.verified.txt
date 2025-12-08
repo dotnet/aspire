@@ -50,150 +50,183 @@ Steps with no dependencies run first, followed by steps that depend on them.
 
 DETAILED STEP ANALYSIS
 ======================
-Shows each step's dependencies, associated resources, and tags.
+Shows each step's dependencies, associated resources, tags, and descriptions.
 ✓ = dependency exists, ? = dependency missing
 
 Step: build
+    Description: Aggregation step for all build operations. All build steps should be required by this step.
     Dependencies: ✓ build-api-service, ✓ build-python-app
 
 Step: build-api-service
+    Description: Builds the container image for the api-service project.
     Dependencies: ✓ build-prereq, ✓ deploy-prereq, ✓ deploy-prereq
     Resource: api-service (ProjectResource)
     Tags: build-compute
 
 Step: build-prereq
+    Description: Prerequisite step that runs before any build operations.
     Dependencies: ✓ process-parameters
 
 Step: build-python-app
+    Description: Builds the container image for the python-app container.
     Dependencies: ✓ build-prereq, ✓ deploy-prereq, ✓ deploy-prereq
     Resource: python-app (ContainerResource)
     Tags: build-compute
 
 Step: create-provisioning-context
+    Description: Creates the Azure provisioning context for infrastructure deployment.
     Dependencies: ✓ deploy-prereq, ✓ validate-azure-login
     Resource: azure634f9 (AzureEnvironmentResource)
 
 Step: deploy
+    Description: Aggregation step for all deploy operations. All deploy steps should be required by this step.
     Dependencies: ✓ build-api-service, ✓ build-python-app, ✓ create-provisioning-context, ✓ print-api-service-summary, ✓ print-cache-summary, ✓ print-dashboard-url-aas-env, ✓ print-dashboard-url-aca-env, ✓ print-python-app-summary, ✓ provision-azure-bicep-resources, ✓ validate-azure-login
 
 Step: deploy-api-service
+    Description: Aggregation step for deploying api-service to Azure App Service.
     Dependencies: ✓ print-api-service-summary
     Resource: api-service-website (AzureAppServiceWebSiteResource)
     Tags: deploy-compute
 
 Step: deploy-cache
+    Description: Aggregation step for deploying cache to Azure Container Apps.
     Dependencies: ✓ print-cache-summary
     Resource: cache-containerapp (AzureContainerAppResource)
     Tags: deploy-compute
 
 Step: deploy-prereq
+    Description: Prerequisite step that runs before any deploy operations. Initializes deployment environment and manages deployment state.
     Dependencies: ✓ process-parameters
 
 Step: deploy-python-app
+    Description: Aggregation step for deploying python-app to Azure Container Apps.
     Dependencies: ✓ print-python-app-summary
     Resource: python-app-containerapp (AzureContainerAppResource)
     Tags: deploy-compute
 
 Step: diagnostics
+    Description: Dumps dependency graph information for troubleshooting pipeline execution.
     Dependencies: none
 
 Step: login-to-acr-aas-env
+    Description: Logs in to Azure Container Registry for aas-env.
     Dependencies: ✓ provision-aas-env
     Resource: aas-env (AzureAppServiceEnvironmentResource)
     Tags: acr-login
 
 Step: login-to-acr-aca-env
+    Description: Logs in to Azure Container Registry for aca-env.
     Dependencies: ✓ provision-aca-env
     Resource: aca-env (AzureContainerAppEnvironmentResource)
     Tags: acr-login
 
 Step: print-api-service-summary
+    Description: Prints the deployment summary and URL for api-service.
     Dependencies: ✓ provision-api-service-website
     Resource: api-service-website (AzureAppServiceWebSiteResource)
     Tags: print-summary
 
 Step: print-cache-summary
+    Description: Prints the deployment summary and URL for cache.
     Dependencies: ✓ provision-cache-containerapp
     Resource: cache-containerapp (AzureContainerAppResource)
     Tags: print-summary
 
 Step: print-dashboard-url-aas-env
+    Description: Prints the deployment summary and dashboard URL for aas-env.
     Dependencies: ✓ provision-aas-env, ✓ provision-azure-bicep-resources
     Resource: aas-env (AzureAppServiceEnvironmentResource)
     Tags: print-summary
 
 Step: print-dashboard-url-aca-env
+    Description: Prints the deployment summary and dashboard URL for aca-env.
     Dependencies: ✓ provision-aca-env, ✓ provision-azure-bicep-resources
     Resource: aca-env (AzureContainerAppEnvironmentResource)
     Tags: print-summary
 
 Step: print-python-app-summary
+    Description: Prints the deployment summary and URL for python-app.
     Dependencies: ✓ provision-python-app-containerapp
     Resource: python-app-containerapp (AzureContainerAppResource)
     Tags: print-summary
 
 Step: process-parameters
+    Description: Prompts for parameter values before build, publish, or deployment operations.
     Dependencies: none
 
 Step: provision-aas-env
+    Description: Provisions the Azure Bicep resource aas-env using Azure infrastructure.
     Dependencies: ✓ create-provisioning-context
     Resource: aas-env (AzureAppServiceEnvironmentResource)
     Tags: provision-infra
 
 Step: provision-aca-env
+    Description: Provisions the Azure Bicep resource aca-env using Azure infrastructure.
     Dependencies: ✓ create-provisioning-context
     Resource: aca-env (AzureContainerAppEnvironmentResource)
     Tags: provision-infra
 
 Step: provision-api-service-website
+    Description: Provisions the Azure Bicep resource api-service-website using Azure infrastructure.
     Dependencies: ✓ create-provisioning-context, ✓ provision-aas-env, ✓ push-api-service
     Resource: api-service-website (AzureAppServiceWebSiteResource)
     Tags: provision-infra
 
 Step: provision-azure-bicep-resources
+    Description: Aggregation step for all Azure infrastructure provisioning operations.
     Dependencies: ✓ create-provisioning-context, ✓ deploy-prereq, ✓ provision-aas-env, ✓ provision-aca-env, ✓ provision-api-service-website, ✓ provision-cache-containerapp, ✓ provision-python-app-containerapp, ✓ provision-storage
     Resource: azure634f9 (AzureEnvironmentResource)
     Tags: provision-infra
 
 Step: provision-cache-containerapp
+    Description: Provisions the Azure Bicep resource cache-containerapp using Azure infrastructure.
     Dependencies: ✓ create-provisioning-context, ✓ provision-aca-env
     Resource: cache-containerapp (AzureContainerAppResource)
     Tags: provision-infra
 
 Step: provision-python-app-containerapp
+    Description: Provisions the Azure Bicep resource python-app-containerapp using Azure infrastructure.
     Dependencies: ✓ create-provisioning-context, ✓ provision-aca-env, ✓ push-python-app
     Resource: python-app-containerapp (AzureContainerAppResource)
     Tags: provision-infra
 
 Step: provision-storage
+    Description: Provisions the Azure Bicep resource storage using Azure infrastructure.
     Dependencies: ✓ create-provisioning-context
     Resource: storage (AzureStorageResource)
     Tags: provision-infra
 
 Step: publish
+    Description: Aggregation step for all publish operations. All publish steps should be required by this step.
     Dependencies: ✓ publish-azure634f9
 
 Step: publish-azure634f9
+    Description: Publishes the Azure environment configuration for azure634f9.
     Dependencies: ✓ publish-prereq
     Resource: azure634f9 (AzureEnvironmentResource)
 
 Step: publish-manifest
+    Description: Publishes the Aspire application model as a JSON manifest file.
     Dependencies: none
 
 Step: publish-prereq
+    Description: Prerequisite step that runs before any publish operations.
     Dependencies: ✓ process-parameters
 
 Step: push-api-service
+    Description: Pushes the container image for api-service to Azure Container Registry.
     Dependencies: ✓ build-api-service, ✓ login-to-acr-aas-env, ✓ provision-aas-env
     Resource: api-service-website (AzureAppServiceWebSiteResource)
     Tags: push-container-image
 
 Step: push-python-app
+    Description: Pushes the container image for python-app to Azure Container Registry.
     Dependencies: ✓ build-python-app, ✓ login-to-acr-aca-env, ✓ provision-aca-env
     Resource: python-app-containerapp (AzureContainerAppResource)
     Tags: push-container-image
 
 Step: validate-azure-login
+    Description: Validates Azure CLI authentication before deployment.
     Dependencies: ✓ deploy-prereq
     Resource: azure634f9 (AzureEnvironmentResource)
 

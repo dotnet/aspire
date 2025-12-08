@@ -67,14 +67,19 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
         _supportsTlsTermination = new Lazy<bool>(() =>
         {
             var supportsTlsTermination = Certificates.Any(c => c.HasPrivateKey);
-            logger.LogDebug("Developer certificate TLS termination support: {Available}", supportsTlsTermination);
+            logger.LogDebug("Developer certificate HTTPS/TLS termination support: {Available}", supportsTlsTermination);
             return supportsTlsTermination;
         });
 
         // Environment variable config > DistributedApplicationOptions > default true
-        TrustCertificate = configuration.GetBool(KnownConfigNames.TrustDeveloperCertificate) ??
+        TrustCertificate = configuration.GetBool(KnownConfigNames.DeveloperCertificateDefaultTrust) ??
             options.TrustDeveloperCertificate ??
             true;
+
+        // By default, only use for server authentication if trust is also enabled (and a developer certificate with a private key is available)
+        UseForHttps = (configuration.GetBool(KnownConfigNames.DeveloperCertificateDefaultHttpsTermination) ??
+            options.DeveloperCertificateDefaultHttpsTerminationEnabled ??
+            true ) && TrustCertificate && _supportsTlsTermination.Value;
     }
 
     /// <inheritdoc />
@@ -86,5 +91,6 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     /// <inheritdoc />
     public bool TrustCertificate { get; }
 
-    public bool DefaultTlsTerminationEnabled => !OperatingSystem.IsMacOS() && _supportsTlsTermination.Value && TrustCertificate;
+    /// <inheritdoc />
+    public bool UseForHttps { get; }
 }
