@@ -79,7 +79,6 @@
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
     <!-- NuGet dependencies -->
-    <PackageVersion Include="NuGet.Configuration" Version="6.14.0" />
     <PackageVersion Include="NuGet.ProjectModel" Version="6.14.0" />
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.12.0" />
