@@ -33,8 +33,8 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         ApplicationInformationRequest request,
         ServerCallContext context)
     {
-        // ApplicationName already has the ".AppHost" suffix trimmed if present
-        var applicationName = appHostEnvironment.ApplicationName;
+        // DisplayName has the ".AppHost" suffix trimmed if present
+        var applicationName = appHostEnvironment.DisplayName;
         
         return Task.FromResult(new ApplicationInformationResponse
         {

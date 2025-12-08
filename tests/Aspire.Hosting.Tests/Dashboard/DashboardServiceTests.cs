@@ -485,11 +485,11 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task GetApplicationInformation_ReadsFromConfiguration()
     {
-        // Arrange
+        // Arrange - for single-file app hosts, SingleFileAppHostName is used as the display name
         var configBuilder = new ConfigurationBuilder();
         configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["AppHost:DashboardApplicationName"] = "MyCustomAppName"
+            ["AppHost:SingleFileAppHostName"] = "MyCustomAppName"
         });
         var configuration = configBuilder.Build();
 
@@ -546,18 +546,16 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task GetApplicationInformation_StripsAppHostSuffix()
     {
-        // Arrange
-        var configBuilder = new ConfigurationBuilder();
-        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["AppHost:DashboardApplicationName"] = "MyApp.AppHost"
-        });
-        var configuration = configBuilder.Build();
+        // Arrange - for traditional app hosts, the .AppHost suffix is stripped from ApplicationName
+        var configuration = new ConfigurationBuilder().Build();
 
         var dashboardServiceData = CreateDashboardServiceData();
         var dashboardService = new DashboardServiceImpl(
             dashboardServiceData,
-            TestAppHostEnvironment.Create(configuration),
+            TestAppHostEnvironment.Create(configuration, new TestHostEnvironment
+            {
+                ApplicationName = "MyApp.AppHost"
+            }),
             new TestHostApplicationLifetime(),
             NullLogger<DashboardServiceImpl>.Instance);
 
@@ -569,7 +567,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             context);
 
         // Assert
-        // The ComputeApplicationName method should strip the .AppHost suffix
+        // The DisplayName property should strip the .AppHost suffix
         Assert.Equal("MyApp", response.ApplicationName);
     }
 

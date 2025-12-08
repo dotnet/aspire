@@ -36,25 +36,40 @@ public sealed class AppHostEnvironment
     public IHostEnvironment HostEnvironment => _hostEnvironment;
 
     /// <summary>
-    /// Gets the application name derived from the AppHost project.
+    /// Gets the application name from the AppHost project.
     /// </summary>
     /// <remarks>
-    /// This is the application name used in multiple places throughout the application,
-    /// including for generating resource names, volume names, and display in the dashboard.
-    /// If the name ends with ".AppHost" (case-insensitive), the suffix is automatically removed.
+    /// This returns the application name from the host environment.
+    /// For a display-friendly name with the ".AppHost" suffix stripped, use <see cref="DisplayName"/>.
     /// </remarks>
-    public string ApplicationName
+    public string ApplicationName => _hostEnvironment.ApplicationName;
+
+    /// <summary>
+    /// Gets the display name derived from the AppHost project.
+    /// </summary>
+    /// <remarks>
+    /// This is the application name used for display purposes, such as in the dashboard.
+    /// For single-file app hosts, this uses the directory name containing the app host file.
+    /// Otherwise, if the name ends with ".AppHost" (case-insensitive), the suffix is automatically removed.
+    /// </remarks>
+    public string DisplayName
     {
         get
         {
-            var name = _configuration["AppHost:DashboardApplicationName"] ?? _hostEnvironment.ApplicationName;
-            
-            // Strip ".AppHost" suffix if present (case-insensitive)
+            // For single-file app hosts, use the resolved name (directory name)
+            var singleFileName = _configuration["AppHost:SingleFileAppHostName"];
+            if (!string.IsNullOrEmpty(singleFileName))
+            {
+                return singleFileName;
+            }
+
+            // For traditional app hosts, strip ".AppHost" suffix if present
+            var name = ApplicationName;
             if (name.EndsWith(".AppHost", StringComparison.OrdinalIgnoreCase))
             {
                 return name[..^8]; // Remove the last 8 characters (".AppHost")
             }
-            
+
             return name;
         }
     }
