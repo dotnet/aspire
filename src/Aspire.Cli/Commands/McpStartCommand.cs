@@ -43,7 +43,7 @@ internal sealed class McpStartCommand : BaseCommand
             ["list_trace_structured_logs"] = new ListTraceStructuredLogsTool(),
             ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
-            ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext),
+            ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
             ["get_integration_docs"] = new GetIntegrationDocsTool()
         };
     }

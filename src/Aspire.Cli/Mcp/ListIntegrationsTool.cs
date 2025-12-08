@@ -3,9 +3,9 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Packaging;
 using ModelContextProtocol.Protocol;
-using Semver;
 
 namespace Aspire.Cli.Mcp;
 
@@ -48,7 +48,7 @@ internal sealed class ListIntegrationsResponse
 /// <summary>
 /// MCP tool for listing available Aspire hosting integrations.
 /// </summary>
-internal sealed class ListIntegrationsTool(IPackagingService packagingService, CliExecutionContext executionContext) : CliMcpTool
+internal sealed class ListIntegrationsTool(IPackagingService packagingService, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor) : CliMcpTool
 {
     public override string Name => "list_integrations";
 
@@ -74,41 +74,36 @@ internal sealed class ListIntegrationsTool(IPackagingService packagingService, C
 
         try
         {
-            var allPackages = new List<(string FriendlyName, string PackageId, string Version, string Channel)>();
-
+            // Get all channels
             var packageChannels = await packagingService.GetChannelsAsync(cancellationToken);
 
-            foreach (var channel in packageChannels)
+            // Use only the default (first) channel
+            var defaultChannel = packageChannels.FirstOrDefault();
+            if (defaultChannel == null)
             {
-                var integrationPackages = await channel.GetIntegrationPackagesAsync(executionContext.WorkingDirectory, cancellationToken);
-
-                foreach (var package in integrationPackages)
+                return new CallToolResult
                 {
-                    // Extract friendly name from package ID (e.g., "Aspire.Hosting.Redis" -> "Redis")
-                    var friendlyName = GetFriendlyName(package.Id);
-                    allPackages.Add((friendlyName, package.Id, package.Version, channel.Name));
-                }
+                    IsError = true,
+                    Content = [new TextContentBlock { Text = "No package channels available" }]
+                };
             }
 
-            // Group by package ID and take the latest version using semantic version comparison
-            // Parse version once and include it in the result to avoid redundant parsing
-            var packagesWithParsedVersions = allPackages
-                .Select(p => (p.FriendlyName, p.PackageId, p.Version, p.Channel, ParsedVersion: SemVersion.TryParse(p.Version, SemVersionStyles.Any, out var v) ? v : null))
-                .Where(p => p.ParsedVersion is not null)
-                .ToList();
+            // Determine the working directory to use
+            // If there's an in-scope AppHost, use its directory; otherwise use the MCP's working directory
+            var workingDirectory = GetWorkingDirectory();
 
-            var distinctPackages = packagesWithParsedVersions
-                .GroupBy(p => p.PackageId)
-                .Select(g => g.OrderByDescending(p => p.ParsedVersion!, SemVersion.PrecedenceComparer).First())
-                .OrderBy(p => p.FriendlyName)
-                .ToList();
+            // Get integration packages from the default channel
+            var integrationPackages = await defaultChannel.GetIntegrationPackagesAsync(workingDirectory, cancellationToken);
 
-            var integrations = distinctPackages.Select(p => new Integration
-            {
-                Name = p.FriendlyName,
-                PackageId = p.PackageId,
-                Version = p.Version
-            }).ToList();
+            var integrations = integrationPackages
+                .Select(package => new Integration
+                {
+                    Name = GetFriendlyName(package.Id),
+                    PackageId = package.Id,
+                    Version = package.Version
+                })
+                .OrderBy(i => i.Name)
+                .ToList();
 
             var response = new ListIntegrationsResponse
             {
@@ -130,6 +125,33 @@ internal sealed class ListIntegrationsTool(IPackagingService packagingService, C
                 Content = [new TextContentBlock { Text = $"Failed to list integrations: {ex.Message}" }]
             };
         }
+    }
+
+    /// <summary>
+    /// Gets the appropriate working directory for package resolution.
+    /// Uses the AppHost directory if an in-scope AppHost exists, otherwise uses the MCP's working directory.
+    /// </summary>
+    private DirectoryInfo GetWorkingDirectory()
+    {
+        // Get in-scope connections
+        var inScopeConnections = auxiliaryBackchannelMonitor.GetConnectionsForWorkingDirectory(executionContext.WorkingDirectory);
+
+        // If there's exactly one in-scope AppHost, use its directory
+        if (inScopeConnections.Count == 1)
+        {
+            var appHostPath = inScopeConnections[0].AppHostInfo?.AppHostPath;
+            if (!string.IsNullOrEmpty(appHostPath))
+            {
+                var appHostDirectory = Path.GetDirectoryName(appHostPath);
+                if (!string.IsNullOrEmpty(appHostDirectory) && Directory.Exists(appHostDirectory))
+                {
+                    return new DirectoryInfo(appHostDirectory);
+                }
+            }
+        }
+
+        // Default to the MCP's working directory
+        return executionContext.WorkingDirectory;
     }
 
     private static string GetFriendlyName(string packageId)
