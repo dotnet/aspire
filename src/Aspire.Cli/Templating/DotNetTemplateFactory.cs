@@ -582,6 +582,8 @@ internal class DotNetTemplateFactory(
     /// <summary>
     /// Creates .aspire/settings.json file with appHostPath configuration if an AppHost project is found.
     /// </summary>
+    /// <param name="outputPath">The output directory path where the template was created.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     private async Task CreateSettingsFileAsync(string outputPath, CancellationToken cancellationToken)
     {
         try
@@ -664,13 +666,17 @@ internal class DotNetTemplateFactory(
                     string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // If settings file creation fails, don't fail the entire operation
             // Just continue without creating the settings file
+            interactionService.WriteConsoleLog($"Warning: Failed to create settings file: {ex.Message}", type: "warning");
         }
     }
 
+    /// <summary>
+    /// Checks whether the specified file is a valid Aspire single file app host.
+    /// </summary>
     private static async Task<bool> IsValidSingleFileAppHostAsync(FileInfo candidateFile, CancellationToken cancellationToken)
     {
         // Check if file is named apphost.cs (case-insensitive)
@@ -700,9 +706,10 @@ internal class DotNetTemplateFactory(
                 }
             }
         }
-        catch
+        catch (Exception)
         {
             // If we can't read the file, it's not a valid candidate
+            // This can happen due to permissions, encoding issues, etc.
             return false;
         }
 
