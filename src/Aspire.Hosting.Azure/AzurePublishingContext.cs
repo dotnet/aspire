@@ -321,10 +321,7 @@ public sealed class AzurePublishingContext(
                         Resource = resource,
                         CancellationToken = cancellationToken
                     };
-                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
-
-                    // Always write to the original DockerfilePath so code looking at that path still works
-                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+                    await dockerfileBuildAnnotation.MaterializeDockerfileAsync(context, cancellationToken).ConfigureAwait(false);
 
                     // Copy to a resource-specific path in the output folder for publishing
                     var resourceDockerfilePath = Path.Combine(outputPath, $"{resource.Name}.Dockerfile");
