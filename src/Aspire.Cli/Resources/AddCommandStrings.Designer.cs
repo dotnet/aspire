@@ -188,5 +188,13 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("UsePrereleasePackages", resourceCulture);
             }
         }
+        
+        public static string ChannelArgumentDescription
+        {
+            get
+            {
+                return ResourceManager.GetString("ChannelArgumentDescription", resourceCulture);
+            }
+        }
     }
 }
