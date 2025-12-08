@@ -457,12 +457,87 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task UrlsAreInExpectedStateForResourcesGivenTheirLifecycle()
+    public async Task ProjectResourceUrlsTransitionThroughExpectedLifecycleStates()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var servicea = builder.AddProject<Projects.ServiceA>("servicea")
             .WithUrl("https://example.com/project");
+
+        await using var app = await builder.BuildAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+
+        var urlSnapshots = new List<UrlSnapshot[]>();
+
+        static string FormatUrls(IEnumerable<UrlSnapshot> urls) =>
+            string.Join(", ", urls.Select(u => $"[{u.Name ?? "null"}] {u.Url} (inactive={u.IsInactive})"));
+
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var notification in rns.WatchAsync(cts.Token))
+            {
+                if (notification.Resource == servicea.Resource && notification.Snapshot.Urls.Length > 0)
+                {
+                    urlSnapshots.Add(notification.Snapshot.Urls.ToArray());
+                    testOutputHelper.WriteLine($"Captured snapshot #{urlSnapshots.Count}: State={notification.Snapshot.State}, URLs: {FormatUrls(notification.Snapshot.Urls)}");
+
+                    // Stop when running and all URLs are active
+                    if (notification.Snapshot.State == KnownResourceStates.Running &&
+                        notification.Snapshot.Urls.All(u => !u.IsInactive))
+                    {
+                        break;
+                    }
+                }
+            }
+        });
+
+        await app.StartAsync();
+        await rns.WaitForResourceAsync(servicea.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await watchTask;
+        await app.StopAsync().DefaultTimeout();
+
+        // Log all captured snapshots for diagnostics
+        testOutputHelper.WriteLine($"Total snapshots captured: {urlSnapshots.Count}");
+        for (var i = 0; i < urlSnapshots.Count; i++)
+        {
+            testOutputHelper.WriteLine($"  [{i}] URLs: {FormatUrls(urlSnapshots[i])}");
+        }
+
+        // Find snapshots for each lifecycle stage
+        var initialized = urlSnapshots.FirstOrDefault(s => s.Length == 1);
+        Assert.True(initialized is not null, $"Expected 'initialized' snapshot (1 URL) but none found. Captured {urlSnapshots.Count} snapshots.");
+
+        var endpointsAllocated = urlSnapshots.FirstOrDefault(s => s.Length == 2 && s.Any(u => u.IsInactive));
+        Assert.True(endpointsAllocated is not null, $"Expected 'endpointsAllocated' snapshot (2 URLs, some inactive) but none found. Captured {urlSnapshots.Count} snapshots.");
+
+        var running = urlSnapshots.FirstOrDefault(s => s.Length == 2 && s.All(u => !u.IsInactive));
+        Assert.True(running is not null, $"Expected 'running' snapshot (2 URLs, all active) but none found. Captured {urlSnapshots.Count} snapshots.");
+
+        // Assert initialized: only static URL, active
+        var initUrl = Assert.Single(initialized);
+        Assert.False(initUrl.IsInactive);
+        Assert.Null(initUrl.Name);
+        Assert.Equal("https://example.com/project", initUrl.Url);
+
+        // Assert endpoints allocated: endpoint URL inactive, static URL active
+        Assert.Collection(endpointsAllocated,
+            s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
+            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/project", s.Url); }
+        );
+
+        // Assert running: both URLs active
+        Assert.Collection(running,
+            s => { Assert.False(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
+            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/project", s.Url); }
+        );
+    }
+
+    [Fact]
+    public async Task CustomResourceUrlsTransitionThroughExpectedLifecycleStates()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var custom = builder.AddResource(new CustomResource("custom"))
             .WithHttpEndpoint()
@@ -510,41 +585,69 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         await using var app = await builder.BuildAsync();
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+
+        var urlSnapshots = new List<UrlSnapshot[]>();
+
+        static string FormatUrls(IEnumerable<UrlSnapshot> urls) =>
+            string.Join(", ", urls.Select(u => $"[{u.Name ?? "null"}] {u.Url} (inactive={u.IsInactive})"));
+
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var notification in rns.WatchAsync(cts.Token))
+            {
+                if (notification.Resource == custom.Resource && notification.Snapshot.Urls.Length > 0)
+                {
+                    urlSnapshots.Add(notification.Snapshot.Urls.ToArray());
+                    testOutputHelper.WriteLine($"Captured snapshot #{urlSnapshots.Count}: State={notification.Snapshot.State}, URLs: {FormatUrls(notification.Snapshot.Urls)}");
+
+                    // Stop when running and all URLs are active
+                    if (notification.Snapshot.State == KnownResourceStates.Running &&
+                        notification.Snapshot.Urls.All(u => !u.IsInactive))
+                    {
+                        break;
+                    }
+                }
+            }
+        });
+
         await app.StartAsync();
-
-        // Wait for both resources to be running with all URLs active
-        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
-        var projectSnapshot = await rns.WaitForResourceAsync(
-            servicea.Resource.Name,
-            e => e.Snapshot.State == KnownResourceStates.Running &&
-                 e.Snapshot.Urls.Length == 2 &&
-                 e.Snapshot.Urls.All(u => !u.IsInactive),
-            cts.Token);
-
-        var customSnapshot = await rns.WaitForResourceAsync(
-            custom.Resource.Name,
-            e => e.Snapshot.State == KnownResourceStates.Running &&
-                 e.Snapshot.Urls.Length == 2 &&
-                 e.Snapshot.Urls.All(u => !u.IsInactive),
-            cts.Token);
-
+        await rns.WaitForResourceAsync(custom.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await watchTask;
         await app.StopAsync().DefaultTimeout();
 
-        // Verify project URLs in running state
-        Assert.Equal(2, projectSnapshot.Snapshot.Urls.Length);
-        Assert.Collection(projectSnapshot.Snapshot.Urls,
-            // Endpoint URL should be active
-            s => { Assert.False(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
-            // Non-endpoint URL should be active
-            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/project", s.Url); }
+        // Log all captured snapshots for diagnostics
+        testOutputHelper.WriteLine($"Total snapshots captured: {urlSnapshots.Count}");
+        for (var i = 0; i < urlSnapshots.Count; i++)
+        {
+            testOutputHelper.WriteLine($"  [{i}] URLs: {FormatUrls(urlSnapshots[i])}");
+        }
+
+        // Find snapshots for each lifecycle stage
+        var initialized = urlSnapshots.FirstOrDefault(s => s.Length == 1);
+        Assert.True(initialized is not null, $"Expected 'initialized' snapshot (1 URL) but none found. Captured {urlSnapshots.Count} snapshots.");
+
+        var endpointsAllocated = urlSnapshots.FirstOrDefault(s => s.Length == 2 && s.Any(u => u.IsInactive));
+        Assert.True(endpointsAllocated is not null, $"Expected 'endpointsAllocated' snapshot (2 URLs, some inactive) but none found. Captured {urlSnapshots.Count} snapshots.");
+
+        var running = urlSnapshots.FirstOrDefault(s => s.Length == 2 && s.All(u => !u.IsInactive));
+        Assert.True(running is not null, $"Expected 'running' snapshot (2 URLs, all active) but none found. Captured {urlSnapshots.Count} snapshots.");
+
+        // Assert initialized: only static URL, active
+        var initUrl = Assert.Single(initialized);
+        Assert.False(initUrl.IsInactive);
+        Assert.Null(initUrl.Name);
+        Assert.Equal("https://example.com/custom", initUrl.Url);
+
+        // Assert endpoints allocated: endpoint URL inactive, static URL active
+        Assert.Collection(endpointsAllocated,
+            s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
+            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/custom", s.Url); }
         );
 
-        // Verify custom resource URLs in running state
-        Assert.Equal(2, customSnapshot.Snapshot.Urls.Length);
-        Assert.Collection(customSnapshot.Snapshot.Urls,
-            // Endpoint URL should be active
+        // Assert running: both URLs active
+        Assert.Collection(running,
             s => { Assert.False(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
-            // Non-endpoint URL should be active
             s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/custom", s.Url); }
         );
     }
