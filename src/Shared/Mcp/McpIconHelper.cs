@@ -23,7 +23,13 @@ internal static class McpIconHelper
         var sizes = new string[] { "16", "32", "48", "64", "256" };
         var icons = sizes.Select(s =>
         {
-            using var stream = assembly.GetManifestResourceStream($"{resourceNamespace}.aspire-{s}.png")!;
+            var resourceName = $"{resourceNamespace}.aspire-{s}.png";
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+
+            if (stream is null)
+            {
+                throw new InvalidOperationException($"Could not find embedded resource '{resourceName}' in assembly '{assembly.FullName}'.");
+            }
 
             using var memoryStream = new MemoryStream();
             stream.CopyTo(memoryStream);
