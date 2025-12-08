@@ -7,7 +7,6 @@ using Aspire.Dashboard.Components.Controls.PropertyValues;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
-using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
@@ -401,7 +400,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                 return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusJustNowFormat), statusText];
             }
             
-            var formattedDuration = DurationFormatter.FormatDuration(roundedDuration);
+            var formattedDuration = Shared.DurationFormatter.FormatDuration(roundedDuration, System.Globalization.CultureInfo.CurrentCulture);
             return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeFormat), statusText, formattedDuration];
         }
         

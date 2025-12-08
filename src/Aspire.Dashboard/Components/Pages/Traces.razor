@@ -171,12 +171,12 @@
                                                             Value="@Convert.ToInt32(context.Duration.TotalMilliseconds)"
                                                             aria-label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]" />
                                         <span class="trace-duration">
-                                            @DurationFormatter.FormatDuration(context.Duration)
+                                            @Shared.DurationFormatter.FormatDuration(context.Duration, CultureInfo.CurrentCulture)
                                         </span>
                                     }
                                     else
                                     {
-                                        @DurationFormatter.FormatDuration(context.Duration)
+                                        @Shared.DurationFormatter.FormatDuration(context.Duration, CultureInfo.CurrentCulture)
                                     }
                                 </div>
                             </AspireTemplateColumn>

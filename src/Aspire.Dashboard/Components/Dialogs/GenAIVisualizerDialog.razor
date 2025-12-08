@@ -221,7 +221,7 @@
                                     }
                                 }
                                 <div class="message-header-details">
-                                    <span>@Loc[nameof(Dialogs.GenAIDurationLabel)] <strong>@DurationFormatter.FormatDuration(Content.Span.Duration)</strong></span>
+                                    <span>@Loc[nameof(Dialogs.GenAIDurationLabel)] <strong>@Shared.DurationFormatter.FormatDuration(Content.Span.Duration, CultureInfo.CurrentCulture)</strong></span>
                                     <span title="@tokenTooltip">@Loc[nameof(Dialogs.GenAITokensLabel)] <strong>@tokenText</strong></span>
                                 </div>
                             </div>
