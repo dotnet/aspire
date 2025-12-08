@@ -2051,4 +2051,92 @@ public class AzureContainerAppsTests
         Assert.Equal(env.Resource, output.Resource);
         Assert.Equal("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", output.Name);
     }
+
+    [Fact]
+    public async Task AsExistingEnvironmentWithWithComputeEnvironmentBindsCorrectly()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var environmentName = builder.AddParameter("environmentName");
+        var sharedResourceGroupName = builder.AddParameter("sharedResourceGroupName");
+
+        var existingEnv = builder.AddAzureContainerAppEnvironment("env")
+            .AsExisting(environmentName, sharedResourceGroupName);
+
+        builder.AddContainer("api", "myimage")
+            .WithComputeEnvironment(existingEnv)
+            .PublishAsAzureContainerApp((_, _) => { });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task MultipleEnvironmentsWithAsExistingAndWithComputeEnvironmentBindsCorrectly()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env1Name = builder.AddParameter("env1Name");
+        var env2Name = builder.AddParameter("env2Name");
+        var sharedResourceGroupName = builder.AddParameter("sharedResourceGroupName");
+
+        var env1 = builder.AddAzureContainerAppEnvironment("env1")
+            .AsExisting(env1Name, sharedResourceGroupName);
+
+        var env2 = builder.AddAzureContainerAppEnvironment("env2")
+            .AsExisting(env2Name, sharedResourceGroupName);
+
+        builder.AddContainer("api1", "myimage1")
+            .WithComputeEnvironment(env1)
+            .PublishAsAzureContainerApp((_, _) => { });
+
+        builder.AddContainer("api2", "myimage2")
+            .WithComputeEnvironment(env2)
+            .PublishAsAzureContainerApp((_, _) => { });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var containers = model.GetContainerResources().ToArray();
+        Assert.Equal(2, containers.Length);
+
+        var api1 = containers.Single(c => c.Name == "api1");
+        api1.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target1);
+        var resource1 = target1?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(resource1);
+        Assert.Equal(env1.Resource, target1?.ComputeEnvironment);
+
+        var api2 = containers.Single(c => c.Name == "api2");
+        api2.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target2);
+        var resource2 = target2?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(resource2);
+        Assert.Equal(env2.Resource, target2?.ComputeEnvironment);
+
+        var (manifest1, bicep1) = await GetManifestWithBicep(resource1);
+        var (manifest2, bicep2) = await GetManifestWithBicep(resource2);
+
+        await Verify(manifest1.ToString(), "json")
+              .AppendContentAsFile(bicep1, "bicep")
+              .AppendContentAsFile(manifest2.ToString(), "json")
+              .AppendContentAsFile(bicep2, "bicep");
+    }
 }
