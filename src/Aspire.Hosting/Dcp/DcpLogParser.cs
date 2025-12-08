@@ -162,14 +162,14 @@ internal static class DcpLogParser
             {
                 if (sb.Length > SystemLogPrefix.Length)
                 {
-                    sb.Append(": ");
+                    sb.Append(", ");
                 }
                 sb.Append("Cmd=");
                 sb.Append(cmd);
 
                 if (args.HasValue)
                 {
-                    sb.Append(" Args=");
+                    sb.Append(", Args=");
                     sb.Append(args.Value.ToString());
                 }
             }

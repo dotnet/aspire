@@ -790,8 +790,8 @@ public class DcpExecutorTests
         Assert.True(watchLogsResults.Count >= 2, $"Expected at least 2 log entries, got {watchLogsResults.Count}");
         
         // Verify the system logs are formatted with [sys] prefix and proper formatting
-        Assert.Contains(watchLogsResults, l => l.Content.Contains("[sys] Starting process...: Cmd=bla Args=[]"));
-        Assert.Contains(watchLogsResults, l => l.Content.Contains("[sys] Failed to start process: Cmd=bla Args=[]: exec: \"bla\": executable file not found in $PATH"));
+        Assert.Contains(watchLogsResults, l => l.Content.Contains("[sys] Starting process..., Cmd=bla, Args=[]"));
+        Assert.Contains(watchLogsResults, l => l.Content.Contains("[sys] Failed to start process, Cmd=bla, Args=[]: exec: \"bla\": executable file not found in $PATH"));
     }
 
     private sealed class LogStreamPipes
