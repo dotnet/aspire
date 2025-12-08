@@ -57,6 +57,10 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     [SupplyParameterFromQuery]
     public string? SpanId { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "genai")]
+    public bool OpenGenAI { get; set; }
+
     [Inject]
     public required ILogger<TraceDetail> Logger { get; init; }
 
@@ -244,11 +248,22 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             var spanVm = _spanWaterfallViewModels.SingleOrDefault(vm => vm.Span.SpanId == SpanId);
             if (spanVm != null)
             {
-                await OnShowPropertiesAsync(spanVm, buttonId: null);
+                if (OpenGenAI)
+                {
+                    // Open the GenAI dialog for this span
+                    await OnGenAIClickedAsync(spanVm.Span);
+                    
+                    // Navigate to remove query parameters from the URL
+                    NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(TraceId), new NavigationOptions { ReplaceHistoryEntry = true });
+                }
+                else
+                {
+                    await OnShowPropertiesAsync(spanVm, buttonId: null);
+                    
+                    // Navigate to remove ?spanId=xxx in the URL.
+                    NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(TraceId), new NavigationOptions { ReplaceHistoryEntry = true });
+                }
             }
-
-            // Navigate to remove ?spanId=xxx in the URL.
-            NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(TraceId), new NavigationOptions { ReplaceHistoryEntry = true });
         }
     }
 

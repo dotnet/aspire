@@ -598,6 +598,24 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         return Task.CompletedTask;
     }
 
+    private bool IsGenAILogEntry(OtlpLogEntry logEntry)
+    {
+        if (string.IsNullOrEmpty(logEntry.TraceId) || string.IsNullOrEmpty(logEntry.SpanId))
+        {
+            return false;
+        }
+
+        var span = TelemetryRepository.GetSpan(logEntry.TraceId, logEntry.SpanId);
+        return span != null && GenAIHelpers.IsGenAISpan(span.Attributes);
+    }
+
+    private Task OnGenAIClickedAsync(OtlpLogEntry logEntry)
+    {
+        // Navigate to the trace detail page with the genai query parameter to open the GenAI dialog
+        NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(logEntry.TraceId, logEntry.SpanId, openGenAI: true));
+        return Task.CompletedTask;
+    }
+
     public class StructuredLogsPageViewModel
     {
         public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }

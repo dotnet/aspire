@@ -153,9 +153,22 @@
                                         <AspireTemplateColumn ColumnId="@TraceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                             @if (!string.IsNullOrEmpty(context.TraceId))
                                             {
-                                                <a href="@DashboardUrls.TraceDetailUrl(context.TraceId, context.SpanId)" class="long-inner-content" @onclick:stopPropagation="true">
-                                                    @OtlpHelpers.ToShortenedId(context.TraceId)
-                                                </a>
+                                                <div style="display: flex; align-items: center; gap: 4px;">
+                                                    <a href="@DashboardUrls.TraceDetailUrl(context.TraceId, context.SpanId)" class="long-inner-content" @onclick:stopPropagation="true">
+                                                        @OtlpHelpers.ToShortenedId(context.TraceId)
+                                                    </a>
+                                                    @if (IsGenAILogEntry(context))
+                                                    {
+                                                        <span @onclick:stopPropagation="true">
+                                                            <FluentButton Appearance="Appearance.Lightweight"
+                                                                          Title="@ControlsStringsLoc[nameof(ControlsStrings.GenAIDetailsTitle)]"
+                                                                          OnClick="() => OnGenAIClickedAsync(context)">
+                                                                <FluentIcon Icon="Icons.Regular.Size16.Sparkle"
+                                                                            Color="Color.Accent" />
+                                                            </FluentButton>
+                                                        </span>
+                                                    }
+                                                </div>
                                             }
                                             else
                                             {
