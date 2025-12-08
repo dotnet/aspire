@@ -231,7 +231,7 @@ public class KustoFunctionalTests
     {
         using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, TestContext.Current.CancellationToken);
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory();
 
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 

@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -39,9 +40,10 @@ public static class ContainerResourceBuilderExtensions
             var buildStep = new PipelineStep
             {
                 Name = $"build-{builder.Resource.Name}",
+                Description = $"Builds the container image for the {builder.Resource.Name} container.",
                 Action = async ctx =>
                 {
-                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+                    var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
 
                     await containerImageBuilder.BuildImageAsync(
                         builder.Resource,
@@ -564,6 +566,7 @@ public static class ContainerResourceBuilderExtensions
                 context.LocalImageName = context.Resource.Name;
                 context.LocalImageTag = "latest";
             }
+            context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
         });
 
         // If there's already a ContainerImageAnnotation, don't overwrite it.
@@ -677,8 +680,9 @@ public static class ContainerResourceBuilderExtensions
         var fullyQualifiedContextPath = Path.GetFullPath(contextPath, builder.ApplicationBuilder.AppHostDirectory)
                                            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-        // Create a unique temporary Dockerfile path for this resource
-        var tempDockerfilePath = Path.Combine(Path.GetTempPath(), $"Dockerfile.{builder.Resource.Name}.{Guid.NewGuid():N}");
+        // Create a unique temporary Dockerfile path for this resource using the directory service
+        var directoryService = builder.ApplicationBuilder.FileSystemService;
+        var tempDockerfilePath = directoryService.TempDirectory.CreateTempFile().Path;
 
         var imageName = ImageNameGenerator.GenerateImageName(builder);
         var imageTag = ImageNameGenerator.GenerateImageTag(builder);
@@ -702,6 +706,7 @@ public static class ContainerResourceBuilderExtensions
                 context.LocalImageName = context.Resource.Name;
                 context.LocalImageTag = "latest";
             }
+            context.TargetPlatform = ContainerTargetPlatform.LinuxAmd64;
         });
 
         // If there's already a ContainerImageAnnotation, don't overwrite it.
@@ -1502,6 +1507,28 @@ public static class ContainerResourceBuilderExtensions
             BuildImage = buildImage,
             RuntimeImage = runtimeImage
         }, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Adds a network alias to container resource.
+    /// </summary>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="alias">The network alias for the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Network aliases enable DNS resolution of the container on the network by custom names.
+    /// By default, containers are accessible on the network using their resource name as a DNS alias.
+    /// This method allows adding additional aliases for the same container.
+    /// </para>
+    /// <para>
+    /// Multiple aliases can be added by calling this method multiple times.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithContainerNetworkAlias<T>(this IResourceBuilder<T> builder, string alias) where T : ContainerResource
+    {
+        return builder.WithAnnotation(new ContainerNetworkAliasAnnotation(alias) { Network = KnownNetworkIdentifiers.DefaultAspireContainerNetwork });
     }
 }
 

@@ -637,7 +637,7 @@ public class DistributedApplicationTests
         using var cert = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
 
         var redis = testProgram.AppBuilder.AddRedis($"{testName}-redis")
-            .WithServerAuthenticationCertificate(cert);
+            .WithHttpsCertificate(cert);
 
         await using var app = testProgram.Build();
 
@@ -686,7 +686,7 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram("verify-container-dev-cert", trustDeveloperCertificate: implicitTrust);
 
         var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-dev-cert-redis")
-            .WithoutServerAuthenticationCertificate();
+            .WithoutHttpsCertificate();
         if (explicitTrust.HasValue)
         {
             container.WithDeveloperCertificateTrust(explicitTrust.Value);
@@ -1843,7 +1843,7 @@ public class DistributedApplicationTests
             randomizePorts: randomizePorts,
             trustDeveloperCertificate: trustDeveloperCertificate);
 
-        testProgram.AppBuilder.Services.AddTestAndResourceLogging(_testOutputHelper);
+        testProgram.AppBuilder.WithTestAndResourceLogging(_testOutputHelper);
 
         return testProgram;
     }

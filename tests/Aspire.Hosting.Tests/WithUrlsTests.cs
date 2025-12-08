@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
@@ -50,7 +49,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var called = false;
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         builder.AddProject<ProjectA>("projecta")
             .WithUrls(c => called = true)
@@ -68,12 +67,12 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
         await tcs.Task.DefaultTimeout();
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -82,7 +81,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         ILogger logger = NullLogger.Instance;
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithUrls(c => logger = c.Logger)
             .OnBeforeResourceStarted((_, _, _) =>
@@ -91,7 +90,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
 
         await tcs.Task.DefaultTimeout();
@@ -99,7 +98,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(logger);
         Assert.True(logger is not NullLogger);
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -107,7 +106,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var tcs = new TaskCompletionSource<IServiceProvider>();
+        var tcs = new TaskCompletionSource<IServiceProvider>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithUrls(c =>
@@ -122,13 +121,13 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 }
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
 
         await app.StartAsync();
 
         Assert.NotNull(await tcs.Task.DefaultTimeout());
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -136,7 +135,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithUrls(c => c.Urls.Add(new() { Url = "https://example.com", DisplayText = "Example" }))
             .OnBeforeResourceStarted((_, _, _) =>
@@ -145,14 +144,14 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url == "https://example.com" && u.DisplayText == "Example");
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -160,7 +159,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithUrl("https://example.com", "Example")
             .OnBeforeResourceStarted((_, _, _) =>
@@ -169,14 +168,14 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
             return Task.CompletedTask;
         });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url == "https://example.com" && u.DisplayText == "Example");
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -187,7 +186,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpsEndpoint();
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         projectA.WithUrl($"{projectA.Resource.GetEndpoint("https")}/test", "Example")
             .OnBeforeResourceStarted((_, _, _) =>
             {
@@ -195,7 +194,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
@@ -206,7 +205,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
             u => Assert.True(u.Url.EndsWith("/test") && u.DisplayText == "Example")
         );
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -214,7 +213,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .OnBeforeResourceStarted((_, _, _) =>
@@ -223,14 +222,14 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url.StartsWith("http://localhost") && u.Endpoint?.EndpointName == "test");
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Theory]
@@ -246,7 +245,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
             options.DashboardUrl = $"http://{dashboardHost}:12345";
         });
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectB = builder.AddProject<ProjectB>("projectb")
             .WithEndpoint(scheme: "tcp")
             .WithUrlForEndpoint("http", u => u.DisplayText = "Custom Display Text")
@@ -256,7 +255,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
@@ -283,7 +282,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
             }
         );
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -291,7 +290,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectB>("projectb")
             .OnBeforeResourceStarted((_, _, _) =>
             {
@@ -299,14 +298,14 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url.EndsWith("/sub-path") && u.Endpoint?.EndpointName == "http");
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -314,7 +313,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectB>("projectb", launchProfileName: "custom")
             .OnBeforeResourceStarted((_, _, _) =>
             {
@@ -322,14 +321,14 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
         var urls = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>();
         Assert.Single(urls, u => u.Url == "http://custom.localhost:23456/home" && u.Endpoint?.EndpointName == "http");
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -337,7 +336,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrlForEndpoint("test", u =>
@@ -352,7 +351,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
@@ -363,7 +362,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
             && u.Endpoint?.EndpointName == "test"
             && u.DisplayOrder == 1000);
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -376,30 +375,21 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
 
         var httpEndpoint = servicea.Resource.GetEndpoint("http");
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        ImmutableArray<UrlSnapshot> initialUrlSnapshot = default;
-        var cts = new CancellationTokenSource();
-        var watchTask = Task.Run(async () =>
-        {
-            await foreach (var notification in rns.WatchAsync(cts.Token).WithCancellation(cts.Token))
-            {
-                if (notification.Snapshot.Urls.Length > 0 && initialUrlSnapshot == default)
-                {
-                    initialUrlSnapshot = notification.Snapshot.Urls;
-                    break;
-                }
-            }
-        });
 
         await app.StartAsync();
 
-        await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        cts.Cancel();
+        // Wait for the resource to have URLs allocated (before it starts running)
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        var resourceEvent = await rns.WaitForResourceAsync(
+            servicea.Resource.Name,
+            e => e.Snapshot.Urls.Length > 0,
+            cts.Token);
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
 
-        Assert.Single(initialUrlSnapshot, s => s.Name == httpEndpoint.EndpointName && s.IsInactive && s.Url == "https://example.com");
+        Assert.Single(resourceEvent.Snapshot.Urls, s => s.Name == httpEndpoint.EndpointName && s.IsInactive && s.Url == "https://example.com");
     }
 
     [Fact]
@@ -412,30 +402,21 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         servicea.WithUrl($"{httpEndpoint}/one", "Example 1");
         servicea.WithUrl($"{httpEndpoint}/two", "Example 2");
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        ImmutableArray<UrlSnapshot> initialUrlSnapshot = default;
-        var cts = new CancellationTokenSource();
-        var watchTask = Task.Run(async () =>
-        {
-            await foreach (var notification in rns.WatchAsync(cts.Token).WithCancellation(cts.Token))
-            {
-                if (notification.Snapshot.Urls.Length > 0 && initialUrlSnapshot == default)
-                {
-                    initialUrlSnapshot = notification.Snapshot.Urls;
-                    break;
-                }
-            }
-        });
 
         await app.StartAsync();
 
-        await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        cts.Cancel();
+        // Wait for URLs to be populated
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        var resourceEvent = await rns.WaitForResourceAsync(
+            servicea.Resource.Name,
+            e => e.Snapshot.Urls.Length > 0,
+            cts.Token);
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
 
-        Assert.Collection(initialUrlSnapshot,
+        Assert.Collection(resourceEvent.Snapshot.Urls,
             s => Assert.True(s.Name == httpEndpoint.EndpointName && s.DisplayProperties.DisplayName == ""), // <-- this is the default URL added for the endpoint
             s => Assert.True(s.Name == httpEndpoint.EndpointName && s.Url.EndsWith("/one") && s.DisplayProperties.DisplayName == "Example 1"),
             s => Assert.True(s.Name == httpEndpoint.EndpointName && s.Url.EndsWith("/two") && s.DisplayProperties.DisplayName == "Example 2")
@@ -454,47 +435,109 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
             .WithUrl("https://example.com/project")
             .WithReplicas(3);
 
-        var app = await builder.BuildAsync();
-
+        await using var app = await builder.BuildAsync();
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        var cts = new CancellationTokenSource();
-        var projectRunning = false;
-
-        var watchTask = Task.Run(async () =>
-        {
-            await foreach (var notification in rns.WatchAsync(cts.Token).WithCancellation(cts.Token))
-            {
-                if (!projectRunning && notification.Snapshot.State == KnownResourceStates.Running)
-                {
-                    projectRunning = true;
-                    Assert.Equal(2, notification.Snapshot.Urls.Length);
-                    Assert.Collection(notification.Snapshot.Urls,
-                        url => Assert.StartsWith("http://localhost:", url.Url), // The default project URL
-                        url => Assert.Equal("https://example.com/project", url.Url) // Static URL
-                    );
-                    break;
-                }
-            }
-        });
 
         await app.StartAsync();
 
-        await app.ResourceNotifications.WaitForResourceAsync(servicea.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        // Wait for the resource to be running
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        var resourceEvent = await rns.WaitForResourceAsync(
+            servicea.Resource.Name,
+            e => e.Snapshot.State == KnownResourceStates.Running,
+            cts.Token);
 
-        await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        cts.Cancel();
+        await app.StopAsync().DefaultTimeout();
 
-        await app.StopAsync();
-
+        Assert.Equal(2, resourceEvent.Snapshot.Urls.Length);
+        Assert.Collection(resourceEvent.Snapshot.Urls,
+            url => Assert.StartsWith("http://localhost:", url.Url), // The default project URL
+            url => Assert.Equal("https://example.com/project", url.Url) // Static URL
+        );
     }
 
     [Fact]
-    public async Task UrlsAreInExpectedStateForResourcesGivenTheirLifecycle()
+    public async Task ProjectResourceUrlsTransitionThroughExpectedLifecycleStates()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var servicea = builder.AddProject<Projects.ServiceA>("servicea")
             .WithUrl("https://example.com/project");
+
+        await using var app = await builder.BuildAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+
+        var urlSnapshots = new List<UrlSnapshot[]>();
+
+        static string FormatUrls(IEnumerable<UrlSnapshot> urls) =>
+            string.Join(", ", urls.Select(u => $"[{u.Name ?? "null"}] {u.Url} (inactive={u.IsInactive})"));
+
+        var watchTask = Task.Run(async () =>
+        {
+            await foreach (var notification in rns.WatchAsync(cts.Token))
+            {
+                if (notification.Resource == servicea.Resource && notification.Snapshot.Urls.Length > 0)
+                {
+                    urlSnapshots.Add(notification.Snapshot.Urls.ToArray());
+                    testOutputHelper.WriteLine($"Captured snapshot #{urlSnapshots.Count}: State={notification.Snapshot.State}, URLs: {FormatUrls(notification.Snapshot.Urls)}");
+
+                    // Stop when running and all URLs are active
+                    if (notification.Snapshot.State == KnownResourceStates.Running &&
+                        notification.Snapshot.Urls.All(u => !u.IsInactive))
+                    {
+                        break;
+                    }
+                }
+            }
+        });
+
+        await app.StartAsync();
+        await rns.WaitForResourceAsync(servicea.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await watchTask;
+        await app.StopAsync().DefaultTimeout();
+
+        // Log all captured snapshots for diagnostics
+        testOutputHelper.WriteLine($"Total snapshots captured: {urlSnapshots.Count}");
+        for (var i = 0; i < urlSnapshots.Count; i++)
+        {
+            testOutputHelper.WriteLine($"  [{i}] URLs: {FormatUrls(urlSnapshots[i])}");
+        }
+
+        // Find snapshots for each lifecycle stage
+        var initialized = urlSnapshots.FirstOrDefault(s => s.Length == 1);
+        Assert.True(initialized is not null, $"Expected 'initialized' snapshot (1 URL) but none found. Captured {urlSnapshots.Count} snapshots.");
+
+        var endpointsAllocated = urlSnapshots.FirstOrDefault(s => s.Length == 2 && s.Any(u => u.IsInactive));
+        Assert.True(endpointsAllocated is not null, $"Expected 'endpointsAllocated' snapshot (2 URLs, some inactive) but none found. Captured {urlSnapshots.Count} snapshots.");
+
+        var running = urlSnapshots.FirstOrDefault(s => s.Length == 2 && s.All(u => !u.IsInactive));
+        Assert.True(running is not null, $"Expected 'running' snapshot (2 URLs, all active) but none found. Captured {urlSnapshots.Count} snapshots.");
+
+        // Assert initialized: only static URL, active
+        var initUrl = Assert.Single(initialized);
+        Assert.False(initUrl.IsInactive);
+        Assert.Null(initUrl.Name);
+        Assert.Equal("https://example.com/project", initUrl.Url);
+
+        // Assert endpoints allocated: endpoint URL inactive, static URL active
+        Assert.Collection(endpointsAllocated,
+            s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
+            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/project", s.Url); }
+        );
+
+        // Assert running: both URLs active
+        Assert.Collection(running,
+            s => { Assert.False(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
+            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/project", s.Url); }
+        );
+    }
+
+    [Fact]
+    public async Task CustomResourceUrlsTransitionThroughExpectedLifecycleStates()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var custom = builder.AddResource(new CustomResource("custom"))
             .WithHttpEndpoint()
@@ -539,117 +582,74 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                     });
             });
 
-        var app = await builder.BuildAsync();
-
+        await using var app = await builder.BuildAsync();
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        var projectInitialized = false;
-        var projectEndpointsAllocated = false;
-        var projectRunning = false;
-        var customInitialized = false;
-        var customEndpointsAllocated = false;
-        var customRunning = false;
-        var cts = new CancellationTokenSource();
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
+
+        var urlSnapshots = new List<UrlSnapshot[]>();
+
+        static string FormatUrls(IEnumerable<UrlSnapshot> urls) =>
+            string.Join(", ", urls.Select(u => $"[{u.Name ?? "null"}] {u.Url} (inactive={u.IsInactive})"));
+
         var watchTask = Task.Run(async () =>
         {
-            await foreach (var notification in rns.WatchAsync(cts.Token).WithCancellation(cts.Token))
+            await foreach (var notification in rns.WatchAsync(cts.Token))
             {
-                if (notification.Resource == servicea.Resource && notification.Snapshot.Urls.Length > 0)
+                if (notification.Resource == custom.Resource && notification.Snapshot.Urls.Length > 0)
                 {
-                    if (!projectInitialized)
-                    {
-                        var urls = notification.Snapshot.Urls;
-                        // Endpoint URL should not be present yet, just the static URL
-                        var url = Assert.Single(urls);
-                        Assert.False(url.IsInactive);
-                        Assert.Null(url.Name);
-                        Assert.Equal("https://example.com/project", url.Url);
-                        projectInitialized = true;
-                    }
-                    else if (!projectEndpointsAllocated && notification.Snapshot.Urls.Length == 2)
-                    {
-                        var urls = notification.Snapshot.Urls;
-                        Assert.Equal(2, urls.Length);
-                        Assert.Collection(urls,
-                            // Endpoint URL should be inactive initially
-                            s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
-                            // Non-endpoint URL should be active
-                            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/project", s.Url); }
-                        );
-                        projectEndpointsAllocated = true;
-                    }
-                    else if (!projectRunning && notification.Snapshot.State == KnownResourceStates.Running &&
-                             // Wait until both URLs are active
-                             notification.Snapshot.Urls[^1].IsInactive == false &&
-                             notification.Snapshot.Urls[^2].IsInactive == false)
-                    {
-                        var urls = notification.Snapshot.Urls;
-                        Assert.Equal(2, urls.Length);
-                        Assert.Collection(urls,
-                            // Endpoint URL should be active now
-                            s => { Assert.False(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
-                            // Non-endpoint URL should still be active
-                            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/project", s.Url); }
-                        );
-                        projectRunning = true;
-                    }
-                }
-                else if (notification.Resource == custom.Resource && notification.Snapshot.Urls.Length > 0)
-                {
-                    if (!customInitialized)
-                    {
-                        var urls = notification.Snapshot.Urls;
-                        // Endpoint URL should not be present yet, just the static URL
-                        var url = Assert.Single(urls);
-                        Assert.False(url.IsInactive);
-                        Assert.Null(url.Name);
-                        Assert.Equal("https://example.com/custom", url.Url);
-                        customInitialized = true;
-                    }
-                    else if (!customEndpointsAllocated && notification.Snapshot.Urls.Length == 2)
-                    {
-                        var urls = notification.Snapshot.Urls;
-                        Assert.Equal(2, urls.Length);
-                        Assert.Collection(urls,
-                            // Endpoint URL should be inactive initially
-                            s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
-                            // Non-endpoint URL should be active
-                            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/custom", s.Url); }
-                        );
-                        customEndpointsAllocated = true;
-                    }
-                    else if (!customRunning && notification.Snapshot.State == KnownResourceStates.Running &&
-                             // Wait until both URLs are active
-                             notification.Snapshot.Urls[^1].IsInactive == false &&
-                             notification.Snapshot.Urls[^2].IsInactive == false)
-                    {
-                        var urls = notification.Snapshot.Urls;
-                        Assert.Equal(2, urls.Length);
-                        Assert.Collection(urls,
-                            // Endpoint URL should be active now
-                            s => { Assert.False(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
-                            // Non-endpoint URL should be active
-                            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/custom", s.Url); }
-                        );
-                        customRunning = true;
-                    }
-                }
+                    urlSnapshots.Add(notification.Snapshot.Urls.ToArray());
+                    testOutputHelper.WriteLine($"Captured snapshot #{urlSnapshots.Count}: State={notification.Snapshot.State}, URLs: {FormatUrls(notification.Snapshot.Urls)}");
 
-                if (projectRunning && customRunning)
-                {
-                    break;
+                    // Stop when running and all URLs are active
+                    if (notification.Snapshot.State == KnownResourceStates.Running &&
+                        notification.Snapshot.Urls.All(u => !u.IsInactive))
+                    {
+                        break;
+                    }
                 }
             }
         });
 
         await app.StartAsync();
+        await rns.WaitForResourceAsync(custom.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await watchTask;
+        await app.StopAsync().DefaultTimeout();
 
-        await app.ResourceNotifications.WaitForResourceAsync(servicea.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await app.ResourceNotifications.WaitForResourceAsync(custom.Resource.Name, KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+        // Log all captured snapshots for diagnostics
+        testOutputHelper.WriteLine($"Total snapshots captured: {urlSnapshots.Count}");
+        for (var i = 0; i < urlSnapshots.Count; i++)
+        {
+            testOutputHelper.WriteLine($"  [{i}] URLs: {FormatUrls(urlSnapshots[i])}");
+        }
 
-        await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        cts.Cancel();
+        // Find snapshots for each lifecycle stage
+        var initialized = urlSnapshots.FirstOrDefault(s => s.Length == 1);
+        Assert.True(initialized is not null, $"Expected 'initialized' snapshot (1 URL) but none found. Captured {urlSnapshots.Count} snapshots.");
 
-        await app.StopAsync();
+        var endpointsAllocated = urlSnapshots.FirstOrDefault(s => s.Length == 2 && s.Any(u => u.IsInactive));
+        Assert.True(endpointsAllocated is not null, $"Expected 'endpointsAllocated' snapshot (2 URLs, some inactive) but none found. Captured {urlSnapshots.Count} snapshots.");
+
+        var running = urlSnapshots.FirstOrDefault(s => s.Length == 2 && s.All(u => !u.IsInactive));
+        Assert.True(running is not null, $"Expected 'running' snapshot (2 URLs, all active) but none found. Captured {urlSnapshots.Count} snapshots.");
+
+        // Assert initialized: only static URL, active
+        var initUrl = Assert.Single(initialized);
+        Assert.False(initUrl.IsInactive);
+        Assert.Null(initUrl.Name);
+        Assert.Equal("https://example.com/custom", initUrl.Url);
+
+        // Assert endpoints allocated: endpoint URL inactive, static URL active
+        Assert.Collection(endpointsAllocated,
+            s => { Assert.True(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
+            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/custom", s.Url); }
+        );
+
+        // Assert running: both URLs active
+        Assert.Collection(running,
+            s => { Assert.False(s.IsInactive); Assert.NotNull(s.Name); Assert.StartsWith("http://localhost", s.Url); },
+            s => { Assert.False(s.IsInactive); Assert.Null(s.Name); Assert.Equal("https://example.com/custom", s.Url); }
+        );
     }
 
     [Fact]
@@ -665,35 +665,21 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 c.Urls.Add(new() { Url = "http://example.com/out-of-range", DisplayLocation = (UrlDisplayLocation)100 });
             });
 
-        var app = await builder.BuildAsync();
-
+        await using var app = await builder.BuildAsync();
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        ImmutableArray<UrlSnapshot> urlSnapshot = default;
-        var cts = new CancellationTokenSource();
-        var watchTask = Task.Run(async () =>
-        {
-            await foreach (var notification in rns.WatchAsync(cts.Token).WithCancellation(cts.Token))
-            {
-                if (string.Equals(notification.Snapshot.State?.Text, KnownResourceStates.Running))
-                {
-                    if (notification.Snapshot.Urls.Length > 1 && urlSnapshot == default)
-                    {
-                        urlSnapshot = notification.Snapshot.Urls;
-                        break;
-                    }
-                }
-            }
-        });
 
         await app.StartAsync();
 
-        await rns.WaitForResourceAsync("servicea", KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        await watchTask.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        cts.Cancel();
+        // Wait for running state with multiple URLs
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        var resourceEvent = await rns.WaitForResourceAsync(
+            "servicea",
+            e => e.Snapshot.State == KnownResourceStates.Running && e.Snapshot.Urls.Length > 1,
+            cts.Token);
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
 
-        Assert.Collection(urlSnapshot,
+        Assert.Collection(resourceEvent.Snapshot.Urls,
             url => { Assert.Equal("http", url.Name); Assert.False(url.IsInternal); },
             url => { Assert.Equal("http://example.com/", url.Url); Assert.False(url.IsInternal); },
             url => { Assert.Equal("http://example.com/internal", url.Url); Assert.True(url.IsInternal); },
@@ -707,7 +693,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var called = false;
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrlForEndpoint("non-existant", u =>
@@ -720,13 +706,13 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
         Assert.False(called);
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -735,7 +721,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var called = false;
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrlForEndpoint("non-existant", ep =>
@@ -749,13 +735,13 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
         Assert.False(called);
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -763,7 +749,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrl("https://static-before.com")
@@ -777,7 +763,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
@@ -804,20 +790,47 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(callbackAfter);
         Assert.Equal("https://callback-after.com/sub-path", callbackAfter.Url);
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
-    [Fact]
-    public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl(bool useLaunchSettings, bool useHttps)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var tcs = new TaskCompletionSource();
-        var projectA = builder.AddProject<ProjectA>("projecta")
-            .WithHttpEndpoint(name: "test")
+        var project = useLaunchSettings
+            ? builder.AddProject<ProjectB>("project")
+            : builder.AddProject<ProjectA>("project");
+
+        if (useHttps)
+        {
+            project.WithHttpsEndpoint(name: "test");
+        }
+        else
+        {
+            project.WithHttpEndpoint(name: "test");
+        }
+
+        if (useLaunchSettings)
+        {
+            // Update the URL from the launch profile
+            project.WithUrlForEndpoint("http", url =>
+            {
+                url.Url = "/test-sub-path";
+                url.DisplayText = "Test Link";
+            });
+        }
+
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        project
             .WithUrlForEndpoint("test", url =>
             {
-                url.Url = "/sub-path";
+                url.Url = "/test-sub-path";
+                url.DisplayText = "Test Link";
             })
             .OnBeforeResourceStarted((_, _, _) =>
             {
@@ -825,16 +838,28 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
-        var endpointUrl = projectA.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "test");
+        var endpointUrl = project.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "test");
 
         Assert.NotNull(endpointUrl);
-        Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
+        Assert.StartsWith(useHttps ? "https://localhost" : "http://localhost", endpointUrl.Url);
+        Assert.EndsWith("/test-sub-path", endpointUrl.Url);
+        Assert.Equal("Test Link", endpointUrl.DisplayText);
 
-        await app.StopAsync();
+        if (useLaunchSettings)
+        {
+            var launchProfileUrl = project.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "http");
+
+            Assert.NotNull(launchProfileUrl);
+            Assert.StartsWith("http://localhost", launchProfileUrl.Url);
+            Assert.EndsWith("/test-sub-path", launchProfileUrl.Url);
+            Assert.Equal("Test Link", launchProfileUrl.DisplayText);
+        }
+
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -842,7 +867,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrlForEndpoint("test", ep =>
@@ -855,7 +880,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
@@ -864,7 +889,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(endpointUrl);
         Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     [Fact]
@@ -872,7 +897,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var projectA = builder.AddProject<ProjectA>("projecta")
             .WithHttpEndpoint(name: "test")
             .WithUrls(c =>
@@ -885,7 +910,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
                 return Task.CompletedTask;
             });
 
-        var app = await builder.BuildAsync();
+        await using var app = await builder.BuildAsync();
         await app.StartAsync();
         await tcs.Task.DefaultTimeout();
 
@@ -894,7 +919,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(endpointUrl);
         Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
 
-        await app.StopAsync();
+        await app.StopAsync().DefaultTimeout();
     }
 
     private sealed class CustomResource(string name) : Resource(name), IResourceWithEndpoints

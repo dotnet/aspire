@@ -8,9 +8,9 @@ using Aspire.Hosting.Publishing;
 namespace Aspire.Hosting.Tests;
 
 /// <summary>
-/// Mock implementation of IResourceContainerImageBuilder for testing.
+/// Mock implementation of IResourceContainerImageManager for testing.
 /// </summary>
-public sealed class MockImageBuilder : IResourceContainerImageBuilder
+public sealed class MockImageBuilder : IResourceContainerImageManager
 {
     public bool BuildImageCalled { get; private set; }
     public bool BuildImagesCalled { get; private set; }

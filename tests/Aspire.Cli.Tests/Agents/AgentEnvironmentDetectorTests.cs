@@ -14,7 +14,7 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var detector = new AgentEnvironmentDetector([]);
 
-        var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, CancellationToken.None);
+        var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, workspace.WorkspaceRoot, CancellationToken.None);
 
         Assert.Empty(applicators);
     }
@@ -26,10 +26,11 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         var scanner = new TestAgentEnvironmentScanner();
         var detector = new AgentEnvironmentDetector([scanner]);
 
-        var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, CancellationToken.None);
+        var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, workspace.WorkspaceRoot, CancellationToken.None);
 
         Assert.True(scanner.WasScanned);
         Assert.Equal(workspace.WorkspaceRoot.FullName, scanner.ScanContext?.WorkingDirectory.FullName);
+        Assert.Equal(workspace.WorkspaceRoot.FullName, scanner.ScanContext?.RepositoryRoot.FullName);
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         };
         var detector = new AgentEnvironmentDetector([scanner]);
 
-        var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, CancellationToken.None);
+        var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, workspace.WorkspaceRoot, CancellationToken.None);
 
         Assert.Single(applicators);
         Assert.Equal("Test Environment", applicators[0].Description);
@@ -68,7 +69,7 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         };
         var detector = new AgentEnvironmentDetector([scanner1, scanner2]);
 
-        var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, CancellationToken.None);
+        var applicators = await detector.DetectAsync(workspace.WorkspaceRoot, workspace.WorkspaceRoot, CancellationToken.None);
 
         Assert.True(scanner1.WasScanned);
         Assert.True(scanner2.WasScanned);

@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ApplicatorDescription">
         <source>Configure OpenCode to use the Aspire MCP server</source>
-        <target state="new">Configure OpenCode to use the Aspire MCP server</target>
+        <target state="translated">OpenCode가 Aspire MCP 서버를 사용하도록 구성하세요.</target>
         <note />
       </trans-unit>
     </body>

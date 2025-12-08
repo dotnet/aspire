@@ -28,8 +28,8 @@
     <PackageVersion Include="Azure.Storage.Files.Shares" Version="12.24.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.24.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.54.0" />
-    <PackageVersion Include="Microsoft.Azure.Kusto.Data" Version="14.0.1" />
-    <PackageVersion Include="Microsoft.Azure.Kusto.Ingest" Version="14.0.1" />
+    <PackageVersion Include="Microsoft.Azure.Kusto.Data" Version="14.0.3" />
+    <PackageVersion Include="Microsoft.Azure.Kusto.Ingest" Version="14.0.3" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.32.0" />
     <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.32.0" />
     <PackageVersion Include="Microsoft.Azure.StackExchangeRedis" Version="3.2.1" />
@@ -81,6 +81,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
     <!-- MSBuild dependencies -->
     <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="17.9.5" /> <!-- This should not be updated, so we support older VS versions -->
+    <PackageVersion Include="Microsoft.IO.Redist" Version="6.1.3" /> <!-- Pinned transitive dependency to address vulnerability. This is a transitive dependency of Microsoft.Build.Utilities.Core -->
     <!-- NuGet dependencies -->
     <PackageVersion Include="NuGet.ProjectModel" Version="6.14.0" />
     <!-- external dependencies -->
@@ -97,8 +98,8 @@
     <PackageVersion Include="Markdig" Version="0.43.0" />
     <PackageVersion Include="Microsoft.AI.Foundry.Local" Version="0.3.0" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.2" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.13.1" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.13.1" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.13.2" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.13.2" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
     <PackageVersion Include="ModelContextProtocol" Version="0.4.0-preview.3" />
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="0.4.0-preview.3" />
@@ -125,13 +126,13 @@
     <PackageVersion Include="Microsoft.DevTunnels.Connections" Version="1.3.6" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="10.0.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="$(OpenTelemetryNet8Version)" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryNet8Version)" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryNet8Version)" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="$(OpenTelemetryInstrumentationGrpcNetClientNet8Version)" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryNet8Version)" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryNet8Version)" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryNet8Version)" />
+    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.14.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryExporterOpenTelemetryProtocolVersion)" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryInstrumentationExtensionsHostingVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.14.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryInstrumentationHttpVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryInstrumentationAspNetCoreVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryInstrumentationRuntimeVersion)" />
     <!-- build dependencies -->
     <PackageVersion Include="MicroBuild.Plugins.SwixBuild.Dotnet" Version="1.1.87-gba258badda" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
@@ -140,8 +141,6 @@
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Archives" Version="$(MicrosoftDotNetBuildTasksArchivesVersion)" />
     <PackageVersion Include="Microsoft.DotNet.GenAPI.Task" Version="9.0.103-servicing.25065.25" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0" />
-    <!-- Fuzzing tests dependencies -->
-    <PackageVersion Include="SharpFuzz" Version="$(SharpFuzzPackageVersion)" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.2.1" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.2.1" />
@@ -168,6 +167,8 @@
     <PackageVersion Include="Azure.Identity" Version="1.17.0" />
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+    <!-- tools/scripts dependencies -->
+    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.0" />
   </ItemGroup>
   <!-- The following 2 groups are for packages that need to switch based on the .NET TFM being used.
        The dependencies on any of these two groups should not be updated manually and should instead use arcade's dependency flow to get updated.-->

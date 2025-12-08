@@ -27,9 +27,9 @@ public interface IDeveloperCertificateService
 
     /// <summary>
     /// Indicates whether the default behavior is to attempt to use a developer certificate for server
-    /// authentication (i.e. TLS termination).
+    /// authentication (i.e. HTTPS/TLS termination).
     /// </summary>
-    bool UseForServerAuthentication { get; }
+    bool UseForHttps { get; }
 
     /// <summary>
     /// Indicates whether the default behavior is to attempt to trust the developer certificate(s) at runtime.

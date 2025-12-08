@@ -117,31 +117,16 @@ public sealed class ParameterProcessor(
 
     private async Task ProcessResourceDependenciesAsync(IResource resource, DistributedApplicationExecutionContext executionContext, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
     {
-        // Process environment variables
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            executionContext,
-            (key, unprocessed, processed, ex) =>
-            {
-                if (unprocessed is not null)
-                {
-                    TryAddDependentParameters(unprocessed, referencedParameters, currentDependencySet);
-                }
-            },
-            logger,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        // Process the resource's execution configuration to find referenced parameters
+        (var executionConfgiuration, _) = await resource.ExecutionConfigurationBuilder()
+            .WithArgumentsConfig()
+            .WithEnvironmentVariablesConfig()
+            .BuildAsync(executionContext, logger, cancellationToken).ConfigureAwait(false);
 
-        // Process command line arguments
-        await resource.ProcessArgumentValuesAsync(
-            executionContext,
-            (unprocessed, expression, ex, _) =>
-            {
-                if (unprocessed is not null)
-                {
-                    TryAddDependentParameters(unprocessed, referencedParameters, currentDependencySet);
-                }
-            },
-            logger,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        foreach (var reference in executionConfgiuration.References)
+        {
+            TryAddDependentParameters(reference, referencedParameters, currentDependencySet);
+        }
     }
 
     private static void TryAddDependentParameters(object? value, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet)
@@ -207,11 +192,17 @@ public sealed class ParameterProcessor(
                 "Value missing" :
                 "Error initializing parameter";
 
+            // Use warning style for missing parameters to match the notification banner,
+            // and error style for actual initialization errors.
+            var stateStyle = ex is MissingParameterValueException ?
+                KnownResourceStateStyles.Warn :
+                KnownResourceStateStyles.Error;
+
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
                 return s with
                 {
-                    State = new(stateText, KnownResourceStateStyles.Error),
+                    State = new(stateText, stateStyle),
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message)
                 };
             })

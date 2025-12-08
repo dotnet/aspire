@@ -12,6 +12,11 @@
         <target state="translated">AppHost y servicios predeterminados</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireJsFrontendStarter_Description">
+        <source>React (Vite) &amp; Minimal API starter</source>
+        <target state="translated">Inicio rápido de React (Vite) y API mínima</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>MSTest</source>
         <target state="translated">MSTest</target>

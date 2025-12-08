@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="AgentConfigurationMaybeLater">
         <source>Maybe later</source>
-        <target state="new">Maybe later</target>
+        <target state="translated">나중에</target>
         <note />
       </trans-unit>
       <trans-unit id="AgentConfigurationNo">
         <source>No</source>
-        <target state="new">No</target>
+        <target state="translated">아니요</target>
         <note />
       </trans-unit>
       <trans-unit id="AgentConfigurationPrompt">
         <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
-        <target state="new">Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</target>
+        <target state="translated">{0} 에이전트 코딩 환경을 구성하도록 검색했습니다. 지금 구성하시겠습니까?</target>
         <note />
       </trans-unit>
       <trans-unit id="AgentConfigurationSelectPrompt">
         <source>Select agent environments to configure:</source>
-        <target state="new">Select agent environments to configure:</target>
+        <target state="translated">구성할 에이전트 환경 선택:</target>
         <note />
       </trans-unit>
       <trans-unit id="AgentConfigurationYes">
         <source>Yes</source>
-        <target state="new">Yes</target>
+        <target state="translated">예</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHost">

@@ -239,15 +239,9 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.True(updateResult.UpdatedApplied);
+        // Note: Aspire.Hosting.AppHost is not updated because it's removed during SDK migration
         Assert.Collection(
             packagesAddsExecuted,
-            item =>
-            {
-                Assert.Equal("Aspire.Hosting.AppHost", item.PackageId);
-                Assert.Equal("9.5.0-preview.1", item.PackageVersion);
-                Assert.Null(item.PackageSource); // Should be null because of --no-restore behavior.
-                Assert.Equal(appHostProjectFile.FullName, item.ProjectFile.FullName);
-            },
             item =>
             {
                 Assert.Equal("Aspire.Hosting.Redis", item.PackageId);
@@ -384,15 +378,9 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.True(updateResult.UpdatedApplied);
+        // Note: Aspire.Hosting.AppHost is not updated because it's removed during SDK migration
         Assert.Collection(
             packagesAddsExecuted,
-            item =>
-            {
-                Assert.Equal("Aspire.Hosting.AppHost", item.PackageId);
-                Assert.Equal("9.4.1", item.PackageVersion);
-                Assert.Null(item.PackageSource); // Should be null because of --no-restore behavior.
-                Assert.Equal(appHostProjectFile.FullName, item.ProjectFile.FullName);
-            },
             item =>
             {
                 Assert.Equal("Aspire.Hosting.Redis", item.PackageId);
@@ -462,7 +450,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         packages.Add(query switch
                         {
                             "Aspire.AppHost.Sdk" => new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "9.5.0", Source = "nuget.org" },
-                            "Aspire.Hosting.AppHost" => new NuGetPackageCli { Id = "Aspire.Hosting.AppHost", Version = "9.5.0", Source = "nuget.org" },
+                            "Aspire.Hosting.Redis" => new NuGetPackageCli { Id = "Aspire.Hosting.Redis", Version = "9.5.0", Source = "nuget.org" },
                             _ => throw new InvalidOperationException($"Unexpected package query: {query}"),
                         });
 
@@ -477,7 +465,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         {
                             // AppHost references both ProjectA and ProjectB
                             itemsAndProperties.WithSdkVersion("9.4.1");
-                            itemsAndProperties.WithPackageReference("Aspire.Hosting.AppHost", "9.4.1");
+                            itemsAndProperties.WithPackageReference("Aspire.Hosting.Redis", "9.4.1");
                             itemsAndProperties.WithProjectReference(projectAFile.FullName);
                             itemsAndProperties.WithProjectReference(projectBFile.FullName);
                         }
@@ -498,7 +486,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         else if (projectFile.FullName == sharedProjectFile.FullName)
                         {
                             // SharedProject has an updatable package
-                            itemsAndProperties.WithPackageReference("Aspire.Hosting.AppHost", "9.4.1");
+                            itemsAndProperties.WithPackageReference("Aspire.Hosting.Redis", "9.4.1");
                         }
                         else
                         {
@@ -546,14 +534,14 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         Assert.Single(sharedProjectUpdates);
 
         var sharedProjectUpdate = sharedProjectUpdates.Single();
-        Assert.Equal("Aspire.Hosting.AppHost", sharedProjectUpdate.PackageId);
+        Assert.Equal("Aspire.Hosting.Redis", sharedProjectUpdate.PackageId);
         Assert.Equal("9.5.0", sharedProjectUpdate.PackageVersion);
 
         // Should also have the AppHost package update
         var appHostUpdates = packagesAddsExecuted.Where(p => p.ProjectFile.FullName == appHostProjectFile.FullName).ToList();
         Assert.Single(appHostUpdates);
 
-        Assert.Equal("Aspire.Hosting.AppHost", appHostUpdates.Single().PackageId);
+        Assert.Equal("Aspire.Hosting.Redis", appHostUpdates.Single().PackageId);
     }
 
     [Fact]
@@ -2148,11 +2136,9 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         Assert.True(updateResult.UpdatedApplied);
 
-        // Verify the SDK element Version attribute was updated, not the Sdk attribute
+        // Verify the project was migrated to the new SDK format
         var updatedContent = await File.ReadAllTextAsync(appHostProjectFile.FullName);
-        Assert.Contains("<Sdk Name=\"Aspire.AppHost.Sdk\" Version=\"9.5.0\"", updatedContent);
-        Assert.Contains("Sdk=\"Microsoft.NET.Sdk\"", updatedContent); // Should remain unchanged
-        Assert.DoesNotContain("9.4.1", updatedContent);
+        await Verify(updatedContent, extension: "xml");
     }
 
     [Fact]
@@ -2284,7 +2270,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
                 </PropertyGroup>
                 <ItemGroup>
-                    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.5.2" />
+                    <PackageReference Include="Aspire.Hosting.Redis" Version="9.5.2" />
                 </ItemGroup>
             </Project>
             """);
@@ -2317,7 +2303,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         packages.Add(query switch
                         {
                             "Aspire.AppHost.Sdk" => new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "9.6.0", Source = "nuget.org" },
-                            "Aspire.Hosting.AppHost" => new NuGetPackageCli { Id = "Aspire.Hosting.AppHost", Version = "9.6.0", Source = "nuget.org" },
+                            "Aspire.Hosting.Redis" => new NuGetPackageCli { Id = "Aspire.Hosting.Redis", Version = "9.6.0", Source = "nuget.org" },
                             _ => throw new InvalidOperationException($"Unexpected package query: {query}"),
                         });
 
@@ -2327,12 +2313,12 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                     {
                         var itemsAndProperties = new JsonObject();
                         itemsAndProperties.WithSdkVersion("9.5.2");
-                        
+
                         // Set ManagePackageVersionsCentrally to false
                         itemsAndProperties.WithProperty("ManagePackageVersionsCentrally", "false");
-                        
+
                         // Package has version in the project file (not in Directory.Packages.props)
-                        itemsAndProperties.WithPackageReference("Aspire.Hosting.AppHost", "9.5.2");
+                        itemsAndProperties.WithPackageReference("Aspire.Hosting.Redis", "9.5.2");
 
                         var json = itemsAndProperties.ToJsonString();
                         var document = JsonDocument.Parse(json);
@@ -2378,13 +2364,186 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         // not by updating Directory.Packages.props
         Assert.Single(packagesAddsExecuted);
         var packageUpdate = packagesAddsExecuted.Single();
-        Assert.Equal("Aspire.Hosting.AppHost", packageUpdate.PackageId);
+        Assert.Equal("Aspire.Hosting.Redis", packageUpdate.PackageId);
         Assert.Equal("9.6.0", packageUpdate.PackageVersion);
         Assert.Equal(appHostProjectFile.FullName, packageUpdate.ProjectFile.FullName);
 
         // Verify Directory.Packages.props was NOT modified (should still be empty)
         var directoryPackagesContent = await File.ReadAllTextAsync(directoryPackagesPropsFile.FullName);
-        Assert.DoesNotContain("Aspire.Hosting.AppHost", directoryPackagesContent);
+        Assert.DoesNotContain("Aspire.Hosting.Redis", directoryPackagesContent);
+    }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_MigratesFromOldFormatToNewFormat()
+    {
+        // Arrange - tests migration from old <Sdk Name="..."> to new <Project Sdk="..."> format
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj");
+        var originalContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net9.0</TargetFramework>
+                </PropertyGroup>
+            </Project>
+            """;
+
+        await File.WriteAllTextAsync(projectFile, originalContent);
+
+        var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+        // Act
+        await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+        // Assert
+        var updatedContent = await File.ReadAllTextAsync(projectFile);
+        await Verify(updatedContent, extension: "xml");
+    }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_UpdatesExistingNewFormat()
+    {
+        // Arrange - tests updating a project already using the new format
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj");
+        var originalContent = """
+            <Project Sdk="Aspire.AppHost.Sdk/13.0.1">
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                </PropertyGroup>
+            </Project>
+            """;
+
+        await File.WriteAllTextAsync(projectFile, originalContent);
+
+        var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+        // Act
+        await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+        // Assert
+        var updatedContent = await File.ReadAllTextAsync(projectFile);
+        await Verify(updatedContent, extension: "xml");
+    }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_RemovesAspireHostingAppHostPackageReference()
+    {
+        // Arrange - tests removal of obsolete Aspire.Hosting.AppHost package reference
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj");
+        var originalContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net9.0</TargetFramework>
+                </PropertyGroup>
+                <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.5.0" />
+                    <PackageReference Include="Aspire.Hosting.Redis" Version="9.5.0" />
+                </ItemGroup>
+            </Project>
+            """;
+
+        await File.WriteAllTextAsync(projectFile, originalContent);
+
+        var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+        // Act
+        await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+        // Assert
+        var updatedContent = await File.ReadAllTextAsync(projectFile);
+        await Verify(updatedContent, extension: "xml");
+    }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_RemovesEmptyItemGroupAfterPackageRemoval()
+    {
+        // Arrange - tests that empty ItemGroup is removed after Aspire.Hosting.AppHost removal
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj");
+        var originalContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net9.0</TargetFramework>
+                </PropertyGroup>
+                <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.5.0" />
+                </ItemGroup>
+            </Project>
+            """;
+
+        await File.WriteAllTextAsync(projectFile, originalContent);
+
+        var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+        // Act
+        await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+        // Assert
+        var updatedContent = await File.ReadAllTextAsync(projectFile);
+        await Verify(updatedContent, extension: "xml");
+    }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_PreservesOtherSdksInAttribute()
+    {
+        // Arrange - tests that other SDKs in the attribute are preserved
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj");
+        var originalContent = """
+            <Project Sdk="Aspire.AppHost.Sdk/13.0.1;Microsoft.NET.Sdk.Web">
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                </PropertyGroup>
+            </Project>
+            """;
+
+        await File.WriteAllTextAsync(projectFile, originalContent);
+
+        var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+        // Act
+        await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+        // Assert
+        var updatedContent = await File.ReadAllTextAsync(projectFile);
+        await Verify(updatedContent, extension: "xml");
+    }
+
+    [Fact]
+    public async Task UpdateSdkVersionInCsprojAppHostAsync_DoesNotMatchSimilarSdkName()
+    {
+        // Arrange - tests that Aspire.AppHost.SdkFoo doesn't match as the Aspire SDK
+        // In this case, the old <Sdk Name="..."> element is used, so it's a migration scenario
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj");
+        var originalContent = """
+            <Project Sdk="Aspire.AppHost.SdkFoo/1.0.0">
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                </PropertyGroup>
+            </Project>
+            """;
+
+        await File.WriteAllTextAsync(projectFile, originalContent);
+
+        var package = new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "13.0.2", Source = "nuget.org" };
+
+        // Act
+        await ProjectUpdater.UpdateSdkVersionInCsprojAppHostAsync(new FileInfo(projectFile), package);
+
+        // Assert
+        var updatedContent = await File.ReadAllTextAsync(projectFile);
+        await Verify(updatedContent, extension: "xml");
     }
 }
 
