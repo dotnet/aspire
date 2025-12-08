@@ -11,6 +11,8 @@ namespace Aspire.Shared.Mcp;
 /// </summary>
 internal static class McpIconHelper
 {
+    private static readonly string[] s_iconSizes = ["16", "32", "48", "64", "256"];
+
     /// <summary>
     /// Gets the Aspire MCP server icons from embedded resources.
     /// </summary>
@@ -20,8 +22,7 @@ internal static class McpIconHelper
     public static List<Icon> GetAspireIcons(Assembly assembly, string resourceNamespace)
     {
         // SVG isn't a required icon format for MCP. Use PNGs to ensure the icon is visible in all tools that support icons.
-        var sizes = new string[] { "16", "32", "48", "64", "256" };
-        var icons = sizes.Select(s =>
+        var icons = s_iconSizes.Select(s =>
         {
             var resourceName = $"{resourceNamespace}.aspire-{s}.png";
             using var stream = assembly.GetManifestResourceStream(resourceName);
@@ -35,7 +36,8 @@ internal static class McpIconHelper
             stream.CopyTo(memoryStream);
             var data = memoryStream.ToArray();
 
-            return new Icon { Source = $"data:image/png;base64,{Convert.ToBase64String(data)}", MimeType = "image/png", Sizes = [s] };
+            // The Sizes property expects an array of size strings. Each icon has a single size.
+            return new Icon { Source = $"data:image/png;base64,{Convert.ToBase64String(data)}", MimeType = "image/png", Sizes = new[] { s } };
         }).ToList();
 
         return icons;
