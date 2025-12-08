@@ -215,14 +215,12 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
     }
 
     private static AgentEnvironmentScanContext CreateScanContext(
-        DirectoryInfo workingDirectory,
-        bool configurePlaywrightMcpServer = false)
+        DirectoryInfo workingDirectory)
     {
         return new AgentEnvironmentScanContext
         {
             WorkingDirectory = workingDirectory,
-            RepositoryRoot = workingDirectory,
-            ConfigurePlaywrightMcpServer = configurePlaywrightMcpServer
+            RepositoryRoot = workingDirectory
         };
     }
 

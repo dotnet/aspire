@@ -251,7 +251,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
-        var context = CreateScanContext(workspace.WorkspaceRoot, configurePlaywrightMcpServer: true);
+        var context = CreateScanContext(workspace.WorkspaceRoot);
 
         await scanner.ScanAsync(context, CancellationToken.None);
         await context.Applicators[0].ApplyAsync(CancellationToken.None);
@@ -284,15 +284,13 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
 
     private static AgentEnvironmentScanContext CreateScanContext(
         DirectoryInfo workingDirectory,
-        DirectoryInfo? repositoryRoot = null,
-        bool configurePlaywrightMcpServer = false)
+        DirectoryInfo? repositoryRoot = null)
     {
         repositoryRoot ??= workingDirectory;
         return new AgentEnvironmentScanContext
         {
             WorkingDirectory = workingDirectory,
-            RepositoryRoot = repositoryRoot,
-            ConfigurePlaywrightMcpServer = configurePlaywrightMcpServer
+            RepositoryRoot = repositoryRoot
         };
     }
 

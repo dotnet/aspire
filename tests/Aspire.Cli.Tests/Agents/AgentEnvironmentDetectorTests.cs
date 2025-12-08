@@ -17,7 +17,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             WorkingDirectory = workspace.WorkspaceRoot,
             RepositoryRoot = workspace.WorkspaceRoot,
-            ConfigurePlaywrightMcpServer = false
         };
 
         var applicators = await detector.DetectAsync(context, CancellationToken.None);
@@ -35,7 +34,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             WorkingDirectory = workspace.WorkspaceRoot,
             RepositoryRoot = workspace.WorkspaceRoot,
-            ConfigurePlaywrightMcpServer = false
         };
 
         var applicators = await detector.DetectAsync(context, CancellationToken.None);
@@ -60,7 +58,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             WorkingDirectory = workspace.WorkspaceRoot,
             RepositoryRoot = workspace.WorkspaceRoot,
-            ConfigurePlaywrightMcpServer = false
         };
 
         var applicators = await detector.DetectAsync(context, CancellationToken.None);
@@ -90,7 +87,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             WorkingDirectory = workspace.WorkspaceRoot,
             RepositoryRoot = workspace.WorkspaceRoot,
-            ConfigurePlaywrightMcpServer = false
         };
 
         var applicators = await detector.DetectAsync(context, CancellationToken.None);
@@ -110,13 +106,11 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             WorkingDirectory = workspace.WorkspaceRoot,
             RepositoryRoot = workspace.WorkspaceRoot,
-            ConfigurePlaywrightMcpServer = true
         };
 
         var applicators = await detector.DetectAsync(context, CancellationToken.None);
 
         Assert.True(scanner.WasScanned);
-        Assert.True(scanner.ScanContext?.ConfigurePlaywrightMcpServer);
     }
 
     private sealed class TestAgentEnvironmentScanner : IAgentEnvironmentScanner
