@@ -181,7 +181,9 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
                 Name = BicepFunction.Take(BicepFunction.Interpolate($"script-{BicepFunction.GetUniqueString(this.GetBicepIdentifier(), roleAssignmentContext.PrincipalName, new StringLiteralExpression(resource), BicepFunction.GetResourceGroup().Id)}"), 24),
                 RetentionInterval = TimeSpan.FromHours(1),
                 // List of supported versions: https://mcr.microsoft.com/v2/azuredeploymentscripts-powershell/tags/list
-                AzPowerShellVersion = "10.0"
+                // Using version 14.0 to avoid EOL Ubuntu 20.04 LTS (Bicep linter warning: use-recent-az-powershell-version)
+                // Minimum recommended version is 11.0, using 14.0 as the latest supported version.
+                AzPowerShellVersion = "14.0"
             };
 
             // Run the script as the administrator

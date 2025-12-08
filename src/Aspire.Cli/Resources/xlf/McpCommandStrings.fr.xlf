@@ -34,17 +34,17 @@
       </trans-unit>
       <trans-unit id="InitCommand_WorkspaceRootNotFound">
         <source>Directory not found: {0}</source>
-        <target state="new">Directory not found: {0}</target>
+        <target state="translated">Répertoire introuvable : {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_WorkspaceRootPrompt">
         <source>Enter the path to the root of your workspace:</source>
-        <target state="new">Enter the path to the root of your workspace:</target>
+        <target state="translated">Entrez le chemin d’accès à la racine de votre espace de travail :</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_WorkspaceRootRequired">
         <source>Workspace root path is required.</source>
-        <target state="new">Workspace root path is required.</target>
+        <target state="translated">Le chemin racine de l’espace de travail est obligatoire.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartCommand_Description">

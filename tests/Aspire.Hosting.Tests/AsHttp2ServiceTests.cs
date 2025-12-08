@@ -62,7 +62,7 @@ public class AsHttp2ServiceTests(ITestOutputHelper testOutputHelper)
     private TestProgram CreateTestProgram(string[] args)
     {
         var program = TestProgram.Create<AsHttp2ServiceTests>(args, disableDashboard: true);
-        program.AppBuilder.Services.AddTestAndResourceLogging(testOutputHelper);
+        program.AppBuilder.WithTestAndResourceLogging(testOutputHelper);
         return program;
     }
 }

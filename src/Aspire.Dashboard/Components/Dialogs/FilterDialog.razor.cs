@@ -117,10 +117,11 @@ public partial class FilterDialog
         ValueChanged();
     }
 
-    // There is a bug in FluentUI that prevents the value changing immediately. Will be fixed in a future FluentUI update.
-    // https://github.com/microsoft/fluentui-blazor/issues/2672
     private void ValueChanged()
     {
+        // Limit to 1000 items to avoid the combo box have too many items and impacting UI perf.
+        const int maxItems = 1000;
+
         if (_allValues != null)
         {
             IEnumerable<SelectViewModel<FieldValue>> newValues = _allValues;
@@ -129,8 +130,10 @@ public partial class FilterDialog
                 newValues = newValues.Where(vm => vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
             }
 
-            // Limit to 1000 items to avoid the combo box have too many items and impacting UI perf.
-            _filteredValues = newValues.Take(1000).ToList();
+            // If no values match the filter, don't apply the filter.
+            // This improves user experience and fixes some combobox issues.
+            // https://github.com/microsoft/fluentui-blazor/issues/4314#issuecomment-3577475233
+            _filteredValues = newValues.Any() ? newValues.Take(maxItems).ToList() : _allValues.Take(maxItems).ToList();
         }
         else
         {

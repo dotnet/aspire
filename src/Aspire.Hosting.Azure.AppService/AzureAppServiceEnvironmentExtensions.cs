@@ -98,11 +98,8 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 },
                 Kind = "Linux",
                 IsReserved = true,
-                // Enable perSiteScaling or automatic scaling so each app service can scale independently
-                IsPerSiteScaling = !resource.EnableAutomaticScaling,
-                IsElasticScaleEnabled = resource.EnableAutomaticScaling,
-                // Capping the automatic scaling limit to 10 as per best practices
-                MaximumElasticWorkerCount = 10
+                // Enable perSiteScaling so each app service can scale independently
+                IsPerSiteScaling = true
             };
 
             infra.Add(plan);

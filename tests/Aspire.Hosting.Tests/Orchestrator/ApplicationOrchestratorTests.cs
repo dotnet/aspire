@@ -14,6 +14,7 @@ using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -27,7 +28,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task ParentPropertySetOnChildResource()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var parentResource = builder.AddContainer("database", "image");
         var childResource = builder.AddResource(new CustomChildResource("child", parentResource.Resource));
@@ -74,7 +75,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task ParentAnnotationOnChildResource()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var parentResource = builder.AddResource(new CustomResource("parent"));
         var childResource = builder.AddResource(new CustomResource("child"))
@@ -122,7 +123,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task InitializeResourceEventPublished()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var resource = builder.AddResource(new CustomResource("resource"));
 
@@ -169,7 +170,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task WithParentRelationshipSetsParentPropertyCorrectly()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var parent = builder.AddContainer("parent", "image");
         var child = builder.AddContainer("child", "image").WithParentRelationship(parent);
@@ -235,7 +236,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task LastWithParentRelationshipWins()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var firstParent = builder.AddContainer("firstParent", "image");
         var secondParent = builder.AddContainer("secondParent", "image");
@@ -293,7 +294,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task WithParentRelationshipWorksWithProjects()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var projectA = builder.AddProject<ProjectA>("projecta");
         var projectB = builder.AddProject<ProjectB>("projectb").WithParentRelationship(projectA);
@@ -359,7 +360,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task GrandChildResourceWithConnectionString()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var parentResource = builder.AddResource(new ParentResourceWithConnectionString("parent"));
         var childResource = builder.AddResource(
@@ -410,7 +411,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task ConnectionStringAvailableEventPublishesUpdateWithConnectionStringValue()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var resource = builder.AddResource(new TestResourceWithConnectionString("test-resource", "Server=localhost:5432;Database=testdb"));
 
@@ -461,7 +462,8 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
         DashboardOptions? dashboardOptions = null)
     {
         var services = new ServiceCollection();
-        services.AddTestAndResourceLogging(testOutputHelper);
+        var configuration = new ConfigurationManager();
+        services.AddTestAndResourceLogging(testOutputHelper, configuration);
         var serviceProvider = services.BuildServiceProvider();
         resourceLoggerService ??= new ResourceLoggerService();
 
@@ -589,7 +591,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task ContainerChildResourcesWithOwnLifetimeDoNotReceiveParentStateChanges()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var parentContainer = builder.AddContainer("parent-container", "parent-image");
         var childContainer = builder.AddContainer("child-container", "child-image")
@@ -636,7 +638,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task ProjectChildResourcesWithOwnLifetimeDoNotReceiveParentStateChanges()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var parentContainer = builder.AddContainer("parent-container", "parent-image");
         var childProject = builder.AddProject<ProjectA>("child-project")
@@ -683,7 +685,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task WithChildRelationshipUsingResourceBuilderSetsParentPropertyCorrectly()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var parent = builder.AddContainer("parent", "image");
         var child = builder.AddContainer("child", "image");
@@ -740,7 +742,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task WithChildRelationshipUsingResourceSetsParentPropertyCorrectly()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var parent = builder.AddContainer("parent", "image");
         var child = builder.AddContainer("child", "image");
@@ -797,7 +799,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     public async Task WithChildRelationshipWorksWithProjects()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var parentProject = builder.AddProject<ProjectA>("parent-project");
         var childProject = builder.AddProject<ProjectB>("child-project");
