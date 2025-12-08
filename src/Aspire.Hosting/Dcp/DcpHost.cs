@@ -218,6 +218,19 @@ internal sealed class DcpHost
                 dcpProcessSpec.EnvironmentVariables[key] = val;
             }
         }
+
+        // Set diagnostic log folder if configured (takes precedence over environment variable)
+        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogFolder))
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_FOLDER"] = _dcpOptions.DiagnosticsLogFolder;
+        }
+
+        // Set diagnostic log level if configured (takes precedence over environment variable)
+        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogLevel))
+        {
+            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_LEVEL"] = _dcpOptions.DiagnosticsLogLevel;
+        }
+
         return dcpProcessSpec;
     }
 

@@ -1731,7 +1731,7 @@ public class DistributedApplicationTests
             randomizePorts: randomizePorts,
             trustDeveloperCertificate: trustDeveloperCertificate);
 
-        testProgram.AppBuilder.Services.AddTestAndResourceLogging(_testOutputHelper);
+        testProgram.AppBuilder.WithTestAndResourceLogging(_testOutputHelper);
 
         return testProgram;
     }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -19,13 +20,13 @@ public static class DistributedApplicationTestingBuilderExtensions
     public static string GetVolumePrefix(this IDistributedApplicationTestingBuilder builder) =>
         $"{VolumeNameGenerator.Sanitize(builder.Environment.ApplicationName).ToLowerInvariant()}-{builder.Configuration["AppHost:Sha256"]!.ToLowerInvariant()[..10]}";
 
-    public static IDistributedApplicationTestingBuilder WithTestAndResourceLogging(this IDistributedApplicationTestingBuilder builder, ITestOutputHelper testOutputHelper)
+    public static T WithTestAndResourceLogging<T>(this T builder, ITestOutputHelper testOutputHelper) where T : IDistributedApplicationBuilder
     {
-        builder.Services.AddTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddTestAndResourceLogging(testOutputHelper, builder.Configuration, builder.Environment.ApplicationName);
         return builder;
     }
 
-    public static IServiceCollection AddTestAndResourceLogging(this IServiceCollection services, ITestOutputHelper testOutputHelper)
+    public static IServiceCollection AddTestAndResourceLogging(this IServiceCollection services, ITestOutputHelper testOutputHelper, IConfigurationManager configuration, string? applicationName = null)
     {
         services.AddXunitLogging(testOutputHelper);
         services.AddLogging(builder =>
@@ -34,6 +35,7 @@ public static class DistributedApplicationTestingBuilderExtensions
             // Suppress all console logging during tests to reduce noise
             builder.AddFilter<ConsoleLoggerProvider>(null, LogLevel.None);
         });
+        services.AddDcpDiagnostics(configuration, applicationName, testOutputHelper);
         return services;
     }
 
@@ -52,6 +54,27 @@ public static class DistributedApplicationTestingBuilderExtensions
         return builder;
     }
 
+    private static IServiceCollection AddDcpDiagnostics(this IServiceCollection services, IConfigurationManager configuration, string? applicationName, ITestOutputHelper testOutputHelper)
+    {
+        // Use Aspire:Test:DcpLogBasePath as the base path (set externally, e.g., in CI via env var ASPIRE__TEST__DCPLOGBASEPATH)
+        var baseDcpLogFolder = configuration["Aspire:Test:DcpLogBasePath"];
+        if (!string.IsNullOrEmpty(baseDcpLogFolder))
+        {
+            var uniqueId = Guid.NewGuid().ToString("N")[..8];
+            var folderName = !string.IsNullOrEmpty(applicationName)
+                ? $"{VolumeNameGenerator.Sanitize(applicationName).ToLowerInvariant()}-{uniqueId}"
+                : uniqueId;
+            var uniqueFolder = Path.Combine(baseDcpLogFolder, folderName);
+            configuration["DcpPublisher:DiagnosticsLogFolder"] = uniqueFolder;
+            configuration["DcpPublisher:DiagnosticsLogLevel"] = "debug";
+
+            // Register as hosted service to forward DCP logs to test output when app stops
+            services.AddSingleton<IHostedService>(sp => new DcpLogForwarder(testOutputHelper, uniqueFolder));
+        }
+
+        return services;
+    }
+
     /// <summary>
     /// Adds xunit logging and suppresses console logging for a host application builder used in tests.
     /// This redirects logs to the xunit test output and prevents console clutter during test runs.
@@ -61,5 +84,47 @@ public static class DistributedApplicationTestingBuilderExtensions
         builder.Logging.AddXunit(testOutputHelper);
         builder.Logging.AddFilter<ConsoleLoggerProvider>(null, LogLevel.None);
         return builder;
+    }
+}
+
+/// <summary>
+/// Forwards DCP log files to xUnit test output when stopped.
+/// Implements IHostedService so it gets automatically resolved and stopped when the app shuts down.
+/// </summary>
+internal sealed class DcpLogForwarder : IHostedService
+{
+    private readonly ITestOutputHelper _testOutputHelper;
+    private readonly string _logFolder;
+
+    public DcpLogForwarder(ITestOutputHelper testOutputHelper, string logFolder)
+    {
+        _testOutputHelper = testOutputHelper;
+        _logFolder = logFolder;
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(_logFolder))
+        {
+            return Task.CompletedTask;
+        }
+
+        foreach (var logFile in Directory.GetFiles(_logFolder, "*.log"))
+        {
+            try
+            {
+                _testOutputHelper.WriteLine($"=== DCP Log: {Path.GetFileName(logFile)} ===");
+                var content = File.ReadAllText(logFile);
+                _testOutputHelper.WriteLine(content);
+            }
+            catch (Exception ex)
+            {
+                _testOutputHelper.WriteLine($"Failed to read DCP log {logFile}: {ex.Message}");
+            }
+        }
+
+        return Task.CompletedTask;
     }
 }
