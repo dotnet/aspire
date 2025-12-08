@@ -126,7 +126,7 @@ internal class ExecCommand : BaseCommand
         var buildOutputCollector = new OutputCollector();
         var runOutputCollector = new OutputCollector();
 
-        IAppHostBackchannel? backchannel = null;
+        IAppHostCliBackchannel? backchannel = null;
         Task<int>? pendingRun = null;
         int? commandExitCode = null;
 
@@ -182,7 +182,7 @@ internal class ExecCommand : BaseCommand
 
             try
             {
-                var backchannelCompletionSource = new TaskCompletionSource<IAppHostBackchannel>();
+                var backchannelCompletionSource = new TaskCompletionSource<IAppHostCliBackchannel>();
                 pendingRun = _runner.RunAsync(
                     projectFile: effectiveAppHostProjectFile,
                     watch: false,

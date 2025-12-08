@@ -4,7 +4,6 @@
 using System.CommandLine;
 using System.Diagnostics;
 using System.Globalization;
-using System.Net.Sockets;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -215,7 +214,7 @@ internal sealed class RunCommand : BaseCommand
                 Debug = debug
             };
 
-            var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
+            var backchannelCompletitionSource = new TaskCompletionSource<IAppHostCliBackchannel>();
 
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
@@ -443,7 +442,7 @@ internal sealed class RunCommand : BaseCommand
         return logFile;
     }
 
-    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
+    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostCliBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
     {
         try
         {
@@ -542,22 +541,13 @@ internal sealed class RunCommand : BaseCommand
     {
         try
         {
-            // Connect to the auxiliary backchannel
-            using var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-            var endpoint = new UnixDomainSocketEndPoint(socketPath);
+            var logger = _serviceProvider.GetService<ILogger<RunCommand>>();
             
-            await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
+            // Connect to the auxiliary backchannel using the new encapsulated class
+            using var backchannel = await AppHostAuxiliaryBackchannel.ConnectAsync(socketPath, logger, cancellationToken).ConfigureAwait(false);
 
-            // Create JSON-RPC connection
-            using var stream = new NetworkStream(socket, ownsSocket: true);
-            using var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, BackchannelJsonSerializerContext.CreateRpcMessageFormatter()));
-            rpc.StartListening();
-
-            // Get the AppHost information to know which PIDs to monitor
-            var appHostInfo = await rpc.InvokeWithCancellationAsync<AppHostInformation?>(
-                "GetAppHostInformationAsync",
-                [],
-                cancellationToken).ConfigureAwait(false);
+            // Get the AppHost information (already retrieved during connection, but we need it)
+            var appHostInfo = backchannel.AppHostInfo;
 
             if (appHostInfo is null)
             {
@@ -570,10 +560,7 @@ internal sealed class RunCommand : BaseCommand
             InteractionService.DisplayMessage("🛑", $"Stopping previous instance (AppHost PID: {appHostInfo.ProcessId.ToString(CultureInfo.InvariantCulture)}, CLI PID: {cliPidText})");
 
             // Call StopAppHostAsync on the auxiliary backchannel
-            await rpc.InvokeWithCancellationAsync(
-                "StopAppHostAsync",
-                [],
-                cancellationToken).ConfigureAwait(false);
+            await backchannel.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
 
             // Monitor the PIDs for termination
             var stopped = await MonitorProcessesForTerminationAsync(appHostInfo, cancellationToken).ConfigureAwait(false);

@@ -20,7 +20,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     public Func<FileInfo, string[], string[], DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, JsonDocument? Output)>? GetProjectItemsAndPropertiesAsyncCallback { get; set; }
     public Func<string, string, string?, bool, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, string? TemplateVersion)>? InstallTemplateAsyncCallback { get; set; }
     public Func<string, string, string, DotNetCliRunnerInvocationOptions, CancellationToken, int>? NewProjectAsyncCallback { get; set; }
-    public Func<FileInfo, bool, bool, string[], IDictionary<string, string>?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions, CancellationToken, Task<int>>? RunAsyncCallback { get; set; }
+    public Func<FileInfo, bool, bool, string[], IDictionary<string, string>?, TaskCompletionSource<IAppHostCliBackchannel>?, DotNetCliRunnerInvocationOptions, CancellationToken, Task<int>>? RunAsyncCallback { get; set; }
     public Func<DirectoryInfo, string, bool, int, int, FileInfo?, bool, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, NuGetPackage[]? Packages)>? SearchPackagesAsyncCallback { get; set; }
     public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? TrustHttpCertificateAsyncCallback { get; set; }
     public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, IReadOnlyList<FileInfo> Projects)>? GetSolutionProjectsAsyncCallback { get; set; }
@@ -100,7 +100,7 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
             : Task.FromResult(0); // If not overridden, just return success.
     }
 
-    public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public Task<int> RunAsync(FileInfo projectFile, bool watch, bool noBuild, string[] args, IDictionary<string, string>? env, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         return RunAsyncCallback != null
             ? RunAsyncCallback(projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken)

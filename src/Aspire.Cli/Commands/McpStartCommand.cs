@@ -195,7 +195,7 @@ internal sealed class McpStartCommand : BaseCommand
     /// 4. If multiple in-scope connections exist, throw an error listing them
     /// 5. If no in-scope connections exist, fall back to the first available connection
     /// </summary>
-    private AppHostConnection? GetSelectedConnection()
+    private AppHostAuxiliaryBackchannel? GetSelectedConnection()
     {
         var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
 
