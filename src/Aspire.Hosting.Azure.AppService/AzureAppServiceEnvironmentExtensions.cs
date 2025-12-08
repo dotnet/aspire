@@ -298,17 +298,6 @@ public static partial class AzureAppServiceEnvironmentExtensions
         return builder;
     }
 
-    /// <summary>
-    /// Configures whether automatic scaling should be enabled for the app services in Azure App Service environment.
-    /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
-    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutomaticScaling(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder)
-    {
-        builder.Resource.EnableAutomaticScaling = true;
-        return builder;
-    }
-
     private static AzureContainerRegistryResource CreateDefaultAzureContainerRegistry(IDistributedApplicationBuilder builder, string name)
     {
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>

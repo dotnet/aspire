@@ -12,8 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Azure.AppContainers" />
-    <InternalsVisibleTo Include="Aspire.Hosting.Azure.AppService" />
     <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
   </ItemGroup>
 

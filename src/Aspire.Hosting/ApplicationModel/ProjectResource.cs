@@ -92,14 +92,8 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             var projectBuildSteps = context.GetSteps(this, WellKnownPipelineTags.BuildCompute);
             var pushSteps = context.GetSteps(this, WellKnownPipelineTags.PushContainerImage);
 
-            foreach (var pushStep in pushSteps)
-            {
-                foreach (var buildStep in projectBuildSteps)
-                {
-                    pushStep.DependsOn(buildStep);
-                }
-                pushStep.DependsOn(WellKnownPipelineSteps.PushPrereq);
-            }
+            pushSteps.DependsOn(projectBuildSteps);
+            pushSteps.DependsOn(WellKnownPipelineSteps.PushPrereq);
         }));
     }
     // Keep track of the config host for each Kestrel endpoint annotation

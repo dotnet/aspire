@@ -79,14 +79,8 @@ public static class ContainerResourceBuilderExtensions
             var buildSteps = context.GetSteps(builder.Resource, WellKnownPipelineTags.BuildCompute);
             var pushSteps = context.GetSteps(builder.Resource, WellKnownPipelineTags.PushContainerImage);
 
-            foreach (var pushStep in pushSteps)
-            {
-                foreach (var buildStep in buildSteps)
-                {
-                    pushStep.DependsOn(buildStep);
-                }
-                pushStep.DependsOn(WellKnownPipelineSteps.PushPrereq);
-            }
+            pushSteps.DependsOn(buildSteps);
+            pushSteps.DependsOn(WellKnownPipelineSteps.PushPrereq);
         }), ResourceAnnotationMutationBehavior.Append);
     }
 
