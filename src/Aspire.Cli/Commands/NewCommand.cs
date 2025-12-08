@@ -147,12 +147,61 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
+        
+        // Save channel to workspace settings after successful project creation
+        if (templateResult.ExitCode == ExitCodeConstants.Success && templateResult.OutputPath is not null)
+        {
+            // Get the resolved channel (either from CLI option or using resolver)
+            var cliChannelOption = parseResult.GetValue<string?>("--channel");
+            var resolvedChannel = await _channelResolver.ResolveChannelAsync(cliChannelOption, includeWorkspaceContext: false, cancellationToken);
+            await SaveChannelToWorkspaceSettingsAsync(resolvedChannel, templateResult.OutputPath, cancellationToken);
+        }
+        
         if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
         {
             extensionInteractionService.OpenEditor(templateResult.OutputPath);
         }
 
         return templateResult.ExitCode;
+    }
+
+    private static async Task SaveChannelToWorkspaceSettingsAsync(string channel, string outputPath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Determine workspace settings path
+            var settingsPath = Path.Combine(outputPath, ".aspire", "settings.json");
+            var settingsDir = Path.GetDirectoryName(settingsPath);
+            
+            if (settingsDir is not null && !Directory.Exists(settingsDir))
+            {
+                Directory.CreateDirectory(settingsDir);
+            }
+            
+            // Load existing settings or create new
+            WorkspaceSettings settings;
+            if (File.Exists(settingsPath))
+            {
+                var json = await File.ReadAllTextAsync(settingsPath, cancellationToken);
+                settings = System.Text.Json.JsonSerializer.Deserialize(json, JsonSourceGenerationContext.Default.WorkspaceSettings) ?? new WorkspaceSettings();
+            }
+            else
+            {
+                settings = new WorkspaceSettings();
+            }
+            
+            // Set channel
+            settings.Channel = channel;
+            
+            // Save
+            var updatedJson = System.Text.Json.JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.WorkspaceSettings);
+            await File.WriteAllTextAsync(settingsPath, updatedJson, cancellationToken);
+        }
+        catch (Exception)
+        {
+            // Don't fail the command if we can't save settings
+            // This is a best-effort operation
+        }
     }
 }
 
