@@ -180,6 +180,8 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 {
 
                     var qualifiedAppHostPath = Path.IsPathRooted(appHostPath) ? appHostPath : Path.Combine(settingsFile.Directory!.FullName, appHostPath);
+                    // Normalize the path to handle forward slashes and relative segments (e.g., ..) on all platforms
+                    qualifiedAppHostPath = Path.GetFullPath(qualifiedAppHostPath);
                     var appHostFile = new FileInfo(qualifiedAppHostPath);
 
                     if (appHostFile.Exists)
