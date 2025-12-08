@@ -7,10 +7,10 @@ namespace Aspire.Dashboard.Otlp.Model;
 
 /// <summary>
 /// Type alias for the shared DurationFormatter implementation.
-/// Dashboard uses CurrentCulture for localized formatting.
+/// Dashboard uses InvariantCulture for consistent formatting.
 /// </summary>
 internal static class DurationFormatter
 {
-    public static string FormatDuration(TimeSpan duration) => Shared.DurationFormatter.FormatDuration(duration, CultureInfo.CurrentCulture);
+    public static string FormatDuration(TimeSpan duration) => Shared.DurationFormatter.FormatDuration(duration, CultureInfo.InvariantCulture);
     public static string GetUnit(TimeSpan duration) => Shared.DurationFormatter.GetUnit(duration);
 }
