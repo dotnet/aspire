@@ -3083,6 +3083,23 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">The callback to be invoked during resource finalization. All resource configuration finalizers will be invoked in reverse order of their registration immediately after the BeforeStartEvent is complete.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Add a configuration finalizer to set default values:
+    /// <code lang="csharp">
+    /// var resource = builder.AddResource("myresource");
+    /// resource.WithConfigurationFinalizer(async ctx =>
+    ///     {
+    ///         // Apply defaults based on final configuration
+    ///         if (ctx.Resource.TryGetLastAnnotation&lt;MyAnnotation&gt;(out var annotation))
+    ///         {
+    ///             resource.WithHttpsEndpoint(port: annotation.Port);
+    ///         }
+    ///     });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIRELIFECYCLE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithConfigurationFinalizer<T>(this IResourceBuilder<T> builder, Func<FinalizeResourceConfigurationCallbackAnnotationContext, Task> callback)
         where T : IResource
     {

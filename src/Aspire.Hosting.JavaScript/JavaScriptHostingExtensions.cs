@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREDOCKERFILEBUILDER001
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIRELIFECYCLE001
 
 using System.Globalization;
 using System.Text.Json;

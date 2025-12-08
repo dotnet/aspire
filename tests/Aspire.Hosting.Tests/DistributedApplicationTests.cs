@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIRELIFECYCLE001
 
 using System.Globalization;
 using System.Text.RegularExpressions;
