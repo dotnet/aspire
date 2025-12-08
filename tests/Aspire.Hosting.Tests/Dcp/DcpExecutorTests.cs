@@ -229,10 +229,9 @@ public class DcpExecutorTests
     [Fact]
     public async Task ResourceRestarted_OnResourceStartingContextFiredOnce()
     {
-        // This test verifies that OnResourceStartingContext is only fired once when a resource is restarted,
-        // not twice. The bug was that DcpExecutor.StartResourceAsync would fire OnResourceStartingContext
-        // and then CreateContainerAsync/CreateExecutableAsync would fire it again, leading to duplicate
-        // BeforeResourceStartedEvent events in ApplicationOrchestrator.
+        // This test verifies that OnResourceStartingContext is only fired once when an executable is restarted.
+        // Executables follow a pattern where OnResourceStartingContext is published by StartResourceAsync
+        // before calling CreateExecutableAsync (which does not publish the event).
         
         var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
         {
@@ -273,18 +272,22 @@ public class DcpExecutorTests
         await appExecutor.StartResourceAsync(reference, CancellationToken.None);
 
         // Assert - Restart should fire event exactly once more (total 2, not 3)
-        // NOTE: This currently passes, but the bug manifests as 3 because StartResourceAsync 
-        // fires the event then calls Create which fires it again
         Assert.Equal(2, onResourceStartingCount);
     }
 
     [Fact]
     public async Task ContainerRestarted_OnResourceStartingContextFiredOnce()
     {
-        // This test verifies that OnResourceStartingContext is only fired once when a container is restarted.
-        // The bug report specifically mentioned containers.
+        // This test verifies that OnResourceStartingContext is only fired once when a container is restarted,
+        // not twice. This was the bug reported in the issue - DcpExecutor.StartResourceAsync was firing
+        // OnResourceStartingContext and then CreateContainerAsync was firing it again, leading to duplicate
+        // BeforeResourceStartedEvent events in ApplicationOrchestrator. The fix ensures StartResourceAsync
+        // does not fire the event for containers, as CreateContainerAsync already does this.
         
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
         var container = builder.AddContainer("test-nginx", "nginx").Resource;
 
         var kubernetesService = new TestKubernetesService();
