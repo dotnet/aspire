@@ -148,6 +148,10 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             {
                 await Task.Delay(500, CancellationToken.None).ConfigureAwait(false);
                 
+                // Cancel inflight RPC calls in AppHostRpcTarget before stopping
+                var appHostRpcTarget = serviceProvider.GetService<AppHostRpcTarget>();
+                appHostRpcTarget?.CancelInflightRpcCalls();
+                
                 var lifetime = serviceProvider.GetService<IHostApplicationLifetime>();
                 if (lifetime is not null)
                 {
