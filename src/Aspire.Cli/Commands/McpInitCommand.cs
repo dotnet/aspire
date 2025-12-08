@@ -3,7 +3,6 @@
 
 using System.CommandLine;
 using System.Globalization;
-using System.Reflection.Metadata;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Git;
