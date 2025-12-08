@@ -557,7 +557,7 @@ internal sealed class RunCommand : BaseCommand
 
             // Display message that we're stopping the previous instance
             var cliPidText = appHostInfo.CliProcessId.HasValue ? appHostInfo.CliProcessId.Value.ToString(CultureInfo.InvariantCulture) : "N/A";
-            InteractionService.DisplayMessage("🛑", $"Stopping previous instance (AppHost PID: {appHostInfo.ProcessId.ToString(CultureInfo.InvariantCulture)}, CLI PID: {cliPidText})");
+            InteractionService.DisplayMessage("stop_sign", $"Stopping previous instance (AppHost PID: {appHostInfo.ProcessId.ToString(CultureInfo.InvariantCulture)}, CLI PID: {cliPidText})");
 
             // Call StopAppHostAsync on the auxiliary backchannel
             await backchannel.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
