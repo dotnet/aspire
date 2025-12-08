@@ -687,6 +687,64 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(2, displayedChoices!.Count);
     }
 
+    [Fact]
+    public async Task AddCommand_WithoutHives_UsesImplicitChannelWithoutPrompting()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        
+        var selectedPackageId = string.Empty;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (message, choices, formatter, ct) =>
+                {
+                    return choices.Cast<object>().First();
+                }
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
+                {
+                    var redisPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { redisPackage });
+                };
+
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                {
+                    selectedPackageId = packageName;
+                    return 0;
+                };
+
+                return runner;
+            };
+        });
+        
+        var provider = services.BuildServiceProvider();
+
+        // Act - without hives, should automatically select from implicit channel without prompting
+        var command = provider.GetRequiredService<AddCommand>();
+        var result = command.Parse("add redis");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal("Aspire.Hosting.Redis", selectedPackageId);
+    }
+
     private sealed class FakeNuGetPackageCache : Aspire.Cli.NuGet.INuGetPackageCache
     {
         public Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) 
