@@ -228,7 +228,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             throw new InvalidOperationException("IHttpClientFactory is not registered in the service provider.");
         }
 
-        var url = $"https://testingagentdataplane.azurewebsites.net/projects{projectName}?resourceId={workspaceResourceId}";
+        var url = $"https://testingagentdataplane.azurewebsites.net/projects/{projectName}?resourceId={workspaceResourceId}";
         
         var requestBody = new
         {
