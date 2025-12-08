@@ -15,9 +15,11 @@ internal sealed class LocalModelHealthCheck(string? modelId, FoundryLocalManager
             return HealthCheckResult.Unhealthy("Model has not been loaded.");
         }
 
-        var loadedModels = await manager.ListLoadedModelsAsync(cancellationToken).ConfigureAwait(false);
+        var catalog = await manager.GetCatalogAsync(cancellationToken).ConfigureAwait(false);
 
-        if (!loadedModels.Any(lm => lm.ModelId.Equals(modelId, StringComparison.InvariantCultureIgnoreCase)))
+        var loadedModels = await catalog.GetLoadedModelsAsync(cancellationToken).ConfigureAwait(false);
+
+        if (!loadedModels.Any(lm => lm.Id.Equals(modelId, StringComparison.InvariantCultureIgnoreCase)))
         {
             return HealthCheckResult.Unhealthy("Model has not been loaded.");
         }

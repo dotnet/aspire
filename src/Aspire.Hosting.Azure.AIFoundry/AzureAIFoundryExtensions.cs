@@ -151,7 +151,7 @@ public static class AzureAIFoundryExtensions
         builder.ApplicationBuilder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
                     healthCheckKey,
-                    sp => new FoundryLocalHealthCheck(sp.GetRequiredService<FoundryLocalManager>()),
+                    sp => new FoundryLocalHealthCheck(),
                     failureStatus: default,
                     tags: default,
                     timeout: default
@@ -202,8 +202,6 @@ public static class AzureAIFoundryExtensions
                 var manager = @event.Services.GetRequiredService<FoundryLocalManager>();
                 var logger = @event.Services.GetRequiredService<ResourceLoggerService>().GetLogger(resource);
 
-                resource.ApiKey = manager.ApiKey;
-
                 await rns.PublishUpdateAsync(resource, state => state with
                 {
                     State = new ResourceStateSnapshot(KnownResourceStates.Starting, KnownResourceStateStyles.Info)
@@ -211,16 +209,16 @@ public static class AzureAIFoundryExtensions
 
                 try
                 {
-                    await manager.StartServiceAsync(ct).ConfigureAwait(false);
+                    await manager.StartWebServiceAsync(ct).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
                     logger.LogInformation("Foundry Local could not be started. Ensure it's installed correctly: https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started (Error: {Error}).", e.Message);
                 }
 
-                if (manager.IsServiceRunning)
+                if (FoundryLocalManager.IsInitialized)
                 {
-                    resource.EmulatorServiceUri = manager.Endpoint;
+                    resource.EmulatorServiceUri = manager.Conf;
 
                     await rns.PublishUpdateAsync(resource, state => state with
                     {

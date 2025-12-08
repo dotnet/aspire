@@ -6,11 +6,11 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.Azure.AIFoundry;
 
-internal sealed class FoundryLocalHealthCheck(FoundryLocalManager manager) : IHealthCheck
+internal sealed class FoundryLocalHealthCheck : IHealthCheck
 {
     public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        if (!manager.IsServiceRunning)
+        if (!FoundryLocalManager.IsInitialized)
         {
             return Task.FromResult(HealthCheckResult.Unhealthy("Foundry Local not running"));
         }
