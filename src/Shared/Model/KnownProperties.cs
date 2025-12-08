@@ -65,5 +65,6 @@ internal static class KnownProperties
     {
         public const string Package = "tool.package";
         public const string Version = "tool.version";
+        public const string ExecArgs = "tool.execArgs";
     }
 }
