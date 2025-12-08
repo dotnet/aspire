@@ -165,8 +165,8 @@ internal static class DcpLogParser
             {
                 if (!string.IsNullOrWhiteSpace(value))
                 {
-                    // Handle multi-line errors
-                    if (name == "Error" && value.Contains('\n'))
+                    // Handle multi-line values
+                    if (value.Contains('\n'))
                     {
                         if (sb.Length > SystemLogPrefix.Length || hasAddedField)
                         {
@@ -174,13 +174,13 @@ internal static class DcpLogParser
                         }
                         sb.AppendLine();
                         // Prefix each line with [sys]
-                        var errorLines = value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                        for (int i = 0; i < errorLines.Length; i++)
+                        var lines = value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                        for (int i = 0; i < lines.Length; i++)
                         {
                             sb.Append(SystemLogPrefix);
-                            sb.Append(errorLines[i].Trim());
+                            sb.Append(lines[i].Trim());
                             // Only add newline if not the last line
-                            if (i < errorLines.Length - 1)
+                            if (i < lines.Length - 1)
                             {
                                 sb.AppendLine();
                             }
