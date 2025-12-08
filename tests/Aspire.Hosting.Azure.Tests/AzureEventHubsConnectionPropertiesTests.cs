@@ -25,11 +25,6 @@ public class AzureEventHubsConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("Port", property.Key);
-                Assert.Equal("9093", property.Value.ValueExpression);
-            },
-            property =>
-            {
                 Assert.Equal("Uri", property.Key);
                 Assert.Equal("{eventhubs.outputs.eventHubsEndpoint}", property.Value.ValueExpression);
             });

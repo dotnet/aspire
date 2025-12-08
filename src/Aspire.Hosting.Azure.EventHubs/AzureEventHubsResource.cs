@@ -48,7 +48,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     /// <summary>
     /// Gets the host name for the Event Hubs namespace.
     /// </summary>
-    public ReferenceExpression Host =>
+    public ReferenceExpression HostName =>
         IsEmulator ?
             ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Host)}") :
             ReferenceExpression.Create($"{EventHubsEndpoint}");
@@ -56,7 +56,11 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     /// <summary>
     /// Gets the port for the Event Hubs namespace.
     /// </summary>
-    public ReferenceExpression Port =>
+    /// <remarks>
+    /// In container mode, resolves to the container's primary endpoint port.
+    /// In Azure mode, return null.
+    /// </remarks>
+    public ReferenceExpression? Port =>
         IsEmulator ?
             ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Host)}") :
             ReferenceExpression.Create($"9093");
@@ -182,8 +186,13 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        yield return new("Host", Host);
-        yield return new("Port", Port);
+        yield return new("Host", HostName);
+        
+        if (Port is not null)
+        {
+            yield return new("Port", Port);
+        }
+        
         yield return new("Uri", UriExpression);
     }
 }

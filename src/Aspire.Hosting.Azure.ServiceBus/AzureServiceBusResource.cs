@@ -38,14 +38,22 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     /// <summary>
     /// Gets the host name for the Service Bus namespace.
     /// </summary>
-    /// <remarks>
-    /// In container mode (emulator), resolves to the container's endpoint host and port.
-    /// In Azure mode, resolves to the Azure Service Bus namespace endpoint.
-    /// </remarks>
     public ReferenceExpression HostName =>
         IsEmulator ?
-            ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)}") :
+            ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Host)}") :
             ReferenceExpression.Create($"{ServiceBusEndpoint}");
+
+    /// <summary>
+    /// Gets the port for the Service Bus namespace.
+    /// </summary>
+    /// <remarks>
+    /// In container mode, resolves to the container's primary endpoint port.
+    /// In Azure mode, return null.
+    /// </remarks>
+    public ReferenceExpression? Port =>
+        IsEmulator ?
+            ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Port)}") :
+            null;
 
     /// <summary>
     /// Gets the connection URI expression for the Service Bus namespace.
@@ -158,6 +166,12 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
         yield return new("Host", HostName);
+
+        if (Port is not null)
+        {
+            yield return new("Port", Port);
+        }
+        
         yield return new("Uri", UriExpression);
     }
 }

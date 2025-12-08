@@ -64,6 +64,7 @@ The Service Bus namespace resource exposes the following connection properties:
 | Property Name | Description |
 |---------------|-------------|
 | `Host` | The hostname of the Service Bus namespace |
+| `Port` | The port of the Service Bus namespace when the emulator is used |
 | `Uri` | The connection URI, with the format `sb://myservicebus.servicebus.windows.net` |
 
 ### Service Bus queue
