@@ -59,6 +59,7 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Backchannel\BackchannelDataTypes.cs" Link="Backchannel\CliBackchannelDataTypes.cs" />
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
     <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="Utils\PathLookupHelper.cs" />
+    <Compile Include="$(SharedDir)Mcp\McpIconHelper.cs" Link="Mcp\McpIconHelper.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -131,6 +132,11 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\dotnet-install.sh" />
     <EmbeddedResource Include="Resources\dotnet-install.ps1" />
+    <EmbeddedResource Include="$(SharedDir)Mcp\Resources\aspire-16.png" Link="Mcp\Resources\aspire-16.png" />
+    <EmbeddedResource Include="$(SharedDir)Mcp\Resources\aspire-256.png" Link="Mcp\Resources\aspire-256.png" />
+    <EmbeddedResource Include="$(SharedDir)Mcp\Resources\aspire-32.png" Link="Mcp\Resources\aspire-32.png" />
+    <EmbeddedResource Include="$(SharedDir)Mcp\Resources\aspire-48.png" Link="Mcp\Resources\aspire-48.png" />
+    <EmbeddedResource Include="$(SharedDir)Mcp\Resources\aspire-64.png" Link="Mcp\Resources\aspire-64.png" />
   </ItemGroup>
 
   <ItemGroup>
