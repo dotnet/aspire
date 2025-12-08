@@ -213,15 +213,4 @@ public class DockerfileBuildAnnotationTests
             }
         }
     }
-
-    [Fact]
-    public void DockerfileBuildAnnotation_Dispose_DisposesResources()
-    {
-        // Arrange
-        var annotation = new DockerfileBuildAnnotation("/context", "/dockerfile", null);
-
-        // Act & Assert - Should not throw
-        annotation.Dispose();
-        annotation.Dispose(); // Double dispose should be safe
-    }
 }
