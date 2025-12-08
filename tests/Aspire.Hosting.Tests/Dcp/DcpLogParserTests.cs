@@ -237,4 +237,109 @@ public sealed class DcpLogParserTests
         Assert.Equal(expectedLogLevel, logLevel);
         Assert.Equal("dcpctrl.TestReconciler", category);
     }
+
+    [Fact]
+    public void FormatSystemLog_NoJson_AddsSystemPrefix()
+    {
+        // Arrange
+        var message = "service /apigateway is now in state Ready";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        Assert.Equal("[sys] service /apigateway is now in state Ready", formatted);
+    }
+
+    [Fact]
+    public void FormatSystemLog_StartingProcessWithCmdAndArgs_FormatsCorrectly()
+    {
+        // Arrange
+        var message = "Starting process...\t{\"Executable\": \"/foo-pwrqgpew\", \"Reconciliation\": 4, \"Cmd\": \"bla\", \"Args\": []}";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        Assert.Equal("[sys] Starting process...: Cmd = bla, Args = []", formatted);
+    }
+
+    [Fact]
+    public void FormatSystemLog_FailedToStartWithError_FormatsCorrectly()
+    {
+        // Arrange
+        var message = "Failed to start process\t{\"Executable\": \"/foo-pwrqgpew\", \"Reconciliation\": 4, \"Cmd\": \"bla\", \"Args\": [], \"error\": \"exec: \\\"bla\\\": executable file not found in $PATH\"}";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        Assert.Equal("[sys] Failed to start process: Cmd = bla, Args = [], Error = exec: \"bla\": executable file not found in $PATH", formatted);
+    }
+
+    [Fact]
+    public void FormatSystemLog_ErrorWithoutCmdArgs_FormatsCorrectly()
+    {
+        // Arrange
+        var message = "Failed to start Executable\t{\"Executable\": \"/foo-pwrqgpew\", \"Reconciliation\": 4, \"error\": \"exec: \\\"bla\\\": executable file not found in $PATH\"}";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        Assert.Equal("[sys] Failed to start Executable: Error = exec: \"bla\": executable file not found in $PATH", formatted);
+    }
+
+    [Fact]
+    public void FormatSystemLog_MultiLineError_FormatsWithSysPrefix()
+    {
+        // Arrange
+        var message = "Failed to start Container\t{\"Container\": \"/nginx-duqbgyrt\", \"Reconciliation\": 16, \"ContainerID\": \"1f1f348abff1\", \"ContainerName\": \"nginx-duqbgyrt\", \"error\": \"container 'nginx-duqbgyrt' start failed (exit code 123)\\nwriter is closed\\nnot all requested objects were returned\\nonly 0 out of 1 containers were successfully started\"}";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        var expected = "[sys] Failed to start Container:\n[sys] container 'nginx-duqbgyrt' start failed (exit code 123)\n[sys] writer is closed\n[sys] not all requested objects were returned\n[sys] only 0 out of 1 containers were successfully started";
+        Assert.Equal(expected, formatted);
+    }
+
+    [Fact]
+    public void FormatSystemLog_ContainerWithNoError_FormatsCorrectly()
+    {
+        // Arrange
+        var message = "Container created\t{\"Container\": \"/nginx-duqbgyrt\", \"Reconciliation\": 9, \"ContainerName\": \"nginx-duqbgyrt\", \"Network\": \"/aspire-network\"}";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        Assert.Equal("[sys] Container created", formatted);
+    }
+
+    [Fact]
+    public void FormatSystemLog_InvalidJson_ReturnsOriginalWithPrefix()
+    {
+        // Arrange
+        var message = "Starting process...\t{invalid json";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        Assert.Equal("[sys] Starting process...\t{invalid json", formatted);
+    }
+
+    [Fact]
+    public void FormatSystemLog_EmptyTextWithJson_FormatsOnlyRelevantFields()
+    {
+        // Arrange
+        var message = "\t{\"Cmd\": \"mycommand\", \"Args\": [\"arg1\", \"arg2\"]}";
+
+        // Act
+        var formatted = DcpLogParser.FormatSystemLog(message);
+
+        // Assert
+        Assert.Equal("[sys] Cmd = mycommand, Args = [\"arg1\", \"arg2\"]", formatted);
+    }
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dcp;
@@ -113,5 +114,101 @@ internal static class DcpLogParser
         var result = TryParseDcpLog(bytes.AsSpan(), out message, out logLevel, out _);
         isErrorLevel = logLevel == LogLevel.Error;
         return result;
+    }
+
+    /// <summary>
+    /// Formats a system-level log message by parsing JSON metadata and applying the [sys] prefix format.
+    /// </summary>
+    /// <param name="message">The raw message which may contain a text portion and JSON metadata.</param>
+    /// <returns>The formatted message with [sys] prefix and human-readable format.</returns>
+    public static string FormatSystemLog(string message)
+    {
+        const string SystemLogPrefix = "[sys] ";
+        
+        // Try to find JSON portion in the message (starts with a tab followed by '{')
+        var jsonStart = message.IndexOf('\t');
+        if (jsonStart < 0)
+        {
+            // No JSON metadata, return message as-is with [sys] prefix
+            return $"{SystemLogPrefix}{message}";
+        }
+
+        var textPart = message[..jsonStart];
+        var jsonPart = message[(jsonStart + 1)..];
+
+        // Try to parse the JSON metadata
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonPart);
+            var root = doc.RootElement;
+
+            // Build the formatted message
+            var sb = new StringBuilder();
+            sb.Append(SystemLogPrefix);
+            
+            // Add the text part if it exists
+            if (!string.IsNullOrWhiteSpace(textPart))
+            {
+                sb.Append(textPart);
+            }
+
+            // Extract and add JSON fields in a loop
+            var fields = new (string Name, string? Value)[]
+            {
+                ("Cmd", root.TryGetProperty("Cmd", out var cmdProp) ? cmdProp.GetString() : null),
+                ("Args", root.TryGetProperty("Args", out var argsProp) ? argsProp.ToString() : null),
+                ("Error", root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null)
+            };
+
+            var hasAddedField = false;
+            foreach (var (name, value) in fields)
+            {
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    // Handle multi-line values
+                    if (value.Contains('\n'))
+                    {
+                        if (sb.Length > SystemLogPrefix.Length || hasAddedField)
+                        {
+                            sb.Append(':');
+                        }
+                        sb.Append('\n');
+                        // Prefix each line with [sys]
+                        var lines = value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                        for (int i = 0; i < lines.Length; i++)
+                        {
+                            sb.Append(SystemLogPrefix);
+                            sb.Append(lines[i].Trim());
+                            // Only add newline if not the last line
+                            if (i < lines.Length - 1)
+                            {
+                                sb.Append('\n');
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Add delimiter
+                        if (sb.Length > SystemLogPrefix.Length)
+                        {
+                            sb.Append(hasAddedField ? ", " : ": ");
+                        }
+                        
+                        // Add field in format "Name = Value"
+                        sb.Append(name);
+                        sb.Append(" = ");
+                        sb.Append(value);
+                        hasAddedField = true;
+                    }
+                }
+            }
+
+            return sb.ToString();
+        }
+        catch
+        {
+            // If JSON parsing fails, return the original message with [sys] prefix
+            return $"{SystemLogPrefix}{message}";
+        }
     }
 }
