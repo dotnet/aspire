@@ -29,7 +29,7 @@ public class DurationFormatterTests
     [Fact]
     public void KeepsMicrosecondsTheSame()
     {
-        Assert.Equal("1μs", DurationFormatter.FormatDuration(TimeSpan.FromTicks(1 * TimeSpan.TicksPerMicrosecond), CultureInfo.CurrentCulture));
+        Assert.Equal("1.00μs", DurationFormatter.FormatDuration(TimeSpan.FromTicks(1 * TimeSpan.TicksPerMicrosecond), CultureInfo.CurrentCulture));
     }
 
     [Fact]
@@ -50,14 +50,14 @@ public class DurationFormatterTests
     public void DisplaysMillisecondsInDecimals()
     {
         var input = 2 * TimeSpan.TicksPerMillisecond + 357 * TimeSpan.TicksPerMicrosecond;
-        Assert.Equal(2.36m.ToString("0.##ms", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input), CultureInfo.CurrentCulture));
+        Assert.Equal(2.36m.ToString("0.00ms", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input), CultureInfo.CurrentCulture));
     }
 
     [Fact]
     public void DisplaysSecondsInDecimals()
     {
         var input = 2 * TimeSpan.TicksPerSecond + 357 * TimeSpan.TicksPerMillisecond;
-        Assert.Equal(2.36m.ToString("0.##s", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input), CultureInfo.CurrentCulture));
+        Assert.Equal(2.36m.ToString("0.00s", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input), CultureInfo.CurrentCulture));
     }
 
     [Fact]
@@ -78,27 +78,27 @@ public class DurationFormatterTests
     public void DisplaysLargeFractionalMillisecondAsMilliseconds()
     {
         var input = 9155;
-        Assert.Equal(0.92m.ToString("0.##ms", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input), CultureInfo.CurrentCulture));
+        Assert.Equal(0.92m.ToString("0.00ms", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input), CultureInfo.CurrentCulture));
     }
 
     [Fact]
     public void DisplaysLargeFractionalSecondsAsSeconds()
     {
         var input = 915 * TimeSpan.TicksPerMillisecond;
-        Assert.Equal(0.92m.ToString("0.##s", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input), CultureInfo.CurrentCulture));
+        Assert.Equal(0.92m.ToString("0.00s", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input), CultureInfo.CurrentCulture));
     }
 
     [Fact]
     public void DisplaysTimesLessThanMicroseconds()
     {
         var input = (double)TimeSpan.TicksPerMicrosecond / 10;
-        Assert.Equal(0.1m.ToString("0.##μs", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks((long)input), CultureInfo.CurrentCulture));
+        Assert.Equal(0.1m.ToString("0.00μs", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks((long)input), CultureInfo.CurrentCulture));
     }
 
     [Fact]
     public void DisplaysTimesOf0()
     {
         var input = 0;
-        Assert.Equal("0μs", DurationFormatter.FormatDuration(TimeSpan.FromTicks(input), CultureInfo.CurrentCulture));
+        Assert.Equal("0.00μs", DurationFormatter.FormatDuration(TimeSpan.FromTicks(input), CultureInfo.CurrentCulture));
     }
 }

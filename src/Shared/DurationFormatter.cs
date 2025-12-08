@@ -37,8 +37,8 @@ internal static class DurationFormatter
 
         if (primaryUnit.IsDecimal)
         {
-            // If the unit is decimal based, display as a decimal
-            return string.Create(culture, $"{ticks / primaryUnit.Ticks:0.##}{primaryUnit.Unit}");
+            // If the unit is decimal based, display as a decimal with 2 decimal places for alignment
+            return string.Create(culture, $"{ticks / primaryUnit.Ticks:0.00}{primaryUnit.Unit}");
         }
 
         var primaryValue = Math.Floor(ticks / primaryUnit.Ticks);

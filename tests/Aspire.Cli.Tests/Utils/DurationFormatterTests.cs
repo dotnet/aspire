@@ -13,20 +13,20 @@ namespace Aspire.Cli.Tests.Utils;
 public class DurationFormatterTests
 {
     [Theory]
-    [InlineData(0.001, "1ms")]   // 1 millisecond
-    [InlineData(0.025, "25ms")]  // 25 milliseconds - example from original issue
-    [InlineData(0.049, "49ms")]  // Just under 50ms
-    [InlineData(0.050, "50ms")]  // Exactly 50ms
-    [InlineData(0.099, "99ms")]  // Just under 0.1 seconds
-    [InlineData(0.0999, "99.9ms")] // 99.9ms (DurationFormatter uses decimals)
-    [InlineData(0.1, "0.1s")]    // Exactly 0.1 seconds should show seconds
+    [InlineData(0.001, "1.00ms")]   // 1 millisecond
+    [InlineData(0.025, "25.00ms")]  // 25 milliseconds - example from original issue
+    [InlineData(0.049, "49.00ms")]  // Just under 50ms
+    [InlineData(0.050, "50.00ms")]  // Exactly 50ms
+    [InlineData(0.099, "99.00ms")]  // Just under 0.1 seconds
+    [InlineData(0.0999, "99.90ms")] // 99.9ms (DurationFormatter uses decimals)
+    [InlineData(0.1, "0.10s")]    // Exactly 0.1 seconds should show seconds
     [InlineData(0.15, "0.15s")]  // 0.15 seconds
-    [InlineData(0.5, "0.5s")]    // Half second
-    [InlineData(1.0, "1s")]      // One second
-    [InlineData(1.5, "1.5s")]    // 1.5 seconds
+    [InlineData(0.5, "0.50s")]    // Half second
+    [InlineData(1.0, "1.00s")]      // One second
+    [InlineData(1.5, "1.50s")]    // 1.5 seconds
     [InlineData(1.49, "1.49s")]  // 1.49 seconds
     [InlineData(10.25, "10.25s")] // Larger duration
-    [InlineData(0.0001, "0.1ms")] // Very small value
+    [InlineData(0.0001, "0.10ms")] // Very small value
     public void FormatDuration_FormatsSmallDurationsCorrectly(double seconds, string expected)
     {
         // Act
@@ -53,10 +53,10 @@ public class DurationFormatterTests
     }
 
     [Theory]
-    [InlineData(0.0, "0μs")]      // Zero should not display as "0.0s"
-    [InlineData(0.01, "10ms")]    // 10 milliseconds
-    [InlineData(0.05, "50ms")]    // 50 milliseconds
-    [InlineData(0.099, "99ms")]   // 99 milliseconds
+    [InlineData(0.0, "0.00μs")]      // Zero should not display as "0.0s"
+    [InlineData(0.01, "10.00ms")]    // 10 milliseconds
+    [InlineData(0.05, "50.00ms")]    // 50 milliseconds
+    [InlineData(0.099, "99.00ms")]   // 99 milliseconds
     public void FormatDuration_NeverReturnsZeroPointZeroSeconds(double seconds, string expected)
     {
         // This test verifies the core issue: we should never see "0.0s" for small durations
@@ -78,7 +78,7 @@ public class DurationFormatterTests
         var result = DurationFormatter.FormatDuration(TimeSpan.FromSeconds(1.5));
         
         // Assert - should use dot, not comma
-        Assert.Equal("1.5s", result);
+        Assert.Equal("1.50s", result);
         Assert.DoesNotContain(",", result);
     }
 
