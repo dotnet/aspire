@@ -51,7 +51,7 @@ internal class DotNetTemplateFactory(
             );
 
         yield return new CallbackTemplate(
-            "aspire-starter-ts-cs",
+            "aspire-ts-cs-starter",
             TemplatingStrings.AspireJsFrontendStarter_Description,
             projectName => $"./{projectName}",
             ApplyExtraAspireJsFrontendStarterOptions,
