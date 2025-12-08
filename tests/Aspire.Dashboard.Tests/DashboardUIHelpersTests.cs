@@ -4,9 +4,9 @@
 using Aspire.Dashboard.Utils;
 using Xunit;
 
-namespace Aspire.Dashboard.Components.Tests.Pages;
+namespace Aspire.Dashboard.Tests;
 
-public class TracesTests
+public class DashboardUIHelpersTests
 {
     [Theory]
     [InlineData(0, 0)]
