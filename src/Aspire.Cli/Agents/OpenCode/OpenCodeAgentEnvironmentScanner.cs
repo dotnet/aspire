@@ -214,7 +214,7 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             mcp["playwright"] = new JsonObject
             {
                 ["type"] = "local",
-                ["command"] = new JsonArray("npx", "-y", "@executeautomation/playwright-mcp-server"),
+                ["command"] = new JsonArray("npx", "-y", "@playwright/mcp@latest"),
                 ["enabled"] = true
             };
         }
