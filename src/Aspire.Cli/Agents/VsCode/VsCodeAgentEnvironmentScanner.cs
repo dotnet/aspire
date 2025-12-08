@@ -210,8 +210,6 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             VsCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
             async cancellationToken => await ApplyMcpConfigurationAsync(
                 vsCodeFolder,
-                context.RepositoryRoot,
-                context.CreateAgentInstructions,
                 context.ConfigurePlaywrightMcpServer,
                 cancellationToken));
     }
@@ -221,8 +219,6 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// </summary>
     private static async Task ApplyMcpConfigurationAsync(
         DirectoryInfo vsCodeFolder,
-        DirectoryInfo repositoryRoot,
-        bool createAgentInstructions,
         bool configurePlaywrightMcpServer,
         CancellationToken cancellationToken)
     {
@@ -276,37 +272,5 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         // Write the updated config with indentation using AOT-compatible serialization
         var jsonContent = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(mcpConfigPath, jsonContent, cancellationToken);
-
-        // Create agent-specific instruction files if requested
-        if (createAgentInstructions)
-        {
-            await CreateVsCodeInstructionsAsync(repositoryRoot, cancellationToken);
-        }
-    }
-
-    /// <summary>
-    /// Creates VS Code agent-specific instruction files.
-    /// </summary>
-    private static async Task CreateVsCodeInstructionsAsync(DirectoryInfo repositoryRoot, CancellationToken cancellationToken)
-    {
-        var githubDir = Path.Combine(repositoryRoot.FullName, ".github");
-        var agentsDir = Path.Combine(githubDir, "agents");
-        var vsCodeAgentDir = Path.Combine(agentsDir, "vscode");
-
-        // Ensure directories exist
-        Directory.CreateDirectory(vsCodeAgentDir);
-
-        // Create placeholder instruction file
-        var instructionsPath = Path.Combine(vsCodeAgentDir, "instructions.md");
-        if (!File.Exists(instructionsPath))
-        {
-            const string placeholderContent = @"# VS Code Agent Instructions
-
-This file contains instructions for the VS Code agent environment.
-
-<!-- TODO: Add agent-specific instructions here -->
-";
-            await File.WriteAllTextAsync(instructionsPath, placeholderContent, cancellationToken);
-        }
     }
 }

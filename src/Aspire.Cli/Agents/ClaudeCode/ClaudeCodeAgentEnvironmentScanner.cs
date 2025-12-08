@@ -177,7 +177,6 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
             ClaudeCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
             async cancellationToken => await ApplyMcpConfigurationAsync(
                 repoRoot,
-                context.CreateAgentInstructions,
                 context.ConfigurePlaywrightMcpServer,
                 cancellationToken));
     }
@@ -187,7 +186,6 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     /// </summary>
     private static async Task ApplyMcpConfigurationAsync(
         DirectoryInfo repoRoot,
-        bool createAgentInstructions,
         bool configurePlaywrightMcpServer,
         CancellationToken cancellationToken)
     {
@@ -233,37 +231,5 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
         // Write the updated config using AOT-compatible serialization
         var jsonContent = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(configFilePath, jsonContent, cancellationToken);
-
-        // Create agent-specific instruction files if requested
-        if (createAgentInstructions)
-        {
-            await CreateClaudeCodeInstructionsAsync(repoRoot, cancellationToken);
-        }
-    }
-
-    /// <summary>
-    /// Creates Claude Code agent-specific instruction files.
-    /// </summary>
-    private static async Task CreateClaudeCodeInstructionsAsync(DirectoryInfo repoRoot, CancellationToken cancellationToken)
-    {
-        var githubDir = Path.Combine(repoRoot.FullName, ".github");
-        var agentsDir = Path.Combine(githubDir, "agents");
-        var claudeAgentDir = Path.Combine(agentsDir, "claude");
-
-        // Ensure directories exist
-        Directory.CreateDirectory(claudeAgentDir);
-
-        // Create placeholder instruction file
-        var instructionsPath = Path.Combine(claudeAgentDir, "instructions.md");
-        if (!File.Exists(instructionsPath))
-        {
-            const string placeholderContent = @"# Claude Code Agent Instructions
-
-This file contains instructions for the Claude Code agent environment.
-
-<!-- TODO: Add agent-specific instructions here -->
-";
-            await File.WriteAllTextAsync(instructionsPath, placeholderContent, cancellationToken);
-        }
     }
 }

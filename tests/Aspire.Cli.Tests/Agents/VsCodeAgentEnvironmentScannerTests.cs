@@ -274,43 +274,6 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         Assert.Equal("npx", playwrightServer["command"]?.GetValue<string>());
     }
 
-    [Fact]
-    public async Task ApplyAsync_WithCreateAgentInstructionsTrue_CreatesInstructionsFile()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var vsCodeFolder = workspace.CreateDirectory(".vscode");
-        var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
-        var context = CreateScanContext(workspace.WorkspaceRoot, createAgentInstructions: true);
-
-        await scanner.ScanAsync(context, CancellationToken.None);
-        await context.Applicators[0].ApplyAsync(CancellationToken.None);
-
-        var instructionsPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "agents", "vscode", "instructions.md");
-        Assert.True(File.Exists(instructionsPath));
-
-        var content = await File.ReadAllTextAsync(instructionsPath);
-        Assert.Contains("VS Code Agent Instructions", content);
-    }
-
-    [Fact]
-    public async Task ApplyAsync_WithCreateAgentInstructionsFalse_DoesNotCreateInstructionsFile()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var vsCodeFolder = workspace.CreateDirectory(".vscode");
-        var vsCodeCliRunner = new FakeVsCodeCliRunner(null);
-        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var scanner = new VsCodeAgentEnvironmentScanner(vsCodeCliRunner, executionContext, NullLogger<VsCodeAgentEnvironmentScanner>.Instance);
-        var context = CreateScanContext(workspace.WorkspaceRoot, createAgentInstructions: false);
-
-        await scanner.ScanAsync(context, CancellationToken.None);
-        await context.Applicators[0].ApplyAsync(CancellationToken.None);
-
-        var instructionsPath = Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "agents", "vscode", "instructions.md");
-        Assert.False(File.Exists(instructionsPath));
-    }
-
     /// <summary>
     /// A fake implementation of <see cref="IVsCodeCliRunner"/> for testing.
     /// </summary>
@@ -322,7 +285,6 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
     private static AgentEnvironmentScanContext CreateScanContext(
         DirectoryInfo workingDirectory,
         DirectoryInfo? repositoryRoot = null,
-        bool createAgentInstructions = false,
         bool configurePlaywrightMcpServer = false)
     {
         repositoryRoot ??= workingDirectory;
@@ -330,7 +292,6 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
         {
             WorkingDirectory = workingDirectory,
             RepositoryRoot = repositoryRoot,
-            CreateAgentInstructions = createAgentInstructions,
             ConfigurePlaywrightMcpServer = configurePlaywrightMcpServer
         };
     }

@@ -17,7 +17,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             WorkingDirectory = workspace.WorkspaceRoot,
             RepositoryRoot = workspace.WorkspaceRoot,
-            CreateAgentInstructions = false,
             ConfigurePlaywrightMcpServer = false
         };
 
@@ -36,7 +35,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             WorkingDirectory = workspace.WorkspaceRoot,
             RepositoryRoot = workspace.WorkspaceRoot,
-            CreateAgentInstructions = false,
             ConfigurePlaywrightMcpServer = false
         };
 
@@ -62,7 +60,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             WorkingDirectory = workspace.WorkspaceRoot,
             RepositoryRoot = workspace.WorkspaceRoot,
-            CreateAgentInstructions = false,
             ConfigurePlaywrightMcpServer = false
         };
 
@@ -93,7 +90,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             WorkingDirectory = workspace.WorkspaceRoot,
             RepositoryRoot = workspace.WorkspaceRoot,
-            CreateAgentInstructions = false,
             ConfigurePlaywrightMcpServer = false
         };
 
@@ -102,27 +98,6 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         Assert.True(scanner1.WasScanned);
         Assert.True(scanner2.WasScanned);
         Assert.Equal(2, applicators.Length);
-    }
-
-    [Fact]
-    public async Task DetectAsync_WithCreateAgentInstructionsTrue_PassesContextToScanner()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var scanner = new TestAgentEnvironmentScanner();
-        var detector = new AgentEnvironmentDetector([scanner]);
-        var context = new AgentEnvironmentScanContext
-        {
-            WorkingDirectory = workspace.WorkspaceRoot,
-            RepositoryRoot = workspace.WorkspaceRoot,
-            CreateAgentInstructions = true,
-            ConfigurePlaywrightMcpServer = false
-        };
-
-        var applicators = await detector.DetectAsync(context, CancellationToken.None);
-
-        Assert.True(scanner.WasScanned);
-        Assert.True(scanner.ScanContext?.CreateAgentInstructions);
-        Assert.False(scanner.ScanContext?.ConfigurePlaywrightMcpServer);
     }
 
     [Fact]
@@ -135,35 +110,12 @@ public class AgentEnvironmentDetectorTests(ITestOutputHelper outputHelper)
         {
             WorkingDirectory = workspace.WorkspaceRoot,
             RepositoryRoot = workspace.WorkspaceRoot,
-            CreateAgentInstructions = false,
             ConfigurePlaywrightMcpServer = true
         };
 
         var applicators = await detector.DetectAsync(context, CancellationToken.None);
 
         Assert.True(scanner.WasScanned);
-        Assert.False(scanner.ScanContext?.CreateAgentInstructions);
-        Assert.True(scanner.ScanContext?.ConfigurePlaywrightMcpServer);
-    }
-
-    [Fact]
-    public async Task DetectAsync_WithBothOptionsTrue_PassesContextToScanner()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var scanner = new TestAgentEnvironmentScanner();
-        var detector = new AgentEnvironmentDetector([scanner]);
-        var context = new AgentEnvironmentScanContext
-        {
-            WorkingDirectory = workspace.WorkspaceRoot,
-            RepositoryRoot = workspace.WorkspaceRoot,
-            CreateAgentInstructions = true,
-            ConfigurePlaywrightMcpServer = true
-        };
-
-        var applicators = await detector.DetectAsync(context, CancellationToken.None);
-
-        Assert.True(scanner.WasScanned);
-        Assert.True(scanner.ScanContext?.CreateAgentInstructions);
         Assert.True(scanner.ScanContext?.ConfigurePlaywrightMcpServer);
     }
 

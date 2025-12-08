@@ -158,7 +158,6 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             OpenCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
             async cancellationToken => await ApplyMcpConfigurationAsync(
                 configDirectory,
-                context.CreateAgentInstructions,
                 context.ConfigurePlaywrightMcpServer,
                 cancellationToken));
     }
@@ -168,7 +167,6 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// </summary>
     private static async Task ApplyMcpConfigurationAsync(
         DirectoryInfo configDirectory,
-        bool createAgentInstructions,
         bool configurePlaywrightMcpServer,
         CancellationToken cancellationToken)
     {
@@ -222,37 +220,5 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         // Write the updated config using AOT-compatible serialization
         var jsonOutput = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(configFilePath, jsonOutput, cancellationToken);
-
-        // Create agent-specific instruction files if requested
-        if (createAgentInstructions)
-        {
-            await CreateOpenCodeInstructionsAsync(configDirectory, cancellationToken);
-        }
-    }
-
-    /// <summary>
-    /// Creates OpenCode agent-specific instruction files.
-    /// </summary>
-    private static async Task CreateOpenCodeInstructionsAsync(DirectoryInfo configDirectory, CancellationToken cancellationToken)
-    {
-        var githubDir = Path.Combine(configDirectory.FullName, ".github");
-        var agentsDir = Path.Combine(githubDir, "agents");
-        var openCodeAgentDir = Path.Combine(agentsDir, "opencode");
-
-        // Ensure directories exist
-        Directory.CreateDirectory(openCodeAgentDir);
-
-        // Create placeholder instruction file
-        var instructionsPath = Path.Combine(openCodeAgentDir, "instructions.md");
-        if (!File.Exists(instructionsPath))
-        {
-            const string placeholderContent = @"# OpenCode Agent Instructions
-
-This file contains instructions for the OpenCode agent environment.
-
-<!-- TODO: Add agent-specific instructions here -->
-";
-            await File.WriteAllTextAsync(instructionsPath, placeholderContent, cancellationToken);
-        }
     }
 }
