@@ -8,7 +8,6 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
-using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
