@@ -1,10 +1,10 @@
 import os
 import uuid
 import psycopg
-from flask import Flask, jsonify
+from fastapi import FastAPI
 from entra_connection import get_entra_conninfo
 
-app = Flask(__name__)
+app = FastAPI()
 
 def get_connection():
     uri = os.environ['DB1_URI']
@@ -20,7 +20,7 @@ def get_connection():
 
     return psycopg.connect(uri, user=user, password=password)
 
-@app.route('/')
+@app.get('/')
 def index():
     conn = get_connection()
     with conn.cursor() as cur:
@@ -31,4 +31,4 @@ def index():
         cur.execute("SELECT id FROM entries;")
         entries = [row[0] for row in cur.fetchall()]
     conn.close()
-    return jsonify({'totalEntries': len(entries), 'entries': entries})
+    return {'totalEntries': len(entries), 'entries': entries}
