@@ -10,6 +10,7 @@ using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
+using Aspire.Shared;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
@@ -400,7 +401,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
                 return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusJustNowFormat), statusText];
             }
             
-            var formattedDuration = Shared.DurationFormatter.FormatDuration(roundedDuration, System.Globalization.CultureInfo.CurrentCulture);
+            var formattedDuration = DurationFormatter.FormatDuration(roundedDuration, System.Globalization.CultureInfo.CurrentCulture);
             return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeFormat), statusText, formattedDuration];
         }
         
