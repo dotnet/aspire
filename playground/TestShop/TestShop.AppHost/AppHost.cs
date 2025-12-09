@@ -51,6 +51,20 @@ if (builder.Environment.IsDevelopment() && builder.ExecutionContext.IsRunMode)
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                             .WithReference(catalogDb)
+                            // Modify the endpoint URL
+                            .WithUrlForEndpoint("https", u =>
+                            {
+                                u.Url = "/";
+                                u.DisplayText = "Catalog API";
+                            })
+                            // Add an endpoint URL
+                            .WithUrlForEndpoint("https", _ => new()
+                            {
+                                Url = "/swagger",
+                                DisplayText = "Swagger UI"
+                            })
+                            // Hide the http URL
+                            .WithUrlForEndpoint("http", u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly)
                             .WithReplicas(2);
 
 var messaging = builder.AddRabbitMQ("messaging")

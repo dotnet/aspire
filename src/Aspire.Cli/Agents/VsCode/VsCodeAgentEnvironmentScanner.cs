@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Cli.Git;
 using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
@@ -16,26 +15,25 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 {
     private const string VsCodeFolderName = ".vscode";
     private const string McpConfigFileName = "mcp.json";
-    private const string VsCodeEnvironmentVariablePrefix = "VSCODE_";
     private const string AspireServerName = "aspire";
 
-    private readonly IGitRepository _gitRepository;
     private readonly IVsCodeCliRunner _vsCodeCliRunner;
+    private readonly CliExecutionContext _executionContext;
     private readonly ILogger<VsCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="VsCodeAgentEnvironmentScanner"/>.
     /// </summary>
-    /// <param name="gitRepository">The Git repository service for finding repository boundaries.</param>
     /// <param name="vsCodeCliRunner">The VS Code CLI runner for checking if VS Code is installed.</param>
+    /// <param name="executionContext">The CLI execution context for accessing environment variables and settings.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public VsCodeAgentEnvironmentScanner(IGitRepository gitRepository, IVsCodeCliRunner vsCodeCliRunner, ILogger<VsCodeAgentEnvironmentScanner> logger)
+    public VsCodeAgentEnvironmentScanner(IVsCodeCliRunner vsCodeCliRunner, CliExecutionContext executionContext, ILogger<VsCodeAgentEnvironmentScanner> logger)
     {
-        ArgumentNullException.ThrowIfNull(gitRepository);
         ArgumentNullException.ThrowIfNull(vsCodeCliRunner);
+        ArgumentNullException.ThrowIfNull(executionContext);
         ArgumentNullException.ThrowIfNull(logger);
-        _gitRepository = gitRepository;
         _vsCodeCliRunner = vsCodeCliRunner;
+        _executionContext = executionContext;
         _logger = logger;
     }
 
@@ -43,14 +41,10 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Starting VS Code environment scan in directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
-        
-        // Get the git root to use as a boundary for searching
-        _logger.LogDebug("Finding git repository root...");
-        var gitRoot = await _gitRepository.GetRootAsync(cancellationToken).ConfigureAwait(false);
-        _logger.LogDebug("Git root: {GitRoot}", gitRoot?.FullName ?? "(none)");
+        _logger.LogDebug("Workspace root: {RepositoryRoot}", context.RepositoryRoot.FullName);
         
         _logger.LogDebug("Searching for .vscode folder...");
-        var vsCodeFolder = FindVsCodeFolder(context.WorkingDirectory, gitRoot);
+        var vsCodeFolder = FindVsCodeFolder(context.WorkingDirectory, context.RepositoryRoot);
 
         if (vsCodeFolder is not null)
         {
@@ -72,9 +66,8 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         {
             _logger.LogDebug("No .vscode folder found, but VS Code is available on the system");
             // No .vscode folder found, but VS Code is available
-            // Use git root if available, otherwise fall back to current working directory
-            var targetDirectory = gitRoot ?? context.WorkingDirectory;
-            var targetVsCodeFolder = new DirectoryInfo(Path.Combine(targetDirectory.FullName, VsCodeFolderName));
+            // Use workspace root for new .vscode folder
+            var targetVsCodeFolder = new DirectoryInfo(Path.Combine(context.RepositoryRoot.FullName, VsCodeFolderName));
             _logger.LogDebug("Adding VS Code applicator for new .vscode folder at: {VsCodeFolder}", targetVsCodeFolder.FullName);
             context.AddApplicator(CreateApplicator(targetVsCodeFolder));
         }
@@ -125,29 +118,29 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 
     /// <summary>
     /// Walks up the directory tree to find a .vscode folder.
-    /// Stops if we go above the git root (if provided).
+    /// Stops if we go above the workspace root.
     /// Ignores the .vscode folder in the user's home directory (used for user settings, not workspace config).
     /// </summary>
     /// <param name="startDirectory">The directory to start searching from.</param>
-    /// <param name="gitRoot">The git repository root, or null if not in a git repository.</param>
-    private static DirectoryInfo? FindVsCodeFolder(DirectoryInfo startDirectory, DirectoryInfo? gitRoot)
+    /// <param name="repositoryRoot">The workspace root to use as the boundary for searches.</param>
+    private DirectoryInfo? FindVsCodeFolder(DirectoryInfo startDirectory, DirectoryInfo repositoryRoot)
     {
         var currentDirectory = startDirectory;
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var homeDirectory = _executionContext.HomeDirectory;
 
         while (currentDirectory is not null)
         {
             // Check for .vscode folder at current level, but ignore it if it's in the home directory
             // (the home directory's .vscode folder is for user settings, not workspace config)
             var vsCodePath = Path.Combine(currentDirectory.FullName, VsCodeFolderName);
-            if (Directory.Exists(vsCodePath) && !string.Equals(currentDirectory.FullName, homeDirectory, StringComparison.OrdinalIgnoreCase))
+            if (Directory.Exists(vsCodePath) && !string.Equals(currentDirectory.FullName, homeDirectory.FullName, StringComparison.OrdinalIgnoreCase))
             {
                 return new DirectoryInfo(vsCodePath);
             }
 
-            // Stop if we've reached the git root without finding .vscode
-            // (don't search above the repository boundary)
-            if (gitRoot is not null && string.Equals(currentDirectory.FullName, gitRoot.FullName, StringComparison.OrdinalIgnoreCase))
+            // Stop if we've reached the workspace root without finding .vscode
+            // (don't search above the workspace boundary)
+            if (string.Equals(currentDirectory.FullName, repositoryRoot.FullName, StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }
@@ -161,15 +154,11 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     /// <summary>
     /// Checks if any VS Code environment variables are present.
     /// </summary>
-    private static bool HasVsCodeEnvironmentVariables()
+    private bool HasVsCodeEnvironmentVariables()
     {
-        var environmentVariables = Environment.GetEnvironmentVariables();
-        foreach (var key in environmentVariables.Keys)
+        if (_executionContext.GetEnvironmentVariable("TERM_PROGRAM") == "vscode")
         {
-            if (key is string keyString && keyString.StartsWith(VsCodeEnvironmentVariablePrefix, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
+            return true;
         }
         return false;
     }

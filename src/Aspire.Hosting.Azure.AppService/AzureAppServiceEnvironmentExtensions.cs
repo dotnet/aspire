@@ -98,11 +98,8 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 },
                 Kind = "Linux",
                 IsReserved = true,
-                // Enable perSiteScaling or automatic scaling so each app service can scale independently
-                IsPerSiteScaling = !resource.EnableAutomaticScaling,
-                IsElasticScaleEnabled = resource.EnableAutomaticScaling,
-                // Capping the automatic scaling limit to 10 as per best practices
-                MaximumElasticWorkerCount = 10
+                // Enable perSiteScaling so each app service can scale independently
+                IsPerSiteScaling = true
             };
 
             infra.Add(plan);
@@ -278,17 +275,6 @@ public static partial class AzureAppServiceEnvironmentExtensions
     {
         builder.WithAzureApplicationInsights();
         builder.Resource.ApplicationInsightsResource = applicationInsightsBuilder.Resource;
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures whether automatic scaling should be enabled for the app services in Azure App Service environment.
-    /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration.</returns>
-    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutomaticScaling(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder)
-    {
-        builder.Resource.EnableAutomaticScaling = true;
         return builder;
     }
 }

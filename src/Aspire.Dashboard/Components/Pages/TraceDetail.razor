@@ -3,6 +3,7 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using System.Globalization
+@using Aspire.Shared
 @using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
@@ -244,19 +245,19 @@
                                                 <span class="tick-label" style="grid-column: 1;">@($"0{DurationFormatter.GetUnit(trace.Duration / 4)}")</span>
 
                                                 <div class="tick" style="grid-column: 2;"></div>
-                                                <span class="tick-label" style="grid-column: 2;">@DurationFormatter.FormatDuration(trace.Duration / 4)</span>
+                                                <span class="tick-label" style="grid-column: 2;">@DurationFormatter.FormatDuration(trace.Duration / 4, CultureInfo.CurrentCulture)</span>
 
                                                 <div class="tick" style="grid-column: 3;"></div>
-                                                <span class="tick-label" style="grid-column: 3;">@DurationFormatter.FormatDuration(trace.Duration / 4 * 2)</span>
+                                                <span class="tick-label" style="grid-column: 3;">@DurationFormatter.FormatDuration(trace.Duration / 4 * 2, CultureInfo.CurrentCulture)</span>
 
                                                 @* Grid column 4 shows two labels. Hide the left aligned label on mobile to avoid them overlapping *@
                                                 <div class="tick" style="grid-column: 4;"></div>
                                                 @if (_manager.ViewportInformation.IsDesktop)
                                                 {
-                                                    <span class="tick-label" style="grid-column: 4;">@DurationFormatter.FormatDuration(trace.Duration / 4 * 3)</span>
+                                                    <span class="tick-label" style="grid-column: 4;">@DurationFormatter.FormatDuration(trace.Duration / 4 * 3, CultureInfo.CurrentCulture)</span>
                                                 }
 
-                                                <span class="tick-label end-tick" style="grid-column: 4;">@DurationFormatter.FormatDuration(trace.Duration)</span>
+                                                <span class="tick-label end-tick" style="grid-column: 4;">@DurationFormatter.FormatDuration(trace.Duration, CultureInfo.CurrentCulture)</span>
                                                 <div class="tick" style="grid-column: 5;"></div>
                                             </div>
                                         </HeaderCellItemTemplate>
@@ -316,7 +317,7 @@
                                                     <div class="span-bar" style="grid-column: 2; background: @spanColor;"></div>
                                                     <div class="span-bar-label @(context.LabelIsRight ? "span-bar-label-right" : "span-bar-label-left")">
                                                         <span class="span-bar-label-detail">@SpanWaterfallViewModel.GetTitle(context.Span, _resources)</span>
-                                                        <span>@DurationFormatter.FormatDuration(context.Span.Duration)</span>
+                                                        <span>@DurationFormatter.FormatDuration(context.Span.Duration, CultureInfo.CurrentCulture)</span>
                                                     </div>
                                                 </div>
                                                 <div class="tick" style="grid-column: 1;"></div>
@@ -377,7 +378,7 @@
                     @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong title="@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Full)">@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, _trace.FirstSpan.StartTime, MillisecondsDisplay.Truncated)</strong>
                 </FluentOverflowItem>
                 <FluentOverflowItem>
-                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration)</strong>
+                    @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration, CultureInfo.CurrentCulture)</strong>
                 </FluentOverflowItem>
                 <FluentOverflowItem>
                     @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@_resourceCount</strong>

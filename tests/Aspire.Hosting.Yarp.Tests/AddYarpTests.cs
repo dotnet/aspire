@@ -142,7 +142,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         testProvider.AddService(new DistributedApplicationOptions());
         testProvider.AddService(Options.Create(new DcpOptions()));
 
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
@@ -157,7 +157,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
@@ -171,7 +171,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     public void VerifyWithStaticFilesBindMountAddsContainerFileSystemAnnotationInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
@@ -183,7 +183,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     public void VerifyWithStaticFilesAddsDockerfileBuildAnnotationInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
@@ -196,7 +196,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     public async Task VerifyWithStaticFilesGeneratesCorrectDockerfileInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 

@@ -6,6 +6,7 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
+@using Aspire.Shared
 @using Aspire.Dashboard.Components.Controls.Grid
 
 @inject IJSRuntime JS
@@ -167,16 +168,16 @@
                                     {
                                         <FluentProgressRing Class="duration-ring"
                                                             Min="0"
-                                                            Max="@Convert.ToInt32(TracesViewModel.MaxDuration.TotalMilliseconds)"
-                                                            Value="@Convert.ToInt32(context.Duration.TotalMilliseconds)"
+                                                            Max="@DashboardUIHelpers.SafeConvertToMilliseconds(TracesViewModel.MaxDuration)"
+                                                            Value="@DashboardUIHelpers.SafeConvertToMilliseconds(context.Duration)"
                                                             aria-label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]" />
                                         <span class="trace-duration">
-                                            @DurationFormatter.FormatDuration(context.Duration)
+                                            @DurationFormatter.FormatDuration(context.Duration, CultureInfo.CurrentCulture)
                                         </span>
                                     }
                                     else
                                     {
-                                        @DurationFormatter.FormatDuration(context.Duration)
+                                        @DurationFormatter.FormatDuration(context.Duration, CultureInfo.CurrentCulture)
                                     }
                                 </div>
                             </AspireTemplateColumn>

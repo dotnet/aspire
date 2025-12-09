@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
+using Aspire.Shared.Mcp;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -17,18 +18,7 @@ public static class McpExtensions
 
         var builder = services.AddMcpServer(options =>
         {
-            // SVG isn't a required icon format for MCP. Use PNGs to ensure the icon is visible in all tools that support icons.
-            var sizes = new string[] { "16", "32", "48", "64", "256" };
-            var icons = sizes.Select(s =>
-            {
-                using var stream = typeof(McpExtensions).Assembly.GetManifestResourceStream($"Aspire.Dashboard.Mcp.Resources.aspire-{s}.png")!;
-
-                using var memoryStream = new MemoryStream();
-                stream.CopyTo(memoryStream);
-                var data = memoryStream.ToArray();
-
-                return new Icon { Source = $"data:image/png;base64,{Convert.ToBase64String(data)}", MimeType = "image/png", Sizes = [s] };
-            }).ToList();
+            var icons = McpIconHelper.GetAspireIcons(typeof(McpExtensions).Assembly, "Aspire.Dashboard.Mcp.Resources");
 
             options.ServerInfo = new Implementation
             {

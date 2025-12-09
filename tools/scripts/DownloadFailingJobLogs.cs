@@ -1,3 +1,6 @@
+// Downloads logs and artifacts for failed jobs from a GitHub Actions workflow run.
+// Usage: dotnet run DownloadFailingJobLogs.cs <run-id>
+
 using System.Globalization;
 using System.IO.Compression;
 using System.Text.Json;
@@ -15,33 +18,46 @@ var repo = "dotnet/aspire";
 
 Console.WriteLine($"Finding failed jobs for run {runId}...");
 
-// Get all jobs for the run
-var getJobsProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-{
-    FileName = "gh",
-    Arguments = $"api repos/{repo}/actions/runs/{runId}/jobs --paginate",
-    RedirectStandardOutput = true,
-    UseShellExecute = false
-});
-
-var jobsJson = await getJobsProcess!.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-await getJobsProcess.WaitForExitAsync().ConfigureAwait(false);
-
-if (getJobsProcess.ExitCode != 0)
-{
-    Console.WriteLine($"Error getting jobs: exit code {getJobsProcess.ExitCode}");
-    return;
-}
-
-// Parse jobs - gh --paginate returns multiple JSON objects concatenated
+// Fetch all jobs for this run (paginated, 100 per page)
 var jobs = new List<JsonElement>();
-var reader = new Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes(jobsJson));
-while (JsonDocument.TryParseValue(ref reader, out var doc))
+int jobsPage = 1;
+bool hasMoreJobPages = true;
+
+while (hasMoreJobPages)
 {
-    if (doc != null && doc.RootElement.TryGetProperty("jobs", out var jobsArray))
+    var (success, jobsJson) = await RunGhAsync($"api repos/{repo}/actions/runs/{runId}/jobs?page={jobsPage}&per_page=100");
+    if (!success)
     {
-        jobs.AddRange(jobsArray.EnumerateArray());
+        Console.WriteLine($"Error getting jobs page {jobsPage}: {jobsJson}");
+        return;
     }
+
+    using var jobsDoc = JsonDocument.Parse(jobsJson);
+    if (jobsDoc.RootElement.TryGetProperty("jobs", out var jobsArray))
+    {
+        var jobsOnPage = jobsArray.GetArrayLength();
+        if (jobsOnPage == 0)
+        {
+            hasMoreJobPages = false;
+        }
+
+        foreach (var job in jobsArray.EnumerateArray())
+        {
+            jobs.Add(job.Clone());
+        }
+
+        // If we got fewer than 100 jobs, this is the last page
+        if (jobsOnPage < 100)
+        {
+            hasMoreJobPages = false;
+        }
+    }
+    else
+    {
+        hasMoreJobPages = false;
+    }
+
+    jobsPage++;
 }
 
 Console.WriteLine($"Found {jobs.Count} total jobs");
@@ -76,18 +92,9 @@ foreach (var job in failedJobs)
 
     // Download job logs
     Console.WriteLine("Downloading job logs...");
-    var downloadProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-    {
-        FileName = "gh",
-        Arguments = $"api repos/{repo}/actions/jobs/{jobId}/logs",
-        RedirectStandardOutput = true,
-        UseShellExecute = false
-    });
+    var (logsSuccess, logs) = await RunGhAsync($"api repos/{repo}/actions/jobs/{jobId}/logs");
 
-    var logs = await downloadProcess!.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-    await downloadProcess.WaitForExitAsync().ConfigureAwait(false);
-
-    if (downloadProcess.ExitCode == 0)
+    if (logsSuccess)
     {
         // Save logs to file
         var safeName = Regex.Replace(jobName ?? $"job_{jobId}", @"[^a-zA-Z0-9_-]", "_");
@@ -95,7 +102,7 @@ foreach (var job in failedJobs)
         File.WriteAllText(filename, logs);
         Console.WriteLine($"Saved job logs to: {filename} ({logs.Length} characters)");
 
-        // Extract and display test failures
+        // Parse logs for test failures and exceptions
         Console.WriteLine("\nSearching for test failures in job logs...");
         var failedTestPattern = @"Failed\s+(.+?)\s*\[";
         var errorPattern = @"Error Message:\s*(.+?)(?:\r?\n|$)";
@@ -152,13 +159,11 @@ foreach (var job in failedJobs)
     }
     else
     {
-        Console.WriteLine($"Error downloading job logs: exit code {downloadProcess.ExitCode}");
+        Console.WriteLine($"Error downloading job logs: {logs}");
     }
 
-    // Try to download artifact based on job name
-    // Job name format: "Tests / Integrations macos (Hosting.Azure) / Hosting.Azure (macos-latest)"
-    // Artifact name format: "logs-{testShortName}-{os}"
-    // Extract testShortName and os from job name
+    // Try to find and download the test artifact based on job name pattern
+    // e.g. "Tests / Integrations macos (Hosting.Azure) / Hosting.Azure (macos-latest)" -> "logs-Hosting.Azure-macos-latest"
     var artifactMatch = Regex.Match(jobName ?? "", @".*\(([^)]+)\)\s*/\s*\S+\s+\(([^)]+)\)");
     if (artifactMatch.Success)
     {
@@ -168,41 +173,28 @@ foreach (var job in failedJobs)
 
         Console.WriteLine($"\nAttempting to download artifact: {artifactName}");
 
-        // Query all artifacts (manual pagination through all pages)
+        // Search for matching artifact (paginated, 100 per page)
         string? artifactId = null;
         var allArtifactNames = new List<string>();
-
-        // Manually paginate through all pages (GitHub API returns 30 per page by default, with up to 100 per page max)
         int page = 1;
         bool hasMorePages = true;
 
         while (hasMorePages)
         {
-            var getArtifactsProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            var (artifactsSuccess, artifactsJson) = await RunGhAsync($"api repos/{repo}/actions/runs/{runId}/artifacts?page={page}&per_page=100");
+            if (!artifactsSuccess)
             {
-                FileName = "gh",
-                Arguments = $"api repos/{repo}/actions/runs/{runId}/artifacts?page={page}&per_page=100",
-                RedirectStandardOutput = true,
-                UseShellExecute = false
-            });
-
-            var artifactsJson = await getArtifactsProcess!.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-            await getArtifactsProcess.WaitForExitAsync().ConfigureAwait(false);
-
-            if (getArtifactsProcess.ExitCode != 0)
-            {
-                Console.WriteLine($"Error getting artifacts page {page}: exit code {getArtifactsProcess.ExitCode}");
+                Console.WriteLine($"Error getting artifacts page {page}: {artifactsJson}");
                 break;
             }
 
-            var artifactsDoc = JsonDocument.Parse(artifactsJson);
+            using var artifactsDoc = JsonDocument.Parse(artifactsJson);
             if (artifactsDoc.RootElement.TryGetProperty("artifacts", out var artifactsArray))
             {
                 var artifactsOnPage = artifactsArray.GetArrayLength();
                 if (artifactsOnPage == 0)
                 {
                     hasMorePages = false;
-                    break;
                 }
 
                 foreach (var artifact in artifactsArray.EnumerateArray())
@@ -241,29 +233,16 @@ foreach (var job in failedJobs)
 
             // Download artifact
             var artifactZip = $"artifact_{counter}_{testShortName}_{os}.zip";
-            var downloadArtifactProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "gh",
-                Arguments = $"api repos/{repo}/actions/artifacts/{artifactId}/zip",
-                RedirectStandardOutput = true,
-                UseShellExecute = false
-            });
+            var downloadSuccess = await DownloadGhFileAsync($"api repos/{repo}/actions/artifacts/{artifactId}/zip", artifactZip);
 
-            using (var fileStream = File.Create(artifactZip))
-            {
-                await downloadArtifactProcess!.StandardOutput.BaseStream.CopyToAsync(fileStream).ConfigureAwait(false);
-            }
-            await downloadArtifactProcess.WaitForExitAsync().ConfigureAwait(false);
-
-            if (downloadArtifactProcess.ExitCode == 0)
+            if (downloadSuccess)
             {
                 Console.WriteLine($"Downloaded artifact to: {artifactZip}");
 
-                // Unzip artifact using System.IO.Compression
+                // Extract and look for .trx test result files
                 var extractDir = $"artifact_{counter}_{testShortName}_{os}";
                 try
                 {
-                    // Delete existing directory if it exists
                     if (Directory.Exists(extractDir))
                     {
                         Directory.Delete(extractDir, true);
@@ -272,7 +251,6 @@ foreach (var job in failedJobs)
                     ZipFile.ExtractToDirectory(artifactZip, extractDir);
                     Console.WriteLine($"Extracted artifact to: {extractDir}");
 
-                    // List .trx files
                     var trxFiles = Directory.GetFiles(extractDir, "*.trx", SearchOption.AllDirectories);
                     if (trxFiles.Length > 0)
                     {
@@ -294,7 +272,7 @@ foreach (var job in failedJobs)
             }
             else
             {
-                Console.WriteLine($"Error downloading artifact: exit code {downloadArtifactProcess.ExitCode}");
+                Console.WriteLine("Error downloading artifact");
             }
         }
         else
@@ -315,3 +293,50 @@ Console.WriteLine($"Total jobs: {jobs.Count}");
 Console.WriteLine($"Failed jobs: {failedJobs.Count}");
 Console.WriteLine($"Logs downloaded: {counter}");
 Console.WriteLine($"\nAll logs saved in current directory with pattern: failed_job_*.log");
+
+// Runs gh CLI and returns the text output
+async Task<(bool Success, string Output)> RunGhAsync(string arguments)
+{
+    using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+    {
+        FileName = "gh",
+        Arguments = arguments,
+        RedirectStandardOutput = true,
+        UseShellExecute = false
+    });
+
+    if (process is null)
+    {
+        return (false, "Failed to start process");
+    }
+
+    var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+    await process.WaitForExitAsync().ConfigureAwait(false);
+
+    return (process.ExitCode == 0, output);
+}
+
+// Runs gh CLI and streams binary output to a file
+async Task<bool> DownloadGhFileAsync(string arguments, string outputPath)
+{
+    using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+    {
+        FileName = "gh",
+        Arguments = arguments,
+        RedirectStandardOutput = true,
+        UseShellExecute = false
+    });
+
+    if (process is null)
+    {
+        return false;
+    }
+
+    using (var fileStream = File.Create(outputPath))
+    {
+        await process.StandardOutput.BaseStream.CopyToAsync(fileStream).ConfigureAwait(false);
+    }
+    await process.WaitForExitAsync().ConfigureAwait(false);
+
+    return process.ExitCode == 0;
+}

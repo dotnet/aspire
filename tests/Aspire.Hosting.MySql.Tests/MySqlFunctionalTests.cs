@@ -549,7 +549,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         using var cts = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan * 2);
 
         // Use the same path for both runs
-        using var aspireStore = new TempDirectory();
+        using var aspireStore = new TestTempDirectory();
 
         var before = await RunContainersAsync();
         var after = await RunContainersAsync();

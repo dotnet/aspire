@@ -1,11 +1,10 @@
 # Set up your machine to contribute
 
-These instructions will get you ready to contribute to this project. If you just want to use Aspire, see [using-latest-daily.md](using-latest-daily.md).
+These instructions will get you ready to contribute to this project. If you just want to use Aspire, see [using-latest-daily.md](/docs/using-latest-daily.md).
 
 ## Prepare the machine
 
-See [machine-requirements.md](machine-requirements.md).
-
+See [machine-requirements.md](/docs/machine-requirements.md).
 ## Build the repo
 
 `.\build.sh` (macOS and Linux) or `.\build.cmd` (Windows)
@@ -82,7 +81,7 @@ To run tests, use the build script:
 
 ### Quarantined Tests
 
-Flaky tests may be marked as quarantined to prevent them from blocking CI while being investigated and fixed. See [quarantined-tests.md](quarantined-tests.md) for more information on working with quarantined tests.
+Flaky tests may be marked as quarantined to prevent them from blocking CI while being investigated and fixed. See [quarantined-tests.md](/docs/quarantined-tests.md) for more information on working with quarantined tests.
 
 When running tests locally or in automated environments, use the quarantine filter to exclude known flaky tests:
 
@@ -93,11 +92,11 @@ dotnet test --filter-not-trait "quarantined=true"
 
 ### Testing Pull Request Changes
 
-To test changes from a specific pull request locally, see [dogfooding-pull-requests.md](dogfooding-pull-requests.md) for instructions on installing Aspire CLI and NuGet packages built by that PR's CI run.
+To test changes from a specific pull request locally, see [dogfooding-pull-requests.md](/docs/dogfooding-pull-requests.md) for instructions on installing Aspire CLI and NuGet packages built by that PR's CI run.
 
 ## Integrations (Formerly Components)
 
-Please check the [.NET Aspire integrations contribution guidelines](../src/Components/README.md) if you intend to make contributions to a new or existing .NET Aspire integration.
+Please check the [.NET Aspire integrations contribution guidelines](/src/Components/README.md) if you intend to make contributions to a new or existing .NET Aspire integration.
 
 ## Generating local NuGet packages
 
@@ -124,9 +123,9 @@ Or edit the `NuGet.config` file and add this line to the `<packageSources>` list
 
 Make sure you have started Docker before trying to run an Aspire app.
 
-For information on who can help in PRs and issues, see the [area owners](area-owners.md) page.
+For information on who can help in PRs and issues, see the [area owners](/docs/area-owners.md) page.
 
-See the [tips and known issues](tips-and-known-issues.md) page.
+See the [tips and known issues](/docs/tips-and-known-issues.md) page.
 
 ### Package validation
 

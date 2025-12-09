@@ -19,6 +19,19 @@ internal interface IAuxiliaryBackchannelMonitor
     string? SelectedAppHostPath { get; set; }
 
     /// <summary>
+    /// Gets the currently selected AppHost connection based on the selection logic.
+    /// Returns the explicitly selected AppHost, or the single in-scope AppHost, or null if none available.
+    /// </summary>
+    AppHostConnection? SelectedConnection { get; }
+
+    /// <summary>
+    /// Gets all connections that are within the scope of the specified working directory.
+    /// </summary>
+    /// <param name="workingDirectory">The working directory to check against.</param>
+    /// <returns>A list of in-scope connections.</returns>
+    IReadOnlyList<AppHostConnection> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory);
+
+    /// <summary>
     /// Event raised when the selected AppHost changes.
     /// </summary>
     event Action? SelectedAppHostChanged;

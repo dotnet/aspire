@@ -5,6 +5,7 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
+@using Aspire.Shared
 @using Microsoft.OpenApi.Any
 
 @implements IDialogContentComponent<GenAIVisualizerDialogViewModel>
@@ -221,7 +222,7 @@
                                     }
                                 }
                                 <div class="message-header-details">
-                                    <span>@Loc[nameof(Dialogs.GenAIDurationLabel)] <strong>@DurationFormatter.FormatDuration(Content.Span.Duration)</strong></span>
+                                    <span>@Loc[nameof(Dialogs.GenAIDurationLabel)] <strong>@DurationFormatter.FormatDuration(Content.Span.Duration, CultureInfo.CurrentCulture)</strong></span>
                                     <span title="@tokenTooltip">@Loc[nameof(Dialogs.GenAITokensLabel)] <strong>@tokenText</strong></span>
                                 </div>
                             </div>
@@ -304,7 +305,7 @@
                                     <FluentAccordion Class="tools-list">
                                         @foreach (var toolVM in Content.ToolDefinitions.Where(t => t.ToolDefinition.Type == "function"))
                                         {
-                                            <FluentAccordionItem @bind-Expanded="toolVM.Expanded">
+                                            <FluentAccordionItem @bind-Expanded="toolVM.Expanded" HeadingTooltip="@GetToolHeadingTooltip(toolVM)">
                                                 <HeadingTemplate>
                                                     <div class="tool-heading">
                                                         <FluentBadge Appearance="Appearance.Accent" Style="min-width: 80px; text-align: center;">

@@ -8,6 +8,10 @@ on:
         required: true
         type: string
         description: 'Arcade test runner name'
+      attributeName:
+        required: true
+        type: string
+        description: 'Attribute name to filter tests by like QuarantinedTest or OuterloopTest'
       extraRunSheetBuilderArgs:
         required: false
         type: string
@@ -33,13 +37,12 @@ jobs:
     if: ${{ github.repository_owner == 'dotnet' }}
     outputs:
       runsheet: ${{ steps.generate_tests_matrix.outputs.runsheet }}
+      requiresNugets: ${{ steps.check_nugets.outputs.requiresNugets }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Show disk usage before build
-        run: |-
-          df -h
-          du -sh ${{ github.workspace }}
+      - name: Identify relevant test projects
+        run: ./eng/scripts/generate-specialized-test-projects-list.sh ${{ inputs.attributeName }} ${{ github.workspace }}/artifacts/BeforeBuildProps.props
 
       # We need to build test projects, so that we can interrogate each test project
       # and find out whether it contains any tests of the specified type.
@@ -50,9 +53,9 @@ jobs:
           --restore
           --build
           -c Release
-          /p:BuildTestsOnly=true
           /p:GeneratePackageOnBuild=false
           /p:InstallBrowsersForPlaywright=false
+          /p:BeforeBuildPropsPath=${{ github.workspace }}/artifacts/BeforeBuildProps.props
 
       - name: Generate test runsheet
         id: generate_tests_matrix
@@ -67,15 +70,18 @@ jobs:
           /p:Restore=false
           /p:Build=false
           /p:InstallBrowsersForPlaywright=false
+          /p:BeforeBuildPropsPath=${{ github.workspace }}/artifacts/BeforeBuildProps.props
           /bl:${{ github.workspace }}/artifacts/log/Release/runsheet.binlog
 
-      - name: Show disk usage after build
-        if: ${{ always() }}
-        run: |-
-          df -h
-          du -d 1 -h ~/.nuget/packages
-          du -d 1 -h ${{ github.workspace }}
-          du -d 1 -h ${{ github.workspace }}/artifacts
+      - name: Check if any test requires NuGets
+        id: check_nugets
+        run: |
+          RUNSHEET='${{ steps.generate_tests_matrix.outputs.runsheet }}'
+          if echo "$RUNSHEET" | jq -e 'any(.[]; .requiresNugets == true)' > /dev/null 2>&1; then
+            echo "requiresNugets=true" >> $GITHUB_OUTPUT
+          else
+            echo "requiresNugets=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload logs, and test results
         if: ${{ always() }}
@@ -83,6 +89,7 @@ jobs:
         with:
           name: logs-runsheet
           path: |
+            ${{ github.workspace }}/artifacts/BeforeBuildProps.props
             ${{ github.workspace }}/artifacts/log/*/runsheet.binlog
             ${{ github.workspace }}/artifacts/log/*/TestLogs/**
             ${{ github.workspace }}/artifacts/tmp/*/combined_runsheet.json
@@ -90,7 +97,8 @@ jobs:
 
   build_packages:
     name: Build packages
-    if: ${{ github.repository_owner == 'dotnet' }}
+    needs: [generate_tests_matrix]
+    if: ${{ github.repository_owner == 'dotnet' && needs.generate_tests_matrix.outputs.requiresNugets == 'true' }}
     uses: ./.github/workflows/build-packages.yml
 
   run_tests:
@@ -100,7 +108,7 @@ jobs:
       fail-fast: false
       matrix:
         tests: ${{ fromJson(needs.generate_tests_matrix.outputs.runsheet) }}
-    if: ${{ github.repository_owner == 'dotnet' }}
+    if: ${{ github.repository_owner == 'dotnet' && !cancelled() && !failure() }}
     uses: ./.github/workflows/run-tests.yml
     with:
       testShortName: ${{ matrix.tests.project }}
@@ -176,7 +184,19 @@ jobs:
       - name: Fail if any dependency failed
         # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
         # For example, one of setup_* jobs failing and the Integration test jobs getting 'skipped'
-        if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')) }}
+        # Note: build_packages being skipped is expected when requiresNugets is false, so we check it separately
+        if: >-
+          ${{
+            always() && (
+              needs.generate_tests_matrix.result == 'failure' ||
+              needs.generate_tests_matrix.result == 'cancelled' ||
+              needs.run_tests.result == 'failure' ||
+              needs.run_tests.result == 'cancelled' ||
+              needs.run_tests.result == 'skipped' ||
+              (needs.build_packages.result == 'failure') ||
+              (needs.build_packages.result == 'cancelled')
+            )
+          }}
         run: |
           echo "One or more dependent jobs failed."
           exit 1

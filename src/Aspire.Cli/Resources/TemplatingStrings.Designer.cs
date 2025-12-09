@@ -133,6 +133,15 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to React (Vite) &amp; Minimal API starter.
+        /// </summary>
+        public static string AspireJsFrontendStarter_Description {
+            get {
+                return ResourceManager.GetString("AspireJsFrontendStarter_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to xUnit.
         /// </summary>
         public static string AspireXUnit_Description {
