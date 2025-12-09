@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Aspire.Shared;
@@ -55,5 +56,22 @@ internal static class TestExecutionContextFactory
             new DirectoryInfo(Path.Combine(Path.GetTempPath(), "hives")),
             new DirectoryInfo(Path.Combine(Path.GetTempPath(), "cache")),
             new DirectoryInfo(Path.Combine(Path.GetTempPath(), "sdks")));
+    }
+}
+
+internal sealed class MockAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMonitor
+{
+    private readonly Dictionary<string, AppHostConnection> _connections = new();
+
+    public IReadOnlyDictionary<string, AppHostConnection> Connections => _connections;
+
+    public string? SelectedAppHostPath { get; set; }
+
+    public AppHostConnection? SelectedConnection => null;
+
+    public IReadOnlyList<AppHostConnection> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
+    {
+        // Return empty list by default (no in-scope AppHosts)
+        return Array.Empty<AppHostConnection>();
     }
 }

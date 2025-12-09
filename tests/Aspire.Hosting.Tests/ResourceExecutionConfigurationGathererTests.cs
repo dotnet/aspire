@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.Utils;
-using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -204,7 +203,6 @@ public class ResourceExecutionConfigurationGathererTests
     #region CertificateTrustExecutionConfigurationGatherer Tests
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task CertificateTrustExecutionConfigurationGatherer_WithCertificateAuthorityCollection_SetsEnvironmentVariables()
     {
         // Arrange
@@ -232,7 +230,6 @@ public class ResourceExecutionConfigurationGathererTests
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task CertificateTrustExecutionConfigurationGatherer_WithSystemScope_IncludesSystemCertificates()
     {
         // Arrange
@@ -263,7 +260,6 @@ public class ResourceExecutionConfigurationGathererTests
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task CertificateTrustExecutionConfigurationGatherer_WithOverrideScope_SetsCorrectEnvironmentVariables()
     {
         // Arrange
@@ -292,7 +288,6 @@ public class ResourceExecutionConfigurationGathererTests
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task CertificateTrustExecutionConfigurationGatherer_WithNoneScope_DoesNotSetEnvironmentVariables()
     {
         // Arrange
@@ -341,7 +336,6 @@ public class ResourceExecutionConfigurationGathererTests
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task CertificateTrustExecutionConfigurationGatherer_WithAppendScope_DoesNotSetSSL_CERT_FILE()
     {
         // Arrange
@@ -372,7 +366,6 @@ public class ResourceExecutionConfigurationGathererTests
     #region HttpsCertificateExecutionConfigurationGatherer Tests
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task HttpsCertificateExecutionConfigurationGatherer_WithCertificate_ConfiguresMetadata()
     {
         // Arrange
@@ -400,7 +393,6 @@ public class ResourceExecutionConfigurationGathererTests
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task HttpsCertificateExecutionConfigurationGatherer_WithPassword_StoresPassword()
     {
         // Arrange
@@ -431,7 +423,6 @@ public class ResourceExecutionConfigurationGathererTests
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task HttpsCertificateExecutionConfigurationGatherer_WithUseDeveloperCertificate_UsesDeveloperCert()
     {
         // Arrange
@@ -481,7 +472,6 @@ public class ResourceExecutionConfigurationGathererTests
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task HttpsCertificateExecutionConfigurationGatherer_TracksReferenceUsage()
     {
         // Arrange
@@ -517,7 +507,6 @@ public class ResourceExecutionConfigurationGathererTests
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task HttpsCertificateExecutionConfigurationGatherer_WithCallback_ExecutesCallback()
     {
         // Arrange

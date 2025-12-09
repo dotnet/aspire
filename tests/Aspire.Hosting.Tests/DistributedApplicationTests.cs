@@ -622,7 +622,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [RequiresCertificateStoreAccess]
     public async Task VerifyRedisWithCertificateKeyPair()
     {
         const string testName = "verify-redis-with-certificate";
@@ -1731,7 +1730,7 @@ public class DistributedApplicationTests
             randomizePorts: randomizePorts,
             trustDeveloperCertificate: trustDeveloperCertificate);
 
-        testProgram.AppBuilder.Services.AddTestAndResourceLogging(_testOutputHelper);
+        testProgram.AppBuilder.WithTestAndResourceLogging(_testOutputHelper);
 
         return testProgram;
     }

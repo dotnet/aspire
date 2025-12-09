@@ -390,8 +390,7 @@ internal sealed class ResourceContainerImageManager(
                 Resource = resource,
                 CancellationToken = cancellationToken
             };
-            var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
-            await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+            await dockerfileBuildAnnotation.MaterializeDockerfileAsync(context, cancellationToken).ConfigureAwait(false);
         }
 
         // Resolve build arguments
