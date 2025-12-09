@@ -8,23 +8,8 @@ using Spectre.Console;
 namespace Aspire.Cli.Utils;
 
 /// <summary>
-/// Custom console output implementation that addresses Spectre.Console width detection issues in CI environments.
+/// Custom console output that handles width detection in CI environments and respects ASPIRE_CONSOLE_WIDTH.
 /// </summary>
-/// <remarks>
-/// <para>
-/// In CI environments (Jenkins, GitHub Actions, etc.) and when output is redirected, Spectre.Console
-/// defaults to 80 columns which causes awkward line wrapping in logs. This implementation:
-/// </para>
-/// <list type="bullet">
-/// <item>Detects when running in non-terminal environments and automatically uses 160 columns instead of 80</item>
-/// <item>Respects the ASPIRE_CONSOLE_WIDTH environment variable for explicit width overrides (capped at 500)</item>
-/// <item>Handles IOException gracefully when console buffer information is unavailable</item>
-/// </list>
-/// <para>
-/// This addresses https://github.com/spectreconsole/spectre.console/issues/216 and provides a better
-/// experience for CI logs without requiring manual width configuration.
-/// </para>
-/// </remarks>
 internal sealed class AspireAnsiConsoleOutput : IAnsiConsoleOutput
 {
     private readonly TextWriter _writer;
@@ -63,6 +48,11 @@ internal sealed class AspireAnsiConsoleOutput : IAnsiConsoleOutput
     /// <inheritdoc/>
     public int Height => GetSafeHeight();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AspireAnsiConsoleOutput"/> class.
+    /// </summary>
+    /// <param name="writer">The text writer for console output.</param>
+    /// <param name="configuration">The configuration for reading environment variables.</param>
     public AspireAnsiConsoleOutput(TextWriter writer, IConfiguration configuration)
     {
         _writer = writer ?? throw new ArgumentNullException(nameof(writer));
@@ -81,16 +71,8 @@ internal sealed class AspireAnsiConsoleOutput : IAnsiConsoleOutput
             return Math.Min(width, 500);
         }
 
-        var detectedWidth = GetSafeWidth();
-
-        // In scenarios where CLI is not running on a terminal, Spectre.Console defaults to 80 columns
-        // which is too narrow and causes unexpected line breaks in CI logs. Double the value to 160.
-        if (!IsTerminal && detectedWidth == 80)
-        {
-            return 160;
-        }
-
-        return detectedWidth;
+        // Get width from console, automatically handling CI environment defaults
+        return GetSafeWidth();
     }
 
     /// <inheritdoc/>
@@ -108,7 +90,7 @@ internal sealed class AspireAnsiConsoleOutput : IAnsiConsoleOutput
         {
             return writer == Console.Out;
         }
-        catch
+        catch (Exception ex) when (ex is IOException or InvalidOperationException)
         {
             return false;
         }
@@ -120,30 +102,31 @@ internal sealed class AspireAnsiConsoleOutput : IAnsiConsoleOutput
         {
             return writer == Console.Error;
         }
-        catch
+        catch (Exception ex) when (ex is IOException or InvalidOperationException)
         {
             return false;
         }
     }
 
-    private static int GetSafeWidth()
+    private int GetSafeWidth()
     {
         try
         {
             var width = Console.BufferWidth;
             if (width == 0)
             {
-                // Return default terminal width when buffer width is 0
-                return 80;
+                // Return default width for non-terminal environments
+                // In CI environments, 80 columns is too narrow, use 160 instead
+                return IsTerminal ? 80 : 160;
             }
 
             return width;
         }
         catch (IOException)
         {
-            // When console is redirected (CI environments), return the default width
-            // The caller will detect this and double it to 160 for better readability
-            return 80;
+            // When console is redirected (CI environments), use a wider default (160)
+            // to avoid awkward line breaks in logs
+            return 160;
         }
     }
 
