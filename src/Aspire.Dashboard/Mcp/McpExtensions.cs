@@ -51,11 +51,14 @@ public static class McpExtensions
         // Always register telemetry tools
         builder.WithTools<AspireTelemetryMcpTools>();
 
-        // Only register resource tools if the resource service is configured
+        // Always register resource tools so they appear in the SDK's tool registry.
+        // The tools themselves will check if the dashboard client is enabled and return
+        // appropriate responses if the resource service is not configured.
+        builder.WithTools<AspireResourceMcpTools>();
+
+        // Only add filters if the resource service is configured
         if (dashboardOptions.ResourceServiceClient.GetUri() is not null)
         {
-            builder.WithTools<AspireResourceMcpTools>();
-
             // Intercept ListTools and CallTool to proxy calls to resource MCP servers
             // This has two purposes:
             // 1. To add the proxied tools to the list of available tools
@@ -63,32 +66,20 @@ public static class McpExtensions
             builder
                 .AddListToolsFilter((next) => async (RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken) =>
                 {
-                    // Calls here are via the tools/list endpoint. See https://modelcontextprotocol.info/docs/concepts/tools/
-                    // There is no tool name so we hardcode name to list_tools here so we can reuse the same event.
-                    //
-                    // We want to track when users list tools as it's an indicator of whether Aspire MCP is configured (client tools refresh tools via it).
-                    // It's called even if no Aspire tools end up being used.
+                    // Record telemetry for list_tools calls
                     var result = await RecordCallToolNameAsync<ListToolsRequestParams, ListToolsResult>(next, request, "list_tools", cancellationToken).ConfigureAwait(false);
 
+                    // Add proxied tools from resource MCP servers
                     var proxyService = request.Services?.GetService<ResourceMcpProxyService>();
                     if (proxyService is not null)
                     {
-                        result.Tools.Clear();
-
-                        // Add registered tools (telemetry and resource tools)
-                        var mcpTools = request.Services?.GetServices<McpServerTool>() ?? [];
-                        foreach (var tool in mcpTools)
-                        {
-                            result.Tools.Add(tool.ProtocolTool);
-                        }
-
-                        // Add proxied tools from resource MCP servers
                         var proxiedTools = await proxyService.GetToolsAsync(cancellationToken).ConfigureAwait(false);
                         if (proxiedTools.Count > 0)
                         {
-                            var tools = result.Tools?.ToList() ?? [];
-                            tools.AddRange(proxiedTools);
-                            result.Tools = tools;
+                            foreach (var tool in proxiedTools)
+                            {
+                                result.Tools.Add(tool);
+                            }
                         }
                     }
 
@@ -96,8 +87,11 @@ public static class McpExtensions
                 })
                 .AddCallToolFilter((next) => async (RequestContext<CallToolRequestParams> request, CancellationToken cancellationToken) =>
                 {
+                    var toolName = request.Params?.Name;
+
+                    // Check if this is a proxied tool first
                     var proxyService = request.Services?.GetService<ResourceMcpProxyService>();
-                    if (proxyService is not null && request.Params?.Name is { Length: > 0 } toolName)
+                    if (proxyService is not null && toolName is { Length: > 0 } && request.Params is not null)
                     {
                         var proxiedResult = await proxyService.TryHandleCallAsync(toolName, request.Params.Arguments, cancellationToken).ConfigureAwait(false);
                         if (proxiedResult is not null)
@@ -110,7 +104,8 @@ public static class McpExtensions
                         }
                     }
 
-                    return await RecordCallToolNameAsync<CallToolRequestParams, CallToolResult>(next, request, request.Params?.Name, cancellationToken).ConfigureAwait(false);
+                    // Not a proxied tool - delegate to the SDK's built-in handler
+                    return await RecordCallToolNameAsync<CallToolRequestParams, CallToolResult>(next, request, toolName, cancellationToken).ConfigureAwait(false);
                 });
         }
 

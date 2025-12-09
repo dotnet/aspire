@@ -298,7 +298,27 @@ internal sealed class McpStartCommand : BaseCommand
         // Handle CLI-specific tools - these don't need an MCP connection to the AppHost
         if (_cliTools.TryGetValue(toolName, out var cliTool))
         {
-            return await cliTool.CallToolAsync(null!, request.Params?.Arguments, cancellationToken);
+            var result = await cliTool.CallToolAsync(null!, request.Params?.Arguments, cancellationToken);
+
+            // After select_apphost, send a tool list changed notification so clients refresh tools
+            if (toolName == "select_apphost" && result.IsError == false && _mcpServer is { } mcpServer)
+            {
+                try
+                {
+                    await mcpServer.SendMessageAsync(
+                        new JsonRpcNotification
+                        {
+                            Method = NotificationMethods.ToolListChangedNotification
+                        },
+                        cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send tools/list_changed notification after select_apphost");
+                }
+            }
+
+            return result;
         }
 
         // For all other tools, forward to the AppHost's MCP server
@@ -400,7 +420,7 @@ internal sealed class McpStartCommand : BaseCommand
             _auxiliaryBackchannelMonitor.SelectedAppHostPath = null;
         }
 
-        // Get in-scope connections
+        // Get in-scope connections first
         var inScopeConnections = connections.Where(c => c.IsInScope).ToList();
 
         if (inScopeConnections.Count == 1)
@@ -408,17 +428,23 @@ internal sealed class McpStartCommand : BaseCommand
             return inScopeConnections[0];
         }
 
-        // Multiple or no in-scope connections - return null
+        // If no in-scope connections but exactly one total connection, use it
+        if (inScopeConnections.Count == 0 && connections.Count == 1)
+        {
+            return connections[0];
+        }
+
+        // Multiple or no usable connections - return null
         return null;
     }
 
     /// <summary>
     /// Gets the appropriate AppHost connection based on the selection logic:
     /// 1. If a specific AppHost is selected via select_apphost, use that
-    /// 2. Otherwise, look for in-scope connections (AppHosts within the working directory)
-    /// 3. If exactly one in-scope connection exists, use it
-    /// 4. If multiple in-scope connections exist, throw an error listing them
-    /// 5. If no in-scope connections exist, fall back to the first available connection
+    /// 2. If exactly one in-scope connection exists, use it
+    /// 3. If no in-scope but exactly one total connection, use it (auto-select)
+    /// 4. If multiple connections exist, throw an error listing them
+    /// 5. If no connections exist, throw an error suggesting to start an AppHost
     /// </summary>
     private AppHostConnection? GetSelectedConnection()
     {
@@ -439,7 +465,6 @@ internal sealed class McpStartCommand : BaseCommand
 
             if (selectedConnection != null)
             {
-                _logger.LogDebug("Using explicitly selected AppHost: {AppHostPath}", selectedPath);
                 return selectedConnection;
             }
 
@@ -453,7 +478,6 @@ internal sealed class McpStartCommand : BaseCommand
 
         if (inScopeConnections.Count == 1)
         {
-            _logger.LogDebug("Using single in-scope AppHost: {AppHostPath}", inScopeConnections[0].AppHostInfo?.AppHostPath ?? "N/A");
             return inScopeConnections[0];
         }
 
@@ -471,12 +495,32 @@ internal sealed class McpStartCommand : BaseCommand
                 $"Use the 'select_apphost' tool to specify which AppHost to use.\n\nRunning AppHosts:\n{pathsList}",
                 McpErrorCode.InternalError);
         }
-        else
-        {
-            _logger.LogDebug("No in-scope AppHosts found in scope: {WorkingDirectory}", _executionContext.WorkingDirectory);
-            throw new McpProtocolException(
 
-                $"No Aspire AppHosts are running in the scope of the MCP server's working directory: {_executionContext.WorkingDirectory}");
+        // No in-scope connections - check if there are out-of-scope connections
+        if (connections.Count == 1)
+        {
+            // Auto-select the single available connection even if out of scope
+            return connections[0];
         }
+
+        if (connections.Count > 1)
+        {
+            // Multiple out-of-scope connections - suggest selecting one
+            var paths = connections
+                .Where(c => c.AppHostInfo?.AppHostPath != null)
+                .Select(c => c.AppHostInfo!.AppHostPath)
+                .ToList();
+
+            var pathsList = string.Join("\n", paths.Select(p => $"  - {p}"));
+
+            throw new McpProtocolException(
+                $"No Aspire AppHosts are running in the scope of the MCP server's working directory ({_executionContext.WorkingDirectory}), " +
+                $"but {connections.Count} AppHost(s) are running elsewhere. " +
+                $"Use the 'select_apphost' tool to specify which AppHost to use.\n\nRunning AppHosts:\n{pathsList}",
+                McpErrorCode.InternalError);
+        }
+
+        // No connections at all (shouldn't reach here due to early return, but for safety)
+        return null;
     }
 }

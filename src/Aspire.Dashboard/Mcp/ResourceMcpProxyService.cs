@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
@@ -197,12 +198,22 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
         {
             _logger.LogDebug("MCP tools changed for resource {ResourceName}, notifying server.", resource.Name);
 
-            // Notify the MCP server clients that the tool list has changed by updating the ToolCollection property.
-            // Its content is irrelevant since the client is intercepted by a handler; we just need to trigger the notification.
-            // The handler will have to include the default tools as well as the proxied ones.
-            _mcpServerOptions?.ToolCollection?.Clear();
+            // Notify the MCP server clients that the tool list has changed.
+            // We call RaiseChanged() instead of Clear() because Clear() would remove all tools from the collection,
+            // including the built-in tools (list_resources, list_console_logs, etc.) which the SDK uses for tool lookup.
+            if (_mcpServerOptions?.ToolCollection is { } toolCollection)
+            {
+                RaiseChangedAccessor(toolCollection);
+            }
         }
     }
+
+    /// <summary>
+    /// Provides access to the protected RaiseChanged method on McpServerPrimitiveCollection.
+    /// This is used to trigger tool list change notifications without modifying the collection contents.
+    /// </summary>
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "RaiseChanged")]
+    private static extern void RaiseChangedAccessor(McpServerPrimitiveCollection<McpServerTool> collection);
 
     private async Task<ResourceRegistration?> CreateClientAsync(ResourceViewModel resource, McpEndpointExport endpoint, CancellationToken cancellationToken)
     {
