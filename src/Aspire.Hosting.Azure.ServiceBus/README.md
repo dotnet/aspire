@@ -75,6 +75,7 @@ The Service Bus queue resource inherits all properties from its parent Service B
 | Property Name | Description |
 |---------------|-------------|
 | `QueueName` | The name of the queue |
+| `ConnectionString` | The connection string for the queue |
 
 ### Service Bus topic
 
@@ -83,6 +84,7 @@ The Service Bus topic resource inherits all properties from its parent Service B
 | Property Name | Description |
 |---------------|-------------|
 | `TopicName` | The name of the topic |
+| `ConnectionString` | The connection string for the topic |
 
 ### Service Bus subscription
 
@@ -91,6 +93,7 @@ The Service Bus subscription resource inherits all properties from its parent Se
 | Property Name | Description |
 |---------------|-------------|
 | `SubscriptionName` | The name of the subscription |
+| `ConnectionString` | The connection string for the subscription |
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 

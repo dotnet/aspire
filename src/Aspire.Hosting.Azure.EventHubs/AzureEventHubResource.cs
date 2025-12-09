@@ -124,5 +124,6 @@ public class AzureEventHubResource(string name, string hubName, AzureEventHubsRe
         }
 
         yield return new("EventHubName", ReferenceExpression.Create($"{HubName}"));
+        yield return new("ConnectionString", ConnectionStringExpression);
     }
 }

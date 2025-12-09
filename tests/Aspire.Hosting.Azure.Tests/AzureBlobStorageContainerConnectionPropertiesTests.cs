@@ -27,6 +27,11 @@ public class AzureBlobStorageContainerConnectionPropertiesTests
             },
             property =>
             {
+                Assert.Equal("ConnectionString", property.Key);
+                Assert.Equal("{storage.outputs.blobEndpoint}", property.Value.ValueExpression);
+            },
+            property =>
+            {
                 Assert.Equal("BlobContainerName", property.Key);
                 Assert.Equal("mycontainer", property.Value.ValueExpression);
             });

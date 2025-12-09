@@ -213,5 +213,6 @@ public class AzureServiceBusQueueResource(string name, string queueName, AzureSe
         }
 
         yield return new("QueueName", ReferenceExpression.Create($"{QueueName}"));
+        yield return new("ConnectionString", ConnectionStringExpression);
     }
 }

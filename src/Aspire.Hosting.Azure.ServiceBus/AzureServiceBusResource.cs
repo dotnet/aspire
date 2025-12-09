@@ -124,6 +124,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
             builder.Append($"Endpoint={ConnectionStringExpression}");
         }
 
+        // Add EntityPath for child resources (queues, topics, subscriptions)
         if (!string.IsNullOrEmpty(queueOrTopicName))
         {
             builder.Append($";EntityPath={queueOrTopicName}");

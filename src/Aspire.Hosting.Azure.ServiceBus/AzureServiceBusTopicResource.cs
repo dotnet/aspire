@@ -141,5 +141,6 @@ public class AzureServiceBusTopicResource(string name, string topicName, AzureSe
         }
 
         yield return new("TopicName", ReferenceExpression.Create($"{TopicName}"));
+        yield return new("ConnectionString", ConnectionStringExpression);
     }
 }
