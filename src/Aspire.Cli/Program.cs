@@ -281,14 +281,27 @@ public class Program
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
         var isPlayground = CliHostEnvironment.IsPlaygroundMode(configuration);
+
+        // Create custom output that handles width detection better in CI environments
+        // and encapsulates ASPIRE_CONSOLE_WIDTH environment variable handling
+        var output = new AspireAnsiConsoleOutput(Console.Out, configuration);
 
         var settings = new AnsiConsoleSettings()
         {
             Ansi = isPlayground ? AnsiSupport.Yes : AnsiSupport.Detect,
             Interactive = isPlayground ? InteractionSupport.Yes : InteractionSupport.Detect,
             ColorSystem = isPlayground ? ColorSystemSupport.Standard : ColorSystemSupport.Detect,
+            Out = output,
         };
+
+        // Use SupportsAnsi from hostEnvironment which already checks ASPIRE_ANSI_PASS_THRU
+        if (hostEnvironment.SupportsAnsi)
+        {
+            settings.Ansi = AnsiSupport.Yes;
+            settings.ColorSystem = ColorSystemSupport.Standard;
+        }
 
         if (isPlayground)
         {
