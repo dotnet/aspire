@@ -7,6 +7,11 @@
         <target state="translated">Agregando integración de hospedaje de Aspire...</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChannelArgumentDescription">
+        <source>The channel to use for Aspire packages (e.g., stable, daily).</source>
+        <target state="new">The channel to use for Aspire packages (e.g., stable, daily).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the Aspire AppHost.</source>
         <target state="translated">Agregue una integración de hospedaje a Aspire AppHost.</target>

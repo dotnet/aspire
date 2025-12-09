@@ -153,6 +153,7 @@ public class Program
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
         builder.Services.AddSingleton<ICertificateService, CertificateService>();
         builder.Services.AddSingleton(BuildConfigurationService);
+        builder.Services.AddSingleton(BuildChannelResolver);
         builder.Services.AddSingleton<IFeatures, Features>();
         builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
@@ -275,6 +276,14 @@ public class Program
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
         return new ConfigurationService(configuration, executionContext, globalSettingsFile);
+    }
+
+    private static IChannelResolver BuildChannelResolver(IServiceProvider serviceProvider)
+    {
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        var globalSettingsFile = new FileInfo(GetGlobalSettingsPath());
+        var logger = serviceProvider.GetRequiredService<ILogger<ChannelResolver>>();
+        return new ChannelResolver(executionContext, globalSettingsFile, logger);
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)

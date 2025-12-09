@@ -26,8 +26,9 @@ internal sealed class AddCommand : BaseCommand
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
+    private readonly IChannelResolver _channelResolver;
 
-    public AddCommand(IDotNetCliRunner runner, IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+    public AddCommand(IDotNetCliRunner runner, IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, IChannelResolver channelResolver)
         : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -39,6 +40,7 @@ internal sealed class AddCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(channelResolver);
 
         _runner = runner;
         _packagingService = packagingService;
@@ -48,6 +50,7 @@ internal sealed class AddCommand : BaseCommand
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
+        _channelResolver = channelResolver;
 
         var integrationArgument = new Argument<string>("integration");
         integrationArgument.Description = AddCommandStrings.IntegrationArgumentDescription;
@@ -65,6 +68,10 @@ internal sealed class AddCommand : BaseCommand
         var sourceOption = new Option<string?>("--source", "-s");
         sourceOption.Description = AddCommandStrings.SourceArgumentDescription;
         Options.Add(sourceOption);
+
+        var channelOption = new Option<string?>("--channel");
+        channelOption.Description = AddCommandStrings.ChannelArgumentDescription;
+        Options.Add(channelOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -93,12 +100,22 @@ internal sealed class AddCommand : BaseCommand
 
             var source = parseResult.GetValue<string?>("--source");
 
+            // Resolve channel - AddCommand uses workspace context
+            var cliChannelOption = parseResult.GetValue<string?>("--channel");
+            var resolvedChannelName = await _channelResolver.ResolveChannelAsync(cliChannelOption, includeWorkspaceContext: true, cancellationToken);
+
             var packagesWithChannels = await InteractionService.ShowStatusAsync(
                 AddCommandStrings.SearchingForAspirePackages,
                 async () =>
                 {
-                    // Get channels and find the implicit channel, similar to how templates are handled
+                    // Get channels and filter by resolved channel name
                     var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+                    
+                    // Filter to only the resolved channel
+                    if (!string.IsNullOrWhiteSpace(resolvedChannelName))
+                    {
+                        channels = channels.Where(c => c.Name.Equals(resolvedChannelName, StringComparison.OrdinalIgnoreCase));
+                    }
 
                     var packages = new List<(NuGetPackage Package, PackageChannel Channel)>();
                     var packagesLock = new object();

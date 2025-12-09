@@ -9,6 +9,8 @@ namespace Aspire.Cli;
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(CliSettings))]
+[JsonSerializable(typeof(GlobalSettings))]
+[JsonSerializable(typeof(WorkspaceSettings))]
 [JsonSerializable(typeof(JsonObject))]
 [JsonSerializable(typeof(ListIntegrationsResponse))]
 [JsonSerializable(typeof(Integration))]

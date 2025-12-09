@@ -24,7 +24,9 @@ internal class DotNetTemplateFactory(
     IPackagingService packagingService,
     INewCommandPrompter prompter,
     CliExecutionContext executionContext,
-    IFeatures features)
+    IFeatures features,
+    IChannelResolver channelResolver,
+    ICliHostEnvironment hostEnvironment)
     : ITemplateFactory
 {
     public IEnumerable<ITemplate> GetTemplates()
@@ -523,8 +525,17 @@ internal class DotNetTemplateFactory(
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        _ = parseResult;
+        // Resolve channel (may include prompting if conditions are met)
+        var cliChannelOption = parseResult.GetValue<string?>("--channel");
+        var resolvedChannelName = await ResolveChannelAsync(cliChannelOption, cancellationToken);
+        
         var channels = await packagingService.GetChannelsAsync(cancellationToken);
+        
+        // Filter channels based on resolved channel name
+        if (!string.IsNullOrWhiteSpace(resolvedChannelName))
+        {
+            channels = channels.Where(c => c.Name.Equals(resolvedChannelName, StringComparison.OrdinalIgnoreCase));
+        }
 
         var packagesFromChannels = await interactionService.ShowStatusAsync(TemplatingStrings.SearchingForAvailableTemplateVersions, async () =>
         {
@@ -561,6 +572,57 @@ internal class DotNetTemplateFactory(
 
         var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
         return selectedPackageFromChannel;
+    }
+
+    private async Task<string> ResolveChannelAsync(string? cliChannelOption, CancellationToken cancellationToken)
+    {
+        // First try to resolve without prompting
+        var resolvedChannel = await channelResolver.ResolveChannelAsync(cliChannelOption, includeWorkspaceContext: false, cancellationToken);
+        
+        // Check if we should prompt for channel selection
+        // Prompting is only allowed under these exact conditions per spec:
+        // - Running interactively (TTY)
+        // - No CLI override (--channel)
+        // - No env override (ASPIRE_CHANNEL)
+        // - No workspace channel exists (always false here since includeWorkspaceContext=false)
+        // - No global defaultChannel exists
+        
+        var shouldPrompt = 
+            hostEnvironment.SupportsInteractiveInput &&
+            string.IsNullOrWhiteSpace(cliChannelOption) &&
+            string.IsNullOrWhiteSpace(executionContext.GetEnvironmentVariable("ASPIRE_CHANNEL")) &&
+            resolvedChannel == "stable"; // If we resolved to the fallback, no prior settings exist
+        
+        if (shouldPrompt)
+        {
+            // Prompt user for channel selection
+            var channels = await packagingService.GetChannelsAsync(cancellationToken);
+            var channelChoices = channels
+                .Where(c => c.Type == PackageChannelType.Explicit) // Only show explicit channels
+                .Select(c => c.Name)
+                .ToArray();
+            
+            if (channelChoices.Length > 0)
+            {
+                var selectedChannel = await interactionService.PromptForSelectionAsync(
+                    "Choose a default channel for Aspire:",
+                    channelChoices,
+                    c => c,
+                    cancellationToken);
+                
+                // Save to global settings with "Remember this choice" semantics
+                var globalSettings = await channelResolver.GetGlobalSettingsAsync(cancellationToken);
+                globalSettings.DefaultChannel = selectedChannel;
+                globalSettings.CliChannel = selectedChannel; // Keep them in sync per spec
+                await channelResolver.SetGlobalSettingsAsync(globalSettings, cancellationToken);
+                
+                resolvedChannel = selectedChannel;
+                
+                interactionService.DisplayMessage("check_mark", $"Default channel set to '{selectedChannel}'");
+            }
+        }
+        
+        return resolvedChannel;
     }
 
     /// <summary>
