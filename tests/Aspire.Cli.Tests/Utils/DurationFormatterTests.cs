@@ -74,11 +74,11 @@ public class DurationFormatterTests
         // Verify that the formatting uses InvariantCulture (dot as decimal separator)
         // regardless of current culture
         
-        // Act - test with a value that would format differently in some cultures
-        var result = DurationFormatter.FormatDuration(TimeSpan.FromSeconds(1.5));
+        // Act - CLI tests use DecimalDurationDisplay.Fixed for alignment
+        var result = DurationFormatter.FormatDuration(TimeSpan.FromSeconds(1.5), null, DecimalDurationDisplay.Fixed);
         
-        // Assert - should use dot, not comma (with optional decimal places)
-        Assert.Equal("1.5s", result);
+        // Assert - should use dot, not comma (with fixed decimal places)
+        Assert.Equal("1.50s", result);
         Assert.DoesNotContain(",", result);
     }
 
