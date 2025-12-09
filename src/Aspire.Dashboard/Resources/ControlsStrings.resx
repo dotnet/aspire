@@ -133,7 +133,7 @@
     <value>Parameters</value>
   </data>
   <data name="ChartContainerGraphAccessibleLabel" xml:space="preserve">
-    <value>Graph. For an accessible view please navigate to the Table tab</value>
+    <value>Graph. For an accessible view please navigate to the Resources tab</value>
   </data>
   <data name="EnvironmentVariablesFilterToggleShowSpecOnly" xml:space="preserve">
     <value>Show core properties</value>
