@@ -21,7 +21,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
     ILogger<AuxiliaryBackchannelMonitor> logger,
     CliExecutionContext executionContext) : BackgroundService, IAuxiliaryBackchannelMonitor
 {
-    private readonly ConcurrentDictionary<string, AppHostConnection> _connections = new();
+    private readonly ConcurrentDictionary<string, AppHostAuxiliaryBackchannel> _connections = new();
     private readonly string _backchannelsDirectory = GetBackchannelsDirectory();
 
     // Track known socket files to detect additions and removals
@@ -30,7 +30,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
     /// <summary>
     /// Gets the collection of active AppHost connections.
     /// </summary>
-    public IReadOnlyDictionary<string, AppHostConnection> Connections => _connections;
+    public IReadOnlyDictionary<string, AppHostAuxiliaryBackchannel> Connections => _connections;
 
     /// <summary>
     /// Gets or sets the path to the selected AppHost. When set, this AppHost will be used for MCP operations.
@@ -40,7 +40,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
     /// <summary>
     /// Gets the currently selected AppHost connection based on the selection logic.
     /// </summary>
-    public AppHostConnection? SelectedConnection
+    public AppHostAuxiliaryBackchannel? SelectedConnection
     {
         get
         {
@@ -83,7 +83,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
     /// <summary>
     /// Gets all connections that are within the scope of the specified working directory.
     /// </summary>
-    public IReadOnlyList<AppHostConnection> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
+    public IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
     {
         return _connections.Values
             .Where(c => IsAppHostInScopeOfDirectory(c.AppHostInfo?.AppHostPath, workingDirectory.FullName))
@@ -263,7 +263,7 @@ internal sealed class AuxiliaryBackchannelMonitor(
             // Determine if this AppHost is in scope of the MCP server's working directory
             var isInScope = IsAppHostInScope(appHostInfo?.AppHostPath);
 
-            var connection = new AppHostConnection(hash, socketPath, rpc, mcpInfo, appHostInfo, isInScope);
+            var connection = new AppHostAuxiliaryBackchannel(hash, socketPath, rpc, mcpInfo, appHostInfo, isInScope, logger);
 
             // Set up disconnect handler
             rpc.Disconnected += (sender, args) =>
@@ -326,11 +326,11 @@ internal sealed class AuxiliaryBackchannelMonitor(
         return !relativePath.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relativePath);
     }
 
-    private static async Task DisconnectAsync(AppHostConnection connection)
+    private static async Task DisconnectAsync(AppHostAuxiliaryBackchannel connection)
     {
         try
         {
-            connection.Rpc.Dispose();
+            connection.Dispose();
         }
         catch
         {
@@ -381,57 +381,3 @@ internal sealed class AuxiliaryBackchannelMonitor(
     }
 }
 
-/// <summary>
-/// Represents a connection to an AppHost instance via the auxiliary backchannel.
-/// </summary>
-internal sealed class AppHostConnection
-{
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AppHostConnection"/> class.
-    /// </summary>
-    public AppHostConnection(string hash, string socketPath, JsonRpc rpc, DashboardMcpConnectionInfo? mcpInfo, AppHostInformation? appHostInfo, bool isInScope)
-    {
-        Hash = hash;
-        SocketPath = socketPath;
-        Rpc = rpc;
-        McpInfo = mcpInfo;
-        AppHostInfo = appHostInfo;
-        IsInScope = isInScope;
-        ConnectedAt = DateTimeOffset.UtcNow;
-    }
-
-    /// <summary>
-    /// Gets the hash identifier for this AppHost instance.
-    /// </summary>
-    public string Hash { get; }
-
-    /// <summary>
-    /// Gets the socket path for this connection.
-    /// </summary>
-    public string SocketPath { get; }
-
-    /// <summary>
-    /// Gets the JSON-RPC proxy for communicating with the AppHost.
-    /// </summary>
-    public JsonRpc Rpc { get; }
-
-    /// <summary>
-    /// Gets the MCP connection information for the Dashboard.
-    /// </summary>
-    public DashboardMcpConnectionInfo? McpInfo { get; }
-
-    /// <summary>
-    /// Gets the AppHost information.
-    /// </summary>
-    public AppHostInformation? AppHostInfo { get; }
-
-    /// <summary>
-    /// Gets a value indicating whether this AppHost is within the scope of the MCP server's working directory.
-    /// </summary>
-    public bool IsInScope { get; }
-
-    /// <summary>
-    /// Gets the timestamp when this connection was established.
-    /// </summary>
-    public DateTimeOffset ConnectedAt { get; }
-}

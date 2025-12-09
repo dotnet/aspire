@@ -102,12 +102,12 @@ internal static class AzureAppServiceEnvironmentUtility
         // This identity needs website contributor access on the websites for resource server to work
         infra.Add(new ProvisioningOutput("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID", typeof(string))
         {
-            Value = contributorIdentity.Id
+            Value = contributorIdentity.Id.ToBicepExpression()
         });
 
         infra.Add(new ProvisioningOutput("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID", typeof(string))
         {
-            Value = contributorIdentity.PrincipalId
+            Value = contributorIdentity.PrincipalId.ToBicepExpression()
         });
 
         return dashboard;
