@@ -742,7 +742,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task PublishAsync_ConfigureEnvironment_AllowsMutatingCapturedEnvVars()
+    public async Task PublishAsync_ConfigureEnvFile_AllowsMutatingCapturedEnvVars()
     {
         using var tempDir = new TestTempDirectory();
 
@@ -751,7 +751,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.AddDockerComposeEnvironment("docker-compose")
             .WithDashboard(false)
-            .ConfigureEnvironment(envVars =>
+            .ConfigureEnvFile(envVars =>
             {
                 // Modify the default value of a bind mount env var
                 foreach (var envVar in envVars.Values)
@@ -781,7 +781,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task PublishAsync_ConfigureEnvironment_CanRemoveGeneratedPlaceholder()
+    public async Task PublishAsync_ConfigureEnvFile_CanRemoveGeneratedPlaceholder()
     {
         using var tempDir = new TestTempDirectory();
 
@@ -793,7 +793,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         builder.AddDockerComposeEnvironment("docker-compose")
             .WithDashboard(false)
-            .ConfigureEnvironment(envVars =>
+            .ConfigureEnvFile(envVars =>
             {
                 // Find and remove the auto-generated bind mount placeholder for yarp
                 var keysToRemove = envVars.Where(kv => 

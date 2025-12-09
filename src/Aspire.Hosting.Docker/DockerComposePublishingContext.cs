@@ -143,7 +143,7 @@ internal sealed class DockerComposePublishingContext(
             environment.ConfigureComposeFile?.Invoke(composeFile);
 
             // Allow mutation of the captured environment variables before writing
-            environment.ConfigureEnvironment?.Invoke(environment.CapturedEnvironmentVariables);
+            environment.ConfigureEnvFile?.Invoke(environment.CapturedEnvironmentVariables);
 
             var composeOutput = composeFile.ToYaml();
             var outputFile = Path.Combine(OutputPath, "docker-compose.yaml");

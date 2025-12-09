@@ -96,12 +96,12 @@ public static class DockerComposeEnvironmentExtensions
     /// This callback is invoked during the prepare phase, allowing programmatic modification of the environment variables
     /// that will be written to the .env file adjacent to the Docker Compose file.
     /// </remarks>
-    public static IResourceBuilder<DockerComposeEnvironmentResource> ConfigureEnvironment(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<IDictionary<string, CapturedEnvironmentVariable>> configure)
+    public static IResourceBuilder<DockerComposeEnvironmentResource> ConfigureEnvFile(this IResourceBuilder<DockerComposeEnvironmentResource> builder, Action<IDictionary<string, CapturedEnvironmentVariable>> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
 
-        builder.Resource.ConfigureEnvironment += configure;
+        builder.Resource.ConfigureEnvFile += configure;
         return builder;
     }
 

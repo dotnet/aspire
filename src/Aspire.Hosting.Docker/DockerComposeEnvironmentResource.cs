@@ -41,7 +41,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
     internal Action<ComposeFile>? ConfigureComposeFile { get; set; }
 
-    internal Action<IDictionary<string, CapturedEnvironmentVariable>>? ConfigureEnvironment { get; set; }
+    internal Action<IDictionary<string, CapturedEnvironmentVariable>>? ConfigureEnvFile { get; set; }
 
     internal IResourceBuilder<DockerComposeAspireDashboardResource>? Dashboard { get; set; }
 
