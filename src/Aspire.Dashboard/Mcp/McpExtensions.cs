@@ -57,6 +57,9 @@ public static class McpExtensions
             builder.WithTools<AspireResourceMcpTools>();
 
             // Intercept ListTools and CallTool to proxy calls to resource MCP servers
+            // This has two purposes:
+            // 1. To add the proxied tools to the list of available tools
+            // 2. To record telemetry about tool usage
             builder
                 .AddListToolsFilter((next) => async (RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken) =>
                 {
