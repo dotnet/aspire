@@ -76,7 +76,7 @@ resource webappslot 'Microsoft.Web/sites/slots@2025-03-01' = {
         }
         {
           name: 'OTEL_SERVICE_NAME'
-          value: 'project1'
+          value: 'project1-stage'
         }
         {
           name: 'OTEL_EXPORTER_OTLP_PROTOCOL'

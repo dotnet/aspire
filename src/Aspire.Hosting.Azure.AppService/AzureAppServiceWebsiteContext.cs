@@ -475,7 +475,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         RoleAssignment? webSiteRa = null;
         if (environmentContext.Environment.EnableDashboard)
         {
-            webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter, isSlot);
+            webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter, deploymentSlot);
         }
 
         infra.Add(webSite);
@@ -631,13 +631,13 @@ internal sealed class AzureAppServiceWebsiteContext(
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
     }
 
-    private RoleAssignment AddDashboardPermissionAndSettings(dynamic webSite, ProvisioningParameter acrClientIdParameter, string? deploymentSlot = null)
+    private RoleAssignment AddDashboardPermissionAndSettings(dynamic webSite, ProvisioningParameter acrClientIdParameter, BicepValue<string>? deploymentSlot = null)
     {
         bool isSlot = deploymentSlot is not null;
         var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(Infra);
         var contributorId = environmentContext.Environment.WebsiteContributorManagedIdentityId.AsProvisioningParameter(Infra);
         var contributorPrincipalId = environmentContext.Environment.WebsiteContributorManagedIdentityPrincipalId.AsProvisioningParameter(Infra);
-        var otelServiceName = isSlot ? $"{resource.Name}-{deploymentSlot}" : resource.Name;
+        var otelServiceName = isSlot ? BicepFunction.Interpolate($"{resource.Name}-{deploymentSlot}") : resource.Name;
 
         // Add the appsettings specific to sending telemetry data to dashboard
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = otelServiceName });
