@@ -1195,9 +1195,9 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
         
         var features = provider.GetRequiredService<IFeatures>();
-        var isEnabled = features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: false);
+        var isEnabled = features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
         
-        Assert.False(isEnabled, "Running instance detection should be disabled by default");
+        Assert.True(isEnabled, "Running instance detection should be enabled by default");
     }
 }
 

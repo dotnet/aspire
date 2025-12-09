@@ -92,7 +92,7 @@ internal sealed class RunCommand : BaseCommand
             Options.Add(startDebugOption);
         }
 
-        if (features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: false))
+        if (features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true))
         {
             var forceOption = new Option<bool>("--force", "-f");
             forceOption.Description = RunCommandStrings.ForceArgumentDescription;
@@ -107,7 +107,7 @@ internal sealed class RunCommand : BaseCommand
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
-        var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: false);
+        var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
         // Force option kept for backward compatibility but no longer used since prompt was removed
         // var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
 
