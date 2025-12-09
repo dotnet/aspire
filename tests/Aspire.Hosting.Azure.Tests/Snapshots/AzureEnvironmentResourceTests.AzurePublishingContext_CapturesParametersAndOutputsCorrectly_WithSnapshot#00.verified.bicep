@@ -15,14 +15,6 @@ resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   location: location
 }
 
-module acaEnv_acr 'acaEnv-acr/acaEnv-acr.bicep' = {
-  name: 'acaEnv-acr'
-  scope: rg
-  params: {
-    location: location
-  }
-}
-
 module acaEnv 'acaEnv/acaEnv.bicep' = {
   name: 'acaEnv'
   scope: rg
@@ -84,6 +76,14 @@ module fe_roles_account 'fe-roles-account/fe-roles-account.bicep' = {
     location: location
     account_outputs_name: account.outputs.name
     principalId: fe_identity.outputs.principalId
+  }
+}
+
+module acaEnv_acr 'acaEnv-acr/acaEnv-acr.bicep' = {
+  name: 'acaEnv-acr'
+  scope: rg
+  params: {
+    location: location
   }
 }
 

@@ -71,10 +71,10 @@ public class AzureUserAssignedIdentityTests
 
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
             r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
-            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r =>
             {
                 Assert.IsType<AzureProvisioningResource>(r);
@@ -154,11 +154,11 @@ public class AzureUserAssignedIdentityTests
         // Validate that only the resources we expect to see are in the model
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r => Assert.IsType<ProjectResource>(r),
-            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureProvisioningResource>(r));
 
         // Verify the identity resource is the only one that exists
@@ -210,11 +210,11 @@ public class AzureUserAssignedIdentityTests
         // Validate that only the resources we expect to see are in the model
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureAppServiceEnvironmentResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r => Assert.IsType<ProjectResource>(r),
-            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureProvisioningResource>(r));
 
         // Verify the identity resource is the only one that exists
@@ -287,12 +287,12 @@ public class AzureUserAssignedIdentityTests
         // Validate that only the resources we expect to see are in the model
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
             r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
             r => Assert.IsType<ProjectResource>(r),
             r => Assert.IsType<ProjectResource>(r),
-            r => Assert.IsType<AzureContainerRegistryResource>(r),
             r => Assert.True(r is AzureProvisioningResource { Name: "myapp-roles-mystorage" }),
             r => Assert.True(r is AzureProvisioningResource { Name: "myapp2-roles-mystorage" }));
 
