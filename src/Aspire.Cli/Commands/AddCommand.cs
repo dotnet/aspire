@@ -102,7 +102,7 @@ internal sealed class AddCommand : BaseCommand
 
                     // If there are hives (PR build directories), include all channels.
                     // Otherwise, only use the implicit/default channel to avoid prompting.
-                    var hasHives = ExecutionContext.HasHives;
+                    var hasHives = ExecutionContext.GetPrHiveCount() > 0;
                     var channels = hasHives 
                         ? allChannels 
                         : allChannels.Where(c => c.Type is PackageChannelType.Implicit);

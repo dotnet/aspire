@@ -160,7 +160,7 @@ internal sealed class UpdateCommand : BaseCommand
             {
                 // If there are hives (PR build directories), prompt for channel selection.
                 // Otherwise, use the implicit/default channel automatically.
-                var hasHives = ExecutionContext.HasHives;
+                var hasHives = ExecutionContext.GetPrHiveCount() > 0;
                 
                 if (hasHives)
                 {
@@ -251,11 +251,11 @@ internal sealed class UpdateCommand : BaseCommand
         {
             // If there are hives (PR build directories), prompt for channel selection.
             // Otherwise, use "stable" as the default channel.
-            var hasHives = ExecutionContext.HasHives;
+            var hasHives = ExecutionContext.GetPrHiveCount() > 0;
             
             if (hasHives)
             {
-                var channels = new[] { "stable", "staging", "daily" };
+                var channels = new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily };
                 channel = await InteractionService.PromptForSelectionAsync(
                     "Select the channel to update to:",
                     channels,
@@ -265,7 +265,7 @@ internal sealed class UpdateCommand : BaseCommand
             else
             {
                 // Use stable as the default channel for self-update
-                channel = "stable";
+                channel = PackageChannelNames.Stable;
             }
         }
 
