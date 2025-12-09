@@ -357,8 +357,10 @@ public sealed class TelemetryRepository : IDisposable
                         // Note: The span might not exist yet if logs arrive before spans. In that case, we default to false.
                         if (!hasGenAI && !string.IsNullOrEmpty(logEntry.SpanId) && !string.IsNullOrEmpty(logEntry.TraceId))
                         {
-                            // Temporarily release logs lock and acquire traces lock to check span.
-                            // This avoids potential deadlocks.
+                            // Temporarily release logs write lock and acquire traces read lock to check span.
+                            // This avoids potential deadlocks that could occur if we tried to acquire the traces lock
+                            // while holding the logs lock (another thread might be doing the opposite).
+                            // The logEntry object is safe to access during this window because it's not yet in the collection.
                             _logsLock.ExitWriteLock();
                             try
                             {
