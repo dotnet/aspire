@@ -249,6 +249,52 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
     [Fact]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/10979")]
+    public async Task NewCommandWithChannelOptionUsesSpecifiedChannel()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                return new TestNewCommandPrompter(interactionService);
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetConfigFile, useCache, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package } // Single package.
+                    );
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<NewCommand>();
+        var result = command.Parse("new aspire-starter --channel stable --use-redis-cache --test-framework None");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // Assert - command should execute successfully with explicit channel
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10979")]
     // Quarantined due to flakiness. See linked issue for details.
     public async Task NewCommandDoesNotPromptForTemplateIfSpecifiedOnCommandLine()
     {
