@@ -6,6 +6,21 @@ using System.Globalization;
 
 namespace Aspire.Shared;
 
+internal enum DecimalDurationDisplay
+{
+    /// <summary>
+    /// Display decimal durations with optional decimal places (0.##).
+    /// Trailing zeros after the decimal point are not shown.
+    /// </summary>
+    Optional,
+
+    /// <summary>
+    /// Display decimal durations with fixed decimal places (0.00).
+    /// Always shows exactly two decimal places.
+    /// </summary>
+    Fixed
+}
+
 internal static class DurationFormatter
 {
     [DebuggerDisplay("Unit = {Unit}, Ticks = {Ticks}, IsDecimal = {IsDecimal}")]
@@ -27,7 +42,7 @@ internal static class DurationFormatter
         new UnitStep { Unit = "μs", Ticks = TimeSpan.TicksPerMicrosecond, Threshold = TimeSpan.TicksPerMicrosecond, IsDecimal = true },
     };
 
-    public static string FormatDuration(TimeSpan duration, CultureInfo? culture = null)
+    public static string FormatDuration(TimeSpan duration, CultureInfo? culture = null, DecimalDurationDisplay decimalDisplay = DecimalDurationDisplay.Optional)
     {
         culture ??= CultureInfo.InvariantCulture;
         
@@ -37,8 +52,12 @@ internal static class DurationFormatter
 
         if (primaryUnit.IsDecimal)
         {
-            // If the unit is decimal based, display as a decimal with 2 decimal places for alignment
-            return string.Create(culture, $"{ticks / primaryUnit.Ticks:0.00}{primaryUnit.Unit}");
+            // If the unit is decimal based, display as a decimal with 2 decimal places for alignment (Fixed)
+            // or with optional decimal places (Optional) to avoid trailing zeros
+            var formatString = decimalDisplay == DecimalDurationDisplay.Fixed 
+                ? $"{{0:0.00}}{primaryUnit.Unit}" 
+                : $"{{0:0.##}}{primaryUnit.Unit}";
+            return string.Format(culture, formatString, ticks / primaryUnit.Ticks);
         }
 
         var primaryValue = Math.Floor(ticks / primaryUnit.Ticks);
