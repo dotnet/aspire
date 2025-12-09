@@ -319,6 +319,11 @@ internal sealed class BicepProvisioner(
         {
             // Well-known principal parameters can only be populated in run mode.
             // In publish mode, principal parameters must be provided by the creator of the bicep resource.
+
+            // We assume that the BicepProvisioner only runs in publish mode during `aspire deploy` operations
+            // and not from azd. azd fills in principal parameters during its deployment process with a managed
+            // identity it creates. But the BicepProvisioner only fills them in with the current principal,
+            // which is not correct in publish mode.
             if (context.ExecutionContext.IsPublishMode)
             {
                 throw new InvalidOperationException("An Azure principal parameter was not supplied a value. Ensure you are using an environment that supports role assignments, for example AddAzureContainerAppEnvironment.");
