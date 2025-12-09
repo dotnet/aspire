@@ -15,6 +15,14 @@ resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   location: location
 }
 
+module acaEnv_acr 'acaEnv-acr/acaEnv-acr.bicep' = {
+  name: 'acaEnv-acr'
+  scope: rg
+  params: {
+    location: location
+  }
+}
+
 module acaEnv 'acaEnv/acaEnv.bicep' = {
   name: 'acaEnv'
   scope: rg
@@ -48,14 +56,6 @@ module storage 'storage/storage.bicep' = {
     location: location
     storage_Sku: storage_Sku
     sku_description: '${skuDescription} ${storage_Sku}'
-  }
-}
-
-module acaEnv_acr 'acaEnv-acr/acaEnv-acr.bicep' = {
-  name: 'acaEnv-acr'
-  scope: rg
-  params: {
-    location: location
   }
 }
 

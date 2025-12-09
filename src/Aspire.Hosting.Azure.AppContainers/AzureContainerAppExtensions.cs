@@ -332,16 +332,6 @@ public static class AzureContainerAppExtensions
         var defaultRegistry = CreateDefaultAzureContainerRegistry(builder, registryName, containerAppEnvResource);
         containerAppEnvResource.DefaultContainerRegistry = defaultRegistry;
 
-        builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
-        {
-            if (!containerAppEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out _))
-            {
-                data.Model.Resources.Add(defaultRegistry);
-            }
-
-            return Task.CompletedTask;
-        });
-
         // Create the resource builder first, then attach the registry to avoid recreating builders
         var appEnvBuilder = builder.ExecutionContext.IsRunMode
             // HACK: We need to return a valid resource builder for the container app environment

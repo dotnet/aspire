@@ -1,6 +1,10 @@
 ﻿{
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
+    "env1-acr": {
+      "type": "azure.bicep.v0",
+      "path": "env1-acr.module.bicep"
+    },
     "env1": {
       "type": "azure.bicep.v0",
       "path": "env1.module.bicep",
@@ -8,6 +12,10 @@
         "env1_acr_outputs_name": "{env1-acr.outputs.name}",
         "userPrincipalId": ""
       }
+    },
+    "env2-acr": {
+      "type": "azure.bicep.v0",
+      "path": "env2-acr.module.bicep"
     },
     "env2": {
       "type": "azure.bicep.v0",
@@ -40,14 +48,6 @@
           "env2_outputs_azure_container_apps_environment_id": "{env2.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
         }
       }
-    },
-    "env1-acr": {
-      "type": "azure.bicep.v0",
-      "path": "env1-acr.module.bicep"
-    },
-    "env2-acr": {
-      "type": "azure.bicep.v0",
-      "path": "env2-acr.module.bicep"
     }
   }
 }

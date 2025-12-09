@@ -217,16 +217,6 @@ public static partial class AzureAppServiceEnvironmentExtensions
             DefaultContainerRegistry = defaultRegistry
         };
 
-        builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
-        {
-            if (!resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out _))
-            {
-                data.Model.Resources.Add(defaultRegistry);
-            }
-
-            return Task.CompletedTask;
-        });
-
         // Create the resource builder first, then attach the registry to avoid recreating builders
         var appServiceEnvBuilder = builder.ExecutionContext.IsPublishMode
             ? builder.AddResource(resource)
@@ -321,8 +311,10 @@ public static partial class AzureAppServiceEnvironmentExtensions
         };
 
         var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
-        builder.CreateResourceBuilder(resource);
-
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            builder.AddResource(resource);
+        }
         return resource;
     }
 }

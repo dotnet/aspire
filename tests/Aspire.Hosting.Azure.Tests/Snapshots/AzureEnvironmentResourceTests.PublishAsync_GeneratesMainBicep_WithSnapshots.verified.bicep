@@ -19,6 +19,14 @@ resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   location: location
 }
 
+module acaEnv_acr 'acaEnv-acr/acaEnv-acr.bicep' = {
+  name: 'acaEnv-acr'
+  scope: rg
+  params: {
+    location: location
+  }
+}
+
 module acaEnv 'acaEnv/acaEnv.bicep' = {
   name: 'acaEnv'
   scope: rg
@@ -78,14 +86,6 @@ module mod 'mod/mod.bicep' = {
   params: {
     location: location
     pgdb: '${pg.outputs.connectionString};Database=pgdb'
-  }
-}
-
-module acaEnv_acr 'acaEnv-acr/acaEnv-acr.bicep' = {
-  name: 'acaEnv-acr'
-  scope: rg
-  params: {
-    location: location
   }
 }
 

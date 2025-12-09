@@ -11,6 +11,14 @@ resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   location: location
 }
 
+module env_acr 'env-acr/env-acr.bicep' = {
+  name: 'env-acr'
+  scope: rg
+  params: {
+    location: location
+  }
+}
+
 module env 'env/env.bicep' = {
   name: 'env'
   scope: rg
@@ -18,14 +26,6 @@ module env 'env/env.bicep' = {
     location: location
     env_acr_outputs_name: env_acr.outputs.name
     userPrincipalId: principalId
-  }
-}
-
-module env_acr 'env-acr/env-acr.bicep' = {
-  name: 'env-acr'
-  scope: rg
-  params: {
-    location: location
   }
 }
 
