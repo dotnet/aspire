@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
-        <source>Graph. For an accessible view please navigate to the Table tab</source>
-        <target state="translated">Граф. Чтобы открыть представление с поддержкой специальных возможностей, перейдите на вкладку "Таблица"</target>
+        <source>Graph. For an accessible view please navigate to the Resources tab</source>
+        <target state="needs-review-translation">Граф. Чтобы открыть представление с поддержкой специальных возможностей, перейдите на вкладку "Таблица"</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
@@ -340,6 +340,11 @@
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
         <target state="translated">Панель инструментов страницы</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParameterValueNotSet">
+        <source>Value not set</source>
+        <target state="new">Value not set</target>
         <note />
       </trans-unit>
       <trans-unit id="PauseButtonTitle">

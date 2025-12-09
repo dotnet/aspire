@@ -175,7 +175,7 @@
                                                     <span class="empty-data"></span>
                                                 }
                                             </AspireTemplateColumn>
-                                            <AspireTemplateColumn ColumnId="@ValueColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetParameterValue(ctx.Resource).IsSensitive ? null : GetParameterValue(ctx.Resource).Value)">
+                                            <AspireTemplateColumn ColumnId="@ValueColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetParameterValue(ctx.Resource) is var pv && (pv.IsSensitive || pv.IsUnresolved) ? null : pv.Value)">
                                                 @{
                                                     var paramValue = GetParameterValue(context.Resource);
                                                 }
@@ -185,6 +185,10 @@
                                                                ValueDescription="@ControlsStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]"
                                                                EnableMasking="@paramValue.IsSensitive"
                                                                IsMasked="@paramValue.IsSensitive" />
+                                                }
+                                                else if (paramValue.IsUnresolved)
+                                                {
+                                                    <span class="cellText">@ControlsStringsLoc[nameof(ControlsStrings.ParameterValueNotSet)]</span>
                                                 }
                                                 else
                                                 {

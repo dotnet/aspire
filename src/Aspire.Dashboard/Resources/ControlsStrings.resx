@@ -183,6 +183,9 @@
   <data name="PropertyGridValueColumnHeader" xml:space="preserve">
     <value>Value</value>
   </data>
+  <data name="ParameterValueNotSet" xml:space="preserve">
+    <value>Value not set</value>
+  </data>
   <data name="StateColumnHeader" xml:space="preserve">
     <value>State</value>
   </data>

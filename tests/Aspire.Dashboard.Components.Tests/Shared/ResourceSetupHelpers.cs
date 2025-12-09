@@ -62,6 +62,7 @@ internal static class ResourceSetupHelpers
 
         var menuModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
         menuModule.SetupVoid("initialize", _ => true);
+        menuModule.SetupVoid("dispose", _ => true);
     }
 
     public static void SetupResourcesPage(TestContext context, ViewportInformation viewport, IDashboardClient? dashboardClient = null)
@@ -101,6 +102,7 @@ internal static class ResourceSetupHelpers
 
         var menuModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
         menuModule.SetupVoid("initialize", _ => true);
+        menuModule.SetupVoid("dispose", _ => true);
 
         context.Services.AddLocalization();
         context.Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();

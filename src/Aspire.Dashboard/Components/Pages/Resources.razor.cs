@@ -746,14 +746,18 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName);
     }
 
-    private static (string? Value, bool IsSensitive) GetParameterValue(ResourceViewModel resource)
+    private static (string? Value, bool IsSensitive, bool IsUnresolved) GetParameterValue(ResourceViewModel resource)
     {
+        // Check if the parameter is in an unresolved state (warning = missing value, error = initialization error)
+        var isUnresolved = resource.StateStyle is "warning" or "error";
+
         if (resource.Properties.TryGetValue(KnownProperties.Parameter.Value, out var property))
         {
-            var value = property.Value.HasStringValue ? property.Value.StringValue : null;
-            return (value, property.IsValueSensitive);
+            // If unresolved, the value contains the exception message - don't show it
+            var value = isUnresolved ? null : (property.Value.HasStringValue ? property.Value.StringValue : null);
+            return (value, property.IsValueSensitive, isUnresolved);
         }
-        return (null, false);
+        return (null, false, isUnresolved);
     }
 
     private static string GetUrlsTooltip(ResourceViewModel resource)
