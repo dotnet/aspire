@@ -92,13 +92,6 @@ internal sealed class RunCommand : BaseCommand
             Options.Add(startDebugOption);
         }
 
-        if (features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true))
-        {
-            var forceOption = new Option<bool>("--force", "-f");
-            forceOption.Description = RunCommandStrings.ForceArgumentDescription;
-            Options.Add(forceOption);
-        }
-
         TreatUnmatchedTokensAsErrors = false;
     }
 
