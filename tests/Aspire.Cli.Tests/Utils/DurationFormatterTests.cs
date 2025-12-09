@@ -13,23 +13,23 @@ namespace Aspire.Cli.Tests.Utils;
 public class DurationFormatterTests
 {
     [Theory]
-    [InlineData(0.001, "1.00ms")]   // 1 millisecond
-    [InlineData(0.025, "25.00ms")]  // 25 milliseconds - example from original issue
-    [InlineData(0.049, "49.00ms")]  // Just under 50ms
-    [InlineData(0.050, "50.00ms")]  // Exactly 50ms
-    [InlineData(0.099, "99.00ms")]  // Just under 0.1 seconds
-    [InlineData(0.0999, "99.90ms")] // 99.9ms (DurationFormatter uses decimals)
-    [InlineData(0.1, "0.10s")]    // Exactly 0.1 seconds should show seconds
+    [InlineData(0.001, "1ms")]   // 1 millisecond
+    [InlineData(0.025, "25ms")]  // 25 milliseconds - example from original issue
+    [InlineData(0.049, "49ms")]  // Just under 50ms
+    [InlineData(0.050, "50ms")]  // Exactly 50ms
+    [InlineData(0.099, "99ms")]  // Just under 0.1 seconds
+    [InlineData(0.0999, "99.9ms")] // 99.9ms (DurationFormatter uses decimals)
+    [InlineData(0.1, "0.1s")]    // Exactly 0.1 seconds should show seconds
     [InlineData(0.15, "0.15s")]  // 0.15 seconds
-    [InlineData(0.5, "0.50s")]    // Half second
-    [InlineData(1.0, "1.00s")]      // One second
-    [InlineData(1.5, "1.50s")]    // 1.5 seconds
+    [InlineData(0.5, "0.5s")]    // Half second
+    [InlineData(1.0, "1s")]      // One second
+    [InlineData(1.5, "1.5s")]    // 1.5 seconds
     [InlineData(1.49, "1.49s")]  // 1.49 seconds
     [InlineData(10.25, "10.25s")] // Larger duration
-    [InlineData(0.0001, "0.10ms")] // Very small value
+    [InlineData(0.0001, "0.1ms")] // Very small value
     public void FormatDuration_FormatsSmallDurationsCorrectly(double seconds, string expected)
     {
-        // Act
+        // Act - uses default DecimalDurationDisplay.Optional
         var result = DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds), System.Globalization.CultureInfo.InvariantCulture);
         
         // Assert
@@ -53,14 +53,14 @@ public class DurationFormatterTests
     }
 
     [Theory]
-    [InlineData(0.0, "0.00μs")]      // Zero should not display as "0.0s"
-    [InlineData(0.01, "10.00ms")]    // 10 milliseconds
-    [InlineData(0.05, "50.00ms")]    // 50 milliseconds
-    [InlineData(0.099, "99.00ms")]   // 99 milliseconds
+    [InlineData(0.0, "0μs")]      // Zero should not display as "0.0s"
+    [InlineData(0.01, "10ms")]    // 10 milliseconds
+    [InlineData(0.05, "50ms")]    // 50 milliseconds
+    [InlineData(0.099, "99ms")]   // 99 milliseconds
     public void FormatDuration_NeverReturnsZeroPointZeroSeconds(double seconds, string expected)
     {
         // This test verifies the core issue: we should never see "0.0s" for small durations
-        // Act
+        // Act - uses default DecimalDurationDisplay.Optional
         var result = DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds), System.Globalization.CultureInfo.InvariantCulture);
         
         // Assert - should never be "0.0s" and should match expected format
@@ -77,8 +77,8 @@ public class DurationFormatterTests
         // Act - test with a value that would format differently in some cultures
         var result = DurationFormatter.FormatDuration(TimeSpan.FromSeconds(1.5));
         
-        // Assert - should use dot, not comma
-        Assert.Equal("1.50s", result);
+        // Assert - should use dot, not comma (with optional decimal places)
+        Assert.Equal("1.5s", result);
         Assert.DoesNotContain(",", result);
     }
 
@@ -107,4 +107,59 @@ public class DurationFormatterTests
         // Assert - should round seconds appropriately
         Assert.Equal("2m 31s", result);
     }
+
+    [Theory]
+    [InlineData(0.001, "1.00ms")]   // 1 millisecond with fixed decimals
+    [InlineData(0.025, "25.00ms")]  // 25 milliseconds with fixed decimals
+    [InlineData(0.1, "0.10s")]      // 0.1 seconds with fixed decimals
+    [InlineData(1.0, "1.00s")]      // 1 second with fixed decimals
+    [InlineData(1.5, "1.50s")]      // 1.5 seconds with fixed decimals
+    [InlineData(0.0, "0.00μs")]     // Zero with fixed decimals
+    public void FormatDuration_WithFixedDisplay_AlwaysShowsTwoDecimalPlaces(double seconds, string expected)
+    {
+        // Act - explicitly use DecimalDurationDisplay.Fixed
+        var result = DurationFormatter.FormatDuration(
+            TimeSpan.FromSeconds(seconds), 
+            System.Globalization.CultureInfo.InvariantCulture, 
+            DecimalDurationDisplay.Fixed);
+        
+        // Assert - should always have .00 format
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData(0.001, "1ms")]      // 1 millisecond without trailing zeros
+    [InlineData(0.025, "25ms")]     // 25 milliseconds without trailing zeros
+    [InlineData(0.1, "0.1s")]       // 0.1 seconds without trailing zeros
+    [InlineData(1.0, "1s")]         // 1 second without trailing zeros
+    [InlineData(1.5, "1.5s")]       // 1.5 seconds shows one decimal
+    [InlineData(0.0, "0μs")]        // Zero without trailing zeros
+    [InlineData(1.25, "1.25s")]     // 1.25 seconds shows two decimals
+    public void FormatDuration_WithOptionalDisplay_HidesTrailingZeros(double seconds, string expected)
+    {
+        // Act - explicitly use DecimalDurationDisplay.Optional (also the default)
+        var result = DurationFormatter.FormatDuration(
+            TimeSpan.FromSeconds(seconds), 
+            System.Globalization.CultureInfo.InvariantCulture, 
+            DecimalDurationDisplay.Optional);
+        
+        // Assert - should use 0.## format, hiding trailing zeros
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void FormatDuration_DefaultBehavior_UsesOptionalDisplay()
+    {
+        // Verify that the default parameter value is Optional
+        var duration = TimeSpan.FromSeconds(1.0);
+        
+        // Act - call without specifying the parameter
+        var defaultResult = DurationFormatter.FormatDuration(duration, System.Globalization.CultureInfo.InvariantCulture);
+        var explicitOptionalResult = DurationFormatter.FormatDuration(duration, System.Globalization.CultureInfo.InvariantCulture, DecimalDurationDisplay.Optional);
+        
+        // Assert - both should produce the same result
+        Assert.Equal(explicitOptionalResult, defaultResult);
+        Assert.Equal("1s", defaultResult); // Should not have trailing zeros
+    }
 }
+
