@@ -14,7 +14,7 @@ public class StructuredLogsViewModel
     private readonly TelemetryRepository _telemetryRepository;
     private readonly List<FieldTelemetryFilter> _filters = new();
     // Cache span lookups for GenAI attributes to avoid repeated lookups.
-    private readonly ConcurrentDictionary<SpanKey, bool> _hasGenAISpanCache = new();
+    private readonly ConcurrentDictionary<SpanKey, bool> _spanGenAICache = new();
 
     private PagedResult<OtlpLogEntry>? _logs;
     private ResourceKey? _resourceKey;
@@ -35,9 +35,13 @@ public class StructuredLogsViewModel
 
     public bool HasGenAISpan(string traceId, string spanId)
     {
+        // Get a flag indicating whether the span has GenAI telemetry on it.
+        // This is cached to avoid repeated lookups. The cache is cleared when logs change.
+        // It's ok that this isn't completely thread safe, i.e. get and a clear happen at the same time.
+
         var spanKey = new SpanKey(traceId, spanId);
 
-        if (_hasGenAISpanCache.TryGetValue(spanKey, out var value))
+        if (_spanGenAICache.TryGetValue(spanKey, out var value))
         {
             return value;
         }
@@ -50,7 +54,7 @@ public class StructuredLogsViewModel
             // Only cache a value if a span is present.
             // We don't want to cache false if there is no span because the span may be added later.
             hasGenAISpan = GenAIHelpers.HasGenAIAttribute(span.Attributes);
-            _hasGenAISpanCache.TryAdd(spanKey, hasGenAISpan);
+            _spanGenAICache.TryAdd(spanKey, hasGenAISpan);
         }
 
         return hasGenAISpan;
@@ -59,7 +63,7 @@ public class StructuredLogsViewModel
     public void ClearFilters()
     {
         _filters.Clear();
-        _logs = null;
+        ClearData();
     }
 
     public void AddFilter(FieldTelemetryFilter filter)
@@ -74,14 +78,14 @@ public class StructuredLogsViewModel
         }
 
         _filters.Add(filter);
-        _logs = null;
+        ClearData();
     }
 
     public bool RemoveFilter(FieldTelemetryFilter filter)
     {
         if (_filters.Remove(filter))
         {
-            _logs = null;
+            ClearData();
             return true;
         }
         return false;
@@ -99,7 +103,7 @@ public class StructuredLogsViewModel
         }
 
         field = value;
-        _logs = null;
+        ClearData();
     }
 
     public PagedResult<OtlpLogEntry> GetLogs()
@@ -118,9 +122,6 @@ public class StructuredLogsViewModel
             });
 
             _currentDataHasErrors = logs.Items.Any(i => i.Severity >= Microsoft.Extensions.Logging.LogLevel.Error);
-
-            // Clear cache whenever log data changes to prevent it growing forever.
-            _hasGenAISpanCache.Clear();
         }
 
         return logs;
@@ -165,5 +166,8 @@ public class StructuredLogsViewModel
     public void ClearData()
     {
         _logs = null;
+
+        // Clear cache whenever log data changes to prevent it growing forever.
+        _spanGenAICache.Clear();
     }
 }
