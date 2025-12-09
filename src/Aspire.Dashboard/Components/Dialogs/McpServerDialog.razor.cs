@@ -56,17 +56,27 @@ public partial class McpServerDialog
 
         if (McpEnabled)
         {
-            (_mcpServerInstallButtonJson, _mcpServerConfigFileJson) = GetMcpServerInstallButtonJson();
-            _mcpConfigProperties =
-            [
-                new McpConfigPropertyViewModel { Name = "name", Value = "aspire-dashboard" },
-                new McpConfigPropertyViewModel { Name = "type", Value = "http" },
-                new McpConfigPropertyViewModel { Name = "url", Value = _mcpUrl }
-            ];
-
-            if (DashboardOptions.Value.Mcp.AuthMode == McpAuthMode.ApiKey)
+            // Check if we should show CLI MCP instructions instead of dashboard MCP instructions
+            if (DashboardOptions.Value.Mcp.UseCliMcp == true)
             {
-                _mcpConfigProperties.Add(new McpConfigPropertyViewModel { Name = $"{McpApiKeyAuthenticationHandler.ApiKeyHeaderName} (header)", Value = DashboardOptions.Value.Mcp.PrimaryApiKey! });
+                // For CLI MCP mode, we don't need the HTTP endpoint configuration
+                _mcpConfigProperties = [];
+            }
+            else
+            {
+                // Original dashboard MCP mode
+                (_mcpServerInstallButtonJson, _mcpServerConfigFileJson) = GetMcpServerInstallButtonJson();
+                _mcpConfigProperties =
+                [
+                    new McpConfigPropertyViewModel { Name = "name", Value = "aspire-dashboard" },
+                    new McpConfigPropertyViewModel { Name = "type", Value = "http" },
+                    new McpConfigPropertyViewModel { Name = "url", Value = _mcpUrl }
+                ];
+
+                if (DashboardOptions.Value.Mcp.AuthMode == McpAuthMode.ApiKey)
+                {
+                    _mcpConfigProperties.Add(new McpConfigPropertyViewModel { Name = $"{McpApiKeyAuthenticationHandler.ApiKeyHeaderName} (header)", Value = DashboardOptions.Value.Mcp.PrimaryApiKey! });
+                }
             }
         }
         else
@@ -75,9 +85,10 @@ public partial class McpServerDialog
         }
     }
 
-    [MemberNotNullWhen(true, nameof(_mcpServerInstallButtonJson))]
-    [MemberNotNullWhen(true, nameof(_mcpUrl))]
-    private bool McpEnabled => !DashboardOptions.Value.Mcp.Disabled.GetValueOrDefault() && !string.IsNullOrEmpty(_mcpUrl);
+    [MemberNotNullWhen(false, nameof(_mcpServerInstallButtonJson), nameof(_mcpUrl))]
+    private bool McpEnabled => !DashboardOptions.Value.Mcp.Disabled.GetValueOrDefault() && (DashboardOptions.Value.Mcp.UseCliMcp == true || !string.IsNullOrEmpty(_mcpUrl));
+
+    private bool IsCliMcpMode => DashboardOptions.Value.Mcp.UseCliMcp == true;
 
     private (string InstallButtonJson, string ConfigFileJson) GetMcpServerInstallButtonJson()
     {
@@ -160,6 +171,20 @@ public partial class McpServerDialog
         $"""
         ```json
         {_mcpServerConfigFileJson}
+        ```
+        """;
+
+    private string GetCliMcpConfigurationMarkdown() =>
+        $$"""
+        ```json
+        {
+          "mcpServers": {
+            "aspire-cli": {
+              "command": "aspire",
+              "args": ["mcp", "start"]
+            }
+          }
+        }
         ```
         """;
 

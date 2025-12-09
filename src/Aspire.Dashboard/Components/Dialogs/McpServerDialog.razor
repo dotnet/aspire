@@ -12,10 +12,77 @@
 <div class="mcp-server-dialog-content">
     @if (McpEnabled)
     {
-        <p>
-            @Loc[nameof(Dialogs.McpServerDialogIntroduction)]
-            For more information, see <a href="https://aka.ms/aspire/mcp-getting-started" target="_blank">@Loc[nameof(Dialogs.McpServerDialogLearnMoreLink)]</a>.
-        </p>
+        @if (IsCliMcpMode)
+        {
+            <p>
+                Configure your MCP client to use the Aspire CLI MCP server for interacting with your Aspire application.
+                For more information, see <a href="https://aka.ms/aspire/mcp-getting-started" target="_blank">@Loc[nameof(Dialogs.McpServerDialogLearnMoreLink)]</a>.
+            </p>
+            <FluentTabs ActiveTabId="@($"tab-{_activeView}")" OnTabChange="@OnTabChangeAsync" Size="null">
+                <FluentTab LabelClass="tab-label"
+                           Id="@($"tab-{McpToolView.VSCode}")"
+                           Label="@Loc[nameof(Dialogs.McpServerDialogVSCodeTab)]"
+                           Icon="new Aspire.Dashboard.Components.CustomIcons.AspireIcons.Size16.VSCode()">
+                    <div class="mcp-tool-tab">
+                        <p>
+                            To configure VS Code to use the Aspire CLI MCP server, add the following to your VS Code MCP configuration:
+                        </p>
+                        <div class="property-grid-container">
+                            <FluentAccordion>
+                                <FluentAccordionItem Heading="MCP Configuration for VS Code" Expanded="true">
+                                    <MarkdownRenderer Markdown="@GetCliMcpConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
+                                </FluentAccordionItem>
+                            </FluentAccordion>
+                        </div>
+                        <p>
+                            <strong>Note:</strong> The Aspire CLI MCP server uses stdio transport and requires the Aspire application to be running.
+                        </p>
+                    </div>
+                </FluentTab>
+                <FluentTab LabelClass="tab-label"
+                           Id="@($"tab-{McpToolView.VisualStudio}")"
+                           Label="@Loc[nameof(Dialogs.McpServerDialogVisualStudioTab)]"
+                           Icon="new Aspire.Dashboard.Components.CustomIcons.AspireIcons.Size16.VisualStudio()">
+                    <div class="mcp-tool-tab">
+                        <p>
+                            To configure Visual Studio to use the Aspire CLI MCP server, add the following to your Visual Studio MCP configuration:
+                        </p>
+                        <div class="property-grid-container">
+                            <FluentAccordion>
+                                <FluentAccordionItem Heading="MCP Configuration for Visual Studio" Expanded="true">
+                                    <MarkdownRenderer Markdown="@GetCliMcpConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
+                                </FluentAccordionItem>
+                            </FluentAccordion>
+                        </div>
+                        <p>
+                            <strong>Note:</strong> The Aspire CLI MCP server uses stdio transport and requires the Aspire application to be running.
+                        </p>
+                    </div>
+                </FluentTab>
+                <FluentTab LabelClass="tab-label"
+                           Id="@($"tab-{McpToolView.Other}")"
+                           Label="@Loc[nameof(Dialogs.McpServerDialogOtherTab)]"
+                           Icon="new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.MoreCircle()">
+                    <div class="mcp-tool-tab">
+                        <p>
+                            For other MCP clients, configure them to launch the Aspire CLI MCP server using the stdio transport.
+                        </p>
+                        <p>
+                            Command: <code>aspire mcp start</code>
+                        </p>
+                        <p>
+                            The server uses standard input/output for communication and requires your Aspire application to be running.
+                        </p>
+                    </div>
+                </FluentTab>
+            </FluentTabs>
+        }
+        else
+        {
+            <p>
+                @Loc[nameof(Dialogs.McpServerDialogIntroduction)]
+                For more information, see <a href="https://aka.ms/aspire/mcp-getting-started" target="_blank">@Loc[nameof(Dialogs.McpServerDialogLearnMoreLink)]</a>.
+            </p>
         <FluentTabs ActiveTabId="@($"tab-{_activeView}")" OnTabChange="@OnTabChangeAsync" Size="null">
             <FluentTab LabelClass="tab-label"
                        Id="@($"tab-{McpToolView.VSCode}")"
@@ -201,6 +268,7 @@
                 </div>
             </FluentTab>
         </FluentTabs>
+        }
 
     }
 </div>
