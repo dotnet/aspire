@@ -143,6 +143,7 @@ public class Program
             var configuration = provider.GetRequiredService<IConfiguration>();
             return new CliHostEnvironment(configuration, nonInteractive);
         });
+        builder.Services.AddSingleton(TimeProvider.System);
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
         builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();
@@ -158,7 +159,7 @@ public class Program
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddSingleton<IDiskCache, DiskCache>();
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
-        builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
+        builder.Services.AddTransient<IAppHostCliBackchannel, AppHostCliBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddSingleton<NuGetPackagePrefetcher>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());

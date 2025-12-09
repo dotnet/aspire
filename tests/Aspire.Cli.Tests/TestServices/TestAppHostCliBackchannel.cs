@@ -7,7 +7,7 @@ using StreamJsonRpc;
 
 namespace Aspire.Cli.Tests.TestServices;
 
-internal sealed class TestAppHostBackchannel : IAppHostBackchannel
+internal sealed class TestAppHostBackchannel : IAppHostCliBackchannel
 {
     public TaskCompletionSource? RequestStopAsyncCalled { get; set; }
     public Func<Task>? RequestStopAsyncCallback { get; set; }

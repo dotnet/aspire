@@ -12,7 +12,7 @@ using StreamJsonRpc;
 
 namespace Aspire.Cli.Backchannel;
 
-internal interface IAppHostBackchannel
+internal interface IAppHostCliBackchannel
 {
     Task RequestStopAsync(CancellationToken cancellationToken);
     Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken);
@@ -27,7 +27,7 @@ internal interface IAppHostBackchannel
     void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected);
 }
 
-internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, AspireCliTelemetry telemetry) : IAppHostBackchannel
+internal sealed class AppHostCliBackchannel(ILogger<AppHostCliBackchannel> logger, AspireCliTelemetry telemetry) : IAppHostCliBackchannel
 {
     private const string BaselineCapability = "baseline.v2";
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
