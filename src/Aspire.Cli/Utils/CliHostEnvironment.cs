@@ -151,10 +151,7 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         return true;
     }
 
-    /// <summary>
-    /// Checks if ASPIRE_ANSI_PASS_THRU is enabled in configuration.
-    /// </summary>
-    internal static bool IsAnsiPassThruEnabled(IConfiguration configuration)
+    private static bool IsAnsiPassThruEnabled(IConfiguration configuration)
     {
         var ansiPassThru = configuration["ASPIRE_ANSI_PASS_THRU"];
         return !string.IsNullOrEmpty(ansiPassThru) &&

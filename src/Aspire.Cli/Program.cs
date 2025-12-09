@@ -284,15 +284,31 @@ public class Program
         var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
         var isPlayground = CliHostEnvironment.IsPlaygroundMode(configuration);
 
+        // Create custom output that handles width detection better in CI environments
+        var output = new AspireAnsiConsoleOutput(Console.Out);
+
+        // Check if explicit width override is set via ASPIRE_CONSOLE_WIDTH
+        var consoleWidthOverride = configuration["ASPIRE_CONSOLE_WIDTH"];
+        if (!string.IsNullOrEmpty(consoleWidthOverride) && int.TryParse(consoleWidthOverride, out var width) && width > 0)
+        {
+            // Cap at reasonable maximum to prevent performance issues
+            output.Width = Math.Min(width, 500);
+        }
+
         var settings = new AnsiConsoleSettings()
         {
             Ansi = isPlayground ? AnsiSupport.Yes : AnsiSupport.Detect,
             Interactive = isPlayground ? InteractionSupport.Yes : InteractionSupport.Detect,
             ColorSystem = isPlayground ? ColorSystemSupport.Standard : ColorSystemSupport.Detect,
+            Out = output,
         };
 
         // Support ASPIRE_ANSI_PASS_THRU to force ANSI even when output is redirected
-        if (hostEnvironment.SupportsAnsi && CliHostEnvironment.IsAnsiPassThruEnabled(configuration))
+        var ansiPassThru = configuration["ASPIRE_ANSI_PASS_THRU"];
+        if (hostEnvironment.SupportsAnsi && 
+            !string.IsNullOrEmpty(ansiPassThru) &&
+            (ansiPassThru.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+             ansiPassThru.Equals("1", StringComparison.Ordinal)))
         {
             settings.Ansi = AnsiSupport.Yes;
             settings.ColorSystem = ColorSystemSupport.Standard;
@@ -311,22 +327,6 @@ public class Program
         }
 
         var ansiConsole = AnsiConsole.Create(settings);
-
-        // Fix console width for CI environments where it defaults to 80
-        // Check if explicit width override is set via ASPIRE_CONSOLE_WIDTH
-        var consoleWidthOverride = configuration["ASPIRE_CONSOLE_WIDTH"];
-        if (!string.IsNullOrEmpty(consoleWidthOverride) && int.TryParse(consoleWidthOverride, out var width) && width > 0)
-        {
-            // Cap at reasonable maximum to prevent performance issues
-            ansiConsole.Profile.Width = Math.Min(width, 500);
-        }
-        // In non-terminal environments (like CI), if width is the default 80, increase it to 160
-        // This prevents awkward line wrapping in CI logs
-        else if (!ansiConsole.Profile.Out.IsTerminal && ansiConsole.Profile.Width == 80)
-        {
-            ansiConsole.Profile.Width = 160;
-        }
-
         return ansiConsole;
     }
 
