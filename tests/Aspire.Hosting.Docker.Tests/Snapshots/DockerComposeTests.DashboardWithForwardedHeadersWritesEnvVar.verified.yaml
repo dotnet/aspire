@@ -7,6 +7,7 @@
       - "18888"
     expose:
       - "18889"
+      - "18890"
     networks:
       - "aspire"
     restart: "always"
