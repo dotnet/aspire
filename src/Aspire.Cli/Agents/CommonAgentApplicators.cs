@@ -21,6 +21,36 @@ internal static class CommonAgentApplicators
             return false;
         }
 
+        var agentsFilePath = Path.Combine(workspaceRoot.FullName, "AGENTS.md");
+        var aspireAgentsFilePath = Path.Combine(workspaceRoot.FullName, "AGENTS.aspire.md");
+
+        // Check if AGENTS.md exists and has the same content as what we would create
+        if (File.Exists(agentsFilePath))
+        {
+            try
+            {
+                var existingContent = File.ReadAllText(agentsFilePath);
+                if (existingContent.Trim() == AgentsMdContent.Trim())
+                {
+                    // AGENTS.md already exists with the same content, no need to add applicator
+                    context.AgentInstructionsApplicatorAdded = true;
+                    return false;
+                }
+                
+                // AGENTS.md exists with different content, check if AGENTS.aspire.md already exists
+                if (File.Exists(aspireAgentsFilePath))
+                {
+                    // Both files exist, no need to add applicator
+                    context.AgentInstructionsApplicatorAdded = true;
+                    return false;
+                }
+            }
+            catch
+            {
+                // If we can't read the file, continue with adding the applicator
+            }
+        }
+
         context.AgentInstructionsApplicatorAdded = true;
         context.AddApplicator(new AgentEnvironmentApplicator(
             "Create agent instructions file (AGENTS.md)",
