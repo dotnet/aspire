@@ -169,10 +169,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             Description = "Prerequisite step that runs before any push operations.",
             Action = context =>
             {
-                // Add ContainerRegistryReferenceAnnotation to resources that don't already have one
-                // so the remote image tag can be computed correctly during push
-                var allRegistries = context.Model.Resources.OfType<IContainerRegistry>().ToArray();
-
                 foreach (var resource in context.Model.Resources)
                 {
                     if (!resource.RequiresImageBuildAndPush())
@@ -180,7 +176,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         continue;
                     }
 
-                    // Skip if resource already has a ContainerRegistryReferenceAnnotation
+                    // Skip if resource already has a ContainerRegistryReferenceAnnotation (explicit WithContainerRegistry call)
                     if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var annotations) &&
                         annotations.Any())
                     {
@@ -194,19 +190,24 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         continue;
                     }
 
+                    // Check for RegistryTargetAnnotations (automatically added via BeforeStartEvent)
+                    var registryTargetAnnotations = resource.Annotations.OfType<RegistryTargetAnnotation>().ToArray();
+
                     // When multiple registries exist, require explicit WithContainerRegistry call
-                    if (allRegistries.Length > 1)
+                    if (registryTargetAnnotations.Length > 1)
                     {
-                        var registryNames = string.Join(", ", allRegistries.Select(r => r is IResource res ? res.Name : r.ToString()));
+                        var registryNames = string.Join(", ", registryTargetAnnotations.Select(a => a.Registry is IResource res ? res.Name : a.Registry.ToString()));
                         throw new InvalidOperationException(
                             $"Resource '{resource.Name}' requires image push but has multiple container registries available - '{registryNames}'. " +
                             $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
                     }
 
-                    // Single registry - automatically add the annotation
-                    if (allRegistries.Length == 1)
+                    // When no registry is available, throw an error
+                    if (registryTargetAnnotations.Length == 0)
                     {
-                        resource.Annotations.Add(new ContainerRegistryReferenceAnnotation(allRegistries[0]));
+                        throw new InvalidOperationException(
+                            $"Resource '{resource.Name}' requires image push but no container registry is available. " +
+                            $"Please add a container registry using 'builder.AddContainerRegistry(...)' or specify one with '.WithContainerRegistry(registryBuilder)'.");
                     }
                 }
 

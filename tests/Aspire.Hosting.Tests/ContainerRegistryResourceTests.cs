@@ -502,4 +502,184 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
 
         Assert.Same(registry.Resource, annotation.Registry);
     }
+
+    [Fact]
+    public async Task RegistryTargetAnnotationIsAddedToResourcesOnBeforeStartEvent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var project = builder.AddProject<Projects.ServiceA>("api");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Before BeforeStartEvent, the project should not have RegistryTargetAnnotation
+        Assert.Empty(project.Resource.Annotations.OfType<RegistryTargetAnnotation>());
+
+        // Simulate BeforeStartEvent
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // After BeforeStartEvent, the project should have RegistryTargetAnnotation
+        var registryTargetAnnotation = Assert.Single(project.Resource.Annotations.OfType<RegistryTargetAnnotation>());
+        Assert.Same(registry.Resource, registryTargetAnnotation.Registry);
+    }
+
+    [Fact]
+    public async Task MultipleRegistriesAddMultipleRegistryTargetAnnotations()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry1 = builder.AddContainerRegistry("docker-hub", "docker.io", "user1");
+        var registry2 = builder.AddContainerRegistry("ghcr", "ghcr.io", "user2");
+        var project = builder.AddProject<Projects.ServiceA>("api");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate BeforeStartEvent
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // Project should have two RegistryTargetAnnotations
+        var registryTargetAnnotations = project.Resource.Annotations.OfType<RegistryTargetAnnotation>().ToList();
+        Assert.Equal(2, registryTargetAnnotations.Count);
+
+        var registryResources = registryTargetAnnotations.Select(a => a.Registry).ToList();
+        Assert.Contains(registry1.Resource, registryResources);
+        Assert.Contains(registry2.Resource, registryResources);
+    }
+
+    [Fact]
+    public async Task GetContainerRegistryReturnsRegistryFromRegistryTargetAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var project = builder.AddProject<Projects.ServiceA>("api");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate BeforeStartEvent to add RegistryTargetAnnotation
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // GetContainerRegistry should return the registry from RegistryTargetAnnotation
+        var containerRegistry = project.Resource.GetContainerRegistry();
+        Assert.Same(registry.Resource, containerRegistry);
+    }
+
+    [Fact]
+    public async Task GetContainerRegistryPrefersContainerRegistryReferenceAnnotationOverRegistryTargetAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry1 = builder.AddContainerRegistry("docker-hub", "docker.io", "user1");
+        var registry2 = builder.AddContainerRegistry("ghcr", "ghcr.io", "user2");
+        var project = builder.AddProject<Projects.ServiceA>("api")
+            .WithContainerRegistry(registry2); // Explicit preference for registry2
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate BeforeStartEvent to add RegistryTargetAnnotations
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // GetContainerRegistry should return registry2 (from ContainerRegistryReferenceAnnotation)
+        // even though both registries added RegistryTargetAnnotations
+        var containerRegistry = project.Resource.GetContainerRegistry();
+        Assert.Same(registry2.Resource, containerRegistry);
+    }
+
+    [Fact]
+    public async Task GetContainerRegistryThrowsWhenMultipleRegistryTargetAnnotationsAndNoExplicitSelection()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry1 = builder.AddContainerRegistry("docker-hub", "docker.io", "user1");
+        var registry2 = builder.AddContainerRegistry("ghcr", "ghcr.io", "user2");
+        var project = builder.AddProject<Projects.ServiceA>("api");
+        // No explicit WithContainerRegistry call
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate BeforeStartEvent to add RegistryTargetAnnotations
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // GetContainerRegistry should throw because there are multiple registries and no explicit selection
+        var exception = Assert.Throws<InvalidOperationException>(project.Resource.GetContainerRegistry);
+        Assert.Contains("multiple container registries", exception.Message);
+        Assert.Contains("WithContainerRegistry", exception.Message);
+    }
+
+    [Fact]
+    public void GetContainerRegistryThrowsWhenNoRegistryAvailable()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var project = builder.AddProject<Projects.ServiceA>("api");
+        // No container registry added
+
+        // GetContainerRegistry should throw because there's no registry available
+        var exception = Assert.Throws<InvalidOperationException>(project.Resource.GetContainerRegistry);
+        Assert.Contains("does not have a container registry reference", exception.Message);
+    }
+
+    [Fact]
+    public async Task RegistryTargetAnnotationIsAddedToAllResourcesInModel()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var project1 = builder.AddProject<Projects.ServiceA>("api1");
+        var project2 = builder.AddProject<Projects.ServiceB>("api2");
+        var container = builder.AddContainer("redis", "redis:latest");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate BeforeStartEvent
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // All resources should have RegistryTargetAnnotation
+        Assert.Single(project1.Resource.Annotations.OfType<RegistryTargetAnnotation>());
+        Assert.Single(project2.Resource.Annotations.OfType<RegistryTargetAnnotation>());
+        Assert.Single(container.Resource.Annotations.OfType<RegistryTargetAnnotation>());
+    }
+
+    [Fact]
+    public async Task WithContainerRegistryOverridesDefaultRegistryTargetAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var defaultRegistry = builder.AddContainerRegistry("docker-hub", "docker.io", "default");
+        var specificRegistry = builder.AddContainerRegistry("acr", "myregistry.azurecr.io", "specific");
+
+        var project = builder.AddProject<Projects.ServiceA>("api")
+            .WithContainerRegistry(specificRegistry);
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate BeforeStartEvent
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // The project has both RegistryTargetAnnotations (from BeforeStartEvent) and ContainerRegistryReferenceAnnotation
+        var registryTargetAnnotations = project.Resource.Annotations.OfType<RegistryTargetAnnotation>().ToList();
+        Assert.Equal(2, registryTargetAnnotations.Count);
+
+        var containerRegistryRefAnnotation = Assert.Single(project.Resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>());
+        Assert.Same(specificRegistry.Resource, containerRegistryRefAnnotation.Registry);
+
+        // GetContainerRegistry should return specificRegistry because ContainerRegistryReferenceAnnotation takes precedence
+        var containerRegistry = project.Resource.GetContainerRegistry();
+        Assert.Same(specificRegistry.Resource, containerRegistry);
+    }
 }

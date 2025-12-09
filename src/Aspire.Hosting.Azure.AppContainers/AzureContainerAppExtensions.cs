@@ -445,8 +445,10 @@ public static class AzureContainerAppExtensions
         };
 
         var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
-        builder.CreateResourceBuilder(resource);
-
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            builder.AddResource(resource);
+        }
         return resource;
     }
 }
