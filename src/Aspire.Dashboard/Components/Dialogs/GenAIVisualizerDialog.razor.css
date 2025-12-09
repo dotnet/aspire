@@ -37,6 +37,14 @@
     font-weight: 600;
 }
 
+.dialog-title-grid ::deep .trace-id {
+    color: var(--foreground-subtext-rest);
+    padding-left: 0.5rem;
+    font-size: 12px;
+    font-weight: normal;
+    line-height: 1;
+}
+
 .genai-visualizer-container ::deep .fluent-splitter::part(median) {
     opacity: 0;
 }
