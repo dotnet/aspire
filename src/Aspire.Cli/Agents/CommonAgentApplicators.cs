@@ -137,7 +137,7 @@ internal static class CommonAgentApplicators
         ## Aspire workload
         IMPORTANT! The aspire workload is obsolete. You should never attempt to install or use the Aspire workload.
 
-        ## Offical documentation
+        ## Official documentation
         IMPORTANT! Always prefer official documentation when available. The following sites contain the official documentation for Aspire and related components
 
         1. https://aspire.dev
