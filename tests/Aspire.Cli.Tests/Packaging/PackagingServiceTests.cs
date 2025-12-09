@@ -30,6 +30,12 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
             return _features.TryGetValue(featureFlag, out var value) ? value : defaultValue;
         }
 
+        public bool Enabled<TFeatureFlag>() where TFeatureFlag : IFeatureFlag, new()
+        {
+            var featureFlag = new TFeatureFlag();
+            return IsFeatureEnabled(featureFlag.ConfigurationKey, featureFlag.DefaultValue);
+        }
+
         public void SetFeature(string featureFlag, bool enabled)
         {
             _features[featureFlag] = enabled;

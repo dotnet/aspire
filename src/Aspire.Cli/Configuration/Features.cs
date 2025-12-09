@@ -18,7 +18,12 @@ internal sealed class Features(IConfiguration configuration) : IFeatures
             return defaultValue;
         }
         
-        return bool.TryParse(value, out var enabled) && enabled;
+        if (bool.TryParse(value, out var enabled))
+        {
+            return enabled;
+        }
+        
+        return defaultValue;
     }
 
     public bool Enabled<TFeatureFlag>() where TFeatureFlag : IFeatureFlag, new()

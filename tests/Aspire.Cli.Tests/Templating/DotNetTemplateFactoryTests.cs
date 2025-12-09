@@ -361,6 +361,12 @@ public class DotNetTemplateFactoryTests
                 _ => defaultValue
             };
         }
+
+        public bool Enabled<TFeatureFlag>() where TFeatureFlag : IFeatureFlag, new()
+        {
+            var featureFlag = new TFeatureFlag();
+            return IsFeatureEnabled(featureFlag.ConfigurationKey, featureFlag.DefaultValue);
+        }
     }
 
     private sealed class TestInteractionService : IInteractionService
