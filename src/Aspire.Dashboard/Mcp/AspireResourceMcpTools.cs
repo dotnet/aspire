@@ -202,11 +202,11 @@ internal sealed class AspireResourceMcpTools
     }
 
     [McpServerTool(Name = "wait_for_resource_state")]
-    [Description("Waits for a resource to enter a specific state. The tool will wait up to 30 seconds for the resource to reach the desired state. Valid states include: Running, Starting, Stopped, Exited, FailedToStart, Finished, Building, Waiting, Stopping, Unknown, RuntimeUnhealthy, NotStarted.")]
+    [Description("Waits for a resource to enter a specific state. The tool will wait up to 30 seconds for the resource to reach the desired state. Valid states include: Running, Starting, Exited, FailedToStart, Finished, Building, Waiting, Stopping, Unknown, RuntimeUnhealthy, NotStarted, Hidden.")]
     public async Task<string> WaitForResourceStateAsync(
         [Description("The resource name.")]
         string resourceName,
-        [Description("The desired state to wait for (e.g., 'Running', 'Stopped').")]
+        [Description("The desired state to wait for (e.g., 'Running', 'Stopping').")]
         string desiredState,
         CancellationToken cancellationToken)
     {
@@ -247,7 +247,7 @@ internal sealed class AspireResourceMcpTools
             var currentResource = subscription.InitialState.FirstOrDefault(r => r.Name == resourceName);
             if (currentResource?.KnownState == targetState)
             {
-                return $"Resource '{resourceName}' is now in state '{desiredState}'.";
+                return $"Resource '{resourceName}' is already in state '{desiredState}'.";
             }
 
             await foreach (var changes in subscription.Subscription.WithCancellation(timeoutCts.Token).ConfigureAwait(false))

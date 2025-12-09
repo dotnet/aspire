@@ -11,7 +11,7 @@ internal sealed class WaitForResourceStateTool : CliMcpTool
 {
     public override string Name => "wait_for_resource_state";
 
-    public override string Description => "Waits for a resource to enter a specific state. The tool will wait up to 30 seconds for the resource to reach the desired state. Valid states include: Running, Starting, Stopped, Exited, FailedToStart, Finished, Building, Waiting, Stopping, Unknown, RuntimeUnhealthy, NotStarted.";
+    public override string Description => "Waits for a resource to enter a specific state. The tool will wait up to 30 seconds for the resource to reach the desired state. Valid states include: Running, Starting, Exited, FailedToStart, Finished, Building, Waiting, Stopping, Unknown, RuntimeUnhealthy, NotStarted, Hidden.";
 
     public override JsonElement GetInputSchema()
     {
@@ -25,7 +25,7 @@ internal sealed class WaitForResourceStateTool : CliMcpTool
                 },
                 "desiredState": {
                   "type": "string",
-                  "description": "The desired state to wait for (e.g., 'Running', 'Stopped')."
+                  "description": "The desired state to wait for (e.g., 'Running', 'Stopping')."
                 }
               },
               "required": ["resourceName", "desiredState"]
