@@ -818,6 +818,29 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void InstallerResourceHasCertificateTrustScopeNone()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TestTempDirectory();
+
+        var scriptName = "main.py";
+
+        var pythonApp = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithPip();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the installer resource exists
+        var installerResource = appModel.Resources.OfType<PythonInstallerResource>().Single();
+        Assert.Equal("pythonProject-installer", installerResource.Name);
+
+        // Verify the installer has CertificateTrustScope.None
+        Assert.True(installerResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var certAnnotation));
+        Assert.Equal(CertificateTrustScope.None, certAnnotation.Scope);
+    }
+
+    [Fact]
     public void WithPip_AfterWithUv_ReplacesPackageManager()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
