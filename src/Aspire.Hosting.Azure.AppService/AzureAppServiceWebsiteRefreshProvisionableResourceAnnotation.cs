@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Azure;
 /// Represents an annotation for the creation of an Azure App Service website and its deployment slot, including
 /// configuration customization.
 /// </summary>
-public sealed class AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation()
+internal sealed class AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation
     : IResourceAnnotation
 {
 }
