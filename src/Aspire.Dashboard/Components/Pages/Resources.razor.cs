@@ -138,14 +138,12 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private bool Filter(ResourceViewModel resource)
     {
-        var isParameter = string.Equals(resource.ResourceType, KnownResourceTypes.Parameter, StringComparison.Ordinal);
-
         // In Parameters view, only show parameters; in Table view, exclude parameters
-        if (PageViewModel.SelectedViewKind == ResourceViewKind.Parameters && !isParameter)
+        if (PageViewModel.SelectedViewKind == ResourceViewKind.Parameters && !resource.IsParameter)
         {
             return false;
         }
-        if (PageViewModel.SelectedViewKind == ResourceViewKind.Table && isParameter)
+        if (PageViewModel.SelectedViewKind == ResourceViewKind.Table && resource.IsParameter)
         {
             return false;
         }
@@ -217,7 +215,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             new GridColumn(Name: StartTimeColumn, DesktopWidth: "1fr", IsVisible: () => PageViewModel.SelectedViewKind != ResourceViewKind.Parameters),
             new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", IsVisible: () => _showResourceTypeColumn),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.25fr"),
-            new GridColumn(Name: ValueColumn, DesktopWidth: "2fr", MobileWidth: "1.5fr", IsVisible: () => PageViewModel.SelectedViewKind == ResourceViewKind.Parameters),
+            new GridColumn(Name: ValueColumn, DesktopWidth: "3.25fr", MobileWidth: "1.5fr", IsVisible: () => PageViewModel.SelectedViewKind == ResourceViewKind.Parameters),
             new GridColumn(Name: UrlsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr", IsVisible: () => PageViewModel.SelectedViewKind != ResourceViewKind.Parameters),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
         ];
@@ -543,10 +541,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private void UpdateMaxHighlightedCount()
     {
         var maxHighlightedCount = 0;
-        foreach (var kvp in _resourceByName)
+        foreach (var resource in GetFilteredResources())
         {
             var resourceHighlightedCount = 0;
-            foreach (var command in kvp.Value.Commands)
+            foreach (var command in resource.Commands)
             {
                 if (command.IsHighlighted && command.State != CommandViewModelState.Hidden)
                 {
@@ -686,6 +684,15 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             if (PageViewModel.SelectedViewKind == ResourceViewKind.Graph)
             {
                 await UpdateResourceGraphSelectedAsync();
+            }
+            else
+            {
+                var resourceViewKind = (resource.IsParameter) ? ResourceViewKind.Parameters : ResourceViewKind.Table;
+                if (resourceViewKind != PageViewModel.SelectedViewKind)
+                {
+                    PageViewModel.SelectedViewKind = resourceViewKind;
+                    await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
+                }
             }
 
             await _dataGrid.SafeRefreshDataAsync();
@@ -886,6 +893,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         {
             // Refresh the data grid when switching between Table and Parameters views
             // since the filter logic depends on the selected view
+            UpdateMaxHighlightedCount();
             await _dataGrid.SafeRefreshDataAsync();
         }
     }
