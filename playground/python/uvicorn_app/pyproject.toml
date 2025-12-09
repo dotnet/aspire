@@ -9,3 +9,9 @@ dependencies = [
     "opentelemetry-exporter-otlp-proto-grpc>=1.38.0",
     "opentelemetry-instrumentation-fastapi>=0.59b0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.27.0",
+]
