@@ -493,6 +493,11 @@ internal class DotNetTemplateFactory(
             interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
             return new TemplateResult(ExitCodeConstants.FailedToTrustCertificates);
         }
+        catch (Exceptions.ChannelNotFoundException ex)
+        {
+            interactionService.DisplayError(ex.Message);
+            return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
+        }
         catch (EmptyChoicesException ex)
         {
             interactionService.DisplayError(ex.Message);
@@ -528,8 +533,9 @@ internal class DotNetTemplateFactory(
         // Check if --channel option was provided
         var channelName = parseResult.GetValue<string?>("--channel");
         IEnumerable<PackageChannel> channels;
+        bool channelExplicitlySpecified = !string.IsNullOrEmpty(channelName);
         
-        if (!string.IsNullOrEmpty(channelName))
+        if (channelExplicitlySpecified)
         {
             // If --channel is specified, find the matching channel
             var matchingChannel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
@@ -580,6 +586,13 @@ internal class DotNetTemplateFactory(
             {
                 return explicitPackageFromChannel;
             }
+        }
+
+        // If --channel was explicitly specified (but no --version), automatically select the highest version
+        // from that channel without prompting
+        if (channelExplicitlySpecified)
+        {
+            return orderedPackagesFromChannels.First();
         }
 
         var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
