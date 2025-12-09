@@ -10,7 +10,6 @@ using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Assistant.Prompts;
-using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -604,7 +603,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                             continue;
                         }
 
-                        if (GenAIHelpers.HasGenAIAttribute(l.Attributes) || GenAIHelpers.HasGenAIAttribute(span.Attributes))
+                        if (l.HasGenAIInformation || span.HasGenAIInformation)
                         {
                             genAISpans.Add(span);
                         }
