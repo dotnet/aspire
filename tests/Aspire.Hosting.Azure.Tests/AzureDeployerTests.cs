@@ -22,6 +22,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -1167,7 +1168,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithAzureResourcesAndNoEnvironment_Fails()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
-        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
 
         ConfigureTestServices(builder, bicepProvisioner: new NoOpBicepProvisioner(), activityReporter: mockActivityReporter);
         builder.Services.AddSingleton<IBicepProvisioner, BicepProvisioner>();
