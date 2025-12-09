@@ -45,7 +45,8 @@ internal sealed class McpStartCommand : BaseCommand
             ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
-            ["get_integration_docs"] = new GetIntegrationDocsTool()
+            ["get_integration_docs"] = new GetIntegrationDocsTool(),
+            ["wait_for_resource_state"] = new WaitForResourceStateTool()
         };
     }
 

@@ -214,6 +214,157 @@ public class AspireResourceMcpToolsTests
         Assert.Contains("Command 'nonexistent-command' not found", exception.Message);
     }
 
+    [Fact]
+    public async Task WaitForResourceStateAsync_ResourceNotFound_ReturnsErrorMessage()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(resourceName: "app1");
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: [resource]);
+        var tools = CreateTools(dashboardClient);
+
+        // Act
+        var result = await tools.WaitForResourceStateAsync("nonexistent", "Running", CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Unable to find a resource named 'nonexistent'", result);
+    }
+
+    [Fact]
+    public async Task WaitForResourceStateAsync_ResourceOptOut_ReturnsErrorMessage()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(
+            resourceName: "app1",
+            properties: new Dictionary<string, ResourcePropertyViewModel> { [KnownProperties.Resource.ExcludeFromMcp] = s_excludeFromMcpProperty });
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: [resource]);
+        var tools = CreateTools(dashboardClient);
+
+        // Act
+        var result = await tools.WaitForResourceStateAsync("app1", "Running", CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Unable to find a resource named 'app1'", result);
+    }
+
+    [Fact]
+    public async Task WaitForResourceStateAsync_InvalidState_ReturnsErrorMessage()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(resourceName: "app1", state: KnownResourceState.Starting);
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: [resource]);
+        var tools = CreateTools(dashboardClient);
+
+        // Act
+        var result = await tools.WaitForResourceStateAsync("app1", "InvalidState", CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Invalid state 'InvalidState'", result);
+        Assert.Contains("Valid states are:", result);
+    }
+
+    [Fact]
+    public async Task WaitForResourceStateAsync_AlreadyInDesiredState_ReturnsSuccessMessage()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(resourceName: "app1", state: KnownResourceState.Running);
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: [resource]);
+        var tools = CreateTools(dashboardClient);
+
+        // Act
+        var result = await tools.WaitForResourceStateAsync("app1", "Running", CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Resource 'app1' is already in state 'Running'", result);
+    }
+
+    [Fact]
+    public async Task WaitForResourceStateAsync_StateChangesToDesiredState_ReturnsSuccessMessage()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(resourceName: "app1", state: KnownResourceState.Starting);
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            initialResources: [resource],
+            resourceChannelProvider: () => resourceChannel);
+
+        var tools = CreateTools(dashboardClient);
+
+        // Start the wait operation
+        var waitTask = tools.WaitForResourceStateAsync("app1", "Running", CancellationToken.None);
+
+        // Simulate a state change to Running
+        var updatedResource = ModelTestHelpers.CreateResource(resourceName: "app1", state: KnownResourceState.Running);
+        await resourceChannel.Writer.WriteAsync([new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, updatedResource)]);
+        resourceChannel.Writer.Complete();
+
+        // Act
+        var result = await waitTask;
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Resource 'app1' is now in state 'Running'", result);
+    }
+
+    [Fact]
+    public async Task WaitForResourceStateAsync_Timeout_ReturnsTimeoutMessage()
+    {
+        // Arrange
+        var resource = ModelTestHelpers.CreateResource(resourceName: "app1", state: KnownResourceState.Starting);
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            initialResources: [resource],
+            resourceChannelProvider: () => resourceChannel);
+
+        var tools = CreateTools(dashboardClient);
+
+        // Don't complete the channel, so the wait will timeout
+        // Don't write any state changes
+
+        // Act
+        var result = await tools.WaitForResourceStateAsync("app1", "Running", CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Timeout waiting for resource 'app1' to reach state 'Running'", result);
+        Assert.Contains("waited 30 seconds", result);
+        Assert.Contains("Use 'list_console_logs' to examine console output", result);
+    }
+
+    [Fact]
+    public async Task WaitForResourceStateAsync_StateInInitialState_ReturnsSuccessMessage()
+    {
+        // Arrange
+        var startingResource = ModelTestHelpers.CreateResource(resourceName: "app1", state: KnownResourceState.Starting);
+        var runningResource = ModelTestHelpers.CreateResource(resourceName: "app1", state: KnownResourceState.Running);
+        
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        resourceChannel.Writer.Complete();
+
+        // Initial state shows the resource as Running
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            initialResources: [runningResource],
+            resourceChannelProvider: () => resourceChannel);
+
+        var tools = CreateTools(dashboardClient);
+
+        // Act
+        var result = await tools.WaitForResourceStateAsync("app1", "Running", CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        // When the resource is already in the desired state before we subscribe, it returns "is already in state"
+        Assert.Contains("Resource 'app1' is already in state 'Running'", result);
+    }
+
     private static AspireResourceMcpTools CreateTools(IDashboardClient dashboardClient)
     {
         var options = new DashboardOptions();

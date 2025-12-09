@@ -200,4 +200,81 @@ internal sealed class AspireResourceMcpTools
             throw new McpProtocolException($"Error executing command '{commandName}' for resource '{resourceName}': {ex.Message}", McpErrorCode.InternalError);
         }
     }
+
+    [McpServerTool(Name = "wait_for_resource_state")]
+    [Description("Waits for a resource to enter a specific state. The tool will wait up to 30 seconds for the resource to reach the desired state. Valid states include: Running, Starting, Stopped, Exited, FailedToStart, Finished, Building, Waiting, Stopping, Unknown, RuntimeUnhealthy, NotStarted.")]
+    public async Task<string> WaitForResourceStateAsync(
+        [Description("The resource name.")]
+        string resourceName,
+        [Description("The desired state to wait for (e.g., 'Running', 'Stopped').")]
+        string desiredState,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("MCP tool wait_for_resource_state called with resource '{ResourceName}' and state '{DesiredState}'.", resourceName, desiredState);
+
+        var resources = _dashboardClient.GetResources().ToList();
+        var filteredResources = GetFilteredResources(resources);
+
+        if (!AIHelpers.TryGetResource(filteredResources, resourceName, out var resource))
+        {
+            return $"Unable to find a resource named '{resourceName}'.";
+        }
+
+        resourceName = resource.Name;
+
+        // Validate the desired state
+        if (!Enum.TryParse<KnownResourceState>(desiredState, ignoreCase: true, out var targetState))
+        {
+            var validStates = string.Join(", ", Enum.GetNames<KnownResourceState>());
+            return $"Invalid state '{desiredState}'. Valid states are: {validStates}";
+        }
+
+        // Check if the resource is already in the desired state
+        if (resource.KnownState == targetState)
+        {
+            return $"Resource '{resourceName}' is already in state '{desiredState}'.";
+        }
+
+        // Subscribe to resource updates to monitor state changes
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
+
+        try
+        {
+            var subscription = await _dashboardClient.SubscribeResourcesAsync(timeoutCts.Token).ConfigureAwait(false);
+
+            // Check initial state again in case it changed while subscribing
+            var currentResource = subscription.InitialState.FirstOrDefault(r => r.Name == resourceName);
+            if (currentResource?.KnownState == targetState)
+            {
+                return $"Resource '{resourceName}' is now in state '{desiredState}'.";
+            }
+
+            await foreach (var changes in subscription.Subscription.WithCancellation(timeoutCts.Token).ConfigureAwait(false))
+            {
+                foreach (var change in changes)
+                {
+                    if (change.Resource.Name == resourceName && change.Resource.KnownState == targetState)
+                    {
+                        return $"Resource '{resourceName}' is now in state '{desiredState}'.";
+                    }
+                }
+            }
+
+            // If we get here, the subscription ended without reaching the desired state
+            return $"Resource '{resourceName}' did not reach state '{desiredState}' in time. Current state: {currentResource?.State ?? "Unknown"}. " +
+                   $"Use 'list_console_logs' to examine console output for diagnostic information. " +
+                   $"You can also use 'list_resources' to check the current state and 'wait_for_resource_state' again if needed.";
+        }
+        catch (OperationCanceledException) when (timeoutCts.Token.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            // Timeout occurred
+            var currentResource = _dashboardClient.GetResource(resourceName);
+            var currentState = currentResource?.State ?? "Unknown";
+            
+            return $"Timeout waiting for resource '{resourceName}' to reach state '{desiredState}' (waited 30 seconds). Current state: {currentState}. " +
+                   $"Use 'list_console_logs' to examine console output for diagnostic information. " +
+                   $"You can also use 'list_resources' to check the current state and 'wait_for_resource_state' again if needed.";
+        }
+    }
 }
