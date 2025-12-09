@@ -104,7 +104,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Azure.ContainerRegistry" />
     <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Yarp.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Python.Tests" />
