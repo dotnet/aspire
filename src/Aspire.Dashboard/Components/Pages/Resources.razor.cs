@@ -34,6 +34,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private const string StartTimeColumn = nameof(StartTimeColumn);
     private const string SourceColumn = nameof(SourceColumn);
     private const string UrlsColumn = nameof(UrlsColumn);
+    private const string ValueColumn = nameof(ValueColumn);
     private const string ActionsColumn = nameof(ActionsColumn);
 
     private Subscription? _logsSubscription;
@@ -213,10 +214,11 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
             new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),
-            new GridColumn(Name: StartTimeColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: StartTimeColumn, DesktopWidth: "1fr", IsVisible: () => PageViewModel.SelectedViewKind != ResourceViewKind.Parameters),
             new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", IsVisible: () => _showResourceTypeColumn),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.25fr"),
-            new GridColumn(Name: UrlsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr"),
+            new GridColumn(Name: ValueColumn, DesktopWidth: "2fr", MobileWidth: "1.5fr", IsVisible: () => PageViewModel.SelectedViewKind == ResourceViewKind.Parameters),
+            new GridColumn(Name: UrlsColumn, DesktopWidth: "2.25fr", MobileWidth: "2fr", IsVisible: () => PageViewModel.SelectedViewKind != ResourceViewKind.Parameters),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(150px, 1.5fr)", MobileWidth: "1fr")
         ];
 
@@ -742,6 +744,16 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {
         await DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName);
+    }
+
+    private static (string? Value, bool IsSensitive) GetParameterValue(ResourceViewModel resource)
+    {
+        if (resource.Properties.TryGetValue(KnownProperties.Parameter.Value, out var property))
+        {
+            var value = property.Value.HasStringValue ? property.Value.StringValue : null;
+            return (value, property.IsValueSensitive);
+        }
+        return (null, false);
     }
 
     private static string GetUrlsTooltip(ResourceViewModel resource)
