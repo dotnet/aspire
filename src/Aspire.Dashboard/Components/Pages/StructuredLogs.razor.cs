@@ -541,32 +541,9 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
-    private bool IsGenAILogEntry(OtlpLogEntry logEntry)
+    private static bool IsGenAILogEntry(OtlpLogEntry logEntry)
     {
-        if (string.IsNullOrEmpty(logEntry.SpanId) || string.IsNullOrEmpty(logEntry.TraceId))
-        {
-            return false;
-        }
-
-        if (GenAIHelpers.HasGenAIAttribute(logEntry.Attributes))
-        {
-            // GenAI telemetry is on the log entry.
-            return true;
-        }
-
-        var span = TelemetryRepository.GetSpan(logEntry.TraceId, logEntry.SpanId);
-        if (span == null)
-        {
-            return false;
-        }
-
-        if (GenAIHelpers.HasGenAIAttribute(span.Attributes))
-        {
-            // Log entry belongs to a span that has GenAI telemetry.
-            return true;
-        }
-
-        return false;
+        return logEntry.HasGenAIInformation;
     }
 
     private async Task LaunchGenAIVisualizerAsync(OtlpLogEntry logEntry)

@@ -24,6 +24,7 @@ public class OtlpLogEntry
     public OtlpResourceView ResourceView { get; }
     public OtlpScope Scope { get; }
     public long InternalId { get; }
+    public bool HasGenAIInformation { get; set; }
     public bool IsError => Severity is LogLevel.Error or LogLevel.Critical;
     public bool IsWarning => Severity is LogLevel.Warning;
 

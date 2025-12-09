@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Utils;
@@ -347,6 +348,38 @@ public sealed class TelemetryRepository : IDisposable
                     try
                     {
                         var logEntry = new OtlpLogEntry(record, resourceView, scope, _otlpContext);
+
+                        // Calculate HasGenAIInformation based on log entry attributes or associated span.
+                        // First, check the log entry's own attributes.
+                        var hasGenAI = GenAIHelpers.HasGenAIAttribute(logEntry.Attributes);
+
+                        // If the log entry doesn't have GenAI attributes, check if the associated span has them.
+                        // Note: The span might not exist yet if logs arrive before spans. In that case, we default to false.
+                        if (!hasGenAI && !string.IsNullOrEmpty(logEntry.SpanId) && !string.IsNullOrEmpty(logEntry.TraceId))
+                        {
+                            // Temporarily release logs lock and acquire traces lock to check span.
+                            // This avoids potential deadlocks.
+                            _logsLock.ExitWriteLock();
+                            try
+                            {
+                                _tracesLock.EnterReadLock();
+                                try
+                                {
+                                    var span = GetSpanAndCloneUnsynchronized(logEntry.TraceId, logEntry.SpanId);
+                                    hasGenAI = span is not null && span.HasGenAIInformation;
+                                }
+                                finally
+                                {
+                                    _tracesLock.ExitReadLock();
+                                }
+                            }
+                            finally
+                            {
+                                _logsLock.EnterWriteLock();
+                            }
+                        }
+
+                        logEntry.HasGenAIInformation = hasGenAI;
 
                         // Insert log entry in the correct position based on timestamp.
                         // Logs can be added out of order by different services.
@@ -1255,6 +1288,8 @@ public sealed class TelemetryRepository : IDisposable
             });
         }
 
+        var attributes = span.Attributes.ToKeyValuePairs(context);
+
         var newSpan = new OtlpSpan(resourceView, trace, scope)
         {
             SpanId = id,
@@ -1265,11 +1300,12 @@ public sealed class TelemetryRepository : IDisposable
             EndTime = OtlpHelpers.UnixNanoSecondsToDateTime(span.EndTimeUnixNano),
             Status = ConvertStatus(span.Status),
             StatusMessage = span.Status?.Message,
-            Attributes = span.Attributes.ToKeyValuePairs(context),
+            Attributes = attributes,
             State = span.TraceState,
             Events = events,
             Links = links,
-            BackLinks = new()
+            BackLinks = new(),
+            HasGenAIInformation = GenAIHelpers.HasGenAIAttribute(attributes)
         };
 
         foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))

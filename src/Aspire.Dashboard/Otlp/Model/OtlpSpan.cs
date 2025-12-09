@@ -39,6 +39,7 @@ public class OtlpSpan
     public required List<OtlpSpanEvent> Events { get; init; }
     public required List<OtlpSpanLink> Links { get; init; }
     public required List<OtlpSpanLink> BackLinks { get; init; }
+    public required bool HasGenAIInformation { get; init; }
 
     public OtlpScope Scope { get; }
     public TimeSpan Duration => EndTime - StartTime;
@@ -95,6 +96,7 @@ public class OtlpSpan
             Events = item.Events,
             Links = item.Links,
             BackLinks = item.BackLinks,
+            HasGenAIInformation = item.HasGenAIInformation,
             UninstrumentedPeer = item.UninstrumentedPeer
         };
     }
