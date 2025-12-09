@@ -707,6 +707,10 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
+        // Create a hive directory so the channel prompt is shown
+        var hivesDir = workspace.CreateDirectory(".aspire").CreateSubdirectory("hives");
+        hivesDir.CreateSubdirectory("pr-12345");
+
         var cancellationMessageDisplayed = false;
         
         var wrappedService = new CancellationTrackingInteractionService(new TestConsoleInteractionService()
@@ -757,9 +761,76 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task UpdateCommand_WithoutHives_UsesImplicitChannelWithoutPrompting()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var promptForSelectionInvoked = false;
+        var updatedWithChannel = string.Empty;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    promptForSelectionInvoked = true;
+                    return choices.Cast<object>().First();
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    updatedWithChannel = channel.Name;
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = false });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (ct) =>
+                {
+                    var fakeCache = new FakeNuGetPackageCache();
+                    var implicitChannel = PackageChannel.CreateImplicitChannel(fakeCache);
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { implicitChannel });
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act - without hives, should automatically use implicit channel
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.False(promptForSelectionInvoked, "Channel selection prompt should not be shown when there are no hives");
+        Assert.Equal("default", updatedWithChannel); // Implicit channel is named "default"
+    }
+
+    [Fact]
     public async Task UpdateCommand_SelfUpdate_WhenCancelled_DisplaysCancellationMessage()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a hive directory so the channel prompt is shown
+        var hivesDir = workspace.CreateDirectory(".aspire").CreateSubdirectory("hives");
+        hivesDir.CreateSubdirectory("pr-12345");
 
         var cancellationMessageDisplayed = false;
         
