@@ -61,21 +61,21 @@ internal static class TestExecutionContextFactory
 
 internal sealed class MockAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMonitor
 {
-    private readonly Dictionary<string, AppHostConnection> _connections = new();
+    private readonly Dictionary<string, AppHostAuxiliaryBackchannel> _connections = new();
 
-    public IReadOnlyDictionary<string, AppHostConnection> Connections => _connections;
+    public IReadOnlyDictionary<string, AppHostAuxiliaryBackchannel> Connections => _connections;
 
     public string? SelectedAppHostPath { get; set; }
 
-    public AppHostConnection? SelectedConnection => null;
+    public AppHostAuxiliaryBackchannel? SelectedConnection => null;
 
 #pragma warning disable CS0067 // Event is never used
     public event Action? SelectedAppHostChanged;
 #pragma warning restore CS0067
 
-    public IReadOnlyList<AppHostConnection> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
+    public IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
     {
         // Return empty list by default (no in-scope AppHosts)
-        return Array.Empty<AppHostConnection>();
+        return Array.Empty<AppHostAuxiliaryBackchannel>();
     }
 }

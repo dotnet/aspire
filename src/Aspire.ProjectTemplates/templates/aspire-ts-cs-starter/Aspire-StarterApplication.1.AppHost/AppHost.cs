@@ -9,12 +9,12 @@ var server = builder.AddProject<Projects.GeneratedClassNamePrefix_Server>("serve
     .WithReference(cache)
     .WaitFor(cache)
 #endif
-    .WithHttpHealthCheck("/health");
+    .WithHttpHealthCheck("/health")
+    .WithExternalHttpEndpoints();
 
 var webfrontend = builder.AddViteApp("webfrontend", "../frontend")
     .WithReference(server)
-    .WaitFor(server)
-    .WithExternalHttpEndpoints();
+    .WaitFor(server);
 
 server.PublishWithContainerFiles(webfrontend, "wwwroot");
 

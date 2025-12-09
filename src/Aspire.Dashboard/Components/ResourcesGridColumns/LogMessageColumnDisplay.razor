@@ -14,9 +14,7 @@
            HighlightText="@FilterText"
            StopClickPropagation="true">
     <ContentInButtonArea>
-        @if (!string.IsNullOrEmpty(LogEntry.TraceId) &&
-            !string.IsNullOrEmpty(LogEntry.SpanId) &&
-            GenAIHelpers.IsGenAISpan(LogEntry.Attributes))
+        @if (IsGenAILogCallback(LogEntry))
         {
             <FluentButton Appearance="Appearance.Lightweight"
                           Title="@ControlStringsLoc[nameof(ControlsStrings.GenAIDetailsTitle)]"

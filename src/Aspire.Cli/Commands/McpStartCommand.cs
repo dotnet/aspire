@@ -446,7 +446,7 @@ internal sealed class McpStartCommand : BaseCommand
     /// 4. If multiple connections exist, throw an error listing them
     /// 5. If no connections exist, throw an error suggesting to start an AppHost
     /// </summary>
-    private AppHostConnection? GetSelectedConnection()
+    private AppHostAuxiliaryBackchannel? GetSelectedConnection()
     {
         var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
 
