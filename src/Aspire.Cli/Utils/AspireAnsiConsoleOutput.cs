@@ -8,10 +8,23 @@ using Spectre.Console;
 namespace Aspire.Cli.Utils;
 
 /// <summary>
-/// Custom console output that provides better width detection for CI environments.
-/// Addresses https://github.com/spectreconsole/spectre.console/issues/216 where
-/// console width defaults to 80 in non-terminal environments.
+/// Custom console output implementation that addresses Spectre.Console width detection issues in CI environments.
 /// </summary>
+/// <remarks>
+/// <para>
+/// In CI environments (Jenkins, GitHub Actions, etc.) and when output is redirected, Spectre.Console
+/// defaults to 80 columns which causes awkward line wrapping in logs. This implementation:
+/// </para>
+/// <list type="bullet">
+/// <item>Detects when running in non-terminal environments and automatically uses 160 columns instead of 80</item>
+/// <item>Respects the ASPIRE_CONSOLE_WIDTH environment variable for explicit width overrides (capped at 500)</item>
+/// <item>Handles IOException gracefully when console buffer information is unavailable</item>
+/// </list>
+/// <para>
+/// This addresses https://github.com/spectreconsole/spectre.console/issues/216 and provides a better
+/// experience for CI logs without requiring manual width configuration.
+/// </para>
+/// </remarks>
 internal sealed class AspireAnsiConsoleOutput : IAnsiConsoleOutput
 {
     private readonly TextWriter _writer;
@@ -68,7 +81,16 @@ internal sealed class AspireAnsiConsoleOutput : IAnsiConsoleOutput
             return Math.Min(width, 500);
         }
 
-        return GetSafeWidth();
+        var detectedWidth = GetSafeWidth();
+
+        // In scenarios where CLI is not running on a terminal, Spectre.Console defaults to 80 columns
+        // which is too narrow and causes unexpected line breaks in CI logs. Double the value to 160.
+        if (!IsTerminal && detectedWidth == 80)
+        {
+            return 160;
+        }
+
+        return detectedWidth;
     }
 
     /// <inheritdoc/>
@@ -111,16 +133,17 @@ internal sealed class AspireAnsiConsoleOutput : IAnsiConsoleOutput
             var width = Console.BufferWidth;
             if (width == 0)
             {
-                // In CI environments, default to a reasonable width
-                return 160;
+                // Return default terminal width when buffer width is 0
+                return 80;
             }
 
             return width;
         }
         catch (IOException)
         {
-            // When console is redirected (CI environments), use a reasonable default
-            return 160;
+            // When console is redirected (CI environments), return the default width
+            // The caller will detect this and double it to 160 for better readability
+            return 80;
         }
     }
 
