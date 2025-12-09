@@ -189,4 +189,25 @@ public class ResourceCreationTests
         // Verify no wait annotations were added to the app
         Assert.False(nodeResource.TryGetAnnotationsOfType<WaitAnnotation>(out _));
     }
+
+    [Fact]
+    public void InstallerResourceHasCertificateTrustScopeNone()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddJavaScriptApp("test-app", "./test-app");
+        nodeApp.WithNpm(install: true);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the installer resource was created
+        var installerResource = Assert.Single(appModel.Resources.OfType<JavaScriptInstallerResource>());
+        Assert.Equal("test-app-installer", installerResource.Name);
+
+        // Verify the installer has CertificateTrustScope.None
+        Assert.True(installerResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var certAnnotation));
+        Assert.Equal(CertificateTrustScope.None, certAnnotation.Scope);
+    }
 }

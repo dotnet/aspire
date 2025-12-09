@@ -891,7 +891,8 @@ public static class JavaScriptHostingExtensions
             var installer = new JavaScriptInstallerResource(installerName, resource.Resource.WorkingDirectory);
             var installerBuilder = resource.ApplicationBuilder.AddResource(installer)
                 .WithParentRelationship(resource.Resource)
-                .ExcludeFromManifest();
+                .ExcludeFromManifest()
+                .WithCertificateTrustScope(CertificateTrustScope.None);
 
             resource.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
             {
