@@ -291,10 +291,10 @@ public class Program
             ColorSystem = isPlayground ? ColorSystemSupport.Standard : ColorSystemSupport.Detect,
         };
 
-        // Support DOTNET_CLI_CONTEXT_ANSI_PASS_THRU to force ANSI even when output is redirected
+        // Support ASPIRE_ANSI_PASS_THRU to force ANSI even when output is redirected
         if (hostEnvironment.SupportsAnsi)
         {
-            var ansiPassThru = configuration["DOTNET_CLI_CONTEXT_ANSI_PASS_THRU"];
+            var ansiPassThru = configuration["ASPIRE_ANSI_PASS_THRU"];
             if (!string.IsNullOrEmpty(ansiPassThru) &&
                 (ansiPassThru.Equals("true", StringComparison.OrdinalIgnoreCase) ||
                  ansiPassThru.Equals("1", StringComparison.Ordinal)))

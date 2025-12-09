@@ -134,8 +134,8 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
 
     private static bool DetectAnsiSupport(IConfiguration configuration)
     {
-        // Check for DOTNET_CLI_CONTEXT_ANSI_PASS_THRU to force ANSI even when redirected
-        var ansiPassThru = configuration["DOTNET_CLI_CONTEXT_ANSI_PASS_THRU"];
+        // Check for ASPIRE_ANSI_PASS_THRU to force ANSI even when redirected
+        var ansiPassThru = configuration["ASPIRE_ANSI_PASS_THRU"];
         if (!string.IsNullOrEmpty(ansiPassThru) &&
             (ansiPassThru.Equals("true", StringComparison.OrdinalIgnoreCase) ||
              ansiPassThru.Equals("1", StringComparison.Ordinal)))
