@@ -631,14 +631,16 @@ internal sealed class AzureAppServiceWebsiteContext(
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
     }
 
-    private RoleAssignment AddDashboardPermissionAndSettings(dynamic webSite, ProvisioningParameter acrClientIdParameter, bool isSlot = false)
+    private RoleAssignment AddDashboardPermissionAndSettings(dynamic webSite, ProvisioningParameter acrClientIdParameter, string? deploymentSlot = null)
     {
+        bool isSlot = deploymentSlot is not null;
         var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(Infra);
         var contributorId = environmentContext.Environment.WebsiteContributorManagedIdentityId.AsProvisioningParameter(Infra);
         var contributorPrincipalId = environmentContext.Environment.WebsiteContributorManagedIdentityPrincipalId.AsProvisioningParameter(Infra);
+        var otelServiceName = isSlot ? $"{resource.Name}-{deploymentSlot}" : resource.Name;
 
         // Add the appsettings specific to sending telemetry data to dashboard
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = resource.Name });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = otelServiceName });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
