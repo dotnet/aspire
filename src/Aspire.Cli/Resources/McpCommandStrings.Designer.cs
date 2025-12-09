@@ -149,5 +149,23 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_WorkspaceRootNotFound", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Create agent environment specific instruction files?.
+        /// </summary>
+        internal static string InitCommand_CreateAgentInstructionsPrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_CreateAgentInstructionsPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pre-configure Playwright MCP server?.
+        /// </summary>
+        internal static string InitCommand_ConfigurePlaywrightPrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_ConfigurePlaywrightPrompt", resourceCulture);
+            }
+        }
     }
 }

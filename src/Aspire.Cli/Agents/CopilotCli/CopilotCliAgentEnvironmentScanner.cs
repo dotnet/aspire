@@ -53,17 +53,31 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
             
             // Check if the aspire server is already configured in the global config
             _logger.LogDebug("Checking if Aspire MCP server is already configured in Copilot CLI global config...");
-            if (HasAspireServerConfigured(homeDirectory))
+            if (!HasAspireServerConfigured(homeDirectory))
             {
-                _logger.LogDebug("Aspire MCP server is already configured in Copilot CLI - skipping");
-                // Already configured, no need to offer an applicator
-                return;
+                // In VSCode, assume Copilot CLI is available and offer to configure
+                // The user will be prompted to install it when they try to use it if not already installed
+                _logger.LogDebug("Adding Copilot CLI applicator for global MCP configuration");
+                context.AddApplicator(CreateApplicator(homeDirectory));
             }
-            
-            // In VSCode, assume Copilot CLI is available and offer to configure
-            // The user will be prompted to install it when they try to use it if not already installed
-            _logger.LogDebug("Adding Copilot CLI applicator for global MCP configuration");
-            context.AddApplicator(CreateApplicator(homeDirectory));
+            else
+            {
+                _logger.LogDebug("Aspire MCP server is already configured in Copilot CLI");
+            }
+
+            // Add Playwright applicator if not already configured
+            if (!HasPlaywrightServerConfigured(homeDirectory))
+            {
+                _logger.LogDebug("Adding Playwright MCP applicator for Copilot CLI");
+                context.AddApplicator(CreatePlaywrightApplicator(homeDirectory));
+            }
+            else
+            {
+                _logger.LogDebug("Playwright MCP server is already configured in Copilot CLI");
+            }
+
+            // Try to add agent instructions applicator (only once across all scanners)
+            CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
             return;
         }
         
@@ -82,16 +96,30 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
 
         // Check if the aspire server is already configured in the global config
         _logger.LogDebug("Checking if Aspire MCP server is already configured in Copilot CLI global config...");
-        if (HasAspireServerConfigured(homeDirectory))
+        if (!HasAspireServerConfigured(homeDirectory))
         {
-            _logger.LogDebug("Aspire MCP server is already configured in Copilot CLI - skipping");
-            // Already configured, no need to offer an applicator
-            return;
+            // Copilot CLI is installed and aspire is not configured - offer to configure
+            _logger.LogDebug("Adding Copilot CLI applicator for global MCP configuration");
+            context.AddApplicator(CreateApplicator(homeDirectory));
+        }
+        else
+        {
+            _logger.LogDebug("Aspire MCP server is already configured in Copilot CLI");
         }
 
-        // Copilot CLI is installed and aspire is not configured - offer to configure
-        _logger.LogDebug("Adding Copilot CLI applicator for global MCP configuration");
-        context.AddApplicator(CreateApplicator(homeDirectory));
+        // Add Playwright applicator if not already configured
+        if (!HasPlaywrightServerConfigured(homeDirectory))
+        {
+            _logger.LogDebug("Adding Playwright MCP applicator for Copilot CLI");
+            context.AddApplicator(CreatePlaywrightApplicator(homeDirectory));
+        }
+        else
+        {
+            _logger.LogDebug("Playwright MCP server is already configured in Copilot CLI");
+        }
+
+        // Try to add agent instructions applicator (only once across all scanners)
+        CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
     }
 
     /// <summary>
@@ -158,7 +186,9 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
     {
         return new AgentEnvironmentApplicator(
             CopilotCliAgentEnvironmentScannerStrings.ApplicatorDescription,
-            ct => ApplyMcpConfigurationAsync(homeDirectory, ct));
+            ct => ApplyMcpConfigurationAsync(
+                homeDirectory,
+                ct));
     }
 
     /// <summary>
@@ -166,7 +196,9 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
     /// </summary>
     /// <param name="homeDirectory">The user's home directory.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    private static async Task ApplyMcpConfigurationAsync(DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    private static async Task ApplyMcpConfigurationAsync(
+        DirectoryInfo homeDirectory,
+        CancellationToken cancellationToken)
     {
         var configDirectory = GetCopilotConfigDirectory(homeDirectory);
         var configFilePath = GetMcpConfigFilePath(homeDirectory);
@@ -214,5 +246,100 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
         // Write the updated config using AOT-compatible serialization
         var jsonContent = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(configFilePath, jsonContent, cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates an applicator for configuring the Playwright MCP server.
+    /// </summary>
+    private static AgentEnvironmentApplicator CreatePlaywrightApplicator(DirectoryInfo homeDirectory)
+    {
+        return new AgentEnvironmentApplicator(
+            "Configure Playwright MCP server for GitHub Copilot CLI",
+            ct => ApplyPlaywrightMcpConfigurationAsync(homeDirectory, ct));
+    }
+
+    /// <summary>
+    /// Creates or updates the mcp-config.json file with Playwright MCP configuration.
+    /// </summary>
+    private static async Task ApplyPlaywrightMcpConfigurationAsync(
+        DirectoryInfo homeDirectory,
+        CancellationToken cancellationToken)
+    {
+        var configDirectory = GetCopilotConfigDirectory(homeDirectory);
+        var configFilePath = GetMcpConfigFilePath(homeDirectory);
+
+        // Ensure the .copilot directory exists
+        if (!Directory.Exists(configDirectory))
+        {
+            Directory.CreateDirectory(configDirectory);
+        }
+
+        JsonObject config;
+
+        // Read existing config or create new
+        if (File.Exists(configFilePath))
+        {
+            var existingContent = await File.ReadAllTextAsync(configFilePath, cancellationToken);
+            config = JsonNode.Parse(existingContent)?.AsObject() ?? new JsonObject();
+        }
+        else
+        {
+            config = new JsonObject();
+        }
+
+        // Ensure "mcpServers" object exists
+        if (!config.ContainsKey("mcpServers") || config["mcpServers"] is not JsonObject)
+        {
+            config["mcpServers"] = new JsonObject();
+        }
+
+        var servers = config["mcpServers"]!.AsObject();
+
+        // Add Playwright MCP server configuration
+        servers["playwright"] = new JsonObject
+        {
+            ["type"] = "local",
+            ["command"] = "npx",
+            ["args"] = new JsonArray("-y", "@playwright/mcp@latest"),
+            ["tools"] = new JsonArray("*")
+        };
+
+        // Write the updated config using AOT-compatible serialization
+        var jsonContent = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
+        await File.WriteAllTextAsync(configFilePath, jsonContent, cancellationToken);
+    }
+
+    /// <summary>
+    /// Checks if the Playwright MCP server is already configured in the mcp-config.json file.
+    /// </summary>
+    private static bool HasPlaywrightServerConfigured(DirectoryInfo homeDirectory)
+    {
+        var configFilePath = GetMcpConfigFilePath(homeDirectory);
+        
+        if (!File.Exists(configFilePath))
+        {
+            return false;
+        }
+
+        try
+        {
+            var content = File.ReadAllText(configFilePath);
+            var config = JsonNode.Parse(content)?.AsObject();
+            if (config is null)
+            {
+                return false;
+            }
+
+            if (config.TryGetPropertyValue("mcpServers", out var serversNode) && serversNode is JsonObject servers)
+            {
+                return servers.ContainsKey("playwright");
+            }
+
+            return false;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 }

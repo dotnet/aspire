@@ -90,4 +90,10 @@
   <data name="InitCommand_WorkspaceRootNotFound" xml:space="preserve">
     <value>Directory not found: {0}</value>
   </data>
+  <data name="InitCommand_CreateAgentInstructionsPrompt" xml:space="preserve">
+    <value>Create agent environment specific instruction files?</value>
+  </data>
+  <data name="InitCommand_ConfigurePlaywrightPrompt" xml:space="preserve">
+    <value>Pre-configure Playwright MCP server?</value>
+  </data>
 </root>

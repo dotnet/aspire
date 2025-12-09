@@ -23,6 +23,12 @@ internal sealed class AgentEnvironmentScanContext
     public required DirectoryInfo RepositoryRoot { get; init; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether an agent instructions applicator has been added.
+    /// This is used to ensure only one applicator for agent instructions is added across all scanners.
+    /// </summary>
+    public bool AgentInstructionsApplicatorAdded { get; set; }
+
+    /// <summary>
     /// Adds an applicator to the collection of detected agent environments.
     /// </summary>
     /// <param name="applicator">The applicator to add.</param>
