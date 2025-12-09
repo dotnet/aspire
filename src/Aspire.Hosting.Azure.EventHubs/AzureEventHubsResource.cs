@@ -63,7 +63,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     public ReferenceExpression? Port =>
         IsEmulator ?
             ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Host)}") :
-            ReferenceExpression.Create($"9093");
+            null;
 
     /// <summary>
     /// Gets the connection URI expression for the Event Hubs namespace.
@@ -74,7 +74,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     public ReferenceExpression UriExpression =>
         IsEmulator ?
             ReferenceExpression.Create($"sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)}") :
-            ReferenceExpression.Create($"{EventHubsEndpoint}:9093");
+            ReferenceExpression.Create($"{EventHubsEndpoint}");
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Event Hubs endpoint.
@@ -187,12 +187,12 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
         yield return new("Host", HostName);
-        
+
         if (Port is not null)
         {
             yield return new("Port", Port);
         }
-        
+
         yield return new("Uri", UriExpression);
     }
 }
