@@ -55,50 +55,61 @@ public static class McpExtensions
         if (dashboardOptions.ResourceServiceClient.GetUri() is not null)
         {
             builder.WithTools<AspireResourceMcpTools>();
+
+            // Intercept ListTools and CallTool to proxy calls to resource MCP servers
+            builder
+                .AddListToolsFilter((next) => async (RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken) =>
+                {
+                    // Calls here are via the tools/list endpoint. See https://modelcontextprotocol.info/docs/concepts/tools/
+                    // There is no tool name so we hardcode name to list_tools here so we can reuse the same event.
+                    //
+                    // We want to track when users list tools as it's an indicator of whether Aspire MCP is configured (client tools refresh tools via it).
+                    // It's called even if no Aspire tools end up being used.
+                    var result = await RecordCallToolNameAsync<ListToolsRequestParams, ListToolsResult>(next, request, "list_tools", cancellationToken).ConfigureAwait(false);
+
+                    var proxyService = request.Services?.GetService<ResourceMcpProxyService>();
+                    if (proxyService is not null)
+                    {
+                        result.Tools.Clear();
+
+                        // Add registered tools (telemetry and resource tools)
+                        var mcpTools = request.Services?.GetServices<McpServerTool>() ?? [];
+                        foreach (var tool in mcpTools)
+                        {
+                            result.Tools.Add(tool.ProtocolTool);
+                        }
+
+                        // Add proxied tools from resource MCP servers
+                        var proxiedTools = await proxyService.GetToolsAsync(cancellationToken).ConfigureAwait(false);
+                        if (proxiedTools.Count > 0)
+                        {
+                            var tools = result.Tools?.ToList() ?? [];
+                            tools.AddRange(proxiedTools);
+                            result.Tools = tools;
+                        }
+                    }
+
+                    return result;
+                })
+                .AddCallToolFilter((next) => async (RequestContext<CallToolRequestParams> request, CancellationToken cancellationToken) =>
+                {
+                    var proxyService = request.Services?.GetService<ResourceMcpProxyService>();
+                    if (proxyService is not null && request.Params?.Name is { Length: > 0 } toolName)
+                    {
+                        var proxiedResult = await proxyService.TryHandleCallAsync(toolName, request.Params.Arguments, cancellationToken).ConfigureAwait(false);
+                        if (proxiedResult is not null)
+                        {
+                            return await RecordCallToolNameAsync<CallToolRequestParams, CallToolResult>(
+                                (_, _) => ValueTask.FromResult(proxiedResult),
+                                request,
+                                toolName,
+                                cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+
+                    return await RecordCallToolNameAsync<CallToolRequestParams, CallToolResult>(next, request, request.Params?.Name, cancellationToken).ConfigureAwait(false);
+                });
         }
-
-        builder
-            .AddListToolsFilter((next) => async (RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken) =>
-            {
-                // Calls here are via the tools/list endpoint. See https://modelcontextprotocol.info/docs/concepts/tools/
-                // There is no tool name so we hardcode name to list_tools here so we can reuse the same event.
-                //
-                // We want to track when users list tools as it's an indicator of whether Aspire MCP is configured (client tools refresh tools via it).
-                // It's called even if no Aspire tools end up being used.
-                var result = await RecordCallToolNameAsync<ListToolsRequestParams, ListToolsResult>(next, request, "list_tools", cancellationToken).ConfigureAwait(false);
-
-                var proxyService = request.Services?.GetService<ResourceMcpProxyService>();
-                if (proxyService is not null)
-                {
-                    var proxiedTools = await proxyService.GetToolsAsync(cancellationToken).ConfigureAwait(false);
-                    if (proxiedTools.Count > 0)
-                    {
-                        var tools = result.Tools?.ToList() ?? new List<Tool>();
-                        tools.AddRange(proxiedTools);
-                        result.Tools = tools;
-                    }
-                }
-
-                return result;
-            })
-            .AddCallToolFilter((next) => async (RequestContext<CallToolRequestParams> request, CancellationToken cancellationToken) =>
-            {
-                var proxyService = request.Services?.GetService<ResourceMcpProxyService>();
-                if (proxyService is not null && request.Params?.Name is { Length: > 0 } toolName)
-                {
-                    var proxiedResult = await proxyService.TryHandleCallAsync(toolName, request.Params.Arguments, cancellationToken).ConfigureAwait(false);
-                    if (proxiedResult is not null)
-                    {
-                        return await RecordCallToolNameAsync<CallToolRequestParams, CallToolResult>(
-                            (_, _) => ValueTask.FromResult(proxiedResult),
-                            request,
-                            toolName,
-                            cancellationToken).ConfigureAwait(false);
-                    }
-                }
-
-                return await RecordCallToolNameAsync<CallToolRequestParams, CallToolResult>(next, request, request.Params?.Name, cancellationToken).ConfigureAwait(false);
-            });
 
         return builder;
     }

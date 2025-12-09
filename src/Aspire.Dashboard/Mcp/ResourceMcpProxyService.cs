@@ -199,7 +199,7 @@ internal sealed class ResourceMcpProxyService : IAsyncDisposable
 
             // Notify the MCP server clients that the tool list has changed by updating the ToolCollection property.
             // Its content is irrelevant since the client is intercepted by a handler; we just need to trigger the notification.
-
+            // The handler will have to include the default tools as well as the proxied ones.
             _mcpServerOptions?.ToolCollection?.Clear();
         }
     }
