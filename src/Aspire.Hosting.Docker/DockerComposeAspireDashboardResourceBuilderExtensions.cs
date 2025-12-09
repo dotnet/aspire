@@ -40,7 +40,8 @@ public static class DockerComposeAspireDashboardResourceBuilderExtensions
                       // Expose the HTTP endpoint externally for the dashboard, it is password protected
                       // and disabled by default so an explicit call is required to turn it on.
                       .WithEndpoint("http", e => e.IsExternal = true)
-                      .WithHttpEndpoint(name: "otlp-grpc", targetPort: 18889);
+                      .WithHttpEndpoint(name: "otlp-grpc", targetPort: 18889)
+                      .WithHttpEndpoint(name: "otlp-http", targetPort: 18890);
     }
 
     /// <summary>

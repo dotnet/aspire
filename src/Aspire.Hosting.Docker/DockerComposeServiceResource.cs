@@ -420,7 +420,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
 
                 // Skip if not our service
                 if (serviceInfo is null ||
-                    !string.Equals(serviceInfo.Service, serviceName, StringComparison.OrdinalIgnoreCase))
+                    !string.Equals(serviceInfo.Service, serviceName, StringComparisons.ResourceName))
                 {
                     continue;
                 }
