@@ -406,4 +406,100 @@ public partial class ResourcesTests : DashboardTestContext
         var menuButton = cut.FindComponent<AspireMenuButton>();
         Assert.NotNull(menuButton);
     }
+
+    [Fact]
+    public void TableView_ExcludesParameters()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("myapp", "Project", "Running", null),
+            CreateResource("mycontainer", "Container", "Running", null),
+            CreateResource("myparameter", KnownResourceTypes.Parameter, "Running", null),
+        };
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+
+        // Act
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Assert - Table view (default) should exclude parameters
+        Assert.Equal(Components.Pages.Resources.ResourceViewKind.Table, cut.Instance.PageViewModel.SelectedViewKind);
+        var filteredResources = cut.Instance.GetFilteredResources().ToList();
+        Assert.Equal(2, filteredResources.Count);
+        Assert.Contains(filteredResources, r => r.Name == "myapp");
+        Assert.Contains(filteredResources, r => r.Name == "mycontainer");
+        Assert.DoesNotContain(filteredResources, r => r.Name == "myparameter");
+    }
+
+    [Fact]
+    public void ParametersView_ShowsOnlyParameters()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("myapp", "Project", "Running", null),
+            CreateResource("mycontainer", "Container", "Running", null),
+            CreateResource("myparameter1", KnownResourceTypes.Parameter, "Running", null),
+            CreateResource("myparameter2", KnownResourceTypes.Parameter, "Running", null),
+        };
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Act - switch to Parameters view
+        cut.Instance.PageViewModel.SelectedViewKind = Components.Pages.Resources.ResourceViewKind.Parameters;
+        cut.Render();
+
+        // Assert - Parameters view should show only parameters
+        var filteredResources = cut.Instance.GetFilteredResources().ToList();
+        Assert.Equal(2, filteredResources.Count);
+        Assert.Contains(filteredResources, r => r.Name == "myparameter1");
+        Assert.Contains(filteredResources, r => r.Name == "myparameter2");
+        Assert.DoesNotContain(filteredResources, r => r.Name == "myapp");
+        Assert.DoesNotContain(filteredResources, r => r.Name == "mycontainer");
+    }
+
+    [Fact]
+    public void GraphView_ShowsAllResources()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("myapp", "Project", "Running", null),
+            CreateResource("myparameter", KnownResourceTypes.Parameter, "Running", null),
+        };
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+
+        var resourceGraphModule = JSInterop.SetupModule("/js/app-resourcegraph.js");
+        resourceGraphModule.SetupVoid("initializeResourcesGraph", _ => true);
+        resourceGraphModule.SetupVoid("updateResourcesGraph", _ => true);
+        resourceGraphModule.SetupVoid("updateResourcesGraphSelected", _ => true);
+
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Act - switch to Graph view
+        cut.Instance.PageViewModel.SelectedViewKind = Components.Pages.Resources.ResourceViewKind.Graph;
+        cut.Render();
+
+        // Assert - Graph view should show all resources (no parameter filtering)
+        var filteredResources = cut.Instance.GetFilteredResources().ToList();
+        Assert.Equal(2, filteredResources.Count);
+        Assert.Contains(filteredResources, r => r.Name == "myapp");
+        Assert.Contains(filteredResources, r => r.Name == "myparameter");
+    }
 }
