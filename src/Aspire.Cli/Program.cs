@@ -292,16 +292,10 @@ public class Program
         };
 
         // Support ASPIRE_ANSI_PASS_THRU to force ANSI even when output is redirected
-        if (hostEnvironment.SupportsAnsi)
+        if (hostEnvironment.SupportsAnsi && CliHostEnvironment.IsAnsiPassThruEnabled(configuration))
         {
-            var ansiPassThru = configuration["ASPIRE_ANSI_PASS_THRU"];
-            if (!string.IsNullOrEmpty(ansiPassThru) &&
-                (ansiPassThru.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-                 ansiPassThru.Equals("1", StringComparison.Ordinal)))
-            {
-                settings.Ansi = AnsiSupport.Yes;
-                settings.ColorSystem = ColorSystemSupport.Standard;
-            }
+            settings.Ansi = AnsiSupport.Yes;
+            settings.ColorSystem = ColorSystemSupport.Standard;
         }
 
         if (isPlayground)
@@ -323,7 +317,8 @@ public class Program
         var consoleWidthOverride = configuration["ASPIRE_CONSOLE_WIDTH"];
         if (!string.IsNullOrEmpty(consoleWidthOverride) && int.TryParse(consoleWidthOverride, out var width) && width > 0)
         {
-            ansiConsole.Profile.Width = width;
+            // Cap at reasonable maximum to prevent performance issues
+            ansiConsole.Profile.Width = Math.Min(width, 500);
         }
         // In non-terminal environments (like CI), if width is the default 80, increase it to 160
         // This prevents awkward line wrapping in CI logs

@@ -135,10 +135,7 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
     private static bool DetectAnsiSupport(IConfiguration configuration)
     {
         // Check for ASPIRE_ANSI_PASS_THRU to force ANSI even when redirected
-        var ansiPassThru = configuration["ASPIRE_ANSI_PASS_THRU"];
-        if (!string.IsNullOrEmpty(ansiPassThru) &&
-            (ansiPassThru.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-             ansiPassThru.Equals("1", StringComparison.Ordinal)))
+        if (IsAnsiPassThruEnabled(configuration))
         {
             return true;
         }
@@ -152,6 +149,17 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Checks if ASPIRE_ANSI_PASS_THRU is enabled in configuration.
+    /// </summary>
+    internal static bool IsAnsiPassThruEnabled(IConfiguration configuration)
+    {
+        var ansiPassThru = configuration["ASPIRE_ANSI_PASS_THRU"];
+        return !string.IsNullOrEmpty(ansiPassThru) &&
+               (ansiPassThru.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                ansiPassThru.Equals("1", StringComparison.Ordinal));
     }
 
     private static bool IsCI(IConfiguration configuration)
