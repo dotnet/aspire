@@ -152,6 +152,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         
         // Also create the AGENTS.md file to prevent that applicator
         await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "AGENTS.md"), "# Agent Instructions");
+        await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "AGENTS.aspire.md"), "# Agent Instructions");
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
