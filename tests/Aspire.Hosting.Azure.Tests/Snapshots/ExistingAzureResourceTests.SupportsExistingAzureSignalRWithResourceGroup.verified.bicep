@@ -9,4 +9,4 @@ resource signalR 'Microsoft.SignalRService/signalR@2024-03-01' existing = {
 
 output hostName string = signalR.properties.hostName
 
-output name string = existingResourceName
+output name string = signalR.name

@@ -47,8 +47,8 @@ public static class AzureContainerRegistryExtensions
 
             infrastructure.Add(registry);
 
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = registry.Name });
-            infrastructure.Add(new ProvisioningOutput("loginServer", typeof(string)) { Value = registry.LoginServer });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = registry.Name.ToBicepExpression() });
+            infrastructure.Add(new ProvisioningOutput("loginServer", typeof(string)) { Value = registry.LoginServer.ToBicepExpression() });
         };
 
         var resource = new AzureContainerRegistryResource(name, configureInfrastructure);

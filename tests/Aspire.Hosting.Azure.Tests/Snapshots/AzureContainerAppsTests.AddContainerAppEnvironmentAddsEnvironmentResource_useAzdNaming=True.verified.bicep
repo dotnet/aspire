@@ -112,17 +112,17 @@ resource managedStorage_volumes_cache_0 'Microsoft.App/managedEnvironments/stora
 
 output volumes_cache_0 string = managedStorage_volumes_cache_0.name
 
-output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = 'law-${resourceToken}'
+output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = env_law.name
 
 output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = env_law.id
 
-output AZURE_CONTAINER_REGISTRY_NAME string = replace('acr-${resourceToken}', '-', '')
+output AZURE_CONTAINER_REGISTRY_NAME string = env_acr.name
 
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = env_acr.properties.loginServer
 
 output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = env_mi.id
 
-output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = 'cae-${resourceToken}'
+output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = env.name
 
 output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = env.id
 
