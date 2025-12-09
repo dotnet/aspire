@@ -102,56 +102,9 @@ internal sealed class AzureResourcePreparer(
         }
     }
 
-    /// <summary>
-    /// Determines if a resource is valid for role assignments.
-    /// We can derive role assignments for compute resources and declared AzureUserAssignedIdentityResources.
-    /// </summary>
-    private static bool IsResourceValidForRoleAssignments(IResource resource)
-    {
-        return resource.IsContainer() || resource is ProjectResource || resource is AzureUserAssignedIdentityResource;
-    }
-
     private async Task BuildRoleAssignmentAnnotations(DistributedApplicationModel appModel, List<(IResource Resource, IAzureResource AzureResource)> azureResources, CancellationToken cancellationToken)
     {
         var globalRoleAssignments = new Dictionary<AzureProvisioningResource, HashSet<RoleDefinition>>();
-
-        // In PublishMode, detect if there are compute resources referencing Azure resources
-        // This is used later to validate that a compute environment exists
-        if (executionContext.IsPublishMode)
-        {
-            var hasComputeResourcesReferencingAzureResources = false;
-            foreach (var resource in appModel.Resources)
-            {
-                if (resource.IsExcludedFromPublish())
-                {
-                    continue;
-                }
-
-                if (!IsResourceValidForRoleAssignments(resource))
-                {
-                    continue;
-                }
-
-                var azureReferences = await GetAzureReferences(resource, cancellationToken).ConfigureAwait(false);
-                var hasNonEmulatorAzureReferences = azureReferences
-                    .OfType<AzureProvisioningResource>()
-                    .Any(ar => !ar.IsContainer() && !ar.IsEmulator());
-
-                if (hasNonEmulatorAzureReferences)
-                {
-                    hasComputeResourcesReferencingAzureResources = true;
-                    break;
-                }
-            }
-
-            if (hasComputeResourcesReferencingAzureResources)
-            {
-                if (appModel.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault() is { } azureEnvironment)
-                {
-                    azureEnvironment.HasComputeResourcesReferencingAzureResources = true;
-                }
-            }
-        }
 
         if (!EnvironmentSupportsIdentitiesAndAssignments())
         {
@@ -279,6 +232,13 @@ internal sealed class AzureResourcePreparer(
         if (globalRoleAssignments.Count > 0)
         {
             CreateGlobalRoleAssignments(appModel, globalRoleAssignments);
+        }
+
+        // We can derive role assignments for compute resources and declared
+        // AzureUserAssignedIdentityResources
+        static bool IsResourceValidForRoleAssignments(IResource resource)
+        {
+            return resource.IsContainer() || resource is ProjectResource || resource is AzureUserAssignedIdentityResource;
         }
     }
 

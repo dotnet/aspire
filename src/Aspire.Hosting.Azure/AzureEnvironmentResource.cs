@@ -34,8 +34,6 @@ public sealed class AzureEnvironmentResource : Resource
     /// </summary>
     public const string ProvisionInfrastructureStepName = "provision-azure-bicep-resources";
 
-    private const string MissingComputeEnvironmentErrorMessage = "Deployment requires an Azure compute environment (e.g., AddAzureContainerAppEnvironment) when compute resources reference Azure resources. Please add a compute environment to your app model.";
-
     /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.
     /// </summary>
@@ -56,12 +54,6 @@ public sealed class AzureEnvironmentResource : Resource
     /// Consumers should await ProvisioningContextTask.Task to get the provisioning context.
     /// </summary>
     internal TaskCompletionSource<ProvisioningContext> ProvisioningContextTask { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    /// <summary>
-    /// Gets or sets a value indicating whether there are compute resources that reference Azure resources.
-    /// When true, the deployment requires an Azure compute environment.
-    /// </summary>
-    internal bool HasComputeResourcesReferencingAzureResources { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureEnvironmentResource"/> class.
@@ -94,15 +86,6 @@ public sealed class AzureEnvironmentResource : Resource
                 DependsOnSteps = [WellKnownPipelineSteps.DeployPrereq]
             };
 
-            var validateComputeEnvironmentStep = new PipelineStep
-            {
-                Name = "validate-compute-environment",
-                Description = "Validates that a compute environment exists when required.",
-                Action = ctx => ValidateComputeEnvironmentAsync(ctx),
-                RequiredBySteps = [WellKnownPipelineSteps.Deploy],
-                DependsOnSteps = [WellKnownPipelineSteps.DeployPrereq]
-            };
-
             var createContextStep = new PipelineStep
             {
                 Name = CreateProvisioningContextStepName,
@@ -117,7 +100,6 @@ public sealed class AzureEnvironmentResource : Resource
                 DependsOnSteps = [WellKnownPipelineSteps.DeployPrereq]
             };
             createContextStep.DependsOn(validateStep);
-            createContextStep.DependsOn(validateComputeEnvironmentStep);
 
             var provisionStep = new PipelineStep
             {
@@ -131,7 +113,7 @@ public sealed class AzureEnvironmentResource : Resource
 
             provisionStep.DependsOn(createContextStep);
 
-            return [publishStep, validateStep, validateComputeEnvironmentStep, createContextStep, provisionStep];
+            return [publishStep, validateStep, createContextStep, provisionStep];
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
@@ -178,37 +160,5 @@ public sealed class AzureEnvironmentResource : Resource
                 context.CancellationToken).ConfigureAwait(false);
             throw;
         }
-    }
-
-    private async Task ValidateComputeEnvironmentAsync(PipelineStepContext context)
-    {
-        // Only validate in deploy mode (publish mode)
-        if (!context.ExecutionContext.IsPublishMode)
-        {
-            await context.ReportingStep.CompleteAsync(
-                "Compute environment validation skipped (not in publish mode)",
-                CompletionState.Completed,
-                context.CancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        // If there are compute resources referencing Azure resources, ensure there's a compute environment
-        if (HasComputeResourcesReferencingAzureResources)
-        {
-            var hasComputeEnvironment = context.Model.Resources.OfType<IAzureComputeEnvironmentResource>().Any();
-            if (!hasComputeEnvironment)
-            {
-                await context.ReportingStep.CompleteAsync(
-                    MissingComputeEnvironmentErrorMessage,
-                    CompletionState.CompletedWithError,
-                    context.CancellationToken).ConfigureAwait(false);
-                throw new InvalidOperationException(MissingComputeEnvironmentErrorMessage);
-            }
-        }
-
-        await context.ReportingStep.CompleteAsync(
-            "Compute environment validation completed successfully",
-            CompletionState.Completed,
-            context.CancellationToken).ConfigureAwait(false);
     }
 }

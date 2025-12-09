@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.Storage;
@@ -262,56 +260,6 @@ public class AzureResourcePreparerTests
         Assert.NotNull(capturedExecutionContext);
         Assert.True(capturedExecutionContext.IsPublishMode);
         Assert.False(capturedExecutionContext.IsRunMode);
-    }
-
-    [Fact]
-    public async Task SetsComputeResourcesReferencingAzureResourcesFlagInPublishMode()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureEnvironment();
-        builder.AddAzureContainerAppEnvironment("env");
-
-        var storage = builder.AddAzureStorage("storage");
-        var blobs = storage.AddBlobs("blobs");
-
-        // Create a project with a reference to an Azure resource
-        var api = builder.AddProject<Project>("api", launchProfileName: null)
-            .WithReference(blobs);
-
-        using var app = builder.Build();
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        // Verify the flag is set on AzureEnvironmentResource
-        var azureEnvironment = model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
-        Assert.NotNull(azureEnvironment);
-        Assert.True(azureEnvironment.HasComputeResourcesReferencingAzureResources);
-    }
-
-    [Fact]
-    public async Task DoesNotSetComputeResourcesReferencingAzureResourcesFlagInRunMode()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
-        builder.AddAzureEnvironment();
-
-        var storage = builder.AddAzureStorage("storage");
-        var blobs = storage.AddBlobs("blobs");
-
-        // Create a project with a reference to an Azure resource
-        var api = builder.AddProject<Project>("api", launchProfileName: null)
-            .WithReference(blobs);
-
-        using var app = builder.Build();
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        // Verify the flag is NOT set in Run mode
-        // In Run mode, AzureEnvironmentResource is not added to the model, so it will be null
-        var azureEnvironment = model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
-        if (azureEnvironment is not null)
-        {
-            Assert.False(azureEnvironment.HasComputeResourcesReferencingAzureResources);
-        }
     }
 
     private sealed class Project : IProjectMetadata
