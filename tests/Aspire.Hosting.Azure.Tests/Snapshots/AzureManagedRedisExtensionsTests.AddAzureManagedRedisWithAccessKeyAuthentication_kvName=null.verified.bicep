@@ -3,7 +3,7 @@ param location string = resourceGroup().location
 
 param redis_cache_kv_outputs_name string
 
-resource redis_cache 'Microsoft.Cache/redisEnterprise@2025-04-01' = {
+resource redis_cache 'Microsoft.Cache/redisEnterprise@2025-07-01' = {
   name: take('rediscache-${uniqueString(resourceGroup().id)}', 60)
   location: location
   sku: {
@@ -14,7 +14,7 @@ resource redis_cache 'Microsoft.Cache/redisEnterprise@2025-04-01' = {
   }
 }
 
-resource redis_cache_default 'Microsoft.Cache/redisEnterprise/databases@2025-04-01' = {
+resource redis_cache_default 'Microsoft.Cache/redisEnterprise/databases@2025-07-01' = {
   name: 'default'
   properties: {
     accessKeysAuthentication: 'Enabled'
