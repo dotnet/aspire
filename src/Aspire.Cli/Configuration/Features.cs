@@ -7,6 +7,8 @@ namespace Aspire.Cli.Configuration;
 
 internal sealed class Features(IConfiguration configuration) : IFeatures
 {
+    private static readonly Dictionary<Type, IFeatureFlag> s_featureFlagCache = new();
+
     public bool IsFeatureEnabled(string feature, bool defaultValue)
     {
         var configKey = $"features:{feature}";
@@ -28,7 +30,13 @@ internal sealed class Features(IConfiguration configuration) : IFeatures
 
     public bool Enabled<TFeatureFlag>() where TFeatureFlag : IFeatureFlag, new()
     {
-        var featureFlag = new TFeatureFlag();
+        // Cache the feature flag instance to avoid repeated allocations
+        if (!s_featureFlagCache.TryGetValue(typeof(TFeatureFlag), out var featureFlag))
+        {
+            featureFlag = new TFeatureFlag();
+            s_featureFlagCache[typeof(TFeatureFlag)] = featureFlag;
+        }
+        
         return IsFeatureEnabled(featureFlag.ConfigurationKey, featureFlag.DefaultValue);
     }
 }
