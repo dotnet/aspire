@@ -8,6 +8,8 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Pipelines;
+using Azure.Core;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -116,8 +118,16 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Action = async ctx =>
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                    string? deploymentSlot = null;
 
-                    var hostName = await GetAppServiceWebsiteNameAsync(ctx).ConfigureAwait(false);
+                    if (computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null)
+                    {
+                        deploymentSlot = computerEnv.DeploymentSlotParameter is null ?
+                           computerEnv.DeploymentSlot :
+                           await computerEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    }
+
+                    var hostName = await GetAppServiceWebsiteNameAsync(ctx, deploymentSlot).ConfigureAwait(false);
                     var endpoint = $"https://{hostName}.azurewebsites.net";
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
                 },
@@ -217,11 +227,17 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         return response.StatusCode == System.Net.HttpStatusCode.OK;
     }
 
-    private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context)
+    private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context, string? deploymentSlot = null)
     {
         var computerEnv = (AzureAppServiceEnvironmentResource)TargetResource.GetDeploymentTargetAnnotation()!.ComputeEnvironment!;
         var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
         var websiteName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
+
+        if (!string.IsNullOrWhiteSpace(deploymentSlot))
+        {
+            websiteName += $"-{deploymentSlot}";
+        }
+
         if (websiteName.Length > 60)
         {
             websiteName = websiteName.Substring(0, 60);
