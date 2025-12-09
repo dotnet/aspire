@@ -72,14 +72,19 @@
         <target state="translated">Kardinalite sınırlaması algılandı</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerParametersTab">
+        <source>Parameters</source>
+        <target state="new">Parameters</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="translated">Sayıyı göster</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
-        <source>Table</source>
-        <target state="translated">Tablo</target>
+        <source>Resources</source>
+        <target state="needs-review-translation">Tablo</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">

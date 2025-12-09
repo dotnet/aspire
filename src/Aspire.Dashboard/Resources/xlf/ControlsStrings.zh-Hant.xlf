@@ -72,14 +72,19 @@
         <target state="translated">已偵測到基數限制</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerParametersTab">
+        <source>Parameters</source>
+        <target state="new">Parameters</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="translated">顯示計數</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
-        <source>Table</source>
-        <target state="translated">資料表</target>
+        <source>Resources</source>
+        <target state="needs-review-translation">資料表</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">

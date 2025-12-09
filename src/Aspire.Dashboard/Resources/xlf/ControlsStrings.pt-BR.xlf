@@ -72,14 +72,19 @@
         <target state="translated">O limite de cardinalidade foi detectado</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerParametersTab">
+        <source>Parameters</source>
+        <target state="new">Parameters</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="translated">Mostrar contagem</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
-        <source>Table</source>
-        <target state="translated">Tabela</target>
+        <source>Resources</source>
+        <target state="needs-review-translation">Tabela</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">

@@ -107,6 +107,11 @@
                                                Icon="@(new Icons.Regular.Size24.Table())">
                                     </FluentTab>
                                     <FluentTab LabelClass="tab-label"
+                                               Id="@($"tab-{ResourceViewKind.Parameters}")"
+                                               Label="@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerParametersTab)]"
+                                               Icon="@(new Icons.Regular.Size24.Key())">
+                                    </FluentTab>
+                                    <FluentTab LabelClass="tab-label"
                                                Id="@($"tab-{ResourceViewKind.Graph}")"
                                                aria-label="@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
                                                Label="@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphTab)]"
@@ -114,7 +119,7 @@
                                     </FluentTab>
                                 </FluentTabs>
                             }
-                            <div class="resources-grid-container" hidden="@(PageViewModel.SelectedViewKind != ResourceViewKind.Table)">
+                            <div class="resources-grid-container" hidden="@(PageViewModel.SelectedViewKind == ResourceViewKind.Graph)">
                                 <GridColumnManager @ref="_manager" Columns="@_gridColumns">
                                     <FluentDataGrid @ref="_dataGrid"
                                                     ColumnResizeLabels="@_resizeLabels"
@@ -232,7 +237,7 @@
         </MainSection>
         <FooterSection>
             @* Don't display footer with the resource graph *@
-            <div hidden="@(PageViewModel.SelectedViewKind != ResourceViewKind.Table)">
+            <div hidden="@(PageViewModel.SelectedViewKind == ResourceViewKind.Graph)">
                 <TotalItemsFooter @ref="_totalItemsFooter"
                                   SingularText="@Loc[nameof(Dashboard.Resources.Resources.TotalItemsFooterSingularText)]"
                                   PluralText="@Loc[nameof(Dashboard.Resources.Resources.TotalItemsFooterPluralText)]"

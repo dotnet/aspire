@@ -137,6 +137,18 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private bool Filter(ResourceViewModel resource)
     {
+        var isParameter = string.Equals(resource.ResourceType, KnownResourceTypes.Parameter, StringComparison.Ordinal);
+
+        // In Parameters view, only show parameters; in Table view, exclude parameters
+        if (PageViewModel.SelectedViewKind == ResourceViewKind.Parameters && !isParameter)
+        {
+            return false;
+        }
+        if (PageViewModel.SelectedViewKind == ResourceViewKind.Table && isParameter)
+        {
+            return false;
+        }
+
         return IsKeyValueTrue(resource.ResourceType, PageViewModel.ResourceTypesToVisibility)
                && IsKeyValueTrue(resource.State ?? string.Empty, PageViewModel.ResourceStatesToVisibility)
                && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, PageViewModel.ResourceHealthStatusesToVisibility)
@@ -854,6 +866,12 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             await UpdateResourceGraphResourcesAsync();
             await UpdateResourceGraphSelectedAsync();
         }
+        else
+        {
+            // Refresh the data grid when switching between Table and Parameters views
+            // since the filter logic depends on the selected view
+            await _dataGrid.SafeRefreshDataAsync();
+        }
     }
 
     private async Task UpdateResourceGraphSelectedAsync()
@@ -883,6 +901,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     public enum ResourceViewKind
     {
         Table,
+        Parameters,
         Graph
     }
 

@@ -72,14 +72,19 @@
         <target state="translated">Es wurde eine Kardinalitätsbegrenzung festgestellt</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerParametersTab">
+        <source>Parameters</source>
+        <target state="new">Parameters</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="translated">Anzahl anzeigen</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
-        <source>Table</source>
-        <target state="translated">Tabelle</target>
+        <source>Resources</source>
+        <target state="needs-review-translation">Tabelle</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">

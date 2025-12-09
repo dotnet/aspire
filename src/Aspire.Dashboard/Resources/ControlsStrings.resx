@@ -127,7 +127,10 @@
     <value>Graph</value>
   </data>
   <data name="ChartContainerTableTab" xml:space="preserve">
-    <value>Table</value>
+    <value>Resources</value>
+  </data>
+  <data name="ChartContainerParametersTab" xml:space="preserve">
+    <value>Parameters</value>
   </data>
   <data name="ChartContainerGraphAccessibleLabel" xml:space="preserve">
     <value>Graph. For an accessible view please navigate to the Table tab</value>
