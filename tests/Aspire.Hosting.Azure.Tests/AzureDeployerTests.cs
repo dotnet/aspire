@@ -1065,6 +1065,29 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         await Verify(logs);
     }
 
+    [Fact]
+    public async Task DeployAsync_WithAzureResourcesAndNoEnvironment_Fails()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
+        var mockActivityReporter = new TestPublishingActivityReporter(testOutputHelper);
+
+        ConfigureTestServices(builder, bicepProvisioner: new NoOpBicepProvisioner(), activityReporter: mockActivityReporter);
+        builder.Services.AddSingleton<IBicepProvisioner, BicepProvisioner>();
+        builder.Services.AddSingleton(_ => ProvisioningTestHelpers.CreateBicepCompiler());
+
+        builder.AddAzureSqlServer("sql").AddDatabase("db");
+
+        using var app = builder.Build();
+        await app.RunAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+        var logs = mockActivityReporter.LoggedMessages
+                .Where(m => m.LogLevel >= LogLevel.Error)
+                .Select(s => s.Message)
+                .ToList();
+
+        await Verify(logs);
+    }
+
     private void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
         IInteractionService? interactionService = null,
         IBicepProvisioner? bicepProvisioner = null,

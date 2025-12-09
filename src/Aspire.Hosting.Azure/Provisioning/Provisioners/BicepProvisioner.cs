@@ -319,7 +319,6 @@ internal sealed class BicepProvisioner(
         {
             // Well-known principal parameters can only be populated in run mode.
             // In publish mode, principal parameters must be provided by the creator of the bicep resource.
-
             if (context.ExecutionContext.IsPublishMode)
             {
                 throw new InvalidOperationException("An Azure principal parameter was not supplied a value. Ensure you are using an environment that supports role assignments, for example AddAzureContainerAppEnvironment.");
