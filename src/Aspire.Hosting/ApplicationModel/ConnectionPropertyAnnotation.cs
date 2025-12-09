@@ -18,7 +18,7 @@ public sealed class ConnectionPropertyAnnotation : IResourceAnnotation
     public ConnectionPropertyAnnotation(string name, ReferenceExpression referenceExpression)
     {
         Name = name;
-        ReferenceExpression = referenceExpression;
+        Value = referenceExpression;
     }
 
     /// <summary>
@@ -29,5 +29,5 @@ public sealed class ConnectionPropertyAnnotation : IResourceAnnotation
     /// <summary>
     /// Gets the reference expression associated with this instance.
     /// </summary>
-    public ReferenceExpression ReferenceExpression { get; }
+    public ReferenceExpression Value { get; }
 }

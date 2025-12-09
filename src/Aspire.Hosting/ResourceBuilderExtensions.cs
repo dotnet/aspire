@@ -538,7 +538,7 @@ public static class ResourceBuilderExtensions
                 {
                     foreach (var annotation in connectionPropertyAnnotations)
                     {
-                        context.EnvironmentVariables[$"{prefix}{annotation.Name.ToUpperInvariant()}"] = annotation.ReferenceExpression;
+                        context.EnvironmentVariables[$"{prefix}{annotation.Name.ToUpperInvariant()}"] = annotation.Value;
                     }
                 }
             }
