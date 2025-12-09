@@ -523,15 +523,31 @@ internal class DotNetTemplateFactory(
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        _ = parseResult;
         var allChannels = await packagingService.GetChannelsAsync(cancellationToken);
-
-        // If there are hives (PR build directories), include all channels.
-        // Otherwise, only use the implicit/default channel to avoid prompting.
-        var hasHives = executionContext.GetPrHiveCount() > 0;
-        var channels = hasHives 
-            ? allChannels 
-            : allChannels.Where(c => c.Type is PackageChannelType.Implicit);
+        
+        // Check if --channel option was provided
+        var channelName = parseResult.GetValue<string?>("--channel");
+        IEnumerable<PackageChannel> channels;
+        
+        if (!string.IsNullOrEmpty(channelName))
+        {
+            // If --channel is specified, find the matching channel
+            var matchingChannel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+            if (matchingChannel is null)
+            {
+                throw new Exceptions.ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", allChannels.Select(c => c.Name))}");
+            }
+            channels = new[] { matchingChannel };
+        }
+        else
+        {
+            // If there are hives (PR build directories), include all channels.
+            // Otherwise, only use the implicit/default channel to avoid prompting.
+            var hasHives = executionContext.GetPrHiveCount() > 0;
+            channels = hasHives 
+                ? allChannels 
+                : allChannels.Where(c => c.Type is PackageChannelType.Implicit);
+        }
 
         var packagesFromChannels = await interactionService.ShowStatusAsync(TemplatingStrings.SearchingForAvailableTemplateVersions, async () =>
         {
