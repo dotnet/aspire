@@ -160,7 +160,7 @@ internal sealed class UpdateCommand : BaseCommand
             {
                 // If there are hives (PR build directories), prompt for channel selection.
                 // Otherwise, use the implicit/default channel automatically.
-                var hasHives = ExecutionContext.HivesDirectory.Exists && ExecutionContext.HivesDirectory.GetDirectories().Length > 0;
+                var hasHives = ExecutionContext.HasHives;
                 
                 if (hasHives)
                 {
@@ -251,7 +251,7 @@ internal sealed class UpdateCommand : BaseCommand
         {
             // If there are hives (PR build directories), prompt for channel selection.
             // Otherwise, use "stable" as the default channel.
-            var hasHives = ExecutionContext.HivesDirectory.Exists && ExecutionContext.HivesDirectory.GetDirectories().Length > 0;
+            var hasHives = ExecutionContext.HasHives;
             
             if (hasHives)
             {

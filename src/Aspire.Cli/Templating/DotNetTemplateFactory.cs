@@ -528,7 +528,7 @@ internal class DotNetTemplateFactory(
 
         // If there are hives (PR build directories), include all channels.
         // Otherwise, only use the implicit/default channel to avoid prompting.
-        var hasHives = executionContext.HivesDirectory.Exists && executionContext.HivesDirectory.GetDirectories().Length > 0;
+        var hasHives = executionContext.HasHives;
         var channels = hasHives 
             ? allChannels 
             : allChannels.Where(c => c.Type is PackageChannelType.Implicit);

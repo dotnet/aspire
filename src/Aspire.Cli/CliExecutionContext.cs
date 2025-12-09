@@ -61,4 +61,10 @@ internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, Direct
     /// TaskCompletionSource that is completed when a command is selected and set on this context.
     /// </summary>
     public TaskCompletionSource<Command> CommandSelected { get; } = new();
+
+    /// <summary>
+    /// Gets a value indicating whether hives (PR build directories) exist on the developer machine.
+    /// Hives are detected when the hives directory exists and contains subdirectories.
+    /// </summary>
+    public bool HasHives => HivesDirectory.Exists && HivesDirectory.GetDirectories().Length > 0;
 }
