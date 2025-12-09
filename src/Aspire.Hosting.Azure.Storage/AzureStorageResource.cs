@@ -32,6 +32,11 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     internal List<AzureQueueStorageQueueResource> Queues { get; } = [];
 
     /// <summary>
+    /// Gets the custom accounts configured for the Azure Storage emulator.
+    /// </summary>
+    internal Dictionary<string, AzureStorageEmulatorAccount> EmulatorAccounts { get; } = [];
+
+    /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
     /// </summary>
     public BicepOutputReference BlobEndpoint => new("blobEndpoint", this);
@@ -57,23 +62,51 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     public bool IsEmulator => this.IsContainer();
 
     /// <summary>
-    /// Gets the connection string for the Azure Storage emulator.
+    /// Gets an emulator account by name.
     /// </summary>
-    /// <returns></returns>
-    internal ReferenceExpression GetEmulatorConnectionString() => IsEmulator
-       ? AzureStorageEmulatorConnectionString.Create(blobEndpoint: EmulatorBlobEndpoint, queueEndpoint: EmulatorQueueEndpoint, tableEndpoint: EmulatorTableEndpoint)
+    /// <param name="accountName">The account name.</param>
+    /// <returns>The emulator account.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the account is not found.</exception>
+    internal AzureStorageEmulatorAccount GetEmulatorAccount(string accountName)
+    {
+        if (EmulatorAccounts.TryGetValue(accountName, out var account))
+        {
+            return account;
+        }
+        throw new InvalidOperationException($"Emulator account '{accountName}' was not configured. Use WithAccounts() to configure custom accounts.");
+    }
+
+    /// <summary>
+    /// Gets the connection string for the Azure Storage emulator using the default account.
+    /// </summary>
+    /// <returns>A <see cref="ReferenceExpression"/> representing the connection string.</returns>
+    internal ReferenceExpression GetEmulatorConnectionString() => GetEmulatorConnectionString(AzureStorageEmulatorAccount.Default);
+
+    /// <summary>
+    /// Gets the connection string for the Azure Storage emulator using the specified account.
+    /// </summary>
+    /// <param name="account">The emulator account to use.</param>
+    /// <returns>A <see cref="ReferenceExpression"/> representing the connection string.</returns>
+    internal ReferenceExpression GetEmulatorConnectionString(AzureStorageEmulatorAccount account) => IsEmulator
+       ? AzureStorageEmulatorConnectionString.Create(account.Name, account.Key, blobEndpoint: EmulatorBlobEndpoint, queueEndpoint: EmulatorQueueEndpoint, tableEndpoint: EmulatorTableEndpoint)
        : throw new InvalidOperationException("The Azure Storage resource is not running in the local emulator.");
 
-    internal ReferenceExpression GetTableConnectionString() => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(tableEndpoint: EmulatorTableEndpoint)
+    internal ReferenceExpression GetTableConnectionString() => GetTableConnectionString(AzureStorageEmulatorAccount.Default);
+
+    internal ReferenceExpression GetTableConnectionString(AzureStorageEmulatorAccount account) => IsEmulator
+        ? AzureStorageEmulatorConnectionString.Create(account.Name, account.Key, tableEndpoint: EmulatorTableEndpoint)
         : ReferenceExpression.Create($"{TableEndpoint}");
 
-    internal ReferenceExpression GetQueueConnectionString() => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(queueEndpoint: EmulatorQueueEndpoint)
+    internal ReferenceExpression GetQueueConnectionString() => GetQueueConnectionString(AzureStorageEmulatorAccount.Default);
+
+    internal ReferenceExpression GetQueueConnectionString(AzureStorageEmulatorAccount account) => IsEmulator
+        ? AzureStorageEmulatorConnectionString.Create(account.Name, account.Key, queueEndpoint: EmulatorQueueEndpoint)
         : ReferenceExpression.Create($"{QueueEndpoint}");
 
-    internal ReferenceExpression GetBlobConnectionString() => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(blobEndpoint: EmulatorBlobEndpoint)
+    internal ReferenceExpression GetBlobConnectionString() => GetBlobConnectionString(AzureStorageEmulatorAccount.Default);
+
+    internal ReferenceExpression GetBlobConnectionString(AzureStorageEmulatorAccount account) => IsEmulator
+        ? AzureStorageEmulatorConnectionString.Create(account.Name, account.Key, blobEndpoint: EmulatorBlobEndpoint)
         : ReferenceExpression.Create($"{BlobEndpoint}");
 
     void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)

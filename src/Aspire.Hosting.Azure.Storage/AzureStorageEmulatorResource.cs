@@ -13,6 +13,11 @@ public class AzureStorageEmulatorResource(AzureStorageResource innerResource) : 
 {
     private readonly AzureStorageResource _innerResource = innerResource ?? throw new ArgumentNullException(nameof(innerResource));
 
+    /// <summary>
+    /// Gets the inner <see cref="AzureStorageResource"/> that this emulator wraps.
+    /// </summary>
+    internal AzureStorageResource InnerResource => _innerResource;
+
     /// <inheritdoc/>
     public override string Name => _innerResource.Name;
 
