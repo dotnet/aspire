@@ -285,15 +285,8 @@ public class Program
         var isPlayground = CliHostEnvironment.IsPlaygroundMode(configuration);
 
         // Create custom output that handles width detection better in CI environments
-        var output = new AspireAnsiConsoleOutput(Console.Out);
-
-        // Check if explicit width override is set via ASPIRE_CONSOLE_WIDTH
-        var consoleWidthOverride = configuration["ASPIRE_CONSOLE_WIDTH"];
-        if (!string.IsNullOrEmpty(consoleWidthOverride) && int.TryParse(consoleWidthOverride, out var width) && width > 0)
-        {
-            // Cap at reasonable maximum to prevent performance issues
-            output.Width = Math.Min(width, 500);
-        }
+        // and encapsulates ASPIRE_CONSOLE_WIDTH environment variable handling
+        var output = new AspireAnsiConsoleOutput(Console.Out, configuration);
 
         var settings = new AnsiConsoleSettings()
         {
@@ -303,12 +296,8 @@ public class Program
             Out = output,
         };
 
-        // Support ASPIRE_ANSI_PASS_THRU to force ANSI even when output is redirected
-        var ansiPassThru = configuration["ASPIRE_ANSI_PASS_THRU"];
-        if (hostEnvironment.SupportsAnsi && 
-            !string.IsNullOrEmpty(ansiPassThru) &&
-            (ansiPassThru.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-             ansiPassThru.Equals("1", StringComparison.Ordinal)))
+        // Use SupportsAnsi from hostEnvironment which already checks ASPIRE_ANSI_PASS_THRU
+        if (hostEnvironment.SupportsAnsi)
         {
             settings.Ansi = AnsiSupport.Yes;
             settings.ColorSystem = ColorSystemSupport.Standard;

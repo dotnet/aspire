@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using Microsoft.Extensions.Configuration;
 using Spectre.Console;
 
 namespace Aspire.Cli.Utils;
@@ -14,6 +15,7 @@ namespace Aspire.Cli.Utils;
 internal sealed class AspireAnsiConsoleOutput : IAnsiConsoleOutput
 {
     private readonly TextWriter _writer;
+    private readonly IConfiguration _configuration;
     private int? _width;
 
     /// <inheritdoc/>
@@ -41,16 +43,32 @@ internal sealed class AspireAnsiConsoleOutput : IAnsiConsoleOutput
     /// <inheritdoc/>
     public int Width
     {
-        get => _width ?? GetSafeWidth();
+        get => _width ?? GetConfiguredWidth();
         set => _width = value;
     }
 
     /// <inheritdoc/>
     public int Height => GetSafeHeight();
 
-    public AspireAnsiConsoleOutput(TextWriter writer)
+    public AspireAnsiConsoleOutput(TextWriter writer, IConfiguration configuration)
     {
         _writer = writer ?? throw new ArgumentNullException(nameof(writer));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+    }
+
+    private int GetConfiguredWidth()
+    {
+        // Check if explicit width override is set via ASPIRE_CONSOLE_WIDTH
+        var consoleWidthOverride = _configuration["ASPIRE_CONSOLE_WIDTH"];
+        if (!string.IsNullOrEmpty(consoleWidthOverride) && 
+            int.TryParse(consoleWidthOverride, out var width) && 
+            width > 0)
+        {
+            // Cap at reasonable maximum to prevent performance issues
+            return Math.Min(width, 500);
+        }
+
+        return GetSafeWidth();
     }
 
     /// <inheritdoc/>
