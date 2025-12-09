@@ -541,6 +541,34 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
+    private bool IsGenAILogEntry(OtlpLogEntry logEntry)
+    {
+        if (string.IsNullOrEmpty(logEntry.SpanId) || string.IsNullOrEmpty(logEntry.TraceId))
+        {
+            return false;
+        }
+
+        if (GenAIHelpers.HasGenAIAttribute(logEntry.Attributes))
+        {
+            // GenAI telemetry is on the log entry.
+            return true;
+        }
+
+        var span = TelemetryRepository.GetSpan(logEntry.TraceId, logEntry.SpanId);
+        if (span == null)
+        {
+            return false;
+        }
+
+        if (GenAIHelpers.HasGenAIAttribute(span.Attributes))
+        {
+            // Log entry belongs to a span that has GenAI telemetry.
+            return true;
+        }
+
+        return false;
+    }
+
     private async Task LaunchGenAIVisualizerAsync(OtlpLogEntry logEntry)
     {
         var available = await TraceLinkHelpers.WaitForSpanToBeAvailableAsync(
@@ -571,7 +599,13 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                     var filters = ViewModel.GetFilters();
                     filters.Add(new FieldTelemetryFilter
                     {
-                        Field = GenAIHelpers.GenAISystem,
+                        Field = KnownStructuredLogFields.SpanIdField,
+                        Condition = FilterCondition.NotEqual,
+                        Value = string.Empty
+                    });
+                    filters.Add(new FieldTelemetryFilter
+                    {
+                        Field = KnownStructuredLogFields.TraceIdField,
                         Condition = FilterCondition.NotEqual,
                         Value = string.Empty
                     });
@@ -584,10 +618,22 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                         Filters = filters
                     });
 
-                    return logs.Items
-                        .DistinctBy(l => (l.SpanId, l.TraceId))
-                        .Select(l => TelemetryRepository.GetSpan(l.TraceId, l.SpanId)!)
-                        .ToList();
+                    var genAISpans = new List<OtlpSpan>();
+                    foreach (var l in logs.Items.DistinctBy(l => (l.SpanId, l.TraceId)))
+                    {
+                        var span = TelemetryRepository.GetSpan(l.TraceId, l.SpanId);
+                        if (span == null)
+                        {
+                            continue;
+                        }
+
+                        if (GenAIHelpers.HasGenAIAttribute(l.Attributes) || GenAIHelpers.HasGenAIAttribute(span.Attributes))
+                        {
+                            genAISpans.Add(span);
+                        }
+                    }
+
+                    return genAISpans;
                 });
         }
     }

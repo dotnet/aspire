@@ -116,7 +116,7 @@ public partial class SpanDetails : IDisposable
             }
         });
 
-        if (GenAIHelpers.IsGenAISpan(ViewModel.Span.Attributes))
+        if (GenAIHelpers.HasGenAIAttribute(ViewModel.Span.Attributes))
         {
             _spanActionsMenuItems.Add(new MenuButtonItem
             {
