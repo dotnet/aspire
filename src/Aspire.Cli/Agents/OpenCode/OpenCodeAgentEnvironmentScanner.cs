@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Cli.Git;
 using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
@@ -17,22 +16,18 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     private const string OpenCodeConfigFileName = "opencode.jsonc";
     private const string AspireServerName = "aspire";
 
-    private readonly IGitRepository _gitRepository;
     private readonly IOpenCodeCliRunner _openCodeCliRunner;
     private readonly ILogger<OpenCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="OpenCodeAgentEnvironmentScanner"/>.
     /// </summary>
-    /// <param name="gitRepository">The Git repository service for finding repository boundaries.</param>
     /// <param name="openCodeCliRunner">The OpenCode CLI runner for checking if OpenCode is installed.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public OpenCodeAgentEnvironmentScanner(IGitRepository gitRepository, IOpenCodeCliRunner openCodeCliRunner, ILogger<OpenCodeAgentEnvironmentScanner> logger)
+    public OpenCodeAgentEnvironmentScanner(IOpenCodeCliRunner openCodeCliRunner, ILogger<OpenCodeAgentEnvironmentScanner> logger)
     {
-        ArgumentNullException.ThrowIfNull(gitRepository);
         ArgumentNullException.ThrowIfNull(openCodeCliRunner);
         ArgumentNullException.ThrowIfNull(logger);
-        _gitRepository = gitRepository;
         _openCodeCliRunner = openCodeCliRunner;
         _logger = logger;
     }
@@ -41,14 +36,10 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     public async Task ScanAsync(AgentEnvironmentScanContext context, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Starting OpenCode environment scan in directory: {WorkingDirectory}", context.WorkingDirectory.FullName);
-        
-        // Get the git root - OpenCode config should be at the repo root
-        _logger.LogDebug("Finding git repository root...");
-        var gitRoot = await _gitRepository.GetRootAsync(cancellationToken).ConfigureAwait(false);
-        _logger.LogDebug("Git root: {GitRoot}", gitRoot?.FullName ?? "(none)");
+        _logger.LogDebug("Workspace root: {RepositoryRoot}", context.RepositoryRoot.FullName);
 
-        // Look for existing opencode.jsonc file at git root or working directory
-        var configDirectory = gitRoot ?? context.WorkingDirectory;
+        // Look for existing opencode.jsonc file at workspace root
+        var configDirectory = context.RepositoryRoot;
         var configFilePath = Path.Combine(configDirectory.FullName, OpenCodeConfigFileName);
         var configFileExists = File.Exists(configFilePath);
 

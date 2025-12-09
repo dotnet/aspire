@@ -109,8 +109,6 @@
       <Replacements Include="$(MicrosoftExtensionsHttpResilienceVersion)" />
       <Replacements Include="!!REPLACE_WITH_SERVICE_DISCOVERY_VERSION!!" />
       <Replacements Include="$(MicrosoftExtensionsServiceDiscoveryVersion)" />
-      <Replacements Include="!!REPLACE_WITH_OTEL_NET8_VERSION!!" />
-      <Replacements Include="$(OpenTelemetryNet8Version)" />
       <Replacements Include="!!REPLACE_WITH_OTEL_EXPORTER_VERSION!!" />
       <Replacements Include="$(OpenTelemetryExporterOpenTelemetryProtocolVersion)" />
       <Replacements Include="!!REPLACE_WITH_OTEL_HOSTING_VERSION!!" />

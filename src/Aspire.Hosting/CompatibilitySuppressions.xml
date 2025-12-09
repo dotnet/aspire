@@ -23,6 +23,13 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Aspire.Hosting.Publishing.IResourceContainerImageBuilder</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:Aspire.Hosting.ApplicationModel.ResourceExtensions.WithDeploymentImageTag``1(Aspire.Hosting.ApplicationModel.IResourceBuilder{``0},System.Func{Aspire.Hosting.ApplicationModel.DeploymentImageTagCallbackAnnotationContext,System.String})</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
@@ -37,57 +44,8 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.BuildImageAsync(Aspire.Hosting.ApplicationModel.IResource,Aspire.Hosting.Publishing.ContainerBuildOptions,System.Threading.CancellationToken)</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.BuildImagesAsync(System.Collections.Generic.IEnumerable{Aspire.Hosting.ApplicationModel.IResource},Aspire.Hosting.Publishing.ContainerBuildOptions,System.Threading.CancellationToken)</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.PushImageAsync(System.String,System.Threading.CancellationToken)</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.TagImageAsync(System.String,System.String,System.Threading.CancellationToken)</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
     <DiagnosticId>CP0006</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.BuildImageAsync(Aspire.Hosting.ApplicationModel.IResource,System.Threading.CancellationToken)</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0006</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.BuildImagesAsync(System.Collections.Generic.IEnumerable{Aspire.Hosting.ApplicationModel.IResource},System.Threading.CancellationToken)</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0006</DiagnosticId>
-    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.PushImageAsync(Aspire.Hosting.ApplicationModel.IResource,System.Threading.CancellationToken)</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0006</DiagnosticId>
-    <Target>P:Aspire.Hosting.IDeveloperCertificateService.UseForServerAuthentication</Target>
+    <Target>P:Aspire.Hosting.IDeveloperCertificateService.UseForHttps</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>

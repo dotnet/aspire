@@ -269,17 +269,21 @@ jobs:
 
           Write-Output "Unzipped $zipFilePath to $destinationPath"
 
+      - name: Unlock macOS keychain for certificate tests
+        if: runner.os == 'macOS'
+        uses: ./.github/actions/unlock-macos-keychain
+
       - name: Run nuget dependent tests
         if: ${{ inputs.requiresNugets }}
         working-directory: ${{ github.workspace }}/run-tests/
         env:
-          DCP_DIAGNOSTICS_LOG_LEVEL: debug
-          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+          ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
           BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
           NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
           PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
+          TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
         run: >
           dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
           --ignore-exit-code 8
@@ -295,13 +299,13 @@ jobs:
         if: ${{ ! inputs.requiresNugets }}
         id: run-tests
         env:
-          DCP_DIAGNOSTICS_LOG_LEVEL: debug
-          DCP_DIAGNOSTICS_LOG_FOLDER: ${{ github.workspace }}/testresults/dcp
+          ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
           # During restore and build, we use -ci, which causes NUGET_PACKAGES to point to a local cache (Arcade behavior).
           # In this step, we are not using Arcade, but want to make sure that MSBuild is able to evaluate correctly.
           # So, we manually set NUGET_PACKAGES
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
           PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
+          TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
         run: >
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true
@@ -324,26 +328,26 @@ jobs:
         shell: pwsh
         run: |
           $trxFiles = Get-ChildItem -Path "${{ github.workspace }}/testresults" -Filter *.trx -Recurse -ErrorAction SilentlyContinue
-          
+
           if ($trxFiles.Count -eq 0) {
             Write-Error "No .trx files found. Tests may not have run due to infrastructure issues."
             exit 1
           }
-          
+
           Write-Host "Found $($trxFiles.Count) .trx file(s)"
-          
+
           $validFileCount = 0
           foreach ($trxFile in $trxFiles) {
             Write-Host "Checking $($trxFile.Name)..."
-            
+
             try {
               [xml]$trxContent = Get-Content -Path $trxFile.FullName
-              
+
               # Check if the XML is valid and non-empty
               if ($trxContent -and $trxContent.TestRun) {
                 $validFileCount++
                 $countersNode = $trxContent.TestRun.ResultSummary.Counters
-                
+
                 if ($countersNode -and $countersNode.total) {
                   $testCount = [int]$countersNode.total
                   Write-Host "  Total tests in file: $testCount"
@@ -358,12 +362,12 @@ jobs:
               Write-Warning "Failed to parse $($trxFile.Name): $_"
             }
           }
-          
+
           if ($validFileCount -eq 0) {
             Write-Error "No valid .trx files found. All .trx files are empty or invalid XML."
             exit 1
           }
-          
+
           Write-Host "✓ Test execution completed successfully (found $validFileCount valid .trx file(s))"
 
       - name: Dump docker info

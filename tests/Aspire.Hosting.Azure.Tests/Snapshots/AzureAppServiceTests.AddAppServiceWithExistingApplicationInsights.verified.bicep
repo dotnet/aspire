@@ -1,9 +1,11 @@
-@description('The location for the resource(s) to be deployed.')
+﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param userPrincipalId string = ''
 
 param tags object = { }
+
+param env_acr_outputs_name string
 
 param existingappinsights_outputs_name string
 
@@ -13,13 +15,8 @@ resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = 
   tags: tags
 }
 
-resource env_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
-  name: take('envacr${uniqueString(resourceGroup().id)}', 50)
-  location: location
-  sku: {
-    name: 'Basic'
-  }
-  tags: tags
+resource env_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
+  name: env_acr_outputs_name
 }
 
 resource env_acr_env_mi_AcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -36,10 +33,8 @@ resource env_asplan 'Microsoft.Web/serverfarms@2025-03-01' = {
   name: take('envasplan-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
-    elasticScaleEnabled: false
     perSiteScaling: true
     reserved: true
-    maximumElasticWorkerCount: 10
   }
   kind: 'Linux'
   sku: {
@@ -117,8 +112,6 @@ resource dashboard 'Microsoft.Web/sites@2025-03-01' = {
       alwaysOn: true
       http20Enabled: true
       http20ProxyFlag: 1
-      functionAppScaleLimit: 1
-      elasticWebAppScaleLimit: 1
     }
   }
   identity: {
@@ -140,7 +133,7 @@ output planId string = env_asplan.id
 
 output webSiteSuffix string = uniqueString(resourceGroup().id)
 
-output AZURE_CONTAINER_REGISTRY_NAME string = env_acr.name
+output AZURE_CONTAINER_REGISTRY_NAME string = env_acr_outputs_name
 
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = env_acr.properties.loginServer
 

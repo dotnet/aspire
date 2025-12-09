@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECONTAINERRUNTIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -28,24 +29,42 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
     /// <param name="name">The name of the resource.</param>
     public ProjectResource(string name) : base(name)
     {
-        // Add pipeline step annotation to create a build step for this project
+        // Add pipeline step annotation to create build and push steps for this project
         Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
+            var steps = new List<PipelineStep>();
+
             if (factoryContext.Resource.IsExcludedFromPublish())
             {
-                return [];
+                return steps;
             }
 
             var buildStep = new PipelineStep
             {
                 Name = $"build-{name}",
+                Description = $"Builds the container image for the {name} project.",
                 Action = BuildProjectImage,
                 Tags = [WellKnownPipelineTags.BuildCompute],
                 RequiredBySteps = [WellKnownPipelineSteps.Build],
-                DependsOnSteps = [WellKnownPipelineSteps.BuildPrereq]
+                DependsOnSteps = [WellKnownPipelineSteps.BuildPrereq],
+                Resource = this
             };
+            steps.Add(buildStep);
 
-            return [buildStep];
+            if (this.RequiresImageBuildAndPush())
+            {
+                var pushStep = new PipelineStep
+                {
+                    Name = $"push-{name}",
+                    Action = ctx => PipelineStepHelpers.PushImageToRegistryAsync(this, ctx),
+                    Tags = [WellKnownPipelineTags.PushContainerImage],
+                    RequiredBySteps = [WellKnownPipelineSteps.Push],
+                    Resource = this
+                };
+                steps.Add(pushStep);
+            }
+
+            return steps;
         }));
 
         // Add default container build options annotation
@@ -68,6 +87,13 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                     buildSteps.DependsOn(context.GetSteps(containerFile.Source, WellKnownPipelineTags.BuildCompute));
                 }
             }
+
+            // Wire up dependencies for push steps
+            var projectBuildSteps = context.GetSteps(this, WellKnownPipelineTags.BuildCompute);
+            var pushSteps = context.GetSteps(this, WellKnownPipelineTags.PushContainerImage);
+
+            pushSteps.DependsOn(projectBuildSteps);
+            pushSteps.DependsOn(WellKnownPipelineSteps.PushPrereq);
         }));
     }
     // Keep track of the config host for each Kestrel endpoint annotation
@@ -97,7 +123,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
 
     private async Task BuildProjectImage(PipelineStepContext ctx)
     {
-        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
         var logger = ctx.Logger;
 
         // Build the container image for the project first
@@ -136,9 +162,10 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         // Add COPY --from: statements for each source
         stage.AddContainerFiles(this, containerWorkingDir, logger);
 
-        // Write the Dockerfile to a temporary location
+        // Get the directory service to create temp Dockerfile
         var projectDir = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
-        var tempDockerfilePath = Path.GetTempFileName();
+        var directoryService = ctx.Services.GetRequiredService<IFileSystemService>();
+        var tempDockerfilePath = directoryService.TempDirectory.CreateTempFile().Path;
 
         var builtSuccessfully = false;
         try

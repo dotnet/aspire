@@ -36,12 +36,14 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Deploy,
+            Description = "Aggregation step for all deploy operations. All deploy steps should be required by this step.",
             Action = _ => Task.CompletedTask,
         });
 
         var parameterPromptingStep = new PipelineStep
         {
             Name = WellKnownPipelineSteps.ProcessParameters,
+            Description = "Prompts for parameter values before build, publish, or deployment operations.",
             Action = async context =>
             {
                 // Parameter processing - ensure all parameters are initialized and resolved
@@ -57,6 +59,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.DeployPrereq,
+            Description = "Prerequisite step that runs before any deploy operations. Initializes deployment environment and manages deployment state.",
             Action = async context =>
             {
                 // REVIEW: Break this up into smaller steps
@@ -138,25 +141,92 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Build,
+            Description = "Aggregation step for all build operations. All build steps should be required by this step.",
             Action = _ => Task.CompletedTask,
         });
 
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.BuildPrereq,
+            Description = "Prerequisite step that runs before any build operations.",
             Action = context => Task.CompletedTask
         });
 
-        // Add a default "Publish" meta-step that all publish steps should be required by
+        // Add a default "Push" meta-step that all push steps should be required by
+        // Push unconditionally depends on PushPrereq to ensure annotations are set up
+        var pushStep = new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.Push,
+            Description = "Aggregation step for all push operations. All push steps should be required by this step.",
+            Action = _ => Task.CompletedTask
+        };
+        pushStep.DependsOn(WellKnownPipelineSteps.PushPrereq);
+        _steps.Add(pushStep);
+
+        _steps.Add(new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.PushPrereq,
+            Description = "Prerequisite step that runs before any push operations.",
+            Action = context =>
+            {
+                foreach (var resource in context.Model.Resources)
+                {
+                    if (!resource.RequiresImageBuildAndPush())
+                    {
+                        continue;
+                    }
+
+                    // Skip if resource already has a ContainerRegistryReferenceAnnotation (explicit WithContainerRegistry call)
+                    if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var annotations) &&
+                        annotations.Any())
+                    {
+                        continue;
+                    }
+
+                    // Skip if resource has a deployment target with a ContainerRegistry set
+                    var deploymentTargetAnnotation = resource.GetDeploymentTargetAnnotation();
+                    if (deploymentTargetAnnotation?.ContainerRegistry is not null)
+                    {
+                        continue;
+                    }
+
+                    // Check for RegistryTargetAnnotations (automatically added via BeforeStartEvent)
+                    var registryTargetAnnotations = resource.Annotations.OfType<RegistryTargetAnnotation>().ToArray();
+
+                    // When multiple registries exist, require explicit WithContainerRegistry call
+                    if (registryTargetAnnotations.Length > 1)
+                    {
+                        var registryNames = string.Join(", ", registryTargetAnnotations.Select(a => a.Registry is IResource res ? res.Name : a.Registry.ToString()));
+                        throw new InvalidOperationException(
+                            $"Resource '{resource.Name}' requires image push but has multiple container registries available - '{registryNames}'. " +
+                            $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
+                    }
+
+                    // When no registry is available, throw an error
+                    if (registryTargetAnnotations.Length == 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"Resource '{resource.Name}' requires image push but no container registry is available. " +
+                            $"Please add a container registry using 'builder.AddContainerRegistry(...)' or specify one with '.WithContainerRegistry(registryBuilder)'.");
+                    }
+                }
+
+                return Task.CompletedTask;
+            },
+        });
+
+        // Add a default "Publish" aggregation step that all publish steps should be required by
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Publish,
+            Description = "Aggregation step for all publish operations. All publish steps should be required by this step.",
             Action = _ => Task.CompletedTask
         });
 
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.PublishPrereq,
+            Description = "Prerequisite step that runs before any publish operations.",
             Action = _ => Task.CompletedTask,
         });
 
@@ -164,6 +234,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(new PipelineStep
         {
             Name = WellKnownPipelineSteps.Diagnostics,
+            Description = "Dumps dependency graph information for troubleshooting pipeline execution.",
             Action = async context =>
             {
                 // Use the resolved pipeline data from the last ExecuteAsync call
@@ -805,13 +876,19 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         // Detailed step analysis
         sb.AppendLine("DETAILED STEP ANALYSIS");
         sb.AppendLine("======================");
-        sb.AppendLine("Shows each step's dependencies, associated resources, and tags.");
+        sb.AppendLine("Shows each step's dependencies, associated resources, tags, and descriptions.");
         sb.AppendLine("✓ = dependency exists, ? = dependency missing");
         sb.AppendLine();
 
         foreach (var step in allSteps.OrderBy(s => s.Name, StringComparer.Ordinal))
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"Step: {step.Name}");
+
+            // Show description if available
+            if (!string.IsNullOrWhiteSpace(step.Description))
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    Description: {step.Description}");
+            }
 
             // Show dependencies
             if (step.DependsOnSteps.Count > 0)

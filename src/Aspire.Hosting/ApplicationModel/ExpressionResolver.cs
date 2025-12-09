@@ -41,8 +41,6 @@ internal class ExpressionResolver(CancellationToken cancellationToken)
         var args = new object?[expr.ValueProviders.Count];
         var isSensitive = false;
 
-        expr.WasResolved = true;
-
         for (var i = 0; i < expr.ValueProviders.Count; i++)
         {
             var result = await ResolveInternalAsync(expr.ValueProviders[i], context).ConfigureAwait(false);

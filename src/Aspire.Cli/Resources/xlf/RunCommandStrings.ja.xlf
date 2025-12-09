@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="AgentConfigurationMaybeLater">
         <source>Maybe later</source>
-        <target state="new">Maybe later</target>
+        <target state="translated">後で</target>
         <note />
       </trans-unit>
       <trans-unit id="AgentConfigurationNo">
         <source>No</source>
-        <target state="new">No</target>
+        <target state="translated">いいえ</target>
         <note />
       </trans-unit>
       <trans-unit id="AgentConfigurationPrompt">
         <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
-        <target state="new">Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</target>
+        <target state="translated">Aspire は、構成するエージェント コーディング環境を {0} 件検出しました。今すぐ構成しますか?</target>
         <note />
       </trans-unit>
       <trans-unit id="AgentConfigurationSelectPrompt">
         <source>Select agent environments to configure:</source>
-        <target state="new">Select agent environments to configure:</target>
+        <target state="translated">構成するエージェント環境を選択してください:</target>
         <note />
       </trans-unit>
       <trans-unit id="AgentConfigurationYes">
         <source>Yes</source>
-        <target state="new">Yes</target>
+        <target state="translated">はい</target>
         <note />
       </trans-unit>
       <trans-unit id="AppHost">
@@ -55,6 +55,11 @@
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
         <target state="translated">エンドポイント</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ForceArgumentDescription">
+        <source>Stop any running instance of the AppHost without prompting.</source>
+        <target state="new">Stop any running instance of the AppHost without prompting.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -91,6 +96,16 @@
         <source>Resource</source>
         <target state="translated">リソース</target>
         <note>A column header (noun)</note>
+      </trans-unit>
+      <trans-unit id="RunningInstanceStopFailed">
+        <source>Failed to stop running instance. The process may have already exited.</source>
+        <target state="new">Failed to stop running instance. The process may have already exited.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunningInstanceStopped">
+        <source>Running instance stopped successfully.</source>
+        <target state="new">Running instance stopped successfully.</target>
+        <note />
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>

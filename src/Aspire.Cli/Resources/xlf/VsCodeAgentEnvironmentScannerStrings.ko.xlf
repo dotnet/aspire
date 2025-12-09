@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ApplicatorDescription">
         <source>Configure VS Code to use the Aspire MCP server</source>
-        <target state="new">Configure VS Code to use the Aspire MCP server</target>
+        <target state="translated">VS Code를 Aspire MCP 서버에 연결하도록 설정하세요.</target>
         <note />
       </trans-unit>
     </body>

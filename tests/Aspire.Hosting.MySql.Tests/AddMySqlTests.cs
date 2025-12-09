@@ -258,7 +258,7 @@ public class AddMySqlTests(ITestOutputHelper testOutputHelper)
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        using var tempStore = new TempDirectory();
+        using var tempStore = new TestTempDirectory();
         builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var mysql1 = builder.AddMySql("mysql1").WithPhpMyAdmin(c => c.WithHostPort(8081));
@@ -385,9 +385,9 @@ public class AddMySqlTests(ITestOutputHelper testOutputHelper)
             new BeforeResourceStartedEvent(phpMyAdminResource, app.Services),
             EventDispatchBehavior.BlockingSequential);
 
-        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
-        var config1 = await phpMyAdminResource.GetEnvironmentVariableValuesAsync();
-        var config2 = await phpMyAdminResource.GetEnvironmentVariableValuesAsync();
+        // Call GetEnvironmentVariablesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(phpMyAdminResource);
+        var config2 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(phpMyAdminResource);
 
         // Both calls should succeed and return the same values
         Assert.Equal(config1.Count, config2.Count);

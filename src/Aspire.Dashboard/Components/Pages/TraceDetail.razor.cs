@@ -544,7 +544,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     private static bool IsGenAISpan(SpanWaterfallViewModel spanViewModel)
     {
-        return GenAIHelpers.IsGenAISpan(spanViewModel.Span.Attributes);
+        return GenAIHelpers.HasGenAIAttribute(spanViewModel.Span.Attributes);
     }
 
     private async Task OnGenAIClickedAsync(OtlpSpan span)

@@ -7,8 +7,10 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Mcp;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Aspire.Shared.Mcp;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
@@ -25,7 +27,7 @@ internal sealed class McpStartCommand : BaseCommand
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpStartCommand> _logger;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
@@ -41,7 +43,9 @@ internal sealed class McpStartCommand : BaseCommand
             ["list_traces"] = new ListTracesTool(),
             ["list_trace_structured_logs"] = new ListTraceStructuredLogsTool(),
             ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
-            ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext)
+            ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
+            ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
+            ["get_integration_docs"] = new GetIntegrationDocsTool()
         };
     }
 
@@ -49,12 +53,15 @@ internal sealed class McpStartCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var icons = McpIconHelper.GetAspireIcons(typeof(McpStartCommand).Assembly, "Aspire.Cli.Mcp.Resources");
+
         var options = new McpServerOptions
         {
             ServerInfo = new Implementation
             {
                 Name = "aspire-mcp-server",
-                Version = VersionHelper.GetDefaultTemplateVersion()
+                Version = VersionHelper.GetDefaultTemplateVersion(),
+                Icons = icons
             },
             Handlers = new McpServerHandlers()
             {
@@ -100,8 +107,8 @@ internal sealed class McpStartCommand : BaseCommand
 
         if (_tools.TryGetValue(toolName, out var tool))
         {
-            // Handle select_apphost and list_apphosts tools specially - they don't need an MCP connection
-            if (toolName is "select_apphost" or "list_apphosts")
+            // Handle tools that don't need an MCP connection to the AppHost
+            if (toolName is "select_apphost" or "list_apphosts" or "list_integrations" or "get_integration_docs")
             {
                 return await tool.CallToolAsync(null!, request.Params?.Arguments, cancellationToken);
             }
@@ -188,7 +195,7 @@ internal sealed class McpStartCommand : BaseCommand
     /// 4. If multiple in-scope connections exist, throw an error listing them
     /// 5. If no in-scope connections exist, fall back to the first available connection
     /// </summary>
-    private AppHostConnection? GetSelectedConnection()
+    private AppHostAuxiliaryBackchannel? GetSelectedConnection()
     {
         var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
 

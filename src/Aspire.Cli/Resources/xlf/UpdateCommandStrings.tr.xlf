@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="DotNetToolSelfUpdateMessage">
         <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
-        <target state="new">To update the Aspire CLI when installed as a .NET tool, run:</target>
+        <target state="translated">.NET aracı olarak yüklenen Aspire CLI’yı güncelleştirmek için şu komutu çalıştırın:</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
@@ -110,6 +110,11 @@
       <trans-unit id="MappingRetainedFormat">
         <source>   Mapping: {0}</source>
         <target state="translated">   Eşleme: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MigratedToNewSdkFormat">
+        <source>Migrated to new project format: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</source>
+        <target state="new">Migrated to new project format: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
@@ -170,6 +175,11 @@
       <trans-unit id="RemovedFeedFormat">
         <source>Removed: {0}</source>
         <target state="translated">Kaldırıldı: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedObsoleteAppHostPackage">
+        <source>Removed obsolete Aspire.Hosting.AppHost package reference</source>
+        <target state="new">Removed obsolete Aspire.Hosting.AppHost package reference</target>
         <note />
       </trans-unit>
       <trans-unit id="RetainedFeedFormat">

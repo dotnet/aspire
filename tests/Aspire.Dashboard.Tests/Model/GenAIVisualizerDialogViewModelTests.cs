@@ -216,6 +216,74 @@ public sealed class GenAIVisualizerDialogViewModelTests
     }
 
     [Fact]
+    public void Create_GenAILogEntries_EmptyMessage_NoMessagesCreated()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"), KeyValuePair.Create("server.address", "ai-server.address")])
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope(),
+                        LogRecords =
+                        {
+                            CreateLogRecord(
+                                time: s_testTime,
+                                traceId: "1",
+                                spanId: "1-1",
+                                message: "",
+                                attributes: [KeyValuePair.Create("event.name", "gen_ai.system.message")]),
+                            CreateLogRecord(
+                                time: s_testTime.AddSeconds(1),
+                                traceId: "1",
+                                spanId: "1-1",
+                                message: string.Empty,
+                                attributes: [KeyValuePair.Create("event.name", "gen_ai.user.message")])
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Empty(vm.Items);
+        Assert.Null(vm.DisplayErrorMessage);
+    }
+
+    [Fact]
     public void Create_GenAISpanEvents_HasMessages()
     {
         // Arrange
@@ -305,6 +373,110 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Null(vm.ModelName);
         Assert.Null(vm.InputTokens);
         Assert.Null(vm.OutputTokens);
+    }
+
+    [Fact]
+    public void Create_GenAISpanEvents_EmptyContent_NoMessagesCreated()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var events = new List<Span.Types.Event>
+        {
+            CreateSpanEvent(
+                name: "gen_ai.system.message",
+                startTime: 0,
+                attributes: [
+                    KeyValuePair.Create(GenAIHelpers.GenAIEventContent, ""),
+                    KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+                ]),
+            CreateSpanEvent(
+                name: "gen_ai.user.message",
+                startTime: 1,
+                attributes: [
+                    KeyValuePair.Create(GenAIHelpers.GenAIEventContent, string.Empty),
+                ])
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!")], events: events)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Empty(vm.Items);
+        Assert.Null(vm.DisplayErrorMessage);
+    }
+
+    [Fact]
+    public void Create_GenAISpanEvents_MissingContent_NoMessagesCreated()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var events = new List<Span.Types.Event>
+        {
+            CreateSpanEvent(
+                name: "gen_ai.system.message",
+                startTime: 0,
+                attributes: [
+                    KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+                    // GenAIEventContent attribute is missing
+                ])
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!")], events: events)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Empty(vm.Items);
+        Assert.Null(vm.DisplayErrorMessage);
     }
 
     [Fact]
