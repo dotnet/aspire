@@ -213,7 +213,7 @@
                                             </AspireTemplateColumn>
                                         </ChildContent>
                                         <EmptyContent>
-                                            <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;@Loc[nameof(Dashboard.Resources.Resources.ResourcesNoResources)]
+                                            <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;@(PageViewModel.SelectedViewKind == ResourceViewKind.Parameters ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNoParameters)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesNoResources)])
                                         </EmptyContent>
                                     </FluentDataGrid>
                                 </GridColumnManager>
