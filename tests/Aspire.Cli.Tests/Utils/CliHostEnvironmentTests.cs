@@ -395,4 +395,43 @@ public class CliHostEnvironmentTests
         // Assert
         Assert.True(env.SupportsAnsi);
     }
+
+    [Theory]
+    [InlineData("DOTNET_CLI_CONTEXT_ANSI_PASS_THRU", "true")]
+    [InlineData("DOTNET_CLI_CONTEXT_ANSI_PASS_THRU", "1")]
+    public void SupportsAnsi_ReturnsTrue_WhenAnsiPassThruSet(string key, string value)
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [key] = value
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        
+        // Assert
+        Assert.True(env.SupportsAnsi);
+    }
+
+    [Fact]
+    public void SupportsAnsi_ReturnsTrue_WhenAnsiPassThruSet_EvenWithNO_COLOR()
+    {
+        // Arrange - DOTNET_CLI_CONTEXT_ANSI_PASS_THRU should take precedence over NO_COLOR
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["DOTNET_CLI_CONTEXT_ANSI_PASS_THRU"] = "true",
+                ["NO_COLOR"] = "1"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        
+        // Assert
+        Assert.True(env.SupportsAnsi);
+    }
 }

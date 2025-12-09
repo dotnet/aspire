@@ -281,6 +281,7 @@ public class Program
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
         var isPlayground = CliHostEnvironment.IsPlaygroundMode(configuration);
 
         var settings = new AnsiConsoleSettings()
@@ -289,6 +290,19 @@ public class Program
             Interactive = isPlayground ? InteractionSupport.Yes : InteractionSupport.Detect,
             ColorSystem = isPlayground ? ColorSystemSupport.Standard : ColorSystemSupport.Detect,
         };
+
+        // Support DOTNET_CLI_CONTEXT_ANSI_PASS_THRU to force ANSI even when output is redirected
+        if (hostEnvironment.SupportsAnsi)
+        {
+            var ansiPassThru = configuration["DOTNET_CLI_CONTEXT_ANSI_PASS_THRU"];
+            if (!string.IsNullOrEmpty(ansiPassThru) &&
+                (ansiPassThru.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                 ansiPassThru.Equals("1", StringComparison.Ordinal)))
+            {
+                settings.Ansi = AnsiSupport.Yes;
+                settings.ColorSystem = ColorSystemSupport.Standard;
+            }
+        }
 
         if (isPlayground)
         {
@@ -303,6 +317,21 @@ public class Program
         }
 
         var ansiConsole = AnsiConsole.Create(settings);
+
+        // Fix console width for CI environments where it defaults to 80
+        // Check if explicit width override is set via ASPIRE_CONSOLE_WIDTH
+        var consoleWidthOverride = configuration["ASPIRE_CONSOLE_WIDTH"];
+        if (!string.IsNullOrEmpty(consoleWidthOverride) && int.TryParse(consoleWidthOverride, out var width) && width > 0)
+        {
+            ansiConsole.Profile.Width = width;
+        }
+        // In non-terminal environments (like CI), if width is the default 80, increase it to 160
+        // This prevents awkward line wrapping in CI logs
+        else if (!ansiConsole.Profile.Out.IsTerminal && ansiConsole.Profile.Width == 80)
+        {
+            ansiConsole.Profile.Width = 160;
+        }
+
         return ansiConsole;
     }
 

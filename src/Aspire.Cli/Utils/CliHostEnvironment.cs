@@ -134,6 +134,15 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
 
     private static bool DetectAnsiSupport(IConfiguration configuration)
     {
+        // Check for DOTNET_CLI_CONTEXT_ANSI_PASS_THRU to force ANSI even when redirected
+        var ansiPassThru = configuration["DOTNET_CLI_CONTEXT_ANSI_PASS_THRU"];
+        if (!string.IsNullOrEmpty(ansiPassThru) &&
+            (ansiPassThru.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+             ansiPassThru.Equals("1", StringComparison.Ordinal)))
+        {
+            return true;
+        }
+
         // ANSI codes are supported even in CI environments for colored output
         // Only disable if explicitly configured
         var noColor = configuration["NO_COLOR"];
