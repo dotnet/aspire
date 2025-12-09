@@ -322,6 +322,7 @@ internal static class TelemetryTestHelpers
             State = null,
             Status = statusCode ?? OtlpSpanStatusCode.Unset,
             StatusMessage = statusMessage,
+            HasGenAIInformation = false,
             UninstrumentedPeer = uninstrumentedPeer
         };
     }
