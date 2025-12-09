@@ -27,11 +27,6 @@ public class AzureCosmosDBDatabaseConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("AccountKey", property.Key);
-                Assert.Equal("", property.Value.ValueExpression);
-            },
-            property =>
-            {
                 Assert.Equal("Database", property.Key);
                 Assert.Equal("mydb", property.Value.ValueExpression);
             });
@@ -58,6 +53,45 @@ public class AzureCosmosDBDatabaseConnectionPropertiesTests
             {
                 Assert.Equal("AccountKey", property.Key);
                 Assert.Equal("{cosmosdb-kv.secrets.primaryaccesskey--cosmosdb}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("ConnectionString", property.Key);
+                Assert.Equal("{cosmosdb-kv.secrets.connectionstrings--cosmosdb}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Database", property.Key);
+                Assert.Equal("mydb", property.Value.ValueExpression);
+            });
+    }
+
+    [Fact]
+    public void AzureCosmosDBDatabaseResourceEmulatorGetConnectionPropertiesReturnsExpectedValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var cosmosdb = builder.AddAzureCosmosDB("cosmosdb").RunAsEmulator();
+        var database = cosmosdb.AddCosmosDatabase("database", "mydb");
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureCosmosDBDatabaseResource>());
+        var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToArray();
+
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("https://{cosmosdb.bindings.emulator.host}:{cosmosdb.bindings.emulator.port}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("AccountKey", property.Key);
+                Assert.Equal("C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("ConnectionString", property.Key);
+                Assert.Equal("AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;AccountEndpoint=https://{cosmosdb.bindings.emulator.host}:{cosmosdb.bindings.emulator.port};DisableServerCertificateValidation=True;", property.Value.ValueExpression);
             },
             property =>
             {

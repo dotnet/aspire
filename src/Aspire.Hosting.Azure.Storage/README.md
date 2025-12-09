@@ -109,7 +109,11 @@ When you reference Azure Storage resources using `WithReference`, the following 
 
 ### Azure Storage
 
-The Azure Storage account resource does not expose connection properties directly as it's a parent resource. Instead, use one of its child resources (Blobs, Queues, or Tables).
+The Azure Storage account resource exposes the following connection property:
+
+| Property Name | Description |
+|---------------|-------------|
+| `ConnectionString` | **Emulator only.** For the Azurite emulator, this is a full connection string with SAS key material. |
 
 ### Blob Storage
 

@@ -81,6 +81,7 @@ The Cosmos DB account resource exposes the following connection properties:
 |---------------|-------------|
 | `Uri` | The account endpoint URI for the Cosmos DB account, with the format `https://mycosmosaccount.documents.azure.com:443/` |
 | `AccountKey` | The account key for the Cosmos DB account (only available for emulator and access key authentication) |
+| `ConnectionString` | **Emulator or access key authentication only.** A full connection string (includes account key for emulator; access key secret when access key auth is enabled). |
 
 ### Cosmos DB database
 

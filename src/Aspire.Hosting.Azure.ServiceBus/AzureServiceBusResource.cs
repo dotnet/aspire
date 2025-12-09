@@ -173,5 +173,10 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
         }
         
         yield return new("Uri", UriExpression);
+
+        if (IsEmulator)
+        {
+            yield return new("ConnectionString", ConnectionStringExpression);
+        }
     }
 }

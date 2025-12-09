@@ -194,5 +194,10 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
         }
 
         yield return new("Uri", UriExpression);
+
+        if (IsEmulator)
+        {
+            yield return new("ConnectionString", ConnectionStringExpression);
+        }
     }
 }

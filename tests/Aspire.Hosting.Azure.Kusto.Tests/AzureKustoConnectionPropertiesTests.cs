@@ -43,6 +43,28 @@ public class AzureKustoConnectionPropertiesTests
     }
 
     [Fact]
+    public void AzureKustoClusterResourceWithEmulatorAndApiKeyGetConnectionPropertiesReturnsExpectedValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
+
+        var properties = ((IResourceWithConnectionString)kusto.Resource).GetConnectionProperties().ToArray();
+
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("{kusto.bindings.http.url}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("ApiKey", property.Key);
+                Assert.Equal("secret", property.Value.ValueExpression);
+            });
+    }
+
+    [Fact]
     public void AzureKustoDatabaseResourceGetConnectionPropertiesReturnsExpectedValues()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -68,6 +90,30 @@ public class AzureKustoConnectionPropertiesTests
 
     [Fact]
     public void AzureKustoDatabaseResourceWithEmulatorGetConnectionPropertiesReturnsExpectedValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
+        var database = kusto.AddReadWriteDatabase("testdb");
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureKustoReadWriteDatabaseResource>());
+        var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToDictionary(x => x.Key, x => x.Value);
+
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("{kusto.bindings.http.url}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Database", property.Key);
+                Assert.Equal("testdb", property.Value.ValueExpression);
+            });
+    }
+
+    [Fact]
+    public void AzureKustoDatabaseResourceWithEmulatorAndApiKeyGetConnectionPropertiesReturnsExpectedValues()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();

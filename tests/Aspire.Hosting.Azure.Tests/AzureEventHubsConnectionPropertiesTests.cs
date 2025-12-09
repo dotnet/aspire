@@ -29,4 +29,36 @@ public class AzureEventHubsConnectionPropertiesTests
                 Assert.Equal("{eventhubs.outputs.eventHubsEndpoint}", property.Value.ValueExpression);
             });
     }
+
+    [Fact]
+    public void AzureEventHubsResourceGetConnectionPropertiesReturnsConnectionStringForEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator();
+
+        var properties = ((IResourceWithConnectionString)eventHubs.Resource).GetConnectionProperties().ToArray();
+
+        Assert.Collection(
+            properties,
+            property =>
+            {
+                Assert.Equal("Host", property.Key);
+                Assert.Equal("{eventhubs.bindings.emulator.host}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Port", property.Key);
+                Assert.Equal("{eventhubs.bindings.emulator.host}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("Uri", property.Key);
+                Assert.Equal("sb://{eventhubs.bindings.emulator.host}:{eventhubs.bindings.emulator.port}", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("ConnectionString", property.Key);
+                Assert.Equal("Endpoint=sb://{eventhubs.bindings.emulator.host}:{eventhubs.bindings.emulator.port};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true", property.Value.ValueExpression);
+            });
+    }
 }

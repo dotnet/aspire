@@ -99,14 +99,14 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// Gets the account key expression for the Cosmos DB account.
     /// </summary>
     /// <remarks>
-    /// This is only available for emulator and access key authentication. For Entra ID authentication, this property will be empty.
+    /// This is only available for emulator and access key authentication. For Entra ID authentication, this property will be null.
     /// </remarks>
-    public ReferenceExpression AccountKey =>
+    public ReferenceExpression? AccountKey =>
         IsEmulator ?
             ReferenceExpression.Create($"{CosmosConstants.EmulatorAccountKey}") :
             UseAccessKeyAuthentication ?
                 ReferenceExpression.Create($"{PrimaryAccessKeySecretOutput}") :
-                ReferenceExpression.Empty;
+                null;
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Cosmos DB resource.
@@ -239,8 +239,16 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        // The ConnectionString output contains the account endpoint URI.
-        yield return new("Uri", ReferenceExpression.Create($"{ConnectionStringOutput}"));
-        yield return new("AccountKey", AccountKey);
+        yield return new("Uri", ReferenceExpression.Create($"{Uri}"));
+
+        if (AccountKey is not null)
+        {
+            yield return new("AccountKey", AccountKey);
+        }
+
+        if (IsEmulator || UseAccessKeyAuthentication)
+        {
+            yield return new("ConnectionString", ConnectionStringExpression);
+        }
     }
 }
