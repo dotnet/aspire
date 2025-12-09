@@ -175,9 +175,21 @@ public class AzureContainerAppEnvironmentResource :
     /// </summary>
     internal AzureContainerRegistryResource? DefaultContainerRegistry { get; set; }
 
-    ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create($"{ContainerRegistryName}");
+    ReferenceExpression IContainerRegistry.Name => GetContainerRegistry()?.Name ?? ReferenceExpression.Create($"{ContainerRegistryName}");
 
-    ReferenceExpression IContainerRegistry.Endpoint => ReferenceExpression.Create($"{ContainerRegistryUrl}");
+    ReferenceExpression IContainerRegistry.Endpoint => GetContainerRegistry()?.Endpoint ?? ReferenceExpression.Create($"{ContainerRegistryUrl}");
+
+    private IContainerRegistry? GetContainerRegistry()
+    {
+        // Check for explicit container registry reference annotation
+        if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation))
+        {
+            return annotation.Registry;
+        }
+
+        // Fall back to default container registry
+        return DefaultContainerRegistry;
+    }
 
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
