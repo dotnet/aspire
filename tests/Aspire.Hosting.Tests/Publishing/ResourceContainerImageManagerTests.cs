@@ -488,7 +488,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task BuildImagesAsync_WithOnlyProjectResourcesAndOci_DoesNotNeedContainerRuntime()
+    public async Task BuildImagesAsync_AlwaysChecksContainerRuntime()
     {
         using var builder = TestDistributedApplicationBuilder.Create(output);
 
@@ -498,8 +498,8 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             logging.AddXunit(output);
         });
 
-        // Create a fake container runtime that would fail if called
-        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: true);
+        // Create a fake container runtime that is healthy
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
         builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
 
         var servicea = builder.AddProject<Projects.ServiceA>("servicea")
@@ -514,12 +514,11 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
 
-        // This should not fail despite the fake container runtime being configured to fail
-        // because we only have project resources (no DockerfileBuildAnnotation)
+        // BuildImagesAsync should always check container runtime health
         await imageBuilder.BuildImagesAsync([servicea.Resource], cts.Token);
 
-        // Validate that the container runtime health check was not called
-        Assert.False(fakeContainerRuntime.WasHealthCheckCalled);
+        // Validate that the container runtime health check was always called
+        Assert.True(fakeContainerRuntime.WasHealthCheckCalled);
     }
 
     [Fact]
@@ -547,7 +546,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         await imageBuilder.BuildImagesAsync([dockerfileResource.Resource], cts.Token);
 
-        // Validate that the container runtime health check was called for resources with DockerfileBuildAnnotation
+        // Validate that the container runtime health check was called
         Assert.True(fakeContainerRuntime.WasHealthCheckCalled);
     }
 
@@ -622,6 +621,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         var collector = app.Services.GetFakeLogCollector();
         var logs = collector.GetSnapshot();
 
+        Assert.Contains(logs, log => log.Message.Contains("Container runtime is not running or is unhealthy. Container runtime is required for deploying container images."));
         Assert.Contains(logs, log => log.Message.Contains("Container runtime is not running or is unhealthy. Cannot build container images."));
     }
 

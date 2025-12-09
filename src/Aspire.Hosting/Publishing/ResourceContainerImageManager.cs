@@ -184,21 +184,19 @@ internal sealed class ResourceContainerImageManager(
     {
         logger.LogInformation("Starting to build container images");
 
-        // Only check container runtime health if there are resources that need it
-        if (await ResourcesRequireContainerRuntimeAsync(resources, cancellationToken).ConfigureAwait(false))
+        // Always check container runtime health and warn when running deploy
+        logger.LogDebug("Checking {ContainerRuntimeName} health", ContainerRuntime.Name);
+
+        var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
+
+        if (!containerRuntimeHealthy)
         {
-            logger.LogDebug("Checking {ContainerRuntimeName} health", ContainerRuntime.Name);
-
-            var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
-
-            if (!containerRuntimeHealthy)
-            {
-                logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
-                throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
-            }
-
-            logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
+            logger.LogWarning("Container runtime is not running or is unhealthy. Container runtime is required for deploying container images.");
+            logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
+            throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
         }
+
+        logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
 
         foreach (var resource in resources)
         {
@@ -474,34 +472,6 @@ internal sealed class ResourceContainerImageManager(
     public async Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
     {
         await ContainerRuntime.PushImageAsync(resource, cancellationToken).ConfigureAwait(false);
-    }
-
-    // .NET Container builds that push OCI images to a local file path do not need a runtime
-    private async Task<bool> ResourcesRequireContainerRuntimeAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
-    {
-        var hasDockerfileResources = resources.Any(resource =>
-            resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
-            resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _));
-
-        if (hasDockerfileResources)
-        {
-            return true;
-        }
-
-        // Check if any resource uses Docker format or has no output path
-        foreach (var resource in resources)
-        {
-            var options = await ResolveContainerBuildOptionsAsync(resource, cancellationToken).ConfigureAwait(false);
-            var usesDocker = options.ImageFormat == null || options.ImageFormat == ContainerImageFormat.Docker;
-            var hasNoOutputPath = options.OutputPath == null;
-
-            if (usesDocker || hasNoOutputPath)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
 }
