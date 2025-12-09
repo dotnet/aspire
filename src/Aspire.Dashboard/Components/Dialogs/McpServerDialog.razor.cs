@@ -61,6 +61,8 @@ public partial class McpServerDialog
             {
                 // For CLI MCP mode, we don't need the HTTP endpoint configuration
                 _mcpConfigProperties = [];
+                _mcpServerInstallButtonJson = string.Empty;
+                _mcpServerConfigFileJson = string.Empty;
             }
             else
             {
@@ -70,7 +72,7 @@ public partial class McpServerDialog
                 [
                     new McpConfigPropertyViewModel { Name = "name", Value = "aspire-dashboard" },
                     new McpConfigPropertyViewModel { Name = "type", Value = "http" },
-                    new McpConfigPropertyViewModel { Name = "url", Value = _mcpUrl }
+                    new McpConfigPropertyViewModel { Name = "url", Value = _mcpUrl! }
                 ];
 
                 if (DashboardOptions.Value.Mcp.AuthMode == McpAuthMode.ApiKey)
@@ -85,8 +87,9 @@ public partial class McpServerDialog
         }
     }
 
-    [MemberNotNullWhen(false, nameof(_mcpServerInstallButtonJson), nameof(_mcpUrl))]
-    private bool McpEnabled => !DashboardOptions.Value.Mcp.Disabled.GetValueOrDefault() && (DashboardOptions.Value.Mcp.UseCliMcp == true || !string.IsNullOrEmpty(_mcpUrl));
+    [MemberNotNullWhen(true, nameof(_mcpServerInstallButtonJson))]
+    [MemberNotNullWhen(true, nameof(_mcpServerConfigFileJson))]
+    private bool McpEnabled => !DashboardOptions.Value.Mcp.Disabled.GetValueOrDefault();
 
     private bool IsCliMcpMode => DashboardOptions.Value.Mcp.UseCliMcp == true;
 
@@ -174,8 +177,8 @@ public partial class McpServerDialog
         ```
         """;
 
-    private string GetCliMcpConfigurationMarkdown() =>
-        $$"""
+    private static string GetCliMcpConfigurationMarkdown() =>
+        """
         ```json
         {
           "mcpServers": {
