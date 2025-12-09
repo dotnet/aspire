@@ -144,7 +144,7 @@ internal sealed class UpdateCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+            var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
             
             // Check if channel or quality option was provided (channel takes precedence)
             var channelName = parseResult.GetValue<string?>("--channel") ?? parseResult.GetValue<string?>("--quality");
@@ -153,17 +153,30 @@ internal sealed class UpdateCommand : BaseCommand
             if (!string.IsNullOrEmpty(channelName))
             {
                 // Try to find a channel matching the provided channel/quality
-                channel = channels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase))
-                    ?? throw new ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", channels.Select(c => c.Name))}");
+                channel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase))
+                    ?? throw new ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", allChannels.Select(c => c.Name))}");
             }
             else
             {
-                // Prompt for channel selection
-                channel = await InteractionService.PromptForSelectionAsync(
-                    UpdateCommandStrings.SelectChannelPrompt,
-                    channels,
-                    (c) => $"{c.Name} ({c.SourceDetails})",
-                    cancellationToken);
+                // If there are hives (PR build directories), prompt for channel selection.
+                // Otherwise, use the implicit/default channel automatically.
+                var hasHives = ExecutionContext.GetPrHiveCount() > 0;
+                
+                if (hasHives)
+                {
+                    // Prompt for channel selection
+                    channel = await InteractionService.PromptForSelectionAsync(
+                        UpdateCommandStrings.SelectChannelPrompt,
+                        allChannels,
+                        (c) => $"{c.Name} ({c.SourceDetails})",
+                        cancellationToken);
+                }
+                else
+                {
+                    // Use the default (implicit) channel
+                    channel = allChannels.FirstOrDefault(c => c.Type is PackageChannelType.Implicit)
+                        ?? allChannels.First();
+                }
             }
 
             await _projectUpdater.UpdateProjectAsync(projectFile!, channel, cancellationToken);
@@ -233,15 +246,27 @@ internal sealed class UpdateCommand : BaseCommand
     {
         var channel = selectedChannel ?? parseResult.GetValue<string?>("--channel") ?? parseResult.GetValue<string?>("--quality");
 
-        // If channel is not specified, prompt the user
+        // If channel is not specified, check for hives and either prompt or use default
         if (string.IsNullOrEmpty(channel))
         {
-            var channels = new[] { "stable", "staging", "daily" };
-            channel = await InteractionService.PromptForSelectionAsync(
-                "Select the channel to update to:",
-                channels,
-                q => q,
-                cancellationToken);
+            // If there are hives (PR build directories), prompt for channel selection.
+            // Otherwise, use "stable" as the default channel.
+            var hasHives = ExecutionContext.GetPrHiveCount() > 0;
+            
+            if (hasHives)
+            {
+                var channels = new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily };
+                channel = await InteractionService.PromptForSelectionAsync(
+                    "Select the channel to update to:",
+                    channels,
+                    q => q,
+                    cancellationToken);
+            }
+            else
+            {
+                // Use stable as the default channel for self-update
+                channel = PackageChannelNames.Stable;
+            }
         }
 
         try

@@ -73,4 +73,4 @@ resource container_connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-0
   parent: keyVault
 }
 
-output name string = existingResourceName
+output name string = cosmos.name

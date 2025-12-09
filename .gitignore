@@ -134,6 +134,8 @@ dependency-reduced-pom.xml
 # Python Compile Outputs
 
 *.pyc
+*.egg-info/
+/playground/python/**/build
 
 # IntelliJ
 .idea/

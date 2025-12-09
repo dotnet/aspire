@@ -35,6 +35,29 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to which the Azure Functions project will be added.</param>
     /// <param name="name">The name to be associated with the Azure Functions project. This name will be used for service discovery when referenced in a dependency.</param>
     /// <returns>An <see cref="IResourceBuilder{AzureFunctionsProjectResource}"/> for the added Azure Functions project resource.</returns>
+    /// <remarks>
+    /// <para>
+    /// When Functions projects are deployed to Azure Container Apps, they are provisioned with the container app <c>kind</c>
+    /// property set to <c>functionapp</c>. This enables KEDA auto-scaler rules to be automatically configured based on the
+    /// Azure Functions triggers defined in the project.
+    /// </para>
+    /// <para>
+    /// By default, an implicit Azure Storage account is provisioned to be used as host storage for the Functions runtime.
+    /// This storage account is required by the Azure Functions runtime for operations such as managing triggers, logging
+    /// function executions, and coordinating instances. The implicit storage account is assigned the following roles:
+    /// <list type="bullet">
+    /// <item><description><see cref="StorageBuiltInRole.StorageBlobDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageTableDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageQueueDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageAccountContributor"/></description></item>
+    /// </list>
+    /// For more information, see <a href="https://learn.microsoft.com/azure/azure-functions/dotnet-aspire-integration#azure-functions-host-storage">Azure Functions host storage</a>.
+    /// </para>
+    /// <para>
+    /// Use <see cref="WithHostStorage"/> to specify a custom Azure Storage resource as the host storage instead of the
+    /// implicit default storage account.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<AzureFunctionsProjectResource> AddAzureFunctionsProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name)
         where TProject : IProjectMetadata, new()
     {
@@ -57,6 +80,27 @@ public static class AzureFunctionsProjectResourceExtensions
     /// This overload of the <see cref="AddAzureFunctionsProject(IDistributedApplicationBuilder, string, string)"/> method adds an Azure Functions project to the application
     /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
+    /// </para>
+    /// <para>
+    /// When Functions projects are deployed to Azure Container Apps, they are provisioned with the container app <c>kind</c>
+    /// property set to <c>functionapp</c>. This enables KEDA auto-scaler rules to be automatically configured based on the
+    /// Azure Functions triggers defined in the project.
+    /// </para>
+    /// <para>
+    /// By default, an implicit Azure Storage account is provisioned to be used as host storage for the Functions runtime.
+    /// This storage account is required by the Azure Functions runtime for operations such as managing triggers, logging
+    /// function executions, and coordinating instances. The implicit storage account is assigned the following roles:
+    /// <list type="bullet">
+    /// <item><description><see cref="StorageBuiltInRole.StorageBlobDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageTableDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageQueueDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageAccountContributor"/></description></item>
+    /// </list>
+    /// For more information, see <a href="https://learn.microsoft.com/azure/azure-functions/dotnet-aspire-integration#azure-functions-host-storage">Azure Functions host storage</a>.
+    /// </para>
+    /// <para>
+    /// Use <see cref="WithHostStorage"/> to specify a custom Azure Storage resource as the host storage instead of the
+    /// implicit default storage account.
     /// </para>
     /// <example>
     /// Add an Azure Functions project to the app model via a project path.

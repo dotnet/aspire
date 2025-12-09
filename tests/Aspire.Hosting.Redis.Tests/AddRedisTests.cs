@@ -737,9 +737,9 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     public void WithoutCertificateKeyPairDisablesTlsConfiguration()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var redis = builder.AddRedis("myredis").WithoutServerAuthenticationCertificate();
+        var redis = builder.AddRedis("myredis").WithoutHttpsCertificate();
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<HttpsCertificateAnnotation>());
         Assert.False(annotation.UseDeveloperCertificate);
         Assert.Null(annotation.Certificate);
         Assert.Null(annotation.Password);
@@ -750,9 +750,9 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     public void WithDeveloperCertificateKeyPairEnablesDeveloperCertificate()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var redis = builder.AddRedis("myredis").WithServerAuthenticationDeveloperCertificate();
+        var redis = builder.AddRedis("myredis").WithHttpsDeveloperCertificate();
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<HttpsCertificateAnnotation>());
         Assert.True(annotation.UseDeveloperCertificate);
         Assert.Null(annotation.Certificate);
         Assert.Null(annotation.Password);
@@ -764,32 +764,30 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     {
         var builder = DistributedApplication.CreateBuilder();
         var password = builder.AddParameter("certpass", "test123");
-        var redis = builder.AddRedis("myredis").WithServerAuthenticationDeveloperCertificate(password);
+        var redis = builder.AddRedis("myredis").WithHttpsDeveloperCertificate(password);
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<HttpsCertificateAnnotation>());
         Assert.True(annotation.UseDeveloperCertificate);
         Assert.Null(annotation.Certificate);
         Assert.Equal(password.Resource, annotation.Password);
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public void WithCertificateKeyPairUsesProvidedCertificate()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         // Create a test certificate with private key
         using var cert = CreateTestCertificate();
-        var redis = builder.AddRedis("myredis").WithServerAuthenticationCertificate(cert);
+        var redis = builder.AddRedis("myredis").WithHttpsCertificate(cert);
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<HttpsCertificateAnnotation>());
         Assert.Null(annotation.UseDeveloperCertificate);
         Assert.Equal(cert, annotation.Certificate);
         Assert.Null(annotation.Password);
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public void WithCertificateKeyPairWithPasswordStoresPassword()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -797,22 +795,21 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
 
         // Create a test certificate with private key
         using var cert = CreateTestCertificate();
-        var redis = builder.AddRedis("myredis").WithServerAuthenticationCertificate(cert, password);
+        var redis = builder.AddRedis("myredis").WithHttpsCertificate(cert, password);
 
-        var annotation = Assert.Single(redis.Resource.Annotations.OfType<ServerAuthenticationCertificateAnnotation>());
+        var annotation = Assert.Single(redis.Resource.Annotations.OfType<HttpsCertificateAnnotation>());
         Assert.Null(annotation.UseDeveloperCertificate);
         Assert.Equal(cert, annotation.Certificate);
         Assert.Equal(password.Resource, annotation.Password);
     }
 
     [Fact]
-    [RequiresCertificateStoreAccess]
     public async Task RedisWithCertificateHasCorrectConnectionString()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         using var cert = CreateTestCertificate();
 
-        var redis = builder.AddRedis("myredis").WithServerAuthenticationCertificate(cert);
+        var redis = builder.AddRedis("myredis").WithHttpsCertificate(cert);
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -829,7 +826,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
-        var redis = builder.AddRedis("myredis").WithoutServerAuthenticationCertificate();
+        var redis = builder.AddRedis("myredis").WithoutHttpsCertificate();
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();

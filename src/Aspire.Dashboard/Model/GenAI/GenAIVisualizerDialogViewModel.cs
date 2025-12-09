@@ -77,7 +77,7 @@ public sealed class GenAIVisualizerDialogViewModel
 
         // Parse tool definitions if present
         var toolDefinitionsJson = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIToolDefinitions);
-        if (toolDefinitionsJson != null)
+        if (!string.IsNullOrEmpty(toolDefinitionsJson))
         {
             try
             {
@@ -241,19 +241,19 @@ public sealed class GenAIVisualizerDialogViewModel
         var inputMessages = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIInputMessages);
         var outputMessages = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIOutputInstructions);
 
-        if (systemInstructions != null || inputMessages != null || outputMessages != null)
+        if (!string.IsNullOrEmpty(systemInstructions) || !string.IsNullOrEmpty(inputMessages) || !string.IsNullOrEmpty(outputMessages))
         {
-            if (systemInstructions != null)
+            if (!string.IsNullOrEmpty(systemInstructions))
             {
                 var instructionParts = DeserializeWithErrorHandling(GenAIHelpers.GenAISystemInstructions, systemInstructions, GenAIMessagesContext.Default.ListMessagePart)!;
                 viewModel.Items.Add(CreateMessage(viewModel, currentIndex, GenAIItemType.SystemMessage, instructionParts.Select(GenAIItemPartViewModel.CreateMessagePart).ToList(), internalId: null));
                 currentIndex++;
             }
-            if (inputMessages != null)
+            if (!string.IsNullOrEmpty(inputMessages))
             {
                 ParseMessages(viewModel, inputMessages, GenAIHelpers.GenAIInputMessages, isOutput: false, ref currentIndex);
             }
-            if (outputMessages != null)
+            if (!string.IsNullOrEmpty(outputMessages))
             {
                 ParseMessages(viewModel, outputMessages, GenAIHelpers.GenAIOutputInstructions, isOutput: true, ref currentIndex);
             }
@@ -265,7 +265,7 @@ public sealed class GenAIVisualizerDialogViewModel
         var logEntries = GetSpanLogEntries(telemetryRepository, viewModel.Span);
         foreach (var (item, index) in logEntries.OrderBy(i => i.TimeStamp).Select((l, i) => (l, i)))
         {
-            if (item.Attributes.GetValue("event.name") is { } name && TryMapEventName(name, out var type))
+            if (!string.IsNullOrEmpty(item.Message) && item.Attributes.GetValue("event.name") is { } name && TryMapEventName(name, out var type))
             {
                 var parts = DeserializeEventContent(index, type.Value, item.Message);
                 viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type.Value, parts, internalId: item.InternalId));
@@ -285,9 +285,12 @@ public sealed class GenAIVisualizerDialogViewModel
             if (TryMapEventName(item.Name, out var type))
             {
                 var content = item.Attributes.GetValue(GenAIHelpers.GenAIEventContent);
-                var parts = content != null ? DeserializeEventContent(index, type.Value, content) : [];
-                viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type.Value, parts, internalId: null));
-                currentIndex++;
+                if (!string.IsNullOrEmpty(content))
+                {
+                    var parts = DeserializeEventContent(index, type.Value, content);
+                    viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type.Value, parts, internalId: null));
+                    currentIndex++;
+                }
             }
         }
 
@@ -339,7 +342,7 @@ public sealed class GenAIVisualizerDialogViewModel
             var role = GetMessageRole(message, defaultRole: "user");
             var content = GetMessageContent(message);
 
-            if (content != null)
+            if (!string.IsNullOrEmpty(content))
             {
                 var parts = new List<GenAIItemPartViewModel>
                 {
@@ -366,7 +369,7 @@ public sealed class GenAIVisualizerDialogViewModel
             var role = GetMessageRole(message, defaultRole: "assistant");
             var content = GetMessageContent(message);
 
-            if (content != null)
+            if (!string.IsNullOrEmpty(content))
             {
                 var parts = new List<GenAIItemPartViewModel>
                 {

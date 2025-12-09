@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREFILESYSTEM001
+#pragma warning disable ASPIREUSERSECRETS001
 
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -9,6 +11,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.UserSecrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -135,6 +138,35 @@ public interface IDistributedApplicationBuilder
     /// </remarks>
     [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public IDistributedApplicationPipeline Pipeline { get; }
+
+    /// <summary>
+    /// Gets the service for managing Aspire file system operations.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="FileSystemService"/> provides a centralized way to manage temporary files and directories
+    /// used by Aspire, enabling testability and consistent temp file management.
+    /// </para>
+    /// <para>
+    /// Resources and infrastructure code should use this service instead of static methods like
+    /// <see cref="Path.GetTempPath"/> or <see cref="Directory.CreateTempSubdirectory(string?)"/> to ensure
+    /// consistent directory management across the application.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREFILESYSTEM001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public IFileSystemService FileSystemService => throw new NotImplementedException();
+
+    /// <summary>
+    /// Gets the service for managing user secrets.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="UserSecretsManager"/> provides a centralized way to manage user secrets
+    /// used by Aspire, enabling testability and consistent secret management.
+    /// </para>
+    /// </remarks>
+    [Experimental("ASPIREUSERSECRETS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public IUserSecretsManager UserSecretsManager => throw new NotImplementedException();
 
     /// <summary>
     /// Adds a resource of type <typeparamref name="T"/> to the distributed application.

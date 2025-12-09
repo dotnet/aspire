@@ -19,7 +19,7 @@ public static class EnvironmentVariableEvaluator
         });
 
         (var executionConfiguration, var exception) = await resource.ExecutionConfigurationBuilder()
-            .WithEnvironmentVariables()
+            .WithEnvironmentVariablesConfig()
             .BuildAsync(executionContext, NullLogger.Instance, CancellationToken.None);
 
         if (exception is not null)

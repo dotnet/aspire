@@ -13,7 +13,7 @@ public class AddJavaScriptAppTests
     [Fact]
     public async Task VerifyDockerfile()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
         // Create directory to ensure manifest generates correct relative build context path
@@ -51,7 +51,7 @@ public class AddJavaScriptAppTests
     [InlineData(false)]
     public async Task VerifyPnpmDockerfile(bool hasLockFile)
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
         // Create directory to ensure manifest generates correct relative build context path
@@ -80,7 +80,7 @@ public class AddJavaScriptAppTests
     [OuterloopTest("Builds a Docker image to verify the generated pnpm Dockerfile works")]
     public async Task VerifyPnpmDockerfileBuildSucceeds()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
         // Create app directory

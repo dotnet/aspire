@@ -9,42 +9,42 @@
       </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
         <source>Select agent environments to configure:</source>
-        <target state="new">Select agent environments to configure:</target>
+        <target state="translated">Selecione ambientes de agente a serem configurados:</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">
         <source>Agent environment configuration complete.</source>
-        <target state="new">Agent environment configuration complete.</target>
+        <target state="translated">Configuração do ambiente do agente concluída.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments.</source>
-        <target state="new">Initialize MCP server configuration for detected agent environments.</target>
+        <target state="translated">Inicialize a configuração do servidor MCP para ambientes de agente detectados.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_DetectingAgentEnvironments">
         <source>Detecting agent environments...</source>
-        <target state="new">Detecting agent environments...</target>
+        <target state="translated">Detectando ambientes de agente...</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_NoAgentEnvironmentsDetected">
         <source>No agent environments were detected.</source>
-        <target state="new">No agent environments were detected.</target>
+        <target state="translated">Nenhum ambiente de agente foi detectado.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_WorkspaceRootNotFound">
         <source>Directory not found: {0}</source>
-        <target state="new">Directory not found: {0}</target>
+        <target state="translated">Diretório não encontrado: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_WorkspaceRootPrompt">
         <source>Enter the path to the root of your workspace:</source>
-        <target state="new">Enter the path to the root of your workspace:</target>
+        <target state="translated">Insira o caminho para a raiz do seu workspace:</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_WorkspaceRootRequired">
         <source>Workspace root path is required.</source>
-        <target state="new">Workspace root path is required.</target>
+        <target state="translated">O caminho raiz do workspace é obrigatório.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartCommand_Description">

@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aplikacja startowa Aspire",
-  "description": "Szablon projektu na potrzeby tworzenia aplikacji Aspire z frontonem internetowym platformy Blazor i usługą wewnętrznej bazy danych internetowego interfejsu API, opcjonalnie używając usługi Redis do buforowania.",
+  "name": "React (Vite) oraz minimalna wersja początkowa interfejsu API",
+  "description": "Szablon projektu na potrzeby tworzenia aplikacji z frontonem React (Vite) i minimalną usługą zaplecza interfejsu API, opcjonalnie używający usługi Redis do buforowania.",
   "symbols/Framework/description": "Platforma docelowa dla tego projektu.",
   "symbols/Framework/choices/net8.0/description": "Docelowa platforma net8.0",
   "symbols/Framework/choices/net9.0/description": "Docelowa platforma net9.0",
@@ -16,13 +16,13 @@
   "symbols/appHostOtlpHttpsPort/description": "Numer portu do użycia dla punktu końcowego HTTPS OTLP w pliku launchSettings.json projektu AppHost.",
   "symbols/appHostMcpHttpsPort/description": "Numer portu do użycia dla punktu końcowego HTTPS MCP w pliku launchSettings.json projektu AppHost.",
   "symbols/appHostResourceHttpsPort/description": "Numer portu do użycia dla punktu końcowego HTTPS usługi zasobów w pliku launchSettings.json projektu AppHost.",
-  "symbols/serverHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the Server project.",
-  "symbols/serverHttpsPort/description": "Port number to use for the HTTPS endpoint in launchSettings.json of the Server project. This option is only applicable when the parameter no-https is not used.",
+  "symbols/serverHttpPort/description": "Numer portu do użycia dla punktu końcowego HTTP w pliku launchSettings.json projektu sieci Web.",
+  "symbols/serverHttpsPort/description": "Numer portu do użycia dla punktu końcowego HTTPS w pliku launchSettings.json projektu serwera. Ta opcja ma zastosowanie tylko wtedy, gdy parametr no-https nie jest używany.",
   "symbols/skipRestore/description": "Jeśli ta opcja jest określona, pomija automatyczne przywracanie projektu podczas tworzenia.",
   "symbols/NoHttps/description": "Określa, czy wyłączyć protokół HTTPS.",
   "symbols/LocalhostTld/displayName": "Użyj pliku .dev.localhost TLD w adresie URL aplikacji",
   "symbols/LocalhostTld/description": "Określa, czy połączyć nazwę projektu z TLD .dev.localhost w adresie URL aplikacji na potrzeby lokalnego programowania, np. https://myapp.dev.localhost:12345. Obsługiwane na platformie .NET 10 lub nowszej.",
   "postActions/set-startup-project/description": "Ustawia projekt startowy w rozwiązaniu",
   "postActions/restore/description": "Przywróć pakiety NuGet wymagane przez ten projekt.",
-  "postActions/restore/manualInstructions/default/text": "Uruchom polecenie \"dotnet restore\""
+  "postActions/restore/manualInstructions/default/text": "Uruchom polecenie „dotnet restore”"
 }

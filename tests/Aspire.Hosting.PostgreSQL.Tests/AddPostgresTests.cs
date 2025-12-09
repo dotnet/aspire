@@ -453,7 +453,7 @@ public class AddPostgresTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        using var tempStore = new TempDirectory();
+        using var tempStore = new TestTempDirectory();
         builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var username = builder.AddParameter("pg-user", "myuser");
@@ -515,7 +515,7 @@ public class AddPostgresTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        using var tempStore = new TempDirectory();
+        using var tempStore = new TestTempDirectory();
         builder.Configuration["Aspire:Store:Path"] = tempStore.Path;
 
         var pg1 = builder.AddPostgres("mypostgres1").WithPgWeb(pga => pga.WithHostPort(8081));

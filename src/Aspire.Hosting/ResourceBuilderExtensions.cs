@@ -456,7 +456,8 @@ public static class ResourceBuilderExtensions
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
                 {
                     var serviceKey = name is null ? serviceName.ToUpperInvariant() : name;
-                    context.EnvironmentVariables[$"{serviceKey}_{endpointName.ToUpperInvariant()}"] = endpoint;
+                    var encodedEndpointName = EnvironmentVariableNameEncoder.Encode(endpointName);
+                    context.EnvironmentVariables[$"{EnvironmentVariableNameEncoder.Encode(serviceKey)}_{encodedEndpointName.ToUpperInvariant()}"] = endpoint;
                 }
 
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
@@ -529,7 +530,7 @@ public static class ResourceBuilderExtensions
                 var prefix = connectionName switch
                 {
                     "" => "",
-                    _ => $"{connectionName.ToUpperInvariant()}_"
+                    _ => $"{EnvironmentVariableNameEncoder.Encode(connectionName).ToUpperInvariant()}_"
                 };
 
                 SplatConnectionProperties(resource, prefix, context);
@@ -663,7 +664,7 @@ public static class ResourceBuilderExtensions
 
         if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
         {
-            builder.WithEnvironment($"{name}", uri.ToString());
+            builder.WithEnvironment(EnvironmentVariableNameEncoder.Encode(name), uri.ToString());
         }
 
         return builder;
@@ -693,8 +694,8 @@ public static class ResourceBuilderExtensions
         {
             if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
             {
-                var envVarName = $"{externalService.Resource.Name.ToUpperInvariant()}";
-                builder.WithEnvironment(envVarName, uri.ToString());
+                var encodedResourceName = EnvironmentVariableNameEncoder.Encode(externalService.Resource.Name);
+                builder.WithEnvironment(encodedResourceName.ToUpperInvariant(), uri.ToString());
             }
 
             if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
@@ -709,17 +710,19 @@ public static class ResourceBuilderExtensions
             {
                 string discoveryEnvVarName;
                 string endpointEnvVarName;
+                var encodedResourceName = EnvironmentVariableNameEncoder.Encode(externalService.Resource.Name);
 
                 if (context.ExecutionContext.IsPublishMode)
                 {
                     // In publish mode we can't read the parameter value to get the scheme so use 'default'
                     discoveryEnvVarName = $"services__{externalService.Resource.Name}__default__0";
-                    endpointEnvVarName = externalService.Resource.Name.ToUpperInvariant();
+                    endpointEnvVarName = encodedResourceName.ToUpperInvariant();
                 }
                 else if (ExternalServiceResource.UrlIsValidForExternalService(await externalService.Resource.UrlParameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false), out var uri, out var message))
                 {
                     discoveryEnvVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
-                    endpointEnvVarName = $"{externalService.Resource.Name.ToUpperInvariant()}_{uri.Scheme.ToUpperInvariant()}";
+                    var encodedScheme = EnvironmentVariableNameEncoder.Encode(uri.Scheme);
+                    endpointEnvVarName = $"{encodedResourceName.ToUpperInvariant()}_{encodedScheme.ToUpperInvariant()}";
                 }
                 else
                 {
@@ -2438,7 +2441,7 @@ public static class ResourceBuilderExtensions
     /// <returns>The updated resource builder.</returns>
     /// <remarks>
     /// <example>
-    /// Add an environment variable that needs to reference the path to the certificate bundle for the container resource.
+    /// Add an environment variable that needs to reference the path to the certificate bundle for the container resource:
     /// <code lang="csharp">
     /// var container = builder.AddContainer("my-service", "my-service:latest")
     ///     .WithCertificateTrustConfigurationCallback(ctx =>
@@ -2462,7 +2465,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Indicates that a resource should use a developer certificate key pair for HTTPS endpoints at run time.
+    /// Indicates that a resource should use the developer certificate key pair for HTTPS endpoints at run time.
     /// Currently this indicates use of the ASP.NET Core developer certificate. The developer certificate will only be used
     /// when running in local development scenarios; in publish mode resources will use their default certificate configuration.
     /// </summary>
@@ -2472,19 +2475,20 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
     /// <remarks>
     /// <example>
+    /// Use the developer certificate for HTTPS/TLS endpoints on a container resource:
     /// <code lang="csharp">
     /// builder.AddContainer("my-service", "my-image")
-    ///     .WithServerAuthenticationDeveloperCertificate()
+    ///     .WithHttpsDeveloperCertificate()
     /// </code>
     /// </example>
     /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithServerAuthenticationDeveloperCertificate<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<ParameterResource>? password = null)
+    public static IResourceBuilder<TResource> WithHttpsDeveloperCertificate<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<ParameterResource>? password = null)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var annotation = new ServerAuthenticationCertificateAnnotation
+        var annotation = new HttpsCertificateAnnotation
         {
             UseDeveloperCertificate = true,
             Password = password?.Resource,
@@ -2494,21 +2498,31 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a <see cref="ServerAuthenticationCertificateAnnotation"/> to the resource annotations to associate a certificate key pair with the resource.
-    /// This is used to configure the certificate presented by the resource for HTTPS endpoints.
+    /// Adds a <see cref="HttpsCertificateAnnotation"/> to the resource annotations to associate an X.509 certificate key pair with the resource.
+    /// This is used to configure the certificate presented by the resource for HTTPS/TLS endpoints.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="certificate">An <see cref="X509Certificate2"/> key pair to use for HTTPS endpoints on the resource.</param>
+    /// <param name="certificate">An <see cref="X509Certificate2"/> key pair to use for HTTPS/TLS endpoints on the resource.</param>
     /// <param name="password">A parameter specifying the password used to encrypt the certificate private key.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Use a custom certificate for HTTPS/TLS endpoints on a container resource:
+    /// <code lang="csharp">
+    /// var certificate = new X509Certificate2("path/to/certificate.pfx", "password");
+    /// builder.AddContainer("my-service", "my-image")
+    ///    .WithHttpsCertificate(certificate);
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithServerAuthenticationCertificate<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2 certificate, IResourceBuilder<ParameterResource>? password = null)
+    public static IResourceBuilder<TResource> WithHttpsCertificate<TResource>(this IResourceBuilder<TResource> builder, X509Certificate2 certificate, IResourceBuilder<ParameterResource>? password = null)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var annotation = new ServerAuthenticationCertificateAnnotation
+        var annotation = new HttpsCertificateAnnotation
         {
             Certificate = certificate,
             Password = password?.Resource,
@@ -2518,18 +2532,27 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Disable server authentication certificate configuration for the resource. No TLS termination configuration will be applied.
+    /// Disable HTTPS/TLS server certificate configuration for the resource. No HTTPS/TLS termination configuration will be applied.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Disable HTTPS certificate configuration for a Redis resource:
+    /// <code lang="csharp">
+    /// var redis = builder.AddRedis("cache")
+    ///     .WithoutHttpsCertificate();
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithoutServerAuthenticationCertificate<TResource>(this IResourceBuilder<TResource> builder)
+    public static IResourceBuilder<TResource> WithoutHttpsCertificate<TResource>(this IResourceBuilder<TResource> builder)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var annotation = new ServerAuthenticationCertificateAnnotation
+        var annotation = new HttpsCertificateAnnotation
         {
             Certificate = null,
             UseDeveloperCertificate = false,
@@ -2539,20 +2562,34 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a callback that allows configuring the resource to use a TLS certificate key pair.
+    /// Adds a callback that allows configuring the resource to use a specific HTTPS/TLS certificate key pair for server authentication.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">The callback to configure the resource to use a certificate key pair.</param>
     /// <returns>The updated resource builder.</returns>
+    /// <remarks>
+    /// <example>
+    /// Pass the path to the PFX certificate file to the container arguments.
+    /// <code lang="csharp">
+    /// builder.AddContainer("my-service", "my-image")
+    ///     .WithHttpsCertificateConfiguration(ctx =>
+    ///     {
+    ///         ctx.Arguments.Add("--https-certificate-path");
+    ///         ctx.Arguments.Add(ctx.PfxPath);
+    ///         return Task.CompletedTask;
+    ///     });
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<TResource> WithServerAuthenticationCertificateConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<ServerAuthenticationCertificateConfigurationCallbackAnnotationContext, Task> callback)
+    public static IResourceBuilder<TResource> WithHttpsCertificateConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<HttpsCertificateConfigurationCallbackAnnotationContext, Task> callback)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
 
-        var annotation = new ServerAuthenticationCertificateConfigurationCallbackAnnotation(callback);
+        var annotation = new HttpsCertificateConfigurationCallbackAnnotation(callback);
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
     }

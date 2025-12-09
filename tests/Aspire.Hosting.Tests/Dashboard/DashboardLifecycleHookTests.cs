@@ -146,7 +146,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var dashboardEnvironmentVariables = new ConcurrentDictionary<string, string?>();
 
         (var dashboardEnvironment, _) = await dashboardResource.ExecutionConfigurationBuilder()
-            .WithEnvironmentVariables()
+            .WithEnvironmentVariablesConfig()
             .BuildAsync(context, new FakeLogger(), CancellationToken.None)
             .DefaultTimeout();
 
@@ -522,7 +522,8 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
             new TestHostApplicationLifetime(),
             new Hosting.Eventing.DistributedApplicationEventing(),
-            rewriter
+            rewriter,
+            new FileSystemService(configuration)
             );
     }
 

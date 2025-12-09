@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIRECONTAINERRUNTIME001
 #pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIREFILESYSTEM001
 
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;
@@ -264,7 +265,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         });
 
         var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath)
             .WithContainerBuildOptions(ctx =>
             {
@@ -967,6 +968,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         Assert.Equal("mycontainer", context.LocalImageName);
         Assert.Equal(expectedImageTag, context.LocalImageTag);
+        Assert.Equal(ContainerTargetPlatform.LinuxAmd64, context.TargetPlatform);
     }
 
     [Fact]

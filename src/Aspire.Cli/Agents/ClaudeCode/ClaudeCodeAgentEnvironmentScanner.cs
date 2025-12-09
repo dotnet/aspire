@@ -18,18 +18,22 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     private const string AspireServerName = "aspire";
 
     private readonly IClaudeCodeCliRunner _claudeCodeCliRunner;
+    private readonly CliExecutionContext _executionContext;
     private readonly ILogger<ClaudeCodeAgentEnvironmentScanner> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ClaudeCodeAgentEnvironmentScanner"/>.
     /// </summary>
     /// <param name="claudeCodeCliRunner">The Claude Code CLI runner for checking if Claude Code is installed.</param>
+    /// <param name="executionContext">The CLI execution context for accessing environment variables and settings.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public ClaudeCodeAgentEnvironmentScanner(IClaudeCodeCliRunner claudeCodeCliRunner, ILogger<ClaudeCodeAgentEnvironmentScanner> logger)
+    public ClaudeCodeAgentEnvironmentScanner(IClaudeCodeCliRunner claudeCodeCliRunner, CliExecutionContext executionContext, ILogger<ClaudeCodeAgentEnvironmentScanner> logger)
     {
         ArgumentNullException.ThrowIfNull(claudeCodeCliRunner);
+        ArgumentNullException.ThrowIfNull(executionContext);
         ArgumentNullException.ThrowIfNull(logger);
         _claudeCodeCliRunner = claudeCodeCliRunner;
+        _executionContext = executionContext;
         _logger = logger;
     }
 
@@ -98,17 +102,17 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     /// </summary>
     /// <param name="startDirectory">The directory to start searching from.</param>
     /// <param name="repositoryRoot">The workspace root to use as the boundary for searches.</param>
-    private static DirectoryInfo? FindClaudeCodeFolder(DirectoryInfo startDirectory, DirectoryInfo repositoryRoot)
+    private DirectoryInfo? FindClaudeCodeFolder(DirectoryInfo startDirectory, DirectoryInfo repositoryRoot)
     {
         var currentDirectory = startDirectory;
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var homeDirectory = _executionContext.HomeDirectory;
 
         while (currentDirectory is not null)
         {
             // Check for .claude folder at current level, but ignore it if it's in the home directory
             // (the home directory's .claude folder is for user settings, not project config)
             var claudeCodePath = Path.Combine(currentDirectory.FullName, ClaudeCodeFolderName);
-            if (Directory.Exists(claudeCodePath) && !string.Equals(currentDirectory.FullName, homeDirectory, StringComparison.OrdinalIgnoreCase))
+            if (Directory.Exists(claudeCodePath) && !string.Equals(currentDirectory.FullName, homeDirectory.FullName, StringComparison.OrdinalIgnoreCase))
             {
                 return new DirectoryInfo(claudeCodePath);
             }

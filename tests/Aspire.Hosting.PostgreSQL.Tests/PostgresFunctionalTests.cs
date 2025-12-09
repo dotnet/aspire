@@ -536,7 +536,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
 
         // Use the same path for both runs
-        using var aspireStore = new TempDirectory();
+        using var aspireStore = new TestTempDirectory();
 
         var before = await RunContainersAsync();
         var after = await RunContainersAsync();
