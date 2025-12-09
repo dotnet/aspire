@@ -262,6 +262,8 @@ internal sealed class AspireResourceMcpTools
             }
 
             // If we get here, the subscription ended without reaching the desired state
+            // Get the latest resource state for accurate reporting
+            currentResource = _dashboardClient.GetResource(resourceName);
             return $"Resource '{resourceName}' did not reach state '{desiredState}' in time. Current state: {currentResource?.State ?? "Unknown"}. " +
                    $"Use 'list_console_logs' to examine console output for diagnostic information. " +
                    $"You can also use 'list_resources' to check the current state and 'wait_for_resource_state' again if needed.";
