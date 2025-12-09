@@ -44,7 +44,7 @@ internal sealed class McpStartCommand : BaseCommand
             ["list_trace_structured_logs"] = new ListTraceStructuredLogsTool(),
             ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
-            ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext),
+            ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
             ["get_integration_docs"] = new GetIntegrationDocsTool()
         };
     }
@@ -195,7 +195,7 @@ internal sealed class McpStartCommand : BaseCommand
     /// 4. If multiple in-scope connections exist, throw an error listing them
     /// 5. If no in-scope connections exist, fall back to the first available connection
     /// </summary>
-    private AppHostConnection? GetSelectedConnection()
+    private AppHostAuxiliaryBackchannel? GetSelectedConnection()
     {
         var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
 

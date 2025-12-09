@@ -7,13 +7,13 @@ namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMonitor
 {
-    private readonly Dictionary<string, AppHostConnection> _connections = new();
+    private readonly Dictionary<string, AppHostAuxiliaryBackchannel> _connections = new();
 
-    public IReadOnlyDictionary<string, AppHostConnection> Connections => _connections;
+    public IReadOnlyDictionary<string, AppHostAuxiliaryBackchannel> Connections => _connections;
 
     public string? SelectedAppHostPath { get; set; }
 
-    public AppHostConnection? SelectedConnection
+    public AppHostAuxiliaryBackchannel? SelectedConnection
     {
         get
         {
@@ -53,7 +53,7 @@ internal sealed class TestAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
         }
     }
 
-    public IReadOnlyList<AppHostConnection> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
+    public IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
     {
         return _connections.Values
             .Where(c => IsAppHostInScopeOfDirectory(c.AppHostInfo?.AppHostPath, workingDirectory.FullName))
@@ -76,7 +76,7 @@ internal sealed class TestAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
         return !relativePath.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relativePath);
     }
 
-    public void AddConnection(string hash, AppHostConnection connection)
+    public void AddConnection(string hash, AppHostAuxiliaryBackchannel connection)
     {
         _connections[hash] = connection;
     }

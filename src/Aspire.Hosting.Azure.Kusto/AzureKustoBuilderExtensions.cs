@@ -71,10 +71,10 @@ public static class AzureKustoBuilderExtensions
                 });
 
             // Add cluster URI output for connection strings
-            infrastructure.Add(new ProvisioningOutput("clusterUri", typeof(string)) { Value = cluster.ClusterUri });
+            infrastructure.Add(new ProvisioningOutput("clusterUri", typeof(string)) { Value = cluster.ClusterUri.ToBicepExpression() });
 
             // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cluster.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cluster.Name.ToBicepExpression() });
 
             var azureResource = (AzureKustoClusterResource)infrastructure.AspireResource;
 

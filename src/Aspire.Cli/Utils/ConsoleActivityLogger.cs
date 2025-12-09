@@ -234,7 +234,7 @@ internal sealed class ConsoleActivityLogger
                     summaryParts.Add($"{FailureSymbol} {failedSteps} failed");
                 }
             }
-            summaryParts.Add($"Total time: {DurationFormatter.FormatDuration(TimeSpan.FromSeconds(totalSeconds), CultureInfo.InvariantCulture)}");
+            summaryParts.Add($"Total time: {DurationFormatter.FormatDuration(TimeSpan.FromSeconds(totalSeconds), CultureInfo.InvariantCulture, DecimalDurationDisplay.Fixed)}");
             AnsiConsole.MarkupLine(string.Join(" • ", summaryParts));
 
             if (_durationRecords is { Count: > 0 })
@@ -244,7 +244,7 @@ internal sealed class ConsoleActivityLogger
                 foreach (var rec in _durationRecords)
                 {
                     // PadLeft(10) accommodates split units like "2h 30m", decimal units like "1.5s", and very long durations like "999d 23h"
-                    var durStr = DurationFormatter.FormatDuration(rec.Duration, CultureInfo.InvariantCulture).PadLeft(10);
+                    var durStr = DurationFormatter.FormatDuration(rec.Duration, CultureInfo.InvariantCulture, DecimalDurationDisplay.Fixed).PadLeft(10);
                     var symbol = rec.State switch
                     {
                         ActivityState.Success => _enableColor ? "[green]" + SuccessSymbol + "[/]" : SuccessSymbol,
@@ -320,7 +320,7 @@ internal sealed class ConsoleActivityLogger
 
     private void WriteCompletion(string taskKey, string symbol, string message, ActivityState state, double? seconds)
     {
-        var text = seconds.HasValue ? $"{message} ({DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds.Value), CultureInfo.InvariantCulture)})" : message;
+        var text = seconds.HasValue ? $"{message} ({DurationFormatter.FormatDuration(TimeSpan.FromSeconds(seconds.Value), CultureInfo.InvariantCulture, DecimalDurationDisplay.Fixed)})" : message;
         WriteLine(taskKey, symbol, text, state);
     }
 

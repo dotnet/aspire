@@ -9,4 +9,4 @@ resource eventHubs 'Microsoft.EventHub/namespaces@2024-01-01' existing = {
 
 output eventHubsEndpoint string = eventHubs.properties.serviceBusEndpoint
 
-output name string = existingResourceName
+output name string = eventHubs.name

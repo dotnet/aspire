@@ -70,15 +70,17 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             publishStep.RequiredBy(WellKnownPipelineSteps.Publish);
             steps.Add(publishStep);
 
-            // Expand deployment target steps for all compute resources
-            foreach (var computeResource in model.GetComputeResources())
+            // Expand deployment target steps for all compute resources (including dashboard if enabled)
+            var resources = DashboardEnabled && Dashboard?.Resource is DockerComposeAspireDashboardResource dashboard
+                ? [.. model.GetComputeResources(), dashboard]
+                : model.GetComputeResources();
+
+            foreach (var resource in resources)
             {
-                var deploymentTarget = computeResource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
+                var deploymentTarget = resource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
 
                 if (deploymentTarget != null && deploymentTarget.TryGetAnnotationsOfType<PipelineStepAnnotation>(out var annotations))
                 {
-                    // Resolve the deployment target's PipelineStepAnnotation and expand its steps
-                    // We do this because the deployment target is not in the model
                     foreach (var annotation in annotations)
                     {
                         var childFactoryContext = new PipelineStepFactoryContext
@@ -91,7 +93,6 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
                         foreach (var step in deploymentTargetSteps)
                         {
-                            // Ensure the step is associated with the deployment target resource
                             step.Resource ??= deploymentTarget;
                         }
 
@@ -135,11 +136,14 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         // This is where we wire up the build steps created by the resources
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
         {
-            // Wire up build step dependencies
-            // Build steps are created by ProjectResource and ContainerResource
-            foreach (var computeResource in context.Model.GetComputeResources())
+            // Wire up build step dependencies for all compute resources (including dashboard if enabled)
+            var resources = DashboardEnabled && Dashboard?.Resource is DockerComposeAspireDashboardResource dashboard
+                ? [.. context.Model.GetComputeResources(), dashboard]
+                : context.Model.GetComputeResources();
+
+            foreach (var resource in resources)
             {
-                var deploymentTarget = computeResource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
+                var deploymentTarget = resource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
 
                 if (deploymentTarget is null)
                 {

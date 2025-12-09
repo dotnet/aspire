@@ -143,6 +143,7 @@ public class Program
             var configuration = provider.GetRequiredService<IConfiguration>();
             return new CliHostEnvironment(configuration, nonInteractive);
         });
+        builder.Services.AddSingleton(TimeProvider.System);
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
         builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();
@@ -158,7 +159,7 @@ public class Program
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
         builder.Services.AddSingleton<IDiskCache, DiskCache>();
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
-        builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
+        builder.Services.AddTransient<IAppHostCliBackchannel, AppHostCliBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
         builder.Services.AddSingleton<NuGetPackagePrefetcher>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
@@ -280,14 +281,27 @@ public class Program
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
         var isPlayground = CliHostEnvironment.IsPlaygroundMode(configuration);
+
+        // Create custom output that handles width detection better in CI environments
+        // and encapsulates ASPIRE_CONSOLE_WIDTH environment variable handling
+        var output = new AspireAnsiConsoleOutput(Console.Out, configuration);
 
         var settings = new AnsiConsoleSettings()
         {
             Ansi = isPlayground ? AnsiSupport.Yes : AnsiSupport.Detect,
             Interactive = isPlayground ? InteractionSupport.Yes : InteractionSupport.Detect,
             ColorSystem = isPlayground ? ColorSystemSupport.Standard : ColorSystemSupport.Detect,
+            Out = output,
         };
+
+        // Use SupportsAnsi from hostEnvironment which already checks ASPIRE_ANSI_PASS_THRU
+        if (hostEnvironment.SupportsAnsi)
+        {
+            settings.Ansi = AnsiSupport.Yes;
+            settings.ColorSystem = ColorSystemSupport.Standard;
+        }
 
         if (isPlayground)
         {

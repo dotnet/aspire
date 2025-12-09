@@ -1,11 +1,6 @@
 ﻿@using Aspire.Dashboard.Extensions
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.GenAI
-@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils
-@using System.Globalization
-@using Aspire.Shared
 @using Microsoft.OpenApi.Any
 
 @implements IDialogContentComponent<GenAIVisualizerDialogViewModel>
@@ -15,6 +10,7 @@
         <FluentIcon Value="@(new Icons.Regular.Size24.Sparkle())" Style="grid-area: dialog-icon; align-self: center;" />
         <FluentLabel Typo="Typography.PaneHeader" Class="col-long-content" Style="grid-area: dialog-title;">
             @Content.Title
+            <span class="trace-id">@OtlpHelpers.ToShortenedId(Content.Span.SpanId)</span>
         </FluentLabel>
 
         @if (_contextSpans.Count > 1)
@@ -236,19 +232,17 @@
                                            Label="@Loc[nameof(Dialogs.GenAIInputOutputTabText)]"
                                            Icon="@(new Icons.Regular.Size24.Chat())">
                                 </FluentTab>
-                                <FluentTab LabelClass="tab-label"
-                                           Id="@($"tab-overview-{OverviewViewKind.Details}")"
-                                           Label="@Loc[nameof(Dialogs.GenAIDetailsTabText)]"
-                                           Icon="@(new Icons.Regular.Size24.Info())">
-                                </FluentTab>
-                                <FluentTab LabelClass="tab-label"
-                                           Id="@($"tab-overview-{OverviewViewKind.Tools}")"
-                                           Icon="@(new Icons.Regular.Size24.Wrench())">
-                                    <Header>
-                                        <span class="tab-text">@Loc[nameof(Dialogs.GenAIToolsTabText)]</span>
-                                        <FluentBadge Appearance="Appearance.Neutral" Circular="true">@Content.ToolDefinitions.Count</FluentBadge>
-                                    </Header>
-                                </FluentTab>
+                                @if (Content.ToolDefinitions.Count > 0)
+                                {
+                                    <FluentTab LabelClass="tab-label"
+                                               Id="@($"tab-overview-{OverviewViewKind.Tools}")"
+                                               Icon="@(new Icons.Regular.Size24.Wrench())">
+                                        <Header>
+                                            <span class="tab-text">@Loc[nameof(Dialogs.GenAIToolsTabText)]</span>
+                                            <FluentBadge Appearance="Appearance.Neutral" Circular="true">@Content.ToolDefinitions.Count</FluentBadge>
+                                        </Header>
+                                    </FluentTab>
+                                }
                                 @if (Content.Evaluations.Count > 0)
                                 {
                                     <FluentTab LabelClass="tab-label"
@@ -260,6 +254,11 @@
                                         </Header>
                                     </FluentTab>
                                 }
+                                <FluentTab LabelClass="tab-label"
+                                           Id="@($"tab-overview-{OverviewViewKind.Details}")"
+                                           Label="@Loc[nameof(Dialogs.GenAIDetailsTabText)]"
+                                           Icon="@(new Icons.Regular.Size24.Info())">
+                                </FluentTab>
                             </FluentTabs>
                         </div>
                         @if (OverviewActiveView == OverviewViewKind.InputOutput)
