@@ -135,10 +135,9 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     /// <returns>
     /// A task that completes immediately after initiating the stop request. The actual stop occurs asynchronously.
     /// </returns>
-#pragma warning disable IDE0060 // Remove unused parameter - kept for API consistency
     public Task StopAppHostAsync(CancellationToken cancellationToken = default)
-#pragma warning restore IDE0060 // Remove unused parameter
     {
+        _ = cancellationToken; // Unused but kept for API consistency
         logger.LogInformation("Received request to stop AppHost");
 
         // Start a background task to delay the stop by 500ms to allow the RPC response to be sent

@@ -435,7 +435,7 @@ internal sealed class RunCommand : BaseCommand
     {
         var homeDirectory = ExecutionContext.HomeDirectory.FullName;
         var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
-        var logFilePath = Path.Combine(logsPath, $"apphost-{Environment.ProcessId}-{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.log");
+        var logFilePath = Path.Combine(logsPath, $"apphost-{Environment.ProcessId}-{_timeProvider.GetUtcNow():yyyy-MM-dd-HH-mm-ss}.log");
         var logFile = new FileInfo(logFilePath);
         return logFile;
     }
