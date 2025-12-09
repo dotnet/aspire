@@ -145,12 +145,10 @@ internal sealed class RunCommand : BaseCommand
             // Check for running instance if feature is enabled
             if (runningInstanceDetectionEnabled)
             {
-                var canContinue = await CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, cancellationToken);
-                if (!canContinue)
-                {
-                    // Stopping the running instance failed
-                    return ExitCodeConstants.Success;
-                }
+                // Even if we fail to stop we won't block the apphost starting
+                // to make sure we don't ever break flow. It should mostly stop
+                // just fine though.
+                await CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, cancellationToken);
             }
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";

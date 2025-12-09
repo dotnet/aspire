@@ -172,12 +172,21 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
 
         _logger?.LogDebug("Requesting AppHost to stop");
 
-        await _rpc.InvokeWithCancellationAsync(
-            "StopAppHostAsync",
-            [],
-            cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await _rpc.InvokeWithCancellationAsync(
+                "StopAppHostAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
 
-        _logger?.LogDebug("Stop request sent to AppHost");
+            _logger?.LogDebug("Stop request sent to AppHost");
+        }
+        catch (RemoteMethodNotFoundException ex)
+        {
+            // The RPC method may not be available on older AppHost versions.
+            // This is a point-in-time fix - log the error but don't fail.
+            _logger?.LogDebug(ex, "StopAppHostAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+        }
     }
 
     /// <summary>
