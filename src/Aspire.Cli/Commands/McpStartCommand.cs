@@ -10,6 +10,7 @@ using Aspire.Cli.Mcp;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Aspire.Shared.Mcp;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
@@ -43,7 +44,7 @@ internal sealed class McpStartCommand : BaseCommand
             ["list_trace_structured_logs"] = new ListTraceStructuredLogsTool(),
             ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
-            ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext),
+            ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
             ["get_integration_docs"] = new GetIntegrationDocsTool()
         };
     }
@@ -52,12 +53,15 @@ internal sealed class McpStartCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var icons = McpIconHelper.GetAspireIcons(typeof(McpStartCommand).Assembly, "Aspire.Cli.Mcp.Resources");
+
         var options = new McpServerOptions
         {
             ServerInfo = new Implementation
             {
                 Name = "aspire-mcp-server",
-                Version = VersionHelper.GetDefaultTemplateVersion()
+                Version = VersionHelper.GetDefaultTemplateVersion(),
+                Icons = icons
             },
             Handlers = new McpServerHandlers()
             {

@@ -4,6 +4,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
+#pragma warning disable ASPIRECOMPUTE003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 namespace Aspire.Hosting;
 
 /// <summary>
@@ -50,9 +52,13 @@ public static class ContainerRegistryResourceBuilderExtensions
 
         var resource = new ContainerRegistryResource(name, endpointExpression, repositoryExpression);
 
-        return builder.ExecutionContext.IsRunMode
+        var resourceBuilder = builder.ExecutionContext.IsRunMode
             ? builder.CreateResourceBuilder(resource)
             : builder.AddResource(resource);
+
+        SubscribeToAddRegistryTargetAnnotations(builder, resource);
+
+        return resourceBuilder;
     }
 
     /// <summary>
@@ -98,9 +104,30 @@ public static class ContainerRegistryResourceBuilderExtensions
 
         var resource = new ContainerRegistryResource(name, endpointExpression, repositoryExpression);
 
-        return builder.ExecutionContext.IsRunMode
+        var resourceBuilder = builder.ExecutionContext.IsRunMode
             ? builder.CreateResourceBuilder(resource)
             : builder.AddResource(resource);
+
+        SubscribeToAddRegistryTargetAnnotations(builder, resource);
+
+        return resourceBuilder;
+    }
+
+    /// <summary>
+    /// Subscribes to BeforeStartEvent to add RegistryTargetAnnotation to all resources in the model.
+    /// </summary>
+    private static void SubscribeToAddRegistryTargetAnnotations(IDistributedApplicationBuilder builder, ContainerRegistryResource registry)
+    {
+        builder.Eventing.Subscribe<BeforeStartEvent>((beforeStartEvent, cancellationToken) =>
+        {
+            foreach (var resource in beforeStartEvent.Model.Resources)
+            {
+                // Add a RegistryTargetAnnotation to indicate this registry is available as a default target
+                resource.Annotations.Add(new RegistryTargetAnnotation(registry));
+            }
+
+            return Task.CompletedTask;
+        });
     }
 
     /// <summary>

@@ -8,9 +8,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
-using Azure.Core;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -32,41 +29,17 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     {
         TargetResource = targetResource;
 
-        // Add pipeline step annotation for push
+        // Add pipeline step annotation for deploy
         Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
-            // Get the registry from the target resource's deployment target annotation
+            // Get the deployment target annotation
             var deploymentTargetAnnotation = targetResource.GetDeploymentTargetAnnotation();
-            if (deploymentTargetAnnotation?.ContainerRegistry is not IContainerRegistry registry)
+            if (deploymentTargetAnnotation is null)
             {
-                // No registry available, skip push
                 return [];
             }
 
             var steps = new List<PipelineStep>();
-
-            if (targetResource.RequiresImageBuildAndPush())
-            {
-                // Create push step for this deployment target
-                var pushStep = new PipelineStep
-                {
-                    Name = $"push-{targetResource.Name}",
-                    Description = $"Pushes the container image for {targetResource.Name} to Azure Container Registry.",
-                    Action = async ctx =>
-                    {
-                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageManager>();
-
-                        await AzureEnvironmentResourceHelpers.PushImageToRegistryAsync(
-                            registry,
-                            targetResource,
-                            ctx,
-                            containerImageBuilder).ConfigureAwait(false);
-                    },
-                    Tags = [WellKnownPipelineTags.PushContainerImage]
-                };
-
-                steps.Add(pushStep);
-            }
 
             var websiteExistsCheckStep = new PipelineStep
             {
@@ -171,26 +144,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         // Add pipeline configuration annotation to wire up dependencies
         Annotations.Add(new PipelineConfigurationAnnotation((context) =>
         {
-            // Find the push step for this resource
-            var pushSteps = context.GetSteps(this, WellKnownPipelineTags.PushContainerImage);
-
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
 
-            // Make push step depend on build steps of the target resource
-            var buildSteps = context.GetSteps(targetResource, WellKnownPipelineTags.BuildCompute);
-
-            pushSteps.DependsOn(buildSteps);
-
-            // Make push step depend on the registry being provisioned
-            var deploymentTargetAnnotation = targetResource.GetDeploymentTargetAnnotation();
-            if (deploymentTargetAnnotation?.ContainerRegistry is IResource registryResource)
-            {
-                var registryProvisionSteps = context.GetSteps(registryResource, WellKnownPipelineTags.ProvisionInfrastructure);
-
-                pushSteps.DependsOn(registryProvisionSteps);
-            }
-
-            // The app deployment should depend on the push step
+            // The app deployment should depend on push steps from the target resource
+            var pushSteps = context.GetSteps(targetResource, WellKnownPipelineTags.PushContainerImage);
             provisionSteps.DependsOn(pushSteps);
 
             // Ensure website existence check and resource update steps run before provision

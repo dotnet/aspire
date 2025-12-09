@@ -10,7 +10,7 @@ public class NewUpAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) 
     [Theory]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire", ""])]
     [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-starter", ""])]
-    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-js-frontend-starter", ""])]
+    [MemberData(nameof(TestDataForNewAndBuildTemplateTests), arguments: ["aspire-ts-cs-starter", ""])]
     [Trait("category", "basic-build")]
     public async Task CanNewAndBuild(string templateName, string extraArgs, TestSdk sdk, TestTargetFramework tfm, string? error)
     {
