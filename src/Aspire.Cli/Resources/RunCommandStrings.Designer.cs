@@ -51,6 +51,12 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        public static string ForceArgumentDescription {
+            get {
+                return ResourceManager.GetString("ForceArgumentDescription", resourceCulture);
+            }
+        }
+        
         public static string ProjectArgumentDescription {
             get {
                 return ResourceManager.GetString("ProjectArgumentDescription", resourceCulture);
@@ -162,6 +168,48 @@ namespace Aspire.Cli.Resources {
         public static string StartingDebugSessionInExtension {
             get {
                 return ResourceManager.GetString("StartingDebugSessionInExtension", resourceCulture);
+            }
+        }
+        
+        public static string AgentConfigurationPrompt {
+            get {
+                return ResourceManager.GetString("AgentConfigurationPrompt", resourceCulture);
+            }
+        }
+        
+        public static string AgentConfigurationYes {
+            get {
+                return ResourceManager.GetString("AgentConfigurationYes", resourceCulture);
+            }
+        }
+        
+        public static string AgentConfigurationNo {
+            get {
+                return ResourceManager.GetString("AgentConfigurationNo", resourceCulture);
+            }
+        }
+        
+        public static string AgentConfigurationMaybeLater {
+            get {
+                return ResourceManager.GetString("AgentConfigurationMaybeLater", resourceCulture);
+            }
+        }
+        
+        public static string AgentConfigurationSelectPrompt {
+            get {
+                return ResourceManager.GetString("AgentConfigurationSelectPrompt", resourceCulture);
+            }
+        }
+        
+        public static string RunningInstanceStopped {
+            get {
+                return ResourceManager.GetString("RunningInstanceStopped", resourceCulture);
+            }
+        }
+        
+        public static string RunningInstanceStopFailed {
+            get {
+                return ResourceManager.GetString("RunningInstanceStopFailed", resourceCulture);
             }
         }
     }

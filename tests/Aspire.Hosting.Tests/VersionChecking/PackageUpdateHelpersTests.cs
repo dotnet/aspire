@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Shared;
+using Microsoft.Extensions.Logging.Abstractions;
 using Semver;
 
 namespace Aspire.Hosting.Tests.VersionChecking;
@@ -50,7 +51,7 @@ public class PackageUpdateHelpersTests
 
         // Act
         var packages = PackageUpdateHelpers.ParsePackageSearchResults(json, "Aspire.Hosting.AppHost");
-        var latestVersion = PackageUpdateHelpers.GetNewerVersion(new SemVersion(1), packages);
+        var latestVersion = PackageUpdateHelpers.GetNewerVersion(NullLogger.Instance, new SemVersion(1), packages);
 
         // Assert
         Assert.Equal(new SemVersion(19, 0, 0), latestVersion);
@@ -98,7 +99,7 @@ public class PackageUpdateHelpersTests
 
         // Act
         var packages = PackageUpdateHelpers.ParsePackageSearchResults(json, "Aspire.Hosting.AppHost");
-        var latestVersion = PackageUpdateHelpers.GetNewerVersion(new SemVersion(1), packages);
+        var latestVersion = PackageUpdateHelpers.GetNewerVersion(NullLogger.Instance, new SemVersion(1), packages);
 
         // Assert
         Assert.Equal(new SemVersion(9, 3, 1), latestVersion);
@@ -146,7 +147,7 @@ public class PackageUpdateHelpersTests
 
         // Act
         var packages = PackageUpdateHelpers.ParsePackageSearchResults(json, "Aspire.Hosting.AppHost");
-        var latestVersion = PackageUpdateHelpers.GetNewerVersion(new SemVersion(10, prerelease: ["dev"]), packages);
+        var latestVersion = PackageUpdateHelpers.GetNewerVersion(NullLogger.Instance, new SemVersion(10, prerelease: ["dev"]), packages);
 
         // Assert
         Assert.Equal(new SemVersion(19, 0, 0, prerelease: ["pre1"]), latestVersion);
@@ -160,7 +161,7 @@ public class PackageUpdateHelpersTests
 
         // Act
         var packages = PackageUpdateHelpers.ParsePackageSearchResults(json, "Aspire.Hosting.AppHost");
-        var latestVersion = PackageUpdateHelpers.GetNewerVersion(new SemVersion(1), packages);
+        var latestVersion = PackageUpdateHelpers.GetNewerVersion(NullLogger.Instance, new SemVersion(1), packages);
 
         // Assert
         Assert.Null(latestVersion);
@@ -208,7 +209,7 @@ public class PackageUpdateHelpersTests
 
         // Act
         var packages = PackageUpdateHelpers.ParsePackageSearchResults(json, "Aspire.Hosting.AppHost");
-        var latestVersion = PackageUpdateHelpers.GetNewerVersion(new SemVersion(1), packages);
+        var latestVersion = PackageUpdateHelpers.GetNewerVersion(NullLogger.Instance, new SemVersion(1), packages);
 
         // Assert
         Assert.Equal(new SemVersion(9, 0, 0), latestVersion);

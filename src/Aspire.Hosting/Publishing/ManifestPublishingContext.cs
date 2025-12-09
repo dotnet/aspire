@@ -36,8 +36,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// </summary>
     public Utf8JsonWriter Writer { get; } = writer;
 
-    private PortAllocator PortAllocator { get; } = new();
-
     /// <summary>
     /// Gets cancellation token for this operation.
     /// </summary>
@@ -50,6 +48,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     private readonly Dictionary<ParameterResource, Dictionary<string, string>> _formattedParameters = [];
 
     private readonly HashSet<string> _manifestResourceNames = new(StringComparers.ResourceName);
+
+    private readonly IPortAllocator _portAllocator = new PortAllocator();
 
     /// <summary>
     /// Generates a relative path based on the location of the manifest path.
@@ -228,10 +228,10 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         foreach (var containerFileDestination in containerFilesAnnotations)
         {
             var source = containerFileDestination.Source;
-            
+
             Writer.WriteStartObject(source.Name);
             Writer.WriteString("destination", containerFileDestination.DestinationPath);
-            
+
             // Get source paths from the source resource
             if (source.TryGetAnnotationsOfType<ContainerFilesSourceAnnotation>(out var sourceAnnotations))
             {
@@ -242,7 +242,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 }
                 Writer.WriteEndArray();
             }
-            
+
             Writer.WriteEndObject();
         }
 
@@ -379,7 +379,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 var resourceDockerfilePath = Path.Combine(manifestDirectory, $"{container.Name}.Dockerfile");
                 Directory.CreateDirectory(manifestDirectory);
                 File.Copy(annotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
-                
+
                 // Update the dockerfile path to use the generated file for the manifest
                 dockerfilePath = resourceDockerfilePath;
             }
@@ -484,79 +484,31 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="resource">The <see cref="IResource"/> that contains <see cref="EndpointAnnotation"/> annotations.</param>
     public void WriteBindings(IResource resource)
     {
-        if (resource.TryGetEndpoints(out var endpoints))
+        var resolvedEndpoints = resource.ResolveEndpoints(_portAllocator);
+
+        if (resolvedEndpoints.Count > 0)
         {
-            // This is used to determine if an endpoint should be treated as the Default endpoint.
-            // Endpoints can come from 3 different sources (in this order):
-            // 1. Kestrel configuration
-            // 2. Default endpoints added by the framework
-            // 3. Explicitly added endpoints
-            // But wherever they come from, we treat the first one as Default, for each scheme.
-            var httpSchemesEncountered = new HashSet<string>();
-
-            static bool IsHttpScheme(string scheme) => scheme is "http" or "https";
-
             Writer.WriteStartObject("bindings");
-            foreach (var endpoint in endpoints)
+            foreach (var resolved in resolvedEndpoints)
             {
+                var endpoint = resolved.Endpoint;
+
                 Writer.WriteStartObject(endpoint.Name);
                 Writer.WriteString("scheme", endpoint.UriScheme);
                 Writer.WriteString("protocol", endpoint.Protocol.ToString().ToLowerInvariant());
                 Writer.WriteString("transport", endpoint.Transport);
 
-                int? targetPort = (resource, endpoint.UriScheme, endpoint.TargetPort, endpoint.Port) switch
+                // Only emit exposedPort if it's not implicit (i.e., it was explicitly set or allocated)
+                // and it's different from the target port
+                if (resolved.ExposedPort.Value is int exposedPort && !resolved.ExposedPort.IsImplicit &&
+                    (!resolved.TargetPort.Value.HasValue || resolved.TargetPort.Value.Value != exposedPort))
                 {
-                    // The port was specified so use it
-                    (_, _, int target, _) => target,
-
-                    // Container resources get their default listening port from the exposed port.
-                    (ContainerResource, _, null, int port) => port,
-
-                    // Check whether the project view this endpoint as Default (for its scheme).
-                    // If so, we don't specify the target port, as it will get one from the deployment tool.
-                    (ProjectResource project, string uriScheme, null, _) when IsHttpScheme(uriScheme) && !httpSchemesEncountered.Contains(uriScheme) => null,
-
-                    // Allocate a dynamic port
-                    _ => PortAllocator.AllocatePort()
-                };
-
-                // We only keep track of schemes for project resources, since we don't want
-                // a non-project scheme to affect what project endpoints are considered default.
-                if (resource is ProjectResource && IsHttpScheme(endpoint.UriScheme))
-                {
-                    httpSchemesEncountered.Add(endpoint.UriScheme);
+                    Writer.WriteNumber("port", exposedPort);
                 }
 
-                int? exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort) switch
+                if (resolved.TargetPort.Value is int targetPort)
                 {
-                    // Exposed port and target port are the same, we don't need to mention the exposed port
-                    (_, int p0, int p1) when p0 == p1 => null,
-
-                    // Port was specified, so use it
-                    (_, int port, _) => port,
-
-                    // We have a target port, not need to specify an exposedPort
-                    // it will default to the targetPort
-                    (_, null, int port) => null,
-
-                    // Let the tool infer the default http and https ports
-                    ("http", null, null) => null,
-                    ("https", null, null) => null,
-
-                    // Other schemes just allocate a port
-                    _ => PortAllocator.AllocatePort()
-                };
-
-                if (exposedPort is int ep)
-                {
-                    PortAllocator.AddUsedPort(ep);
-                    Writer.WriteNumber("port", ep);
-                }
-
-                if (targetPort is int tp)
-                {
-                    PortAllocator.AddUsedPort(tp);
-                    Writer.WriteNumber("targetPort", tp);
+                    Writer.WriteNumber("targetPort", targetPort);
                 }
 
                 if (endpoint.IsExternal)
@@ -576,42 +528,35 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EnvironmentCallbackAnnotation"/> annotations.</param>
     public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
-        var env = new Dictionary<string, (object, string)>();
+        (var executionConfiguration, var exception) = await resource.ExecutionConfigurationBuilder()
+            .WithEnvironmentVariablesConfig()
+            .BuildAsync(ExecutionContext, NullLogger.Instance, CancellationToken)
+            .ConfigureAwait(false);
 
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            ExecutionContext,
-            (key, unprocessed, processed, ex) =>
-            {
-                if (ex is not null)
-                {
-                    ExceptionDispatchInfo.Throw(ex);
-                }
-
-                if (unprocessed is not null && processed is not null)
-                {
-                    env[key] = (unprocessed, processed);
-                }
-            },
-            NullLogger.Instance,
-            cancellationToken: CancellationToken).ConfigureAwait(false);
-
-        if (env.Count > 0)
+        if (exception is not null)
         {
-            Writer.WriteStartObject("env");
-
-            foreach (var (key, value) in env)
-            {
-                var (unprocessed, processed) = value;
-
-                var manifestExpression = GetManifestExpression(unprocessed, processed);
-
-                Writer.WriteString(key, manifestExpression);
-
-                TryAddDependentResources(unprocessed);
-            }
-
-            Writer.WriteEndObject();
+            ExceptionDispatchInfo.Throw(exception);
         }
+
+        if (!executionConfiguration.EnvironmentVariablesWithUnprocessed.Any())
+        {
+            return;
+        }
+
+        Writer.WriteStartObject("env");
+
+        foreach (var kvp in executionConfiguration.EnvironmentVariablesWithUnprocessed)
+        {
+            var (unprocessed, processed) = kvp.Value;
+
+            var manifestExpression = GetManifestExpression(unprocessed, processed);
+
+            Writer.WriteString(kvp.Key, manifestExpression);
+
+            TryAddDependentResources(unprocessed);
+        }
+
+        Writer.WriteEndObject();
     }
 
     /// <summary>
@@ -621,40 +566,33 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <returns>The <see cref="Task"/> to await for completion.</returns>
     public async Task WriteCommandLineArgumentsAsync(IResource resource)
     {
-        var args = new List<(object, string)>();
+        (var executionConfiguration, var exception) = await resource.ExecutionConfigurationBuilder()
+            .WithArgumentsConfig()
+            .BuildAsync(ExecutionContext, NullLogger.Instance, CancellationToken)
+            .ConfigureAwait(false);
 
-        await resource.ProcessArgumentValuesAsync(
-            ExecutionContext,
-            (unprocessed, expression, ex, _) =>
-            {
-                if (ex is not null)
-                {
-                    ExceptionDispatchInfo.Throw(ex);
-                }
-
-                if (unprocessed is not null && expression is not null)
-                {
-                    args.Add((unprocessed, expression));
-                }
-            },
-            NullLogger.Instance,
-            cancellationToken: CancellationToken).ConfigureAwait(false);
-
-        if (args.Count > 0)
+        if (exception is not null)
         {
-            Writer.WriteStartArray("args");
-
-            foreach (var (unprocessed, expression) in args)
-            {
-                var manifestExpression = GetManifestExpression(unprocessed, expression);
-
-                Writer.WriteStringValue(manifestExpression);
-
-                TryAddDependentResources(unprocessed);
-            }
-
-            Writer.WriteEndArray();
+            ExceptionDispatchInfo.Throw(exception);
         }
+
+        if (!executionConfiguration.ArgumentsWithUnprocessed.Any())
+        {
+            return;
+        }
+
+        Writer.WriteStartArray("args");
+
+        foreach ((var Unprocessed, var Processed, _) in executionConfiguration.ArgumentsWithUnprocessed)
+        {
+            var manifestExpression = GetManifestExpression(Unprocessed, Processed);
+
+            Writer.WriteStringValue(manifestExpression);
+
+            TryAddDependentResources(Unprocessed);
+        }
+
+        Writer.WriteEndArray();
     }
     private void WriteContainerMounts(ContainerResource container)
     {

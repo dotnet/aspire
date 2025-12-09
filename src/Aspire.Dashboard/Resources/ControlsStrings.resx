@@ -133,17 +133,16 @@
     <value>Graph. For an accessible view please navigate to the Table tab</value>
   </data>
   <data name="EnvironmentVariablesFilterToggleShowSpecOnly" xml:space="preserve">
-    <value>Show spec only</value>
-    <comment>Spec means from the resource specification</comment>
+    <value>Show core properties</value>
   </data>
   <data name="EnvironmentVariablesFilterToggleShowAll" xml:space="preserve">
-    <value>Show all</value>
+    <value>Show all properties</value>
   </data>
   <data name="EnvironmentVariablesShowVariableValues" xml:space="preserve">
-    <value>Show values</value>
+    <value>Show sensitive values</value>
   </data>
   <data name="EnvironmentVariablesHideVariableValues" xml:space="preserve">
-    <value>Hide values</value>
+    <value>Hide sensitive values</value>
   </data>
   <data name="FilterPlaceholder" xml:space="preserve">
     <value>Filter...</value>

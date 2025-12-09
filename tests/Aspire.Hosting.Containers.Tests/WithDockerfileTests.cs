@@ -784,11 +784,16 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
             Resource = container.Resource
         };
         var steps = (await stepsAnnotation.CreateStepsAsync(factoryContext)).ToList();
-        var buildStep = Assert.Single(steps);
+        Assert.Equal(2, steps.Count);
+
+        var buildStep = steps.Single(s => s.Tags.Contains(WellKnownPipelineTags.BuildCompute));
         Assert.Equal("build-mycontainer", buildStep.Name);
-        Assert.Contains(WellKnownPipelineTags.BuildCompute, buildStep.Tags);
         Assert.Contains(WellKnownPipelineSteps.Build, buildStep.RequiredBySteps);
         Assert.Contains(WellKnownPipelineSteps.BuildPrereq, buildStep.DependsOnSteps);
+
+        var pushStep = steps.Single(s => s.Tags.Contains(WellKnownPipelineTags.PushContainerImage));
+        Assert.Equal("push-mycontainer", pushStep.Name);
+        Assert.Contains(WellKnownPipelineSteps.Push, pushStep.RequiredBySteps);
 
         // Verify the factory produces the expected content
         var context = new DockerfileFactoryContext
@@ -941,12 +946,16 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         };
 
         var steps = (await pipelineStepAnnotation.CreateStepsAsync(factoryContext)).ToList();
+        Assert.Equal(2, steps.Count);
 
-        var buildStep = Assert.Single(steps);
+        var buildStep = steps.Single(s => s.Tags.Contains(WellKnownPipelineTags.BuildCompute));
         Assert.Equal("build-test-container", buildStep.Name);
-        Assert.Contains(WellKnownPipelineTags.BuildCompute, buildStep.Tags);
         Assert.Contains(WellKnownPipelineSteps.Build, buildStep.RequiredBySteps);
         Assert.Contains(WellKnownPipelineSteps.BuildPrereq, buildStep.DependsOnSteps);
+
+        var pushStep = steps.Single(s => s.Tags.Contains(WellKnownPipelineTags.PushContainerImage));
+        Assert.Equal("push-test-container", pushStep.Name);
+        Assert.Contains(WellKnownPipelineSteps.Push, pushStep.RequiredBySteps);
     }
 
     [Fact]
@@ -977,10 +986,15 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         };
 
         var steps = (await pipelineStepAnnotation1.CreateStepsAsync(factoryContext)).ToList();
-        var buildStep = Assert.Single(steps);
+        Assert.Equal(2, steps.Count);
+
+        var buildStep = steps.Single(s => s.Tags.Contains(WellKnownPipelineTags.BuildCompute));
         Assert.Equal("build-test-container", buildStep.Name);
-        Assert.Contains(WellKnownPipelineTags.BuildCompute, buildStep.Tags);
         Assert.Contains(WellKnownPipelineSteps.Build, buildStep.RequiredBySteps);
         Assert.Contains(WellKnownPipelineSteps.BuildPrereq, buildStep.DependsOnSteps);
+
+        var pushStep = steps.Single(s => s.Tags.Contains(WellKnownPipelineTags.PushContainerImage));
+        Assert.Equal("push-test-container", pushStep.Name);
+        Assert.Contains(WellKnownPipelineSteps.Push, pushStep.RequiredBySteps);
     }
 }

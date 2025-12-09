@@ -154,6 +154,24 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 {
     public virtual async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForTemplatesVersionAsync(IEnumerable<(NuGetPackage Package, PackageChannel Channel)> candidatePackages, CancellationToken cancellationToken)
     {
+        // Check if we should skip the channel selection prompt
+        // Skip prompt if there are no explicit channels (only the implicit/default channel)
+        var byChannel = candidatePackages
+            .GroupBy(cp => cp.Channel)
+            .ToArray();
+
+        var implicitGroup = byChannel.FirstOrDefault(g => g.Key.Type is Packaging.PackageChannelType.Implicit);
+        var explicitGroups = byChannel
+            .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
+            .ToArray();
+
+        // If there are no explicit channels, automatically select from the implicit channel
+        if (explicitGroups.Length == 0 && implicitGroup is not null)
+        {
+            // Return the highest version from the implicit channel
+            return implicitGroup.OrderByDescending(p => Semver.SemVersion.Parse(p.Package.Version), Semver.SemVersion.PrecedenceComparer).First();
+        }
+
         // Create a hierarchical selection experience:
         // - Top-level: all packages from the implicit channel (if any)
         // - Then: one entry per remaining channel that opens a sub-menu with that channel's packages
@@ -186,16 +204,6 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
             return selection.Result;
         }
-
-        // Group incoming items by channel instance
-        var byChannel = candidatePackages
-            .GroupBy(cp => cp.Channel)
-            .ToArray();
-
-        var implicitGroup = byChannel.FirstOrDefault(g => g.Key.Type is Packaging.PackageChannelType.Implicit);
-        var explicitGroups = byChannel
-            .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
-            .ToArray();
 
         // Build the root menu as tuples of (label, action)
         var rootChoices = new List<(string Label, Func<CancellationToken, Task<(NuGetPackage, PackageChannel)>> Action)>();
@@ -243,18 +251,22 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
 
     public virtual async Task<string> PromptForOutputPath(string path, CancellationToken cancellationToken)
     {
+        // Escape markup characters in the path to prevent Spectre.Console from trying to parse them as markup
+        // when displaying it as the default value in the prompt
         return await interactionService.PromptForStringAsync(
             NewCommandStrings.EnterTheOutputPath,
-            defaultValue: path,
+            defaultValue: path.EscapeMarkup(),
             cancellationToken: cancellationToken
             );
     }
 
     public virtual async Task<string> PromptForProjectNameAsync(string defaultName, CancellationToken cancellationToken)
     {
+        // Escape markup characters in the default name to prevent Spectre.Console from trying to parse them as markup
+        // when displaying it as the default value in the prompt
         return await interactionService.PromptForStringAsync(
             NewCommandStrings.EnterTheProjectName,
-            defaultValue: defaultName,
+            defaultValue: defaultName.EscapeMarkup(),
             validator: name => ProjectNameValidator.IsProjectNameValid(name)
                 ? ValidationResult.Success()
                 : ValidationResult.Error(NewCommandStrings.InvalidProjectName),

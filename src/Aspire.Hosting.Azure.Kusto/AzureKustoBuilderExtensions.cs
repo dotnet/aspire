@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
@@ -11,6 +12,7 @@ using Azure.Provisioning.Kusto;
 using Kusto.Data;
 using Kusto.Data.Common;
 using Kusto.Data.Net.Client;
+using Kusto.Data.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -36,7 +38,7 @@ public static class AzureKustoBuilderExtensions
     /// </para>
     /// <para>
     /// By default references to the Azure Data Explorer database resources will be assigned the following roles:
-    /// 
+    ///
     /// - <see cref="KustoDatabasePrincipalRole.User"/>
     /// </para>
     /// </remarks>
@@ -69,10 +71,10 @@ public static class AzureKustoBuilderExtensions
                 });
 
             // Add cluster URI output for connection strings
-            infrastructure.Add(new ProvisioningOutput("clusterUri", typeof(string)) { Value = cluster.ClusterUri });
+            infrastructure.Add(new ProvisioningOutput("clusterUri", typeof(string)) { Value = cluster.ClusterUri.ToBicepExpression() });
 
             // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cluster.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cluster.Name.ToBicepExpression() });
 
             var azureResource = (AzureKustoClusterResource)infrastructure.AspireResource;
 
@@ -88,6 +90,7 @@ public static class AzureKustoBuilderExtensions
         var resourceBuilder = builder.AddResource(resource);
 
         AddKustoHealthChecksAndLifecycleManagement(resourceBuilder);
+        AddKustoCustomCommands(resourceBuilder);
 
         return resourceBuilder
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
@@ -306,5 +309,101 @@ public static class AzureKustoBuilderExtensions
         }
 
         return builder;
+    }
+
+    private static void AddKustoCustomCommands(IResourceBuilder<AzureKustoClusterResource> resourceBuilder)
+    {
+        resourceBuilder.WithCommand(
+            name: "open-kusto-explorer-desktop",
+            displayName: "Open in Kusto Explorer (Desktop)",
+            executeCommand: context => OnOpenInKustoExplorerDesktop(resourceBuilder, context),
+            commandOptions: new CommandOptions
+            {
+                UpdateState = UpdateStateDesktop,
+                IconName = "DatabaseSearch"
+            });
+
+        resourceBuilder.WithCommand(
+            name: "open-kusto-explorer-web",
+            displayName: "Open in Kusto Explorer (Web)",
+            executeCommand: context => OnOpenInKustoExplorerWeb(resourceBuilder, context),
+            commandOptions: new CommandOptions
+            {
+                UpdateState = context => UpdateStateWeb(resourceBuilder, context),
+                IconName = "DatabaseSearch"
+            });
+
+        static ResourceCommandState UpdateStateDesktop(UpdateCommandStateContext context)
+        {
+            // The Desktop Kusto.Explorer is only available on Windows, so don't show the command on other platforms.
+            if (!OperatingSystem.IsWindows())
+            {
+                return ResourceCommandState.Hidden;
+            }
+
+            return context.ResourceSnapshot.State?.Text == KnownResourceStates.Running ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+        }
+
+        static ResourceCommandState UpdateStateWeb(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, UpdateCommandStateContext context)
+        {
+            // The web explorer will only auto-connect to allowed domains, so do not show the command when running as an emulator.
+            if (resourceBuilder.Resource.IsEmulator)
+            {
+                return ResourceCommandState.Hidden;
+            }
+
+            return context.ResourceSnapshot.State?.Text == KnownResourceStates.Running ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+        }
+
+        static async Task<ExecuteCommandResult> OnOpenInKustoExplorerDesktop(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, ExecuteCommandContext context)
+        {
+            var connectionString = await resourceBuilder
+                .Resource
+                .ConnectionStringExpression
+                .GetValueAsync(context.CancellationToken)
+                .ConfigureAwait(false) ??
+                throw new DistributedApplicationException($"Connection string for Kusto resource '{resourceBuilder.Resource.Name}' is not set.");
+
+            var launcher = new KustoClientToolLauncher();
+            var result = launcher.TryLaunchKustoExplorer(title: "", resourceBuilder.Resource.Name, connectionString, requestText: "");
+
+            return result ? CommandResults.Success() : CommandResults.Failure("Failed to launch Kusto Explorer");
+        }
+
+        static async Task<ExecuteCommandResult> OnOpenInKustoExplorerWeb(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, ExecuteCommandContext context)
+        {
+            var connectionString = await resourceBuilder
+                .Resource
+                .ConnectionStringExpression
+                .GetValueAsync(context.CancellationToken)
+                .ConfigureAwait(false) ??
+                throw new DistributedApplicationException($"Connection string for Kusto resource '{resourceBuilder.Resource.Name}' is not set.");
+
+            var launcher = new KustoClientToolLauncher();
+            var result = launcher.TryLaunchKustoWebExplorer(title: "", resourceBuilder.Resource.Name, connectionString, requestText: "");
+
+            if (!result)
+            {
+                // If the launcher fails (which may mean we're in a remote session or can't detect a browser),
+                // show a notification with a clickable link to the Kusto Web Explorer
+                var interactionService = context.ServiceProvider.GetRequiredService<IInteractionService>();
+                if (interactionService.IsAvailable)
+                {
+                    _ = await interactionService.PromptMessageBoxAsync(
+                        title: "Kusto Web Explorer",
+                        message: $"Could not automatically open Kusto Web Explorer for resource '{resourceBuilder.Resource.Name}'. Click [{connectionString}]({connectionString}) to manually open the Web Explorer.",
+                        new MessageBoxInteractionOptions
+                        {
+                            Intent = MessageIntent.Information,
+                            EnableMessageMarkdown = true,
+                            PrimaryButtonText = "Dismiss",
+                            ShowSecondaryButton = false,
+                        },
+                        context.CancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            return CommandResults.Success();
+        }
     }
 }

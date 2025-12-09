@@ -35,6 +35,7 @@ DRY_RUN=false
 HIVE_ONLY=false
 SKIP_EXTENSION_INSTALL=false
 USE_INSIDERS=false
+SKIP_PATH=false
 HOST_OS="unset"
 
 # Function to show help
@@ -63,10 +64,11 @@ USAGE:
                                 CLI installs to: <install-path>/bin
                                 NuGet hive:      <install-path>/hives/pr-<PR_NUMBER>/packages
     --os OS                     Override OS detection (win, linux, linux-musl, osx)
-    --arch ARCH                 Override architecture detection (x64, x86, arm64)
+    --arch ARCH                 Override architecture detection (x64, arm64)
     --hive-only                 Only install NuGet packages to the hive, skip CLI download
     --skip-extension.           Skip VS Code extension download and installation
     --use-insiders              Install extension to VS Code Insiders instead of VS Code
+    --skip-path                 Do not add the install path to PATH environment variable (useful for portable installs)
     -v, --verbose               Enable verbose output
     -k, --keep-archive          Keep downloaded archive files after installation
     --dry-run                   Show what would be done without performing actions
@@ -80,6 +82,7 @@ EXAMPLES:
     ./get-aspire-cli-pr.sh 1234 --hive-only
     ./get-aspire-cli-pr.sh 1234 --skip-extension
     ./get-aspire-cli-pr.sh 1234 --use-insiders
+    ./get-aspire-cli-pr.sh 1234 --skip-path
     ./get-aspire-cli-pr.sh 1234 --dry-run
 
     curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- <PR_NUMBER>
@@ -190,6 +193,10 @@ parse_args() {
                 USE_INSIDERS=true
                 shift
                 ;;
+            --skip-path)
+                SKIP_PATH=true
+                shift
+                ;;
             --dry-run)
                 DRY_RUN=true
                 shift
@@ -272,9 +279,6 @@ get_cli_architecture_from_architecture() {
         amd64|x64)
             printf "x64"
             ;;
-        x86)
-            printf "x86"
-            ;;
         arm64)
             printf "arm64"
             ;;
@@ -295,9 +299,6 @@ detect_architecture() {
             ;;
         aarch64|arm64)
             printf "arm64"
-            ;;
-        i386|i686)
-            printf "x86"
             ;;
         *)
             say_error "Architecture $uname_m not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues"
@@ -1064,14 +1065,18 @@ fi
 
 # Add to shell profile for persistent PATH
 if [[ "$HIVE_ONLY" != true ]]; then
-    add_to_shell_profile "$cli_install_dir" "$INSTALL_PATH_UNEXPANDED"
+    if [[ "$SKIP_PATH" == true ]]; then
+        say_info "Skipping PATH configuration due to --skip-path flag"
+    else
+        add_to_shell_profile "$cli_install_dir" "$INSTALL_PATH_UNEXPANDED"
 
-    # Add to current session PATH, if the path is not already in PATH
-    if  [[ ":$PATH:" != *":$cli_install_dir:"* ]]; then
-        if [[ "$DRY_RUN" == true ]]; then
-            say_info "[DRY RUN] Would add $cli_install_dir to PATH"
-        else
-            export PATH="$cli_install_dir:$PATH"
+        # Add to current session PATH, if the path is not already in PATH
+        if  [[ ":$PATH:" != *":$cli_install_dir:"* ]]; then
+            if [[ "$DRY_RUN" == true ]]; then
+                say_info "[DRY RUN] Would add $cli_install_dir to PATH"
+            else
+                export PATH="$cli_install_dir:$PATH"
+            fi
         fi
     fi
 fi

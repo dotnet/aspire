@@ -117,6 +117,11 @@
         <target state="translated">錯誤</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIEvaluationsTabText">
+        <source>Evaluations</source>
+        <target state="translated">評估</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIInputHeaderText">
         <source>Input</source>
         <target state="translated">輸入</target>
@@ -150,6 +155,11 @@
       <trans-unit id="GenAIMessageCategoryToolCalls">
         <source>Tool calls</source>
         <target state="translated">工具呼叫</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryToolResponse">
+        <source>Tool response</source>
+        <target state="translated">工具回應</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIMessageTitleAssistant">
@@ -202,6 +212,11 @@
         <target state="translated">找不到訊息。</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAINoTools">
+        <source>No tools found.</source>
+        <target state="translated">找不到工具。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIOutputHeaderText">
         <source>Output</source>
         <target state="translated">輸出</target>
@@ -230,6 +245,36 @@
       <trans-unit id="GenAITokensLabel">
         <source>Tokens</source>
         <target state="translated">權杖</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolNoParameters">
+        <source>No parameters</source>
+        <target state="translated">無參數</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolParameterDescription">
+        <source>Description</source>
+        <target state="translated">描述</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolParameterName">
+        <source>Name</source>
+        <target state="translated">名稱</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolParameterType">
+        <source>Type</source>
+        <target state="translated">類型</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolRequiredParameter">
+        <source>Required parameter</source>
+        <target state="translated">必要參數</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolsTabText">
+        <source>Tools</source>
+        <target state="translated">工具</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
@@ -332,9 +377,19 @@
         <target state="translated">確定</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpServerDialogApiKeyLabel">
+        <source>Aspire MCP API key</source>
+        <target state="translated">Aspire MCP API 金鑰</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogConfigurationHeading">
         <source>Aspire MCP configuration</source>
         <target state="translated">Aspire MCP 設定</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogCopyButton">
+        <source>Copy</source>
+        <target state="translated">複製</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCode">
@@ -360,6 +415,11 @@
       <trans-unit id="McpServerDialogLearnMoreLink">
         <source>Use Aspire MCP with AI</source>
         <target state="translated">使用 Aspire MCP 搭配 AI</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogManuallyUpdatingAccordionHeading">
+        <source>Manually updating &lt;code&gt;mcp.json&lt;/code&gt;</source>
+        <target state="translated">手動更新 &lt;code&gt;mcp.json&lt;/code&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogOtherDescription">
@@ -397,6 +457,11 @@
         <target state="translated">使用瀏覽器安裝按鈕，快速將 Aspire MCP 新增至 Visual Studio:</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeApiKeyInstructions">
+        <source>The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.</source>
+        <target state="translated">Aspire MCP 第一次啟動時，VS Code 會提示您輸入 API 金鑰。請在下方 VS Code 的輸入文字方塊中輸入 API 金鑰。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogVSCodeTab">
         <source>VS Code</source>
         <target state="translated">VS Code</target>
@@ -420,6 +485,11 @@
       <trans-unit id="McpServerDialogVSCodeWarningTitle">
         <source>VS Code limitation</source>
         <target state="translated">VS Code 限制</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVisualStudioApiKeyInstructions">
+        <source>You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</source>
+        <target state="translated">您需要先將 API 金鑰加入 Aspire MCP，才能使用它。在 GitHub Copilot Chat 中，請選取 [工具] 按鈕，然後選取 [Aspire MCP 伺服器]。請在下方文字方塊中輸入 API 金鑰。</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioTab">

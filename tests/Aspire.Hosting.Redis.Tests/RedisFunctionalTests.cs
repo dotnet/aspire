@@ -81,7 +81,13 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var client = app.CreateHttpClient(commanderBuilder.Resource.Name, "http");
 
-        var endpoint = redis.GetEndpoint("tcp");
+        var endpoint = redis.GetEndpoint(RedisResource.PrimaryEndpointName);
+        if (redis.Resource.TlsEnabled)
+        {
+            // We don't support TLS connections in Redis Commander yet, so we need to use the secondary endpoint which is non-TLS
+            endpoint = redis.GetEndpoint(RedisResource.SecondaryEndpointName);
+        }
+
         var path = $"/apiv2/server/R:{redis.Resource.Name}:{endpoint.TargetPort}:0/info";
         var response = await client.GetAsync(path);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -100,6 +106,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         var hb = Host.CreateApplicationBuilder();
+        hb.AddTestLogging(testOutputHelper);
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -161,19 +168,19 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         db =>
         {
             Assert.Equal(redis1.Resource.Name, db.Name);
-            Assert.Equal(redis1.Resource.Name, db.Host);
+            Assert.Equal($"{redis1.Resource.Name}.dev.internal", db.Host);
             Assert.Equal(redis1.Resource.PrimaryEndpoint.TargetPort, db.Port);
         },
         db =>
         {
             Assert.Equal(redis2.Resource.Name, db.Name);
-            Assert.Equal(redis2.Resource.Name, db.Host);
+            Assert.Equal($"{redis2.Resource.Name}.dev.internal", db.Host);
             Assert.Equal(redis2.Resource.PrimaryEndpoint.TargetPort, db.Port);
         },
         db =>
         {
             Assert.Equal(redis3.Resource.Name, db.Name);
-            Assert.Equal(redis3.Resource.Name, db.Host);
+            Assert.Equal($"{redis3.Resource.Name}.dev.internal", db.Host);
             Assert.Equal(redis3.Resource.PrimaryEndpoint.TargetPort, db.Port);
         });
 
@@ -205,6 +212,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
+            hb.AddTestLogging(testOutputHelper);
 
             // BGSAVE is only available in admin mode, enable it for this instance
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -242,6 +250,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
+            hb.AddTestLogging(testOutputHelper);
 
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -288,6 +297,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
+            hb.AddTestLogging(testOutputHelper);
 
             // BGSAVE is only available in admin mode, enable it for this instance
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -372,6 +382,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
+            hb.AddTestLogging(testOutputHelper);
 
             // BGSAVE is only available in admin mode, enable it for this instance
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -403,6 +414,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StartAsync();
 
             var hb = Host.CreateApplicationBuilder();
+            hb.AddTestLogging(testOutputHelper);
 
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {

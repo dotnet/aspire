@@ -586,6 +586,36 @@ public class AzureCosmosDBExtensionsTests(ITestOutputHelper output)
              .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public void WithAccessKeyAuthentication_SetsSecretOwner(string? kvName)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos-data");
+
+        // Act
+        if (kvName is null)
+        {
+            cosmos.WithAccessKeyAuthentication();
+        }
+        else
+        {
+            cosmos.WithAccessKeyAuthentication(builder.AddAzureKeyVault(kvName));
+        }
+
+        // Assert - Verify that the SecretOwner is set to the Cosmos resource
+        Assert.NotNull(cosmos.Resource.ConnectionStringSecretOutput);
+        Assert.Same(cosmos.Resource, cosmos.Resource.ConnectionStringSecretOutput.SecretOwner);
+        
+        // Also verify that References includes both the KeyVault and the Cosmos resource
+        var references = ((IValueWithReferences)cosmos.Resource.ConnectionStringSecretOutput).References.ToList();
+        Assert.Contains(cosmos.Resource, references);
+        Assert.Contains(cosmos.Resource.ConnectionStringSecretOutput.Resource, references);
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }

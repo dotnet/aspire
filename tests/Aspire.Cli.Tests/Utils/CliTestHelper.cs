@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using Aspire.Cli.Agents;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
@@ -69,6 +71,7 @@ internal static class CliTestHelper
         services.AddMemoryCache();
 
         services.AddSingleton(options.AnsiConsoleFactory);
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton(options.TelemetryFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.SolutionLocatorFactory);
@@ -96,6 +99,9 @@ internal static class CliTestHelper
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
+        services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
+        services.AddSingleton(options.AgentEnvironmentDetectorFactory);
+        services.AddSingleton(options.GitRepositoryFactory);
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
@@ -108,6 +114,7 @@ internal static class CliTestHelper
         services.AddTransient<ConfigCommand>();
         services.AddTransient<CacheCommand>();
         services.AddTransient<UpdateCommand>();
+        services.AddTransient<McpCommand>();
         services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
@@ -287,11 +294,11 @@ internal sealed class CliServiceCollectionTestOptions
         return new NuGetPackageCache(logger, runner, cache, telemetry, features);
     };
 
-    public Func<IServiceProvider, IAppHostBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    public Func<IServiceProvider, IAppHostCliBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var logger = serviceProvider.GetRequiredService<ILogger<AppHostBackchannel>>();
+        var logger = serviceProvider.GetRequiredService<ILogger<AppHostCliBackchannel>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new AppHostBackchannel(logger, telemetry);
+        return new AppHostCliBackchannel(logger, telemetry);
     };
 
     public Func<IServiceProvider, IExtensionRpcTarget> ExtensionRpcTargetFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -343,6 +350,23 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var tmpDirectory = new DirectoryInfo(Path.Combine(executionContext.WorkingDirectory.FullName, "tmp"));
         return new TestCliDownloader(tmpDirectory);
+    };
+
+    public Func<IServiceProvider, IAuxiliaryBackchannelMonitor> AuxiliaryBackchannelMonitorFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestAuxiliaryBackchannelMonitor();
+    };
+
+    public Func<IServiceProvider, IAgentEnvironmentDetector> AgentEnvironmentDetectorFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new AgentEnvironmentDetector([]);
+    };
+
+    public Func<IServiceProvider, IGitRepository> GitRepositoryFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        var logger = serviceProvider.GetRequiredService<ILogger<GitRepository>>();
+        return new GitRepository(executionContext, logger);
     };
 }
 

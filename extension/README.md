@@ -50,7 +50,7 @@ The [Aspire CLI](https://learn.microsoft.com/dotnet/aspire/cli/install) must be 
 On Windows:
 
 ```powershell
-iex "& { $(irm https://aspire.dev/install.ps1) }"
+irm https://aspire.dev/install.ps1 | iex
 ```
 
 On Linux or macOS:

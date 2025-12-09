@@ -117,6 +117,11 @@
         <target state="translated">Erreur</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIEvaluationsTabText">
+        <source>Evaluations</source>
+        <target state="translated">Évaluations</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIInputHeaderText">
         <source>Input</source>
         <target state="translated">Entrée</target>
@@ -150,6 +155,11 @@
       <trans-unit id="GenAIMessageCategoryToolCalls">
         <source>Tool calls</source>
         <target state="translated">Appels d’outils</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryToolResponse">
+        <source>Tool response</source>
+        <target state="translated">Réponse de l’outil</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIMessageTitleAssistant">
@@ -202,6 +212,11 @@
         <target state="translated">Désolé, aucun message trouvé.</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAINoTools">
+        <source>No tools found.</source>
+        <target state="translated">Aucun outil trouvé.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIOutputHeaderText">
         <source>Output</source>
         <target state="translated">Sortie</target>
@@ -230,6 +245,36 @@
       <trans-unit id="GenAITokensLabel">
         <source>Tokens</source>
         <target state="translated">Jetons</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolNoParameters">
+        <source>No parameters</source>
+        <target state="translated">Aucun paramètre</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolParameterDescription">
+        <source>Description</source>
+        <target state="translated">Description</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolParameterName">
+        <source>Name</source>
+        <target state="translated">Nom</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolParameterType">
+        <source>Type</source>
+        <target state="translated">Type</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolRequiredParameter">
+        <source>Required parameter</source>
+        <target state="translated">Paramètre obligatoire</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolsTabText">
+        <source>Tools</source>
+        <target state="translated">Outils</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
@@ -332,9 +377,19 @@
         <target state="translated">OK</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpServerDialogApiKeyLabel">
+        <source>Aspire MCP API key</source>
+        <target state="translated">Clé API Aspire MCP</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogConfigurationHeading">
         <source>Aspire MCP configuration</source>
         <target state="translated">Configuration Aspire MCP</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogCopyButton">
+        <source>Copy</source>
+        <target state="translated">Copier</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCode">
@@ -360,6 +415,11 @@
       <trans-unit id="McpServerDialogLearnMoreLink">
         <source>Use Aspire MCP with AI</source>
         <target state="translated">Utiliser Aspire MCP avec l’IA</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogManuallyUpdatingAccordionHeading">
+        <source>Manually updating &lt;code&gt;mcp.json&lt;/code&gt;</source>
+        <target state="translated">Mise à jour manuelle de &lt;code&gt;mcp.json&lt;/code&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogOtherDescription">
@@ -397,6 +457,11 @@
         <target state="translated">Ajoutez rapidement Aspire MCP à Visual Studio à l’aide d’un bouton d’installation dans le navigateur :</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeApiKeyInstructions">
+        <source>The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.</source>
+        <target state="translated">Lors du premier démarrage d’Aspire MCP, VS Code vous demande la clé API. Entrez la clé API ci-dessous dans la zone de texte de saisie de VS Code.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogVSCodeTab">
         <source>VS Code</source>
         <target state="translated">VS Code</target>
@@ -420,6 +485,11 @@
       <trans-unit id="McpServerDialogVSCodeWarningTitle">
         <source>VS Code limitation</source>
         <target state="translated">Limitation de VS Code</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVisualStudioApiKeyInstructions">
+        <source>You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</source>
+        <target state="translated">Vous devez ajouter la clé API à Aspire MCP avant de pouvoir l’utiliser. Dans GitHub Copilot Chat, sélectionnez le bouton Outils, puis le serveur Aspire MCP. Entrez la clé API ci-dessous dans la zone de texte.</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioTab">

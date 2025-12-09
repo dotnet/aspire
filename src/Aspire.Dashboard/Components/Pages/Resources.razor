@@ -1,10 +1,7 @@
 ﻿@page "/"
 @using Aspire.Dashboard.Components.ResourcesGridColumns
 @using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils
-@using System.Globalization
 @using Aspire.Dashboard.Components.Controls.Grid
-@using Aspire.Dashboard.Model
 @using Humanizer
 @inject IStringLocalizer<Dashboard.Resources.Resources> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -43,7 +40,7 @@
                               Title="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])"
                               aria-label="@(NoFiltersSet ? Loc[nameof(Dashboard.Resources.Resources.ResourcesNotFiltered)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesFiltered)])" />
 
-                @if (HasAnyChildResources())
+                @if (HasViewOptionsMenu())
                 {
                     <AspireMenuButton ButtonAppearance="Appearance.Stealth"
                                       Icon="@(new Icons.Regular.Size20.Options())"

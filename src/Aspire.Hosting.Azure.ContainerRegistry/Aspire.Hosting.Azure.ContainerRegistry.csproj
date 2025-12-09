@@ -5,12 +5,14 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting azure container registry cloud</PackageTags>
     <Description>Azure Container Registry resource types for Aspire.</Description>
-    <!-- Disable package validation as this package hasn't shipped stable yet. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
   </ItemGroup>
 
   <ItemGroup>

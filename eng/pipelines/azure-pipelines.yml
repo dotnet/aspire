@@ -94,6 +94,10 @@ extends:
       autoEnablePREfastWithNewRuleset: false
       autoEnableRoslynWithNewRuleset: false
     sdl:
+      componentgovernance:
+        # Exclude .packages folder from CG scanning. This folder contains older versions of our own
+        # packages restored for API compatibility validation, which may have since-fixed vulnerabilities.
+        ignoreDirectories: $(Build.SourcesDirectory)/.packages
       policheck:
         enabled: true
         exclusionsFile: $(Build.SourcesDirectory)\.config\PoliCheckExclusions.xml
@@ -257,11 +261,8 @@ extends:
                   repoTestResultsPath: $(Build.Arcade.TestResultsPath)
                   isWindows: true
                   targetRids:
-                    # aot
                     - win-x64
                     - win-arm64
-                    # non-aot - single file builds
-                    - win-x86
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self
           parameters:

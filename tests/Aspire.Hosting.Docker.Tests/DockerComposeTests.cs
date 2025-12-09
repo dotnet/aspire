@@ -1,15 +1,20 @@
-#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECOMPUTE002
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPIPELINES003
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 
 namespace Aspire.Hosting.Docker.Tests;
 
@@ -20,7 +25,7 @@ public class DockerComposeTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -41,7 +46,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -64,7 +69,7 @@ public class DockerComposeTests(ITestOutputHelper output)
         output.WriteLine($"Temp directory: {tempDir.FullName}");
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.FullName);
 
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("docker-compose");
 
@@ -120,10 +125,10 @@ public class DockerComposeTests(ITestOutputHelper output)
     [Fact]
     public async Task MultipleDockerComposeEnvironmentsSupported()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         var env1 = builder.AddDockerComposeEnvironment("env1");
         var env2 = builder.AddDockerComposeEnvironment("env2");
@@ -145,10 +150,10 @@ public class DockerComposeTests(ITestOutputHelper output)
     [Fact]
     public async Task DashboardWithForwardedHeadersWritesEnvVar()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("env")
                .WithDashboard(d => d.WithForwardedHeaders());
@@ -169,10 +174,10 @@ public class DockerComposeTests(ITestOutputHelper output)
     [Fact]
     public async Task DockerSwarmDeploymentLabelsSerializedCorrectly()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
 
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
-        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
 
         builder.AddDockerComposeEnvironment("swarm-env");
 
@@ -220,30 +225,220 @@ public class DockerComposeTests(ITestOutputHelper output)
         Assert.Empty(endpointReferenceEx.ValueProviders);
     }
 
-    private sealed class MockImageBuilder : IResourceContainerImageBuilder
+    private sealed class MockImageBuilder : IResourceContainerImageManager
     {
         public bool BuildImageCalled { get; private set; }
 
-        public Task BuildImageAsync(IResource resource, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+        public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;
         }
 
-        public Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
+        public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken = default)
         {
             BuildImageCalled = true;
             return Task.CompletedTask;
         }
 
-        public Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
+        public Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
+    }
 
-        public Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
+    [Fact]
+    [RequiresDocker]
+    public async Task DockerComposeProjectNameIncludesAppHostShaInArguments()
+    {
+        using var tempDir = new TestTempDirectory();
+        var testSink = new TestSink();
+
+        // Set a known AppHost SHA in configuration
+        const string testSha = "ABC123DEF456789ABCDEF123456789ABCDEF123456789ABCDEF123456789ABC";
+
+        // Helper to create a builder with the same configuration
+        IDistributedApplicationTestingBuilder CreateBuilder(string step)
         {
-            return Task.CompletedTask;
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: step);
+
+            // Add TestLoggerProvider to capture logs during publish, set minimum level to Debug
+            builder.Services.AddLogging(logging =>
+            {
+                logging.AddProvider(new TestLoggerProvider(testSink));
+                logging.SetMinimumLevel(LogLevel.Debug);
+            });
+
+            builder.Configuration["AppHost:PathSha256"] = testSha;
+            builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+            builder.AddDockerComposeEnvironment("my-environment");
+            builder.AddContainer("service", "nginx");
+
+            return builder;
+        }
+
+        try
+        {
+            // Deploy the application
+            using (var deployApp = CreateBuilder(WellKnownPipelineSteps.Deploy).Build())
+            {
+                await deployApp.RunAsync();
+            }
+
+            // Verify that docker-compose.yaml was created
+            var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+            Assert.True(File.Exists(composePath));
+
+            // Check for docker compose up command with project name
+            var expectedProjectName = "aspire-my-environment-abc123de";
+
+            var logMessages = testSink.Writes.Select(w => w.Message).ToList();
+            Assert.Contains(logMessages, msg =>
+                msg != null &&
+                msg.Contains("compose", StringComparison.OrdinalIgnoreCase) &&
+                msg.Contains("--project-name", StringComparison.OrdinalIgnoreCase) &&
+                msg.Contains(expectedProjectName, StringComparison.OrdinalIgnoreCase) &&
+                msg.Contains("up", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            // Clean up using the built-in docker-compose-down pipeline step
+            using var cleanupApp = CreateBuilder("docker-compose-down-my-environment").Build();
+            await cleanupApp.RunAsync();
+        }
+    }
+
+    [Fact]
+    public async Task DashboardPrintSummaryStepIsCreatedAndWiredCorrectly()
+    {
+        using var tempDir = new TestTempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: WellKnownPipelineSteps.Diagnostics);
+        var mockActivityReporter = new TestPipelineActivityReporter(output);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+        builder.Services.AddSingleton<IPipelineActivityReporter>(mockActivityReporter);
+
+        // Add a Docker Compose environment with dashboard enabled (default)
+        builder.AddDockerComposeEnvironment("env")
+               .WithDashboard();
+
+        // Add a sample service to force compose generation
+        builder.AddContainer("api", "myimage");
+
+        using var app = builder.Build();
+        await app.RunAsync();
+
+        // In diagnostics mode, just verify the dashboard print step is created
+        var logs = mockActivityReporter.LoggedMessages
+                        .Where(s => s.StepTitle == "diagnostics")
+                        .Select(s => s.Message)
+                        .ToList();
+
+        // Verify the dashboard print-summary step exists (named after the dashboard resource)
+        Assert.Contains(logs, msg => msg.Contains("print-env-dashboard-summary"));
+
+        // Verify it depends on docker-compose-up-env
+        var stepDependencyLines = logs.Where(l => l.Contains("print-env-dashboard-summary")).ToList();
+        Assert.Contains(stepDependencyLines, msg => msg.Contains("docker-compose-up-env"));
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task DeployWithDashboard_PrintsDashboardAndServiceEndpoints()
+    {
+        using var tempDir = new TestTempDirectory();
+        var mockActivityReporter = new TestPipelineActivityReporter(output);
+
+        // Use a unique project name to avoid conflicts with other tests
+        var projectId = Guid.NewGuid().ToString("N")[..8];
+
+        // Use a random port in the dynamic/private port range (49152-65535) to avoid conflicts
+        var hostPort = Random.Shared.Next(49152, 65535);
+        output.WriteLine($"Using random host port: {hostPort}");
+
+        // Helper to create a builder with the same configuration
+        IDistributedApplicationTestingBuilder CreateBuilder(string step)
+        {
+            var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: step);
+            builder.Configuration["AppHost:PathSha256"] = projectId;
+            builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+            builder.Services.AddSingleton<IPipelineActivityReporter>(mockActivityReporter);
+            builder.Services.AddLogging(logging => logging.AddXunit(output));
+
+            // Add a Docker Compose environment with dashboard enabled
+            builder.AddDockerComposeEnvironment("env")
+                   .WithDashboard();
+
+            // Add a container with an external endpoint
+            // Use explicit port mapping so the URL can be displayed
+            builder.AddContainer("nginx", "nginx:alpine")
+                   .WithEndpoint(scheme: "http", port: hostPort, targetPort: 80, name: "http", isExternal: true);
+
+            return builder;
+        }
+
+        try
+        {
+            // Deploy the application
+            using (var deployApp = CreateBuilder(WellKnownPipelineSteps.Deploy).Build())
+            {
+                await deployApp.RunAsync();
+            }
+
+            // Verify the dashboard endpoint was logged
+            var dashboardLogs = mockActivityReporter.LoggedMessages
+                .Where(l => l.StepTitle.Contains("print-env-dashboard-summary", StringComparison.OrdinalIgnoreCase))
+                .Select(l => l.Message)
+                .ToList();
+
+            output.WriteLine("Dashboard logs:");
+            foreach (var log in dashboardLogs)
+            {
+                output.WriteLine($"  {log}");
+            }
+
+            Assert.Contains(dashboardLogs, msg => msg.Contains("env-dashboard"));
+
+            // Verify the nginx endpoint was logged
+            var nginxLogs = mockActivityReporter.LoggedMessages
+                .Where(l => l.StepTitle.Contains("print-nginx-summary", StringComparison.OrdinalIgnoreCase))
+                .Select(l => l.Message)
+                .ToList();
+
+            output.WriteLine("Nginx logs:");
+            foreach (var log in nginxLogs)
+            {
+                output.WriteLine($"  {log}");
+            }
+
+            Assert.Contains(nginxLogs, msg => msg.Contains("nginx"));
+            Assert.Contains(nginxLogs, msg => msg.Contains(hostPort.ToString())); // Verify the explicit port mapping is displayed
+        }
+        finally
+        {
+            // Clear the reporter to capture cleanup activity
+            mockActivityReporter.Clear();
+
+            // Clean up using the built-in docker-compose-down pipeline step
+            output.WriteLine("Running cleanup: docker-compose-down-env step");
+            using var cleanupApp = CreateBuilder("docker-compose-down-env").Build();
+            await cleanupApp.RunAsync();
+
+            // Verify the docker-compose-down step was executed
+            var downSteps = mockActivityReporter.CreatedSteps
+                .Where(s => s.Contains("docker-compose-down", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            output.WriteLine("Cleanup steps:");
+            foreach (var step in mockActivityReporter.CreatedSteps)
+            {
+                output.WriteLine($"  {step}");
+            }
+
+            Assert.Contains(downSteps, s => s.Contains("docker-compose-down-env", StringComparison.OrdinalIgnoreCase));
+            output.WriteLine("Cleanup complete");
         }
     }
 

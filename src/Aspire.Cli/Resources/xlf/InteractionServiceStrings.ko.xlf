@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../InteractionServiceStrings.resx">
     <body>
+      <trans-unit id="AppHostConnectionLost">
+        <source>The connection to the app host was lost: {0}.</source>
+        <target state="translated">앱 호스트에 대한 연결이 끊어졌습니다. {0}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
         <target state="translated">AppHost 버전이 호환되지 않습니다. AppHost 또는 Aspire CLI를 업그레이드해 주세요.</target>
@@ -108,8 +113,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
-        <source>The project argument was not specified and no *.csproj files were detected.</source>
-        <target state="translated">프로젝트 인수가 지정되지 않았고 *.csproj 파일이 감지되지 않았습니다.</target>
+        <source>The project argument was not specified and no app host project files were detected.</source>
+        <target state="translated">프로젝트 인수가 지정되지 않았고 앱 호스트 프로젝트 파일이 감지되지 않았습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="RequiredCapability">

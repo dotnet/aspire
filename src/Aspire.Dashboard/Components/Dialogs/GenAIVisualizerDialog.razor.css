@@ -9,7 +9,7 @@
     grid-template-rows: auto 1fr auto;
 }
 
-::deep .span-messages-container fluent-button::part(control):not(:hover) {
+::deep .span-messages-container fluent-button.message-copy-button::part(control):not(:hover) {
     background: var(--main-container-background-color);
 }
 
@@ -35,6 +35,14 @@
 ::deep .section-title {
     font-size: var(--type-ramp-plus-1-font-size);
     font-weight: 600;
+}
+
+.dialog-title-grid ::deep .trace-id {
+    color: var(--foreground-subtext-rest);
+    padding-left: 0.5rem;
+    font-size: 12px;
+    font-weight: normal;
+    line-height: 1;
 }
 
 .genai-visualizer-container ::deep .fluent-splitter::part(median) {
@@ -102,6 +110,12 @@
     --icon-color: var(--tool-calls-color);
 }
 
+::deep .category-tool-response {
+    background-color: var(--tool-response-background-color);
+    color: var(--tool-response-color);
+    --icon-color: var(--tool-response-color);
+}
+
 ::deep .category-output {
     background-color: var(--output-background-color);
     color: var(--output-color);
@@ -166,6 +180,11 @@
     padding: 0;
     overflow: initial;
     display: block;
+    width: 100%;
+}
+
+::deep .property-grid-container {
+    --property-grid-background-color: var(--property-grid-genai-dialog-background-color);
 }
 
 ::deep .message-container .log-content {
@@ -216,4 +235,96 @@
 
 ::deep .markdown-container {
     width: 100%;
+}
+
+.genai-visualizer-container ::deep .tab-text {
+    padding-right: 4px;
+}
+
+::deep .tools-list {
+    width: 100%;
+}
+
+::deep .tab-container .tools-list fluent-accordion-item {
+    --fill-color: var(--property-grid-genai-dialog-background-color);
+}
+
+::deep .tab-container .tools-list fluent-accordion-item,
+::deep .tab-container .tools-list fluent-accordion-item::part(region) {
+    background-color: var(--property-grid-genai-dialog-background-color);
+}
+
+/* This is a hack because we can't do a selector that selects inside of a ::part,
+   which is what we'd need to do to access `::part(heading):not(:hover) .icon`.
+   So instead we just change the color token the non-hovered state uses.
+*/
+::deep .tab-container .tools-list fluent-accordion-item::part(icon) {
+    --neutral-fill-stealth-rest-on-neutral-fill-layer-rest: var(--property-grid-genai-dialog-background-color);
+}
+
+::deep .tab-container .tool-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-left: 4px;
+}
+
+::deep .tab-container .tool-footer {
+    padding-left: 4px;
+}
+
+::deep .tab-container .tool-parameters-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+::deep .tab-container .tool-button-container {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+::deep .tab-container .tool-cell {
+    text-align: left;
+    padding: 8px;
+    border-bottom: 1px solid var(--neutral-stroke-divider-rest);
+}
+
+::deep .tab-container strong {
+    font-weight: 600;
+}
+
+::deep .tab-container th.tool-cell {
+    font-weight: 600;
+}
+
+::deep .tab-container .tool-cell-nowrap {
+    text-wrap: nowrap;
+}
+
+::deep .tab-container .evaluation-container {
+    padding: 12px;
+    border: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-hover);
+    border-radius: calc(var(--layer-corner-radius) * 0.5px);
+    width: 100%;
+    row-gap: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+::deep .tab-container .evaluation-header {
+    display: flex;
+    flex-direction: row;
+    column-gap: 8px;
+    align-items: center;
+    font-weight: 600;
+}
+
+::deep .tab-container .evaluation-divider {
+    height: 20px;
+    border-color: var(--neutral-stroke-hover);
+}
+
+::deep .tab-label > svg {
+    margin-right: calc(var(--design-unit) * 1px);
 }

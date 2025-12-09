@@ -26,6 +26,12 @@ public interface IDeveloperCertificateService
     bool SupportsContainerTrust { get; }
 
     /// <summary>
+    /// Indicates whether the default behavior is to attempt to use a developer certificate for server
+    /// authentication (i.e. HTTPS/TLS termination).
+    /// </summary>
+    bool UseForHttps { get; }
+
+    /// <summary>
     /// Indicates whether the default behavior is to attempt to trust the developer certificate(s) at runtime.
     /// </summary>
     bool TrustCertificate { get; }

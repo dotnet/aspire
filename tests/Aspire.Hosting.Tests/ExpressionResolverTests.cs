@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Options;
@@ -61,23 +62,23 @@ public class ExpressionResolverTests
     [InlineData("TwoFullEndpoints", false, false, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
     [InlineData("TwoFullEndpoints", false, true, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
     [InlineData("TwoFullEndpoints", true, false, "Test1=http://aspire.dev.internal:22345/;Test2=https://aspire.dev.internal:22346/;")]
-    [InlineData("TwoFullEndpoints", true, true, "Test1=http://testresource:22345/;Test2=https://testresource:22346/;")]
+    [InlineData("TwoFullEndpoints", true, true, "Test1=http://testresource.dev.internal:22345/;Test2=https://testresource.dev.internal:22346/;")]
     [InlineData("Url", false, false, "Url=http://localhost:12345;")]
     [InlineData("Url", false, true, "Url=http://localhost:12345;")]
     [InlineData("Url", true, false, "Url=http://aspire.dev.internal:22345;")]
-    [InlineData("Url", true, true, "Url=http://testresource:22345;")]
+    [InlineData("Url", true, true, "Url=http://testresource.dev.internal:22345;")]
     [InlineData("Url2", true, false, "Url=http://aspire.dev.internal:22345;")]
-    [InlineData("Url2", true, true, "Url=http://testresource:22345;")]
+    [InlineData("Url2", true, true, "Url=http://testresource.dev.internal:22345;")]
     [InlineData("OnlyHost", true, false, "Host=aspire.dev.internal;")]
-    [InlineData("OnlyHost", true, true, "Host=testresource;")]
+    [InlineData("OnlyHost", true, true, "Host=testresource.dev.internal;")]
     [InlineData("OnlyPort", true, false, "Port=22345;")]
     [InlineData("OnlyPort", true, true, "Port=22345;")]
     [InlineData("HostAndPort", true, false, "HostPort=aspire.dev.internal:22345")]
-    [InlineData("HostAndPort", true, true, "HostPort=testresource:22345")]
+    [InlineData("HostAndPort", true, true, "HostPort=testresource.dev.internal:22345")]
     [InlineData("PortBeforeHost", true, false, "Port=22345;Host=aspire.dev.internal;")]
-    [InlineData("PortBeforeHost", true, true, "Port=22345;Host=testresource;")]
+    [InlineData("PortBeforeHost", true, true, "Port=22345;Host=testresource.dev.internal;")]
     [InlineData("FullAndPartial", true, false, "Test1=http://aspire.dev.internal:22345/;Test2=https://localhost:22346/;")]
-    [InlineData("FullAndPartial", true, true, "Test1=http://testresource:22345/;Test2=https://localhost:22346/;")]
+    [InlineData("FullAndPartial", true, true, "Test1=http://testresource.dev.internal:22345/;Test2=https://localhost:22346/;")]
     [InlineData("UrlEncodedHost", false, false, "Host=host%20with%20space;")]
     public async Task ExpressionResolverGeneratesCorrectEndpointStrings(string exprName, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
     {
@@ -230,7 +231,29 @@ public class ExpressionResolverTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dep.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
-        Assert.Equal("http://myContainer:8080", config["ConnectionStrings__myContainer"]);
+        Assert.Equal("http://myContainer.dev.internal:8080", config["ConnectionStrings__myContainer"]);
+    }
+
+    [Fact]
+    public async Task ExpressionResolutionShouldWaitOnMissingAllocatedEndpoint()
+    {
+        var builder = DistributedApplicationTestingBuilder.Create();
+
+        var dependency = builder
+           .AddResource(new TestHostResource("hostResource"))
+           .WithHttpEndpoint(name: "hostEndpoint");
+
+        var consumer = builder.AddResource(new MyContainerResource("containerResource"))
+           .WithImage("redis")
+           .WithReference(dependency.GetEndpoint("hostEndpoint"));
+
+        var endpointAnnotation = dependency.Resource.Annotations.OfType<EndpointAnnotation>().Single();
+        endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "localhost", 1234);
+
+        await Assert.ThrowsAsync<TimeoutException>(async () =>
+        {
+            _ = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(consumer.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).AsTask().TimeoutAfter(TimeSpan.FromSeconds(2));
+        });
     }
 }
 
@@ -285,4 +308,9 @@ sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEn
     }
 
     public ReferenceExpression ConnectionStringExpression => Expressions[_exprName];
+}
+
+public sealed class TestHostResource : Resource, IResourceWithEndpoints
+{
+    public TestHostResource(string name) : base(name) { }
 }

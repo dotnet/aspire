@@ -27,6 +27,7 @@ KEEP_ARCHIVE=false
 DRY_RUN=false
 INSTALL_EXTENSION=false
 USE_INSIDERS=false
+SKIP_PATH=false
 DEFAULT_QUALITY="release"
 EXTENSION_ARTIFACT_NAME="aspire-vscode.vsix.zip"
 
@@ -57,6 +58,7 @@ USAGE:
     --arch ARCH                 Architecture (default: auto-detect)
     --install-extension         Install VS Code extension along with the CLI
     --use-insiders              Install extension to VS Code Insiders instead of VS Code (requires --install-extension)
+    --skip-path                 Do not add the install path to PATH environment variable (useful for portable installs)
     -k, --keep-archive          Keep downloaded archive files and temporary directory after installation
     --dry-run                   Show what would be done without actually performing any actions
     -v, --verbose               Enable verbose output
@@ -136,6 +138,10 @@ parse_args() {
                 ;;
             --use-insiders)
                 USE_INSIDERS=true
+                shift
+                ;;
+            --skip-path)
+                SKIP_PATH=true
                 shift
                 ;;
             -k|--keep-archive)
@@ -220,9 +226,6 @@ get_cli_architecture_from_architecture() {
         amd64|x64)
             printf "x64"
             ;;
-        x86)
-            printf "x86"
-            ;;
         arm64)
             printf "arm64"
             ;;
@@ -243,9 +246,6 @@ detect_architecture() {
             ;;
         aarch64|arm64)
             printf "arm64"
-            ;;
-        i386|i686)
-            printf "x86"
             ;;
         *)
             say_error "Architecture $uname_m not supported. If you think this is a bug, report it at https://github.com/dotnet/aspire/issues"
@@ -1000,26 +1000,31 @@ if ! download_and_install_archive "$temp_dir"; then
     exit 1
 fi
 
-# Handle GitHub Actions environment
-if [[ -n "${GITHUB_ACTIONS:-}" ]] && [[ "${GITHUB_ACTIONS}" == "true" ]]; then
-    if [[ -n "${GITHUB_PATH:-}" ]]; then
-        if [[ "$DRY_RUN" == true ]]; then
-            say_info "[DRY RUN] Would add $INSTALL_PATH to \$GITHUB_PATH"
-        else
-            echo "$INSTALL_PATH" >> "$GITHUB_PATH"
-            say_verbose "Added $INSTALL_PATH to \$GITHUB_PATH"
+# Skip PATH configuration if --skip-path is set
+if [[ "$SKIP_PATH" != true ]]; then
+    # Handle GitHub Actions environment
+    if [[ -n "${GITHUB_ACTIONS:-}" ]] && [[ "${GITHUB_ACTIONS}" == "true" ]]; then
+        if [[ -n "${GITHUB_PATH:-}" ]]; then
+            if [[ "$DRY_RUN" == true ]]; then
+                say_info "[DRY RUN] Would add $INSTALL_PATH to \$GITHUB_PATH"
+            else
+                echo "$INSTALL_PATH" >> "$GITHUB_PATH"
+                say_verbose "Added $INSTALL_PATH to \$GITHUB_PATH"
+            fi
         fi
     fi
-fi
 
-# Add to shell profile for persistent PATH
-add_to_shell_profile "$INSTALL_PATH" "$INSTALL_PATH_UNEXPANDED"
+    # Add to shell profile for persistent PATH
+    add_to_shell_profile "$INSTALL_PATH" "$INSTALL_PATH_UNEXPANDED"
 
-# Add to current session PATH, if the path is not already in PATH
-if [[ ":$PATH:" != *":$INSTALL_PATH:"* ]]; then
-    if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would add $INSTALL_PATH to PATH"
-    else
-        export PATH="$INSTALL_PATH:$PATH"
+    # Add to current session PATH, if the path is not already in PATH
+    if [[ ":$PATH:" != *":$INSTALL_PATH:"* ]]; then
+        if [[ "$DRY_RUN" == true ]]; then
+            say_info "[DRY RUN] Would add $INSTALL_PATH to PATH"
+        else
+            export PATH="$INSTALL_PATH:$PATH"
+        fi
     fi
+else
+    say_info "Skipping PATH configuration due to --skip-path flag"
 fi

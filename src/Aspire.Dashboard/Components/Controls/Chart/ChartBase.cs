@@ -63,8 +63,6 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
     private Dictionary<SpanKey, OtlpSpan> _currentCache = new Dictionary<SpanKey, OtlpSpan>();
     private Dictionary<SpanKey, OtlpSpan> _newCache = new Dictionary<SpanKey, OtlpSpan>();
 
-    private readonly record struct SpanKey(string TraceId, string SpanId);
-
     protected override void OnInitialized()
     {
         // Copy the token so there is no chance it is accessed on CTS after it is disposed.

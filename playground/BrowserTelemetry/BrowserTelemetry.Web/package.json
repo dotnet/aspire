@@ -13,13 +13,13 @@
   "license": "ISC",
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/context-zone": "^1.25.1",
-    "@opentelemetry/exporter-trace-otlp-proto": "^0.52.1",
-    "@opentelemetry/instrumentation-document-load": "^0.39.0",
-    "@opentelemetry/sdk-trace-web": "^1.25.1"
+    "@opentelemetry/context-zone": "^2.2.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.208.0",
+    "@opentelemetry/instrumentation-document-load": "^0.46.0",
+    "@opentelemetry/sdk-trace-web": "^2.2.0"
   },
   "devDependencies": {
-    "webpack": "^5.94.0",
-    "webpack-cli": "^5.1.4"
+    "webpack": "^5.103.0",
+    "webpack-cli": "^6.0.1"
   }
 }

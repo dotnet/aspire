@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Markdown;
@@ -13,11 +14,15 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
-public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
+public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTelemetry, IDisposable
 {
+    private static readonly Icon s_wrenchIcon = new Icons.Regular.Size16.Wrench();
+    private static readonly Icon s_toolIcon = new Icons.Regular.Size16.Code();
+
     private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
 
     private MarkdownProcessor _markdownProcess = default!;
@@ -55,8 +60,14 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     [Inject]
     public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
 
+    [Inject]
+    public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
+
     public bool NoPreviousGenAISpan => _currentSpanContextIndex == 0;
     public bool NoNextGenAISpan => _currentSpanContextIndex >= _contextSpans.Count - 1;
+
+    // IComponentWithTelemetry impl
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Control, TelemetryComponentIds.GenAIVisualizerDialog);
 
     protected override void OnInitialized()
     {
@@ -64,6 +75,8 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         _resourcesSubscription = TelemetryRepository.OnNewResources(UpdateDialogData);
         _tracesSubscription = TelemetryRepository.OnNewTraces(Content.Span.Source.ResourceKey, SubscriptionType.Read, UpdateDialogData);
         _logsSubscription = TelemetryRepository.OnNewLogs(Content.Span.Source.ResourceKey, SubscriptionType.Read, UpdateDialogData);
+
+        TelemetryContextProvider.Initialize(TelemetryContext);
     }
 
     protected override void OnParametersSet()
@@ -108,6 +121,33 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     private void OnViewItem(GenAIItemViewModel viewModel)
     {
         SelectedItem = viewModel;
+    }
+
+    private void ViewToolDefinition(ToolDefinitionViewModel toolDefinition)
+    {
+        SelectedItem = null;
+        OverviewActiveView = OverviewViewKind.Tools;
+        toolDefinition.Expanded = true;
+    }
+
+    private bool TryGetToolCall(string id, [NotNullWhen(true)] out GenAIItemViewModel? itemVM, [NotNullWhen(true)] out ToolCallRequestPart? toolCallRequestPart)
+    {
+        foreach (var messages in Content.InputMessages)
+        {
+            foreach (var part in messages.ItemParts)
+            {
+                if (part.MessagePart is ToolCallRequestPart { } p && p.Id == id)
+                {
+                    itemVM = messages;
+                    toolCallRequestPart = p;
+                    return true;
+                }
+            }
+        }
+
+        itemVM = null;
+        toolCallRequestPart = null;
+        return false;
     }
 
     private Task HandleSelectedTreeItemChangedAsync()
@@ -199,6 +239,16 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         };
     }
 
+    private static string GetToolHeadingTooltip(ToolDefinitionViewModel vm)
+    {
+        if (string.IsNullOrEmpty(vm.ToolDefinition.Description))
+        {
+            return vm.ToolDefinition.Name ?? string.Empty;
+        }
+
+        return $"{vm.ToolDefinition.Name} - {vm.ToolDefinition.Description}";
+    }
+
     private record DataInfo(string Url, string MimeType, string FileName);
 
     private static bool TryGetDataPart(GenAIItemPartViewModel itemPart, HashSet<string>? matchingMimeTypes, [NotNullWhen(true)] out DataInfo? dataInfo)
@@ -279,6 +329,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         _resourcesSubscription?.Dispose();
         _tracesSubscription?.Dispose();
         _logsSubscription?.Dispose();
+        TelemetryContext.Dispose();
     }
 
     public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService,

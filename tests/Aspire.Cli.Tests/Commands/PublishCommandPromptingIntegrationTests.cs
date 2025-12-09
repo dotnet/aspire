@@ -764,8 +764,8 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
     }
 }
 
-// Test implementation of IAppHostBackchannel that simulates prompt interactions
-internal sealed class TestPromptBackchannel : IAppHostBackchannel
+// Test implementation of IAppHostCliBackchannel that simulates prompt interactions
+internal sealed class TestPromptBackchannel : IAppHostCliBackchannel
 {
     private readonly List<PromptData> _promptsToSend = [];
     private readonly TaskCompletionSource _completionSource = new();

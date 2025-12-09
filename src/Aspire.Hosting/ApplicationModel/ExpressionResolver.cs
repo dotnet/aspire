@@ -17,10 +17,10 @@ internal class ExpressionResolver(CancellationToken cancellationToken)
 
         return (property, target.IsContainer()) switch
         {
-            // If Container -> Container, we use container name as host, and target port as port
+            // If Container -> Container, we use <container name>.dev.internal as host, and target port as port
             // This assumes both containers are on the same container network.
             // Different networks will require addtional routing/tunneling that we do not support today.
-            (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => target.Name,
+            (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => $"{target.Name}.dev.internal",
             (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(context, cancellationToken).ConfigureAwait(false),
 
             (EndpointProperty.Url, _) => string.Format(CultureInfo.InvariantCulture, "{0}://{1}:{2}",

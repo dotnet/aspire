@@ -142,6 +142,7 @@ public static class AzurePostgresExtensions
 
         var resource = new AzurePostgresFlexibleServerResource(name, infrastructure => ConfigurePostgreSqlInfrastructure(infrastructure, builder));
         return builder.AddResource(resource)
+            .WithIconName("DatabaseMultiple")
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
@@ -338,6 +339,8 @@ public static class AzurePostgresExtensions
         builder.WithParameter("administratorLoginPassword", azureResource.PasswordParameter);
 
         azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{builder.Resource.Name}");
+        // Set the secret owner to this resource
+        azureResource.ConnectionStringSecretOutput.SecretOwner = azureResource;
 
         // If someone already called RunAsContainer - we need to reset the username/password parameters on the InnerResource
         var containerResource = azureResource.InnerResource;
@@ -502,10 +505,10 @@ public static class AzurePostgresExtensions
         }
 
         // We need to output name to externalize role assignments.
-        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = postgres.Name });
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = postgres.Name.ToBicepExpression() });
 
         // Always output the hostName for the PostgreSQL server.
-        infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = postgres.FullyQualifiedDomainName });
+        infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = postgres.FullyQualifiedDomainName.ToBicepExpression() });
     }
 
     internal static PostgreSqlFlexibleServerActiveDirectoryAdministrator AddActiveDirectoryAdministrator(AzureResourceInfrastructure infra, PostgreSqlFlexibleServer postgres, BicepValue<Guid> principalId, BicepValue<PostgreSqlFlexibleServerPrincipalType> principalType, BicepValue<string> principalName)

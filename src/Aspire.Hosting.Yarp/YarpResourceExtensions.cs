@@ -1,4 +1,5 @@
 #pragma warning disable ASPIREDOCKERFILEBUILDER001
+#pragma warning disable ASPIRECERTIFICATES001
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -17,6 +18,7 @@ namespace Aspire.Hosting;
 public static class YarpResourceExtensions
 {
     private const int Port = 5000;
+    private const int HttpsPort = 5001;
 
     /// <summary>
     /// Adds a YARP container to the application model.
@@ -38,15 +40,58 @@ public static class YarpResourceExtensions
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
                       .WithEntrypoint("dotnet")
                       .WithArgs("/app/yarp.dll")
-                      .WithOtlpExporter();
+                      .WithOtlpExporter()
+                      .WithHttpsCertificateConfiguration(ctx =>
+                      {
+                          ctx.EnvironmentVariables["Kestrel__Certificates__Default__Path"] = ctx.CertificatePath;
+                          ctx.EnvironmentVariables["Kestrel__Certificates__Default__KeyPath"] = ctx.KeyPath;
+                          if (ctx.Password is not null)
+                          {
+                              ctx.EnvironmentVariables["Kestrel__Certificates__Default__Password"] = ctx.Password;
+                          }
+
+                          return Task.CompletedTask;
+                      });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, cancellationToken) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.UseForHttps)
+                    {
+                        // If no specific certificate is configured
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // If a TLS certificate is configured, ensure the YARP resource has an HTTPS endpoint and
+                    // configure the environment variables to use it.
+                    yarpBuilder
+                        .WithHttpsEndpoint(targetPort: HttpsPort)
+                        .WithEnvironment("ASPNETCORE_HTTPS_PORT", resource.GetEndpoint("https").Property(EndpointProperty.Port))
+                        .WithEnvironment("ASPNETCORE_URLS", $"{resource.GetEndpoint("https").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("https").Property(EndpointProperty.TargetPort)};{resource.GetEndpoint("http").Property(EndpointProperty.Scheme)}://*:{resource.GetEndpoint("http").Property(EndpointProperty.TargetPort)}");
+                }
+
+                return Task.CompletedTask;
+            });
+        }
 
         if (builder.ExecutionContext.IsRunMode)
         {
             yarpBuilder.WithEnvironment(ctx =>
             {
-#pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 var developerCertificateService = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
-#pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 if (!developerCertificateService.SupportsContainerTrust)
                 {
                     // On systems without the ASP.NET DevCert updates introduced in .NET 10, YARP will not trust the cert used
@@ -92,6 +137,23 @@ public static class YarpResourceExtensions
         {
             endpoint.Port = port;
         });
+    }
+
+    /// <summary>
+    /// Configures the host HTTPS port that the YARP resource is exposed on instead of using randomly assigned port.
+    /// This will only have effect if an HTTPS endpoint is configured on the YARP resource due to TLS termination being enabled.
+    /// </summary>
+    /// <param name="builder">The resource builder for YARP.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<YarpResource> WithHostHttpsPort(this IResourceBuilder<YarpResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("https", endpoint =>
+        {
+            endpoint.Port = port;
+        }, createIfNotExists: false);
     }
 
     /// <summary>

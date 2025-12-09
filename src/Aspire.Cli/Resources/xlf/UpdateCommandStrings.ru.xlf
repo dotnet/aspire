@@ -37,6 +37,16 @@
         <target state="translated">Централизованное управление пакетами в настоящее время не поддерживается функцией "обновление Aspire".</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChannelOptionDescription">
+        <source>Channel to update to (stable, daily)</source>
+        <target state="translated">Канал для обновления (стабильный, ежедневный)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChannelOptionDescriptionWithStaging">
+        <source>Channel to update to (stable, staging, daily)</source>
+        <target state="translated">Канал для обновления (стабильный, промежуточный, ежедневный)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
         <source>Could not find PackageVersion element for '{0}' in {1}</source>
         <target state="translated">Не удалось найти элемент PackageVersion для "{0}" в {1}</target>
@@ -55,6 +65,11 @@
       <trans-unit id="Description">
         <source>Update integrations in the Aspire project. (Preview)</source>
         <target state="translated">Обновление интеграций в проекте Aspire. (предварительная версия)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotNetToolSelfUpdateMessage">
+        <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
+        <target state="translated">Чтобы обновить Aspire CLI при установке в качестве инструмента .NET, запустите:</target>
         <note />
       </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
@@ -95,6 +110,11 @@
       <trans-unit id="MappingRetainedFormat">
         <source>   Mapping: {0}</source>
         <target state="translated">   Сопоставление: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MigratedToNewSdkFormat">
+        <source>Migrated to new project format: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</source>
+        <target state="new">Migrated to new project format: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
@@ -142,9 +162,24 @@
         <target state="translated">Проект обновлен! (обновления не требуются)</target>
         <note />
       </trans-unit>
+      <trans-unit id="QualityOptionDescription">
+        <source>Quality level to update to (stable, daily)</source>
+        <target state="translated">Уровень качества для обновления (стабильный, ежедневно)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="QualityOptionDescriptionWithStaging">
+        <source>Quality level to update to (stable, staging, daily)</source>
+        <target state="translated">Уровень качества для обновления (стабильный, промежуточный, ежедневный)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="RemovedFeedFormat">
         <source>Removed: {0}</source>
         <target state="translated">Удалено: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedObsoleteAppHostPackage">
+        <source>Removed obsolete Aspire.Hosting.AppHost package reference</source>
+        <target state="new">Removed obsolete Aspire.Hosting.AppHost package reference</target>
         <note />
       </trans-unit>
       <trans-unit id="RetainedFeedFormat">

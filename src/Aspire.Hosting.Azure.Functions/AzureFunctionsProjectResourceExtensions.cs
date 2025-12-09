@@ -6,6 +6,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Aspire.Hosting;
 
@@ -33,6 +35,29 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to which the Azure Functions project will be added.</param>
     /// <param name="name">The name to be associated with the Azure Functions project. This name will be used for service discovery when referenced in a dependency.</param>
     /// <returns>An <see cref="IResourceBuilder{AzureFunctionsProjectResource}"/> for the added Azure Functions project resource.</returns>
+    /// <remarks>
+    /// <para>
+    /// When Functions projects are deployed to Azure Container Apps, they are provisioned with the container app <c>kind</c>
+    /// property set to <c>functionapp</c>. This enables KEDA auto-scaler rules to be automatically configured based on the
+    /// Azure Functions triggers defined in the project.
+    /// </para>
+    /// <para>
+    /// By default, an implicit Azure Storage account is provisioned to be used as host storage for the Functions runtime.
+    /// This storage account is required by the Azure Functions runtime for operations such as managing triggers, logging
+    /// function executions, and coordinating instances. The implicit storage account is assigned the following roles:
+    /// <list type="bullet">
+    /// <item><description><see cref="StorageBuiltInRole.StorageBlobDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageTableDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageQueueDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageAccountContributor"/></description></item>
+    /// </list>
+    /// For more information, see <a href="https://learn.microsoft.com/azure/azure-functions/dotnet-aspire-integration#azure-functions-host-storage">Azure Functions host storage</a>.
+    /// </para>
+    /// <para>
+    /// Use <see cref="WithHostStorage"/> to specify a custom Azure Storage resource as the host storage instead of the
+    /// implicit default storage account.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<AzureFunctionsProjectResource> AddAzureFunctionsProject<TProject>(this IDistributedApplicationBuilder builder, [ResourceName] string name)
         where TProject : IProjectMetadata, new()
     {
@@ -40,7 +65,71 @@ public static class AzureFunctionsProjectResourceExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var resource = new AzureFunctionsProjectResource(name);
+        return AddAzureFunctionsProjectCore(builder, resource, new TProject());
+    }
 
+    /// <summary>
+    /// Adds an Azure Functions project to the distributed application.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to which the Azure Functions project will be added.</param>
+    /// <param name="name">The name to be associated with the Azure Functions project. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="projectPath">The path to the Azure Functions project file.</param>
+    /// <returns>An <see cref="IResourceBuilder{AzureFunctionsProjectResource}"/> for the added Azure Functions project resource.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload of the <see cref="AddAzureFunctionsProject(IDistributedApplicationBuilder, string, string)"/> method adds an Azure Functions project to the application
+    /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
+    /// path is not an absolute path then it will be computed relative to the app host directory.
+    /// </para>
+    /// <para>
+    /// When Functions projects are deployed to Azure Container Apps, they are provisioned with the container app <c>kind</c>
+    /// property set to <c>functionapp</c>. This enables KEDA auto-scaler rules to be automatically configured based on the
+    /// Azure Functions triggers defined in the project.
+    /// </para>
+    /// <para>
+    /// By default, an implicit Azure Storage account is provisioned to be used as host storage for the Functions runtime.
+    /// This storage account is required by the Azure Functions runtime for operations such as managing triggers, logging
+    /// function executions, and coordinating instances. The implicit storage account is assigned the following roles:
+    /// <list type="bullet">
+    /// <item><description><see cref="StorageBuiltInRole.StorageBlobDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageTableDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageQueueDataContributor"/></description></item>
+    /// <item><description><see cref="StorageBuiltInRole.StorageAccountContributor"/></description></item>
+    /// </list>
+    /// For more information, see <a href="https://learn.microsoft.com/azure/azure-functions/dotnet-aspire-integration#azure-functions-host-storage">Azure Functions host storage</a>.
+    /// </para>
+    /// <para>
+    /// Use <see cref="WithHostStorage"/> to specify a custom Azure Storage resource as the host storage instead of the
+    /// implicit default storage account.
+    /// </para>
+    /// <example>
+    /// Add an Azure Functions project to the app model via a project path.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddAzureFunctionsProject("funcapp", @"..\MyFunctions\MyFunctions.csproj");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<AzureFunctionsProjectResource> AddAzureFunctionsProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(projectPath);
+
+        projectPath = NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
+
+        var resource = new AzureFunctionsProjectResource(name);
+        return AddAzureFunctionsProjectCore(builder, resource, new AzureFunctionsProjectMetadata(projectPath));
+    }
+
+    private static IResourceBuilder<AzureFunctionsProjectResource> AddAzureFunctionsProjectCore(
+        IDistributedApplicationBuilder builder,
+        AzureFunctionsProjectResource resource,
+        IProjectMetadata projectMetadata)
+    {
         // Add the default storage resource if it doesn't already exist.
         var storageResourceName = builder.CreateDefaultStorageName();
         var storage = builder.Resources
@@ -60,6 +149,9 @@ public static class AzureFunctionsProjectResourceExtensions
                 .RunAsEmulator()
                 .Resource;
         }
+
+        // Register the FuncCoreToolsInstallationManager service for validating Azure Functions Core Tools
+        builder.Services.TryAddSingleton<FuncCoreToolsInstallationManager>();
 
         builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
         {
@@ -91,8 +183,19 @@ public static class AzureFunctionsProjectResourceExtensions
         resource.HostStorage = storage;
 
         var functionsBuilder = builder.AddResource(resource)
-            .WithAnnotation(new TProject())
+            .WithAnnotation(projectMetadata)
             .WithAnnotation(new AzureFunctionsAnnotation());
+
+        // Only validate Azure Functions Core Tools in run mode (not during publish)
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            functionsBuilder.OnBeforeResourceStarted(static async (functionsResource, e, ct) =>
+            {
+                // Validate that Azure Functions Core Tools (func) is installed
+                var funcToolsManager = e.Services.GetRequiredService<FuncCoreToolsInstallationManager>();
+                await funcToolsManager.EnsureInstalledAsync(throwOnFailure: false, ct).ConfigureAwait(false);
+            });
+        }
 
         // Add launch profile annotations like regular projects do.
         // This ensures proper VS integration and port handling.
@@ -253,5 +356,51 @@ public static class AzureFunctionsProjectResourceExtensions
         // Use ProjectNameSha256 for stable naming across deployments regardless of path
         var applicationHash = builder.Configuration["AppHost:ProjectNameSha256"]![..5].ToLowerInvariant();
         return $"{DefaultAzureFunctionsHostStorageName}{applicationHash}";
+    }
+
+    private static string NormalizePathForCurrentPlatform(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+        {
+            return path;
+        }
+
+        // Fix slashes
+        path = path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+
+        return Path.GetFullPath(path);
+    }
+
+    private sealed class AzureFunctionsProjectMetadata(string projectPath) : IProjectMetadata
+    {
+        private string? _resolvedProjectPath;
+
+        public string ProjectPath => _resolvedProjectPath ??= ResolveProjectPath(projectPath);
+
+        public bool SuppressBuild => false;
+
+        private static string ResolveProjectPath(string path)
+        {
+            if (Directory.Exists(path))
+            {
+                // Path is a directory, assume it's a project directory
+                var projectFiles = Directory.GetFiles(path, "*.csproj", new EnumerationOptions
+                {
+                    MatchCasing = MatchCasing.CaseInsensitive,
+                    RecurseSubdirectories = false,
+                    IgnoreInaccessible = true
+                });
+
+                if (projectFiles.Length != 1)
+                {
+                    // Either no project files found or multiple project files found,
+                    // just let it pass through and be handled later during resource start
+                    return path;
+                }
+                return Path.GetFullPath(projectFiles[0]);
+            }
+
+            return path;
+        }
     }
 }

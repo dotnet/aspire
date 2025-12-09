@@ -1,5 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text.Json.Nodes;
@@ -23,6 +26,7 @@ internal sealed class BicepProvisioner(
     ISecretClientProvider secretClientProvider,
     IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext executionContext,
+    IFileSystemService fileSystemService,
     ILogger<BicepProvisioner> logger) : IBicepProvisioner
 {
     /// <inheritdoc />
@@ -135,7 +139,8 @@ internal sealed class BicepProvisioner(
             ])
         }).ConfigureAwait(false);
 
-        var template = resource.GetBicepTemplateFile();
+        var tempDirectory = fileSystemService.TempDirectory.CreateTempSubdirectory("aspire-bicep").Path;
+        var template = resource.GetBicepTemplateFile(tempDirectory);
         var path = template.Path;
 
         // GetBicepTemplateFile may have added new well-known parameters, so we need

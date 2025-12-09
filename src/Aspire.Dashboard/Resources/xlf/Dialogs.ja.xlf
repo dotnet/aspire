@@ -117,6 +117,11 @@
         <target state="translated">エラー</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIEvaluationsTabText">
+        <source>Evaluations</source>
+        <target state="translated">評価</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIInputHeaderText">
         <source>Input</source>
         <target state="translated">入力</target>
@@ -150,6 +155,11 @@
       <trans-unit id="GenAIMessageCategoryToolCalls">
         <source>Tool calls</source>
         <target state="translated">ツール呼び出し</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryToolResponse">
+        <source>Tool response</source>
+        <target state="translated">ツールの応答</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIMessageTitleAssistant">
@@ -202,6 +212,11 @@
         <target state="translated">メッセージが見つかりません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAINoTools">
+        <source>No tools found.</source>
+        <target state="translated">ツールが見つかりません。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIOutputHeaderText">
         <source>Output</source>
         <target state="translated">出力</target>
@@ -230,6 +245,36 @@
       <trans-unit id="GenAITokensLabel">
         <source>Tokens</source>
         <target state="translated">トークン</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolNoParameters">
+        <source>No parameters</source>
+        <target state="translated">パラメーターがありません</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolParameterDescription">
+        <source>Description</source>
+        <target state="translated">説明</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolParameterName">
+        <source>Name</source>
+        <target state="translated">名前</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolParameterType">
+        <source>Type</source>
+        <target state="translated">種類</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolRequiredParameter">
+        <source>Required parameter</source>
+        <target state="translated">必須のパラメーター</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIToolsTabText">
+        <source>Tools</source>
+        <target state="translated">ツール</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
@@ -332,9 +377,19 @@
         <target state="translated">OK</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpServerDialogApiKeyLabel">
+        <source>Aspire MCP API key</source>
+        <target state="translated">Aspire MCP API キー</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogConfigurationHeading">
         <source>Aspire MCP configuration</source>
         <target state="translated">Aspire MCP 構成</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogCopyButton">
+        <source>Copy</source>
+        <target state="translated">コピー</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogInstallButtonAriaLabelVSCode">
@@ -360,6 +415,11 @@
       <trans-unit id="McpServerDialogLearnMoreLink">
         <source>Use Aspire MCP with AI</source>
         <target state="translated">AI と Aspire MCP を使用する</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogManuallyUpdatingAccordionHeading">
+        <source>Manually updating &lt;code&gt;mcp.json&lt;/code&gt;</source>
+        <target state="translated">&lt;code&gt;mcp.json&lt;/code&gt; を手動で更新する</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogOtherDescription">
@@ -397,6 +457,11 @@
         <target state="translated">ブラウザーのインストール ボタンを使用して、Aspire MCP を Visual Studio にすばやく追加します:</target>
         <note />
       </trans-unit>
+      <trans-unit id="McpServerDialogVSCodeApiKeyInstructions">
+        <source>The first time Aspire MCP starts, you'll be prompted by VS Code for the API key. Enter the API key below in the VS Code input text box.</source>
+        <target state="translated">Aspire MCP の初回起動時に、VS Code から API キーの入力を求められます。VS Code 入力テキスト ボックスに以下の API キーを入力します。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogVSCodeTab">
         <source>VS Code</source>
         <target state="translated">VS Code</target>
@@ -420,6 +485,11 @@
       <trans-unit id="McpServerDialogVSCodeWarningTitle">
         <source>VS Code limitation</source>
         <target state="translated">VS Code の制限</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="McpServerDialogVisualStudioApiKeyInstructions">
+        <source>You need to add the API key to Aspire MCP before you can use it. In GitHub Copilot Chat, select the Tools button, then the Aspire MCP server. Enter the API key below in the text box.</source>
+        <target state="translated">Aspire MCP を使用するには、API キーを Aspire MCP に追加する必要があります。GitHub Copilot Chat で、[ツール] ボタン、Aspire MCP サーバーの順に選択します。テキスト ボックスに以下の API キーを入力します。</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogVisualStudioTab">

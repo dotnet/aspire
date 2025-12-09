@@ -16,6 +16,9 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.QdrantServerResource> WithDataVolume(this ApplicationModel.IResourceBuilder<ApplicationModel.QdrantServerResource> builder, string? name = null, bool isReadOnly = false) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<TDestination> WithReference<TDestination>(this ApplicationModel.IResourceBuilder<TDestination> builder, ApplicationModel.IResourceBuilder<ApplicationModel.QdrantServerResource> qdrantResource, string? connectionName = null)
+            where TDestination : ApplicationModel.IResourceWithEnvironment { throw null; }
+
         public static ApplicationModel.IResourceBuilder<TDestination> WithReference<TDestination>(this ApplicationModel.IResourceBuilder<TDestination> builder, ApplicationModel.IResourceBuilder<ApplicationModel.QdrantServerResource> qdrantResource)
             where TDestination : ApplicationModel.IResourceWithEnvironment { throw null; }
     }
@@ -31,10 +34,24 @@ namespace Aspire.Hosting.ApplicationModel
 
         public ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
+        public EndpointReferenceExpression GrpcHost { get { throw null; } }
+
+        public EndpointReferenceExpression GrpcPort { get { throw null; } }
+
         public ReferenceExpression HttpConnectionStringExpression { get { throw null; } }
 
         public EndpointReference HttpEndpoint { get { throw null; } }
 
+        public EndpointReferenceExpression HttpHost { get { throw null; } }
+
+        public EndpointReferenceExpression HttpPort { get { throw null; } }
+
+        public ReferenceExpression HttpUriExpression { get { throw null; } }
+
         public EndpointReference PrimaryEndpoint { get { throw null; } }
+
+        public ReferenceExpression UriExpression { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }

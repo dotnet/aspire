@@ -13,7 +13,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAsync_GeneratesValidHelmChart()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
@@ -79,7 +79,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAppliesServiceCustomizations()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env")
@@ -110,7 +110,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAsync_CustomWorkloadAndResourceType()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
@@ -174,7 +174,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAsync_HandlesSpecialResourceName()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env")
@@ -228,7 +228,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAsync_ResourceWithProbes()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
@@ -283,7 +283,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAsync_WithDockerfileFactory_WritesDockerfileToOutputFolder()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
@@ -353,10 +353,95 @@ public class KubernetesPublisherTests()
         public override PodTemplateSpecV1 PodTemplate => Spec.Template;
     }
 
+    [Fact]
+    public async Task KubernetesWithProjectResources()
+    {
+        using var tempDir = new TestTempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        // Add a project with multiple endpoint combinations
+        var project = builder.AddProject<TestProjectWithLaunchSettings>("project1")
+            .WithHttpEndpoint(name: "custom1") // port = null, targetPort = null
+            .WithHttpEndpoint(port: 7001, name: "custom2") // port = 7001, targetPort = null
+            .WithHttpEndpoint(targetPort: 7002, name: "custom3") // port = null, targetPort = 7002
+            .WithHttpEndpoint(port: 7003, targetPort: 7004, name: "custom4"); // port = 7003, targetPort = 7004
+
+        builder.AddContainer("api", "reg:api")
+               .WithReference(project);
+
+        var app = builder.Build();
+
+        app.Run();
+
+        // Assert
+        var expectedFiles = new[]
+        {
+            "Chart.yaml",
+            "values.yaml",
+            "templates/project1/deployment.yaml",
+            "templates/project1/service.yaml",
+            "templates/project1/config.yaml",
+            "templates/api/deployment.yaml",
+            "templates/api/config.yaml"
+        };
+
+        SettingsTask settingsTask = default!;
+
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+
+        await settingsTask;
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "another-path";
 
         public LaunchSettings? LaunchSettings { get; set; }
+    }
+
+    private sealed class TestProjectWithLaunchSettings : IProjectMetadata
+    {
+        public Dictionary<string, LaunchProfile>? Profiles { get; set; } = [];
+        public string ProjectPath => "another-path";
+        public LaunchSettings? LaunchSettings => new() { Profiles = Profiles! };
+
+        public TestProjectWithLaunchSettings() => Profiles = new()
+        {
+            ["https"] = new()
+            {
+                CommandName = "Project",
+                LaunchBrowser = true,
+                ApplicationUrl = "http://localhost:5031;https://localhost:5032",
+                EnvironmentVariables = new()
+                {
+                    ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                }
+            },
+            ["http"] = new()
+            {
+                CommandName = "Project",
+                LaunchBrowser = true,
+                ApplicationUrl = "http://localhost:5031",
+                EnvironmentVariables = new()
+                {
+                    ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                }
+            }
+        };
     }
 }

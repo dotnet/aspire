@@ -85,7 +85,7 @@ public static class MauiOtlpExtensions
         var appBuilder = parentBuilder.ApplicationBuilder;
 
         // Resolve OTLP scheme and port from configuration
-        var (otlpScheme, otlpPort) = OtlpEndpointResolver.Resolve(configuration);
+        var (otlpScheme, otlpPort) = OtlpEndpointResolver.ResolveSchemeAndPort(configuration);
 
         // Create names for the tunnel infrastructure
         // Use a short random suffix to ensure uniqueness (similar to DCP naming strategy)
@@ -156,9 +156,9 @@ public static class MauiOtlpExtensions
                 // Remove the service discovery variables since we're using direct OTLP configuration
                 context.EnvironmentVariables.Remove(serviceDiscoveryKey);
 
-                // Also remove the {RESOURCENAME}_{ENDPOINTNAME} format variable (e.g., MAUIAPP-OTLP_OTLP)
-                // The resource name keeps its case/dashes, endpoint name is uppercased
-                var directEndpointKey = $"{tunnelConfig.OtlpStub.Name.ToUpperInvariant()}_OTLP";
+                // Also remove the {RESOURCENAME}_{ENDPOINTNAME} format variable (e.g., MAUI_APP-OTLP_OTLP)
+                // The resource name is encoded and uppercased when DevTunnelsResourceBuilderExtensions.WithReference is invoked
+                var directEndpointKey = $"{EnvironmentVariableNameEncoder.Encode(tunnelConfig.OtlpStub.Name).ToUpperInvariant()}_OTLP";
                 context.EnvironmentVariables.Remove(directEndpointKey);
             }
         });

@@ -173,62 +173,62 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(19, Level = EventLevel.Informational, Message = "DCP Service object creation starting...")]
-    public void DcpServicesCreationStart()
+    [Event(19, Level = EventLevel.Informational, Message = "Starting DCP object set creation...")]
+    public void DcpObjectSetCreationStart(string kind, int count)
     {
         if (IsEnabled())
         {
-            WriteEvent(19);
+            WriteEvent(19, kind, count);
         }
     }
 
-    [Event(20, Level = EventLevel.Informational, Message = "DCP Service object creation completed")]
-    public void DcpServicesCreationStop()
+    [Event(20, Level = EventLevel.Informational, Message = "DCP object set creation completed")]
+    public void DcpObjectSetCreationStop(string kind, int count)
     {
         if (IsEnabled())
         {
-            WriteEvent(20);
+            WriteEvent(20, kind, count);
         }
     }
 
-    [Event(21, Level = EventLevel.Informational, Message = "DCP Container object creation starting...")]
-    public void DcpContainersCreateStart()
+    [Event(21, Level = EventLevel.Informational, Message = "Creating DCP object...")]
+    public void DcpObjectCreationStart(string kind, string resourceName)
     {
         if (IsEnabled())
         {
-            WriteEvent(21);
+            WriteEvent(21, kind, resourceName);
         }
     }
 
-    [Event(22, Level = EventLevel.Informational, Message = "DCP Container object creation completed")]
-    public void DcpContainersCreateStop()
+    [Event(22, Level = EventLevel.Informational, Message = "DCP object creation completed")]
+    public void DcpObjectCreationStop(string kind, string resourceName)
     {
         if (IsEnabled())
         {
-            WriteEvent(22);
+            WriteEvent(22, kind, resourceName);
         }
     }
 
-    [Event(23, Level = EventLevel.Informational, Message = "DCP Executable object creation starting...")]
-    public void DcpExecutableCreateStart(string resourceName)
+    [Event(23, Level = EventLevel.Informational, Message = "Starting to wait for DCP Service address allocation...")]
+    public void DcpServiceAddressAllocationStart(int serviceCount)
     {
         if (IsEnabled())
         {
-            WriteEvent(23, resourceName);
+            WriteEvent(23, serviceCount);
         }
     }
 
-    [Event(24, Level = EventLevel.Informational, Message = "DCP Executable object creation completed")]
-    public void DcpExecutableCreateStop(string resourceName)
+    [Event(24, Level = EventLevel.Informational, Message = "DCP Service address allocation completed")]
+    public void DcpServiceAddressAllocationStop(int serviceCount)
     {
         if (IsEnabled())
         {
-            WriteEvent(24, resourceName);
+            WriteEvent(24, serviceCount);
         }
     }
 
-    [Event(25, Level = EventLevel.Informational, Message = "DCP application model cleanup starting...")]
-    public void DcpModelCleanupStart()
+    [Event(25, Level = EventLevel.Informational, Message = "DCP resource cleanup starting...")]
+    public void DcpResourceCleanupStart()
     {
         if (IsEnabled())
         {
@@ -236,8 +236,8 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(26, Level = EventLevel.Informational, Message = "DCP application model cleanup completed")]
-    public void DcpModelCleanupStop()
+    [Event(26, Level = EventLevel.Informational, Message = "DCP resource cleanup completed")]
+    public void DcpResourceCleanupStop()
     {
         if (IsEnabled())
         {
@@ -281,21 +281,93 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(31, Level = EventLevel.Informational, Message = "DCP Container Executable object creation starting...")]
-    public void DcpContainerExecutableCreateStart(string resourceName)
+    [Event(33, Level = EventLevel.Informational, Message = "DCP information fetching start...")]
+    public void DcpInfoFetchStart(bool forced)
     {
         if (IsEnabled())
         {
-            WriteEvent(31, resourceName);
+            WriteEvent(33, forced);
         }
     }
 
-    [Event(32, Level = EventLevel.Informational, Message = "DCP Container Executable object creation completed")]
-    public void DcpContainerExecutableCreateStop(string resourceName)
+    [Event(34, Level = EventLevel.Informational, Message = "DCP information fetching completed")]
+    public void DcpInfoFetchStop(bool forced)
     {
         if (IsEnabled())
         {
-            WriteEvent(32, resourceName);
+            WriteEvent(34, forced);
+        }
+    }
+
+    [Event(35, Level = EventLevel.Informational, Message = "DCP Service address allocated")]
+    public void DcpServiceAddressAllocated(string serviceName)
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(35, serviceName);
+        }
+    }
+
+    [Event(36, Level = EventLevel.Error, Message = "DCP Service address allocation failed")]
+    public void DcpServiceAddressAllocationFailed(string serviceName)
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(36, serviceName);
+        }
+    }
+
+    [Event(37, Level = EventLevel.Informational, Message = "Creating DCP resources for Aspire executable...")]
+    public void CreateAspireExecutableResourcesStart(string executableName)
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(37, executableName);
+        }
+    }
+
+    [Event(38, Level = EventLevel.Informational, Message = "Aspire executable resources created")]
+    public void CreateAspireExecutableResourcesStop(string executableName)
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(38, executableName);
+        }
+    }
+
+    [Event(39, Level = EventLevel.Informational, Message = "Stopping DCP resource...")]
+    public void StopResourceStart(string kind, string resourceName)
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(39, kind, resourceName);
+        }
+    }
+
+    [Event(40, Level = EventLevel.Informational, Message = "DCP resource stopped")]
+    public void StopResourceStop(string kind, string resourceName)
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(40, kind, resourceName);
+        }
+    }
+
+    [Event(41, Level = EventLevel.Informational, Message = "Starting DCP resource...")]
+    public void StartResourceStart(string kind, string resourceName)
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(41, kind, resourceName);
+        }
+    }
+
+    [Event(42, Level = EventLevel.Informational, Message = "DCP resource started")]
+    public void StartResourceStop(string kind, string resourceName)
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(42, kind, resourceName);
         }
     }
 }
