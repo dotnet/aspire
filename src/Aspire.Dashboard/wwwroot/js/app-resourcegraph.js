@@ -51,8 +51,26 @@ class ResourceGraph {
         this.linkForce = d3
             .forceLink()
             .id(function (link) { return link.id })
-            .strength(function (link) { return 1 })
-            .distance(150);
+            .strength(function (link) {
+                // adaptive strength: weaker for highly connected nodes (hubs)
+                // calculate average degree of source and target
+                const sourceDegree = link.source.degree || 1;
+                const targetDegree = link.target.degree || 1;
+                const avgDegree = (sourceDegree + targetDegree) / 2;
+
+                // scale strength inversely with degree: 1.0 for low degree, 0.3 for high degree
+                // use a smooth curve: strength = 1.0 / sqrt(avgDegree)
+                return Math.max(0.3, Math.min(1.0, 1.0 / Math.sqrt(avgDegree)));
+            })
+            .distance(function (link) {
+                // adaptive distance: longer for highly connected nodes
+                const sourceDegree = link.source.degree || 1;
+                const targetDegree = link.target.degree || 1;
+                const avgDegree = (sourceDegree + targetDegree) / 2;
+
+                // scale distance with degree: 150 for low degree, up to 250 for high degree
+                return 150 + (avgDegree * 10);
+            });
 
         this.simulation = d3
             .forceSimulation()
@@ -223,8 +241,23 @@ class ResourceGraph {
         const existingNodes = this.nodes || []; // Ensure nodes is initialized
         const updatedNodes = [];
 
+        // calculate degree (number of connections) for each resource
+        const degreeMap = new Map();
+        newResources.forEach(resource => {
+            degreeMap.set(resource.name, resource.referencedNames.length);
+        });
+
+        // also count incoming connections
+        newResources.forEach(resource => {
+            resource.referencedNames.forEach(refName => {
+                const currentDegree = degreeMap.get(refName) || 0;
+                degreeMap.set(refName, currentDegree + 1);
+            });
+        });
+
         newResources.forEach(resource => {
             const existingNode = existingNodes.find(node => node.id === resource.name);
+            const degree = degreeMap.get(resource.name) || 1;
 
             if (existingNode) {
                 // Update existing node without replacing it
@@ -234,7 +267,8 @@ class ResourceGraph {
                     endpointUrl: resource.endpointUrl,
                     endpointText: resource.endpointText,
                     resourceIcon: createIcon(resource.resourceIcon),
-                    stateIcon: createIcon(resource.stateIcon)
+                    stateIcon: createIcon(resource.stateIcon),
+                    degree: degree
                 });
             } else {
                 // Add new resource
@@ -244,7 +278,8 @@ class ResourceGraph {
                     endpointUrl: resource.endpointUrl,
                     endpointText: resource.endpointText,
                     resourceIcon: createIcon(resource.resourceIcon),
-                    stateIcon: createIcon(resource.stateIcon)
+                    stateIcon: createIcon(resource.stateIcon),
+                    degree: degree
                 });
             }
         });
