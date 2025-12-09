@@ -287,7 +287,7 @@ public sealed class GenAIVisualizerDialogViewModel
                 var content = item.Attributes.GetValue(GenAIHelpers.GenAIEventContent);
                 if (!string.IsNullOrEmpty(content))
                 {
-                    var parts = !string.IsNullOrEmpty(content) ? DeserializeEventContent(index, type.Value, content) : [];
+                    var parts = DeserializeEventContent(index, type.Value, content);
                     viewModel.Items.Add(CreateMessage(viewModel, currentIndex, type.Value, parts, internalId: null));
                     currentIndex++;
                 }
