@@ -11,6 +11,7 @@ using System.Threading.Channels;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using k8s.Models;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
@@ -24,7 +25,7 @@ using Polly.Retry;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
-public class DcpExecutorTests
+public class DcpExecutorTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async Task ContainersArePassedOtelServiceName()
@@ -237,6 +238,7 @@ public class DcpExecutorTests
         {
             AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
         });
+        builder.WithTestAndResourceLogging(testOutputHelper);
 
         var resource = builder.AddProject<Projects.ServiceA>("ServiceA").Resource;
 
@@ -288,6 +290,7 @@ public class DcpExecutorTests
         {
             AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
         });
+        builder.WithTestAndResourceLogging(testOutputHelper);
         var container = builder.AddContainer("test-nginx", "nginx").Resource;
 
         var kubernetesService = new TestKubernetesService();
