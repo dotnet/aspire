@@ -449,6 +449,18 @@ internal sealed class AzureAppServiceWebsiteContext(
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
 
+        // If playwright workspace is enabled for the environment and this app has enabled Playwright testing, add its details to appsettings
+        if (environmentContext.Environment.AddAzurePlaywrightWorkspace && 
+            resource.TryGetLastAnnotation<EnablePlaywrightTestingAnnotation>(out _))
+        {
+            var playwrightWorkspaceName = environmentContext.Environment.PlaywrightWorkspaceName.AsProvisioningParameter(Infra);
+            var playwrightWorkspaceId = environmentContext.Environment.PlaywrightWorkspaceId.AsProvisioningParameter(Infra);
+            var playwrightWorkspaceUri = environmentContext.Environment.PlaywrightWorkspaceDataPlaneUri.AsProvisioningParameter(Infra);
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "PLAYWRIGHT_WORKSPACE_NAME", Value = playwrightWorkspaceName });
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "PLAYWRIGHT_WORKSPACE_ID", Value = playwrightWorkspaceId });
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "PLAYWRIGHT_WORKSPACE_DATA_PLANE_URI", Value = playwrightWorkspaceUri});
+        }
+
         // Add Website Contributor role assignment to dashboard's managed identity for this webapp
         var websiteRaId = BicepFunction.GetSubscriptionResourceId(
                     "Microsoft.Authorization/roleDefinitions",
