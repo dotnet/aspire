@@ -177,12 +177,12 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     public IResource TargetResource { get; }
 
     /// <summary>
-    /// Fetch the App Service hostname for a given resource.
+    /// Checks if an Azure App Service website exists.
     /// </summary>
-    /// <param name="websiteName"></param>
-    /// <param name="context"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <param name="websiteName">The name of the website to check.</param>
+    /// <param name="context">The pipeline step context.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains <c>true</c> if the website exists; otherwise, <c>false</c>.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when required services or configuration are not available.</exception>
     private static async Task<bool> CheckWebSiteExistsAsync(string websiteName, PipelineStepContext context)
     {
         // Get required services
@@ -227,6 +227,12 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         return response.StatusCode == System.Net.HttpStatusCode.OK;
     }
 
+    /// <summary>
+    /// Gets the Azure App Service website name, optionally including the deployment slot suffix.
+    /// </summary>
+    /// <param name="context">The pipeline step context.</param>
+    /// <param name="deploymentSlot">The optional deployment slot name to append to the website name.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the website name.</returns>
     private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context, string? deploymentSlot = null)
     {
         var computerEnv = (AzureAppServiceEnvironmentResource)TargetResource.GetDeploymentTargetAnnotation()!.ComputeEnvironment!;

@@ -9,12 +9,12 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an annotation for customizing an Azure Web App slot.
 /// </summary>
-/// <param name="configure"></param>
+/// <param name="configure">The configuration action for customizing the Azure Web App slot.</param>
 public sealed class AzureAppServiceWebsiteSlotCustomizationAnnotation(Action<AzureResourceInfrastructure, WebSiteSlot> configure)
     : IResourceAnnotation
 {
     /// <summary>
-    /// Gets the configuration action for customizing the Azure Web App.
+    /// Gets the configuration action for customizing the Azure Web App slot.
     /// </summary>
     public Action<AzureResourceInfrastructure, WebSiteSlot> Configure { get; } = configure ?? throw new ArgumentNullException(nameof(configure));
 }

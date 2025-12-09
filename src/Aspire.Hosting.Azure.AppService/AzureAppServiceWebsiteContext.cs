@@ -39,8 +39,11 @@ internal sealed class AzureAppServiceWebsiteContext(
     private BicepValue<string> HostName => BicepFunction.Take(
         BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
 
-    // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
-    // within the naming spec for the app service.
+    /// <summary>
+    /// Gets the hostname for a deployment slot by appending the slot name to the base website name.
+    /// </summary>
+    /// <param name="deploymentSlot">The deployment slot name.</param>
+    /// <returns>A <see cref="BicepValue{T}"/> representing the slot hostname, truncated to 60 characters.</returns>
     public BicepValue<string> GetSlotHostName(BicepValue<string> deploymentSlot)
     {
         return BicepFunction.Take(
@@ -260,7 +263,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 ? environmentContext.Environment.DeploymentSlotParameter.AsProvisioningParameter(infra)
                 : environmentContext.Environment.DeploymentSlot!;
 
-            ResolveHostNameForSlot(deploymentSlotValue);
+            UpdateHostNameForSlot(deploymentSlotValue);
         }
 
         if (deploymentSlotValue is not null && buildWebAppAndSlot)
@@ -272,6 +275,19 @@ internal sealed class AzureAppServiceWebsiteContext(
         BuildWebSiteCore(infra, deploymentSlotValue);
     }
 
+    /// <summary>
+    /// Creates and configures an Azure App Service WebSite or WebSiteSlot.
+    /// </summary>
+    /// <param name="infra">The Azure resource infrastructure.</param>
+    /// <param name="name">The name of the website or slot.</param>
+    /// <param name="appServicePlanParameter">The App Service plan parameter.</param>
+    /// <param name="acrMidParameter">The Azure Container Registry managed identity parameter.</param>
+    /// <param name="acrClientIdParameter">The Azure Container Registry client ID parameter.</param>
+    /// <param name="containerImage">The container image parameter.</param>
+    /// <param name="isSlot">Indicates whether this is a deployment slot.</param>
+    /// <param name="parentWebSite">The parent website when creating a slot.</param>
+    /// <param name="deploymentSlot">The deployment slot name.</param>
+    /// <returns>A dynamic object representing either a WebSite or WebSiteSlot.</returns>
     private dynamic CreateAndConfigureWebSite(
     AzureResourceInfrastructure infra,
     BicepValue<string> name,
@@ -477,6 +493,11 @@ internal sealed class AzureAppServiceWebsiteContext(
         return webSite;
     }
 
+    /// <summary>
+    /// Builds either a standalone website or a deployment slot based on whether a deployment slot is specified.
+    /// </summary>
+    /// <param name="infra">The Azure resource infrastructure.</param>
+    /// <param name="deploymentSlot">The optional deployment slot name.</param>
     private void BuildWebSiteCore(
         AzureResourceInfrastructure infra,
         BicepValue<string>? deploymentSlot = null)
@@ -533,6 +554,11 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
     }
 
+    /// <summary>
+    /// Builds both the main website and a deployment slot when deploying to a slot for the first time.
+    /// </summary>
+    /// <param name="infra">The Azure resource infrastructure.</param>
+    /// <param name="deploymentSlot">The deployment slot name.</param>
     private void BuildWebSiteAndSlot(
         AzureResourceInfrastructure infra,
         BicepValue<string> deploymentSlot)
@@ -563,7 +589,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             acrMidParameter,
             acrClientIdParameter,
             containerImage,
-            isSlot: true ,
+            isSlot: true,
             parentWebSite: (WebSite)webSite,
             deploymentSlot: deploymentSlot);
 
@@ -663,8 +689,11 @@ internal sealed class AzureAppServiceWebsiteContext(
         });
     }
 
-    // Update hostnames for deployment slot
-    private void ResolveHostNameForSlot(BicepValue<string> slotName)
+    /// <summary>
+    /// Updates endpoint mappings to use deployment slot hostnames.
+    /// </summary>
+    /// <param name="slotName">The deployment slot name.</param>
+    private void UpdateHostNameForSlot(BicepValue<string> slotName)
     {
         foreach (var (name, mapping) in _endpointMapping.ToList())
         {
