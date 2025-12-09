@@ -66,7 +66,7 @@ output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = customworkspace.name
 
 output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = customworkspace.id
 
-output AZURE_CONTAINER_REGISTRY_NAME string = env_acr_outputs_name
+output AZURE_CONTAINER_REGISTRY_NAME string = env_acr.name
 
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = env_acr.properties.loginServer
 

@@ -162,7 +162,7 @@ output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = my_ace_law.name
 
 output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = my_ace_law.id
 
-output AZURE_CONTAINER_REGISTRY_NAME string = my_ace_acr_outputs_name
+output AZURE_CONTAINER_REGISTRY_NAME string = my_ace_acr.name
 
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = my_ace_acr.properties.loginServer
 
