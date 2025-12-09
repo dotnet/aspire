@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 #pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIRECOMPUTE002
+#pragma warning disable ASPIRECOMPUTE003
 
 namespace Aspire.Hosting.ApplicationModel;
 
