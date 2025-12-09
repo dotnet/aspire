@@ -51,14 +51,39 @@ public static class AzureContainerRegistryExtensions
 
         var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
 
+        IResourceBuilder<AzureContainerRegistryResource> resourceBuilder;
+
         // Don't add the resource to the infrastructure if we're in run mode.
         if (builder.ExecutionContext.IsRunMode)
         {
-            return builder.CreateResourceBuilder(resource);
+            resourceBuilder = builder.CreateResourceBuilder(resource);
+        }
+        else
+        {
+            resourceBuilder = builder.AddResource(resource)
+                .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
         }
 
-        return builder.AddResource(resource)
-                .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
+        SubscribeToAddRegistryTargetAnnotations(builder, resource);
+
+        return resourceBuilder;
+    }
+
+    /// <summary>
+    /// Subscribes to BeforeStartEvent to add RegistryTargetAnnotation to all resources in the model.
+    /// </summary>
+    private static void SubscribeToAddRegistryTargetAnnotations(IDistributedApplicationBuilder builder, AzureContainerRegistryResource registry)
+    {
+        builder.Eventing.Subscribe<BeforeStartEvent>((beforeStartEvent, cancellationToken) =>
+        {
+            foreach (var resource in beforeStartEvent.Model.Resources)
+            {
+                // Add a RegistryTargetAnnotation to indicate this registry is available as a default target
+                resource.Annotations.Add(new RegistryTargetAnnotation(registry));
+            }
+
+            return Task.CompletedTask;
+        });
     }
 
     /// <summary>

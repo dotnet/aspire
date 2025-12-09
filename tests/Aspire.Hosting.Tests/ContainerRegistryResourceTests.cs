@@ -682,4 +682,114 @@ public class ContainerRegistryResourceTests(ITestOutputHelper testOutputHelper)
         var containerRegistry = project.Resource.GetContainerRegistry();
         Assert.Same(specificRegistry.Resource, containerRegistry);
     }
+
+    [Fact]
+    public async Task AzureContainerRegistry_RegistryTargetAnnotationIsAddedToResourcesOnBeforeStartEvent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var acr = builder.AddAzureContainerRegistry("acr");
+        var project = builder.AddProject<Projects.ServiceA>("api");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Before BeforeStartEvent, the project should not have RegistryTargetAnnotation
+        Assert.Empty(project.Resource.Annotations.OfType<RegistryTargetAnnotation>());
+
+        // Simulate BeforeStartEvent
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // After BeforeStartEvent, the project should have RegistryTargetAnnotation
+        var registryTargetAnnotation = Assert.Single(project.Resource.Annotations.OfType<RegistryTargetAnnotation>());
+        Assert.Same(acr.Resource, registryTargetAnnotation.Registry);
+    }
+
+    [Fact]
+    public async Task AzureContainerRegistry_RegistryTargetAnnotationIsAddedToAllResourcesInModel()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var acr = builder.AddAzureContainerRegistry("acr");
+        var project = builder.AddProject<Projects.ServiceA>("api");
+        var container = builder.AddContainer("redis", "redis:latest");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate BeforeStartEvent
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // All resources should have RegistryTargetAnnotation
+        Assert.Single(project.Resource.Annotations.OfType<RegistryTargetAnnotation>());
+        Assert.Single(container.Resource.Annotations.OfType<RegistryTargetAnnotation>());
+    }
+
+    [Fact]
+    public async Task AzureContainerRegistry_GetContainerRegistryReturnsRegistryFromRegistryTargetAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var acr = builder.AddAzureContainerRegistry("acr");
+        var project = builder.AddProject<Projects.ServiceA>("api");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate BeforeStartEvent to add RegistryTargetAnnotation
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // GetContainerRegistry should return the registry from RegistryTargetAnnotation
+        var containerRegistry = project.Resource.GetContainerRegistry();
+        Assert.Same(acr.Resource, containerRegistry);
+    }
+
+    [Fact]
+    public async Task AzureContainerRegistry_GetContainerRegistryPrefersContainerRegistryReferenceAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var acr = builder.AddAzureContainerRegistry("acr");
+        var env = builder.AddAzureContainerAppEnvironment("env")
+            .WithAzureContainerRegistry(acr);
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate BeforeStartEvent to add RegistryTargetAnnotations
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // GetContainerRegistry should return acr (from ContainerRegistryReferenceAnnotation)
+        var containerRegistry = env.Resource.GetContainerRegistry();
+        Assert.Same(acr.Resource, containerRegistry);
+    }
+
+    [Fact]
+    public async Task AzureContainerRegistryAndContainerRegistry_MultipleRegistriesAddMultipleRegistryTargetAnnotations()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var acr = builder.AddAzureContainerRegistry("acr");
+        var dockerHub = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var project = builder.AddProject<Projects.ServiceA>("api");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Simulate BeforeStartEvent
+        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        // Project should have two RegistryTargetAnnotations (one from each registry)
+        var registryTargetAnnotations = project.Resource.Annotations.OfType<RegistryTargetAnnotation>().ToList();
+        Assert.Equal(2, registryTargetAnnotations.Count);
+
+        var registryResources = registryTargetAnnotations.Select(a => a.Registry).ToList();
+        Assert.Contains(acr.Resource, registryResources);
+        Assert.Contains(dockerHub.Resource, registryResources);
+    }
 }
