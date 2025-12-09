@@ -20,4 +20,10 @@ internal sealed class Features(IConfiguration configuration) : IFeatures
         
         return bool.TryParse(value, out var enabled) && enabled;
     }
+
+    public bool Enabled<TFeatureFlag>() where TFeatureFlag : IFeatureFlag, new()
+    {
+        var featureFlag = new TFeatureFlag();
+        return IsFeatureEnabled(featureFlag.ConfigurationKey, featureFlag.DefaultValue);
+    }
 }

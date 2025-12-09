@@ -138,7 +138,7 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-            var watch = !isSingleFileAppHost && (_features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false) || (isExtensionHost && !startDebugSession));
+            var watch = !isSingleFileAppHost && (_features.Enabled<DefaultWatchEnabledFeature>() || (isExtensionHost && !startDebugSession));
 
             if (!watch)
             {

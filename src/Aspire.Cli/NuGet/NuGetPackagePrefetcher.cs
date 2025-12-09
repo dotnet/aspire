@@ -61,7 +61,7 @@ internal sealed class NuGetPackagePrefetcher(ILogger<NuGetPackagePrefetcher> log
         {
             _ = Task.Run(async () =>
             {
-                if (features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, true))
+                if (features.Enabled<UpdateNotificationsEnabledFeature>())
                 {
                     try
                     {

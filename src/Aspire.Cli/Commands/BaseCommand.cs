@@ -33,7 +33,7 @@ internal abstract class BaseCommand : Command
 
             var exitCode = await ExecuteAsync(parseResult, cancellationToken);
 
-            if (UpdateNotificationsEnabled && features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, true))
+            if (UpdateNotificationsEnabled && features.Enabled<UpdateNotificationsEnabledFeature>())
             {
                 try
                 {

@@ -65,7 +65,7 @@ internal sealed class UpdateCommand : BaseCommand
         Options.Add(selfOption);
 
         // Customize description based on whether staging channel is enabled
-        var isStagingEnabled = _features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
+        var isStagingEnabled = _features.Enabled<StagingChannelEnabledFeature>();
         
         var channelOption = new Option<string?>("--channel")
         {

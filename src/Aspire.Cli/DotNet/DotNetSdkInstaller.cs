@@ -48,7 +48,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
             }
         }
         
-        if (!features.IsFeatureEnabled(KnownFeatures.MinimumSdkCheckEnabled, true))
+        if (!features.Enabled<MinimumSdkCheckEnabledFeature>())
         {
             // If the feature is disabled, we assume the SDK is available
             return (true, null, minimumVersion, forceInstall);

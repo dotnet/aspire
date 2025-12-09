@@ -52,9 +52,9 @@ internal static class SdkInstallHelper
             }
 
             // Only offer to install if:
-            // 1. The feature is enabled (default: false)
+            // 1. The feature is enabled
             // 2. We support interactive input OR forceInstall is true (for testing)
-            if (features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, defaultValue: false) &&
+            if (features.Enabled<DotNetSdkInstallationEnabledFeature>() &&
                 (hostEnvironment?.SupportsInteractiveInput == true || forceInstall))
             {
                 bool shouldInstall;

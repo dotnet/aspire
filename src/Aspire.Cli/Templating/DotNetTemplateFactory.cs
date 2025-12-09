@@ -29,7 +29,7 @@ internal class DotNetTemplateFactory(
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
-        var showAllTemplates = features.IsFeatureEnabled(KnownFeatures.ShowAllTemplates, false);
+        var showAllTemplates = features.Enabled<ShowAllTemplatesFeature>();
         return GetTemplatesCore(showAllTemplates);
     }
 

@@ -54,7 +54,7 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         var channels = new List<PackageChannel>([defaultChannel, stableChannel]);
 
         // Add staging channel if feature is enabled (after stable, before daily)
-        if (features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false))
+        if (features.Enabled<StagingChannelEnabledFeature>())
         {
             var stagingChannel = CreateStagingChannel();
             if (stagingChannel is not null)
