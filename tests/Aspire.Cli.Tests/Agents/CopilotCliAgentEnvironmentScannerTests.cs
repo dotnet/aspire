@@ -174,8 +174,8 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         await scanner.ScanAsync(context, CancellationToken.None);
 
-        // No MCP-related applicators should be returned since both Aspire and Playwright are configured
-        Assert.DoesNotContain(context.Applicators, a => a.Description.Contains("Aspire MCP"));
+        // No applicators should be returned since Aspire MCP, Playwright MCP are configured and AGENTS.md exists
+        Assert.Empty(context.Applicators);
     }
 
     [Fact]
@@ -229,8 +229,8 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         await scanner.ScanAsync(context, CancellationToken.None);
 
-        // No MCP-related applicators should be returned since both Aspire and Playwright are configured
-        Assert.DoesNotContain(context.Applicators, a => a.Description.Contains("Aspire MCP"));
+        // No applicators should be returned since Aspire MCP, Playwright MCP are configured and AGENTS.md exists
+        Assert.Empty(context.Applicators);
         Assert.False(copilotCliRunner.WasCalled); // Verify GetVersionAsync was not called
     }
 

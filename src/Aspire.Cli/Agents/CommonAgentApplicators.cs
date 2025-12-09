@@ -24,7 +24,11 @@ internal static class CommonAgentApplicators
         var agentsFilePath = Path.Combine(workspaceRoot.FullName, "AGENTS.md");
         var aspireAgentsFilePath = Path.Combine(workspaceRoot.FullName, "AGENTS.aspire.md");
 
-        // Check if AGENTS.md exists and has the same content as what we would create
+        // Don't add applicator if AGENTS.md doesn't exist and we'll create it
+        // OR if AGENTS.md exists with the same content
+        // OR if both AGENTS.md and AGENTS.aspire.md exist
+        
+        // Check if AGENTS.md exists
         if (File.Exists(agentsFilePath))
         {
             try
@@ -44,13 +48,29 @@ internal static class CommonAgentApplicators
                     context.AgentInstructionsApplicatorAdded = true;
                     return false;
                 }
+                
+                // AGENTS.md exists with different content and AGENTS.aspire.md doesn't exist
+                // Add applicator to create AGENTS.aspire.md
+                context.AgentInstructionsApplicatorAdded = true;
+                context.AddApplicator(new AgentEnvironmentApplicator(
+                    "Create agent instructions file (AGENTS.aspire.md)",
+                    ct => CreateAgentInstructionsAsync(workspaceRoot, ct)));
+                
+                return true;
             }
             catch
             {
-                // If we can't read the file, continue with adding the applicator
+                // If we can't read the file, treat it as if it exists with different content
+                // Only add applicator if AGENTS.aspire.md doesn't exist
+                if (File.Exists(aspireAgentsFilePath))
+                {
+                    context.AgentInstructionsApplicatorAdded = true;
+                    return false;
+                }
             }
         }
 
+        // AGENTS.md doesn't exist, add applicator to create it
         context.AgentInstructionsApplicatorAdded = true;
         context.AddApplicator(new AgentEnvironmentApplicator(
             "Create agent instructions file (AGENTS.md)",
@@ -125,7 +145,7 @@ internal static class CommonAgentApplicators
         The playwright MCP server has also been configured in this repository and you should use it to perform functional investigations of the resources defined in the app model as you work on the codebase. To get endpoints that can be used for navigation using the playwright MCP server use the list resources tool.
 
         ## Updating the app host
-        The user may request that you update the Aspire apphost. You can do this using the `aspire update` command. This will update the apphost to the latest version and some of the Aspire specific packages in referenced projects, however you many need to manually update other packages in the solution to ensure compatibility. You can consider using the `dotnet-outdated` with the users consent. To install the `dotnet-outdated` tool use the following command:
+        The user may request that you update the Aspire apphost. You can do this using the `aspire update` command. This will update the apphost to the latest version and some of the Aspire specific packages in referenced projects, however you may need to manually update other packages in the solution to ensure compatibility. You can consider using the `dotnet-outdated` with the users consent. To install the `dotnet-outdated` tool use the following command:
 
         ```
         dotnet tool install --global dotnet-outdated-tool
