@@ -150,10 +150,10 @@ public class ListAppHostsToolTests(ITestOutputHelper outputHelper)
         return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")));
     }
 
-    private static AppHostConnection CreateAppHostConnection(string hash, string socketPath, AppHostInformation appHostInfo, bool isInScope)
+    private static AppHostAuxiliaryBackchannel CreateAppHostConnection(string hash, string socketPath, AppHostInformation appHostInfo, bool isInScope)
     {
         // Create a mock JsonRpc that won't be used
         var rpc = new JsonRpc(Stream.Null);
-        return new AppHostConnection(hash, socketPath, rpc, mcpInfo: null, appHostInfo, isInScope);
+        return new AppHostAuxiliaryBackchannel(hash, socketPath, rpc, mcpInfo: null, appHostInfo, isInScope);
     }
 }

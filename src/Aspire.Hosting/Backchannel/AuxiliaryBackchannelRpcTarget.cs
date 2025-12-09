@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -125,5 +126,49 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             EndpointUrl = $"{endpointUrl}/mcp",
             ApiToken = mcpApiKey
         };
+    }
+
+    /// <summary>
+    /// Requests the AppHost to stop gracefully. The stop is initiated asynchronously in the background.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>
+    /// A task that completes immediately after initiating the stop request. The actual stop occurs asynchronously.
+    /// </returns>
+#pragma warning disable IDE0060 // Remove unused parameter - kept for API consistency
+    public Task StopAppHostAsync(CancellationToken cancellationToken = default)
+#pragma warning restore IDE0060 // Remove unused parameter
+    {
+        logger.LogInformation("Received request to stop AppHost");
+
+        // Start a background task to delay the stop by 500ms to allow the RPC response to be sent
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(500, CancellationToken.None).ConfigureAwait(false);
+                
+                // Cancel inflight RPC calls in AppHostRpcTarget before stopping
+                var appHostRpcTarget = serviceProvider.GetService<AppHostRpcTarget>();
+                appHostRpcTarget?.CancelInflightRpcCalls();
+                
+                var lifetime = serviceProvider.GetService<IHostApplicationLifetime>();
+                if (lifetime is not null)
+                {
+                    logger.LogInformation("Stopping AppHost application");
+                    lifetime.StopApplication();
+                }
+                else
+                {
+                    logger.LogWarning("IHostApplicationLifetime not found, cannot stop AppHost");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error while stopping AppHost");
+            }
+        }, CancellationToken.None);
+
+        return Task.CompletedTask;
     }
 }
