@@ -554,19 +554,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
             return true;
         }
 
-        var span = TelemetryRepository.GetSpan(logEntry.TraceId, logEntry.SpanId);
-        if (span == null)
-        {
-            return false;
-        }
-
-        if (GenAIHelpers.HasGenAIAttribute(span.Attributes))
-        {
-            // Log entry belongs to a span that has GenAI telemetry.
-            return true;
-        }
-
-        return false;
+        return ViewModel.HasGenAISpan(logEntry.TraceId, logEntry.SpanId);
     }
 
     private async Task LaunchGenAIVisualizerAsync(OtlpLogEntry logEntry)

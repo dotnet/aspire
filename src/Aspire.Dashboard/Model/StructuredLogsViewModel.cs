@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
+using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -11,6 +13,8 @@ public class StructuredLogsViewModel
 {
     private readonly TelemetryRepository _telemetryRepository;
     private readonly List<FieldTelemetryFilter> _filters = new();
+    // Cache span lookups for GenAI attributes to avoid repeated lookups.
+    private readonly ConcurrentDictionary<SpanKey, bool> _hasGenAISpanCache = new();
 
     private PagedResult<OtlpLogEntry>? _logs;
     private ResourceKey? _resourceKey;
@@ -28,6 +32,29 @@ public class StructuredLogsViewModel
     public ResourceKey? ResourceKey { get => _resourceKey; set => SetValue(ref _resourceKey, value); }
     public string FilterText { get => _filterText; set => SetValue(ref _filterText, value); }
     public IReadOnlyList<FieldTelemetryFilter> Filters => _filters;
+
+    public bool HasGenAISpan(string traceId, string spanId)
+    {
+        var spanKey = new SpanKey(traceId, spanId);
+
+        if (_hasGenAISpanCache.TryGetValue(spanKey, out var value))
+        {
+            return value;
+        }
+
+        var span = _telemetryRepository.GetSpan(spanKey.TraceId, spanKey.SpanId);
+        var hasGenAISpan = false;
+
+        if (span != null)
+        {
+            // Only cache a value if a span is present.
+            // We don't want to cache false if there is no span because the span may be added later.
+            hasGenAISpan = GenAIHelpers.HasGenAIAttribute(span.Attributes);
+            _hasGenAISpanCache.TryAdd(spanKey, hasGenAISpan);
+        }
+
+        return hasGenAISpan;
+    }
 
     public void ClearFilters()
     {
@@ -91,6 +118,9 @@ public class StructuredLogsViewModel
             });
 
             _currentDataHasErrors = logs.Items.Any(i => i.Severity >= Microsoft.Extensions.Logging.LogLevel.Error);
+
+            // Clear cache whenever log data changes to prevent it growing forever.
+            _hasGenAISpanCache.Clear();
         }
 
         return logs;
