@@ -329,7 +329,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         if (endpoints.Count > 0)
         {
             var endpointList = string.Join(", ", endpoints.Select(e => $"[{e}]({e})"));
-            context.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{TargetResource.Name}** to {endpointList}", enableMarkdown: true);
+            context.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{TargetResource.Name}** to {endpointList}.", enableMarkdown: true);
         }
         else
         {
@@ -409,7 +409,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         List<EndpointMapping> externalEndpointMappings,
         ILogger logger)
     {
-        var endpoints = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var endpoints = new HashSet<string>(StringComparers.EndpointAnnotationName);
         var serviceName = TargetResource.Name.ToLowerInvariant();
 
         foreach (var line in outputLines)
