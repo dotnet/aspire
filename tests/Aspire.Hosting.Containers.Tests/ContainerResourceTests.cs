@@ -364,6 +364,78 @@ public class ContainerResourceTests
         Assert.False(mountAnnotation.IsReadOnly);
     }
 
+    [Fact]
+    public void WithBindMountOptionsKeepsRelativePathWhenResolveSourcePathIsFalse()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddContainer("container", "none")
+            .WithBindMount("./certs", "/app/certs", opts =>
+            {
+                opts.ResolveSourcePath = false;
+                opts.IsReadOnly = true;
+            });
+
+        using var app = appBuilder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
+
+        Assert.Equal("./certs", mountAnnotation.Source);
+        Assert.Equal("/app/certs", mountAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, mountAnnotation.Type);
+        Assert.True(mountAnnotation.IsReadOnly);
+        Assert.True(mountAnnotation.IsSourceRelative);
+    }
+
+    [Fact]
+    public void WithBindMountOptionsResolvesRelativePathByDefault()
+    {
+        var basePath = OperatingSystem.IsWindows() ? @"C:\root\volumes" : "/root/volumes";
+
+        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { ProjectDirectory = basePath });
+
+        appBuilder.AddContainer("container", "none")
+            .WithBindMount("source", "/target", opts =>
+            {
+                // ResolveSourcePath defaults to true
+                opts.IsReadOnly = false;
+            });
+
+        using var app = appBuilder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
+
+        Assert.Equal(Path.Combine(basePath, "source"), mountAnnotation.Source);
+        Assert.False(mountAnnotation.IsSourceRelative);
+    }
+
+    [Fact]
+    public void WithBindMountOptionsWithAbsolutePathAndResolveSourcePathFalse()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var absolutePath = OperatingSystem.IsWindows() ? @"C:\absolute\path" : "/absolute/path";
+
+        appBuilder.AddContainer("container", "none")
+            .WithBindMount(absolutePath, "/target", opts =>
+            {
+                opts.ResolveSourcePath = false;
+            });
+
+        using var app = appBuilder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
+
+        Assert.Equal(absolutePath, mountAnnotation.Source);
+        Assert.False(mountAnnotation.IsSourceRelative); // Absolute paths are not relative even when ResolveSourcePath is false
+    }
+
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
         public ReferenceExpression ConnectionStringExpression =>

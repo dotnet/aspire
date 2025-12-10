@@ -257,6 +257,70 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a bind mount to a container resource with optional path resolution control.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source path of the mount. This is the path to the file or directory on the host.</param>
+    /// <param name="target">The target path where the file or directory is mounted in the container.</param>
+    /// <param name="options">Callback to configure bind mount options.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Bind mounts are used to mount files or directories from the host file-system into the container. If the host doesn't require access to the files, consider
+    /// using volumes instead via <see cref="WithVolume{T}(IResourceBuilder{T}, string?, string, bool)"/>.
+    /// </para>
+    /// <para>
+    /// By default, if the <paramref name="source"/> path is not absolute, it will be evaluated relative to the app host project directory path.
+    /// Use the <paramref name="options"/> callback to configure the bind mount options, such as setting <see cref="BindMountOptions.ResolveSourcePath"/> to <c>false</c>
+    /// to pass the source path through as-is without resolution.
+    /// </para>
+    /// <para>
+    /// The <paramref name="target"/> path specifies the path the file or directory will be mounted inside the container's file system.
+    /// </para>
+    /// <example>
+    /// Adds a bind mount with a relative path that will be passed through without resolution, useful for Docker Compose scenarios where paths should remain relative to the compose file:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithBindMount("./certs", "/app/certs", opts => opts.ResolveSourcePath = false);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, Action<BindMountOptions> options) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(options);
+
+        var bindMountOptions = new BindMountOptions();
+        options(bindMountOptions);
+
+        string sourcePath;
+        bool isSourceRelative;
+
+        if (bindMountOptions.ResolveSourcePath)
+        {
+            // If the source is a rooted path, use it directly without resolution
+            sourcePath = Path.IsPathRooted(source) ? source : Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
+            isSourceRelative = false;
+        }
+        else
+        {
+            // Pass through the source path as-is without resolution
+            sourcePath = source;
+            isSourceRelative = !Path.IsPathRooted(source);
+        }
+
+        var annotation = new ContainerMountAnnotation(sourcePath, target, ContainerMountType.BindMount, bindMountOptions.IsReadOnly, isSourceRelative);
+        return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
     /// Sets the Entrypoint for the container.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>

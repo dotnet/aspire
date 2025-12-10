@@ -38,4 +38,48 @@ public class ContainerMountAnnotationTests
         Assert.Equal(ContainerMountType.BindMount, annotation.Type);
         Assert.False(annotation.IsReadOnly);
     }
+
+    [Fact]
+    public void CtorAllowsRelativePathWhenIsSourceRelativeIsTrue()
+    {
+        var annotation = new ContainerMountAnnotation("./certs", "/app/certs", ContainerMountType.BindMount, isReadOnly: false, isSourceRelative: true);
+        Assert.Equal("./certs", annotation.Source);
+        Assert.Equal("/app/certs", annotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, annotation.Type);
+        Assert.False(annotation.IsReadOnly);
+        Assert.True(annotation.IsSourceRelative);
+    }
+
+    [Fact]
+    public void CtorAllowsRelativePathWithParentDirectoryWhenIsSourceRelativeIsTrue()
+    {
+        var annotation = new ContainerMountAnnotation("../data/certs", "/app/certs", ContainerMountType.BindMount, isReadOnly: true, isSourceRelative: true);
+        Assert.Equal("../data/certs", annotation.Source);
+        Assert.Equal("/app/certs", annotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, annotation.Type);
+        Assert.True(annotation.IsReadOnly);
+        Assert.True(annotation.IsSourceRelative);
+    }
+
+    [Fact]
+    public void CtorSetsIsSourceRelativeToFalseByDefault()
+    {
+        var annotation = new ContainerMountAnnotation("/absolute/path", "/target", ContainerMountType.BindMount, false);
+        Assert.False(annotation.IsSourceRelative);
+    }
+
+    [Fact]
+    public void CtorWithIsSourceRelativeFalseStillRequiresRootedPath()
+    {
+        Assert.Throws<ArgumentException>("source", () => new ContainerMountAnnotation("relative/path", "/target", ContainerMountType.BindMount, isReadOnly: false, isSourceRelative: false));
+    }
+
+    [Fact]
+    public void CtorWithAbsolutePathAndIsSourceRelativeTrueIsValid()
+    {
+        // When isSourceRelative is true with an absolute path, it's still valid
+        var annotation = new ContainerMountAnnotation("/absolute/path", "/target", ContainerMountType.BindMount, isReadOnly: false, isSourceRelative: true);
+        Assert.Equal("/absolute/path", annotation.Source);
+        Assert.True(annotation.IsSourceRelative);
+    }
 }
