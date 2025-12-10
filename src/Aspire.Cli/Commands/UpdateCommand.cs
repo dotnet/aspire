@@ -250,7 +250,9 @@ internal sealed class UpdateCommand : BaseCommand
     {
         var channel = selectedChannel ?? parseResult.GetValue<string?>("--channel") ?? parseResult.GetValue<string?>("--quality");
 
-        // If channel is not specified, prompt (for self update specifically).
+        // If channel is not specified, always prompt the user to select one.
+        // This ensures they consciously choose a channel that will be saved to global settings
+        // for future 'aspire new' and 'aspire init' commands.
         if (string.IsNullOrEmpty(channel))
         {
             var channels = new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily };
