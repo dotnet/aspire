@@ -348,6 +348,7 @@ public class Program
             // Parse args early to check for verbose flag
             // This is needed before the exception handler to determine error output verbosity
             var parseResult = rootCommand.Parse(args ?? []);
+            // The option name "--verbose" matches the option defined in RootCommand
             var verbose = parseResult.GetValue<bool>("--verbose");
             
             var invokeConfig = new InvocationConfiguration()

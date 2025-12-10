@@ -172,6 +172,8 @@ internal sealed class ErrorLogger : IErrorLogger
     {
         // Create a log file per day to avoid huge files
         // Use UtcNow for consistency with log timestamps
+        // File.AppendAllText is used for writing, which is safe for concurrent access
+        // as the OS handles file locking
         var fileName = $"aspire-cli-{DateTime.UtcNow:yyyy-MM-dd}.log";
         return Path.Combine(_logsDirectory.FullName, fileName);
     }

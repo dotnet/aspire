@@ -53,6 +53,9 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
 {
     private readonly IDotNetCliRunner _dotNetRunner;
     private readonly ILogger<PrerequisiteChecker> _logger;
+    
+    // Minimum required .NET SDK version for Aspire CLI
+    // This should be kept in sync with the SDK version specified in global.json
     private static readonly Version s_minimumDotNetVersion = new Version(10, 0);
 
     public PrerequisiteChecker(
@@ -217,6 +220,8 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             var startInfo = new ProcessStartInfo
             {
                 FileName = "docker",
+                // Use escaped double quotes for cross-platform compatibility
+                // Single quotes don't work correctly on Windows
                 Arguments = "info --format \"{{.ServerVersion}}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -239,6 +244,7 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
                 var contextStartInfo = new ProcessStartInfo
                 {
                     FileName = "docker",
+                    // Use escaped double quotes for cross-platform compatibility
                     Arguments = "context ls --format \"{{.Name}}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
