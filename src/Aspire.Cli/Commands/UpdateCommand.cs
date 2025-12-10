@@ -250,7 +250,7 @@ internal sealed class UpdateCommand : BaseCommand
     {
         var channel = selectedChannel ?? parseResult.GetValue<string?>("--channel") ?? parseResult.GetValue<string?>("--quality");
 
-        // If channel is not specified, check for hives and either prompt or use default
+        // If channel is not specified, prompt (for self update specifically).
         if (string.IsNullOrEmpty(channel))
         {
             var channels = new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily };
