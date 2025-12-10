@@ -288,7 +288,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     /// <param name="parentWebSite">The parent website when creating a slot.</param>
     /// <param name="deploymentSlot">The deployment slot name.</param>
     /// <returns>A dynamic object representing either a WebSite or WebSiteSlot.</returns>
-    private dynamic CreateAndConfigureWebSite(
+    private object CreateAndConfigureWebSite(
     AzureResourceInfrastructure infra,
     BicepValue<string> name,
     BicepValue<ResourceIdentifier> appServicePlanParameter,
@@ -299,13 +299,12 @@ internal sealed class AzureAppServiceWebsiteContext(
     WebSite? parentWebSite = null,
     BicepValue<string>? deploymentSlot = null)
     {
-        // Create WebSite or WebSiteSlot
-        dynamic webSite;
-        dynamic mainContainer;
+        object webSite;
+        object mainContainer;
 
         if (isSlot && parentWebSite is not null && deploymentSlot is not null)
         {
-            webSite = new WebSiteSlot("webappslot")
+            var slot = new WebSiteSlot("webappslot")
             {
                 Parent = parentWebSite,
                 Name = deploymentSlot,
@@ -325,19 +324,22 @@ internal sealed class AzureAppServiceWebsiteContext(
                 },
             };
 
-            mainContainer = new SiteSlotSiteContainer("mainContainerSlot")
+            var slotContainer = new SiteSlotSiteContainer("mainContainerSlot")
             {
-                Parent = webSite,
+                Parent = slot,
                 Name = "main",
                 Image = containerImage,
                 AuthType = SiteContainerAuthType.UserAssigned,
                 UserManagedIdentityClientId = acrClientIdParameter,
                 IsMain = true
             };
+
+            webSite = slot;
+            mainContainer = slotContainer;
         }
         else
         {
-            webSite = new WebSite("webapp")
+            var site = new WebSite("webapp")
             {
                 Name = name,
                 AppServicePlanId = appServicePlanParameter,
@@ -363,15 +365,18 @@ internal sealed class AzureAppServiceWebsiteContext(
             };
 
             // Defining the main container for the app service
-            mainContainer = new SiteContainer("mainContainer")
+            var siteContainer = new SiteContainer("mainContainer")
             {
-                Parent = webSite,
+                Parent = site,
                 Name = "main",
                 Image = containerImage,
                 AuthType = SiteContainerAuthType.UserAssigned,
                 UserManagedIdentityClientId = acrClientIdParameter,
                 IsMain = true
             };
+
+            webSite = site;
+            mainContainer = siteContainer;
         }
 
         // There should be a single valid target port
@@ -379,8 +384,23 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             var targetPort = GetEndpointValue(mapping, EndpointProperty.TargetPort);
 
-            mainContainer.TargetPort = targetPort;
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = targetPort });
+            if (mainContainer is SiteContainer container)
+            {
+                container.TargetPort = targetPort;
+            }
+            else if (mainContainer is SiteSlotSiteContainer slotContainer)
+            {
+                slotContainer.TargetPort = targetPort;
+            }
+
+            if (webSite is WebSite site)
+            {
+                site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = targetPort });
+            }
+            else if (webSite is WebSiteSlot slot)
+            {
+                slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = targetPort });
+            }
         }
 
         foreach (var kv in EnvironmentVariables)
@@ -395,7 +415,14 @@ internal sealed class AzureAppServiceWebsiteContext(
                 value = BicepFunction.Interpolate($"@Microsoft.KeyVault(SecretUri={val})");
             }
 
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = kv.Key, Value = value });
+            if (webSite is WebSite site)
+            {
+                site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = kv.Key, Value = value });
+            }
+            else if (webSite is WebSiteSlot slot)
+            {
+                slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = kv.Key, Value = value });
+            }
         }
 
         if (Args.Count > 0)
@@ -416,13 +443,35 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             var arrayExpression = new ArrayExpression([.. args.Select(a => a.Compile())]);
 
-            mainContainer.StartUpCommand = Join(arrayExpression, " ");
+            if (mainContainer is SiteContainer container)
+            {
+                container.StartUpCommand = Join(arrayExpression, " ");
+            }
+            else if (mainContainer is SiteSlotSiteContainer slotContainer)
+            {
+                slotContainer.StartUpCommand = Join(arrayExpression, " ");
+            }
         }
 
-        infra.Add(mainContainer);
+        if (mainContainer is SiteContainer mainSiteContainer)
+        {
+            infra.Add(mainSiteContainer);
+        }
+        else if (mainContainer is SiteSlotSiteContainer mainSiteSlotContainer)
+        {
+            infra.Add(mainSiteSlotContainer);
+        }
 
         var id = BicepFunction.Interpolate($"{acrMidParameter}").Compile().ToString();
-        webSite.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
+
+        if (webSite is WebSite siteObject)
+        {
+            siteObject.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
+        }
+        else if (webSite is WebSiteSlot slot)
+        {
+            slot.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
+        }
 
         // This is the user assigned identity associated with the web app, not the container registry
         if (resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var appIdentityAnnotation))
@@ -433,27 +482,54 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             var cid = BicepFunction.Interpolate($"{computeIdentity}").Compile().ToString();
 
-            webSite.KeyVaultReferenceIdentity = computeIdentity;
-
-            webSite.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
-            webSite.Identity.UserAssignedIdentities[cid] = new UserAssignedIdentityDetails();
-
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+            if (webSite is WebSite site)
             {
-                Name = "AZURE_CLIENT_ID",
-                Value = appIdentityResource.ClientId.AsProvisioningParameter(infra)
-            });
+                site.KeyVaultReferenceIdentity = computeIdentity;
+                site.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
+                site.Identity.UserAssignedIdentities[cid] = new UserAssignedIdentityDetails();
 
-            // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+                site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+                {
+                    Name = "AZURE_CLIENT_ID",
+                    Value = appIdentityResource.ClientId.AsProvisioningParameter(infra)
+                });
+
+                // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
+                site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+                {
+                    Name = "AZURE_TOKEN_CREDENTIALS",
+                    Value = "ManagedIdentityCredential"
+                });
+            }
+            else if (webSite is WebSiteSlot slot)
             {
-                Name = "AZURE_TOKEN_CREDENTIALS",
-                Value = "ManagedIdentityCredential"
-            });
+                slot.KeyVaultReferenceIdentity = computeIdentity;
+                slot.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
+                slot.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
+                slot.Identity.UserAssignedIdentities[cid] = new UserAssignedIdentityDetails();
+                slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+                {
+                    Name = "AZURE_CLIENT_ID",
+                    Value = appIdentityResource.ClientId.AsProvisioningParameter(infra)
+                });
+                // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
+                slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+                {
+                    Name = "AZURE_TOKEN_CREDENTIALS",
+                    Value = "ManagedIdentityCredential"
+                });
+            }
         }
 
         // Added appsetting to identify the resource in a specific aspire environment
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = environmentContext.Environment.Name });
+        if (webSite is WebSite siteObj)
+        {
+            siteObj.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = environmentContext.Environment.Name });
+        }
+        else if (webSite is WebSiteSlot slot)
+        {
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = environmentContext.Environment.Name });
+        }
 
         // Probes
 #pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -467,7 +543,14 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             if (endpointProbeAnnotation is not null)
             {
-                webSite.SiteConfig.HealthCheckPath = endpointProbeAnnotation.Path;
+                if (webSite is WebSiteSlot slot)
+                {
+                    slot.SiteConfig.HealthCheckPath = endpointProbeAnnotation.Path;
+                }
+                else if (webSite is WebSite site)
+                {
+                    site.SiteConfig.HealthCheckPath = endpointProbeAnnotation.Path;
+                }
             }
         }
 #pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -478,7 +561,14 @@ internal sealed class AzureAppServiceWebsiteContext(
             webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter, deploymentSlot);
         }
 
-        infra.Add(webSite);
+        if (webSite is WebSite webSiteObject)
+        {
+            infra.Add(webSiteObject);
+        }
+        else if (webSite is WebSiteSlot slot)
+        {
+            infra.Add(slot);
+        }
 
         if (webSiteRa is not null)
         {
@@ -536,9 +626,10 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteSlotCustomizationAnnotation>(out var customizeWebSiteSlotAnnotations))
             {
+                var slot = (WebSiteSlot)webSite;
                 foreach (var customizeWebSiteSlotAnnotation in customizeWebSiteSlotAnnotations)
                 {
-                    customizeWebSiteSlotAnnotation.Configure(Infra, webSite);
+                    customizeWebSiteSlotAnnotation.Configure(Infra, slot);
                 }
             }
         }
@@ -546,9 +637,10 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
             {
+                var site = (WebSite)webSite;
                 foreach (var customizeWebSiteAnnotation in customizeWebSiteAnnotations)
                 {
-                    customizeWebSiteAnnotation.Configure(infra, webSite);
+                    customizeWebSiteAnnotation.Configure(infra, site);
                 }
             }
         }
@@ -572,7 +664,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
 
         // Main site
-        var webSite = CreateAndConfigureWebSite(
+        var webSite = (WebSite)CreateAndConfigureWebSite(
             infra,
             HostName,
             appServicePlanParameter,
@@ -582,7 +674,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             isSlot: false);
 
         // Slot
-        var webSiteSlot = CreateAndConfigureWebSite(
+        var webSiteSlot = (WebSiteSlot)CreateAndConfigureWebSite(
             infra,
             deploymentSlot,
             appServicePlanParameter,
@@ -640,7 +732,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
     }
 
-    private RoleAssignment AddDashboardPermissionAndSettings(dynamic webSite, ProvisioningParameter acrClientIdParameter, BicepValue<string>? deploymentSlot = null)
+    private RoleAssignment AddDashboardPermissionAndSettings(object webSite, ProvisioningParameter acrClientIdParameter, BicepValue<string>? deploymentSlot = null)
     {
         bool isSlot = deploymentSlot is not null;
         var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(Infra);
@@ -648,56 +740,105 @@ internal sealed class AzureAppServiceWebsiteContext(
         var contributorPrincipalId = environmentContext.Environment.WebsiteContributorManagedIdentityPrincipalId.AsProvisioningParameter(Infra);
         var otelServiceName = isSlot ? BicepFunction.Interpolate($"{resource.Name}-{deploymentSlot}") : resource.Name;
 
-        // Add the appsettings specific to sending telemetry data to dashboard
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = otelServiceName });
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
-
         // Add Website Contributor role assignment to dashboard's managed identity for this webapp
         var websiteRaId = BicepFunction.GetSubscriptionResourceId(
                     "Microsoft.Authorization/roleDefinitions",
                     "de139f84-1756-47ae-9be6-808fbbe84772");
-        var websiteRaName = BicepFunction.CreateGuid(webSite.Id, contributorId, websiteRaId);
 
         string raResourceName = isSlot
             ? Infrastructure.NormalizeBicepIdentifier($"{Infra.AspireResource.Name}_slot_ra")
             : Infrastructure.NormalizeBicepIdentifier($"{Infra.AspireResource.Name}_ra");
-        return new RoleAssignment(raResourceName)
+
+        RoleAssignment? roleAssignment = null;
+
+        if (webSite is WebSite site)
         {
-            Name = websiteRaName,
-            Scope = new IdentifierExpression(webSite.BicepIdentifier),
-            PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
-            PrincipalId = contributorPrincipalId,
-            RoleDefinitionId = websiteRaId,
-        };
+            // Add the appsettings specific to sending telemetry data to dashboard
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = otelServiceName });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
+
+            var websiteRaName = BicepFunction.CreateGuid(site.Id, contributorId, websiteRaId);
+            roleAssignment = new RoleAssignment(raResourceName)
+            {
+                Name = websiteRaName,
+                Scope = new IdentifierExpression(site.BicepIdentifier),
+                PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
+                PrincipalId = contributorPrincipalId,
+                RoleDefinitionId = websiteRaId,
+            };
+        }
+        else if (webSite is WebSiteSlot slot)
+        {
+            // Add the appsettings specific to sending telemetry data to dashboard
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = otelServiceName });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
+
+            var websiteRaName = BicepFunction.CreateGuid(slot.Id, contributorId, websiteRaId);
+            roleAssignment = new RoleAssignment(raResourceName)
+            {
+                Name = websiteRaName,
+                Scope = new IdentifierExpression(slot.BicepIdentifier),
+                PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
+                PrincipalId = contributorPrincipalId,
+                RoleDefinitionId = websiteRaId,
+            };
+        }
+
+        return roleAssignment!;
     }
 
-    private void EnableApplicationInsightsForWebSite(dynamic webSite)
+    private void EnableApplicationInsightsForWebSite(object webSite)
     {
         var appInsightsInstrumentationKey = environmentContext.Environment.AzureAppInsightsInstrumentationKeyReference.AsProvisioningParameter(Infra);
         var appInsightsConnectionString = environmentContext.Environment.AzureAppInsightsConnectionStringReference.AsProvisioningParameter(Infra);
 
-        // Website configuration for Application Insights
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        if (webSite is WebSite site)
         {
-            Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
-            Value = appInsightsInstrumentationKey
-        });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+            {
+                Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
+                Value = appInsightsInstrumentationKey
+            });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+            {
+                Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                Value = appInsightsConnectionString
+            });
+            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+            {
+                Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
+                Value = "~3"
+            });
+        }
+        else if (webSite is WebSiteSlot slot)
+        {
+            // Website configuration for Application Insights
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+            {
+                Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
+                Value = appInsightsInstrumentationKey
+            });
 
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-        {
-            Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
-            Value = appInsightsConnectionString
-        });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+            {
+                Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                Value = appInsightsConnectionString
+            });
 
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-        {
-            Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
-            Value = "~3"
-        });
+            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+            {
+                Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
+                Value = "~3"
+            });
+        }                                                  
     }
 
     /// <summary>
