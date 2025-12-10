@@ -799,17 +799,11 @@ public partial class ConsoleLogsTests : DashboardTestContext
         JSInterop.SetupVoid("initializeContinuousScroll");
         JSInterop.SetupVoid("resetContinuousScrollPosition");
 
+        FluentUISetupHelpers.AddCommonDashboardServices(this, browserTimeProvider: timeProvider);
+
         var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
 
-        FluentUISetupHelpers.AddCommonDashboardServices(this);
         Services.AddSingleton<ILoggerFactory>(loggerFactory);
-
-        // Override BrowserTimeProvider if a custom timeProvider is passed
-        if (timeProvider != null)
-        {
-            Services.AddSingleton<BrowserTimeProvider>(timeProvider);
-        }
-
         Services.AddSingleton<IToastService, ToastService>();
         Services.AddSingleton<IconResolver>();
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());

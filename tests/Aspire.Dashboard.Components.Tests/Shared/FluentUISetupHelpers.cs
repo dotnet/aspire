@@ -125,10 +125,11 @@ internal static class FluentUISetupHelpers
         ILocalStorage? localStorage = null,
         ISessionStorage? sessionStorage = null,
         ThemeManager? themeManager = null,
-        IMessageService? messageService = null)
+        IMessageService? messageService = null,
+        BrowserTimeProvider? browserTimeProvider = null)
     {
         context.Services.AddLocalization();
-        context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        context.Services.AddSingleton<BrowserTimeProvider>(browserTimeProvider ?? new TestTimeProvider());
         context.Services.AddSingleton<TelemetryRepository>();
         context.Services.AddSingleton<PauseManager>();
         context.Services.AddSingleton<IDialogService, DialogService>();
