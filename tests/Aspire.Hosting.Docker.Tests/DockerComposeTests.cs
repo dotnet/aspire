@@ -714,6 +714,106 @@ public class DockerComposeTests(ITestOutputHelper output)
             => runtime.PushImageAsync(resource, cancellationToken);
     }
 
+    [Fact]
+    public async Task DockerComposeUp_DependsOnPushSteps_WhenResourcesNeedToBePushed()
+    {
+        using var tempDir = new TestTempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: WellKnownPipelineSteps.Diagnostics);
+        var mockActivityReporter = new TestPipelineActivityReporter(output);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+        builder.Services.AddSingleton<IPipelineActivityReporter>(mockActivityReporter);
+
+        // Add a Docker Compose environment
+        builder.AddDockerComposeEnvironment("env");
+
+        // Add a registry
+        builder.AddContainerRegistry("registry", "myregistry.azurecr.io", "myrepo");
+
+        // Add a project resource that will need to be built and pushed
+        builder.AddProject<Projects.ServiceA>("api")
+            .PublishAsDockerFile();
+
+        using var app = builder.Build();
+        await app.RunAsync();
+
+        // In diagnostics mode, verify the step dependencies
+        var logs = mockActivityReporter.LoggedMessages
+                        .Where(s => s.StepTitle == "diagnostics")
+                        .Select(s => s.Message)
+                        .ToList();
+
+        output.WriteLine("Diagnostics logs:");
+        foreach (var log in logs)
+        {
+            output.WriteLine($"  {log}");
+        }
+
+        // Verify docker-compose-up-env step exists
+        Assert.Contains(logs, msg => msg.Contains("docker-compose-up-env"));
+
+        // Verify push-api step exists
+        Assert.Contains(logs, msg => msg.Contains("push-api"));
+
+        // Verify docker-compose-up-env depends on push-api
+        // The diagnostics output shows dependencies in the format: "step-name depends on: [dependencies]"
+        var dockerComposeUpLines = logs.Where(l => l.Contains("docker-compose-up-env")).ToList();
+        Assert.Contains(dockerComposeUpLines, msg => msg.Contains("push-api"));
+    }
+
+    [Fact]
+    public async Task DockerComposeUp_DependsOnMultiplePushSteps_WhenMultipleResourcesNeedToBePushed()
+    {
+        using var tempDir = new TestTempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: WellKnownPipelineSteps.Diagnostics);
+        var mockActivityReporter = new TestPipelineActivityReporter(output);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+        builder.Services.AddSingleton<IPipelineActivityReporter>(mockActivityReporter);
+
+        // Add a Docker Compose environment
+        builder.AddDockerComposeEnvironment("env");
+
+        // Add a registry
+        builder.AddContainerRegistry("registry", "myregistry.azurecr.io", "myrepo");
+
+        // Add multiple project resources that will need to be built and pushed
+        builder.AddProject<Projects.ServiceA>("api")
+            .PublishAsDockerFile();
+
+        builder.AddProject<Projects.ServiceA>("web")
+            .PublishAsDockerFile();
+
+        using var app = builder.Build();
+        await app.RunAsync();
+
+        // In diagnostics mode, verify the step dependencies
+        var logs = mockActivityReporter.LoggedMessages
+                        .Where(s => s.StepTitle == "diagnostics")
+                        .Select(s => s.Message)
+                        .ToList();
+
+        output.WriteLine("Diagnostics logs:");
+        foreach (var log in logs)
+        {
+            output.WriteLine($"  {log}");
+        }
+
+        // Verify docker-compose-up-env step exists
+        Assert.Contains(logs, msg => msg.Contains("docker-compose-up-env"));
+
+        // Verify both push steps exist
+        Assert.Contains(logs, msg => msg.Contains("push-api"));
+        Assert.Contains(logs, msg => msg.Contains("push-web"));
+
+        // Verify docker-compose-up-env depends on both push steps
+        var dockerComposeUpLines = logs.Where(l => l.Contains("docker-compose-up-env")).ToList();
+        Assert.Contains(dockerComposeUpLines, msg => msg.Contains("push-api"));
+        Assert.Contains(dockerComposeUpLines, msg => msg.Contains("push-web"));
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }
