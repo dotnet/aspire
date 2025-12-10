@@ -5,7 +5,6 @@ using System.Threading.Channels;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
@@ -18,7 +17,6 @@ using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
 
@@ -813,8 +811,6 @@ public partial class ConsoleLogsTests : DashboardTestContext
         }
 
         Services.AddSingleton<IToastService, ToastService>();
-        Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
-        Services.AddSingleton<DimensionManager>();
         Services.AddSingleton<IconResolver>();
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
         Services.AddSingleton<DashboardCommandExecutor>();

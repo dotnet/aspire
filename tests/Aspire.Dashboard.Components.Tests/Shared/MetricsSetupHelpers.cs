@@ -55,7 +55,6 @@ internal static class MetricsSetupHelpers
         SetupChartContainer(context);
 
         FluentUISetupHelpers.AddCommonDashboardServices(context, sessionStorage: sessionStorage);
-        context.Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         context.Services.AddSingleton<DimensionManager>();
         context.Services.AddSingleton<IThemeResolver, TestThemeResolver>();
         context.Services.AddSingleton<ThemeManager>();

@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Pages;
+using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.BrowserStorage;
@@ -10,6 +12,7 @@ using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Tests;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Tests.Shared;
@@ -138,6 +141,9 @@ internal static class FluentUISetupHelpers
         context.Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
         context.Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
         context.Services.AddSingleton<ThemeManager>(themeManager ?? new ThemeManager(new TestThemeResolver()));
+        context.Services.AddSingleton<GlobalState>();
+        context.Services.AddSingleton<DimensionManager>();
+        context.Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
     }
 
     public static void SetupFluentUIComponents(TestContext context)

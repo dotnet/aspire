@@ -64,13 +64,12 @@ internal static class ResourceSetupHelpers
 
         FluentUISetupHelpers.AddCommonDashboardServices(context);
         context.Services.AddSingleton<IconResolver>();
-        context.Services.AddSingleton(Options.Create(new DashboardOptions()));
-        context.Services.AddSingleton<DimensionManager>();
         context.Services.AddSingleton<ILogger<StructuredLogs>>(NullLogger<StructuredLogs>.Instance);
         context.Services.AddSingleton<StructuredLogsViewModel>();
-        FluentUISetupHelpers.SetupFluentUIComponents(context);
         context.Services.AddScoped<DashboardCommandExecutor, DashboardCommandExecutor>();
         context.Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient(isEnabled: true, initialResources: [], resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>));
+
+        FluentUISetupHelpers.SetupFluentUIComponents(context);
 
         var dimensionManager = context.Services.GetRequiredService<DimensionManager>();
         dimensionManager.InvokeOnViewportInformationChanged(viewport);
