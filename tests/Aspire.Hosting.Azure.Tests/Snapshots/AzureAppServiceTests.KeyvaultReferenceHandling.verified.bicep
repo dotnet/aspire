@@ -15,6 +15,8 @@ param api_containerport string
 
 param mydb_kv_outputs_name string
 
+param mydb_outputs_connectionstring string
+
 param kvName string
 
 param sharedRg string
@@ -35,6 +37,11 @@ resource mydb_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
 
 resource mydb_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'connectionstrings--mydb'
+  parent: mydb_kv
+}
+
+resource mydb_kv_primaryaccesskey__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
+  name: 'primaryaccesskey--mydb'
   parent: mydb_kv
 }
 
@@ -90,6 +97,18 @@ resource webapp 'Microsoft.Web/sites@2025-03-01' = {
         }
         {
           name: 'ConnectionStrings__mydb'
+          value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_connectionstrings__mydb.properties.secretUri})'
+        }
+        {
+          name: 'MYDB_URI'
+          value: mydb_outputs_connectionstring
+        }
+        {
+          name: 'MYDB_ACCOUNTKEY'
+          value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_primaryaccesskey__mydb.properties.secretUri})'
+        }
+        {
+          name: 'MYDB_CONNECTIONSTRING'
           value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_connectionstrings__mydb.properties.secretUri})'
         }
         {

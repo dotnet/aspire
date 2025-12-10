@@ -159,8 +159,10 @@ public static class AzureManagedRedisExtensions
 
         var azureResource = builder.Resource;
         azureResource.ConnectionStringSecretOutput = keyVaultBuilder.Resource.GetSecret($"connectionstrings--{azureResource.Name}");
+        azureResource.PrimaryAccessKeySecretOutput = keyVaultBuilder.Resource.GetSecret($"primaryaccesskey--{azureResource.Name}");
         // Set the secret owner to this resource
         azureResource.ConnectionStringSecretOutput.SecretOwner = azureResource;
+        azureResource.PrimaryAccessKeySecretOutput.SecretOwner = azureResource;
 
         // remove role assignment annotations when using access key authentication so an empty roles bicep module isn't generated
         var roleAssignmentAnnotations = azureResource.Annotations.OfType<DefaultRoleAssignmentsAnnotation>().ToArray();
@@ -241,6 +243,17 @@ public static class AzureManagedRedisExtensions
                 }
             };
             infrastructure.Add(secret);
+
+            var accessKeySecret = new KeyVaultSecret("primaryAccessKey")
+            {
+                Parent = keyVault,
+                Name = $"primaryaccesskey--{redisResource.Name}",
+                Properties = new SecretProperties
+                {
+                    Value = database.GetKeys().PrimaryKey
+                }
+            };
+            infrastructure.Add(accessKeySecret);
         }
         else
         {
