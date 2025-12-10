@@ -5,8 +5,8 @@
       <trans-unit id="InputsMessage">
         <source>The model contains Azure resources that require an Azure Subscription.
 
-To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/azure/provisioning).</source>
-        <target state="translated">El modelo contiene recursos de Azure que requieren una suscripción de Azure.
+To learn more, see the [Azure provisioning docs](https://learn.microsoft.com/dotnet/aspire/azure/local-provisioning).</source>
+        <target state="needs-review-translation">El modelo contiene recursos de Azure que requieren una suscripción de Azure.
 
 Para más información, consulte la [documentación de aprovisionamiento de Azure](https://aka.ms/dotnet/aspire/azure/provisioning).</target>
         <note>Contains markdown</note>

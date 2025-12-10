@@ -240,7 +240,7 @@ internal sealed class AzureProvisioner(
             }
             catch (MissingConfigurationException ex)
             {
-                resourceLogger.LogCritical("Resource could not be provisioned because Azure subscription, location, and resource group information is missing. See https://aka.ms/dotnet/aspire/azure/provisioning for more details.");
+                resourceLogger.LogCritical("Resource could not be provisioned because Azure subscription, location, and resource group information is missing. See https://learn.microsoft.com/dotnet/aspire/azure/local-provisioning for more details.");
                 resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
             }
             catch (Exception ex)
