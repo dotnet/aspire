@@ -21,7 +21,7 @@ public class AzureServiceBusConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Host", property.Key);
-                Assert.Equal("{servicebus.outputs.serviceBusEndpoint}", property.Value.ValueExpression);
+                Assert.Equal("{servicebus.outputs.serviceBusHostName}", property.Value.ValueExpression);
             },
             property =>
             {

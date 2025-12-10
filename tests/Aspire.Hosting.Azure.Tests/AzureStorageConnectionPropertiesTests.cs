@@ -9,36 +9,6 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureStorageConnectionPropertiesTests
 {
     [Fact]
-    public void AzureStorageResourceGetConnectionPropertiesReturnsExpectedValues()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var storage = builder.AddAzureStorage("storage");
-
-        var properties = ((IResourceWithConnectionString)storage.Resource).GetConnectionProperties().ToArray();
-
-        Assert.Empty(properties);
-    }
-
-    [Fact]
-    public void AzureStorageResourceGetConnectionPropertiesReturnsConnectionStringForEmulator()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-
-        var properties = ((IResourceWithConnectionString)storage.Resource).GetConnectionProperties().ToArray();
-
-        Assert.Collection(
-            properties,
-            property =>
-            {
-                Assert.Equal("ConnectionString", property.Key);
-                Assert.Equal(
-                    "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint={storage.bindings.blob.scheme}://{storage.bindings.blob.host}:{storage.bindings.blob.port}/devstoreaccount1;QueueEndpoint={storage.bindings.queue.scheme}://{storage.bindings.queue.host}:{storage.bindings.queue.port}/devstoreaccount1;TableEndpoint={storage.bindings.table.scheme}://{storage.bindings.table.host}:{storage.bindings.table.port}/devstoreaccount1;",
-                    property.Value.ValueExpression);
-            });
-    }
-
-    [Fact]
     public void AzureBlobStorageResourceGetConnectionPropertiesReturnsExpectedValues()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

@@ -23,7 +23,7 @@ public class AzureEventHubConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Host", property.Key);
-                Assert.Equal("{eventhubs.outputs.eventHubsEndpoint}", property.Value.ValueExpression);
+                Assert.Equal("{eventhubs.outputs.eventHubsHostName}", property.Value.ValueExpression);
             },
             property =>
             {
