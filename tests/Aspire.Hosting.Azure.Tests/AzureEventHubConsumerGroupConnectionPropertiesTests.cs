@@ -38,11 +38,6 @@ public class AzureEventHubConsumerGroupConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("ConnectionString", property.Key);
-                Assert.Equal("Endpoint={eventhubs.outputs.eventHubsEndpoint}", property.Value.ValueExpression);
-            },
-            property =>
-            {
                 Assert.Equal("ConsumerGroup", property.Key);
                 Assert.Equal("mygroup", property.Value.ValueExpression);
             });

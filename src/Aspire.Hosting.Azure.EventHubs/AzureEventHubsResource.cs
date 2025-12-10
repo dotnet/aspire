@@ -202,7 +202,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
 
         if (IsEmulator)
         {
-            yield return new("ConnectionString", ReferenceExpression.Create($"Endpoint={EventHubsEndpoint}"));
+            yield return new("ConnectionString", ReferenceExpression.Create($"Endpoint={EmulatorEndpoint.Property(EndpointProperty.HostAndPort)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true"));
         }
     }
 }
