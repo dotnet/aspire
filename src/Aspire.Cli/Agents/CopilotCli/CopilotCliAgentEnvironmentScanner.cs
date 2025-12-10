@@ -65,11 +65,13 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
                 _logger.LogDebug("Aspire MCP server is already configured in Copilot CLI");
             }
 
-            // Add Playwright applicator if not already configured
+            // Register Playwright configuration callback if not already configured
             if (!HasPlaywrightServerConfigured(homeDirectory))
             {
-                _logger.LogDebug("Adding Playwright MCP applicator for Copilot CLI");
-                context.AddApplicator(CreatePlaywrightApplicator(homeDirectory));
+                _logger.LogDebug("Registering Playwright MCP configuration callback for Copilot CLI");
+                CommonAgentApplicators.AddPlaywrightConfigurationCallback(
+                    context,
+                    ct => ApplyPlaywrightMcpConfigurationAsync(homeDirectory, ct));
             }
             else
             {
@@ -107,11 +109,13 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
             _logger.LogDebug("Aspire MCP server is already configured in Copilot CLI");
         }
 
-        // Add Playwright applicator if not already configured
+        // Register Playwright configuration callback if not already configured
         if (!HasPlaywrightServerConfigured(homeDirectory))
         {
-            _logger.LogDebug("Adding Playwright MCP applicator for Copilot CLI");
-            context.AddApplicator(CreatePlaywrightApplicator(homeDirectory));
+            _logger.LogDebug("Registering Playwright MCP configuration callback for Copilot CLI");
+            CommonAgentApplicators.AddPlaywrightConfigurationCallback(
+                context,
+                ct => ApplyPlaywrightMcpConfigurationAsync(homeDirectory, ct));
         }
         else
         {
@@ -246,16 +250,6 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
         // Write the updated config using AOT-compatible serialization
         var jsonContent = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(configFilePath, jsonContent, cancellationToken);
-    }
-
-    /// <summary>
-    /// Creates an applicator for configuring the Playwright MCP server.
-    /// </summary>
-    private static AgentEnvironmentApplicator CreatePlaywrightApplicator(DirectoryInfo homeDirectory)
-    {
-        return new AgentEnvironmentApplicator(
-            "Configure Playwright MCP server for GitHub Copilot CLI",
-            ct => ApplyPlaywrightMcpConfigurationAsync(homeDirectory, ct));
     }
 
     /// <summary>

@@ -62,11 +62,13 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 _logger.LogDebug("Aspire MCP server is already configured in .vscode/mcp.json");
             }
 
-            // Add Playwright applicator if not already configured
+            // Register Playwright configuration callback if not already configured
             if (!HasPlaywrightServerConfigured(vsCodeFolder))
             {
-                _logger.LogDebug("Adding Playwright MCP applicator for .vscode folder");
-                context.AddApplicator(CreatePlaywrightApplicator(vsCodeFolder));
+                _logger.LogDebug("Registering Playwright MCP configuration callback for .vscode folder");
+                CommonAgentApplicators.AddPlaywrightConfigurationCallback(
+                    context,
+                    ct => ApplyPlaywrightMcpConfigurationAsync(vsCodeFolder, ct));
             }
             else
             {
@@ -84,7 +86,11 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             var targetVsCodeFolder = new DirectoryInfo(Path.Combine(context.RepositoryRoot.FullName, VsCodeFolderName));
             _logger.LogDebug("Adding VS Code applicator for new .vscode folder at: {VsCodeFolder}", targetVsCodeFolder.FullName);
             context.AddApplicator(CreateAspireApplicator(targetVsCodeFolder));
-            context.AddApplicator(CreatePlaywrightApplicator(targetVsCodeFolder));
+            
+            // Register Playwright configuration callback
+            CommonAgentApplicators.AddPlaywrightConfigurationCallback(
+                context,
+                ct => ApplyPlaywrightMcpConfigurationAsync(targetVsCodeFolder, ct));
             
             // Try to add agent instructions applicator (only once across all scanners)
             CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
@@ -262,16 +268,6 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         return new AgentEnvironmentApplicator(
             VsCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
             async cancellationToken => await ApplyAspireMcpConfigurationAsync(vsCodeFolder, cancellationToken));
-    }
-
-    /// <summary>
-    /// Creates an applicator for configuring the Playwright MCP server in the specified .vscode folder.
-    /// </summary>
-    private static AgentEnvironmentApplicator CreatePlaywrightApplicator(DirectoryInfo vsCodeFolder)
-    {
-        return new AgentEnvironmentApplicator(
-            "Configure Playwright MCP server for VS Code",
-            async cancellationToken => await ApplyPlaywrightMcpConfigurationAsync(vsCodeFolder, cancellationToken));
     }
 
     /// <summary>

@@ -88,11 +88,20 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select agent environments to configure:.
+        ///   Looks up a localized string similar to Which agent environments do you want to configure?.
         /// </summary>
         internal static string InitCommand_AgentConfigurationSelectPrompt {
             get {
                 return ResourceManager.GetString("InitCommand_AgentConfigurationSelectPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Which additional options do you want to enable?.
+        /// </summary>
+        internal static string InitCommand_AdditionalOptionsSelectPrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_AdditionalOptionsSelectPrompt", resourceCulture);
             }
         }
         

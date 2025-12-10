@@ -34,9 +34,45 @@ internal static class CommonAgentApplicators
         context.AgentInstructionsApplicatorAdded = true;
         context.AddApplicator(new AgentEnvironmentApplicator(
             "Create agent instructions file (AGENTS.md)",
-            ct => CreateAgentInstructionsAsync(workspaceRoot, ct)));
+            ct => CreateAgentInstructionsAsync(workspaceRoot, ct),
+            promptGroup: McpInitPromptGroup.AdditionalOptions,
+            priority: 0));
         
         return true;
+    }
+
+    /// <summary>
+    /// Tracks a detected environment and adds a single Playwright applicator if not already added.
+    /// This should be called by each scanner that detects an environment supporting Playwright.
+    /// </summary>
+    /// <param name="context">The scan context.</param>
+    /// <param name="configurationCallback">The callback to configure Playwright for this specific environment.</param>
+    public static void AddPlaywrightConfigurationCallback(
+        AgentEnvironmentScanContext context,
+        Func<CancellationToken, Task> configurationCallback)
+    {
+        // Add this environment's Playwright configuration callback
+        context.AddPlaywrightConfigurationCallback(configurationCallback);
+
+        // Only add the Playwright applicator prompt once across all environments
+        if (context.PlaywrightApplicatorAdded)
+        {
+            return;
+        }
+
+        context.PlaywrightApplicatorAdded = true;
+        context.AddApplicator(new AgentEnvironmentApplicator(
+            "Configure Playwright MCP server",
+            async ct =>
+            {
+                // Execute all registered Playwright configuration callbacks
+                foreach (var callback in context.PlaywrightConfigurationCallbacks)
+                {
+                    await callback(ct);
+                }
+            },
+            promptGroup: McpInitPromptGroup.AdditionalOptions,
+            priority: 1));
     }
 
     /// <summary>
