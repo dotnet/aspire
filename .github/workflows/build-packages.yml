@@ -27,6 +27,11 @@ jobs:
       - name: Build with packages
         run: ./build.sh -restore -build -build-extension -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true -p:SkipPlaygroundProjects=true ${{ inputs.versionOverrideArg }}
 
+      - name: Clean up artifacts
+        run: |
+          rm -rf artifacts/bin
+          rm -rf artifacts/obj
+
       - name: Stage RID-specific NuGets and remaining packages
         id: stage_rid_specific
         shell: bash
