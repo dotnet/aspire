@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
         <source>Graph. For an accessible view please navigate to the Resources tab</source>
-        <target state="needs-review-translation">Graph. Para obter uma exibição acessível, navegue até a guia Tabela</target>
+        <target state="new">Graph. For an accessible view please navigate to the Resources tab</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
         <source>Resources</source>
-        <target state="needs-review-translation">Tabela</target>
+        <target state="new">Resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
