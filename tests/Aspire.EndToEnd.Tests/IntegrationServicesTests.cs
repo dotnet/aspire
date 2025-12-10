@@ -22,7 +22,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Trait("scenario", "basicservices")]
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.efnpgsql)]
-    [InlineData(TestResourceNames.redis)]
+    [InlineData(TestResourceNames.redis, Skip = "https://github.com/dotnet/aspire/issues/13457")]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async (cancellationToken) =>
         {
