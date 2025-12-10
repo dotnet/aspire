@@ -24,6 +24,11 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     public BicepOutputReference ServiceBusEndpoint => new("serviceBusEndpoint", this);
 
     /// <summary>
+    /// Gets the "serviceBusHostName" output reference from the bicep template for the Azure Storage resource.
+    /// </summary>
+    internal BicepOutputReference ServiceBusHostName => new("serviceBusHostName", this);
+
+    /// <summary>
     /// Gets the "name" output reference for the resource.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
@@ -41,7 +46,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     public ReferenceExpression HostName =>
         IsEmulator ?
             ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Host)}") :
-            ReferenceExpression.Create($"{ServiceBusEndpoint}");
+            ReferenceExpression.Create($"{ServiceBusHostName}");
 
     /// <summary>
     /// Gets the port for the Service Bus namespace.

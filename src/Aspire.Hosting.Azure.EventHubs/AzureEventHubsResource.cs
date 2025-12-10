@@ -34,6 +34,11 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     public BicepOutputReference EventHubsEndpoint => new("eventHubsEndpoint", this);
 
     /// <summary>
+    /// Gets the "eventHubsHostName" output reference from the bicep template for the Azure Event Hubs resource.
+    /// </summary>
+    internal BicepOutputReference EventHubsHostName => new("eventHubsHostName", this);
+
+    /// <summary>
     /// Gets the "name" output reference for the resource.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
@@ -51,7 +56,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
     public ReferenceExpression HostName =>
         IsEmulator ?
             ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Host)}") :
-            ReferenceExpression.Create($"{EventHubsEndpoint}");
+            ReferenceExpression.Create($"{EventHubsHostName}");
 
     /// <summary>
     /// Gets the port for the Event Hubs namespace.
