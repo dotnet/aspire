@@ -253,24 +253,12 @@ internal sealed class UpdateCommand : BaseCommand
         // If channel is not specified, check for hives and either prompt or use default
         if (string.IsNullOrEmpty(channel))
         {
-            // If there are hives (PR build directories), prompt for channel selection.
-            // Otherwise, use "stable" as the default channel.
-            var hasHives = ExecutionContext.GetPrHiveCount() > 0;
-            
-            if (hasHives)
-            {
-                var channels = new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily };
-                channel = await InteractionService.PromptForSelectionAsync(
-                    "Select the channel to update to:",
-                    channels,
-                    q => q,
-                    cancellationToken);
-            }
-            else
-            {
-                // Use stable as the default channel for self-update
-                channel = PackageChannelNames.Stable;
-            }
+            var channels = new[] { PackageChannelNames.Stable, PackageChannelNames.Staging, PackageChannelNames.Daily };
+            channel = await InteractionService.PromptForSelectionAsync(
+                "Select the channel to update to:",
+                channels,
+                q => q,
+                cancellationToken);
         }
 
         try
