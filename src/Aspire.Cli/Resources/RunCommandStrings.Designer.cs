@@ -212,5 +212,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("RunningInstanceStopFailed", resourceCulture);
             }
         }
+        
+        public static string StartupTakingLongerThanExpected {
+            get {
+                return ResourceManager.GetString("StartupTakingLongerThanExpected", resourceCulture);
+            }
+        }
+        
+        public static string StillWaitingForStartup {
+            get {
+                return ResourceManager.GetString("StillWaitingForStartup", resourceCulture);
+            }
+        }
     }
 }

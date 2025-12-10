@@ -37,6 +37,11 @@
         <target state="translated">Non è possibile usare --watch e --no-build contemporaneamente.</target>
         <note />
       </trans-unit>
+      <trans-unit id="CertificateTrustDialogWarning">
+        <source>A certificate trust dialog may appear in the background. Please check your taskbar and bring the dialog to the foreground to approve the certificate trust.</source>
+        <target state="new">A certificate trust dialog may appear in the background. Please check your taskbar and bring the dialog to the foreground to approve the certificate trust.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CertificatesMayNotBeFullyTrusted">
         <source>Developer certificates may not be fully trusted (trust exit code was: {0}).</source>
         <target state="translated">I certificati per sviluppatori potrebbero non essere completamente attendibili (codice di uscita attendibilità: {0}).</target>
@@ -71,6 +76,11 @@
         <source>Error deleting configuration: {0}</source>
         <target state="translated">Errore durante l'eliminazione della configurazione: {0}</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ErrorLoggedToFile">
+        <source>Full error details have been logged to: {0}</source>
+        <target state="new">Full error details have been logged to: {0}</target>
+        <note>{0} is a file path</note>
       </trans-unit>
       <trans-unit id="ErrorSettingConfiguration">
         <source>Error setting configuration: {0}</source>
@@ -167,15 +177,30 @@
         <target state="translated">La funzionalità AppHost a file singolo non è abilitata. Per usare i file AppHost .cs, abilitare la funzionalità tramite la configurazione.</target>
         <note />
       </trans-unit>
+      <trans-unit id="TroubleshootingGuideUrl">
+        <source>For troubleshooting help, visit: https://aka.ms/aspire-troubleshooting</source>
+        <target state="new">For troubleshooting help, visit: https://aka.ms/aspire-troubleshooting</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">
         <source>Unable to retrieve the assembly version.</source>
         <target state="translated">Non è possibile recuperare la versione dell'assembly.</target>
         <note />
       </trans-unit>
+      <trans-unit id="UnexpectedError">
+        <source>An unexpected error occurred: {0}</source>
+        <target state="new">An unexpected error occurred: {0}</target>
+        <note>{0} is the error message</note>
+      </trans-unit>
       <trans-unit id="UnsupportedLocaleProvided">
         <source>Unsupported locale {0} provided will not be used. Supported locales are: {1}.</source>
         <target state="translated">Le impostazioni locali {0} non supportate specificate non verranno utilizzate. Le impostazioni locali supportate sono: {1}.</target>
         <note>{1} is a comma-separated list of locales.</note>
+      </trans-unit>
+      <trans-unit id="UseVerboseForDetails">
+        <source>Use --verbose flag for detailed error information.</source>
+        <target state="new">Use --verbose flag for detailed error information.</target>
+        <note />
       </trans-unit>
     </body>
   </file>

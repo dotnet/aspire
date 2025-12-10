@@ -170,6 +170,10 @@ public class Program
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
+        
+        // Error logging and prerequisite checking
+        builder.Services.AddSingleton<IErrorLogger, ErrorLogger>();
+        builder.Services.AddSingleton<IPrerequisiteChecker, PrerequisiteChecker>();
 
         // Git repository operations.
         builder.Services.AddSingleton<IGitRepository, GitRepository>();
@@ -321,35 +325,68 @@ public class Program
 
     public static async Task<int> Main(string[] args)
     {
-        // Setup handling of CTRL-C as early as possible so that if
-        // we get a CTRL-C anywhere that is not handled by Spectre Console
-        // already that we know to trigger cancellation.
-        using var cts = new CancellationTokenSource();
-        Console.CancelKeyPress += (sender, eventArgs) =>
+        try
         {
-            cts.Cancel();
-            eventArgs.Cancel = true;
-        };
+            // Setup handling of CTRL-C as early as possible so that if
+            // we get a CTRL-C anywhere that is not handled by Spectre Console
+            // already that we know to trigger cancellation.
+            using var cts = new CancellationTokenSource();
+            Console.CancelKeyPress += (sender, eventArgs) =>
+            {
+                cts.Cancel();
+                eventArgs.Cancel = true;
+            };
 
-        Console.OutputEncoding = Encoding.UTF8;
+            Console.OutputEncoding = Encoding.UTF8;
 
-        using var app = await BuildApplicationAsync(args);
+            using var app = await BuildApplicationAsync(args);
 
-        await app.StartAsync().ConfigureAwait(false);
+            await app.StartAsync().ConfigureAwait(false);
 
-        var rootCommand = app.Services.GetRequiredService<RootCommand>();
-        var invokeConfig = new InvocationConfiguration()
+            var rootCommand = app.Services.GetRequiredService<RootCommand>();
+            
+            // Check if verbose flag is set
+            var verbose = args?.Any(a => a == "--verbose") ?? false;
+            
+            var invokeConfig = new InvocationConfiguration()
+            {
+                EnableDefaultExceptionHandler = false // We'll handle exceptions ourselves
+            };
+
+            var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
+            using var activity = telemetry.ActivitySource.StartActivity();
+            
+            int exitCode;
+            try
+            {
+                exitCode = await rootCommand.Parse(args ?? []).InvokeAsync(invokeConfig, cts.Token);
+            }
+            catch (Exception ex)
+            {
+                // Handle unhandled exceptions with our custom error handler
+                var errorLogger = app.Services.GetRequiredService<IErrorLogger>();
+                var interactionService = app.Services.GetRequiredService<IInteractionService>();
+                
+                var commandContext = args != null && args.Length > 0 
+                    ? $"aspire {string.Join(" ", args)}" 
+                    : "aspire";
+                
+                errorLogger.HandleException(interactionService, ex, commandContext, verbose);
+                exitCode = ExitCodeConstants.InvalidCommand;
+            }
+
+            await app.StopAsync().ConfigureAwait(false);
+
+            return exitCode;
+        }
+        catch (Exception ex)
         {
-            EnableDefaultExceptionHandler = true
-        };
-
-        var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
-        using var activity = telemetry.ActivitySource.StartActivity();
-        var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig, cts.Token);
-
-        await app.StopAsync().ConfigureAwait(false);
-
-        return exitCode;
+            // Last-resort exception handler for errors that occur before services are available
+            await Console.Error.WriteLineAsync($"Fatal error: {ex.Message}");
+            await Console.Error.WriteLineAsync("Use --verbose flag for detailed error information.");
+            await Console.Error.WriteLineAsync("For troubleshooting help, visit: https://aka.ms/aspire-troubleshooting");
+            return ExitCodeConstants.InvalidCommand;
+        }
     }
 
     private static void AddInteractionServices(HostApplicationBuilder builder)

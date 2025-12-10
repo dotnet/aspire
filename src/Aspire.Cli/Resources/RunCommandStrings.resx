@@ -205,4 +205,10 @@
   <data name="RunningInstanceStopFailed" xml:space="preserve">
     <value>Failed to stop running instance. The process may have already exited.</value>
   </data>
+  <data name="StartupTakingLongerThanExpected" xml:space="preserve">
+    <value>Startup is taking longer than expected. Press Ctrl+C to cancel or wait to continue...</value>
+  </data>
+  <data name="StillWaitingForStartup" xml:space="preserve">
+    <value>Still waiting for startup to complete...</value>
+  </data>
 </root>
