@@ -279,7 +279,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="source">The source path of the mount. This is the path to the file or directory on the host.</param>
     /// <param name="target">The target path where the file or directory is mounted in the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
-    /// <param name="resolveSourcePath">A flag that indicates whether to resolve relative source paths. When <c>true</c> (the default),
+    /// <param name="resolveSourcePath">A flag that indicates whether to resolve relative source paths. When <c>true</c>,
     /// relative paths are resolved relative to the app host project directory. When <c>false</c>, the source path is passed through
     /// as-is without resolution, which is useful for Docker Compose scenarios where paths should remain relative to the compose file.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
