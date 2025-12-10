@@ -137,7 +137,7 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
         if (PasswordParameter is not null)
         {
             yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
-            yield return new("AuthenticationDatabase", AuthenticationDatabaseReference);
+            yield return new("AuthenticationDatabaseName", AuthenticationDatabaseReference);
             yield return new("AuthenticationMechanism", AuthenticationMechanismReference);
         }
 

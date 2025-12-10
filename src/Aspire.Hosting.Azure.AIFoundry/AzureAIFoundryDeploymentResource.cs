@@ -99,7 +99,7 @@ public class AzureAIFoundryDeploymentResource : Resource, IResourceWithParent<Az
     {
         var model = Parent.IsEmulator ? ModelId ?? ModelName : DeploymentName;
         return Parent.CombineProperties([
-            new("Model", ReferenceExpression.Create($"{model}")),
+            new("ModelName", ReferenceExpression.Create($"{model}")),
             new("Format", ReferenceExpression.Create($"{Format}")),
             new("Version", ReferenceExpression.Create($"{ModelVersion}")),
         ]);

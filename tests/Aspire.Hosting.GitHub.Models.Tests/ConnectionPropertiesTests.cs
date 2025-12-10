@@ -29,7 +29,7 @@ public class ConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("Model", property.Key);
+                Assert.Equal("ModelName", property.Key);
                 Assert.Equal("gpt", property.Value.ValueExpression);
             });
 
@@ -47,7 +47,7 @@ public class ConnectionPropertiesTests
 
         Assert.Contains(properties, property => property.Key == "Uri" && property.Value.ValueExpression == "https://models.github.ai/orgs/{org.value}/inference");
         Assert.Contains(properties, property => property.Key == "Key" && property.Value.ValueExpression == "{key.value}");
-        Assert.Contains(properties, property => property.Key == "Model" && property.Value.ValueExpression == "gpt");
-        Assert.Contains(properties, property => property.Key == "Organization" && property.Value.ValueExpression == "{org.value}");
+        Assert.Contains(properties, property => property.Key == "ModelName" && property.Value.ValueExpression == "gpt");
+        Assert.Contains(properties, property => property.Key == "OrganizationName" && property.Value.ValueExpression == "{org.value}");
     }
 }

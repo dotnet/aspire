@@ -75,7 +75,7 @@ The Azure SQL database resource inherits all properties from its parent Azure SQ
 
 | Property Name | Description |
 |---------------|-------------|
-| `Database` | The name of the database |
+| `DatabaseName` | The name of the database |
 | `Uri` | The connection URI, with the format `mssql://{Host}:{Port}/{DatabaseName}` |
 | `JdbcConnectionString` | JDBC connection string with the format `jdbc:sqlserver://{Host}:{Port};database={DatabaseName};encrypt=true;trustServerCertificate=false`; |
 
