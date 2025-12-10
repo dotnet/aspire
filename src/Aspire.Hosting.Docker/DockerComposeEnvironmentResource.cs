@@ -174,6 +174,15 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                         .RequiredBy($"docker-compose-up-{Name}")
                         .DependsOn(WellKnownPipelineSteps.DeployPrereq);
             }
+
+            // This ensures that resources that have to be pushed before deployments are handled
+            foreach (var pushResource in context.Model.GetPushResources())
+            {
+                var pushSteps = context.GetSteps(pushResource, WellKnownPipelineTags.PushContainerImage);
+                var dockerComposeUpSteps = context.GetSteps(this, "docker-compose-up");
+
+                dockerComposeUpSteps.DependsOn(pushSteps);
+            }
         }));
     }
 
