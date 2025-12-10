@@ -541,11 +541,12 @@ internal class DotNetTemplateFactory(
         }
         
         IEnumerable<PackageChannel> channels;
-        bool channelExplicitlySpecified = !string.IsNullOrEmpty(channelName);
+        bool hasChannelSetting = !string.IsNullOrEmpty(channelName);
         
-        if (channelExplicitlySpecified)
+        if (hasChannelSetting)
         {
-            // If --channel is specified or global channel is set, find the matching channel
+            // If --channel option is provided or global channel setting exists, find the matching channel
+            // (--channel option takes precedence over global setting)
             var matchingChannel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
             if (matchingChannel is null)
             {
@@ -596,9 +597,9 @@ internal class DotNetTemplateFactory(
             }
         }
 
-        // If --channel was explicitly specified (but no --version), automatically select the highest version
-        // from that channel without prompting
-        if (channelExplicitlySpecified)
+        // If channel was specified via --channel option or global setting (but no --version), 
+        // automatically select the highest version from that channel without prompting
+        if (hasChannelSetting)
         {
             return orderedPackagesFromChannels.First();
         }
