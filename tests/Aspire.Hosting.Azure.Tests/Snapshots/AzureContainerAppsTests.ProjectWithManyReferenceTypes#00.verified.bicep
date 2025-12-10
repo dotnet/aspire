@@ -150,15 +150,15 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: mydb_outputs_connectionstring
             }
             {
-              name: 'MYDB_ACCOUNTKEY'
-              value: ''
-            }
-            {
               name: 'ConnectionStrings__blobs'
               value: storage_outputs_blobendpoint
             }
             {
               name: 'BLOBS_URI'
+              value: storage_outputs_blobendpoint
+            }
+            {
+              name: 'BLOBS_CONNECTIONSTRING'
               value: storage_outputs_blobendpoint
             }
             {

@@ -200,9 +200,11 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
         {
             yield return new("ConnectionString", ConnectionStringExpression);
         }
-
-        yield return new("BlobUri", BlobServiceUriExpression);
-        yield return new("QueueUri", QueueServiceUriExpression);
-        yield return new("TableUri", TableServiceUriExpression);
+        else
+        {
+            yield return new("BlobUri", BlobServiceUriExpression);
+            yield return new("QueueUri", QueueServiceUriExpression);
+            yield return new("TableUri", TableServiceUriExpression);
+        }
     }
 }

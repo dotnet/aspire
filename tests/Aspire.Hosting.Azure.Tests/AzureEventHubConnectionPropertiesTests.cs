@@ -34,6 +34,11 @@ public class AzureEventHubConnectionPropertiesTests
             {
                 Assert.Equal("EventHubName", property.Key);
                 Assert.Equal("myhub", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("ConnectionString", property.Key);
+                Assert.Equal("Endpoint={eventhubs.outputs.eventHubsEndpoint};EntityPath=myhub", property.Value.ValueExpression);
             });
     }
 }

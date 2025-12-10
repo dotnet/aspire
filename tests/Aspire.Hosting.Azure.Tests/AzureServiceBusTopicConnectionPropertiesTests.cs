@@ -34,6 +34,11 @@ public class AzureServiceBusTopicConnectionPropertiesTests
             {
                 Assert.Equal("TopicName", property.Key);
                 Assert.Equal("mytopic", property.Value.ValueExpression);
+            },
+            property =>
+            {
+                Assert.Equal("ConnectionString", property.Key);
+                Assert.Equal("Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=mytopic", property.Value.ValueExpression);
             });
     }
 }

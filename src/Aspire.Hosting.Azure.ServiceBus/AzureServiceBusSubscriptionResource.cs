@@ -198,6 +198,5 @@ public class AzureServiceBusSubscriptionResource(string name, string subscriptio
         }
 
         yield return new("SubscriptionName", ReferenceExpression.Create($"{SubscriptionName}"));
-        yield return new("ConnectionString", ConnectionStringExpression);
     }
 }
