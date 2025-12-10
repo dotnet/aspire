@@ -239,7 +239,7 @@ extends:
                   targetType: 'inline'
                   script: |
                     $env:NPM_CONFIG_USERCONFIG="$(Build.SourcesDirectory)\.npmrc"
-                    npm install -g yarn@2.4.3
+                    npm install -g yarn@1.22.22
                     yarn --version
                   workingDirectory: '$(Build.SourcesDirectory)'
 
