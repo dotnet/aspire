@@ -28,7 +28,7 @@ public class AzureServiceBusTopicConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("sb://{servicebus.outputs.serviceBusEndpoint}", property.Value.ValueExpression);
+                Assert.Equal("{servicebus.outputs.serviceBusEndpoint}", property.Value.ValueExpression);
             },
             property =>
             {

@@ -64,7 +64,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
     public ReferenceExpression UriExpression =>
         IsEmulator ?
             ReferenceExpression.Create($"sb://{EmulatorEndpoint.Property(EndpointProperty.HostAndPort)}") :
-            ReferenceExpression.Create($"sb://{ServiceBusEndpoint}");
+            ReferenceExpression.Create($"{ServiceBusEndpoint}");
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Service Bus endpoint.
