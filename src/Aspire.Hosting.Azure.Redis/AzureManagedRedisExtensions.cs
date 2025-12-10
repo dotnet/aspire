@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -253,9 +251,9 @@ public static class AzureManagedRedisExtensions
         }
 
         // We need to output name to externalize role assignments.
-        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name });
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = redis.Name.ToBicepExpression() });
 
         // Always output the hostName for the Redis server.
-        infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = redis.HostName });
+        infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = redis.HostName.ToBicepExpression() });
     }
 }

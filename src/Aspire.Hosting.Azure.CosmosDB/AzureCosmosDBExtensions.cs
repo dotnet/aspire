@@ -563,12 +563,12 @@ public static class AzureCosmosExtensions
 
             infrastructure.Add(new ProvisioningOutput("connectionString", typeof(string))
             {
-                Value = cosmosAccount.DocumentEndpoint
+                Value = cosmosAccount.DocumentEndpoint.ToBicepExpression()
             });
         }
 
         // We need to output name to externalize role assignments.
-        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cosmosAccount.Name });
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cosmosAccount.Name.ToBicepExpression() });
     }
 
     internal static void AddContributorRoleAssignment(AzureResourceInfrastructure infra, CosmosDBAccount cosmosAccount, BicepValue<Guid> principalId)

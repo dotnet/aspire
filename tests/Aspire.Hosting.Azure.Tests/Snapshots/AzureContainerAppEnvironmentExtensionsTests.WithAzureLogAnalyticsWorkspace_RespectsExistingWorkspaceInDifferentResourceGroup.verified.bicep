@@ -69,7 +69,7 @@ output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = log_env_shared.name
 
 output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = log_env_shared.id
 
-output AZURE_CONTAINER_REGISTRY_NAME string = app_host_acr_outputs_name
+output AZURE_CONTAINER_REGISTRY_NAME string = app_host_acr.name
 
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = app_host_acr.properties.loginServer
 

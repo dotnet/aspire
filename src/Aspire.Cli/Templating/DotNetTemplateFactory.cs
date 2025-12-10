@@ -493,6 +493,11 @@ internal class DotNetTemplateFactory(
             interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
             return new TemplateResult(ExitCodeConstants.FailedToTrustCertificates);
         }
+        catch (Exceptions.ChannelNotFoundException ex)
+        {
+            interactionService.DisplayError(ex.Message);
+            return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
+        }
         catch (EmptyChoicesException ex)
         {
             interactionService.DisplayError(ex.Message);
@@ -523,15 +528,32 @@ internal class DotNetTemplateFactory(
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        _ = parseResult;
         var allChannels = await packagingService.GetChannelsAsync(cancellationToken);
-
-        // If there are hives (PR build directories), include all channels.
-        // Otherwise, only use the implicit/default channel to avoid prompting.
-        var hasHives = executionContext.GetPrHiveCount() > 0;
-        var channels = hasHives 
-            ? allChannels 
-            : allChannels.Where(c => c.Type is PackageChannelType.Implicit);
+        
+        // Check if --channel option was provided
+        var channelName = parseResult.GetValue<string?>("--channel");
+        IEnumerable<PackageChannel> channels;
+        bool channelExplicitlySpecified = !string.IsNullOrEmpty(channelName);
+        
+        if (channelExplicitlySpecified)
+        {
+            // If --channel is specified, find the matching channel
+            var matchingChannel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+            if (matchingChannel is null)
+            {
+                throw new Exceptions.ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", allChannels.Select(c => c.Name))}");
+            }
+            channels = new[] { matchingChannel };
+        }
+        else
+        {
+            // If there are hives (PR build directories), include all channels.
+            // Otherwise, only use the implicit/default channel to avoid prompting.
+            var hasHives = executionContext.GetPrHiveCount() > 0;
+            channels = hasHives 
+                ? allChannels 
+                : allChannels.Where(c => c.Type is PackageChannelType.Implicit);
+        }
 
         var packagesFromChannels = await interactionService.ShowStatusAsync(TemplatingStrings.SearchingForAvailableTemplateVersions, async () =>
         {
@@ -564,6 +586,13 @@ internal class DotNetTemplateFactory(
             {
                 return explicitPackageFromChannel;
             }
+        }
+
+        // If --channel was explicitly specified (but no --version), automatically select the highest version
+        // from that channel without prompting
+        if (channelExplicitlySpecified)
+        {
+            return orderedPackagesFromChannels.First();
         }
 
         var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);

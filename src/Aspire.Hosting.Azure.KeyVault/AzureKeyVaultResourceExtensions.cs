@@ -89,7 +89,7 @@ public static partial class AzureKeyVaultResourceExtensions
 
             infrastructure.Add(new ProvisioningOutput("vaultUri", typeof(string))
             {
-                Value = keyVault.Properties.VaultUri
+                Value = keyVault.Properties.VaultUri.ToBicepExpression()
             });
 
             // Process all secret resources
@@ -117,7 +117,7 @@ public static partial class AzureKeyVaultResourceExtensions
             }
 
             // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = keyVault.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = keyVault.Name.ToBicepExpression() });
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
