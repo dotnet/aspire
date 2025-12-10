@@ -593,6 +593,15 @@ internal sealed class AzureAppServiceWebsiteContext(
             parentWebSite: (WebSite)webSite,
             deploymentSlot: deploymentSlot);
 
+        // Allow users to customize the website
+        if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
+        {
+            foreach (var customizeWebSiteAnnotation in customizeWebSiteAnnotations)
+            {
+                customizeWebSiteAnnotation.Configure(infra, webSite);
+            }
+        }
+
         // Allow users to customize the slot
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteSlotCustomizationAnnotation>(out var customizeWebSiteSlotAnnotations))
         {
