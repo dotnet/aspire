@@ -178,7 +178,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             }
 
             // This ensures that resources that have to be pushed before deployments are handled
-            foreach (var pushResource in context.Model.GetPushResources())
+            foreach (var pushResource in context.Model.GetBuildAndPushResources())
             {
                 var pushSteps = context.GetSteps(pushResource, WellKnownPipelineTags.PushContainerImage);
                 var dockerComposeUpSteps = context.GetSteps(this, "docker-compose-up");

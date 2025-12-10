@@ -35,7 +35,7 @@ public class DistributedApplicationModelExtensionsTests
     }
 
     [Fact]
-    public void GetPushResources_Returns_Projects_And_Resources_With_Dockerfiles_Excludes_BuildOnly_And_Ignored()
+    public void GetBuildAndPushResources_Returns_Projects_And_Resources_With_Dockerfiles_Excludes_BuildOnly_And_Ignored()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -60,7 +60,7 @@ public class DistributedApplicationModelExtensionsTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var result = appModel.GetPushResources().ToList();
+        var result = appModel.GetBuildAndPushResources().ToList();
 
         Assert.Collection(result,
             item => Assert.Equal(project.Resource, item),

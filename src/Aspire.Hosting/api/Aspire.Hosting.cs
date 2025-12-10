@@ -1523,8 +1523,6 @@ namespace Aspire.Hosting.ApplicationModel
         public static System.Collections.Generic.IEnumerable<IResource> GetBuildResources(this DistributedApplicationModel model) { throw null; }
 
         public static System.Collections.Generic.IEnumerable<IResource> GetComputeResources(this DistributedApplicationModel model) { throw null; }
-
-        public static System.Collections.Generic.IEnumerable<IResource> GetPushResources(this DistributedApplicationModel model) { throw null; }
     }
 
     [System.Obsolete("Use DockerfileBuildAnnotation to define docker build arguments.")]
