@@ -25,18 +25,8 @@ internal static class ResourceSetupHelpers
 {
     public static void SetupResourceDetails(TestContext context)
     {
-        context.Services.AddLocalization();
+        FluentUISetupHelpers.AddCommonDashboardServices(context);
         context.Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
-        context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-        context.Services.AddSingleton<TelemetryRepository>();
-        context.Services.AddSingleton<IDialogService, DialogService>();
-        context.Services.AddSingleton<LibraryConfiguration>();
-        context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
-        context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
-        context.Services.AddSingleton<DashboardTelemetryService>();
-        context.Services.AddSingleton<ComponentTelemetryContextProvider>();
-        context.Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
-        context.Services.AddSingleton<GlobalState>();
 
         FluentUISetupHelpers.SetupFluentDivider(context);
         FluentUISetupHelpers.SetupFluentSearch(context);
@@ -72,29 +62,15 @@ internal static class ResourceSetupHelpers
         FluentUISetupHelpers.SetupFluentOverflow(context);
         FluentUISetupHelpers.SetupFluentMenu(context);
 
-        context.Services.AddLocalization();
-        context.Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
-        context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        FluentUISetupHelpers.AddCommonDashboardServices(context);
         context.Services.AddSingleton<IconResolver>();
-        context.Services.AddSingleton<PauseManager>();
-        context.Services.AddSingleton<TelemetryRepository>();
-        context.Services.AddSingleton<IMessageService, MessageService>();
         context.Services.AddSingleton(Options.Create(new DashboardOptions()));
         context.Services.AddSingleton<DimensionManager>();
         context.Services.AddSingleton<ILogger<StructuredLogs>>(NullLogger<StructuredLogs>.Instance);
-        context.Services.AddSingleton<IDialogService, DialogService>();
         context.Services.AddSingleton<StructuredLogsViewModel>();
-        context.Services.AddSingleton<ISessionStorage, TestSessionStorage>();
-        context.Services.AddSingleton<ILocalStorage, TestLocalStorage>();
-        context.Services.AddSingleton<ShortcutManager>();
-        context.Services.AddSingleton<LibraryConfiguration>();
-        context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
-        context.Services.AddFluentUIComponents();
+        FluentUISetupHelpers.SetupFluentUIComponents(context);
         context.Services.AddScoped<DashboardCommandExecutor, DashboardCommandExecutor>();
         context.Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient(isEnabled: true, initialResources: [], resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>));
-        context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
-        context.Services.AddSingleton<DashboardTelemetryService>();
-        context.Services.AddSingleton<ComponentTelemetryContextProvider>();
 
         var dimensionManager = context.Services.GetRequiredService<DimensionManager>();
         dimensionManager.InvokeOnViewportInformationChanged(viewport);

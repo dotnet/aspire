@@ -18,19 +18,9 @@ internal static class StructuredLogsSetupHelpers
 {
     public static void SetupStructuredLogsDetails(TestContext context)
     {
-        context.Services.AddLocalization();
+        FluentUISetupHelpers.AddCommonDashboardServices(context);
         context.Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
-        context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-        context.Services.AddSingleton<TelemetryRepository>();
         context.Services.AddSingleton<IconResolver>();
-        context.Services.AddSingleton<IDialogService, DialogService>();
-        context.Services.AddSingleton<LibraryConfiguration>();
-        context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
-        context.Services.AddSingleton<DashboardTelemetryService>();
-        context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
-        context.Services.AddSingleton<ComponentTelemetryContextProvider>();
-        context.Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
-        context.Services.AddSingleton<PauseManager>();
         context.Services.AddSingleton<IDashboardClient>(new TestDashboardClient());
 
         FluentUISetupHelpers.SetupFluentDivider(context);

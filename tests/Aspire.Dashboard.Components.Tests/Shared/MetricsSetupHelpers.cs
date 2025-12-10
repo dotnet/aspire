@@ -34,12 +34,8 @@ internal static class MetricsSetupHelpers
         module.SetupVoid("initializeChart", _ => true);
         module.SetupVoid("updateChart", _ => true);
 
-        context.Services.AddLocalization();
+        FluentUISetupHelpers.AddCommonDashboardServices(context);
         context.Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
-        context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-        context.Services.AddSingleton<PauseManager>();
-        context.Services.AddSingleton<TelemetryRepository>();
-        context.Services.AddSingleton<IDialogService, DialogService>();
     }
 
     internal static void SetupMetricsPage(TestContext context, ISessionStorage? sessionStorage = null)
@@ -58,23 +54,10 @@ internal static class MetricsSetupHelpers
 
         SetupChartContainer(context);
 
-        context.Services.AddLocalization();
-        context.Services.AddSingleton<PauseManager>();
-        context.Services.AddSingleton<TelemetryRepository>();
-        context.Services.AddSingleton<IMessageService, MessageService>();
+        FluentUISetupHelpers.AddCommonDashboardServices(context, sessionStorage: sessionStorage);
         context.Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         context.Services.AddSingleton<DimensionManager>();
-        context.Services.AddSingleton<IDialogService, DialogService>();
-        context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-        context.Services.AddSingleton<ISessionStorage>(sessionStorage ?? new TestSessionStorage());
-        context.Services.AddSingleton<ILocalStorage, TestLocalStorage>();
-        context.Services.AddSingleton<ShortcutManager>();
-        context.Services.AddSingleton<LibraryConfiguration>();
-        context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         context.Services.AddSingleton<IThemeResolver, TestThemeResolver>();
         context.Services.AddSingleton<ThemeManager>();
-        context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
-        context.Services.AddSingleton<DashboardTelemetryService>();
-        context.Services.AddSingleton<ComponentTelemetryContextProvider>();
     }
 }

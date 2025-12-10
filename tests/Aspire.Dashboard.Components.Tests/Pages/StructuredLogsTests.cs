@@ -7,13 +7,9 @@ using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Assistant;
-using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Telemetry;
-using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Utils;
 using Bunit;
 using Google.Protobuf.Collections;
@@ -22,7 +18,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Microsoft.FluentUI.AspNetCore.Components;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
@@ -219,26 +214,10 @@ public partial class StructuredLogsTests : DashboardTestContext
 
         JSInterop.SetupVoid("initializeContinuousScroll");
 
-        Services.AddLocalization();
-        Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-        Services.AddSingleton<PauseManager>();
-        Services.AddSingleton<TelemetryRepository>();
-        Services.AddSingleton<IMessageService, MessageService>();
+        FluentUISetupHelpers.AddCommonDashboardServices(this);
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         Services.AddSingleton<DimensionManager>();
         Services.AddSingleton<ILogger<StructuredLogs>>(NullLogger<StructuredLogs>.Instance);
-        Services.AddSingleton<IDialogService, DialogService>();
         Services.AddSingleton<StructuredLogsViewModel>();
-        Services.AddSingleton<ISessionStorage, TestSessionStorage>();
-        Services.AddSingleton<ILocalStorage, TestLocalStorage>();
-        Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
-        Services.AddSingleton<ShortcutManager>();
-        Services.AddSingleton<LibraryConfiguration>();
-        Services.AddSingleton<IKeyCodeService, KeyCodeService>();
-        Services.AddSingleton<GlobalState>();
-        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
-        Services.AddSingleton<DashboardTelemetryService>();
-        Services.AddSingleton<ComponentTelemetryContextProvider>();
-        Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
     }
 }

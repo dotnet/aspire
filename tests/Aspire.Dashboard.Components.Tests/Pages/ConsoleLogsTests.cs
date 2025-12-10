@@ -1,22 +1,17 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
 using Aspire.Dashboard.Components.Controls;
-using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Assistant;
-using Aspire.Dashboard.Model.BrowserStorage;
-using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Telemetry;
-using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Tests.Shared.DashboardModel;
+using Aspire.TestUtilities;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.InternalTesting;
@@ -26,7 +21,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
-using Aspire.TestUtilities;
 
 namespace Aspire.Dashboard.Components.Tests.Pages;
 
@@ -809,29 +803,21 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
 
-        Services.AddLocalization();
+        FluentUISetupHelpers.AddCommonDashboardServices(this);
         Services.AddSingleton<ILoggerFactory>(loggerFactory);
-        Services.AddSingleton<BrowserTimeProvider>(timeProvider ?? new TestTimeProvider());
-        Services.AddSingleton<IMessageService, MessageService>();
+
+        // Override BrowserTimeProvider if a custom timeProvider is passed
+        if (timeProvider != null)
+        {
+            Services.AddSingleton<BrowserTimeProvider>(timeProvider);
+        }
+
         Services.AddSingleton<IToastService, ToastService>();
-        Services.AddSingleton<GlobalState>();
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         Services.AddSingleton<DimensionManager>();
-        Services.AddSingleton<TelemetryRepository>();
         Services.AddSingleton<IconResolver>();
-        Services.AddSingleton<IDialogService, DialogService>();
-        Services.AddSingleton<ISessionStorage, TestSessionStorage>();
-        Services.AddSingleton<ILocalStorage, TestLocalStorage>();
-        Services.AddSingleton<ShortcutManager>();
-        Services.AddSingleton<LibraryConfiguration>();
-        Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         Services.AddSingleton<IDashboardClient>(dashboardClient ?? new TestDashboardClient());
         Services.AddSingleton<DashboardCommandExecutor>();
         Services.AddSingleton<ConsoleLogsManager>();
-        Services.AddSingleton<DashboardTelemetryService>();
-        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
-        Services.AddSingleton<ComponentTelemetryContextProvider>();
-        Services.AddSingleton<PauseManager>();
-        Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
     }
 }
