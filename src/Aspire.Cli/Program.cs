@@ -345,8 +345,10 @@ public class Program
 
             var rootCommand = app.Services.GetRequiredService<RootCommand>();
             
-            // Check if verbose flag is set
-            var verbose = args?.Any(a => a == "--verbose") ?? false;
+            // Parse args early to check for verbose flag
+            // This is needed before the exception handler to determine error output verbosity
+            var parseResult = rootCommand.Parse(args ?? []);
+            var verbose = parseResult.GetValue<bool>("--verbose");
             
             var invokeConfig = new InvocationConfiguration()
             {
@@ -359,7 +361,7 @@ public class Program
             int exitCode;
             try
             {
-                exitCode = await rootCommand.Parse(args ?? []).InvokeAsync(invokeConfig, cts.Token);
+                exitCode = await parseResult.InvokeAsync(invokeConfig, cts.Token);
             }
             catch (Exception ex)
             {

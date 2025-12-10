@@ -171,7 +171,8 @@ internal sealed class ErrorLogger : IErrorLogger
     private string GetLogFilePath()
     {
         // Create a log file per day to avoid huge files
-        var fileName = $"aspire-cli-{DateTime.Now:yyyy-MM-dd}.log";
+        // Use UtcNow for consistency with log timestamps
+        var fileName = $"aspire-cli-{DateTime.UtcNow:yyyy-MM-dd}.log";
         return Path.Combine(_logsDirectory.FullName, fileName);
     }
 }

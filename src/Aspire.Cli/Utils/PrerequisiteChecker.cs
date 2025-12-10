@@ -217,7 +217,7 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             var startInfo = new ProcessStartInfo
             {
                 FileName = "docker",
-                Arguments = "info --format '{{.ServerVersion}}'",
+                Arguments = "info --format \"{{.ServerVersion}}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -239,7 +239,7 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
                 var contextStartInfo = new ProcessStartInfo
                 {
                     FileName = "docker",
-                    Arguments = "context ls --format '{{.Name}}'",
+                    Arguments = "context ls --format \"{{.Name}}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
