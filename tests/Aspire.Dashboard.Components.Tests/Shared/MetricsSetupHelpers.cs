@@ -34,7 +34,6 @@ internal static class MetricsSetupHelpers
         module.SetupVoid("initializeChart", _ => true);
         module.SetupVoid("updateChart", _ => true);
 
-        FluentUISetupHelpers.AddCommonDashboardServices(context);
         context.Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
     }
 
@@ -55,7 +54,6 @@ internal static class MetricsSetupHelpers
         SetupChartContainer(context);
 
         FluentUISetupHelpers.AddCommonDashboardServices(context, sessionStorage: sessionStorage);
-        context.Services.AddSingleton<DimensionManager>();
         context.Services.AddSingleton<IThemeResolver, TestThemeResolver>();
         context.Services.AddSingleton<ThemeManager>();
     }

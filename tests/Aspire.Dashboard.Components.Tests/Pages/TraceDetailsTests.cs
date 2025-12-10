@@ -8,7 +8,6 @@ using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Telemetry;
 using Bunit;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.InternalTesting;
@@ -643,6 +642,5 @@ public partial class TraceDetailsTests : DashboardTestContext
 
         FluentUISetupHelpers.AddCommonDashboardServices(this);
         Services.AddSingleton<ILoggerFactory>(loggerFactory);
-        Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
     }
 }
