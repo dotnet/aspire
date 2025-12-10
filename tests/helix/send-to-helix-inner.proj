@@ -188,7 +188,6 @@
       <HelixPreCommand Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\az-cli\bin%3B%PATH%" />
       <HelixPreCommand Include="az --version" />
     </ItemGroup>
-
   </Target>
 
   <Target Name="BuildHelixWorkItems" DependsOnTargets="$(BuildHelixWorkItemsDependsOn)" BeforeTargets="Build">
