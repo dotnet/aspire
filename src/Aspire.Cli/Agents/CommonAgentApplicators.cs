@@ -22,52 +22,12 @@ internal static class CommonAgentApplicators
         }
 
         var agentsFilePath = Path.Combine(workspaceRoot.FullName, "AGENTS.md");
-        var aspireAgentsFilePath = Path.Combine(workspaceRoot.FullName, "AGENTS.aspire.md");
 
-        // Don't add applicator if AGENTS.md doesn't exist and we'll create it
-        // OR if AGENTS.md exists with the same content
-        // OR if both AGENTS.md and AGENTS.aspire.md exist
-        
-        // Check if AGENTS.md exists
+        // Don't add applicator if AGENTS.md already exists
         if (File.Exists(agentsFilePath))
         {
-            try
-            {
-                var existingContent = File.ReadAllText(agentsFilePath);
-                if (existingContent.Trim() == AgentsMdContent.Trim())
-                {
-                    // AGENTS.md already exists with the same content, no need to add applicator
-                    context.AgentInstructionsApplicatorAdded = true;
-                    return false;
-                }
-                
-                // AGENTS.md exists with different content, check if AGENTS.aspire.md already exists
-                if (File.Exists(aspireAgentsFilePath))
-                {
-                    // Both files exist, no need to add applicator
-                    context.AgentInstructionsApplicatorAdded = true;
-                    return false;
-                }
-                
-                // AGENTS.md exists with different content and AGENTS.aspire.md doesn't exist
-                // Add applicator to create AGENTS.aspire.md
-                context.AgentInstructionsApplicatorAdded = true;
-                context.AddApplicator(new AgentEnvironmentApplicator(
-                    "Create agent instructions file (AGENTS.aspire.md)",
-                    ct => CreateAgentInstructionsAsync(workspaceRoot, ct)));
-                
-                return true;
-            }
-            catch
-            {
-                // If we can't read the file, treat it as if it exists with different content
-                // Only add applicator if AGENTS.aspire.md doesn't exist
-                if (File.Exists(aspireAgentsFilePath))
-                {
-                    context.AgentInstructionsApplicatorAdded = true;
-                    return false;
-                }
-            }
+            context.AgentInstructionsApplicatorAdded = true;
+            return false;
         }
 
         // AGENTS.md doesn't exist, add applicator to create it
@@ -80,23 +40,16 @@ internal static class CommonAgentApplicators
     }
 
     /// <summary>
-    /// Creates agent instruction file (AGENTS.md or AGENTS.aspire.md if AGENTS.md already exists).
+    /// Creates agent instruction file (AGENTS.md).
     /// </summary>
     private static async Task CreateAgentInstructionsAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
     {
         var agentsFilePath = Path.Combine(workspaceRoot.FullName, "AGENTS.md");
-        var targetFilePath = agentsFilePath;
-
-        // If AGENTS.md already exists, use AGENTS.aspire.md instead
-        if (File.Exists(agentsFilePath))
-        {
-            targetFilePath = Path.Combine(workspaceRoot.FullName, "AGENTS.aspire.md");
-        }
 
         // Only create the file if it doesn't already exist
-        if (!File.Exists(targetFilePath))
+        if (!File.Exists(agentsFilePath))
         {
-            await File.WriteAllTextAsync(targetFilePath, AgentsMdContent, cancellationToken);
+            await File.WriteAllTextAsync(agentsFilePath, AgentsMdContent, cancellationToken);
         }
     }
 
