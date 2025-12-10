@@ -24,11 +24,6 @@ public class AzureBlobStorageConnectionPropertiesTests
             {
                 Assert.Equal("Uri", property.Key);
                 Assert.Equal("{storage.outputs.blobEndpoint}", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("ConnectionString", property.Key);
-                Assert.Equal("{storage.outputs.blobEndpoint}", property.Value.ValueExpression);
             });
     }
 }

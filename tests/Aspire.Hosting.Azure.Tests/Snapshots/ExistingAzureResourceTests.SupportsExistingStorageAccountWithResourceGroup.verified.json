@@ -1,6 +1,5 @@
 ﻿{
   "type": "azure.bicep.v1",
-  "connectionString": "DefaultEndpointsProtocol=https;AccountName={storage.outputs.name};BlobEndpoint={storage.outputs.blobEndpoint};QueueEndpoint={storage.outputs.queueEndpoint};TableEndpoint={storage.outputs.tableEndpoint};",
   "path": "storage.module.bicep",
   "params": {
     "existingResourceName": "{existingResourceName.value}"

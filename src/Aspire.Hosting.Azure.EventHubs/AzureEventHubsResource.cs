@@ -197,7 +197,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
 
         if (IsEmulator)
         {
-            yield return new("ConnectionString", ConnectionStringExpression);
+            yield return new("ConnectionString", ReferenceExpression.Create($"Endpoint={EventHubsEndpoint}"));
         }
     }
 }

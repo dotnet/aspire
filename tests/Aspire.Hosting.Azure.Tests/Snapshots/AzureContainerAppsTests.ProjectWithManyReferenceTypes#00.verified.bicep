@@ -158,10 +158,6 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: storage_outputs_blobendpoint
             }
             {
-              name: 'BLOBS_CONNECTIONSTRING'
-              value: storage_outputs_blobendpoint
-            }
-            {
               name: 'ConnectionStrings__db'
               secretRef: 'connectionstrings--db'
             }

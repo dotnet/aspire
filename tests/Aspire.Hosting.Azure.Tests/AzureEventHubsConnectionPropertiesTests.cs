@@ -48,7 +48,7 @@ public class AzureEventHubsConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Port", property.Key);
-                Assert.Equal("{eventhubs.bindings.emulator.host}", property.Value.ValueExpression);
+                Assert.Equal("{eventhubs.bindings.emulator.port}", property.Value.ValueExpression);
             },
             property =>
             {

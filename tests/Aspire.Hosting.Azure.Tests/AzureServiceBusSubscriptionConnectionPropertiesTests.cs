@@ -38,11 +38,6 @@ public class AzureServiceBusSubscriptionConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("ConnectionString", property.Key);
-                Assert.Equal("Endpoint={servicebus.outputs.serviceBusEndpoint}", property.Value.ValueExpression);
-            },
-            property =>
-            {
                 Assert.Equal("SubscriptionName", property.Key);
                 Assert.Equal("mysubscription", property.Value.ValueExpression);
             });

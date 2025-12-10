@@ -172,7 +172,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
         {
             yield return new("Port", Port);
         }
-        
+
         yield return new("Uri", UriExpression);
 
         if (IsEmulator)

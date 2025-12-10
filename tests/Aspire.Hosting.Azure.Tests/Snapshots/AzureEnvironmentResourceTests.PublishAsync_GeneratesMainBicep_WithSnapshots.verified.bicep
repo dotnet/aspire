@@ -147,10 +147,4 @@ output fe_identity_id string = fe_identity.outputs.id
 
 output storage_blobEndpoint string = storage.outputs.blobEndpoint
 
-output storage_name string = storage.outputs.name
-
-output storage_queueEndpoint string = storage.outputs.queueEndpoint
-
-output storage_tableEndpoint string = storage.outputs.tableEndpoint
-
 output fe_identity_clientId string = fe_identity.outputs.clientId

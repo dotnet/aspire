@@ -24,11 +24,6 @@ public class AzureQueueStorageConnectionPropertiesTests
             {
                 Assert.Equal("Uri", property.Key);
                 Assert.Equal("{storage.outputs.queueEndpoint}", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("ConnectionString", property.Key);
-                Assert.Equal("{storage.outputs.queueEndpoint}", property.Value.ValueExpression);
             });
     }
 }

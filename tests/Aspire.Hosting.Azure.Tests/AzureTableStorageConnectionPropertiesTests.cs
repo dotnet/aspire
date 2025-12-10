@@ -24,11 +24,6 @@ public class AzureTableStorageConnectionPropertiesTests
             {
                 Assert.Equal("Uri", property.Key);
                 Assert.Equal("{storage.outputs.tableEndpoint}", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("ConnectionString", property.Key);
-                Assert.Equal("{storage.outputs.tableEndpoint}", property.Value.ValueExpression);
             });
     }
 }
