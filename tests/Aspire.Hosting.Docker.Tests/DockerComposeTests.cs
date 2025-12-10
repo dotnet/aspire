@@ -5,12 +5,14 @@
 #pragma warning disable ASPIRECOMPUTE003
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIRECONTAINERRUNTIME001
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Testing;
+using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
@@ -609,6 +611,107 @@ public class DockerComposeTests(ITestOutputHelper output)
         var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
 
         Assert.Equal("myacr.azurecr.io/servicea:latest", remoteImageName);
+    }
+
+    [Fact]
+    public async Task PushImageToRegistry_WithLocalRegistry_OnlyTagsImage()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var fakeRuntime = new FakeContainerRuntime();
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+        builder.Services.AddSingleton<IContainerRuntime>(fakeRuntime);
+
+        // No registry added - will use LocalContainerRegistry with empty endpoint
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
+
+        var project = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // Create a mock pipeline step context using TestPipelineActivityReporter
+        var reporter = new TestPipelineActivityReporter(output);
+        var reportingStep = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var context = CreateTestPipelineStepContext(app, reportingStep);
+
+        // Call PushImageToRegistryAsync - should only tag, not push
+        await PipelineStepHelpers.PushImageToRegistryAsync(project.Resource, context);
+
+        // Verify that TagImageAsync was called but PushImageAsync was not
+        Assert.True(fakeRuntime.WasTagImageCalled, "TagImageAsync should have been called for local registry");
+        Assert.False(fakeRuntime.WasPushImageCalled, "PushImageAsync should NOT have been called for local registry");
+
+        // Verify the tag was applied correctly
+        Assert.Single(fakeRuntime.TagImageCalls);
+        var (localName, targetName) = fakeRuntime.TagImageCalls[0];
+        Assert.Equal("servicea", localName);
+        Assert.Equal("servicea:latest", targetName);
+    }
+
+    [Fact]
+    public async Task PushImageToRegistry_WithRemoteRegistry_PushesImage()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var fakeRuntime = new FakeContainerRuntime();
+        builder.Services.AddSingleton<IResourceContainerImageManager>(new MockImageBuilderWithRuntime(fakeRuntime));
+        builder.Services.AddSingleton<IContainerRuntime>(fakeRuntime);
+
+        // Add a remote registry with a non-empty endpoint
+        var registry = builder.AddContainerRegistry("acr", "myregistry.azurecr.io");
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
+            .WithContainerRegistry(registry);
+
+        var project = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // Create a mock pipeline step context using TestPipelineActivityReporter
+        var reporter = new TestPipelineActivityReporter(output);
+        var reportingStep = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var context = CreateTestPipelineStepContext(app, reportingStep);
+
+        // Call PushImageToRegistryAsync - should push to remote registry
+        await PipelineStepHelpers.PushImageToRegistryAsync(project.Resource, context);
+
+        // Verify that PushImageAsync was called (which internally tags and pushes)
+        Assert.True(fakeRuntime.WasPushImageCalled, "PushImageAsync should have been called for remote registry");
+    }
+
+    private static PipelineStepContext CreateTestPipelineStepContext(DistributedApplication app, IReportingStep reportingStep)
+    {
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executionContext = app.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+        var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+
+        var pipelineContext = new PipelineContext(
+            model,
+            executionContext,
+            app.Services,
+            loggerFactory.CreateLogger("Test"),
+            CancellationToken.None);
+
+        return new PipelineStepContext
+        {
+            PipelineContext = pipelineContext,
+            ReportingStep = reportingStep
+        };
+    }
+
+    private sealed class MockImageBuilderWithRuntime(IContainerRuntime runtime) : IResourceContainerImageManager
+    {
+        public Task BuildImageAsync(IResource resource, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task BuildImagesAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
+            => runtime.PushImageAsync(resource, cancellationToken);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
