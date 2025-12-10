@@ -53,7 +53,8 @@ internal static class FluentUISetupHelpers
 
     public static void SetupFluentAnchoredRegion(TestContext context)
     {
-        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js"));
+        var module = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js"));
+        module.SetupVoid("goToNextFocusableElement", _ => true);
     }
 
     public static void SetupFluentDivider(TestContext context)
@@ -65,6 +66,8 @@ internal static class FluentUISetupHelpers
     public static void SetupFluentDataGrid(TestContext context)
     {
         var dataGridModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/DataGrid/FluentDataGrid.razor.js"));
+        dataGridModule.SetupVoid("enableColumnResizing", _ => true);
+
         var gridReference = dataGridModule.SetupModule("init", _ => true);
         gridReference.SetupVoid("stop", _ => true);
     }
@@ -150,6 +153,8 @@ internal static class FluentUISetupHelpers
     {
         context.Services.AddFluentUIComponents();
 
+        // Setting a provider ID on menu service is required to simulate <FluentMenuProvider> on the page.
+        // This makes FluentMenu render without error.
         var menuService = context.Services.GetRequiredService<IMenuService>();
         menuService.ProviderId = "Test";
     }

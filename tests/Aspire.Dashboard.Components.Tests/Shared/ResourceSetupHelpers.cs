@@ -44,19 +44,11 @@ internal static class ResourceSetupHelpers
     {
         FluentUISetupHelpers.SetupFluentDivider(context);
         FluentUISetupHelpers.SetupFluentInputLabel(context);
-
-        var version = typeof(FluentMain).Assembly.GetName().Version!;
-        var dataGridModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/DataGrid/FluentDataGrid.razor.js", version));
-        dataGridModule.SetupModule("init", _ => true);
-        dataGridModule.SetupVoid("enableColumnResizing", _ => true);
-
+        FluentUISetupHelpers.SetupFluentDataGrid(context);
         FluentUISetupHelpers.SetupFluentSearch(context);
         FluentUISetupHelpers.SetupFluentKeyCode(context);
         FluentUISetupHelpers.SetupFluentCheckbox(context);
-
-        var anchoredRegionModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
-        anchoredRegionModule.SetupVoid("goToNextFocusableElement", _ => true);
-
+        FluentUISetupHelpers.SetupFluentAnchoredRegion(context);
         FluentUISetupHelpers.SetupFluentToolbar(context);
         FluentUISetupHelpers.SetupFluentTab(context);
         FluentUISetupHelpers.SetupFluentOverflow(context);
@@ -73,15 +65,5 @@ internal static class ResourceSetupHelpers
 
         var dimensionManager = context.Services.GetRequiredService<DimensionManager>();
         dimensionManager.InvokeOnViewportInformationChanged(viewport);
-
-        // Setting a provider ID on menu service is required to simulate <FluentMenuProvider> on the page.
-        // This makes FluentMenu render without error.
-        var menuService = context.Services.GetRequiredService<IMenuService>();
-        menuService.ProviderId = "Test";
-    }
-
-    private static string GetFluentFile(string filePath, Version version)
-    {
-        return $"{filePath}?v={version}";
     }
 }
