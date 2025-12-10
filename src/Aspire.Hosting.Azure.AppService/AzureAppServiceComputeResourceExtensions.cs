@@ -59,37 +59,4 @@ public static class AzureAppServiceComputeResourceExtensions
         }
         return builder;
     }
-
-    /// <summary>
-    /// Publishes the specified compute resource as an Azure App Service Slot.
-    /// </summary>
-    /// <typeparam name="T">The type of compute resource.</typeparam>
-    /// <param name="builder">The compute resource builder.</param>
-    /// <param name="configure">The configuration action for the App Service WebSite Slot resource.</param>
-    /// <returns>The updated compute resource builder.</returns>
-    /// <remarks>
-    /// <example>
-    /// <code>
-    /// builder.AddProject&lt;Projects.Api&gt;("name").PublishAsAzureAppServiceWebsiteSlot((infrastructure, app) =>
-    /// {
-    ///     // Configure the App Service WebSite Slot resource here
-    /// });
-    /// </code>
-    /// </example>
-    /// </remarks>
-    public static IResourceBuilder<T> PublishAsAzureAppServiceWebsiteSlot<T>(this IResourceBuilder<T> builder, Action<AzureResourceInfrastructure, WebSiteSlot> configure)
-        where T : IComputeResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(configure);
-
-        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
-        {
-            return builder;
-        }
-
-        builder.ApplicationBuilder.AddAzureAppServiceInfrastructureCore();
-
-        return builder.WithAnnotation(new AzureAppServiceWebsiteSlotCustomizationAnnotation(configure));
-    }
 }

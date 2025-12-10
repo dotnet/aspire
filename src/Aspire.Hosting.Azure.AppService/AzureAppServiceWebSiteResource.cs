@@ -94,11 +94,6 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                         deploymentTargetAnnotation.DeploymentTarget = provisioningResource;
 
                         ctx.ReportingStep.Log(LogLevel.Information, $"Updated provisionable resource to deploy website and deployment slot", false);
-
-                        if (computerEnv.TryGetLastAnnotation<AzureAppServiceWebsiteCustomizationAnnotation>(out _))
-                        {
-                            ctx.ReportingStep.Log(LogLevel.Information, $"AzureAppServiceWebsiteCustomizationAnnotation is not supported when deploying to a deployment slot. Customizations will be ignored.", false);
-                        }
                     }
                     else
                     {
