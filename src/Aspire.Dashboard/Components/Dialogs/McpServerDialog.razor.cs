@@ -50,13 +50,13 @@ public partial class McpServerDialog
         if (McpEnabled)
         {
             // Check if we should show CLI MCP instructions instead of dashboard MCP instructions
-            if (DashboardOptions.Value.Mcp.UseCliMcp == true)
+            if (IsCliMcpMode)
             {
                 // For CLI MCP mode, we don't need the HTTP endpoint configuration
                 (_mcpServerInstallButtonJson, _mcpServerConfigFileJson) = GetCliMcpServerInstallButtonJson();
                 _mcpConfigProperties =
                 [
-                    new McpConfigPropertyViewModel { Name = "name", Value = "aspire-cli" },
+                    new McpConfigPropertyViewModel { Name = "name", Value = "aspire" },
                     new McpConfigPropertyViewModel { Name = "type", Value = "stdio" },
                     new McpConfigPropertyViewModel { Name = "command", Value = "aspire" },
                     new McpConfigPropertyViewModel { Name = "args", Value = @"[""mcp"", ""start""]" }
@@ -163,7 +163,7 @@ public partial class McpServerDialog
 
     private static (string InstallButtonJson, string ConfigFileJson) GetCliMcpServerInstallButtonJson()
     {
-        var name = "aspire-cli";
+        var name = "aspire";
 
         var installButtonJson = JsonSerializer.Serialize(
             new McpInstallButtonServerModel

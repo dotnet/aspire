@@ -16,6 +16,18 @@
             @Loc[nameof(Dialogs.McpServerDialogIntroduction)]
             For more information, see <a href="https://aka.ms/aspire/mcp-getting-started" target="_blank">@Loc[nameof(Dialogs.McpServerDialogLearnMoreLink)]</a>.
         </p>
+        @if (IsCliMcpMode)
+        {
+            <p>
+                @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.McpServerDialogCliInstructionsAbove)], "https://aka.ms/aspire/mcp-add-cli"))
+            </p>
+            <p>
+                <MarkdownRenderer Markdown="@("```bash\naspire mcp init\n```")" MarkdownProcessor="@_markdownProcessor" />
+            </p>
+            <p>
+                @((MarkupString)Loc[nameof(Dialogs.McpServerDialogCliInstructionsBelow)].ToString())
+            </p>
+        }
         <FluentTabs ActiveTabId="@($"tab-{_activeView}")" OnTabChange="@OnTabChangeAsync" Size="null">
             <FluentTab LabelClass="tab-label"
                        Id="@($"tab-{McpToolView.VSCode}")"
