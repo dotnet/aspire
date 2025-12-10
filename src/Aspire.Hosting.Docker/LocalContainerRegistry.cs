@@ -23,6 +23,10 @@ internal sealed class LocalContainerRegistry : IContainerRegistry
     public ReferenceExpression Name => ReferenceExpression.Create($"local");
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Returns an empty string for local Docker Compose scenarios where images are built and used locally
+    /// without being pushed to a remote registry. The empty endpoint indicates no remote registry is involved.
+    /// </remarks>
     public ReferenceExpression Endpoint => ReferenceExpression.Create($"");
 
     /// <inheritdoc/>
