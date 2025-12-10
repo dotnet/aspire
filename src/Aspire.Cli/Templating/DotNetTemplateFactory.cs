@@ -24,7 +24,8 @@ internal class DotNetTemplateFactory(
     IPackagingService packagingService,
     INewCommandPrompter prompter,
     CliExecutionContext executionContext,
-    IFeatures features)
+    IFeatures features,
+    IConfigurationService configurationService)
     : ITemplateFactory
 {
     public IEnumerable<ITemplate> GetTemplates()
@@ -530,14 +531,21 @@ internal class DotNetTemplateFactory(
     {
         var allChannels = await packagingService.GetChannelsAsync(cancellationToken);
         
-        // Check if --channel option was provided
+        // Check if --channel option was provided (highest priority)
         var channelName = parseResult.GetValue<string?>("--channel");
+        
+        // If no --channel option, check for global channel setting
+        if (string.IsNullOrEmpty(channelName))
+        {
+            channelName = await configurationService.GetConfigurationAsync("channel", cancellationToken);
+        }
+        
         IEnumerable<PackageChannel> channels;
         bool channelExplicitlySpecified = !string.IsNullOrEmpty(channelName);
         
         if (channelExplicitlySpecified)
         {
-            // If --channel is specified, find the matching channel
+            // If --channel is specified or global channel is set, find the matching channel
             var matchingChannel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
             if (matchingChannel is null)
             {

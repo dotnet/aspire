@@ -27,6 +27,7 @@ internal sealed class UpdateCommand : BaseCommand
     private readonly ICliDownloader? _cliDownloader;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly IFeatures _features;
+    private readonly IConfigurationService _configurationService;
 
     public UpdateCommand(
         IProjectLocator projectLocator, 
@@ -37,7 +38,8 @@ internal sealed class UpdateCommand : BaseCommand
         IInteractionService interactionService, 
         IFeatures features, 
         ICliUpdateNotifier updateNotifier, 
-        CliExecutionContext executionContext) 
+        CliExecutionContext executionContext,
+        IConfigurationService configurationService) 
         : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(projectLocator);
@@ -46,6 +48,7 @@ internal sealed class UpdateCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(updateNotifier);
         ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(configurationService);
 
         _projectLocator = projectLocator;
         _packagingService = packagingService;
@@ -54,6 +57,7 @@ internal sealed class UpdateCommand : BaseCommand
         _cliDownloader = cliDownloader;
         _updateNotifier = updateNotifier;
         _features = features;
+        _configurationService = configurationService;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = UpdateCommandStrings.ProjectArgumentDescription;
@@ -287,6 +291,10 @@ internal sealed class UpdateCommand : BaseCommand
 
             // Extract and update to $HOME/.aspire/bin
             await ExtractAndUpdateAsync(archivePath, cancellationToken);
+
+            // Save the selected channel to global settings for future use with 'aspire new' and 'aspire init'
+            await _configurationService.SetConfigurationAsync("channel", channel, isGlobal: true, cancellationToken);
+            _logger.LogDebug("Saved global channel setting: {Channel}", channel);
 
             return 0;
         }

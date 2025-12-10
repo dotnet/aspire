@@ -34,6 +34,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
+    private readonly IConfigurationService _configurationService;
 
     /// <summary>
     /// InitCommand prefetches template package metadata.
@@ -57,7 +58,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment,
-        IInteractionService interactionService)
+        IInteractionService interactionService,
+        IConfigurationService configurationService)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -69,6 +71,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(configurationService);
 
         _runner = runner;
         _certificateService = certificateService;
@@ -82,6 +85,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
+        _configurationService = configurationService;
 
         var sourceOption = new Option<string?>("--source", "-s");
         sourceOption.Description = NewCommandStrings.SourceArgumentDescription;
@@ -609,7 +613,35 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+        var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+
+        // Check if --channel option was provided (highest priority)
+        var channelName = parseResult.GetValue<string?>("--channel");
+        
+        // If no --channel option, check for global channel setting
+        if (string.IsNullOrEmpty(channelName))
+        {
+            channelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+        }
+        
+        IEnumerable<PackageChannel> channels;
+        bool channelExplicitlySpecified = !string.IsNullOrEmpty(channelName);
+        
+        if (channelExplicitlySpecified)
+        {
+            // If --channel is specified or global channel is set, find the matching channel
+            var matchingChannel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+            if (matchingChannel is null)
+            {
+                throw new InvalidOperationException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", allChannels.Select(c => c.Name))}");
+            }
+            channels = new[] { matchingChannel };
+        }
+        else
+        {
+            // No channel specified, use all channels for prompting
+            channels = allChannels;
+        }
 
         var packagesFromChannels = await InteractionService.ShowStatusAsync("Searching for available template versions...", async () =>
         {
@@ -643,6 +675,13 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             {
                 return explicitPackageFromChannel;
             }
+        }
+
+        // If --channel was explicitly specified (but no --version), automatically select the highest version
+        // from that channel without prompting
+        if (channelExplicitlySpecified)
+        {
+            return orderedPackagesFromChannels.First();
         }
 
         var latestStable = orderedPackagesFromChannels.FirstOrDefault(p => !SemVersion.Parse(p.Package.Version).IsPrerelease);
