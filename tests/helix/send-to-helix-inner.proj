@@ -26,7 +26,7 @@
     <_AzureCliWindowsUrl Condition="'$(OS)' == 'Windows_NT'">https://aka.ms/installazurecliwindowszipx64</_AzureCliWindowsUrl>
 
     <_DefaultSdkDirNameForTests>dotnet-tests</_DefaultSdkDirNameForTests>
-    <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);DownloadAzureCliForHelix</BuildHelixWorkItemsDependsOn>
+    <BuildHelixWorkItemsDependsOn Condition="'$(NeedsAzCli)' == 'true'">$(BuildHelixWorkItemsDependsOn);DownloadAzureCliForHelix</BuildHelixWorkItemsDependsOn>
   </PropertyGroup>
 
   <PropertyGroup>
