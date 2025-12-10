@@ -74,6 +74,6 @@ public class AzureEventHubConsumerGroupResource(string name, string consumerGrou
             yield return property;
         }
 
-        yield return new("ConsumerGroup", ReferenceExpression.Create($"{ConsumerGroupName}"));
+        yield return new("ConsumerGroupName", ReferenceExpression.Create($"{ConsumerGroupName}"));
     }
 }

@@ -27,7 +27,7 @@ public class AzureCosmosDBDatabaseConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("Database", property.Key);
+                Assert.Equal("DatabaseName", property.Key);
                 Assert.Equal("mydb", property.Value.ValueExpression);
             });
     }
@@ -61,7 +61,7 @@ public class AzureCosmosDBDatabaseConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("Database", property.Key);
+                Assert.Equal("DatabaseName", property.Key);
                 Assert.Equal("mydb", property.Value.ValueExpression);
             });
     }
@@ -95,7 +95,7 @@ public class AzureCosmosDBDatabaseConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("Database", property.Key);
+                Assert.Equal("DatabaseName", property.Key);
                 Assert.Equal("mydb", property.Value.ValueExpression);
             });
     }

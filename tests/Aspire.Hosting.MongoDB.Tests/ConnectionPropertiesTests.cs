@@ -41,7 +41,7 @@ public class ConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("AuthenticationDatabase", property.Key);
+                Assert.Equal("AuthenticationDatabaseName", property.Key);
                 Assert.Equal("admin", property.Value.ValueExpression);
             },
             property =>
@@ -70,9 +70,9 @@ public class ConnectionPropertiesTests
         Assert.Contains(properties, property => property.Key == "Port" && property.Value.ValueExpression == "{mongo.bindings.tcp.port}");
         Assert.Contains(properties, property => property.Key == "Username" && property.Value.ValueExpression == "{user.value}");
         Assert.Contains(properties, property => property.Key == "Password" && property.Value.ValueExpression == "{password.value}");
-        Assert.Contains(properties, property => property.Key == "AuthenticationDatabase" && property.Value.ValueExpression == "admin");
+        Assert.Contains(properties, property => property.Key == "AuthenticationDatabaseName" && property.Value.ValueExpression == "admin");
         Assert.Contains(properties, property => property.Key == "AuthenticationMechanism" && property.Value.ValueExpression == "SCRAM-SHA-256");
-        Assert.Contains(properties, property => property.Key == "Database" && property.Value.ValueExpression == "Products");
+        Assert.Contains(properties, property => property.Key == "DatabaseName" && property.Value.ValueExpression == "Products");
         Assert.Contains(
             properties,
             property => property.Key == "Uri" &&

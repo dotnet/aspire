@@ -82,7 +82,7 @@ The Event Hub consumer group resource inherits all properties from its parent Ev
 
 | Property Name | Description |
 |---------------|-------------|
-| `ConsumerGroup` | The name of the consumer group |
+| `ConsumerGroupName` | The name of the consumer group |
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 

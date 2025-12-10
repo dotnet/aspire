@@ -64,7 +64,7 @@ public class ConnectionPropertiesTests
         Assert.Contains(properties, property => property.Key == "Port" && property.Value.ValueExpression == "{postgres.bindings.tcp.port}");
         Assert.Contains(properties, property => property.Key == "Username" && property.Value.ValueExpression == "{user.value}");
         Assert.Contains(properties, property => property.Key == "Password" && property.Value.ValueExpression == "{password.value}");
-        Assert.Contains(properties, property => property.Key == "Database" && property.Value.ValueExpression == "Customers");
+        Assert.Contains(properties, property => property.Key == "DatabaseName" && property.Value.ValueExpression == "Customers");
         Assert.Contains(
             properties,
             property => property.Key == "Uri" &&
