@@ -44,13 +44,17 @@ dotnet run --project tools/RunTestsInLoop -- --project tests/Aspire.Hosting.Test
 | `--project` | `-p` | Path to test project (required) | - |
 | `--iterations` | `-i` | Number of test runs | 10 |
 | `--timeout` | `-t` | Timeout per run in minutes (0 = no timeout) | 10 |
-| `--method` | `-m` | Filter by test method name | - |
-| `--class` | `-c` | Filter by test class name | - |
+| `--method` | `-m` | Filter by test method name (short name, uses wildcard prefix) | - |
+| `--class` | `-c` | Filter by fully-qualified test class name | - |
 | `--namespace` | `-n` | Filter by namespace | - |
 | `--verbose` | `-v` | Show detailed test output | false |
 | `--stop-on-failure` | `-s` | Stop after first failure/timeout | true |
 | `--extra-args` | `-e` | Additional dotnet test arguments | - |
 | `--no-build` | - | Skip building the project | false |
+
+**Note on filters:**
+- `--method`: Accepts just the method name (e.g., `RegisteredLifecycleHookIsExecutedWhenRunAsynchronously`). The tool adds a `*.` prefix to match any class.
+- `--class`: Requires the fully-qualified class name (e.g., `Aspire.Hosting.Tests.DistributedApplicationTests`)
 
 ## Example Output
 

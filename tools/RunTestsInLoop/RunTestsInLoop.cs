@@ -49,7 +49,7 @@ var timeoutOption = new Option<int>("--timeout", "-t")
 
 var methodOption = new Option<string?>("--method", "-m")
 {
-    Description = "Fully-qualified test method name to filter (e.g., Namespace.Class.Method)"
+    Description = "Test method name to filter (short name, uses wildcard prefix to match any class)"
 };
 
 var classOption = new Option<string?>("--class", "-c")
