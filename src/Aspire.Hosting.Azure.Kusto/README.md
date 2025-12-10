@@ -42,7 +42,7 @@ When you reference Azure Kusto resources using `WithReference`, the following co
 | `Uri`         | The cluster endpoint URI (inherited from parent cluster) |
 | `DatabaseName`    | The name of the database |
 
-Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `mydb` becomes `MYDB_URI`, and the `Database` property becomes `MYDB_DATABASE`.
+Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `mydb` becomes `MYDB_URI`, and the `DatabaseName` property becomes `MYDB_DATABASENAME`.
 
 ## Additional documentation
 
