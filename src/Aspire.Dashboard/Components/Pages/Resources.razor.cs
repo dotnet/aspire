@@ -687,6 +687,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             }
             else
             {
+                // Parameters have their own view. If required, switch view so the selected resource is visible.
                 var resourceViewKind = (resource.IsParameter) ? ResourceViewKind.Parameters : ResourceViewKind.Table;
                 if (resourceViewKind != PageViewModel.SelectedViewKind)
                 {
@@ -755,8 +756,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private static (string? Value, bool IsSensitive, bool IsUnresolved) GetParameterValue(ResourceViewModel resource)
     {
-        // Check if the parameter is in an unresolved state (warning = missing value, error = initialization error)
-        var isUnresolved = resource.StateStyle is "warning" or "error";
+        var isUnresolved = !resource.IsRunningState();
 
         if (resource.Properties.TryGetValue(KnownProperties.Parameter.Value, out var property))
         {
