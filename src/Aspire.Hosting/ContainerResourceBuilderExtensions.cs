@@ -278,7 +278,10 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source path of the mount. This is the path to the file or directory on the host.</param>
     /// <param name="target">The target path where the file or directory is mounted in the container.</param>
-    /// <param name="options">Callback to configure bind mount options.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <param name="resolveSourcePath">A flag that indicates whether to resolve relative source paths. When <c>true</c> (the default),
+    /// relative paths are resolved relative to the app host project directory. When <c>false</c>, the source path is passed through
+    /// as-is without resolution, which is useful for Docker Compose scenarios where paths should remain relative to the compose file.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
@@ -287,8 +290,7 @@ public static class ContainerResourceBuilderExtensions
     /// </para>
     /// <para>
     /// By default, if the <paramref name="source"/> path is not absolute, it will be evaluated relative to the app host project directory path.
-    /// Use the <paramref name="options"/> callback to configure the bind mount options, such as setting <see cref="BindMountOptions.ResolveSourcePath"/> to <c>false</c>
-    /// to pass the source path through as-is without resolution.
+    /// Set <paramref name="resolveSourcePath"/> to <c>false</c> to pass the source path through as-is without resolution.
     /// </para>
     /// <para>
     /// The <paramref name="target"/> path specifies the path the file or directory will be mounted inside the container's file system.
@@ -299,21 +301,17 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithBindMount("./certs", "/app/certs", opts => opts.ResolveSourcePath = false);
+    ///        .WithBindMount("./certs", "/app/certs", isReadOnly: true, resolveSourcePath: false);
     ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, Action<BindMountOptions> options) where T : ContainerResource
+    public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly, bool resolveSourcePath) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
-        ArgumentNullException.ThrowIfNull(options);
-
-        var bindMountOptions = new BindMountOptions();
-        options(bindMountOptions);
 
         string sourcePath;
         string? basePath;
@@ -324,7 +322,7 @@ public static class ContainerResourceBuilderExtensions
             sourcePath = source;
             basePath = null;
         }
-        else if (bindMountOptions.ResolveSourcePath)
+        else if (resolveSourcePath)
         {
             // Relative path with resolution - store with base path
             sourcePath = source;
@@ -337,7 +335,7 @@ public static class ContainerResourceBuilderExtensions
             basePath = null;
         }
 
-        var annotation = new ContainerMountAnnotation(sourcePath, target, ContainerMountType.BindMount, bindMountOptions.IsReadOnly, basePath);
+        var annotation = new ContainerMountAnnotation(sourcePath, target, ContainerMountType.BindMount, isReadOnly, basePath);
         return builder.WithAnnotation(annotation);
     }
 

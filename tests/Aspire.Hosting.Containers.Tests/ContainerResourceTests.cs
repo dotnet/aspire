@@ -366,16 +366,12 @@ public class ContainerResourceTests
     }
 
     [Fact]
-    public void WithBindMountOptionsKeepsRelativePathWhenResolveSourcePathIsFalse()
+    public void WithBindMountKeepsRelativePathWhenResolveSourcePathIsFalse()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
         appBuilder.AddContainer("container", "none")
-            .WithBindMount("./certs", "/app/certs", opts =>
-            {
-                opts.ResolveSourcePath = false;
-                opts.IsReadOnly = true;
-            });
+            .WithBindMount("./certs", "/app/certs", isReadOnly: true, resolveSourcePath: false);
 
         using var app = appBuilder.Build();
 
@@ -387,22 +383,18 @@ public class ContainerResourceTests
         Assert.Equal("/app/certs", mountAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, mountAnnotation.Type);
         Assert.True(mountAnnotation.IsReadOnly);
-        Assert.Null(mountAnnotation.BasePath); // No base path when ResolveSourcePath is false
+        Assert.Null(mountAnnotation.BasePath); // No base path when resolveSourcePath is false
     }
 
     [Fact]
-    public void WithBindMountOptionsResolvesRelativePathByDefault()
+    public void WithBindMountResolvesRelativePathByDefault()
     {
         var basePath = OperatingSystem.IsWindows() ? @"C:\root\volumes" : "/root/volumes";
 
         var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { ProjectDirectory = basePath });
 
         appBuilder.AddContainer("container", "none")
-            .WithBindMount("source", "/target", opts =>
-            {
-                // ResolveSourcePath defaults to true
-                opts.IsReadOnly = false;
-            });
+            .WithBindMount("source", "/target", isReadOnly: false, resolveSourcePath: true);
 
         using var app = appBuilder.Build();
 
@@ -415,17 +407,14 @@ public class ContainerResourceTests
     }
 
     [Fact]
-    public void WithBindMountOptionsWithAbsolutePathAndResolveSourcePathFalse()
+    public void WithBindMountWithAbsolutePathAndResolveSourcePathFalse()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
         var absolutePath = OperatingSystem.IsWindows() ? @"C:\absolute\path" : "/absolute/path";
 
         appBuilder.AddContainer("container", "none")
-            .WithBindMount(absolutePath, "/target", opts =>
-            {
-                opts.ResolveSourcePath = false;
-            });
+            .WithBindMount(absolutePath, "/target", isReadOnly: false, resolveSourcePath: false);
 
         using var app = appBuilder.Build();
 
