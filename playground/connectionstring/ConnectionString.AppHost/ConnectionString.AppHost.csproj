@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.4.0" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>ebe54cb2-c329-47a7-a542-86edacb7c041</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.JavaScript" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.KeyVault" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Kusto" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Redis" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Search" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.SignalR" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Sql" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
+  </ItemGroup>
+
+</Project>
