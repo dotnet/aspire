@@ -43,7 +43,8 @@ internal sealed class DockerComposeInfrastructure(
 
                 dashboard.Annotations.Add(new DeploymentTargetAnnotation(dashboardService)
                 {
-                    ComputeEnvironment = environment
+                    ComputeEnvironment = environment,
+                    ContainerRegistry = LocalContainerRegistry.Instance
                 });
             }
 
@@ -61,7 +62,8 @@ internal sealed class DockerComposeInfrastructure(
                 // Add deployment target annotation to the resource
                 r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
                 {
-                    ComputeEnvironment = environment
+                    ComputeEnvironment = environment,
+                    ContainerRegistry = LocalContainerRegistry.Instance
                 });
             }
         }
