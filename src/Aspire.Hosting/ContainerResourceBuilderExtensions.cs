@@ -250,9 +250,24 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
 
-        // If the source is a rooted path, use it directly without resolution
-        var sourcePath = Path.IsPathRooted(source) ? source : Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
-        var annotation = new ContainerMountAnnotation(sourcePath, target, ContainerMountType.BindMount, isReadOnly);
+        // Store source as-is with base path for resolution by consumers
+        string sourcePath;
+        string? basePath;
+
+        if (Path.IsPathRooted(source))
+        {
+            // Absolute path - no base path needed
+            sourcePath = source;
+            basePath = null;
+        }
+        else
+        {
+            // Relative path - store with base path for consumers to resolve
+            sourcePath = source;
+            basePath = builder.ApplicationBuilder.AppHostDirectory;
+        }
+
+        var annotation = new ContainerMountAnnotation(sourcePath, target, ContainerMountType.BindMount, isReadOnly, basePath);
         return builder.WithAnnotation(annotation);
     }
 
@@ -301,22 +316,28 @@ public static class ContainerResourceBuilderExtensions
         options(bindMountOptions);
 
         string sourcePath;
-        bool isSourceRelative;
+        string? basePath;
 
-        if (bindMountOptions.ResolveSourcePath)
+        if (Path.IsPathRooted(source))
         {
-            // If the source is a rooted path, use it directly without resolution
-            sourcePath = Path.IsPathRooted(source) ? source : Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory);
-            isSourceRelative = false;
+            // Absolute path - no base path needed
+            sourcePath = source;
+            basePath = null;
+        }
+        else if (bindMountOptions.ResolveSourcePath)
+        {
+            // Relative path with resolution - store with base path
+            sourcePath = source;
+            basePath = builder.ApplicationBuilder.AppHostDirectory;
         }
         else
         {
-            // Pass through the source path as-is without resolution
+            // Relative path without resolution (Docker Compose scenario) - no base path
             sourcePath = source;
-            isSourceRelative = !Path.IsPathRooted(source);
+            basePath = null;
         }
 
-        var annotation = new ContainerMountAnnotation(sourcePath, target, ContainerMountType.BindMount, bindMountOptions.IsReadOnly, isSourceRelative);
+        var annotation = new ContainerMountAnnotation(sourcePath, target, ContainerMountType.BindMount, bindMountOptions.IsReadOnly, basePath);
         return builder.WithAnnotation(annotation);
     }
 

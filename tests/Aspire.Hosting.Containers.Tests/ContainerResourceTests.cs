@@ -243,7 +243,8 @@ public class ContainerResourceTests
 
         Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
 
-        Assert.Equal(Path.Combine(basePath, "source"), mountAnnotation.Source);
+        Assert.Equal("source", mountAnnotation.Source);
+        Assert.Equal(basePath, mountAnnotation.BasePath);
     }
 
     [Fact]
@@ -386,7 +387,7 @@ public class ContainerResourceTests
         Assert.Equal("/app/certs", mountAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, mountAnnotation.Type);
         Assert.True(mountAnnotation.IsReadOnly);
-        Assert.True(mountAnnotation.IsSourceRelative);
+        Assert.Null(mountAnnotation.BasePath); // No base path when ResolveSourcePath is false
     }
 
     [Fact]
@@ -409,8 +410,8 @@ public class ContainerResourceTests
 
         Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
 
-        Assert.Equal(Path.Combine(basePath, "source"), mountAnnotation.Source);
-        Assert.False(mountAnnotation.IsSourceRelative);
+        Assert.Equal("source", mountAnnotation.Source);
+        Assert.Equal(basePath, mountAnnotation.BasePath);
     }
 
     [Fact]
@@ -433,7 +434,7 @@ public class ContainerResourceTests
         Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
 
         Assert.Equal(absolutePath, mountAnnotation.Source);
-        Assert.False(mountAnnotation.IsSourceRelative); // Absolute paths are not relative even when ResolveSourcePath is false
+        Assert.Null(mountAnnotation.BasePath); // Absolute paths don't need a base path
     }
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString

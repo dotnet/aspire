@@ -20,20 +20,6 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     /// <param name="type">The type of the mount.</param>
     /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
     public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly)
-        : this(source, target, type, isReadOnly, isSourceRelative: false)
-    {
-    }
-
-    /// <summary>
-    /// Instantiates a mount annotation that specifies the details for a container mount.
-    /// </summary>
-    /// <param name="source">The source path if a bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
-    /// <param name="target">The target path of the mount.</param>
-    /// <param name="type">The type of the mount.</param>
-    /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
-    /// <param name="isSourceRelative">A value indicating whether the source path is intentionally relative and should not be resolved.
-    /// This is useful when publishing to systems like Docker Compose where paths should remain relative to the compose file.</param>
-    public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly, bool isSourceRelative)
     {
         if (type == ContainerMountType.BindMount)
         {
@@ -42,7 +28,7 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
                 throw new ArgumentNullException(nameof(source), MessageStrings.ContainerMountBindMountsRequireSourceExceptionMessage);
             }
 
-            if (!isSourceRelative && !Path.IsPathRooted(source))
+            if (!Path.IsPathRooted(source))
             {
                 throw new ArgumentException(MessageStrings.ContainerMountBindMountsRequireRootedPaths, nameof(source));
             }
@@ -57,11 +43,43 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
         Target = target;
         Type = type;
         IsReadOnly = isReadOnly;
-        IsSourceRelative = isSourceRelative;
+    }
+
+    /// <summary>
+    /// Instantiates a mount annotation that specifies the details for a container mount.
+    /// </summary>
+    /// <param name="source">The source path if a bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
+    /// <param name="target">The target path of the mount.</param>
+    /// <param name="type">The type of the mount.</param>
+    /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
+    /// <param name="basePath">The base path for the source. When provided, the <paramref name="source"/> is relative to this path.
+    /// Consumers can use both <see cref="BasePath"/> and <see cref="Source"/> to construct the full path, or ignore the base path
+    /// for scenarios like Docker Compose where paths should remain relative to the compose file.</param>
+    public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly, string? basePath)
+    {
+        if (type == ContainerMountType.BindMount)
+        {
+            if (string.IsNullOrEmpty(source))
+            {
+                throw new ArgumentNullException(nameof(source), MessageStrings.ContainerMountBindMountsRequireSourceExceptionMessage);
+            }
+        }
+
+        if (type == ContainerMountType.Volume && string.IsNullOrEmpty(source) && isReadOnly)
+        {
+            throw new ArgumentException(MessageStrings.ContainerMountAnonymousVolumesReadOnlyExceptionMessage, nameof(isReadOnly));
+        }
+
+        Source = source;
+        Target = target;
+        Type = type;
+        IsReadOnly = isReadOnly;
+        BasePath = basePath;
     }
 
     /// <summary>
     /// Gets the source of the bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.
+    /// When <see cref="BasePath"/> is set, this path is relative to the base path.
     /// </summary>
     public string? Source { get; }
 
@@ -81,11 +99,11 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     public bool IsReadOnly { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the source path is intentionally relative and was not resolved.
-    /// When <c>true</c>, the source path is passed through as-is without resolution to an absolute path.
-    /// This is useful when publishing to systems like Docker Compose where paths should remain relative to the compose file.
+    /// Gets the base path for the source. When set, <see cref="Source"/> is relative to this path.
+    /// Consumers can combine <see cref="BasePath"/> and <see cref="Source"/> to get the full path,
+    /// or ignore the base path for scenarios like Docker Compose where paths should remain relative to the compose file.
     /// </summary>
-    public bool IsSourceRelative { get; }
+    public string? BasePath { get; }
 }
 
 /// <summary>

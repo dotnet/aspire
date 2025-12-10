@@ -610,7 +610,13 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     Writer.WriteStartObject();
 
                     Writer.WritePropertyName("source");
-                    var manifestRelativeSource = GetManifestRelativePath(bindMount.Source);
+                    // Resolve the source path using BasePath if provided
+                    var source = bindMount.Source;
+                    if (bindMount.BasePath is not null && source is not null && !Path.IsPathRooted(source))
+                    {
+                        source = Path.GetFullPath(source, bindMount.BasePath);
+                    }
+                    var manifestRelativeSource = GetManifestRelativePath(source);
                     Writer.WriteStringValue(manifestRelativeSource);
 
                     Writer.WritePropertyName("target");
