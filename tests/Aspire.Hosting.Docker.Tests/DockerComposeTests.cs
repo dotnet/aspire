@@ -462,7 +462,8 @@ public class DockerComposeTests(ITestOutputHelper output)
 
         // With no registry, the local container registry is used which has an empty endpoint
         // This results in just the image name and tag
-        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+        var containerImageReference = new ContainerImageReference(project.Resource);
+        var remoteImageName = await ((IValueProvider)containerImageReference).GetValueAsync(default);
 
         // The format should be just "imageName:tag" with no registry prefix
         Assert.Equal("servicea:latest", remoteImageName);
@@ -486,7 +487,8 @@ public class DockerComposeTests(ITestOutputHelper output)
         await ExecuteBeforeStartHooksAsync(app, default);
 
         // With a registry, the full image name includes the registry endpoint and repository
-        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+        var containerImageReference = new ContainerImageReference(project.Resource);
+        var remoteImageName = await ((IValueProvider)containerImageReference).GetValueAsync(default);
 
         Assert.Equal("docker.io/myuser/servicea:latest", remoteImageName);
     }
@@ -508,7 +510,8 @@ public class DockerComposeTests(ITestOutputHelper output)
         await ExecuteBeforeStartHooksAsync(app, default);
 
         // With a registry, the full image name includes the registry endpoint and repository
-        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+        var containerImageReference = new ContainerImageReference(project.Resource);
+        var remoteImageName = await ((IValueProvider)containerImageReference).GetValueAsync(default);
 
         Assert.Equal("docker.io/myuser/servicea:latest", remoteImageName);
     }
@@ -531,7 +534,8 @@ public class DockerComposeTests(ITestOutputHelper output)
         await ExecuteBeforeStartHooksAsync(app, default);
 
         // With a registry without repository, the full image name includes just the registry endpoint
-        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+        var containerImageReference = new ContainerImageReference(project.Resource);
+        var remoteImageName = await ((IValueProvider)containerImageReference).GetValueAsync(default);
 
         Assert.Equal("myregistry.azurecr.io/servicea:latest", remoteImageName);
     }
@@ -558,7 +562,8 @@ public class DockerComposeTests(ITestOutputHelper output)
         await ExecuteBeforeStartHooksAsync(app, default);
 
         // The project should use registry2 since it has an explicit WithContainerRegistry call
-        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+        var containerImageReference = new ContainerImageReference(project.Resource);
+        var remoteImageName = await ((IValueProvider)containerImageReference).GetValueAsync(default);
 
         Assert.Equal("ghcr.io/user2/servicea:latest", remoteImageName);
     }
@@ -582,7 +587,8 @@ public class DockerComposeTests(ITestOutputHelper output)
         await ExecuteBeforeStartHooksAsync(app, default);
 
         // The container should use the registry from the compose environment
-        var remoteImageName = await container.Resource.GetFullRemoteImageNameAsync(default);
+        var containerImageReference = new ContainerImageReference(container.Resource);
+        var remoteImageName = await ((IValueProvider)containerImageReference).GetValueAsync(default);
 
         Assert.Equal("myregistry.azurecr.io/myrepo/mycontainer:latest", remoteImageName);
     }
@@ -608,7 +614,8 @@ public class DockerComposeTests(ITestOutputHelper output)
         await ExecuteBeforeStartHooksAsync(app, default);
 
         // With Azure Container Registry, the full image name should use the ACR login server
-        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+        var containerImageReference = new ContainerImageReference(project.Resource);
+        var remoteImageName = await ((IValueProvider)containerImageReference).GetValueAsync(default);
 
         Assert.Equal("myacr.azurecr.io/servicea:latest", remoteImageName);
     }
@@ -616,28 +623,22 @@ public class DockerComposeTests(ITestOutputHelper output)
     [Fact]
     public async Task PushImageToRegistry_WithLocalRegistry_OnlyTagsImage()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var tempDir = new TestTempDirectory();
 
         var fakeRuntime = new FakeContainerRuntime();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "push-servicea");
         builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
         builder.Services.AddSingleton<IContainerRuntime>(fakeRuntime);
 
         // No registry added - will use LocalContainerRegistry with empty endpoint
-        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
+        builder.AddDockerComposeEnvironment("docker-compose");
 
-        var project = builder.AddProject<Projects.ServiceA>("servicea");
+        builder.AddProject<Projects.ServiceA>("servicea")
+            .PublishAsDockerFile();
 
         using var app = builder.Build();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        // Create a mock pipeline step context using TestPipelineActivityReporter
-        var reporter = new TestPipelineActivityReporter(output);
-        var reportingStep = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
-        var context = CreateTestPipelineStepContext(app, reportingStep);
-
-        // Call PushImageToRegistryAsync - should only tag, not push
-        await PipelineStepHelpers.PushImageToRegistryAsync(project.Resource, context);
+        await app.RunAsync();
 
         // Verify that TagImageAsync was called but PushImageAsync was not
         Assert.True(fakeRuntime.WasTagImageCalled, "TagImageAsync should have been called for local registry");
@@ -646,60 +647,34 @@ public class DockerComposeTests(ITestOutputHelper output)
         // Verify the tag was applied correctly
         Assert.Single(fakeRuntime.TagImageCalls);
         var (localName, targetName) = fakeRuntime.TagImageCalls[0];
-        Assert.Equal("servicea", localName);
-        Assert.Equal("servicea:latest", targetName);
+        Assert.StartsWith("servicea:", localName); // Local name includes a hash suffix
+        Assert.StartsWith("servicea:", targetName); // Target name includes the deploy tag
     }
 
     [Fact]
     public async Task PushImageToRegistry_WithRemoteRegistry_PushesImage()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var tempDir = new TestTempDirectory();
 
         var fakeRuntime = new FakeContainerRuntime();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "push-servicea");
         builder.Services.AddSingleton<IResourceContainerImageManager>(new MockImageBuilderWithRuntime(fakeRuntime));
         builder.Services.AddSingleton<IContainerRuntime>(fakeRuntime);
 
         // Add a remote registry with a non-empty endpoint
         var registry = builder.AddContainerRegistry("acr", "myregistry.azurecr.io");
-        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
+        builder.AddDockerComposeEnvironment("docker-compose")
             .WithContainerRegistry(registry);
 
-        var project = builder.AddProject<Projects.ServiceA>("servicea");
+        builder.AddProject<Projects.ServiceA>("servicea")
+            .PublishAsDockerFile();
 
         using var app = builder.Build();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        // Create a mock pipeline step context using TestPipelineActivityReporter
-        var reporter = new TestPipelineActivityReporter(output);
-        var reportingStep = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
-        var context = CreateTestPipelineStepContext(app, reportingStep);
-
-        // Call PushImageToRegistryAsync - should push to remote registry
-        await PipelineStepHelpers.PushImageToRegistryAsync(project.Resource, context);
+        await app.RunAsync();
 
         // Verify that PushImageAsync was called (which internally tags and pushes)
         Assert.True(fakeRuntime.WasPushImageCalled, "PushImageAsync should have been called for remote registry");
-    }
-
-    private static PipelineStepContext CreateTestPipelineStepContext(DistributedApplication app, IReportingStep reportingStep)
-    {
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var executionContext = app.Services.GetRequiredService<DistributedApplicationExecutionContext>();
-        var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
-
-        var pipelineContext = new PipelineContext(
-            model,
-            executionContext,
-            app.Services,
-            loggerFactory.CreateLogger("Test"),
-            CancellationToken.None);
-
-        return new PipelineStepContext
-        {
-            PipelineContext = pipelineContext,
-            ReportingStep = reportingStep
-        };
     }
 
     private sealed class MockImageBuilderWithRuntime(IContainerRuntime runtime) : IResourceContainerImageManager
