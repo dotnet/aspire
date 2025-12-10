@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECOMPUTE002
+#pragma warning disable ASPIRECOMPUTE003
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPIPELINES003
 
@@ -440,6 +441,174 @@ public class DockerComposeTests(ITestOutputHelper output)
             Assert.Contains(downSteps, s => s.Contains("docker-compose-down-env", StringComparison.OrdinalIgnoreCase));
             output.WriteLine("Cleanup complete");
         }
+    }
+
+    [Fact]
+    public async Task FullRemoteImageName_WithNoRegistry_UsesLocalImageName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
+
+        var project = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // With no registry, the local container registry is used which has an empty endpoint
+        // This results in just the image name and tag
+        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+
+        // The format should be just "imageName:tag" with no registry prefix
+        Assert.Equal("servicea:latest", remoteImageName);
+    }
+
+    [Fact]
+    public async Task FullRemoteImageName_WithSingleRegistry_UsesRegistryEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
+            .WithContainerRegistry(registry);
+
+        var project = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // With a registry, the full image name includes the registry endpoint and repository
+        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+
+        Assert.Equal("docker.io/myuser/servicea:latest", remoteImageName);
+    }
+
+    [Fact]
+    public async Task FullRemoteImageName_WithSingleRegistry_NoWithContainerRegistry_UsesRegistryEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
+        var registry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+
+        var project = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // With a registry, the full image name includes the registry endpoint and repository
+        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+
+        Assert.Equal("docker.io/myuser/servicea:latest", remoteImageName);
+    }
+
+    [Fact]
+    public async Task FullRemoteImageName_WithSingleRegistryNoRepository_UsesRegistryEndpointWithoutRepository()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        var registry = builder.AddContainerRegistry("acr", "myregistry.azurecr.io");
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
+            .WithContainerRegistry(registry);
+
+        var project = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // With a registry without repository, the full image name includes just the registry endpoint
+        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+
+        Assert.Equal("myregistry.azurecr.io/servicea:latest", remoteImageName);
+    }
+
+    [Fact]
+    public async Task FullRemoteImageName_WithMultipleRegistries_ResourceWithExplicitRegistry()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        var registry1 = builder.AddContainerRegistry("docker-hub", "docker.io", "user1");
+        var registry2 = builder.AddContainerRegistry("ghcr", "ghcr.io", "user2");
+
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
+            .WithContainerRegistry(registry1);
+
+        // This project uses the explicit registry2 instead of the compose environment's default
+        var project = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithContainerRegistry(registry2);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // The project should use registry2 since it has an explicit WithContainerRegistry call
+        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+
+        Assert.Equal("ghcr.io/user2/servicea:latest", remoteImageName);
+    }
+
+    [Fact]
+    public async Task FullRemoteImageName_ContainerResource_WithRegistry()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        var registry = builder.AddContainerRegistry("acr", "myregistry.azurecr.io", "myrepo");
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
+            .WithContainerRegistry(registry);
+
+        // Container resource that will be built (e.g., from a Dockerfile)
+        var container = builder.AddContainer("mycontainer", "nginx");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // The container should use the registry from the compose environment
+        var remoteImageName = await container.Resource.GetFullRemoteImageNameAsync(default);
+
+        Assert.Equal("myregistry.azurecr.io/myrepo/mycontainer:latest", remoteImageName);
+    }
+
+    [Fact]
+    public async Task FullRemoteImageName_WithAzureContainerRegistry_UsesRegistryEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        // Add an Azure Container Registry - should be picked up automatically as IContainerRegistry
+        var acr = builder.AddAzureContainerRegistry("myacr");
+        acr.Resource.Outputs["loginServer"] = "myacr.azurecr.io";
+
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose")
+            .WithContainerRegistry(acr);
+
+        var project = builder.AddProject<Projects.ServiceA>("servicea");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // With Azure Container Registry, the full image name should use the ACR login server
+        var remoteImageName = await project.Resource.GetFullRemoteImageNameAsync(default);
+
+        Assert.Equal("myacr.azurecr.io/servicea:latest", remoteImageName);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

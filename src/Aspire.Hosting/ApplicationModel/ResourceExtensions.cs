@@ -1142,18 +1142,18 @@ public static class ResourceExtensions
     /// </remarks>
     internal static IContainerRegistry GetContainerRegistry(this IResource resource)
     {
-        // Try to get the container registry from DeploymentTargetAnnotation first
-        var deploymentTarget = resource.GetDeploymentTargetAnnotation();
-        if (deploymentTarget?.ContainerRegistry is not null)
-        {
-            return deploymentTarget.ContainerRegistry;
-        }
-
         // Try ContainerRegistryReferenceAnnotation (explicit WithContainerRegistry call)
         var registryAnnotation = resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().LastOrDefault();
         if (registryAnnotation is not null)
         {
             return registryAnnotation.Registry;
+        }
+
+        // Try to get the container registry from DeploymentTargetAnnotation first
+        var deploymentTarget = resource.GetDeploymentTargetAnnotation();
+        if (deploymentTarget?.ContainerRegistry is not null)
+        {
+            return deploymentTarget.ContainerRegistry;
         }
 
         // Fall back to RegistryTargetAnnotation (added automatically via BeforeStartEvent)

@@ -24,6 +24,8 @@ namespace Aspire.Hosting.Docker;
 /// </remarks>
 public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentResource
 {
+    private const string DockerComposeUpTag = "docker-compose-up";
+
     /// <summary>
     /// The container registry to use.
     /// </summary>
@@ -117,7 +119,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             {
                 Name = $"docker-compose-up-{Name}",
                 Action = ctx => DockerComposeUpAsync(ctx),
-                Tags = ["docker-compose-up"],
+                Tags = [DockerComposeUpTag],
                 DependsOnSteps = [$"prepare-{Name}"]
             };
             dockerComposeUpStep.RequiredBy(WellKnownPipelineSteps.Deploy);
@@ -181,7 +183,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             foreach (var pushResource in context.Model.GetBuildAndPushResources())
             {
                 var pushSteps = context.GetSteps(pushResource, WellKnownPipelineTags.PushContainerImage);
-                var dockerComposeUpSteps = context.GetSteps(this, "docker-compose-up");
+                var dockerComposeUpSteps = context.GetSteps(this, DockerComposeUpTag);
 
                 dockerComposeUpSteps.DependsOn(pushSteps);
             }

@@ -109,6 +109,7 @@
     <InternalsVisibleTo Include="Aspire.Hosting.Python.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Testing.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Containers.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Docker.Tests" />
     <InternalsVisibleTo Include="Aspire.TestUtilities" />
     <InternalsVisibleTo Include="Aspire.Cli.Tests" />
   </ItemGroup>
