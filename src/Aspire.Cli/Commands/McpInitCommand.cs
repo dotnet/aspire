@@ -81,9 +81,15 @@ internal sealed class McpInitCommand : BaseCommand, IPackageMetaPrefetchingComma
 
         var workspaceRoot = new DirectoryInfo(workspaceRootPath);
 
+        var context = new AgentEnvironmentScanContext
+        {
+            WorkingDirectory = ExecutionContext.WorkingDirectory,
+            RepositoryRoot = workspaceRoot
+        };
+
         var applicators = await _interactionService.ShowStatusAsync(
             McpCommandStrings.InitCommand_DetectingAgentEnvironments,
-            async () => await _agentEnvironmentDetector.DetectAsync(ExecutionContext.WorkingDirectory, workspaceRoot, cancellationToken));
+            async () => await _agentEnvironmentDetector.DetectAsync(context, cancellationToken));
 
         if (applicators.Length == 0)
         {

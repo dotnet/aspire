@@ -17,6 +17,16 @@
         <target state="translated">智能体环境配置完成。</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
+        <source>Pre-configure Playwright MCP server?</source>
+        <target state="new">Pre-configure Playwright MCP server?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
+        <source>Create agent environment specific instruction files?</source>
+        <target state="new">Create agent environment specific instruction files?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments.</source>
         <target state="translated">初始化检测到的智能体环境的 MCP 服务器配置。</target>
