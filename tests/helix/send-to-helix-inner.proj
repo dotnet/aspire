@@ -22,7 +22,11 @@
     <_AzureFunctionsCliUrl Condition="'$(OS)' == 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.7512/Azure.Functions.Cli.min.win-x64.4.0.7512.zip</_AzureFunctionsCliUrl>
     <_AzureFunctionsCliUrl Condition="'$(OS)' != 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.7512/Azure.Functions.Cli.linux-x64.4.0.7512.zip</_AzureFunctionsCliUrl>
 
+    <!-- Azure CLI URL for Helix runs - Windows x64 zip version -->
+    <_AzureCliWindowsUrl Condition="'$(OS)' == 'Windows_NT'">https://aka.ms/installazurecliwindowszipx64</_AzureCliWindowsUrl>
+
     <_DefaultSdkDirNameForTests>dotnet-tests</_DefaultSdkDirNameForTests>
+    <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);DownloadAzureCliForHelix</BuildHelixWorkItemsDependsOn>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -164,6 +168,28 @@
   </PropertyGroup>
 
   <Target Name="PrepareDependencies" DependsOnTargets="$(PrepareDependenciesDependsOn)" />
+
+  <!--
+    The file downloaded from the url doesn't have an extension, which causes Helix sdk to not
+    treat it as a zip file even when AsArchive=true is used.
+    So, we explicitly download and rename it to az-cli.zip before adding to HelixCorrelationPayload.
+  -->
+  <Target Name="DownloadAzureCliForHelix" Condition="'$(NeedsAzCli)' == 'true' and '$(OS)' == 'Windows_NT'">
+    <DownloadFile
+          SourceUrl="$(_AzureCliWindowsUrl)"
+          DestinationFolder="$(ArtifactsBinDir)">
+      <Output TaskParameter="DownloadedFile" ItemName="_AzureCliArchive" />
+    </DownloadFile>
+
+    <Move SourceFiles="@(_AzureCliArchive)" DestinationFiles="$(ArtifactsBinDir)\az-cli.zip" />
+
+    <ItemGroup>
+      <HelixCorrelationPayload Include="$(ArtifactsBinDir)\az-cli.zip" Destination="az-cli" AsArchive="true" />
+      <HelixPreCommand Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\az-cli\bin%3B%PATH%" />
+      <HelixPreCommand Include="az --version" />
+    </ItemGroup>
+
+  </Target>
 
   <Target Name="BuildHelixWorkItems" DependsOnTargets="$(BuildHelixWorkItemsDependsOn)" BeforeTargets="Build">
     <MSBuild Projects="$(RepoRoot)\eng\dcppack\Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj" Targets="GetDCPBinaryLocation">
