@@ -342,7 +342,6 @@ public class AspireResourceMcpToolsTests
     public async Task WaitForResourceStateAsync_StateInInitialState_ReturnsSuccessMessage()
     {
         // Arrange
-        var startingResource = ModelTestHelpers.CreateResource(resourceName: "app1", state: KnownResourceState.Starting);
         var runningResource = ModelTestHelpers.CreateResource(resourceName: "app1", state: KnownResourceState.Running);
         
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
