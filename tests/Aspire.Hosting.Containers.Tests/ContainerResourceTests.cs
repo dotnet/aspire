@@ -243,7 +243,8 @@ public class ContainerResourceTests
 
         Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
 
-        Assert.Equal("source", mountAnnotation.Source);
+        Assert.Equal(Path.Combine(basePath, "source"), mountAnnotation.Source);
+        Assert.Equal("source", mountAnnotation.RelativeSource);
         Assert.Equal(basePath, mountAnnotation.BasePath);
     }
 
@@ -366,7 +367,7 @@ public class ContainerResourceTests
     }
 
     [Fact]
-    public void WithBindMountSetsBasePathForRelativePath()
+    public void WithBindMountSetsRelativeSourceAndBasePathForRelativePath()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -379,15 +380,18 @@ public class ContainerResourceTests
 
         Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
 
-        Assert.Equal("./certs", mountAnnotation.Source);
+        // Source is resolved to absolute path
+        Assert.True(Path.IsPathRooted(mountAnnotation.Source));
         Assert.Equal("/app/certs", mountAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, mountAnnotation.Type);
         Assert.True(mountAnnotation.IsReadOnly);
-        Assert.NotNull(mountAnnotation.BasePath); // BasePath is always set for relative paths
+        // RelativeSource and BasePath store the original relative info
+        Assert.Equal("./certs", mountAnnotation.RelativeSource);
+        Assert.NotNull(mountAnnotation.BasePath);
     }
 
     [Fact]
-    public void WithBindMountDoesNotSetBasePathForAbsolutePath()
+    public void WithBindMountDoesNotSetRelativeSourceOrBasePathForAbsolutePath()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -403,7 +407,8 @@ public class ContainerResourceTests
         Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
 
         Assert.Equal(absolutePath, mountAnnotation.Source);
-        Assert.Null(mountAnnotation.BasePath); // Absolute paths don't need a base path
+        Assert.Null(mountAnnotation.RelativeSource); // No relative source for absolute paths
+        Assert.Null(mountAnnotation.BasePath); // No base path for absolute paths
     }
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString

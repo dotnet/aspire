@@ -2765,16 +2765,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             foreach (var mount in containerMounts)
             {
-                // Resolve the source path using BasePath if provided
-                var source = mount.Source;
-                if (mount.BasePath is not null && source is not null && !Path.IsPathRooted(source))
-                {
-                    source = Path.GetFullPath(source, mount.BasePath);
-                }
-
                 var volumeSpec = new VolumeMount
                 {
-                    Source = source,
+                    Source = mount.Source,
                     Target = mount.Target,
                     Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
                     IsReadOnly = mount.IsReadOnly

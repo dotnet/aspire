@@ -250,24 +250,26 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
 
-        // Store source as-is with base path for resolution by consumers
-        string sourcePath;
+        string resolvedSource;
+        string? relativeSource;
         string? basePath;
 
         if (Path.IsPathRooted(source))
         {
-            // Absolute path - no base path needed
-            sourcePath = source;
+            // Absolute path - no relative source or base path needed
+            resolvedSource = source;
+            relativeSource = null;
             basePath = null;
         }
         else
         {
-            // Relative path - store with base path for consumers to resolve
-            sourcePath = source;
+            // Relative path - resolve to absolute and store relative source with base path
             basePath = builder.ApplicationBuilder.AppHostDirectory;
+            relativeSource = source;
+            resolvedSource = Path.GetFullPath(source, basePath);
         }
 
-        var annotation = new ContainerMountAnnotation(sourcePath, target, ContainerMountType.BindMount, isReadOnly, basePath);
+        var annotation = new ContainerMountAnnotation(resolvedSource, target, ContainerMountType.BindMount, isReadOnly, relativeSource, basePath);
         return builder.WithAnnotation(annotation);
     }
 

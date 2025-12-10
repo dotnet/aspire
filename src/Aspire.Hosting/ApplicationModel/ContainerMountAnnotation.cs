@@ -46,22 +46,26 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     }
 
     /// <summary>
-    /// Instantiates a mount annotation that specifies the details for a container mount.
+    /// Instantiates a mount annotation that specifies the details for a container mount with a relative source and base path.
     /// </summary>
-    /// <param name="source">The source path if a bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
+    /// <param name="source">The resolved absolute source path if a bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
     /// <param name="target">The target path of the mount.</param>
     /// <param name="type">The type of the mount.</param>
     /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
-    /// <param name="basePath">The base path for the source. When provided, the <paramref name="source"/> is relative to this path.
-    /// Consumers can use both <see cref="BasePath"/> and <see cref="Source"/> to construct the full path, or ignore the base path
-    /// for scenarios like Docker Compose where paths should remain relative to the compose file.</param>
-    public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly, string? basePath)
+    /// <param name="relativeSource">The original relative source path before resolution. This is the path as specified by the user.</param>
+    /// <param name="basePath">The base path that <paramref name="relativeSource"/> is relative to. Typically the app host directory.</param>
+    public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly, string? relativeSource, string? basePath)
     {
         if (type == ContainerMountType.BindMount)
         {
             if (string.IsNullOrEmpty(source))
             {
                 throw new ArgumentNullException(nameof(source), MessageStrings.ContainerMountBindMountsRequireSourceExceptionMessage);
+            }
+
+            if (!Path.IsPathRooted(source))
+            {
+                throw new ArgumentException(MessageStrings.ContainerMountBindMountsRequireRootedPaths, nameof(source));
             }
         }
 
@@ -74,12 +78,12 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
         Target = target;
         Type = type;
         IsReadOnly = isReadOnly;
+        RelativeSource = relativeSource;
         BasePath = basePath;
     }
 
     /// <summary>
-    /// Gets the source of the bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.
-    /// When <see cref="BasePath"/> is set, this path is relative to the base path.
+    /// Gets the resolved absolute source path of the bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.
     /// </summary>
     public string? Source { get; }
 
@@ -99,9 +103,15 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     public bool IsReadOnly { get; }
 
     /// <summary>
-    /// Gets the base path for the source. When set, <see cref="Source"/> is relative to this path.
-    /// Consumers can combine <see cref="BasePath"/> and <see cref="Source"/> to get the full path,
-    /// or ignore the base path for scenarios like Docker Compose where paths should remain relative to the compose file.
+    /// Gets the original relative source path before resolution. This is the path as specified by the user.
+    /// When <c>null</c>, the <see cref="Source"/> was provided as an absolute path.
+    /// </summary>
+    public string? RelativeSource { get; }
+
+    /// <summary>
+    /// Gets the base path that <see cref="RelativeSource"/> is relative to. Typically the app host directory.
+    /// Consumers can use <see cref="RelativeSource"/> with <see cref="BasePath"/> for scenarios like Docker Compose
+    /// where paths should remain relative to the compose file instead of being resolved to absolute paths.
     /// </summary>
     public string? BasePath { get; }
 }

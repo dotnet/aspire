@@ -40,50 +40,43 @@ public class ContainerMountAnnotationTests
     }
 
     [Fact]
-    public void CtorAllowsRelativePathWhenBasePathIsProvided()
+    public void CtorWithRelativeSourceAndBasePath()
     {
-        var annotation = new ContainerMountAnnotation("./certs", "/app/certs", ContainerMountType.BindMount, isReadOnly: false, basePath: "/app/host");
-        Assert.Equal("./certs", annotation.Source);
+        var annotation = new ContainerMountAnnotation("/app/host/certs", "/app/certs", ContainerMountType.BindMount, isReadOnly: false, relativeSource: "./certs", basePath: "/app/host");
+        Assert.Equal("/app/host/certs", annotation.Source);
         Assert.Equal("/app/certs", annotation.Target);
         Assert.Equal(ContainerMountType.BindMount, annotation.Type);
         Assert.False(annotation.IsReadOnly);
+        Assert.Equal("./certs", annotation.RelativeSource);
         Assert.Equal("/app/host", annotation.BasePath);
     }
 
     [Fact]
-    public void CtorAllowsRelativePathWithParentDirectoryWhenBasePathIsProvided()
+    public void CtorWithRelativeSourceUsingParentDirectory()
     {
-        var annotation = new ContainerMountAnnotation("../data/certs", "/app/certs", ContainerMountType.BindMount, isReadOnly: true, basePath: "/app/host");
-        Assert.Equal("../data/certs", annotation.Source);
+        var annotation = new ContainerMountAnnotation("/data/certs", "/app/certs", ContainerMountType.BindMount, isReadOnly: true, relativeSource: "../data/certs", basePath: "/app/host");
+        Assert.Equal("/data/certs", annotation.Source);
         Assert.Equal("/app/certs", annotation.Target);
         Assert.Equal(ContainerMountType.BindMount, annotation.Type);
         Assert.True(annotation.IsReadOnly);
+        Assert.Equal("../data/certs", annotation.RelativeSource);
         Assert.Equal("/app/host", annotation.BasePath);
     }
 
     [Fact]
-    public void CtorSetsBasePathToNullByDefault()
+    public void CtorSetsRelativeSourceAndBasePathToNullByDefault()
     {
         var annotation = new ContainerMountAnnotation("/absolute/path", "/target", ContainerMountType.BindMount, false);
+        Assert.Null(annotation.RelativeSource);
         Assert.Null(annotation.BasePath);
     }
 
     [Fact]
-    public void CtorWithBasePathOverloadAllowsRelativePathWithNullBasePath()
+    public void CtorWithAbsolutePathAndNoRelativeSource()
     {
-        // The constructor with basePath parameter allows relative paths even with null basePath
-        // This is useful for Docker Compose scenarios where paths are relative to the compose file
-        var annotation = new ContainerMountAnnotation("relative/path", "/target", ContainerMountType.BindMount, isReadOnly: false, basePath: null);
-        Assert.Equal("relative/path", annotation.Source);
-        Assert.Null(annotation.BasePath);
-    }
-
-    [Fact]
-    public void CtorWithAbsolutePathAndBasePathIsValid()
-    {
-        // When an absolute path is provided with a base path, it's still valid (basePath will be ignored when resolving)
-        var annotation = new ContainerMountAnnotation("/absolute/path", "/target", ContainerMountType.BindMount, isReadOnly: false, basePath: "/app/host");
+        var annotation = new ContainerMountAnnotation("/absolute/path", "/target", ContainerMountType.BindMount, isReadOnly: false, relativeSource: null, basePath: null);
         Assert.Equal("/absolute/path", annotation.Source);
-        Assert.Equal("/app/host", annotation.BasePath);
+        Assert.Null(annotation.RelativeSource);
+        Assert.Null(annotation.BasePath);
     }
 }
