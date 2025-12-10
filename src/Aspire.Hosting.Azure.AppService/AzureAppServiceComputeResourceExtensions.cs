@@ -31,7 +31,7 @@ public static class AzureAppServiceComputeResourceExtensions
     /// </example>
     /// </remarks>
     public static IResourceBuilder<T> PublishAsAzureAppServiceWebsite<T>(this IResourceBuilder<T> builder,
-        Action<AzureResourceInfrastructure, WebSite>? configure,
+        Action<AzureResourceInfrastructure, WebSite>? configure = null,
         Action<AzureResourceInfrastructure, WebSiteSlot>? configureSlot = null)
         where T : IComputeResource
     {
