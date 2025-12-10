@@ -239,7 +239,7 @@ extends:
                   targetType: 'inline'
                   script: |
                     $env:NPM_CONFIG_USERCONFIG="$(Build.SourcesDirectory)\.npmrc"
-                    npm install -g yarn
+                    npm install -g yarn@2.4.3
                     yarn --version
                   workingDirectory: '$(Build.SourcesDirectory)'
 
@@ -249,7 +249,7 @@ extends:
                   targetType: 'inline'
                   script: |
                     $env:NPM_CONFIG_USERCONFIG="$(Build.SourcesDirectory)\.npmrc"
-                    npm install -g @vscode/vsce
+                    npm install -g @vscode/vsce@3.7.1
                     vsce --version
                   workingDirectory: '$(Build.SourcesDirectory)'
 
