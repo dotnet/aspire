@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
         <source>Graph. For an accessible view please navigate to the Resources tab</source>
-        <target state="needs-review-translation">圖表。如需可存取的檢視，請前往 [資料表] 索引標籤</target>
+        <target state="new">Graph. For an accessible view please navigate to the Resources tab</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
         <source>Resources</source>
-        <target state="needs-review-translation">資料表</target>
+        <target state="new">Resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
