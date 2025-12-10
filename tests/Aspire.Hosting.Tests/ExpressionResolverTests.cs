@@ -222,7 +222,7 @@ public class ExpressionResolverTests
            .WithHttpEndpoint(targetPort: 8080)
            .WithEndpoint("http", e =>
            {
-               e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8001, EndpointBindingMode.SingleAddress, "{{ targetPort }}", KnownNetworkIdentifiers.LocalhostNetwork);
+               e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8001, EndpointBindingMode.SingleAddress, "{{ targetPort }}");
            });
 
         var dep = builder.AddContainer("container", "redis")
@@ -232,6 +232,28 @@ public class ExpressionResolverTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dep.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("http://myContainer.dev.internal:8080", config["ConnectionStrings__myContainer"]);
+    }
+
+    [Fact]
+    public async Task ContainerToContainerEndpointWithLocalhostNetworkIdentifierShouldResolve()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var connectionStringResource = builder.AddResource(new MyContainerResource("myContainer"))
+           .WithImage("redis")
+           .WithHttpEndpoint(targetPort: 8080)
+           .WithEndpoint("http", e =>
+           {
+               e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8001, EndpointBindingMode.SingleAddress, "{{ targetPort }}", KnownNetworkIdentifiers.LocalhostNetwork);
+           });
+
+        var dep = builder.AddContainer("container", "redis")
+           .WithReference(connectionStringResource)
+           .WaitFor(connectionStringResource);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dep.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Equal("http://localhost:8001", config["ConnectionStrings__myContainer"]);
     }
 
     [Fact]
