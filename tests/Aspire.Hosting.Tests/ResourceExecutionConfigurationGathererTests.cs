@@ -104,6 +104,43 @@ public class ResourceExecutionConfigurationGathererTests
         Assert.Equal("async-arg", context.Arguments[0]);
     }
 
+    [Fact]
+    public async Task ArgumentsExecutionConfigurationGatherer_WithIntegerArguments_ConvertsToStrings()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        int virtualUsers = 10;
+        var resource = builder.AddExecutable("test", "test.exe", ".")
+            .WithArgs("--vus", virtualUsers, "--count", 42)
+            .Resource;
+
+        await builder.BuildAsync();
+
+        var context = new ResourceExecutionConfigurationGathererContext();
+        var gatherer = new ArgumentsExecutionConfigurationGatherer();
+
+        // Act
+        await gatherer.GatherAsync(context, resource, NullLogger.Instance, builder.ExecutionContext);
+
+        // Verify the unprocessed arguments contain the original values (including integers)
+        Assert.Equal(4, context.Arguments.Count);
+        Assert.Equal("--vus", context.Arguments[0]);
+        Assert.Equal(10, context.Arguments[1]); // Integer value
+        Assert.Equal("--count", context.Arguments[2]);
+        Assert.Equal(42, context.Arguments[3]); // Integer value
+
+        // Resolve the arguments to get the processed string values
+        var (resolved, _) = await context.ResolveAsync(resource, NullLogger.Instance, builder.ExecutionContext);
+        var resolvedArgs = resolved.Arguments.ToList();
+
+        // Verify integers are converted to strings during resolution
+        Assert.Equal(4, resolvedArgs.Count);
+        Assert.Equal("--vus", resolvedArgs[0].Value);
+        Assert.Equal("10", resolvedArgs[1].Value);
+        Assert.Equal("--count", resolvedArgs[2].Value);
+        Assert.Equal("42", resolvedArgs[3].Value);
+    }
+
     #endregion
 
     #region EnvironmentVariablesExecutionConfigurationGatherer Tests
