@@ -207,30 +207,15 @@ public partial class StructuredLogsTests : DashboardTestContext
 
     private void SetupStructureLogsServices()
     {
-        var version = typeof(FluentMain).Assembly.GetName().Version!;
-
-        var dividerModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Divider/FluentDivider.razor.js", version));
-        dividerModule.SetupVoid("setDividerAriaOrientation");
-
-        var inputLabelModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Label/FluentInputLabel.razor.js", version));
-        inputLabelModule.SetupVoid("setInputAriaLabel", _ => true);
-
-        var dataGridModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/DataGrid/FluentDataGrid.razor.js", version));
-        dataGridModule.SetupModule("init", _ => true);
-
-        var listModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/List/ListComponentBase.razor.js", version));
-
-        var searchModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
-        searchModule.SetupVoid("addAriaHidden", _ => true);
-
-        var keycodeModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
-        keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
-
-        var menuModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
-        menuModule.SetupVoid("initialize", _ => true);
-
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
+        FluentUISetupHelpers.SetupFluentDivider(this);
+        FluentUISetupHelpers.SetupFluentInputLabel(this);
+        FluentUISetupHelpers.SetupFluentDataGrid(this);
+        FluentUISetupHelpers.SetupFluentList(this);
+        FluentUISetupHelpers.SetupFluentSearch(this);
+        FluentUISetupHelpers.SetupFluentKeyCode(this);
+        FluentUISetupHelpers.SetupFluentMenu(this);
+        FluentUISetupHelpers.SetupFluentToolbar(this);
+        FluentUISetupHelpers.SetupFluentAnchoredRegion(this);
 
         JSInterop.SetupVoid("initializeContinuousScroll");
 
@@ -255,10 +240,5 @@ public partial class StructuredLogsTests : DashboardTestContext
         Services.AddSingleton<DashboardTelemetryService>();
         Services.AddSingleton<ComponentTelemetryContextProvider>();
         Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
-    }
-
-    private static string GetFluentFile(string filePath, Version version)
-    {
-        return $"{filePath}?v={version}";
     }
 }

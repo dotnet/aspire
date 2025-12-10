@@ -101,6 +101,19 @@ internal static class FluentUISetupHelpers
         tabModule.SetupVoid("TabEditable_Changed", _ => true);
     }
 
+    public static void SetupFluentCheckbox(TestContext context)
+    {
+        var checkboxModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Checkbox/FluentCheckbox.razor.js"));
+        checkboxModule.SetupVoid("setFluentCheckBoxIndeterminate", _ => true);
+        checkboxModule.SetupVoid("stop", _ => true);
+    }
+
+    public static void SetupFluentTextField(TestContext context)
+    {
+        var textboxModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/TextField/FluentTextField.razor.js"));
+        textboxModule.SetupVoid("setControlAttribute", _ => true);
+    }
+
     public static void AddCommonDashboardServices(
         TestContext context,
         ILocalStorage? localStorage = null,

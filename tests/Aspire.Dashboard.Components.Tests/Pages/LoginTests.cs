@@ -50,14 +50,10 @@ public partial class LoginTests : DashboardTestContext
 
     private void SetupLoginServices()
     {
-        var version = typeof(FluentMain).Assembly.GetName().Version!;
-
         JSInterop.SetupModule("/Components/Pages/Login.razor.js");
 
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Anchor/FluentAnchor.razor.js", version));
-
-        var textboxModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/TextField/FluentTextField.razor.js", version));
-        textboxModule.SetupVoid("setControlAttribute", _ => true);
+        FluentUISetupHelpers.SetupFluentAnchor(this);
+        FluentUISetupHelpers.SetupFluentTextField(this);
 
         var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
 
@@ -69,10 +65,5 @@ public partial class LoginTests : DashboardTestContext
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<DashboardTelemetryService>();
         Services.AddSingleton<ComponentTelemetryContextProvider>();
-    }
-
-    private static string GetFluentFile(string filePath, Version version)
-    {
-        return $"{filePath}?v={version}";
     }
 }

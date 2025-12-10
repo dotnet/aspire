@@ -38,69 +38,39 @@ internal static class ResourceSetupHelpers
         context.Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
         context.Services.AddSingleton<GlobalState>();
 
-        var version = typeof(FluentMain).Assembly.GetName().Version!;
-
-        var dividerModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Divider/FluentDivider.razor.js", version));
-        dividerModule.SetupVoid("setDividerAriaOrientation");
-
-        var searchModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
-        searchModule.SetupVoid("addAriaHidden", _ => true);
-
-        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Anchor/FluentAnchor.razor.js", version));
-        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
-
-        var dataGridModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/DataGrid/FluentDataGrid.razor.js", version));
-        var dataGridRef = dataGridModule.SetupModule("init", _ => true);
-        dataGridRef.SetupVoid("stop");
-
-        var keycodeModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
-        keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
+        FluentUISetupHelpers.SetupFluentDivider(context);
+        FluentUISetupHelpers.SetupFluentSearch(context);
+        FluentUISetupHelpers.SetupFluentAnchor(context);
+        FluentUISetupHelpers.SetupFluentAnchoredRegion(context);
+        FluentUISetupHelpers.SetupFluentDataGrid(context);
+        FluentUISetupHelpers.SetupFluentKeyCode(context);
+        FluentUISetupHelpers.SetupFluentToolbar(context);
+        FluentUISetupHelpers.SetupFluentMenu(context);
 
         context.JSInterop.SetupVoid("scrollToTop", _ => true);
-
-        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
-
-        var menuModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
-        menuModule.SetupVoid("initialize", _ => true);
     }
 
     public static void SetupResourcesPage(TestContext context, ViewportInformation viewport, IDashboardClient? dashboardClient = null)
     {
+        FluentUISetupHelpers.SetupFluentDivider(context);
+        FluentUISetupHelpers.SetupFluentInputLabel(context);
+
         var version = typeof(FluentMain).Assembly.GetName().Version!;
-
-        var dividerModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Divider/FluentDivider.razor.js", version));
-        dividerModule.SetupVoid("setDividerAriaOrientation");
-
-        var inputLabelModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Label/FluentInputLabel.razor.js", version));
-        inputLabelModule.SetupVoid("setInputAriaLabel", _ => true);
-
         var dataGridModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/DataGrid/FluentDataGrid.razor.js", version));
         dataGridModule.SetupModule("init", _ => true);
         dataGridModule.SetupVoid("enableColumnResizing", _ => true);
 
-        var searchModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
-        searchModule.SetupVoid("addAriaHidden", _ => true);
-
-        var keycodeModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
-        keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
-
-        var checkboxModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Checkbox/FluentCheckbox.razor.js", version));
-        checkboxModule.SetupVoid("setFluentCheckBoxIndeterminate", _ => true);
-        checkboxModule.SetupVoid("stop", _ => true);
+        FluentUISetupHelpers.SetupFluentSearch(context);
+        FluentUISetupHelpers.SetupFluentKeyCode(context);
+        FluentUISetupHelpers.SetupFluentCheckbox(context);
 
         var anchoredRegionModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
         anchoredRegionModule.SetupVoid("goToNextFocusableElement", _ => true);
 
-        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
-
-        var tabModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Tabs/FluentTab.razor.js", version));
-        tabModule.SetupVoid("TabEditable_Changed", _ => true);
-
-        var overflowModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
-        overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
-
-        var menuModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
-        menuModule.SetupVoid("initialize", _ => true);
+        FluentUISetupHelpers.SetupFluentToolbar(context);
+        FluentUISetupHelpers.SetupFluentTab(context);
+        FluentUISetupHelpers.SetupFluentOverflow(context);
+        FluentUISetupHelpers.SetupFluentMenu(context);
 
         context.Services.AddLocalization();
         context.Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
