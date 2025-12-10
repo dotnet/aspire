@@ -44,7 +44,7 @@ internal sealed class DockerComposeInfrastructure(
                 dashboard.Annotations.Add(new DeploymentTargetAnnotation(dashboardService)
                 {
                     ComputeEnvironment = environment,
-                    ContainerRegistry = LocalContainerRegistry.Instance
+                    ContainerRegistry = GetContainerRegistry(environment)
                 });
             }
 
@@ -63,10 +63,22 @@ internal sealed class DockerComposeInfrastructure(
                 r.Annotations.Add(new DeploymentTargetAnnotation(serviceResource)
                 {
                     ComputeEnvironment = environment,
-                    ContainerRegistry = LocalContainerRegistry.Instance
+                    ContainerRegistry = GetContainerRegistry(environment)
                 });
             }
         }
+    }
+
+    private static IContainerRegistry GetContainerRegistry(DockerComposeEnvironmentResource environment)
+    {
+        // Check for explicit container registry reference annotation
+        if (environment.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation))
+        {
+            return annotation.Registry;
+        }
+
+        // Fall back to local container registry for Docker Compose scenarios
+        return LocalContainerRegistry.Instance;
     }
 
     private static void EnsureNoPublishAsDockerComposeServiceAnnotations(DistributedApplicationModel appModel)
