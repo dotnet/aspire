@@ -26,6 +26,7 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Xml.Linq;
 
 var rootCommand = new RootCommand("Run tests in a loop to reproduce intermittent failures or hangs");
 
@@ -222,12 +223,21 @@ static async Task<int> RunTestsInLoop(
         Console.WriteLine();
     }
 
+    // Create a results directory for trx files and logs
+    var resultsDir = Path.Combine(repoRoot, "artifacts", "testresults", "loop-runner");
+    if (Directory.Exists(resultsDir))
+    {
+        Directory.Delete(resultsDir, recursive: true);
+    }
+    Directory.CreateDirectory(resultsDir);
+
     // Prepare test arguments
     var testArgs = new StringBuilder();
     testArgs.Append(CultureInfo.InvariantCulture, $"test \"{projectPath}\" --no-build");
 
-    // Add platform-specific test arguments
+    // Add platform-specific test arguments with trx reporting
     testArgs.Append(" -- --filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\"");
+    testArgs.Append(CultureInfo.InvariantCulture, $" --report-trx --results-directory \"{resultsDir}\"");
 
     if (!string.IsNullOrEmpty(method))
     {
@@ -249,6 +259,7 @@ static async Task<int> RunTestsInLoop(
 
     var testArgsString = testArgs.ToString();
     Console.WriteLine($"Test command: {dotnetCommand} {testArgsString}");
+    Console.WriteLine($"Results dir:  {Path.GetRelativePath(repoRoot, resultsDir)}");
     Console.WriteLine();
 
     // Statistics
@@ -282,6 +293,16 @@ static async Task<int> RunTestsInLoop(
             Console.WriteLine($"  ⏱️  TIMEOUT after {sw.Elapsed.TotalMinutes:F1} minutes!");
             Console.ResetColor();
 
+            // Try to identify which test was running from the error output or standard output
+            IdentifyHangingTest(result.ErrorOutput);
+            if (string.IsNullOrWhiteSpace(result.ErrorOutput))
+            {
+                IdentifyHangingTest(result.Output);
+            }
+
+            // Analyze trx file and logs
+            AnalyzeTrxFiles(resultsDir, repoRoot, verbose);
+
             // Print last part of output for debugging
             if (!verbose && !string.IsNullOrWhiteSpace(result.Output))
             {
@@ -306,6 +327,9 @@ static async Task<int> RunTestsInLoop(
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"  ❌ FAILED (exit code: {result.ExitCode}) in {sw.Elapsed.TotalSeconds:F1}s");
             Console.ResetColor();
+
+            // Analyze trx file and logs
+            AnalyzeTrxFiles(resultsDir, repoRoot, verbose);
 
             // Print error output for debugging
             if (!verbose && !string.IsNullOrWhiteSpace(result.ErrorOutput))
@@ -481,6 +505,203 @@ static async Task<ProcessResult> RunProcess(
         }
         return new ProcessResult(-1, outputBuilder.ToString(), errorBuilder.ToString(), true);
     }
+}
+
+static void IdentifyHangingTest(string errorOutput)
+{
+    if (string.IsNullOrWhiteSpace(errorOutput))
+    {
+        return;
+    }
+
+    // Parse the error output to find the currently running test
+    // Format: "[+X/xY/?Z] Assembly.dll (tfm|arch) - Namespace.Class.Method (time)"
+    var lines = errorOutput.Split('\n');
+    string? lastTestLine = null;
+
+    foreach (var line in lines)
+    {
+        if (line.Contains(" - ", StringComparison.Ordinal) && line.Contains('(') && !line.Contains("Error", StringComparison.Ordinal))
+        {
+            lastTestLine = line.Trim();
+        }
+    }
+
+    if (!string.IsNullOrWhiteSpace(lastTestLine))
+    {
+        // Extract the test name from the line
+        var dashIndex = lastTestLine.IndexOf(" - ", StringComparison.Ordinal);
+        if (dashIndex > 0)
+        {
+            var testPart = lastTestLine[(dashIndex + 3)..];
+            var parenIndex = testPart.LastIndexOf(" (", StringComparison.Ordinal);
+            var testName = parenIndex > 0 ? testPart[..parenIndex] : testPart;
+
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"  ⏳ Likely hanging test: {testName}");
+            Console.ResetColor();
+
+            // Extract progress info
+            var bracketStart = lastTestLine.IndexOf('[');
+            var bracketEnd = lastTestLine.IndexOf(']');
+            if (bracketStart >= 0 && bracketEnd > bracketStart)
+            {
+                var progress = lastTestLine.Substring(bracketStart, bracketEnd - bracketStart + 1);
+                Console.WriteLine($"     Progress: {progress}");
+            }
+        }
+    }
+}
+
+static void AnalyzeTrxFiles(string resultsDir, string repoRoot, bool verbose)
+{
+    Console.WriteLine();
+    Console.WriteLine("  📋 Analyzing test results:");
+
+    // Find all trx files
+    var trxFiles = Directory.Exists(resultsDir)
+        ? Directory.GetFiles(resultsDir, "*.trx", SearchOption.AllDirectories)
+        : [];
+
+    if (trxFiles.Length == 0)
+    {
+        Console.WriteLine("    No .trx files found (test may have been killed before writing results)");
+
+        // Still look for log files
+        ShowLogFiles(resultsDir, repoRoot);
+        return;
+    }
+
+    foreach (var trxFile in trxFiles)
+    {
+        try
+        {
+            Console.WriteLine($"    Analyzing: {Path.GetFileName(trxFile)}");
+            var doc = XDocument.Load(trxFile);
+            var ns = doc.Root?.GetDefaultNamespace() ?? XNamespace.None;
+
+            // Get test results
+            var results = doc.Descendants(ns + "UnitTestResult").ToList();
+
+            var passedTests = results.Where(r => r.Attribute("outcome")?.Value == "Passed").ToList();
+            var failedTests = results.Where(r => r.Attribute("outcome")?.Value == "Failed").ToList();
+            var notExecutedTests = results.Where(r => r.Attribute("outcome")?.Value == "NotExecuted").ToList();
+            var inProgressTests = results.Where(r => r.Attribute("outcome")?.Value == "InProgress").ToList();
+
+            Console.WriteLine($"      Passed: {passedTests.Count}, Failed: {failedTests.Count}, Not Executed: {notExecutedTests.Count}, In Progress: {inProgressTests.Count}");
+
+            // Show failed tests with error messages
+            if (failedTests.Count > 0)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("      Failed tests:");
+                Console.ResetColor();
+                foreach (var test in failedTests)
+                {
+                    var testName = test.Attribute("testName")?.Value ?? "Unknown";
+                    Console.WriteLine($"        ❌ {testName}");
+
+                    // Get error message
+                    var errorMessage = test.Descendants(ns + "Message").FirstOrDefault()?.Value;
+                    if (!string.IsNullOrWhiteSpace(errorMessage))
+                    {
+                        var lines = errorMessage.Split('\n').Take(5);
+                        foreach (var line in lines)
+                        {
+                            Console.WriteLine($"           {line.Trim()}");
+                        }
+                    }
+
+                    // Get stack trace if verbose
+                    if (verbose)
+                    {
+                        var stackTrace = test.Descendants(ns + "StackTrace").FirstOrDefault()?.Value;
+                        if (!string.IsNullOrWhiteSpace(stackTrace))
+                        {
+                            Console.WriteLine("           Stack trace:");
+                            var stackLines = stackTrace.Split('\n').Take(10);
+                            foreach (var line in stackLines)
+                            {
+                                Console.WriteLine($"             {line.Trim()}");
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Show in-progress tests (likely hanging)
+            if (inProgressTests.Count > 0)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("      In-progress tests (likely hanging):");
+                Console.ResetColor();
+                foreach (var test in inProgressTests)
+                {
+                    var testName = test.Attribute("testName")?.Value ?? "Unknown";
+                    var startTime = test.Attribute("startTime")?.Value;
+                    Console.WriteLine($"        ⏳ {testName}");
+                    if (!string.IsNullOrWhiteSpace(startTime))
+                    {
+                        Console.WriteLine($"           Started: {startTime}");
+                    }
+                }
+            }
+
+            // Show not-executed tests
+            if (notExecutedTests.Count > 0 && verbose)
+            {
+                Console.WriteLine("      Not executed tests:");
+                foreach (var test in notExecutedTests.Take(10))
+                {
+                    var testName = test.Attribute("testName")?.Value ?? "Unknown";
+                    Console.WriteLine($"        ⏸️  {testName}");
+                }
+                if (notExecutedTests.Count > 10)
+                {
+                    Console.WriteLine($"        ... and {notExecutedTests.Count - 10} more");
+                }
+            }
+
+            // Look for test output/logs in results
+            var outputs = results.SelectMany(r => r.Descendants(ns + "Output")).ToList();
+            if (outputs.Count > 0 && verbose)
+            {
+                Console.WriteLine("      Test output available in trx file");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"    ⚠️  Error parsing {Path.GetFileName(trxFile)}: {ex.Message}");
+        }
+    }
+
+    // Look for log files
+    ShowLogFiles(resultsDir, repoRoot);
+}
+
+static void ShowLogFiles(string resultsDir, string repoRoot)
+{
+    var logFiles = Directory.Exists(resultsDir)
+        ? Directory.GetFiles(resultsDir, "*.log", SearchOption.AllDirectories)
+        : [];
+
+    if (logFiles.Length > 0)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"  📁 Log files ({logFiles.Length}):");
+        foreach (var logFile in logFiles.Take(5))
+        {
+            var relativePath = Path.GetRelativePath(repoRoot, logFile);
+            Console.WriteLine($"      {relativePath}");
+        }
+        if (logFiles.Length > 5)
+        {
+            Console.WriteLine($"      ... and {logFiles.Length - 5} more");
+        }
+    }
+
+    Console.WriteLine();
 }
 
 sealed record ProcessResult(int ExitCode, string Output, string ErrorOutput, bool TimedOut);

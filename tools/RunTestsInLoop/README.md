@@ -150,14 +150,44 @@ dotnet run --project tools/RunTestsInLoop -- \
 
 1. **Resolves the project path** relative to the repository root
 2. **Builds the test project** (unless `--no-build` is specified)
-3. **Runs tests in a loop** for the specified number of iterations
+3. **Runs tests in a loop** for the specified number of iterations with trx reporting enabled
 4. **Applies timeout** to each run and kills hung processes
-5. **Tracks statistics** including pass/fail/timeout counts and timing
-6. **Reports results** with a summary and success rate
+5. **Analyzes results** on failure or timeout:
+   - Parses trx files to identify passed/failed/in-progress tests
+   - Identifies the likely hanging test from console output
+   - Shows paths to log files for further investigation
+6. **Tracks statistics** including pass/fail/timeout counts and timing
+7. **Reports results** with a summary and success rate
+
+## Test Result Analysis
+
+When a test times out or fails, the tool automatically:
+
+- **Identifies the hanging test** by parsing the test runner's progress output
+- **Analyzes trx files** (if available) to show:
+  - Count of passed, failed, and in-progress tests
+  - Names and error messages of failed tests
+  - Names of tests that were still running when killed
+- **Shows log file locations** for manual inspection
+
+Example output on timeout:
+```
+  ⏱️  TIMEOUT after 5.0 minutes!
+
+  ⏳ Likely hanging test: Aspire.Hosting.Tests.DistributedApplicationTests.VerifyContainerCreateFile
+     Progress: [+1/x3/?0]
+
+  📋 Analyzing test results:
+    No .trx files found (test may have been killed before writing results)
+
+  📁 Log files (1):
+      artifacts/testresults/loop-runner/Aspire.Hosting.Tests_net8.0_x64.log
+```
 
 ## Notes
 
 - Tests are run with `--filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"` to exclude quarantined and outerloop tests
+- Test results are written to `artifacts/testresults/loop-runner/`
 - The tool uses the repository's `dotnet.sh`/`dotnet.cmd` wrapper to ensure the correct SDK is used
 - When a timeout occurs, the entire process tree is killed to clean up orphaned processes
 - Statistics are printed every 5 iterations and at the end
