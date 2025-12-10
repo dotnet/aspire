@@ -92,6 +92,18 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         templateVersionOption.Description = NewCommandStrings.VersionArgumentDescription;
         templateVersionOption.Recursive = true;
         Options.Add(templateVersionOption);
+
+        // Customize description based on whether staging channel is enabled
+        var isStagingEnabled = features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false);
+
+        var channelOption = new Option<string?>("--channel")
+        {
+            Description = isStagingEnabled
+                ? NewCommandStrings.ChannelOptionDescriptionWithStaging
+                : NewCommandStrings.ChannelOptionDescription,
+            Recursive = true
+        };
+        Options.Add(channelOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
