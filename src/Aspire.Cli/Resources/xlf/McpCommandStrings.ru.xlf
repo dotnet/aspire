@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
         <source>Which agent environments do you want to configure?</source>
-        <target state="needs-review-translation">Выберите среды агента для настройки:</target>
+        <target state="new">Which agent environments do you want to configure?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">
