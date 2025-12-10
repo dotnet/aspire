@@ -78,6 +78,7 @@ jobs:
       - name: Setup vars (Linux)
         if: ${{ inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest' }}
         run: |
+          echo "DOTNET_ROOT=${{ github.workspace }}/.dotnet" >> $GITHUB_ENV
           echo "DOTNET_SCRIPT=./dotnet.sh" >> $GITHUB_ENV
           echo "BUILD_SCRIPT=./build.sh" >> $GITHUB_ENV
           echo "TEST_RUN_PATH=${{ github.workspace }}/run-tests" >> $GITHUB_ENV
