@@ -366,12 +366,12 @@ public class ContainerResourceTests
     }
 
     [Fact]
-    public void WithBindMountKeepsRelativePathWhenResolveSourcePathIsFalse()
+    public void WithBindMountSetsBasePathForRelativePath()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
         appBuilder.AddContainer("container", "none")
-            .WithBindMount("./certs", "/app/certs", isReadOnly: true, resolveSourcePath: false);
+            .WithBindMount("./certs", "/app/certs", isReadOnly: true);
 
         using var app = appBuilder.Build();
 
@@ -383,38 +383,18 @@ public class ContainerResourceTests
         Assert.Equal("/app/certs", mountAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, mountAnnotation.Type);
         Assert.True(mountAnnotation.IsReadOnly);
-        Assert.Null(mountAnnotation.BasePath); // No base path when resolveSourcePath is false
+        Assert.NotNull(mountAnnotation.BasePath); // BasePath is always set for relative paths
     }
 
     [Fact]
-    public void WithBindMountResolvesRelativePathByDefault()
-    {
-        var basePath = OperatingSystem.IsWindows() ? @"C:\root\volumes" : "/root/volumes";
-
-        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { ProjectDirectory = basePath });
-
-        appBuilder.AddContainer("container", "none")
-            .WithBindMount("source", "/target", isReadOnly: false, resolveSourcePath: true);
-
-        using var app = appBuilder.Build();
-
-        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
-
-        Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
-
-        Assert.Equal("source", mountAnnotation.Source);
-        Assert.Equal(basePath, mountAnnotation.BasePath);
-    }
-
-    [Fact]
-    public void WithBindMountWithAbsolutePathAndResolveSourcePathFalse()
+    public void WithBindMountDoesNotSetBasePathForAbsolutePath()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
         var absolutePath = OperatingSystem.IsWindows() ? @"C:\absolute\path" : "/absolute/path";
 
         appBuilder.AddContainer("container", "none")
-            .WithBindMount(absolutePath, "/target", isReadOnly: false, resolveSourcePath: false);
+            .WithBindMount(absolutePath, "/target", isReadOnly: false);
 
         using var app = appBuilder.Build();
 
