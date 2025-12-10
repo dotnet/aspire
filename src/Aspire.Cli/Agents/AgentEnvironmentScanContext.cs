@@ -35,12 +35,6 @@ internal sealed class AgentEnvironmentScanContext
     public bool PlaywrightApplicatorAdded { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the user should be prompted for Playwright configuration.
-    /// This is set to true when at least one environment supports Playwright.
-    /// </summary>
-    public bool ShouldPromptForPlaywright { get; set; }
-
-    /// <summary>
     /// Stores the Playwright configuration callbacks from each scanner.
     /// These will be executed if the user selects to configure Playwright.
     /// </summary>
@@ -53,7 +47,6 @@ internal sealed class AgentEnvironmentScanContext
     public void AddPlaywrightConfigurationCallback(Func<CancellationToken, Task> callback)
     {
         _playwrightConfigurationCallbacks.Add(callback);
-        ShouldPromptForPlaywright = true;
     }
 
     /// <summary>
