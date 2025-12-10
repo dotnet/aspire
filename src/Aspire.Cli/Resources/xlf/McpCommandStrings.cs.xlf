@@ -7,9 +7,14 @@
         <target state="translated">Spravujte server MCP (Model Context Protocol).</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
+        <source>Which additional options do you want to enable?</source>
+        <target state="new">Which additional options do you want to enable?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
-        <source>Select agent environments to configure:</source>
-        <target state="translated">Vyberte prostředí agentů, která se mají nakonfigurovat:</target>
+        <source>Which agent environments do you want to configure?</source>
+        <target state="needs-review-translation">Vyberte prostředí agentů, která se mají nakonfigurovat:</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">

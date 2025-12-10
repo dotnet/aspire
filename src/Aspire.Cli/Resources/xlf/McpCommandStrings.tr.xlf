@@ -7,9 +7,14 @@
         <target state="translated">MCP (Model Bağlam Protokolü) sunucusunu yönetin.</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
+        <source>Which additional options do you want to enable?</source>
+        <target state="new">Which additional options do you want to enable?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
-        <source>Select agent environments to configure:</source>
-        <target state="translated">Yapılandırılacak aracı ortamlarını seçin:</target>
+        <source>Which agent environments do you want to configure?</source>
+        <target state="needs-review-translation">Yapılandırılacak aracı ortamlarını seçin:</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">
