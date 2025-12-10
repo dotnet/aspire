@@ -46,13 +46,6 @@ public partial class McpServerDialog
     protected override void OnInitialized()
     {
         _markdownProcessor = new MarkdownProcessor(ControlsStringsLoc, MarkdownHelpers.SafeUrlSchemes, []);
-        if ((DashboardOptions.Value.Mcp.PublicUrl ?? DashboardOptions.Value.Mcp.EndpointUrl) is { Length: > 0 } mcpUrl)
-        {
-            var uri = new Uri(baseUri: new Uri(mcpUrl), relativeUri: "/mcp");
-
-            _mcpUrl = uri.ToString();
-            _isHttps = uri.Scheme == "https";
-        }
 
         if (McpEnabled)
         {
@@ -60,14 +53,27 @@ public partial class McpServerDialog
             if (DashboardOptions.Value.Mcp.UseCliMcp == true)
             {
                 // For CLI MCP mode, we don't need the HTTP endpoint configuration
-                _mcpConfigProperties = [];
-                _mcpServerInstallButtonJson = string.Empty;
-                _mcpServerConfigFileJson = string.Empty;
+                (_mcpServerInstallButtonJson, _mcpServerConfigFileJson) = GetCliMcpServerInstallButtonJson();
+                _mcpConfigProperties =
+                [
+                    new McpConfigPropertyViewModel { Name = "name", Value = "aspire-cli" },
+                    new McpConfigPropertyViewModel { Name = "type", Value = "stdio" },
+                    new McpConfigPropertyViewModel { Name = "command", Value = "aspire" },
+                    new McpConfigPropertyViewModel { Name = "args", Value = @"[""mcp"", ""start""]" }
+                ];
             }
             else
             {
+                if ((DashboardOptions.Value.Mcp.PublicUrl ?? DashboardOptions.Value.Mcp.EndpointUrl) is { Length: > 0 } mcpUrl)
+                {
+                    var uri = new Uri(baseUri: new Uri(mcpUrl), relativeUri: "/mcp");
+
+                    _mcpUrl = uri.ToString();
+                    _isHttps = uri.Scheme == "https";
+                }
+
                 // Original dashboard MCP mode
-                (_mcpServerInstallButtonJson, _mcpServerConfigFileJson) = GetMcpServerInstallButtonJson();
+                (_mcpServerInstallButtonJson, _mcpServerConfigFileJson) = GetDashboardMcpServerInstallButtonJson();
                 _mcpConfigProperties =
                 [
                     new McpConfigPropertyViewModel { Name = "name", Value = "aspire-dashboard" },
@@ -93,7 +99,7 @@ public partial class McpServerDialog
 
     private bool IsCliMcpMode => DashboardOptions.Value.Mcp.UseCliMcp == true;
 
-    private (string InstallButtonJson, string ConfigFileJson) GetMcpServerInstallButtonJson()
+    private (string InstallButtonJson, string ConfigFileJson) GetDashboardMcpServerInstallButtonJson()
     {
         Debug.Assert(_mcpUrl != null);
 
@@ -155,6 +161,38 @@ public partial class McpServerDialog
         return (installButtonJson, configFileJson);
     }
 
+    private static (string InstallButtonJson, string ConfigFileJson) GetCliMcpServerInstallButtonJson()
+    {
+        var name = "aspire-cli";
+
+        var installButtonJson = JsonSerializer.Serialize(
+            new McpInstallButtonServerModel
+            {
+                Name = name,
+                Type = "stdio",
+                Command = "aspire",
+                Args = ["mcp", "start"]
+            },
+            McpInstallButtonModelContext.Default.McpInstallButtonServerModel);
+
+        var configFileJson = JsonSerializer.Serialize(
+            new McpJsonFileServerModel
+            {
+                Servers = new()
+                {
+                    [name] = new()
+                    {
+                        Type = "stdio",
+                        Command = "aspire",
+                        Args = ["mcp", "start"]
+                    }
+                }
+            },
+            McpConfigFileModelContext.Default.McpJsonFileServerModel);
+
+        return (installButtonJson, configFileJson);
+    }
+
     private Task OnTabChangeAsync(FluentTab newTab)
     {
         var id = newTab.Id?.Substring("tab-".Length);
@@ -174,20 +212,6 @@ public partial class McpServerDialog
         $"""
         ```json
         {_mcpServerConfigFileJson}
-        ```
-        """;
-
-    private static string GetCliMcpConfigurationMarkdown() =>
-        """
-        ```json
-        {
-          "mcpServers": {
-            "aspire-cli": {
-              "command": "aspire",
-              "args": ["mcp", "start"]
-            }
-          }
-        }
         ```
         """;
 

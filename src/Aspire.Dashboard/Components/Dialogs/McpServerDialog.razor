@@ -12,77 +12,10 @@
 <div class="mcp-server-dialog-content">
     @if (McpEnabled)
     {
-        @if (IsCliMcpMode)
-        {
-            <p>
-                Configure your MCP client to use the Aspire CLI MCP server for interacting with your Aspire application.
-                For more information, see <a href="https://aka.ms/aspire/mcp-getting-started" target="_blank">@Loc[nameof(Dialogs.McpServerDialogLearnMoreLink)]</a>.
-            </p>
-            <FluentTabs ActiveTabId="@($"tab-{_activeView}")" OnTabChange="@OnTabChangeAsync" Size="null">
-                <FluentTab LabelClass="tab-label"
-                           Id="@($"tab-{McpToolView.VSCode}")"
-                           Label="@Loc[nameof(Dialogs.McpServerDialogVSCodeTab)]"
-                           Icon="new Aspire.Dashboard.Components.CustomIcons.AspireIcons.Size16.VSCode()">
-                    <div class="mcp-tool-tab">
-                        <p>
-                            To configure VS Code to use the Aspire CLI MCP server, add the following to your VS Code MCP configuration:
-                        </p>
-                        <div class="property-grid-container">
-                            <FluentAccordion>
-                                <FluentAccordionItem Heading="MCP Configuration for VS Code" Expanded="true">
-                                    <MarkdownRenderer Markdown="@GetCliMcpConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
-                                </FluentAccordionItem>
-                            </FluentAccordion>
-                        </div>
-                        <p>
-                            <strong>Note:</strong> The Aspire CLI MCP server uses stdio transport and requires the Aspire application to be running.
-                        </p>
-                    </div>
-                </FluentTab>
-                <FluentTab LabelClass="tab-label"
-                           Id="@($"tab-{McpToolView.VisualStudio}")"
-                           Label="@Loc[nameof(Dialogs.McpServerDialogVisualStudioTab)]"
-                           Icon="new Aspire.Dashboard.Components.CustomIcons.AspireIcons.Size16.VisualStudio()">
-                    <div class="mcp-tool-tab">
-                        <p>
-                            To configure Visual Studio to use the Aspire CLI MCP server, add the following to your Visual Studio MCP configuration:
-                        </p>
-                        <div class="property-grid-container">
-                            <FluentAccordion>
-                                <FluentAccordionItem Heading="MCP Configuration for Visual Studio" Expanded="true">
-                                    <MarkdownRenderer Markdown="@GetCliMcpConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
-                                </FluentAccordionItem>
-                            </FluentAccordion>
-                        </div>
-                        <p>
-                            <strong>Note:</strong> The Aspire CLI MCP server uses stdio transport and requires the Aspire application to be running.
-                        </p>
-                    </div>
-                </FluentTab>
-                <FluentTab LabelClass="tab-label"
-                           Id="@($"tab-{McpToolView.Other}")"
-                           Label="@Loc[nameof(Dialogs.McpServerDialogOtherTab)]"
-                           Icon="new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.MoreCircle()">
-                    <div class="mcp-tool-tab">
-                        <p>
-                            For other MCP clients, configure them to launch the Aspire CLI MCP server using the stdio transport.
-                        </p>
-                        <p>
-                            Command: <code>aspire mcp start</code>
-                        </p>
-                        <p>
-                            The server uses standard input/output for communication and requires your Aspire application to be running.
-                        </p>
-                    </div>
-                </FluentTab>
-            </FluentTabs>
-        }
-        else
-        {
-            <p>
-                @Loc[nameof(Dialogs.McpServerDialogIntroduction)]
-                For more information, see <a href="https://aka.ms/aspire/mcp-getting-started" target="_blank">@Loc[nameof(Dialogs.McpServerDialogLearnMoreLink)]</a>.
-            </p>
+        <p>
+            @Loc[nameof(Dialogs.McpServerDialogIntroduction)]
+            For more information, see <a href="https://aka.ms/aspire/mcp-getting-started" target="_blank">@Loc[nameof(Dialogs.McpServerDialogLearnMoreLink)]</a>.
+        </p>
         <FluentTabs ActiveTabId="@($"tab-{_activeView}")" OnTabChange="@OnTabChangeAsync" Size="null">
             <FluentTab LabelClass="tab-label"
                        Id="@($"tab-{McpToolView.VSCode}")"
@@ -117,28 +50,31 @@
                             *@
                         </a>
                     </p>
-                    <p>
-                        @Loc[nameof(Dialogs.McpServerDialogVSCodeApiKeyInstructions)]
-                    </p>
-                    <p class="input-container">
-                        <FluentInputLabel ForId="vscode-api-key-field" Label="@Loc[nameof(Dialogs.McpServerDialogApiKeyLabel)]" />
-                        <div class="api-key-container">
-                            <FluentTextField id="vscode-api-key-field" Value="@DashboardOptions.Value.Mcp.PrimaryApiKey"
-                                             Style="width: 300px"
-                                             ReadOnly="true" />
-                            <FluentButton Id="@_vsCodeCopyButtonId"
-                                          AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(DashboardOptions.Value.Mcp.PrimaryApiKey, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
-                                <span slot="start">
-                                    <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
-                                    <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
-                                </span>
-                                @Loc[nameof(Dialogs.McpServerDialogCopyButton)]
-                            </FluentButton>
-                        </div>
-                    </p>
-                    <p>
-                        <img class="api-key-help-image" src="/img/VSCodeMcpApiKeyExample.png" alt="Screenshot of VS Code showing where to enter the Aspire MCP API key. A red box highlights the text box to enter the API key." />
-                    </p>
+                    @if (!IsCliMcpMode)
+                    {
+                        <p>
+                            @Loc[nameof(Dialogs.McpServerDialogVSCodeApiKeyInstructions)]
+                        </p>
+                        <p class="input-container">
+                            <FluentInputLabel ForId="vscode-api-key-field" Label="@Loc[nameof(Dialogs.McpServerDialogApiKeyLabel)]" />
+                            <div class="api-key-container">
+                                <FluentTextField id="vscode-api-key-field" Value="@DashboardOptions.Value.Mcp.PrimaryApiKey"
+                                                 Style="width: 300px"
+                                                 ReadOnly="true" />
+                                <FluentButton Id="@_vsCodeCopyButtonId"
+                                              AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(DashboardOptions.Value.Mcp.PrimaryApiKey, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                                    <span slot="start">
+                                        <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+                                        <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+                                    </span>
+                                    @Loc[nameof(Dialogs.McpServerDialogCopyButton)]
+                                </FluentButton>
+                            </div>
+                        </p>
+                        <p>
+                            <img class="api-key-help-image" src="/img/VSCodeMcpApiKeyExample.png" alt="Screenshot of VS Code showing where to enter the Aspire MCP API key. A red box highlights the text box to enter the API key." />
+                        </p>
+                    }
                     @if (_isHttps)
                     {
                         <div class="block-warning">
@@ -197,28 +133,31 @@
                             *@
                         </a>
                     </p>
-                    <p>
-                        @Loc[nameof(Dialogs.McpServerDialogVisualStudioApiKeyInstructions)]
-                    </p>
-                    <p class="input-container">
-                        <FluentInputLabel ForId="vs-api-key-field" Label="@Loc[nameof(Dialogs.McpServerDialogApiKeyLabel)]" />
-                        <div class="api-key-container">
-                            <FluentTextField id="vs-api-key-field" Value="@DashboardOptions.Value.Mcp.PrimaryApiKey"
-                                             Style="width: 300px"
-                                             ReadOnly="true" />
-                            <FluentButton Id="@_vsCopyButtonId"
-                                          AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(DashboardOptions.Value.Mcp.PrimaryApiKey, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
-                                <span slot="start">
-                                    <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
-                                    <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
-                                </span>
-                                @Loc[nameof(Dialogs.McpServerDialogCopyButton)]
-                            </FluentButton>
-                        </div>
-                    </p>
-                    <p>
-                        <img class="api-key-help-image" src="/img/VSMcpApiKeyExample.png" alt="Screenshot of VS Code showing where to enter the Aspire MCP API key. A red box highlights the text box to enter the API key." />
-                    </p>
+                    @if (!IsCliMcpMode)
+                    {
+                        <p>
+                            @Loc[nameof(Dialogs.McpServerDialogVisualStudioApiKeyInstructions)]
+                        </p>
+                        <p class="input-container">
+                            <FluentInputLabel ForId="vs-api-key-field" Label="@Loc[nameof(Dialogs.McpServerDialogApiKeyLabel)]" />
+                            <div class="api-key-container">
+                                <FluentTextField id="vs-api-key-field" Value="@DashboardOptions.Value.Mcp.PrimaryApiKey"
+                                                 Style="width: 300px"
+                                                 ReadOnly="true" />
+                                <FluentButton Id="@_vsCopyButtonId"
+                                              AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(DashboardOptions.Value.Mcp.PrimaryApiKey, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                                    <span slot="start">
+                                        <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+                                        <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+                                    </span>
+                                    @Loc[nameof(Dialogs.McpServerDialogCopyButton)]
+                                </FluentButton>
+                            </div>
+                        </p>
+                        <p>
+                            <img class="api-key-help-image" src="/img/VSMcpApiKeyExample.png" alt="Screenshot of VS Code showing where to enter the Aspire MCP API key. A red box highlights the text box to enter the API key." />
+                        </p>
+                    }
                     <div class="property-grid-container">
                         <FluentAccordion>
                             <FluentAccordionItem>
@@ -244,9 +183,6 @@
                        Icon="new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.MoreCircle()">
                 <div class="mcp-tool-tab">
                     <p>
-                        @Loc[nameof(Dialogs.McpServerDialogOtherDescription)]
-                    </p>
-                    <p>
                         @Loc[nameof(Dialogs.McpServerDialogOtherInstructions)]
                     </p>
                     <div class="property-grid-container">
@@ -268,7 +204,5 @@
                 </div>
             </FluentTab>
         </FluentTabs>
-        }
-
     }
 </div>
