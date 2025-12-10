@@ -38,7 +38,7 @@ public class AzureServiceBusQueueConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("ConnectionString", property.Key);
-                Assert.Equal("Endpoint={servicebus.outputs.serviceBusEndpoint};EntityPath=myqueue", property.Value.ValueExpression);
+                Assert.Equal("Endpoint={servicebus.outputs.serviceBusEndpoint}", property.Value.ValueExpression);
             });
     }
 }

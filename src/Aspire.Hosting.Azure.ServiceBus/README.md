@@ -75,7 +75,6 @@ The Service Bus queue resource inherits all properties from its parent Service B
 | Property Name | Description |
 |---------------|-------------|
 | `QueueName` | The name of the queue |
-| `ConnectionString` | The connection string for the queue |
 
 ### Service Bus topic
 
@@ -84,7 +83,6 @@ The Service Bus topic resource inherits all properties from its parent Service B
 | Property Name | Description |
 |---------------|-------------|
 | `TopicName` | The name of the topic |
-| `ConnectionString` | The connection string for the topic |
 
 ### Service Bus subscription
 

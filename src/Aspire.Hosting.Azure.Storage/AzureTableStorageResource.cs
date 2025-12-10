@@ -62,7 +62,11 @@ public class AzureTableStorageResource(string name, AzureStorageResource storage
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
+        foreach (var property in Parent.GetConnectionProperties())
+        {
+            yield return property;
+        }
+
         yield return new("Uri", ServiceUriExpression);
-        yield return new("ConnectionString", ConnectionStringExpression);
     }
 }

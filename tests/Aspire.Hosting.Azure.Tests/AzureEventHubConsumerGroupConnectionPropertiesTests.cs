@@ -29,7 +29,7 @@ public class AzureEventHubConsumerGroupConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("{eventhubs.outputs.eventHubsEndpoint}", property.Value.ValueExpression);
+                Assert.Equal("sb://{eventhubs.outputs.eventHubsEndpoint}", property.Value.ValueExpression);
             },
             property =>
             {
@@ -39,7 +39,7 @@ public class AzureEventHubConsumerGroupConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("ConnectionString", property.Key);
-                Assert.Equal("Endpoint={eventhubs.outputs.eventHubsEndpoint};EntityPath=myhub", property.Value.ValueExpression);
+                Assert.Equal("Endpoint={eventhubs.outputs.eventHubsEndpoint}", property.Value.ValueExpression);
             },
             property =>
             {

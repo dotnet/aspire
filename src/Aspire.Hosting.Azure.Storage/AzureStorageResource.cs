@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
 public class AzureStorageResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
-    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithEndpoints, IResourceWithAzureFunctionsConfig, IResourceWithConnectionString
+    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithEndpoints, IResourceWithAzureFunctionsConfig
 {
     internal const string BlobsConnectionKeyPrefix = "Aspire__Azure__Storage__Blobs";
     internal const string QueuesConnectionKeyPrefix = "Aspire__Azure__Storage__Queues";
@@ -97,36 +97,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// <summary>
     /// Gets the connection string for the Azure Storage resource.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => GetConnectionString();
-
-    internal ReferenceExpression GetConnectionString()
-    {
-        if (IsEmulator)
-        {
-            return GetEmulatorConnectionString();
-        }
-
-        var builder = new ReferenceExpressionBuilder();
-
-        builder.AppendLiteral("DefaultEndpointsProtocol=https;");
-        builder.AppendLiteral("AccountName=");
-        builder.Append($"{NameOutputReference}");
-        builder.AppendLiteral(";");
-
-        builder.AppendLiteral("BlobEndpoint=");
-        builder.Append($"{BlobEndpoint}");
-        builder.AppendLiteral(";");
-
-        builder.AppendLiteral("QueueEndpoint=");
-        builder.Append($"{QueueEndpoint}");
-        builder.AppendLiteral(";");
-
-        builder.AppendLiteral("TableEndpoint=");
-        builder.Append($"{TableEndpoint}");
-        builder.AppendLiteral(";");
-
-        return builder.Build();
-    }
+    public ReferenceExpression ConnectionStringExpression => GetEmulatorConnectionString();
 
     internal ReferenceExpression GetTableConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(tableEndpoint: EmulatorTableEndpoint)
@@ -194,17 +165,11 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
         return account;
     }
 
-    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    internal IEnumerable<KeyValuePair<string, ReferenceExpression>> GetConnectionProperties()
     {
         if (IsEmulator)
         {
             yield return new("ConnectionString", ConnectionStringExpression);
-        }
-        else
-        {
-            yield return new("BlobUri", BlobServiceUriExpression);
-            yield return new("QueueUri", QueueServiceUriExpression);
-            yield return new("TableUri", TableServiceUriExpression);
         }
     }
 }

@@ -16,23 +16,7 @@ public class AzureStorageConnectionPropertiesTests
 
         var properties = ((IResourceWithConnectionString)storage.Resource).GetConnectionProperties().ToArray();
 
-        Assert.Collection(
-            properties,
-            property =>
-            {
-                Assert.Equal("BlobUri", property.Key);
-                Assert.Equal("{storage.outputs.blobEndpoint}", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("QueueUri", property.Key);
-                Assert.Equal("{storage.outputs.queueEndpoint}", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("TableUri", property.Key);
-                Assert.Equal("{storage.outputs.tableEndpoint}", property.Value.ValueExpression);
-            });
+        Assert.Empty(properties);
     }
 
     [Fact]
@@ -69,11 +53,6 @@ public class AzureStorageConnectionPropertiesTests
             {
                 Assert.Equal("Uri", property.Key);
                 Assert.Equal("{storage.outputs.blobEndpoint}", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("ConnectionString", property.Key);
-                Assert.Equal("{storage.outputs.blobEndpoint}", property.Value.ValueExpression);
             });
     }
 
@@ -92,11 +71,6 @@ public class AzureStorageConnectionPropertiesTests
             {
                 Assert.Equal("Uri", property.Key);
                 Assert.Equal("{storage.outputs.queueEndpoint}", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("ConnectionString", property.Key);
-                Assert.Equal("{storage.outputs.queueEndpoint}", property.Value.ValueExpression);
             });
     }
 
@@ -114,11 +88,6 @@ public class AzureStorageConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("{storage.outputs.tableEndpoint}", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("ConnectionString", property.Key);
                 Assert.Equal("{storage.outputs.tableEndpoint}", property.Value.ValueExpression);
             });
     }
