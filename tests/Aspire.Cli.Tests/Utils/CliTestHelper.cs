@@ -102,6 +102,11 @@ internal static class CliTestHelper
         services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
         services.AddSingleton(options.AgentEnvironmentDetectorFactory);
         services.AddSingleton(options.GitRepositoryFactory);
+        
+        // Error logging and prerequisite checking
+        services.AddSingleton(options.ErrorLoggerFactory);
+        services.AddSingleton(options.PrerequisiteCheckerFactory);
+        
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
@@ -368,6 +373,19 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var logger = serviceProvider.GetRequiredService<ILogger<GitRepository>>();
         return new GitRepository(executionContext, logger);
+    };
+
+    public Func<IServiceProvider, IErrorLogger> ErrorLoggerFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        return new ErrorLogger(executionContext);
+    };
+
+    public Func<IServiceProvider, IPrerequisiteChecker> PrerequisiteCheckerFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var dotNetRunner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        var logger = serviceProvider.GetRequiredService<ILogger<PrerequisiteChecker>>();
+        return new PrerequisiteChecker(dotNetRunner, logger);
     };
 }
 
