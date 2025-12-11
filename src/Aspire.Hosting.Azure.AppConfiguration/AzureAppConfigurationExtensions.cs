@@ -50,10 +50,10 @@ public static class AzureAppConfigurationExtensions
                     Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                 });
 
-            infrastructure.Add(new ProvisioningOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
+            infrastructure.Add(new ProvisioningOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint.ToBicepExpression() });
 
             // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = store.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = store.Name.ToBicepExpression() });
         };
 
         var resource = new AzureAppConfigurationResource(name, configureInfrastructure);

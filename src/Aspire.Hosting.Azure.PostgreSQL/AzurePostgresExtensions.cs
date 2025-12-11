@@ -505,10 +505,10 @@ public static class AzurePostgresExtensions
         }
 
         // We need to output name to externalize role assignments.
-        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = postgres.Name });
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = postgres.Name.ToBicepExpression() });
 
         // Always output the hostName for the PostgreSQL server.
-        infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = postgres.FullyQualifiedDomainName });
+        infrastructure.Add(new ProvisioningOutput("hostName", typeof(string)) { Value = postgres.FullyQualifiedDomainName.ToBicepExpression() });
     }
 
     internal static PostgreSqlFlexibleServerActiveDirectoryAdministrator AddActiveDirectoryAdministrator(AzureResourceInfrastructure infra, PostgreSqlFlexibleServer postgres, BicepValue<Guid> principalId, BicepValue<PostgreSqlFlexibleServerPrincipalType> principalType, BicepValue<string> principalName)

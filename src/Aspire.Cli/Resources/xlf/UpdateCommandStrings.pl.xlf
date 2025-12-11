@@ -67,6 +67,11 @@
         <target state="translated">Zaktualizuj integracje w projekcie Aspire. (Wersja zapoznawcza)</target>
         <note />
       </trans-unit>
+      <trans-unit id="DotNetToolSelfUpdateMessage">
+        <source>To update the Aspire CLI when installed as a .NET tool, run:</source>
+        <target state="translated">Aby zaktualizować interfejs wiersza polecenia Aspire po zainstalowaniu jako narzędzie platformy .NET, uruchom polecenie:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ExecutingUpdateStepFormat">
         <source>Executing: {0}</source>
         <target state="translated">Wykonywanie: {0}</target>
@@ -105,6 +110,11 @@
       <trans-unit id="MappingRetainedFormat">
         <source>   Mapping: {0}</source>
         <target state="translated">   Mapowanie: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MigratedToNewSdkFormat">
+        <source>Migrated to new project format: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</source>
+        <target state="translated">Przeniesiono do nowego formatu projektu: &lt;Project Sdk="Aspire.AppHost.Sdk/{0}"&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="NoAppHostFoundUpdateCliPrompt">
@@ -165,6 +175,11 @@
       <trans-unit id="RemovedFeedFormat">
         <source>Removed: {0}</source>
         <target state="translated">Usunięto: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedObsoleteAppHostPackage">
+        <source>Removed obsolete Aspire.Hosting.AppHost package reference</source>
+        <target state="translated">Usunięto przestarzałe odwołanie do pakietu Aspire.Hosting.AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="RetainedFeedFormat">

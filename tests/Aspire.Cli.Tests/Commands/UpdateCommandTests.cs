@@ -206,7 +206,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task UpdateCommand_WhenProjectUpdatedSuccessfully_PromptsForCliUpdate()
+    public async Task UpdateCommand_WhenProjectUpdatedSuccessfully_AndChannelSupportsCliDownload_PromptsForCliUpdate()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
@@ -242,7 +242,21 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
                 }
             };
 
-            options.PackagingServiceFactory = _ => new TestPackagingService();
+            // Return a channel with CliDownloadBaseUrl to enable CLI update prompts
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (cancellationToken) =>
+                {
+                    var stableChannel = PackageChannel.CreateExplicitChannel(
+                        "stable",
+                        PackageChannelQuality.Stable,
+                        new[] { new PackageMapping("Aspire*", "https://api.nuget.org/v3/index.json") },
+                        null!,
+                        configureGlobalPackagesFolder: false,
+                        cliDownloadBaseUrl: "https://aka.ms/dotnet/9/aspire/ga/daily");
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { stableChannel });
+                }
+            };
 
             // Configure update notifier to report that an update is available
             options.CliUpdateNotifierFactory = _ => new TestCliUpdateNotifier()
@@ -261,6 +275,77 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         // Assert
         Assert.True(confirmCallbackInvoked, "Confirm prompt should have been shown after successful project update");
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_WhenChannelHasNoCliDownloadUrl_DoesNotPromptForCliUpdate()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var confirmCallbackInvoked = false;
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                ConfirmCallback = (prompt, defaultValue) =>
+                {
+                    confirmCallbackInvoked = true;
+                    return false; // User says no
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = true });
+                }
+            };
+
+            // Return a channel without CliDownloadBaseUrl (like PR channels)
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (cancellationToken) =>
+                {
+                    var prChannel = PackageChannel.CreateExplicitChannel(
+                        "pr-12658",
+                        PackageChannelQuality.Prerelease,
+                        new[] { new PackageMapping("Aspire*", "/path/to/pr/hive") },
+                        null!,
+                        configureGlobalPackagesFolder: false,
+                        cliDownloadBaseUrl: null); // No CLI download URL for PR channels
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { prChannel });
+                }
+            };
+
+            // Configure update notifier to report that an update is available
+            options.CliUpdateNotifierFactory = _ => new TestCliUpdateNotifier()
+            {
+                IsUpdateAvailableCallback = () => true
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --project AppHost.csproj");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.False(confirmCallbackInvoked, "Confirm prompt should NOT have been shown for channels without CLI download support");
         Assert.Equal(0, exitCode);
     }
 
@@ -356,6 +441,47 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         // Assert
         Assert.False(promptForSelectionInvoked, "Quality prompt should not be shown when --quality is provided");
         Assert.Equal("daily", capturedQuality);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_SelfUpdate_WithChannelOption_TracksChannelParameter()
+    {
+        // This test verifies that the channel parameter flows through the self-update command.
+        // Full integration testing of SetConfigurationAsync would require creating a valid
+        // tar.gz archive with a working CLI executable, which is complex for a unit test.
+        // The test verifies the channel value is properly captured and would be passed
+        // to configuration service if the extraction succeeds.
+        
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        string? capturedChannel = null;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot)
+            {
+                DownloadLatestCliAsyncCallback = (channel, ct) =>
+                {
+                    capturedChannel = channel;
+                    // Create a fake archive file - extraction will fail but channel is captured
+                    var archivePath = Path.Combine(workspace.WorkspaceRoot.FullName, "test-cli.tar.gz");
+                    File.WriteAllText(archivePath, "fake archive");
+                    return Task.FromResult(archivePath);
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --self --channel daily");
+
+        // Note: exitCode will be non-zero because extraction fails, but that's okay for this test
+        await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert - verify the channel parameter was correctly passed through
+        Assert.Equal("daily", capturedChannel);
     }
 
     [Fact]
@@ -622,6 +748,10 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
+        // Create a hive directory so the channel prompt is shown
+        var hivesDir = workspace.CreateDirectory(".aspire").CreateSubdirectory("hives");
+        hivesDir.CreateSubdirectory("pr-12345");
+
         var cancellationMessageDisplayed = false;
         
         var wrappedService = new CancellationTrackingInteractionService(new TestConsoleInteractionService()
@@ -672,9 +802,76 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task UpdateCommand_WithoutHives_UsesImplicitChannelWithoutPrompting()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var promptForSelectionInvoked = false;
+        var updatedWithChannel = string.Empty;
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            {
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
+                {
+                    return Task.FromResult<FileInfo?>(new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj")));
+                }
+            };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (prompt, choices, formatter, ct) =>
+                {
+                    promptForSelectionInvoked = true;
+                    return choices.Cast<object>().First();
+                }
+            };
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
+
+            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
+            {
+                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
+                {
+                    updatedWithChannel = channel.Name;
+                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = false });
+                }
+            };
+
+            options.PackagingServiceFactory = _ => new TestPackagingService()
+            {
+                GetChannelsAsyncCallback = (ct) =>
+                {
+                    var fakeCache = new FakeNuGetPackageCache();
+                    var implicitChannel = PackageChannel.CreateImplicitChannel(fakeCache);
+                    return Task.FromResult<IEnumerable<PackageChannel>>(new[] { implicitChannel });
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act - without hives, should automatically use implicit channel
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.False(promptForSelectionInvoked, "Channel selection prompt should not be shown when there are no hives");
+        Assert.Equal("default", updatedWithChannel); // Implicit channel is named "default"
+    }
+
+    [Fact]
     public async Task UpdateCommand_SelfUpdate_WhenCancelled_DisplaysCancellationMessage()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a hive directory so the channel prompt is shown
+        var hivesDir = workspace.CreateDirectory(".aspire").CreateSubdirectory("hives");
+        hivesDir.CreateSubdirectory("pr-12345");
 
         var cancellationMessageDisplayed = false;
         
@@ -706,6 +903,35 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         // Assert
         Assert.True(cancellationMessageDisplayed, "Cancellation message should have been displayed");
         Assert.Equal(ExitCodeConstants.InvalidCommand, exitCode);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_SelfOption_IsAvailableAndParseable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot)
+            {
+                DownloadLatestCliAsyncCallback = (channel, ct) =>
+                {
+                    // Create a fake archive file
+                    var archivePath = Path.Combine(workspace.WorkspaceRoot.FullName, "test-cli.tar.gz");
+                    File.WriteAllText(archivePath, "fake archive");
+                    return Task.FromResult(archivePath);
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        
+        // Act - Parse command with --self option
+        var result = command.Parse("update --self --channel stable");
+        
+        // Assert - Command should parse successfully without errors
+        Assert.Empty(result.Errors);
     }
 }
 

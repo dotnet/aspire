@@ -8,11 +8,11 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an annotation for the Azure App Service environment context.
 /// </summary>
-internal sealed class AzureAppServiceEnvironmentContextAnnotation (AzureAppServiceEnvironmentContext context)
+internal sealed class AzureAppServiceEnvironmentContextAnnotation(AzureAppServiceEnvironmentContext context)
     : IResourceAnnotation
 {
     /// <summary>
-    /// Azure App Service environment context.
+    /// Get the Azure App Service environment context.
     /// </summary>
     public AzureAppServiceEnvironmentContext EnvironmentContext { get; } = context;
 }

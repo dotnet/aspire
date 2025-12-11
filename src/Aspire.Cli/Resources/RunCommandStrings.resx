@@ -120,6 +120,9 @@
   <data name="Description" xml:space="preserve">
     <value>Run an Aspire apphost in development mode.</value>
   </data>
+  <data name="ForceArgumentDescription" xml:space="preserve">
+    <value>Stop any running instance of the AppHost without prompting.</value>
+  </data>
   <data name="ProjectArgumentDescription" xml:space="preserve">
     <value>The path to the Aspire AppHost project file.</value>
   </data>
@@ -180,5 +183,26 @@
   </data>
   <data name="StartingDebugSessionInExtension" xml:space="preserve">
     <value>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</value>
+  </data>
+  <data name="AgentConfigurationPrompt" xml:space="preserve">
+    <value>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</value>
+  </data>
+  <data name="AgentConfigurationYes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="AgentConfigurationNo" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="AgentConfigurationMaybeLater" xml:space="preserve">
+    <value>Maybe later</value>
+  </data>
+  <data name="AgentConfigurationSelectPrompt" xml:space="preserve">
+    <value>Select agent environments to configure:</value>
+  </data>
+  <data name="RunningInstanceStopped" xml:space="preserve">
+    <value>Running instance stopped successfully.</value>
+  </data>
+  <data name="RunningInstanceStopFailed" xml:space="preserve">
+    <value>Failed to stop running instance. The process may have already exited.</value>
   </data>
 </root>

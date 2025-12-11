@@ -609,7 +609,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_Works()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -634,7 +634,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_NormalizesPath()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -656,7 +656,7 @@ public class AzureFunctionsTests
     [Fact]
     public async Task AddAzureFunctionsProject_WithProjectPath_ConfiguresEnvironmentVariables()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -687,7 +687,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_SharesDefaultStorage()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create temporary project files
@@ -710,7 +710,7 @@ public class AzureFunctionsTests
     [RequiresDocker]
     public async Task AddAzureFunctionsProject_WithProjectPath_CanUseCustomHostStorage()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -742,7 +742,7 @@ public class AzureFunctionsTests
     [Fact]
     public void AddAzureFunctionsProject_WithProjectPath_AddsAzureFunctionsAnnotation()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Create a temporary project file
@@ -755,5 +755,18 @@ public class AzureFunctionsTests
 
         // Verify that AzureFunctionsAnnotation is added
         Assert.True(functionsResource.TryGetLastAnnotation<AzureFunctionsAnnotation>(out _));
+    }
+
+    [Fact]
+    public void AddAzureFunctionsProject_RegistersFuncCoreToolsInstallationManager()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzureFunctionsProject<TestProject>("funcapp");
+
+        // Verify that FuncCoreToolsInstallationManager is registered as a singleton
+        var descriptor = builder.Services.FirstOrDefault(s => s.ServiceType == typeof(FuncCoreToolsInstallationManager));
+        Assert.NotNull(descriptor);
+        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
     }
 }

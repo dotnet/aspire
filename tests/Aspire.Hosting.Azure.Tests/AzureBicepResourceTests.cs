@@ -39,7 +39,7 @@ public class AzureBicepResourceTests
         {
             var id = new UserAssignedIdentity("id");
             infrastructure.Add(id);
-            infrastructure.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId });
+            infrastructure.Add(new ProvisioningOutput("cid", typeof(string)) { Value = id.ClientId.ToBicepExpression() });
         }
 
         return new()
@@ -61,7 +61,7 @@ public class AzureBicepResourceTests
             { builder => builder.AddAzureRedis(resourceName) },
 #pragma warning restore CS0618 // Type or member is obsolete
             { builder => builder.AddAzurePostgresFlexibleServer(resourceName) },
-            { builder => builder.AddAzureRedisEnterprise(resourceName) },
+            { builder => builder.AddAzureManagedRedis(resourceName) },
             { builder => builder.AddAzureSearch(resourceName) },
             { builder => builder.AddAzureServiceBus(resourceName) },
             { builder => builder.AddAzureSignalR(resourceName) },

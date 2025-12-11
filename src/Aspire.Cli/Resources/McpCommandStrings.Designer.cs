@@ -77,5 +77,104 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("StartCommand_Description", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initialize MCP server configuration for detected agent environments..
+        /// </summary>
+        internal static string InitCommand_Description {
+            get {
+                return ResourceManager.GetString("InitCommand_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Which agent environments do you want to configure?.
+        /// </summary>
+        internal static string InitCommand_AgentConfigurationSelectPrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_AgentConfigurationSelectPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Which additional options do you want to enable?.
+        /// </summary>
+        internal static string InitCommand_AdditionalOptionsSelectPrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_AdditionalOptionsSelectPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No agent environments were detected..
+        /// </summary>
+        internal static string InitCommand_NoAgentEnvironmentsDetected {
+            get {
+                return ResourceManager.GetString("InitCommand_NoAgentEnvironmentsDetected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Agent environment configuration complete..
+        /// </summary>
+        internal static string InitCommand_ConfigurationComplete {
+            get {
+                return ResourceManager.GetString("InitCommand_ConfigurationComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detecting agent environments....
+        /// </summary>
+        internal static string InitCommand_DetectingAgentEnvironments {
+            get {
+                return ResourceManager.GetString("InitCommand_DetectingAgentEnvironments", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter the path to the root of your workspace:.
+        /// </summary>
+        internal static string InitCommand_WorkspaceRootPrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_WorkspaceRootPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Workspace root path is required..
+        /// </summary>
+        internal static string InitCommand_WorkspaceRootRequired {
+            get {
+                return ResourceManager.GetString("InitCommand_WorkspaceRootRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Directory not found: {0}.
+        /// </summary>
+        internal static string InitCommand_WorkspaceRootNotFound {
+            get {
+                return ResourceManager.GetString("InitCommand_WorkspaceRootNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Create agent environment specific instruction files?.
+        /// </summary>
+        internal static string InitCommand_CreateAgentInstructionsPrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_CreateAgentInstructionsPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pre-configure Playwright MCP server?.
+        /// </summary>
+        internal static string InitCommand_ConfigurePlaywrightPrompt {
+            get {
+                return ResourceManager.GetString("InitCommand_ConfigurePlaywrightPrompt", resourceCulture);
+            }
+        }
     }
 }

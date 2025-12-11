@@ -119,7 +119,7 @@ jobs:
       os: "ubuntu-latest"
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeout: 20m
-      testHangTimeout: 12m
+      testHangTimeout: "12m"
       extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
@@ -137,7 +137,7 @@ jobs:
       os: "macos-latest"
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeout: 20m
-      testHangTimeout: 12m
+      testHangTimeout: "12m"
       extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
@@ -155,7 +155,7 @@ jobs:
       os: "windows-latest"
       testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
       testSessionTimeout: 20m
-      testHangTimeout: 12m
+      testHangTimeout: "12m"
       extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       requiresNugets: true
@@ -191,7 +191,7 @@ jobs:
       - name: Run tests
         run: yarn test
       - name: Package VSIX
-        run: npx @vscode/vsce package --yarn --pre-release -o out/aspire-extension.vsix
+        run: npx @vscode/vsce@3.7.1 package --yarn --pre-release -o out/aspire-extension.vsix
       - name: Upload VSIX
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:

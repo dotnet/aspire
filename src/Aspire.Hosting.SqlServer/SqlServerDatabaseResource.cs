@@ -41,7 +41,7 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     /// Gets the connection URI expression for the SQL Server database.
     /// </summary>
     /// <remarks>
-    /// Format: <c>mssql://{host}:{port}/{database}</c>.
+    /// Format: <c>mssql://{Username}:{Password}@{Host}:{Port}</c>.
     /// </remarks>
     public ReferenceExpression UriExpression =>
         ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");

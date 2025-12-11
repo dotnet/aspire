@@ -45,6 +45,8 @@ namespace Aspire.Hosting.Kubernetes
         public string HelmChartName { get { throw null; } set { } }
 
         public string HelmChartVersion { get { throw null; } set { } }
+
+        ApplicationModel.ReferenceExpression ApplicationModel.IComputeEnvironmentResource.GetHostAddressExpression(ApplicationModel.EndpointReference endpointReference) { throw null; }
     }
 
     public partial class KubernetesResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<KubernetesEnvironmentResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource

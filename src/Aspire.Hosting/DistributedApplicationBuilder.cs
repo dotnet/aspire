@@ -6,6 +6,8 @@
 #pragma warning disable ASPIREPIPELINES002
 #pragma warning disable ASPIREPIPELINES004
 #pragma warning disable ASPIRECONTAINERRUNTIME001
+#pragma warning disable ASPIREFILESYSTEM001
+#pragma warning disable ASPIREUSERSECRETS001
 
 using System.Diagnostics;
 using System.Reflection;
@@ -65,6 +67,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
     private readonly IUserSecretsManager _userSecretsManager;
+    private readonly FileSystemService _directoryService;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -95,6 +98,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <inheritdoc />
     public IDistributedApplicationPipeline Pipeline { get; } = new DistributedApplicationPipeline();
+
+    /// <inheritdoc />
+    public IFileSystemService FileSystemService => _directoryService;
+
+    /// <inheritdoc />
+    public IUserSecretsManager UserSecretsManager => _userSecretsManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -203,6 +212,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Normalize the AppHost path for consistent behavior across platforms and execution contexts
         AppHostPath = Path.GetFullPath(appHostPath);
 
+        // Get the actual AppHost file path (with .csproj or .cs extension)
+        var appHostFilePath = options.AppHostFilePath;
+
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
@@ -218,6 +230,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
+            ["AppHost:FilePath"] = appHostFilePath,
             ["AppHost:DashboardApplicationName"] = dashboardApplicationName,
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
@@ -289,8 +302,17 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         // Core things
+        // Create and register the directory service (first, so it can be used by other services)
+        _directoryService = new FileSystemService(_innerBuilder.Configuration);
+        _innerBuilder.Services.AddSingleton<IFileSystemService>(sp =>
+        {
+            _directoryService.SetLogger(sp.GetRequiredService<ILogger<FileSystemService>>());
+            return _directoryService;
+        });
+
         // Create and register the user secrets manager
-        _userSecretsManager = UserSecretsManagerFactory.Instance.GetOrCreate(AppHostAssembly);
+        var userSecretsFactory = new UserSecretsManagerFactory(_directoryService);
+        _userSecretsManager = userSecretsFactory.GetOrCreate(AppHostAssembly);
         // Always register IUserSecretsManager so dependencies can resolve
         _innerBuilder.Services.AddSingleton(_userSecretsManager);
         
@@ -331,7 +353,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 throw new InvalidOperationException($"Could not determine an appropriate location for local storage. Set the {AspireStore.AspireStorePathKeyName} setting to a folder where the App Host content should be stored.");
             }
 
-            return new AspireStore(Path.Combine(aspireDir, ".aspire"));
+            var directoryService = sp.GetRequiredService<IFileSystemService>();
+            return new AspireStore(Path.Combine(aspireDir, ".aspire"), directoryService);
         });
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         _innerBuilder.Services.AddSingleton<IDeveloperCertificateService, DeveloperCertificateService>();
@@ -346,6 +369,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
         _innerBuilder.Services.AddSingleton<BackchannelService>();
         _innerBuilder.Services.AddHostedService<BackchannelService>(sp => sp.GetRequiredService<BackchannelService>());
+        _innerBuilder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        _innerBuilder.Services.AddHostedService<AuxiliaryBackchannelService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
         _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
 
         ConfigureHealthChecks();
@@ -450,8 +475,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
             _innerBuilder.Services.AddSingleton<DcpNameGenerator>();
 
-            // We need a unique path per application instance
-            _innerBuilder.Services.AddSingleton(new Locations());
+            // Locations now uses IFileSystemService for DCP session storage
+            _innerBuilder.Services.AddSingleton<Locations>();
             _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
             Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.InitializeDcpAnnotations);
@@ -470,7 +495,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 null => sp.GetRequiredKeyedService<IContainerRuntime>("docker")
             };
         });
-        _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
+        _innerBuilder.Services.AddSingleton<IResourceContainerImageManager, ResourceContainerImageManager>();
         _innerBuilder.Services.AddSingleton<PipelineActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
         _innerBuilder.Services.AddSingleton<IPipelineOutputService, PipelineOutputService>();

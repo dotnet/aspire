@@ -2,6 +2,31 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pt-BR" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AgentConfigurationMaybeLater">
+        <source>Maybe later</source>
+        <target state="translated">Talvez mais tarde</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationNo">
+        <source>No</source>
+        <target state="translated">Não</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationPrompt">
+        <source>Aspire has detected {0} agentic coding environment(s) to configure. Would you like to configure now?</source>
+        <target state="translated">O Aspire detectou {0} ambientes de codificação agênticos para configurar. Deseja configurar agora?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationSelectPrompt">
+        <source>Select agent environments to configure:</source>
+        <target state="translated">Selecione ambientes de agente a serem configurados:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AgentConfigurationYes">
+        <source>Yes</source>
+        <target state="translated">Sim</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHost">
         <source>AppHost</source>
         <target state="translated">AppHost</target>
@@ -30,6 +55,11 @@
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
         <target state="translated">Pontos de Extremidade</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ForceArgumentDescription">
+        <source>Stop any running instance of the AppHost without prompting.</source>
+        <target state="translated">Pare qualquer instância em execução do AppHost sem avisos.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -66,6 +96,16 @@
         <source>Resource</source>
         <target state="translated">Recurso</target>
         <note>A column header (noun)</note>
+      </trans-unit>
+      <trans-unit id="RunningInstanceStopFailed">
+        <source>Failed to stop running instance. The process may have already exited.</source>
+        <target state="translated">Falha ao interromper a instância em execução. O processo pode já ter sido encerrado.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunningInstanceStopped">
+        <source>Running instance stopped successfully.</source>
+        <target state="translated">A instância em execução foi interrompida com sucesso.</target>
+        <note />
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>

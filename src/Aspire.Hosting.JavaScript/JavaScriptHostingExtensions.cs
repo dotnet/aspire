@@ -1,8 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIRECERTIFICATES001
 
 using System.Globalization;
 using System.Text.Json;
@@ -24,6 +25,63 @@ namespace Aspire.Hosting;
 public static class JavaScriptHostingExtensions
 {
     private const string DefaultNodeVersion = "22";
+
+    // This is the order of config files that Vite will look for by default
+    // See https://github.com/vitejs/vite/blob/main/packages/vite/src/node/constants.ts#L97
+    private static readonly string[] s_defaultConfigFiles = ["vite.config.js", "vite.config.mjs", "vite.config.ts", "vite.config.cjs", "vite.config.mts", "vite.config.cts"];
+
+    // The token to replace with the relative path to the user's Vite config file
+    private const string AspireViteRelativeConfigToken = "%%ASPIRE_VITE_RELATIVE_CONFIG_PATH%%";
+
+    // The token to replace with the absolute path to the original Vite config file
+    private const string AspireViteAbsoluteConfigToken = "%%ASPIRE_VITE_ABSOLUTE_CONFIG_PATH%%";
+
+    // A template Vite config that loads an existing config provides a default https configuration if one isn't present
+    // Uses environment variables to configure a TLS certificate in PFX format and its password if specified
+    // The value of %%ASPIRE_VITE_RELATIVE_CONFIG_PATH%% is replaced with the path to the user's actual Vite config file at runtime
+    // Vite only supports module style config files, so we don't have to handle commonjs style imports or exports here
+    private const string AspireViteConfig = """
+    import { defineConfig } from 'vite'
+    import config from '%%ASPIRE_VITE_RELATIVE_CONFIG_PATH%%'
+
+    console.log('Applying Aspire specific Vite configuration for HTTPS support.')
+    console.log('Found original Vite configuration at "%%ASPIRE_VITE_ABSOLUTE_CONFIG_PATH%%"')
+
+    const aspireHttpsConfig = process.env['TLS_CONFIG_PFX'] ? {
+        pfx: process.env['TLS_CONFIG_PFX'],
+        passphrase: process.env['TLS_CONFIG_PASSWORD'],
+    } : undefined
+
+    const wrapConfig = (innerConfig) => ({
+        ...innerConfig,
+        server: {
+            ...innerConfig.server,
+            https: innerConfig.server?.https ?? aspireHttpsConfig,
+        }
+    })
+
+    let finalConfig = config
+    try {
+        if (typeof config === 'function') {
+            finalConfig = defineConfig((cfg) => {
+                let innerConfig = config(cfg)
+
+                return wrapConfig(innerConfig)
+            });
+        } else if (typeof config === 'object' && config !== null) {
+            let innerConfig = config
+            finalConfig = defineConfig(wrapConfig(innerConfig))
+        } else {
+            console.warn('Unexpected Vite config format. Falling back to original configuration without Aspire HTTPS modifications.')
+            finalConfig = config
+        }
+    } catch {
+        console.warn('Error applying Aspire Vite configuration. Falling back to original configuration without Aspire HTTPS modifications.')
+        finalConfig = config
+    }
+
+    export default finalConfig
+    """;
 
     /// <summary>
     /// Adds a node application to the application model. Node should be available on the PATH.
@@ -109,6 +167,11 @@ public static class JavaScriptHostingExtensions
 
                     if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager))
                     {
+                        // Initialize the Docker build stage with package manager-specific setup commands.
+                        // This allows package managers to add prerequisite commands (e.g., enabling pnpm via corepack)
+                        // before package installation and build steps.
+                        packageManager.InitializeDockerBuildStage?.Invoke(builderStage);
+
                         var copiedAllSource = false;
                         if (resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
@@ -334,6 +397,10 @@ public static class JavaScriptHostingExtensions
                             .From(baseImage)
                             .WorkDir("/app");
 
+                        // Initialize the Docker build stage with package manager-specific setup commands
+                        // for the default JavaScript app builder (used by Vite and other build-less apps).
+                        packageManager.InitializeDockerBuildStage?.Invoke(dockerBuilder);
+
                         var copiedAllSource = false;
 
                         // Copy package files first for better layer caching
@@ -436,7 +503,7 @@ public static class JavaScriptHostingExtensions
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var resource = new ViteAppResource(name, "npm", appDirectory);
 
-        return builder.CreateDefaultJavaScriptAppBuilder(
+        var resourceBuilder = builder.CreateDefaultJavaScriptAppBuilder(
             resource,
             appDirectory,
             runScriptName,
@@ -459,8 +526,165 @@ public static class JavaScriptHostingExtensions
 
                 c.Args.Add("--port");
                 c.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
+
+                if (!string.IsNullOrEmpty(resource.ViteConfigPath))
+                {
+                    c.Args.Add("--config");
+                    c.Args.Add(resource.ViteConfigPath);
+                }
             })
-            .WithHttpEndpoint(env: "PORT");
+            .WithHttpEndpoint(env: "PORT")
+            // Making TLS opt-in for Vite for now
+            .WithoutHttpsCertificate()
+            .WithHttpsCertificateConfiguration(async ctx =>
+            {
+                string? configTarget = resource.ViteConfigPath;
+
+                // First we need to determine if there's an existing --config argument specified
+                var cfgIndex = ctx.Arguments.IndexOf("--config");
+                if (cfgIndex >= 0 && cfgIndex + 1 < ctx.Arguments.Count)
+                {
+                    configTarget = ctx.Arguments[cfgIndex + 1] switch
+                    {
+                        string s when !string.IsNullOrEmpty(s) && !s.StartsWith("--") => s,
+                        ReferenceExpression re => await re.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false),
+                        _ => null,
+                    };
+
+                    if (string.IsNullOrEmpty(configTarget))
+                    {
+                        // Couldn't determine the config target, so don't modify anything
+                        return;
+                    }
+
+                    // Remove the original --config argument and its value
+                    ctx.Arguments.RemoveAt(cfgIndex);
+                    ctx.Arguments.RemoveAt(cfgIndex);
+                }
+                else if (cfgIndex >= 0)
+                {
+                    // --config argument is present but is missing a value
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(configTarget))
+                {
+                    // The user didn't specify a specific vite config file, so we need to look for one of the default config files
+                    foreach (var configFile in s_defaultConfigFiles)
+                    {
+                        var candidatePath = Path.GetFullPath(Path.Join(appDirectory, configFile));
+                        if (File.Exists(candidatePath))
+                        {
+                            configTarget = candidatePath;
+                            break;
+                        }
+                    }
+                }
+
+                if (configTarget is not null)
+                {
+                    try
+                    {
+                        // Determine the absolute path to the original config file
+                        var absoluteConfigPath = Path.GetFullPath(configTarget, appDirectory);
+                        // Determine the relative path from the Aspire vite config to the original config file
+                        var relativeConfigPath = Path.GetRelativePath(Path.Join(appDirectory, "node_modules", ".bin"), absoluteConfigPath);
+
+                        // If we are expecting to run the vite app with HTTPS termination, generate an Aspire specific Vite config file that can mutate the user's original config
+                        var aspireConfig = AspireViteConfig
+                            .Replace(AspireViteRelativeConfigToken, relativeConfigPath.Replace("\\", "/"), StringComparison.Ordinal)
+                            .Replace(AspireViteAbsoluteConfigToken, absoluteConfigPath, StringComparison.Ordinal);
+                        var aspireConfigPath = Path.Join(appDirectory, "node_modules", ".bin", $"aspire.{Path.GetFileName(configTarget)}");
+                        File.WriteAllText(aspireConfigPath, aspireConfig);
+
+                        // Override the path to the Vite config file to use the Aspire generated one. If we made it here, we
+                        // know there isn't an existing --config argument present.
+                        ctx.Arguments.Add("--config");
+                        ctx.Arguments.Add(aspireConfigPath);
+
+                        ctx.EnvironmentVariables["TLS_CONFIG_PFX"] = ctx.PfxPath;
+                        if (ctx.Password is not null)
+                        {
+                            ctx.EnvironmentVariables["TLS_CONFIG_PASSWORD"] = ctx.Password;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        var resourceLoggerService = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+                        var resourceLogger = resourceLoggerService.GetLogger(resource);
+
+                        resourceLogger.LogWarning(ex, "Failed to generate Aspire Vite HTTPS config wrapper for resource '{ResourceName}'. Falling back to existing Vite config without Aspire modifications. Automatic HTTPS configuration won't be available", resource.Name);
+
+                        if (!string.IsNullOrEmpty(configTarget))
+                        {
+                            // Fallback to using the existing config target
+                            ctx.Arguments.Add("--config");
+                            ctx.Arguments.Add(configTarget);
+                        }
+                    }
+                }
+            });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((@event, _) =>
+            {
+                var developerCertificateService = @event.Services.GetRequiredService<IDeveloperCertificateService>();
+
+                bool addHttps = false;
+                if (!resourceBuilder.Resource.TryGetLastAnnotation<HttpsCertificateAnnotation>(out var annotation))
+                {
+                    if (developerCertificateService.UseForHttps)
+                    {
+                        // If no certificate is configured, and the developer certificate service supports container trust,
+                        // configure the resource to use the developer certificate for its key pair.
+                        addHttps = true;
+                    }
+                }
+                else if (annotation.UseDeveloperCertificate.GetValueOrDefault(developerCertificateService.UseForHttps) || annotation.Certificate is not null)
+                {
+                    addHttps = true;
+                }
+
+                if (addHttps)
+                {
+                    // Vite only supports a single endpoint, so we have to modify the existing endpoint to use HTTPS instead of
+                    // adding a new one.
+                    resourceBuilder.WithEndpoint("http", ep => ep.UriScheme = "https");
+                }
+
+                return Task.CompletedTask;
+            });
+        }
+
+        return resourceBuilder;
+    }
+
+    /// <summary>
+    /// Configures the Vite app to use the specified Vite configuration file instead of the default resolution behavior.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configPath">The path to the Vite configuration file. Relative to the Vite service project root.</param>
+    /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// Use this method to specify a specific Vite configuration file if you need to override the default Vite configuration resolution behavior.
+    /// </remarks>
+    /// <example>
+    /// Use a custom Vite configuration file:
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var viteApp = builder.AddViteApp("frontend", "./frontend")
+    ///     .WithViteConfig("./vite.production.config.js");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ViteAppResource> WithViteConfig(this IResourceBuilder<ViteAppResource> builder, string configPath)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(configPath);
+
+        builder.Resource.ViteConfigPath = configPath;
+
+        return builder;
     }
 
     /// <summary>
@@ -588,7 +812,9 @@ public static class JavaScriptHostingExtensions
             {
                 PackageFilesPatterns = { new CopyFilePattern(packageFilesSourcePattern, "./") },
                 // pnpm does not strip the -- separator and passes it to the script, causing Vite to ignore subsequent arguments.
-                CommandSeparator = null
+                CommandSeparator = null,
+                // pnpm is not included in the Node.js Docker image by default, so we need to enable it via corepack
+                InitializeDockerBuildStage = stage => stage.Run("corepack enable pnpm")
             })
             .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
 
@@ -645,37 +871,28 @@ public static class JavaScriptHostingExtensions
             var installerName = $"{resource.Resource.Name}-installer";
             resource.ApplicationBuilder.TryCreateResourceBuilder<JavaScriptInstallerResource>(installerName, out var existingResource);
 
-            if (!install)
+            if (existingResource is not null)
             {
-                if (existingResource != null)
+                // Installer already exists, update its configuration based on install parameter
+                if (!install)
                 {
-                    // Remove existing installer resource if install is false
-                    resource.ApplicationBuilder.Resources.Remove(existingResource.Resource);
+                    // Remove wait annotation if install is false
                     resource.Resource.Annotations.OfType<WaitAnnotation>()
                         .Where(w => w.Resource == existingResource.Resource)
                         .ToList()
                         .ForEach(w => resource.Resource.Annotations.Remove(w));
-                    resource.Resource.Annotations.OfType<JavaScriptPackageInstallerAnnotation>()
-                        .ToList()
-                        .ForEach(a => resource.Resource.Annotations.Remove(a));
-                }
-                else
-                {
-                    // No installer needed
-                }
-                return;
-            }
 
-            if (existingResource is not null)
-            {
-                // Installer already exists
+                    // Add WithExplicitStart to the existing installer
+                    existingResource.WithExplicitStart();
+                }
                 return;
             }
 
             var installer = new JavaScriptInstallerResource(installerName, resource.Resource.WorkingDirectory);
             var installerBuilder = resource.ApplicationBuilder.AddResource(installer)
                 .WithParentRelationship(resource.Resource)
-                .ExcludeFromManifest();
+                .ExcludeFromManifest()
+                .WithCertificateTrustScope(CertificateTrustScope.None);
 
             resource.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
             {
@@ -695,8 +912,17 @@ public static class JavaScriptHostingExtensions
                 return Task.CompletedTask;
             });
 
-            // Make the parent resource wait for the installer to complete
-            resource.WaitForCompletion(installerBuilder);
+            if (install)
+            {
+                // Make the parent resource wait for the installer to complete
+                resource.WaitForCompletion(installerBuilder);
+            }
+            else
+            {
+                // Add WithExplicitStart when install is false
+                // Note: No need to remove wait annotations here since WaitForCompletion was never called
+                installerBuilder.WithExplicitStart();
+            }
 
             resource.WithAnnotation(new JavaScriptPackageInstallerAnnotation(installer));
         }

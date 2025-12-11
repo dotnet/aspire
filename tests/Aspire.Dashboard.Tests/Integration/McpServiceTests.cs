@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
@@ -6,8 +6,10 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Mcp;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration;
@@ -237,6 +239,62 @@ public class McpServiceTests
         var tools = jsonResponse["result"]!["tools"]!.AsArray();
 
         Assert.NotEmpty(tools);
+    }
+
+    [Fact]
+    public async Task CallService_McpTool_TelemetryRecorded()
+    {
+        // Arrange
+        var testTelemetrySender = new TestDashboardTelemetrySender { IsTelemetryEnabled = true };
+
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
+            _testOutputHelper,
+            preConfigureBuilder: builder =>
+            {
+                // Replace the telemetry sender with our test version
+                builder.Services.AddSingleton<IDashboardTelemetrySender>(testTelemetrySender);
+            });
+
+        await app.StartAsync().DefaultTimeout();
+
+        // Initialize telemetry service
+        var telemetryService = app.Services.GetRequiredService<DashboardTelemetryService>();
+        await telemetryService.InitializeAsync();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.McpEndPointAccessor().EndPoint}");
+
+        var request = CreateListToolsRequest();
+
+        // Act
+        var responseMessage = await httpClient.SendAsync(request).DefaultTimeout(TestConstants.LongTimeoutDuration);
+        responseMessage.EnsureSuccessStatusCode();
+
+        // Assert
+        // Read telemetry items until we find the McpToolCall event
+        bool foundMcpToolCall = false;
+        while (await testTelemetrySender.ContextChannel.Reader.WaitToReadAsync().DefaultTimeout())
+        {
+            var context = await testTelemetrySender.ContextChannel.Reader.ReadAsync().DefaultTimeout();
+            if (context.Name.Contains(TelemetryEventKeys.McpToolCall))
+            {
+                foundMcpToolCall = true;
+                break;
+            }
+        }
+        Assert.True(foundMcpToolCall, "Expected to find McpToolCall telemetry event");
+
+        // Then read until we find the EndOperation event
+        bool foundEndOperation = false;
+        while (await testTelemetrySender.ContextChannel.Reader.WaitToReadAsync().DefaultTimeout())
+        {
+            var context = await testTelemetrySender.ContextChannel.Reader.ReadAsync().DefaultTimeout();
+            if (context.Name.Contains(TelemetryEndpoints.TelemetryEndOperation))
+            {
+                foundEndOperation = true;
+                break;
+            }
+        }
+        Assert.True(foundEndOperation, "Expected to find EndOperation telemetry event");
     }
 
     internal static HttpRequestMessage CreateListToolsRequest()

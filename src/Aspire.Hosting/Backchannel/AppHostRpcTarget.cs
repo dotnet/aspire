@@ -25,6 +25,7 @@ internal class AppHostRpcTarget(
     DistributedApplicationOptions options)
 {
     private readonly TaskCompletionSource<Channel<BackchannelLogEntry>> _logChannelTcs = new();
+    private readonly CancellationTokenSource _shutdownCts = new();
 
     public void RegisterLogChannel(Channel<BackchannelLogEntry> channel)
     {
@@ -34,11 +35,26 @@ internal class AppHostRpcTarget(
 
     public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var channel = await _logChannelTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        // Create a linked token source that will be cancelled when shutdown is requested
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownCts.Token);
+        var linkedToken = linkedCts.Token;
 
-        var logEntries = channel.Reader.ReadAllAsync(cancellationToken);
+        Channel<BackchannelLogEntry>? channel = null;
+        
+        try
+        {
+            channel = await _logChannelTcs.Task.WaitAsync(linkedToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (_shutdownCts.Token.IsCancellationRequested)
+        {
+            // Gracefully handle cancellation due to shutdown
+            logger.LogDebug("Log entries stream cancelled due to AppHost shutdown before channel was ready");
+            yield break;
+        }
 
-        await foreach (var logEntry in logEntries.WithCancellation(cancellationToken))
+        var logEntries = channel.Reader.ReadAllAsync(linkedToken);
+
+        await foreach (var logEntry in logEntries.WithCancellation(linkedToken).ConfigureAwait(false))
         {
             // If the log entry is null, terminate the stream
             if (logEntry == null)
@@ -52,9 +68,24 @@ internal class AppHostRpcTarget(
 
     public async IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        while (cancellationToken.IsCancellationRequested == false)
+        // Create a linked token source that will be cancelled when shutdown is requested
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownCts.Token);
+        var linkedToken = linkedCts.Token;
+
+        while (!linkedToken.IsCancellationRequested)
         {
-            var publishingActivity = await activityReporter.ActivityItemUpdated.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            PublishingActivity? publishingActivity = null;
+            
+            try
+            {
+                publishingActivity = await activityReporter.ActivityItemUpdated.Reader.ReadAsync(linkedToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (_shutdownCts.Token.IsCancellationRequested)
+            {
+                // Gracefully handle cancellation due to shutdown
+                logger.LogDebug("Publishing activities stream cancelled due to AppHost shutdown");
+                yield break;
+            }
 
             // Terminate the stream if the publishing activity is null
             if (publishingActivity == null)
@@ -68,9 +99,13 @@ internal class AppHostRpcTarget(
 
     public async IAsyncEnumerable<RpcResourceState> GetResourceStatesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var resourceEvents = resourceNotificationService.WatchAsync(cancellationToken);
+        // Create a linked token source that will be cancelled when shutdown is requested
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownCts.Token);
+        var linkedToken = linkedCts.Token;
 
-        await foreach (var resourceEvent in resourceEvents.WithCancellation(cancellationToken).ConfigureAwait(false))
+        var resourceEvents = resourceNotificationService.WatchAsync(linkedToken);
+
+        await foreach (var resourceEvent in resourceEvents.WithCancellation(linkedToken).ConfigureAwait(false))
         {
             if (resourceEvent.Resource.Name == "aspire-dashboard")
             {
@@ -106,8 +141,21 @@ internal class AppHostRpcTarget(
     public Task RequestStopAsync(CancellationToken cancellationToken)
     {
         _ = cancellationToken;
+        
+        // Cancel inflight streaming RPC calls before stopping the application
+        _shutdownCts.Cancel();
+        
         lifetime.StopApplication();
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Cancels inflight streaming RPC calls to allow graceful shutdown.
+    /// This should be called before stopping the application to prevent JSON-RPC errors on clients.
+    /// </summary>
+    public void CancelInflightRpcCalls()
+    {
+        _shutdownCts.Cancel();
     }
 
     public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)

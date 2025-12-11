@@ -89,19 +89,23 @@ public static class AzureContainerAppExtensions
 
             infra.Add(identity);
 
-            ContainerRegistryService? containerRegistry = null;
-            if (appEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
+            AzureProvisioningResource? registry = null;
+            if (appEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) &&
+                registryReferenceAnnotation.Registry is AzureProvisioningResource explicitRegistry)
             {
-                containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
+                registry = explicitRegistry;
             }
-            else
+            else if (appEnvResource.DefaultContainerRegistry is not null)
             {
-                containerRegistry = new ContainerRegistryService(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_acr"))
-                {
-                    Sku = new() { Name = ContainerRegistrySkuName.Basic },
-                    Tags = tags
-                };
+                registry = appEnvResource.DefaultContainerRegistry;
             }
+
+            if (registry is null)
+            {
+                throw new InvalidOperationException($"No container registry associated with environment '{appEnvResource.Name}'. This should have been added automatically.");
+            }
+
+            var containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
             infra.Add(containerRegistry);
 
             var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, identity);
@@ -281,56 +285,61 @@ public static class AzureContainerAppExtensions
             // Exposed so that callers reference the LA workspace in other bicep modules
             infra.Add(new ProvisioningOutput("AZURE_LOG_ANALYTICS_WORKSPACE_NAME", typeof(string))
             {
-                Value = laWorkspace.Name
+                Value = laWorkspace.Name.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_LOG_ANALYTICS_WORKSPACE_ID", typeof(string))
             {
-                Value = laWorkspace.Id
+                Value = laWorkspace.Id.ToBicepExpression()
             });
 
             // Required by the IContaineRegistry interface
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {
-                Value = containerRegistry.Name
+                Value = containerRegistry.Name.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_ENDPOINT", typeof(string))
             {
-                Value = containerRegistry.LoginServer
+                Value = containerRegistry.LoginServer.ToBicepExpression()
             });
 
             // Required by the IAzureContainerRegistry interface
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", typeof(string))
             {
-                Value = identity.Id
+                Value = identity.Id.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", typeof(string))
             {
-                Value = containerAppEnvironment.Name
+                Value = containerAppEnvironment.Name.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", typeof(string))
             {
-                Value = containerAppEnvironment.Id
+                Value = containerAppEnvironment.Id.ToBicepExpression()
             });
 
             // Required for azd to output the dashboard URL
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", typeof(string))
             {
-                Value = containerAppEnvironment.DefaultDomain
+                Value = containerAppEnvironment.DefaultDomain.ToBicepExpression()
             });
         });
 
-        if (builder.ExecutionContext.IsRunMode)
-        {
+        // Create the default container registry resource before creating the environment
+        var registryName = $"{name}-acr";
+        var defaultRegistry = CreateDefaultAzureContainerRegistry(builder, registryName, containerAppEnvResource);
+        containerAppEnvResource.DefaultContainerRegistry = defaultRegistry;
+
+        // Create the resource builder first, then attach the registry to avoid recreating builders
+        var appEnvBuilder = builder.ExecutionContext.IsRunMode
             // HACK: We need to return a valid resource builder for the container app environment
             // but in run mode, we don't want to add the resource to the builder.
-            return builder.CreateResourceBuilder(containerAppEnvResource);
-        }
+            ? builder.CreateResourceBuilder(containerAppEnvResource)
+            : builder.AddResource(containerAppEnvResource);
 
-        return builder.AddResource(containerAppEnvResource);
+        return appEnvBuilder;
     }
 
     /// <summary>
@@ -378,5 +387,58 @@ public static class AzureContainerAppExtensions
         builder.WithAnnotation(new AzureLogAnalyticsWorkspaceReferenceAnnotation(workspaceBuilder.Resource));
 
         return builder;
+    }
+
+    private static AzureContainerRegistryResource CreateDefaultAzureContainerRegistry(IDistributedApplicationBuilder builder, string name, AzureContainerAppEnvironmentResource containerAppEnvironment)
+    {
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
+        {
+            var registry = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, resourceName) =>
+                {
+                    var resource = ContainerRegistryService.FromExisting(identifier);
+                    resource.Name = resourceName;
+                    return resource;
+                },
+                (infra) =>
+                {
+                    var newRegistry = new ContainerRegistryService(infra.AspireResource.GetBicepIdentifier())
+                    {
+                        Sku = new ContainerRegistrySku { Name = ContainerRegistrySkuName.Basic },
+                        Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
+                    };
+
+                    if (containerAppEnvironment.UseAzdNamingConvention)
+                    {
+                        var resourceToken = new ProvisioningVariable("resourceToken", typeof(string))
+                        {
+                            Value = BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)
+                        };
+                        infrastructure.Add(resourceToken);
+
+                        newRegistry.Name = new FunctionCallExpression(
+                            new IdentifierExpression("replace"),
+                            new InterpolatedStringExpression([
+                                new StringLiteralExpression("acr-"),
+                                new IdentifierExpression(resourceToken.BicepIdentifier)
+                            ]),
+                            new StringLiteralExpression("-"),
+                            new StringLiteralExpression(""));
+                    }
+
+                    return newRegistry;
+                });
+
+            infrastructure.Add(registry);
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = registry.Name });
+            infrastructure.Add(new ProvisioningOutput("loginServer", typeof(string)) { Value = registry.LoginServer });
+        };
+
+        var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            builder.AddResource(resource);
+        }
+        return resource;
     }
 }
