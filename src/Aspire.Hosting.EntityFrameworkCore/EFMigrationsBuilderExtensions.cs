@@ -145,7 +145,9 @@ public static class EFMigrationsBuilderExtensions
 
     private static void EnsureEventSubscriberRegistered(IDistributedApplicationBuilder applicationBuilder)
     {
-        // TryAddEventingSubscriber uses TryAddEnumerable which handles the "already registered" check automatically
+        // TryAddEventingSubscriber uses TryAddEnumerable internally, which ensures that even if this method
+        // is called multiple times (e.g., when AddEFMigrations is called for multiple DbContexts),
+        // the EFMigrationEventSubscriber is only registered once in the DI container.
         applicationBuilder.Services.TryAddEventingSubscriber<EFMigrationEventSubscriber>();
     }
 

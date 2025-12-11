@@ -417,17 +417,17 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                     var applied = migration["Applied"] as bool? ?? false;
                     lastMigration = id;
                     
-                    if (applied)
+                                        if (applied)
                     {
                         lastAppliedMigration = id;
-                            statusLines.Add($"  [Applied] {id}");
-                        }
-                        else
-                        {
-                            pendingMigrations.Add(id);
-                            statusLines.Add($"  [Pending] {id}");
-                        }
+                        statusLines.Add($"  [Applied] {id}");
                     }
+                    else
+                    {
+                        pendingMigrations.Add(id);
+                        statusLines.Add($"  [Pending] {id}");
+                    }
+                }
                 }
 
                 // Try to check for pending model changes
