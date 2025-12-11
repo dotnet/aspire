@@ -12,6 +12,7 @@ using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -168,11 +169,25 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         {
             Name = WellKnownPipelineSteps.PushPrereq,
             Description = "Prerequisite step that runs before any push operations.",
-            Action = context =>
+            Action = async context =>
             {
                 foreach (var resource in context.Model.Resources)
                 {
                     if (!resource.RequiresImageBuildAndPush())
+                    {
+                        continue;
+                    }
+
+                    // Check if the resource is configured to build non-Docker format images
+                    // (e.g., OCI format to a local file path). These don't require a registry.
+                    var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
+                        context.Services,
+                        context.Logger,
+                        executionContext: null,
+                        context.CancellationToken).ConfigureAwait(false);
+
+                    // Skip registry validation if ImageFormat is explicitly set to non-Docker
+                    if (buildOptionsContext.ImageFormat is not null && buildOptionsContext.ImageFormat != Publishing.ContainerImageFormat.Docker)
                     {
                         continue;
                     }
@@ -211,8 +226,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                             $"Please add a container registry using 'builder.AddContainerRegistry(...)' or specify one with '.WithContainerRegistry(registryBuilder)'.");
                     }
                 }
-
-                return Task.CompletedTask;
             },
         });
 

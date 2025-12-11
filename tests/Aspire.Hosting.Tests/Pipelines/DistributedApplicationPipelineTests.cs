@@ -4,10 +4,13 @@
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPIPELINES002
+#pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable IDE0005
 
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
@@ -2095,6 +2098,90 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         Assert.NotNull(paramResource);
         Assert.NotNull(paramResource.WaitForValueTcs);
         Assert.True(paramResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+    }
+
+    [Fact]
+    public async Task PushPrereq_SkipsRegistryCheckForNonDockerImageFormat()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.PushPrereq).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+
+        // Add a project that requires build and push
+        var project = builder.AddProject<DummyProject>("test-project", launchProfileName: null);
+
+        // Configure the project to use OCI format (non-Docker)
+        project.WithContainerBuildOptions(ctx =>
+        {
+            ctx.ImageFormat = Publishing.ContainerImageFormat.Oci;
+            ctx.OutputPath = "/tmp/output";
+        });
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(app);
+
+        // Act & Assert - Should not throw an exception even though no registry is configured
+        // because the ImageFormat is OCI, not Docker
+        await pipeline.ExecuteAsync(context).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task PushPrereq_ThrowsForDockerImageFormatWithoutRegistry()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.PushPrereq).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+
+        // Add a project that requires build and push
+        var project = builder.AddProject<DummyProject>("test-project", launchProfileName: null);
+
+        // Configure the project to use Docker format (the default)
+        project.WithContainerBuildOptions(ctx =>
+        {
+            ctx.ImageFormat = Publishing.ContainerImageFormat.Docker;
+        });
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(app);
+
+        // Act & Assert - Should throw an exception because Docker format requires a registry
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => pipeline.ExecuteAsync(context).DefaultTimeout());
+
+        Assert.Contains("no container registry is available", exception.Message);
+        Assert.Contains("test-project", exception.Message);
+    }
+
+    [Fact]
+    public async Task PushPrereq_ThrowsForDefaultImageFormatWithoutRegistry()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.PushPrereq).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+
+        // Add a project that requires build and push without specifying ImageFormat
+        var project = builder.AddProject<DummyProject>("test-project", launchProfileName: null);
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(app);
+
+        // Act & Assert - Should throw an exception because default (null) ImageFormat is treated as Docker
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => pipeline.ExecuteAsync(context).DefaultTimeout());
+
+        Assert.Contains("no container registry is available", exception.Message);
+        Assert.Contains("test-project", exception.Message);
+    }
+
+    private sealed class DummyProject : IProjectMetadata
+    {
+        public string ProjectPath => "dummy.csproj";
     }
 
     private sealed class CustomResource(string name) : Resource(name)
