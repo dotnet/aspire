@@ -17,6 +17,8 @@ internal sealed class EFMigrationEventSubscriber(
     ResourceLoggerService resourceLoggerService,
     ILogger<EFMigrationEventSubscriber> logger) : IDistributedApplicationEventingSubscriber
 {
+    private const int ScriptPreviewMaxLength = 500;
+
     public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         if (executionContext.IsRunMode)
@@ -75,9 +77,9 @@ internal sealed class EFMigrationEventSubscriber(
                     resourceLogger.LogInformation("Migration script generated successfully for '{ResourceName}'.", migrationResource.Name);
                     if (!string.IsNullOrEmpty(result.Output))
                     {
-                        // Log the script content (first 500 chars for brevity)
-                        var preview = result.Output.Length > 500 
-                            ? string.Concat(result.Output.AsSpan(0, 500), "...") 
+                        // Log the script content (first N chars for brevity)
+                        var preview = result.Output.Length > ScriptPreviewMaxLength 
+                            ? string.Concat(result.Output.AsSpan(0, ScriptPreviewMaxLength), "...") 
                             : result.Output;
                         resourceLogger.LogDebug("Migration script preview:\n{Script}", preview);
                     }
