@@ -40,6 +40,7 @@
     <MicrosoftDotNetRemoteExecutorVersion>11.0.0-beta.25509.1</MicrosoftDotNetRemoteExecutorVersion>
     <MicrosoftDotNetXUnitV3ExtensionsVersion>11.0.0-beta.25509.1</MicrosoftDotNetXUnitV3ExtensionsVersion>
     <MicrosoftDotNetBuildTasksArchivesVersion>11.0.0-beta.25509.1</MicrosoftDotNetBuildTasksArchivesVersion>
+    <MicrosoftExtensionsFileSystemGlobbingVersion>10.0.1</MicrosoftExtensionsFileSystemGlobbingVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>10.1.0</MicrosoftExtensionsAIVersion>
     <MicrosoftExtensionsAIOpenAIVersion>10.1.0-preview.1.25608.1</MicrosoftExtensionsAIOpenAIVersion>
