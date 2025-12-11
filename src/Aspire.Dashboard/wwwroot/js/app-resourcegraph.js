@@ -51,17 +51,7 @@ class ResourceGraph {
         this.linkForce = d3
             .forceLink()
             .id(function (link) { return link.id })
-            .strength(function (link) {
-                // adaptive strength: weaker for highly connected nodes (hubs)
-                // calculate average degree of source and target
-                const sourceDegree = link.source.degree || 1;
-                const targetDegree = link.target.degree || 1;
-                const avgDegree = (sourceDegree + targetDegree) / 2;
-
-                // scale strength inversely with degree: 1.0 for low degree, 0.3 for high degree
-                // use a smooth curve: strength = 1.0 / sqrt(avgDegree)
-                return Math.max(0.3, Math.min(1.0, 1.0 / Math.sqrt(avgDegree)));
-            })
+            .strength(1.0)
             .distance(function (link) {
                 // adaptive distance: longer for highly connected nodes
                 const sourceDegree = link.source.degree || 1;
@@ -69,16 +59,22 @@ class ResourceGraph {
                 const avgDegree = (sourceDegree + targetDegree) / 2;
 
                 // scale distance with degree: 150 for low degree, up to 250 for high degree
-                return 150 + (avgDegree * 10);
+                return Math.min(150 + (avgDegree * 10), 250);
             });
 
         this.simulation = d3
             .forceSimulation()
             .force('link', this.linkForce)
             .force('charge', d3.forceManyBody().strength(-800))
-            .force("collide", d3.forceCollide(110).iterations(10))
+            .force("collide", d3.forceCollide(function (d) {
+                var degree = d.degree || 1;
+
+                // scale collide radius with degree: 90 for low degree, up to 180 for high degree
+                return 90 + Math.min(degree * 10, 90);
+            }).iterations(10))
             .force("x", d3.forceX().strength(0.1))
-            .force("y", d3.forceY().strength(0.2));
+            .force("y", d3.forceY().strength(0.2))
+            .force("center", d3.forceCenter().strength(0.01));
 
         // Drag start is trigger on mousedown from click.
         // Only change the state of the simulation when the drag event is triggered.
@@ -480,11 +476,17 @@ class ResourceGraph {
 
         this.simulation.force("link").links(this.links);
         if (hasStructureChanged) {
-            this.simulation.alpha(1).restart();
+            this.simulation.stop();
+
+            // Set alpha (give energy) and simulate the graph before rendering.
+            // This prevents the graph from jumping around when loaded or changed.
+            this.simulation.alpha(1);
+            for (let i = 0; i < 300; i++) {
+                this.simulation.tick();
+            }
         }
-        else {
-            this.simulation.restart();
-        }
+
+        this.simulation.restart();
 
         function trimText(text, maxLength) {
             if (text.length > maxLength) {
