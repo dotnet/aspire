@@ -18,12 +18,14 @@ var dbsetup = builder.AddProject<Projects.SqlServerEndToEnd_DbSetup>("dbsetup")
 // Add EF migrations resource for the dbsetup project (without specifying DbContext type)
 // This adds dashboard commands for managing EF migrations: Update Database, Drop Database, 
 // Reset Database, Add Migration, Remove Migration, and Get Database Status
-var dbMigrations = dbsetup.AddEFMigrations("db-migrations");
+var dbMigrations = dbsetup.AddEFMigrations("db-migrations")
+    .RunDatabaseUpdateOnStart();
 
 builder.AddProject<Projects.SqlServerEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(db1).WaitFor(db1)
        .WithReference(db2).WaitFor(db2)
+       .WaitFor(dbMigrations)
        .WaitForCompletion(dbsetup);
 
 #if !SKIP_DASHBOARD_REFERENCE

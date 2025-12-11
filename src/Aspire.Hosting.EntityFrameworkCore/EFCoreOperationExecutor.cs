@@ -31,10 +31,11 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     private readonly string? _contextTypeName;
     private readonly ILogger _logger;
     private readonly CancellationToken _cancellationToken;
-    
+
     private string? _assemblyPath;
     private string? _projectDirectory;
-    private string? _assemblyFileName;
+    private string? _rootNamespace;
+    private string? _designAssemblyPath;
     private bool _initialized;
 
     public EFCoreOperationExecutor(
@@ -67,10 +68,13 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
 
         _projectDirectory = Path.GetDirectoryName(projectPath)!;
-        _assemblyFileName = Path.GetFileNameWithoutExtension(projectPath);
+
+        // Use MSBuild to get properties - more reliable than guessing paths
+        _assemblyPath = await GetMSBuildPropertyAsync(projectPath, "TargetPath").ConfigureAwait(false);
+        _rootNamespace = await GetMSBuildPropertyAsync(projectPath, "RootNamespace").ConfigureAwait(false);
         
-        // Use MSBuild to get the actual output assembly path (TargetPath property)
-        _assemblyPath = await GetTargetPathAsync(projectPath).ConfigureAwait(false);
+        // Try to get design assembly path from project references
+        _designAssemblyPath = await GetDesignAssemblyPathAsync(projectPath).ConfigureAwait(false);
 
         if (_assemblyPath == null || !File.Exists(_assemblyPath))
         {
@@ -81,17 +85,69 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             };
         }
 
+        // Fall back to assembly name if RootNamespace not found
+        _rootNamespace ??= Path.GetFileNameWithoutExtension(_assemblyPath);
+
         return new EFOperationResult { Success = true };
     }
 
-    private async Task<string?> GetTargetPathAsync(string projectPath)
+    private async Task<string?> GetMSBuildPropertyAsync(string projectPath, string propertyName)
+    {
+        return await RunMSBuildAsync($"-getProperty:{propertyName}", projectPath).ConfigureAwait(false);
+    }
+
+    private async Task<string?> GetDesignAssemblyPathAsync(string projectPath)
+    {
+        // Use MSBuild to get the design assembly path from referenced packages
+        var result = await RunMSBuildAsync(
+            $"-getItem:ReferencePath -getItemMetadata:NuGetPackageId \"{projectPath}\"", 
+            projectPath).ConfigureAwait(false);
+
+        if (result == null)
+        {
+            return null;
+        }
+
+        // Parse MSBuild output to find Microsoft.EntityFrameworkCore.Design reference
+        var lines = result.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        foreach (var line in lines)
+        {
+            if (line.Contains(DesignAssemblyName, StringComparison.OrdinalIgnoreCase))
+            {
+                // Extract the path from the MSBuild output
+                var path = line.Trim();
+                if (File.Exists(path))
+                {
+                    return path;
+                }
+            }
+        }
+
+        // Fall back to looking in the output directory
+        if (_assemblyPath != null)
+        {
+            var outputDir = Path.GetDirectoryName(_assemblyPath);
+            if (outputDir != null)
+            {
+                var designPath = Path.Combine(outputDir, $"{DesignAssemblyName}.dll");
+                if (File.Exists(designPath))
+                {
+                    return designPath;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<string?> RunMSBuildAsync(string arguments, string projectPath)
     {
         try
         {
             var startInfo = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = $"msbuild -getProperty:TargetPath \"{projectPath}\"",
+                Arguments = $"msbuild {arguments} \"{projectPath}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -111,23 +167,21 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             if (process.ExitCode != 0)
             {
                 var errorOutput = await process.StandardError.ReadToEndAsync(_cancellationToken).ConfigureAwait(false);
-                _logger.LogWarning("dotnet msbuild failed with exit code {ExitCode}: {Error}", process.ExitCode, errorOutput);
+                _logger.LogDebug("dotnet msbuild failed with exit code {ExitCode}: {Error}", process.ExitCode, errorOutput);
                 return null;
             }
 
-            var targetPath = output.Trim();
-            if (!string.IsNullOrEmpty(targetPath))
+            var result = output.Trim();
+            if (!string.IsNullOrEmpty(result))
             {
-                _logger.LogDebug("Resolved TargetPath for project {ProjectPath}: {TargetPath}", projectPath, targetPath);
-                return targetPath;
+                return result;
             }
 
-            _logger.LogWarning("dotnet msbuild returned empty TargetPath for project {ProjectPath}", projectPath);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error getting TargetPath via dotnet msbuild");
+            _logger.LogDebug(ex, "Error running dotnet msbuild");
             return null;
         }
     }
@@ -141,10 +195,6 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         return null;
     }
 
-    /// <summary>
-    /// Executes an EF Core operation in an isolated, collectible AssemblyLoadContext.
-    /// The context is unloaded after the operation completes to free memory.
-    /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private async Task<EFOperationResult> ExecuteInIsolatedContextAsync(
         Func<object, Assembly, Type, object?> operation,
@@ -157,7 +207,9 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
 
         var appBasePath = Path.GetDirectoryName(_assemblyPath)!;
-        var designAssemblyPath = Path.Combine(appBasePath, $"{DesignAssemblyName}.dll");
+        
+        // Use the design assembly path obtained via MSBuild, or fall back to output directory
+        var designAssemblyPath = _designAssemblyPath ?? Path.Combine(appBasePath, $"{DesignAssemblyName}.dll");
 
         if (!File.Exists(designAssemblyPath))
         {
@@ -198,17 +250,17 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 (Action<string>)(msg => _logger.LogInformation("[EF] {Message}", msg)),
                 (Action<string>)(msg => _logger.LogDebug("[EF] {Message}", msg)))!;
 
-            // Create executor
+            // Create executor with full paths
             var executorType = commandsAssembly.GetType(ExecutorTypeName, throwOnError: true, ignoreCase: false)!;
             var executor = Activator.CreateInstance(
                 executorType,
                 reportHandler,
                 new Dictionary<string, object?>
                 {
-                    { "targetName", _assemblyFileName },
-                    { "startupTargetName", _assemblyFileName },
+                    { "targetName", _assemblyPath },
+                    { "startupTargetName", _assemblyPath },
                     { "projectDir", _projectDirectory },
-                    { "rootNamespace", _assemblyFileName },
+                    { "rootNamespace", _rootNamespace },
                     { "language", "C#" },
                     { "nullable", true },
                     { "remainingArguments", Array.Empty<string>() }
@@ -236,8 +288,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         catch (Exception ex)
         {
             var errorMessage = GetInnerExceptionMessage(ex);
-            
-            // Check if database doesn't exist (when handling GetDatabaseStatus)
+
             if (handleDatabaseNotFound && 
                 (errorMessage.Contains("does not exist", StringComparison.OrdinalIgnoreCase) ||
                  errorMessage.Contains("Cannot open database", StringComparison.OrdinalIgnoreCase)))
@@ -248,7 +299,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                     Output = "Database has not been created yet.\nRun 'Update Database' to create and apply migrations." 
                 };
             }
-            
+
             _logger.LogError(ex, "Failed to execute EF Core operation.");
             return new EFOperationResult { Success = false, ErrorMessage = errorMessage };
         }
@@ -258,9 +309,6 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
     }
 
-    /// <summary>
-    /// A collectible AssemblyLoadContext for loading EF Core Design assemblies in isolation.
-    /// </summary>
     private sealed class EFCoreDesignLoadContext : AssemblyLoadContext
     {
         private readonly AssemblyDependencyResolver _resolver;
@@ -395,8 +443,8 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                     var id = migration["Id"]?.ToString() ?? "Unknown";
                     var applied = migration["Applied"] as bool? ?? false;
                     lastMigration = id;
-                    
-                                        if (applied)
+
+                    if (applied)
                     {
                         lastAppliedMigration = id;
                         statusLines.Add($"  [Applied] {id}");
@@ -407,40 +455,38 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                         statusLines.Add($"  [Pending] {id}");
                     }
                 }
-                }
+            }
 
-                // Try to check for pending model changes
-                bool hasPendingModelChanges = false;
-                try
+            bool hasPendingModelChanges = false;
+            try
+            {
+                InvokeOperation(executor, commandsAssembly, resultHandlerType, "HasPendingModelChanges", new Dictionary<string, object?>
                 {
-                    InvokeOperation(executor, commandsAssembly, resultHandlerType, "HasPendingModelChanges", new Dictionary<string, object?>
-                    {
-                        { "contextType", _contextTypeName }
-                    });
-                }
-                catch
-                {
-                    // HasPendingModelChanges throws if there are pending changes
-                    hasPendingModelChanges = true;
-                }
+                    { "contextType", _contextTypeName }
+                });
+            }
+            catch
+            {
+                hasPendingModelChanges = true;
+            }
 
-                var summary = new List<string>
-                {
-                    $"Current Applied Migration: {lastAppliedMigration ?? "None (database not created)"}",
-                    $"Latest Migration: {lastMigration ?? "None"}",
-                    $"Pending Migrations: {(pendingMigrations.Count > 0 ? string.Join(", ", pendingMigrations) : "None")}",
-                    $"Has Pending Model Changes: {(hasPendingModelChanges ? "Yes" : "No")}"
-                };
+            var summary = new List<string>
+            {
+                $"Current Applied Migration: {lastAppliedMigration ?? "None (database not created)"}",
+                $"Latest Migration: {lastMigration ?? "None"}",
+                $"Pending Migrations: {(pendingMigrations.Count > 0 ? string.Join(", ", pendingMigrations) : "None")}",
+                $"Has Pending Model Changes: {(hasPendingModelChanges ? "Yes" : "No")}"
+            };
 
-                if (statusLines.Count > 0)
-                {
-                    summary.Add("");
-                    summary.Add("Migration History:");
-                    summary.AddRange(statusLines);
-                }
+            if (statusLines.Count > 0)
+            {
+                summary.Add("");
+                summary.Add("Migration History:");
+                summary.AddRange(statusLines);
+            }
 
-                return string.Join(Environment.NewLine, summary);
-            }, handleDatabaseNotFound: true).ConfigureAwait(false);
+            return string.Join(Environment.NewLine, summary);
+        }, handleDatabaseNotFound: true).ConfigureAwait(false);
     }
 
     public async Task<EFOperationResult> GenerateMigrationScriptAsync(string? outputPath = null)

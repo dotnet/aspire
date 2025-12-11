@@ -11,7 +11,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Provides extension methods for adding EF Core migration management to projects.
 /// </summary>
-public static class EFMigrationsBuilderExtensions
+public static class EFResourceBuilderExtensions
 {
     /// <summary>
     /// Adds EF Core migration management for a specific DbContext type.
@@ -107,23 +107,41 @@ public static class EFMigrationsBuilderExtensions
         string name,
         string? contextTypeName)
     {
-        // Register the event subscriber once
         EnsureEventSubscriberRegistered(builder.ApplicationBuilder);
 
-        // Check for duplicate context types
+        // Check for duplicate context types and null/non-null conflicts
+        var existingMigrations = builder.ApplicationBuilder.Resources
+            .OfType<EFMigrationResource>()
+            .Where(r => r.ProjectResource == builder.Resource)
+            .ToList();
+
         if (contextTypeName != null)
         {
-            var existingMigrations = builder.ApplicationBuilder.Resources
-                .OfType<EFMigrationResource>()
-                .Where(r => r.ProjectResource == builder.Resource && r.ContextTypeName == contextTypeName);
-
-            if (existingMigrations.Any())
+            // Adding migration for a specific context type
+            if (existingMigrations.Any(r => r.ContextTypeName == contextTypeName))
             {
                 var shortName = contextTypeName.Contains('.') 
                     ? contextTypeName.Substring(contextTypeName.LastIndexOf('.') + 1)
                     : contextTypeName;
                 throw new InvalidOperationException(
                     $"The DbContext type '{shortName}' has already been registered for EF migrations on resource '{builder.Resource.Name}'.");
+            }
+            
+            // Cannot add specific context when there's already a null context registered
+            if (existingMigrations.Any(r => r.ContextTypeName == null))
+            {
+                throw new InvalidOperationException(
+                    $"Cannot add migrations for a specific DbContext type when auto-detected migrations have already been registered on resource '{builder.Resource.Name}'.");
+            }
+        }
+        else
+        {
+            // Adding migration for auto-detected context (null)
+            // Cannot add null context when there's already a specific context registered
+            if (existingMigrations.Any())
+            {
+                throw new InvalidOperationException(
+                    $"Cannot add auto-detected migrations when migrations for specific DbContext types have already been registered on resource '{builder.Resource.Name}'.");
             }
         }
 
@@ -145,9 +163,6 @@ public static class EFMigrationsBuilderExtensions
 
     private static void EnsureEventSubscriberRegistered(IDistributedApplicationBuilder applicationBuilder)
     {
-        // TryAddEventingSubscriber uses TryAddEnumerable internally, which ensures that even if this method
-        // is called multiple times (e.g., when AddEFMigrations is called for multiple DbContexts),
-        // the EFMigrationEventSubscriber is only registered once in the DI container.
         applicationBuilder.Services.TryAddEventingSubscriber<EFMigrationEventSubscriber>();
     }
 
@@ -168,7 +183,6 @@ public static class EFMigrationsBuilderExtensions
         // Display names can have friendly formatting
         var contextDisplaySuffix = contextShortName != null ? $" ({contextShortName})" : "";
 
-        // Update Database command
         builder.WithCommand(
             name: $"ef-database-update{contextNameSuffix}",
             displayName: $"Update Database{contextDisplaySuffix}",
@@ -176,7 +190,7 @@ public static class EFMigrationsBuilderExtensions
                 context, 
                 "Update Database", 
                 contextTypeName,
-                async executor => await executor.UpdateDatabaseAsync().ConfigureAwait(false)),
+                executor => executor.UpdateDatabaseAsync()),
             commandOptions: new CommandOptions
             {
                 Description = "Apply pending migrations to the database",
@@ -184,7 +198,6 @@ public static class EFMigrationsBuilderExtensions
                 IconVariant = IconVariant.Regular
             });
 
-        // Drop Database command
         builder.WithCommand(
             name: $"ef-database-drop{contextNameSuffix}",
             displayName: $"Drop Database{contextDisplaySuffix}",
@@ -192,7 +205,7 @@ public static class EFMigrationsBuilderExtensions
                 context, 
                 "Drop Database", 
                 contextTypeName,
-                async executor => await executor.DropDatabaseAsync().ConfigureAwait(false)),
+                executor => executor.DropDatabaseAsync()),
             commandOptions: new CommandOptions
             {
                 Description = "Delete the database",
@@ -201,7 +214,6 @@ public static class EFMigrationsBuilderExtensions
                 ConfirmationMessage = "Are you sure you want to drop the database? This action cannot be undone."
             });
 
-        // Reset Database command
         builder.WithCommand(
             name: $"ef-database-reset{contextNameSuffix}",
             displayName: $"Reset Database{contextDisplaySuffix}",
@@ -209,7 +221,7 @@ public static class EFMigrationsBuilderExtensions
                 context, 
                 "Reset Database", 
                 contextTypeName,
-                async executor => await executor.ResetDatabaseAsync().ConfigureAwait(false)),
+                executor => executor.ResetDatabaseAsync()),
             commandOptions: new CommandOptions
             {
                 Description = "Drop and recreate the database with all migrations applied",
@@ -218,7 +230,6 @@ public static class EFMigrationsBuilderExtensions
                 ConfirmationMessage = "Are you sure you want to reset the database? This will delete all data and cannot be undone."
             });
 
-        // Add Migration command
         builder.WithCommand(
             name: $"ef-migrations-add{contextNameSuffix}",
             displayName: $"Add Migration...{contextDisplaySuffix}",
@@ -230,23 +241,17 @@ public static class EFMigrationsBuilderExtensions
                 IconVariant = IconVariant.Regular
             });
 
-        // Remove Migration command
         builder.WithCommand(
             name: $"ef-migrations-remove{contextNameSuffix}",
             displayName: $"Remove Migration{contextDisplaySuffix}",
-            executeCommand: context => ExecuteEFCommandAsync(
-                context, 
-                "Remove Migration", 
-                contextTypeName,
-                async executor => await executor.RemoveMigrationAsync().ConfigureAwait(false)),
+            executeCommand: context => ExecuteRemoveMigrationCommandAsync(context, contextTypeName),
             commandOptions: new CommandOptions
             {
-                Description = "Remove the last migration",
+                Description = "Remove the last migration. Note: The target project will need to be recompiled after removing a migration.",
                 IconName = "Subtract",
                 IconVariant = IconVariant.Regular
             });
 
-        // Get Database Status command
         builder.WithCommand(
             name: $"ef-database-status{contextNameSuffix}",
             displayName: $"Get Database Status{contextDisplaySuffix}",
@@ -261,14 +266,21 @@ public static class EFMigrationsBuilderExtensions
         return builder;
     }
 
-    private static EFMigrationResource? FindMigrationResource(
-        DistributedApplicationModel appModel,
-        string resourceName,
+    private static (EFMigrationResource? Resource, ExecuteCommandResult? ErrorResult) FindMigrationResource(
+        ExecuteCommandContext context,
         string? contextTypeName)
     {
-        return appModel.Resources
+        var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+        var resource = appModel.Resources
             .OfType<EFMigrationResource>()
-            .FirstOrDefault(r => r.Name == resourceName && r.ContextTypeName == contextTypeName);
+            .FirstOrDefault(r => r.Name == context.ResourceName && r.ContextTypeName == contextTypeName);
+        
+        if (resource == null)
+        {
+            return (null, CommandResults.Failure($"Could not find EF migration resource '{context.ResourceName}'."));
+        }
+        
+        return (resource, null);
     }
 
     private static async Task<ExecuteCommandResult> ExecuteEFCommandAsync(
@@ -278,13 +290,11 @@ public static class EFMigrationsBuilderExtensions
         Func<EFCoreOperationExecutor, Task<EFOperationResult>> executeOperation)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
-        var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
 
-        var migrationResource = FindMigrationResource(appModel, context.ResourceName, contextTypeName);
-
+        var (migrationResource, errorResult) = FindMigrationResource(context, contextTypeName);
         if (migrationResource == null)
         {
-            return CommandResults.Failure($"Could not find EF migration resource '{context.ResourceName}'.");
+            return errorResult!;
         }
 
         var logger = resourceLoggerService.GetLogger(migrationResource);
@@ -331,23 +341,19 @@ public static class EFMigrationsBuilderExtensions
         string? contextTypeName)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
-        var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
         var interactionService = context.ServiceProvider.GetService<IInteractionService>();
 
-        var migrationResource = FindMigrationResource(appModel, context.ResourceName, contextTypeName);
-
+        var (migrationResource, errorResult) = FindMigrationResource(context, contextTypeName);
         if (migrationResource == null)
         {
-            return CommandResults.Failure($"Could not find EF migration resource '{context.ResourceName}'.");
+            return errorResult!;
         }
 
         var logger = resourceLoggerService.GetLogger(migrationResource);
 
-        // Prompt for migration name using IInteractionService
         string? migrationName;
         if (interactionService == null || !interactionService.IsAvailable)
         {
-            // Fall back to auto-generated name if interaction service is not available
             migrationName = $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
         }
         else
@@ -379,7 +385,6 @@ public static class EFMigrationsBuilderExtensions
                 logger,
                 context.CancellationToken);
 
-            // Pass configured output directory and namespace from options
             var result = await executor.AddMigrationAsync(
                 migrationName, 
                 migrationResource.Options.MigrationOutputDirectory,
@@ -389,7 +394,6 @@ public static class EFMigrationsBuilderExtensions
             {
                 logger.LogInformation("Migration '{MigrationName}' created successfully.", migrationName);
 
-                // Show notification about recompilation requirement
                 if (interactionService != null && interactionService.IsAvailable)
                 {
                     await interactionService.PromptNotificationAsync(
@@ -427,19 +431,86 @@ public static class EFMigrationsBuilderExtensions
         }
     }
 
+    private static async Task<ExecuteCommandResult> ExecuteRemoveMigrationCommandAsync(
+        ExecuteCommandContext context,
+        string? contextTypeName)
+    {
+        var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+        var interactionService = context.ServiceProvider.GetService<IInteractionService>();
+
+        var (migrationResource, errorResult) = FindMigrationResource(context, contextTypeName);
+        if (migrationResource == null)
+        {
+            return errorResult!;
+        }
+
+        var logger = resourceLoggerService.GetLogger(migrationResource);
+
+        try
+        {
+            logger.LogInformation("Removing last migration for context {ContextType}...", 
+                contextTypeName ?? "(auto-detect)");
+
+            using var executor = new EFCoreOperationExecutor(
+                migrationResource.ProjectResource,
+                contextTypeName,
+                logger,
+                context.CancellationToken);
+
+            var result = await executor.RemoveMigrationAsync().ConfigureAwait(false);
+
+            if (result.Success)
+            {
+                logger.LogInformation("Migration removed successfully.");
+
+                if (interactionService != null && interactionService.IsAvailable)
+                {
+                    await interactionService.PromptNotificationAsync(
+                        title: "Migration Removed",
+                        message: "The last migration was removed successfully.\n\nThe target project needs to be recompiled.",
+                        options: new NotificationInteractionOptions
+                        {
+                            Intent = MessageIntent.Warning,
+                            ShowSecondaryButton = false
+                        },
+                        cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    logger.LogWarning("The last migration was removed successfully. The target project needs to be recompiled.");
+                }
+
+                return CommandResults.Success();
+            }
+            else
+            {
+                logger.LogError("Remove Migration command failed: {Error}", result.ErrorMessage);
+                return CommandResults.Failure(result.ErrorMessage);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("Remove Migration command was cancelled.");
+            return CommandResults.Canceled();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Remove Migration command failed with exception.");
+            return CommandResults.Failure(ex);
+        }
+    }
+
     private static async Task<ExecuteCommandResult> ExecuteGetStatusCommandAsync(
         ExecuteCommandContext context,
         string? contextTypeName)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
-        var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
         var interactionService = context.ServiceProvider.GetService<IInteractionService>();
 
-        var migrationResource = FindMigrationResource(appModel, context.ResourceName, contextTypeName);
-
+        var (migrationResource, errorResult) = FindMigrationResource(context, contextTypeName);
         if (migrationResource == null)
         {
-            return CommandResults.Failure($"Could not find EF migration resource '{context.ResourceName}'.");
+            return errorResult!;
         }
 
         var logger = resourceLoggerService.GetLogger(migrationResource);
@@ -459,7 +530,6 @@ public static class EFMigrationsBuilderExtensions
 
             if (result.Success)
             {
-                // Show status in a message box if interaction service is available
                 if (interactionService != null && interactionService.IsAvailable)
                 {
                     await interactionService.PromptMessageBoxAsync(
