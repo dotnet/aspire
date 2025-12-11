@@ -66,11 +66,13 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                 _logger.LogDebug("Aspire MCP server is already configured");
             }
 
-            // Add Playwright applicator if not already configured
+            // Register Playwright configuration callback if not already configured
             if (!HasPlaywrightServerConfigured(workspaceRoot))
             {
-                _logger.LogDebug("Adding Playwright MCP applicator for Claude Code");
-                context.AddApplicator(CreatePlaywrightApplicator(workspaceRoot));
+                _logger.LogDebug("Registering Playwright MCP configuration callback for Claude Code");
+                CommonAgentApplicators.AddPlaywrightConfigurationCallback(
+                    context,
+                    ct => ApplyPlaywrightMcpConfigurationAsync(workspaceRoot, ct));
             }
             else
             {
@@ -101,11 +103,13 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                     _logger.LogDebug("Aspire MCP server is already configured");
                 }
 
-                // Add Playwright applicator if not already configured
+                // Register Playwright configuration callback if not already configured
                 if (!HasPlaywrightServerConfigured(context.RepositoryRoot))
                 {
-                    _logger.LogDebug("Adding Playwright MCP applicator for Claude Code");
-                    context.AddApplicator(CreatePlaywrightApplicator(context.RepositoryRoot));
+                    _logger.LogDebug("Registering Playwright MCP configuration callback for Claude Code");
+                    CommonAgentApplicators.AddPlaywrightConfigurationCallback(
+                        context,
+                        ct => ApplyPlaywrightMcpConfigurationAsync(context.RepositoryRoot, ct));
                 }
                 else
                 {
@@ -237,16 +241,6 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
         return new AgentEnvironmentApplicator(
             ClaudeCodeAgentEnvironmentScannerStrings.ApplicatorDescription,
             async cancellationToken => await ApplyAspireMcpConfigurationAsync(repoRoot, cancellationToken));
-    }
-
-    /// <summary>
-    /// Creates an applicator for configuring the Playwright MCP server in the .mcp.json file at the repo root.
-    /// </summary>
-    private static AgentEnvironmentApplicator CreatePlaywrightApplicator(DirectoryInfo repoRoot)
-    {
-        return new AgentEnvironmentApplicator(
-            "Configure Playwright MCP server for Claude Code",
-            async cancellationToken => await ApplyPlaywrightMcpConfigurationAsync(repoRoot, cancellationToken));
     }
 
     /// <summary>

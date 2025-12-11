@@ -7,9 +7,14 @@
         <target state="translated">Управление сервером MCP (протокол контекста модели).</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
+        <source>Which additional options do you want to enable?</source>
+        <target state="new">Which additional options do you want to enable?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
-        <source>Select agent environments to configure:</source>
-        <target state="translated">Выберите среды агента для настройки:</target>
+        <source>Which agent environments do you want to configure?</source>
+        <target state="new">Which agent environments do you want to configure?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">

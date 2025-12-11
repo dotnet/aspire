@@ -60,11 +60,13 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 _logger.LogDebug("Aspire MCP server is already configured");
             }
 
-            // Add Playwright applicator if not already configured
+            // Add Playwright configuration callback if not already configured
             if (!HasPlaywrightServerConfigured(configFilePath))
             {
-                _logger.LogDebug("Adding Playwright MCP applicator for OpenCode");
-                context.AddApplicator(CreatePlaywrightApplicator(configDirectory));
+                _logger.LogDebug("Registering Playwright MCP configuration callback for OpenCode");
+                CommonAgentApplicators.AddPlaywrightConfigurationCallback(
+                    context,
+                    ct => ApplyPlaywrightMcpConfigurationAsync(configDirectory, ct));
             }
             else
             {
@@ -86,7 +88,11 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 // OpenCode is installed - offer to create config
                 _logger.LogDebug("Adding OpenCode applicator to create new opencode.jsonc at: {ConfigDirectory}", configDirectory.FullName);
                 context.AddApplicator(CreateApplicator(configDirectory));
-                context.AddApplicator(CreatePlaywrightApplicator(configDirectory));
+                
+                // Register Playwright configuration callback
+                CommonAgentApplicators.AddPlaywrightConfigurationCallback(
+                    context,
+                    ct => ApplyPlaywrightMcpConfigurationAsync(configDirectory, ct));
                 
                 // Try to add agent instructions applicator (only once across all scanners)
                 CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
@@ -225,16 +231,6 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
         // Write the updated config using AOT-compatible serialization
         var jsonOutput = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
         await File.WriteAllTextAsync(configFilePath, jsonOutput, cancellationToken);
-    }
-
-    /// <summary>
-    /// Creates an applicator for configuring the Playwright MCP server.
-    /// </summary>
-    private static AgentEnvironmentApplicator CreatePlaywrightApplicator(DirectoryInfo configDirectory)
-    {
-        return new AgentEnvironmentApplicator(
-            "Configure Playwright MCP server for OpenCode",
-            async cancellationToken => await ApplyPlaywrightMcpConfigurationAsync(configDirectory, cancellationToken));
     }
 
     /// <summary>

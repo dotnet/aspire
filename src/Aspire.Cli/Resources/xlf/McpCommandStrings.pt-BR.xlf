@@ -7,9 +7,14 @@
         <target state="translated">Gerencie o servidor MCP (Protocolo de Contexto de Modelo).</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
+        <source>Which additional options do you want to enable?</source>
+        <target state="new">Which additional options do you want to enable?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
-        <source>Select agent environments to configure:</source>
-        <target state="translated">Selecione ambientes de agente a serem configurados:</target>
+        <source>Which agent environments do you want to configure?</source>
+        <target state="new">Which agent environments do you want to configure?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">

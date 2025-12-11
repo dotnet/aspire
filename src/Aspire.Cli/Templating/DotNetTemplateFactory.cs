@@ -24,7 +24,8 @@ internal class DotNetTemplateFactory(
     IPackagingService packagingService,
     INewCommandPrompter prompter,
     CliExecutionContext executionContext,
-    IFeatures features)
+    IFeatures features,
+    IConfigurationService configurationService)
     : ITemplateFactory
 {
     public IEnumerable<ITemplate> GetTemplates()
@@ -530,14 +531,22 @@ internal class DotNetTemplateFactory(
     {
         var allChannels = await packagingService.GetChannelsAsync(cancellationToken);
         
-        // Check if --channel option was provided
+        // Check if --channel option was provided (highest priority)
         var channelName = parseResult.GetValue<string?>("--channel");
-        IEnumerable<PackageChannel> channels;
-        bool channelExplicitlySpecified = !string.IsNullOrEmpty(channelName);
         
-        if (channelExplicitlySpecified)
+        // If no --channel option, check for global channel setting
+        if (string.IsNullOrEmpty(channelName))
         {
-            // If --channel is specified, find the matching channel
+            channelName = await configurationService.GetConfigurationAsync("channel", cancellationToken);
+        }
+        
+        IEnumerable<PackageChannel> channels;
+        bool hasChannelSetting = !string.IsNullOrEmpty(channelName);
+        
+        if (hasChannelSetting)
+        {
+            // If --channel option is provided or global channel setting exists, find the matching channel
+            // (--channel option takes precedence over global setting)
             var matchingChannel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
             if (matchingChannel is null)
             {
@@ -588,9 +597,9 @@ internal class DotNetTemplateFactory(
             }
         }
 
-        // If --channel was explicitly specified (but no --version), automatically select the highest version
-        // from that channel without prompting
-        if (channelExplicitlySpecified)
+        // If channel was specified via --channel option or global setting (but no --version), 
+        // automatically select the highest version from that channel without prompting
+        if (hasChannelSetting)
         {
             return orderedPackagesFromChannels.First();
         }
