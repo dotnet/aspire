@@ -1342,7 +1342,8 @@ public static class PythonAppResourceBuilderExtensions
             var installer = new PythonInstallerResource(installerName, builder.Resource);
             var installerBuilder = builder.ApplicationBuilder.AddResource(installer)
                 .WithParentRelationship(builder.Resource)
-                .ExcludeFromManifest();
+                .ExcludeFromManifest()
+                .WithCertificateTrustScope(CertificateTrustScope.None);
 
             if (!install)
             {

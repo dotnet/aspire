@@ -554,7 +554,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             env: null,
             projectFile: projectFile,
             workingDirectory: workspace.WorkspaceRoot,
-            backchannelCompletionSource: new TaskCompletionSource<IAppHostBackchannel>(),
+            backchannelCompletionSource: new TaskCompletionSource<IAppHostCliBackchannel>(),
             options: new DotNetCliRunnerInvocationOptions(),
             cancellationToken: CancellationToken.None
         );
@@ -1302,11 +1302,11 @@ internal sealed class AssertingDotNetCliRunner(
     IInteractionService interactionService,
     CliExecutionContext executionContext,
     IDiskCache diskCache,
-    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
+    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostCliBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
     int exitCode
     ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache)
 {
-    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostCliBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         assertionCallback(args, env, workingDirectory, projectFile, backchannelCompletionSource, options);
         return Task.FromResult(exitCode);

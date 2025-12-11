@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "App Starter Aspire per Python",
-  "description": "Modello di progetto per creare un'app Aspire con un servizio API backend in Python e un frontend JavaScript basato su Vite e React.",
+  "name": "App Starter Aspire (FastAPI/React)",
+  "description": "Modello di progetto per la creazione di un'app Aspire con front-end React e servizio API back-end Python, con cache Redis opzionale.",
   "symbols/UseRedisCache/displayName": "_Usare Redis per la memorizzazione nella cache (richiede un runtime del contenitore supportato)",
   "symbols/UseRedisCache/description": "Configura se impostare l'applicazione per l'utilizzo di Redis per la memorizzazione nella cache. Richiede l'esecuzione locale di un runtime del contenitore supportato. Per altri dettagli, vedere https://aka.ms/aspire/containers.",
   "symbols/appHostHttpPort/description": "Numero di porta da usare per l'endpoint HTTP in launchSettings.json. del progetto AppHost.",

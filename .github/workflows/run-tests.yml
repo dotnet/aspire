@@ -103,6 +103,8 @@ jobs:
             8.x
             9.x
             10.x
+        env:
+          DOTNET_INSTALL_DIR: ${{ env.DOTNET_ROOT }}
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
@@ -268,6 +270,10 @@ jobs:
           }
 
           Write-Output "Unzipped $zipFilePath to $destinationPath"
+
+      - name: Unlock macOS keychain for certificate tests
+        if: runner.os == 'macOS'
+        uses: ./.github/actions/unlock-macos-keychain
 
       - name: Run nuget dependent tests
         if: ${{ inputs.requiresNugets }}

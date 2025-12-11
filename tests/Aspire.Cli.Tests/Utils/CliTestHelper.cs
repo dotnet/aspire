@@ -71,6 +71,7 @@ internal static class CliTestHelper
         services.AddMemoryCache();
 
         services.AddSingleton(options.AnsiConsoleFactory);
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton(options.TelemetryFactory);
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.SolutionLocatorFactory);
@@ -293,11 +294,11 @@ internal sealed class CliServiceCollectionTestOptions
         return new NuGetPackageCache(logger, runner, cache, telemetry, features);
     };
 
-    public Func<IServiceProvider, IAppHostBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    public Func<IServiceProvider, IAppHostCliBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var logger = serviceProvider.GetRequiredService<ILogger<AppHostBackchannel>>();
+        var logger = serviceProvider.GetRequiredService<ILogger<AppHostCliBackchannel>>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new AppHostBackchannel(logger, telemetry);
+        return new AppHostCliBackchannel(logger, telemetry);
     };
 
     public Func<IServiceProvider, IExtensionRpcTarget> ExtensionRpcTargetFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -329,7 +330,8 @@ internal sealed class CliServiceCollectionTestOptions
         var prompter = serviceProvider.GetRequiredService<INewCommandPrompter>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
-        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features);
+        var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
+        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features, configurationService);
         return new TemplateProvider([factory]);
     };
 

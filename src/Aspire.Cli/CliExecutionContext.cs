@@ -61,4 +61,20 @@ internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, Direct
     /// TaskCompletionSource that is completed when a command is selected and set on this context.
     /// </summary>
     public TaskCompletionSource<Command> CommandSelected { get; } = new();
+
+    /// <summary>
+    /// Gets the count of PR hives (PR build directories) on the developer machine.
+    /// Hives are detected as subdirectories in the hives directory.
+    /// This method accesses the file system.
+    /// </summary>
+    /// <returns>The number of PR hive subdirectories, or 0 if the hives directory does not exist.</returns>
+    public int GetPrHiveCount()
+    {
+        if (!HivesDirectory.Exists)
+        {
+            return 0;
+        }
+
+        return HivesDirectory.GetDirectories().Length;
+    }
 }

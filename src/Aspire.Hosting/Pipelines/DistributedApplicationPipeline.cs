@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIRECOMPUTE003
 #pragma warning disable ASPIREINTERACTION001
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPIPELINES002
@@ -150,6 +151,69 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             Name = WellKnownPipelineSteps.BuildPrereq,
             Description = "Prerequisite step that runs before any build operations.",
             Action = context => Task.CompletedTask
+        });
+
+        // Add a default "Push" meta-step that all push steps should be required by
+        // Push unconditionally depends on PushPrereq to ensure annotations are set up
+        var pushStep = new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.Push,
+            Description = "Aggregation step for all push operations. All push steps should be required by this step.",
+            Action = _ => Task.CompletedTask
+        };
+        pushStep.DependsOn(WellKnownPipelineSteps.PushPrereq);
+        _steps.Add(pushStep);
+
+        _steps.Add(new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.PushPrereq,
+            Description = "Prerequisite step that runs before any push operations.",
+            Action = context =>
+            {
+                foreach (var resource in context.Model.Resources)
+                {
+                    if (!resource.RequiresImageBuildAndPush())
+                    {
+                        continue;
+                    }
+
+                    // Skip if resource already has a ContainerRegistryReferenceAnnotation (explicit WithContainerRegistry call)
+                    if (resource.TryGetAnnotationsIncludingAncestorsOfType<ContainerRegistryReferenceAnnotation>(out var annotations) &&
+                        annotations.Any())
+                    {
+                        continue;
+                    }
+
+                    // Skip if resource has a deployment target with a ContainerRegistry set
+                    var deploymentTargetAnnotation = resource.GetDeploymentTargetAnnotation();
+                    if (deploymentTargetAnnotation?.ContainerRegistry is not null)
+                    {
+                        continue;
+                    }
+
+                    // Check for RegistryTargetAnnotations (automatically added via BeforeStartEvent)
+                    var registryTargetAnnotations = resource.Annotations.OfType<RegistryTargetAnnotation>().ToArray();
+
+                    // When multiple registries exist, require explicit WithContainerRegistry call
+                    if (registryTargetAnnotations.Length > 1)
+                    {
+                        var registryNames = string.Join(", ", registryTargetAnnotations.Select(a => a.Registry is IResource res ? res.Name : a.Registry.ToString()));
+                        throw new InvalidOperationException(
+                            $"Resource '{resource.Name}' requires image push but has multiple container registries available - '{registryNames}'. " +
+                            $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
+                    }
+
+                    // When no registry is available, throw an error
+                    if (registryTargetAnnotations.Length == 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"Resource '{resource.Name}' requires image push but no container registry is available. " +
+                            $"Please add a container registry using 'builder.AddContainerRegistry(...)' or specify one with '.WithContainerRegistry(registryBuilder)'.");
+                    }
+                }
+
+                return Task.CompletedTask;
+            },
         });
 
         // Add a default "Publish" aggregation step that all publish steps should be required by

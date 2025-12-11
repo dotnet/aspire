@@ -1,7 +1,7 @@
 ﻿{
   "author": "Майкрософт",
-  "name": "Приложение Aspire для начинающих",
-  "description": "Шаблон проекта для создания приложения Aspire с веб-интерфейсом Blazor и внутренней службой веб-API, при необходимости с использованием Redis для кэширования.",
+  "name": "Начальное приложение Aspire (ASP.NET Core/Blazor)",
+  "description": "Шаблон проекта для создания приложения Aspire с веб-интерфейсом Blazor и серверной службой веб-API с необязательным кэшированием Redis.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",

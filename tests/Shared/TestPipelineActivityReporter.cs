@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Utils;
 /// <summary>
 /// A test implementation of <see cref="IPipelineActivityReporter"/> that captures activity for test assertions.
 /// </summary>
-public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
+internal sealed class TestPipelineActivityReporter : IPipelineActivityReporter
 {
     private readonly ITestOutputHelper _testOutputHelper;
 
@@ -65,11 +65,51 @@ public sealed class TestPipelineActivityReporter : IPipelineActivityReporter
     /// </summary>
     public string? CompletionMessage { get; private set; }
 
+    /// <summary>
+    /// Gets the completion state passed to <see cref="CompletePublishAsync"/>.
+    /// </summary>
+    public CompletionState? ResultCompletionState { get; private set; }
+
+    /// <summary>
+    /// Clears all captured state to allow reuse between pipeline runs.
+    /// </summary>
+    public void Clear()
+    {
+        lock (CreatedSteps)
+        {
+            CreatedSteps.Clear();
+        }
+        lock (CreatedTasks)
+        {
+            CreatedTasks.Clear();
+        }
+        lock (CompletedSteps)
+        {
+            CompletedSteps.Clear();
+        }
+        lock (CompletedTasks)
+        {
+            CompletedTasks.Clear();
+        }
+        lock (UpdatedTasks)
+        {
+            UpdatedTasks.Clear();
+        }
+        lock (LoggedMessages)
+        {
+            LoggedMessages.Clear();
+        }
+        CompletePublishCalled = false;
+        CompletionMessage = null;
+        ResultCompletionState = null;
+    }
+
     /// <inheritdoc />
     public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, CancellationToken cancellationToken = default)
     {
         CompletePublishCalled = true;
         CompletionMessage = completionMessage;
+        ResultCompletionState = completionState;
         _testOutputHelper.WriteLine($"[CompletePublish] {completionMessage} (State: {completionState})");
 
         return Task.CompletedTask;

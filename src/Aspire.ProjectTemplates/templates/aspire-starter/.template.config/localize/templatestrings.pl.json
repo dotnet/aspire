@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aplikacja startowa Aspire",
-  "description": "Szablon projektu na potrzeby tworzenia aplikacji Aspire z frontonem internetowym platformy Blazor i usługą wewnętrznej bazy danych internetowego interfejsu API, opcjonalnie używając usługi Redis do buforowania.",
+  "name": "Aplikacja startowa Aspire (ASP.NET Core/Blazor)",
+  "description": "Szablon projektu na potrzeby tworzenia aplikacji Aspire z frontonem internetowym platformy Blazor i usługą wewnętrznej bazy danych internetowego interfejsu API, z opcjonalnym buforowaniem Redis.",
   "symbols/Framework/description": "Platforma docelowa dla tego projektu.",
   "symbols/Framework/choices/net8.0/description": "Docelowa platforma net8.0",
   "symbols/Framework/choices/net9.0/description": "Docelowa platforma net9.0",

@@ -46,13 +46,13 @@ public static class AzureLogAnalyticsWorkspaceExtensions
 
             infrastructure.Add(new ProvisioningOutput("logAnalyticsWorkspaceId", typeof(string))
             {
-                Value = workspace.Id
+                Value = workspace.Id.ToBicepExpression()
             });
             
             // Add name output for the resource to externalize role assignments
             infrastructure.Add(new ProvisioningOutput("name", typeof(string))
             {
-                Value = workspace.Name
+                Value = workspace.Name.ToBicepExpression()
             });
         };
 

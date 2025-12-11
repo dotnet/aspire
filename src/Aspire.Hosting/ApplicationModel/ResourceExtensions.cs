@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 #pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIRECOMPUTE002
+#pragma warning disable ASPIRECOMPUTE003
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -1132,8 +1133,12 @@ public static class ResourceExtensions
     /// <returns>The container registry associated with the resource.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the resource does not have a container registry reference.</exception>
     /// <remarks>
-    /// This method first checks for a container registry in the <see cref="DeploymentTargetAnnotation"/>.
-    /// If not found, it falls back to the <see cref="ContainerRegistryReferenceAnnotation"/>.
+    /// This method checks for a container registry in the following order:
+    /// <list type="number">
+    /// <item>The <see cref="DeploymentTargetAnnotation"/> on the resource.</item>
+    /// <item>The <see cref="ContainerRegistryReferenceAnnotation"/> on the resource (set via <c>WithContainerRegistry</c>).</item>
+    /// <item>The <see cref="RegistryTargetAnnotation"/> on the resource (automatically added when a registry is added to the app model).</item>
+    /// </list>
     /// </remarks>
     internal static IContainerRegistry GetContainerRegistry(this IResource resource)
     {
@@ -1144,10 +1149,29 @@ public static class ResourceExtensions
             return deploymentTarget.ContainerRegistry;
         }
 
-        // Fall back to ContainerRegistryReferenceAnnotation
-        var registryAnnotation = resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().LastOrDefault()
-            ?? throw new InvalidOperationException($"Resource '{resource.Name}' does not have a container registry reference.");
-        return registryAnnotation.Registry;
+        // Try ContainerRegistryReferenceAnnotation (explicit WithContainerRegistry call)
+        var registryAnnotation = resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().LastOrDefault();
+        if (registryAnnotation is not null)
+        {
+            return registryAnnotation.Registry;
+        }
+
+        // Fall back to RegistryTargetAnnotation (added automatically via BeforeStartEvent)
+        var registryTargetAnnotations = resource.Annotations.OfType<RegistryTargetAnnotation>().ToArray();
+        if (registryTargetAnnotations.Length == 1)
+        {
+            return registryTargetAnnotations[0].Registry;
+        }
+
+        if (registryTargetAnnotations.Length > 1)
+        {
+            var registryNames = string.Join(", ", registryTargetAnnotations.Select(a => a.Registry is IResource res ? res.Name : a.Registry.ToString()));
+            throw new InvalidOperationException(
+                $"Resource '{resource.Name}' has multiple container registries available - '{registryNames}'. " +
+                $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
+        }
+
+        throw new InvalidOperationException($"Resource '{resource.Name}' does not have a container registry reference.");
     }
 
     /// <summary>
