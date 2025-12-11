@@ -61,7 +61,7 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
                 {
                     var imageName = buildOptionsContext.LocalImageName ?? Resource.Name.ToLowerInvariant();
                     var imageTag = buildOptionsContext.LocalImageTag ?? "latest";
-                    return System.IO.Path.Combine(buildOptionsContext.OutputPath, $"{imageName}-{imageTag}.tar.gz");
+                    return Path.Combine(buildOptionsContext.OutputPath, $"{imageName}-{imageTag}.tar.gz");
                 }
             }
         }
