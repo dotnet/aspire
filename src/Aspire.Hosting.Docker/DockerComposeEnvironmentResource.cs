@@ -358,9 +358,9 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                 defaultValue = await parameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
             }
 
-            if (envVar.Source is ContainerImageReference && envVar.Source is IValueProvider cirValue)
+            if (envVar.Source is ContainerImageReference cir)
             {
-                defaultValue = await cirValue.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+                defaultValue = await ((IValueProvider)cir).GetValueAsync(context.CancellationToken).ConfigureAwait(false);
             }
 
             envFile.Add(entry.Key, defaultValue, envVar.Description, onlyIfMissing: false);

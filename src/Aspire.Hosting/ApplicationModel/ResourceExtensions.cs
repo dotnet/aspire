@@ -1135,8 +1135,8 @@ public static class ResourceExtensions
     /// <remarks>
     /// This method checks for a container registry in the following order:
     /// <list type="number">
-    /// <item>The <see cref="DeploymentTargetAnnotation"/> on the resource.</item>
     /// <item>The <see cref="ContainerRegistryReferenceAnnotation"/> on the resource (set via <c>WithContainerRegistry</c>).</item>
+    /// <item>The <see cref="DeploymentTargetAnnotation"/> on the resource.</item>
     /// <item>The <see cref="RegistryTargetAnnotation"/> on the resource (automatically added when a registry is added to the app model).</item>
     /// </list>
     /// </remarks>
