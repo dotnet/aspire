@@ -70,7 +70,7 @@ class ResourceGraph {
                 var degree = d.degree || 1;
 
                 // scale collide radius with degree: 90 for low degree, up to 180 for high degree
-                return 90 + Math.min(degree * 10, 90);
+                return Math.min(90 + (degree * 10), 180);
             }).iterations(10))
             .force("x", d3.forceX().strength(0.2))
             .force("y", d3.forceY().strength(0.4))
