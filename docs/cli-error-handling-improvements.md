@@ -43,7 +43,8 @@ errorLogger.LogError("Error message", "Additional details", "aspire command");
 - Still logs to file and shows log file path
 
 **Example Output (Default)**:
-```
+
+```text
 An unexpected error occurred: The specified project file does not exist.
 Use --verbose flag for detailed error information.
 Full error details have been logged to: ~/.aspire/logs/aspire-cli-2025-12-10.log
@@ -51,7 +52,8 @@ For troubleshooting help, visit: https://aka.ms/aspire-troubleshooting
 ```
 
 **Example Output (--verbose)**:
-```
+
+```text
 System.IO.FileNotFoundException: The specified project file does not exist.
    at Aspire.Cli.Projects.ProjectLocator.FindProjectFile(...)
    at Aspire.Cli.Commands.RunCommand.ExecuteAsync(...)
@@ -64,7 +66,8 @@ For troubleshooting help, visit: https://aka.ms/aspire-troubleshooting
 **Feature**: When certificate trust is required, users are warned that OS dialogs may appear in the background.
 
 **Warning Message**:
-```
+
+```text
 A certificate trust dialog may appear in the background. Please check your taskbar and bring the dialog to the foreground to approve the certificate trust.
 ```
 
@@ -112,7 +115,8 @@ foreach (var warning in result.Warnings)
 2. Checks `WSL_DISTRO_NAME` environment variable
 
 **Warning Example**:
-```
+
+```text
 Running in WSL environment. For optimal performance, ensure WSL integration is properly configured with Docker Desktop.
 See: https://aka.ms/aspire-setup
 ```
@@ -126,7 +130,8 @@ See: https://aka.ms/aspire-setup
 - If no desktop context found, likely using Docker Engine
 
 **Warning Example**:
-```
+
+```text
 Using Docker Engine (not Docker Desktop). You may need to configure the Aspire tunnel for service-to-service communication.
 See: https://aka.ms/aspire-docker-engine
 ```
