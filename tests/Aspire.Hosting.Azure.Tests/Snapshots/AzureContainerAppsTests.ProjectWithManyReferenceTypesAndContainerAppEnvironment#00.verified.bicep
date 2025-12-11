@@ -179,7 +179,7 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               secretRef: 'db-password'
             }
             {
-              name: 'DB_DATABASE'
+              name: 'DB_DATABASENAME'
               value: 'db'
             }
             {
