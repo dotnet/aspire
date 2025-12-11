@@ -25,7 +25,7 @@ internal class ResourceExecutionConfigurationGathererContext : IResourceExecutio
     }
 
     /// <summary>
-    /// Resolves the actual <see cref="IProcessedResourceExecutionConfiguration"/> from the gatherer context.
+    /// Resolves the actual <see cref="IResourceExecutionConfigurationResult"/> from the gatherer context.
     /// </summary>
     /// <param name="resource">The resource for which the configuration is being resolved.</param>
     /// <param name="resourceLogger">The logger associated with the resource.</param>
@@ -34,7 +34,7 @@ internal class ResourceExecutionConfigurationGathererContext : IResourceExecutio
     /// <returns>
     /// A task that represents the asynchronous operation. The task result contains the resolved resource configuration.
     /// </returns>
-    internal async Task<(IProcessedResourceExecutionConfiguration, Exception?)> ResolveAsync(
+    internal async Task<IResourceExecutionConfigurationResult> ResolveAsync(
         IResource resource,
         ILogger resourceLogger,
         DistributedApplicationExecutionContext executionContext,
@@ -85,12 +85,13 @@ internal class ResourceExecutionConfigurationGathererContext : IResourceExecutio
             }
         }
 
-        return (new ProcessedResourceExecutionConfiguration
+        return new ResourceExecutionConfigurationResult
         {
             References = references,
             ArgumentsWithUnprocessed = resolvedArguments,
             EnvironmentVariablesWithUnprocessed = resolvedEnvironmentVariables,
             AdditionalConfigurationData = AdditionalConfigurationData,
-        }, exceptions.Count == 0 ? null : new AggregateException("One or more errors occurred while resolving resource configuration.", exceptions));
+            Exception = exceptions.Count == 0 ? null : new AggregateException("One or more errors occurred while resolving resource configuration.", exceptions)
+        };
     }
 }

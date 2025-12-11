@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Provides a builder for constructing an <see cref="IProcessedResourceExecutionConfiguration"/> for a specific resource in the distributed application model.
+/// Provides a builder for constructing an <see cref="IResourceExecutionConfigurationResult"/> for a specific resource in the distributed application model.
 /// This resolves command line arguments and environment variables and potentially additional metadata through registered gatherers.
 /// </summary>
 /// <remarks>
@@ -68,7 +68,7 @@ internal class ResourceExecutionConfigurationBuilder : IResourceExecutionConfigu
     }
 
     /// <inheritdoc />
-    public async Task<(IProcessedResourceExecutionConfiguration, Exception?)> BuildAsync(DistributedApplicationExecutionContext executionContext, ILogger? resourceLogger = null, CancellationToken cancellationToken = default)
+    public async Task<IResourceExecutionConfigurationResult> BuildAsync(DistributedApplicationExecutionContext executionContext, ILogger? resourceLogger = null, CancellationToken cancellationToken = default)
     {
         resourceLogger ??= _resource.GetLogger(executionContext.ServiceProvider);
 
