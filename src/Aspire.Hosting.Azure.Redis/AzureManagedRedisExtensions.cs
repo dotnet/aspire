@@ -193,7 +193,8 @@ public static class AzureManagedRedisExtensions
                     {
                         Name = RedisEnterpriseSkuName.BalancedB0
                     },
-                    MinimumTlsVersion = RedisEnterpriseTlsVersion.Tls1_2
+                    MinimumTlsVersion = RedisEnterpriseTlsVersion.Tls1_2,
+                    PublicNetworkAccess = RedisEnterprisePublicNetworkAccess.Enabled
                 };
                 infra.Add(cluster);
 
