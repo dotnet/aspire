@@ -630,7 +630,6 @@ function Save-GlobalChannelSetting {
     # Get the home directory
     $homeDirectory = Invoke-WithPowerShellVersion -ModernAction {
         if ($env:HOME) { $env:HOME }
-        elseif ($IsWindows -and $env:USERPROFILE) { $env:USERPROFILE }
         elseif ($env:USERPROFILE) { $env:USERPROFILE }
         else { $null }
     } -LegacyAction {
