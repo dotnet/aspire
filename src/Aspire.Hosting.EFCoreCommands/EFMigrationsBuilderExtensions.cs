@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -52,6 +53,9 @@ public static class EFMigrationsBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(contextType);
 
+        // Register the event subscriber once
+        EnsureEventSubscriberRegistered(builder.ApplicationBuilder);
+
         // Check for duplicate context types
         var existingMigrations = builder.ApplicationBuilder.Resources
             .OfType<EFMigrationResource>()
@@ -90,6 +94,9 @@ public static class EFMigrationsBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
+        // Register the event subscriber once
+        EnsureEventSubscriberRegistered(builder.ApplicationBuilder);
+
         var migrationResource = new EFMigrationResource(name, builder.Resource, contextType: null);
 
         return builder.ApplicationBuilder
@@ -102,6 +109,12 @@ public static class EFMigrationsBuilderExtensions
             })
             .WithIconName("Database")
             .AddEFMigrationCommands(contextType: null);
+    }
+
+    private static void EnsureEventSubscriberRegistered(IDistributedApplicationBuilder applicationBuilder)
+    {
+        // TryAddEventingSubscriber uses TryAddEnumerable which handles the "already registered" check automatically
+        applicationBuilder.Services.TryAddEventingSubscriber<EFMigrationEventSubscriber>();
     }
 
     /// <summary>
@@ -260,16 +273,31 @@ public static class EFMigrationsBuilderExtensions
                 logger,
                 context.CancellationToken);
 
-            var result = operation switch
+            EFOperationResult result;
+            
+            if (operation == "add-migration")
             {
-                "update" => await executor.UpdateDatabaseAsync().ConfigureAwait(false),
-                "drop" => await executor.DropDatabaseAsync().ConfigureAwait(false),
-                "reset" => await executor.ResetDatabaseAsync().ConfigureAwait(false),
-                "add-migration" => await executor.AddMigrationAsync().ConfigureAwait(false),
-                "remove-migration" => await executor.RemoveMigrationAsync().ConfigureAwait(false),
-                "status" => await executor.GetDatabaseStatusAsync().ConfigureAwait(false),
-                _ => throw new InvalidOperationException($"Unknown operation: {operation}")
-            };
+                // Prompt for migration name using IInteractionService
+                var migrationName = await PromptForMigrationNameAsync(context).ConfigureAwait(false);
+                if (migrationName == null)
+                {
+                    logger.LogInformation("Add migration cancelled by user.");
+                    return CommandResults.Canceled();
+                }
+                result = await executor.AddMigrationAsync(migrationName).ConfigureAwait(false);
+            }
+            else
+            {
+                result = operation switch
+                {
+                    "update" => await executor.UpdateDatabaseAsync().ConfigureAwait(false),
+                    "drop" => await executor.DropDatabaseAsync().ConfigureAwait(false),
+                    "reset" => await executor.ResetDatabaseAsync().ConfigureAwait(false),
+                    "remove-migration" => await executor.RemoveMigrationAsync().ConfigureAwait(false),
+                    "status" => await executor.GetDatabaseStatusAsync().ConfigureAwait(false),
+                    _ => throw new InvalidOperationException($"Unknown operation: {operation}")
+                };
+            }
 
             if (result.Success)
             {
@@ -293,4 +321,31 @@ public static class EFMigrationsBuilderExtensions
             return CommandResults.Failure(ex);
         }
     }
+
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only
+    private static async Task<string?> PromptForMigrationNameAsync(ExecuteCommandContext context)
+    {
+        var interactionService = context.ServiceProvider.GetService<IInteractionService>();
+        
+        if (interactionService == null || !interactionService.IsAvailable)
+        {
+            // Fall back to auto-generated name if interaction service is not available
+            return $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
+        }
+
+        var result = await interactionService.PromptInputAsync(
+            title: "Add Migration",
+            message: "Enter the name for the new migration. Note: The target project will need to be recompiled after adding a migration.",
+            inputLabel: "Migration Name",
+            placeHolder: "e.g. InitialCreate",
+            cancellationToken: context.CancellationToken).ConfigureAwait(false);
+
+        if (result.Canceled || string.IsNullOrWhiteSpace(result.Data?.Value))
+        {
+            return null;
+        }
+
+        return result.Data.Value;
+    }
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only
 }

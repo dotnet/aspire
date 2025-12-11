@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -151,6 +152,21 @@ public class AddEFMigrationsTests
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
         Assert.IsAssignableFrom<IResourceWithWaitSupport>(migrations.Resource);
+    }
+
+    [Fact]
+    public void AddEFMigrationsRegistersEventSubscriber()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        project.AddEFMigrations<TestDbContext>("mymigrations");
+
+        // The event subscriber should be registered in the service collection
+        var services = builder.Services.Where(s => 
+            s.ServiceType == typeof(IDistributedApplicationEventingSubscriber) &&
+            s.ImplementationType == typeof(EFMigrationEventSubscriber));
+        
+        Assert.Single(services);
     }
 
     // Test classes for DbContext types

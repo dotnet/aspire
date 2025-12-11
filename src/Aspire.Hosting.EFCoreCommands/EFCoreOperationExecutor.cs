@@ -58,11 +58,10 @@ internal sealed class EFCoreOperationExecutor
         return await UpdateDatabaseAsync().ConfigureAwait(false);
     }
 
-    public Task<EFOperationResult> AddMigrationAsync()
+    public Task<EFOperationResult> AddMigrationAsync(string? migrationName = null)
     {
-        // For now, we'll use a default migration name based on timestamp
-        // In a full implementation, this would prompt the user for a migration name
-        var migrationName = $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
+        // If no migration name provided, use a default based on timestamp
+        migrationName ??= $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
         _logger.LogInformation("Creating migration with name: {MigrationName}", migrationName);
         _logger.LogWarning("Note: After adding a migration, the target project needs to be recompiled for the migration to take effect.");
 

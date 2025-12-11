@@ -134,18 +134,41 @@ This integration provides Entity Framework Core migration management commands fo
 - [x] Build test project successfully
 - [x] Run all tests and verify they pass
 
-## Future Enhancements (Not Yet Implemented)
+## Future Enhancements (Partially Implemented)
 
-The following items are part of the feature outline but require additional implementation:
+The following items are part of the feature outline with implementation status:
 
 ### RunDatabaseUpdateOnStart Implementation
 
-This likely needs to be implemented using `IDistributedApplicationEventingSubscriber` to hook into the application lifecycle events.
+Implemented using `IDistributedApplicationEventingSubscriber` to hook into the application lifecycle events.
 
-- [ ] Create hosted service to run migrations on startup using `IDistributedApplicationEventingSubscriber`
-- [ ] Implement resource state transitions (Pending → Running → Finished)
-- [ ] Handle migration failures and error states
+- [x] Create hosted service to run migrations on startup using `IDistributedApplicationEventingSubscriber` (`EFMigrationEventSubscriber`)
+- [x] Implement resource state transitions (Pending → Running → Finished/FailedToStart)
+- [x] Handle migration failures and error states
 - [ ] Integrate with resource health checks
+
+### Add Migration Dialog
+
+Implemented using `IInteractionService.PromptInputAsync` to prompt for migration name:
+
+```csharp
+var interactionService = context.ServiceProvider.GetRequiredService<IInteractionService>();
+var result = await interactionService.PromptInputAsync(
+    title: "Add Migration",
+    message: "Enter the name for the new migration.",
+    inputLabel: "Migration Name",
+    placeHolder: "e.g. InitialCreate",
+    cancellationToken: context.CancellationToken);
+
+if (!result.Canceled && result.Data?.Value is { } migrationName)
+{
+    // Execute the migration with the provided name
+}
+```
+
+- [x] Implement interactive prompt for migration name using `IInteractionService.PromptInputAsync`
+- [x] Add notification about recompilation requirement (in dialog message and log output)
+- [ ] Add options from `dotnet ef migrations add` (--output-dir, --namespace, etc.)
 
 ### Publishing Support Implementation
 
@@ -158,13 +181,7 @@ This likely needs to be implemented using `IDistributedApplicationEventingSubscr
 
 - [ ] Check target project references Microsoft.EntityFrameworkCore.Design
 - [ ] Show error message if not referenced
-- [ ] Consider using reflection to invoke commands directly (see ReflectionOperationExecutor)
-
-### Add Migration Dialog
-
-- [ ] Implement interactive prompt for migration name
-- [ ] Add options from `dotnet ef migrations add`
-- [ ] Add notification about recompilation requirement
+- [ ] Consider using reflection to invoke commands directly (see [ReflectionOperationExecutor](https://github.com/dotnet/efcore/blob/main/src/ef/ReflectionOperationExecutor.cs))
 
 ### IOperationReporter Integration
 
