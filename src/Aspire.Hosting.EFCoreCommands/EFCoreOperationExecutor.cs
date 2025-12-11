@@ -5,9 +5,8 @@ using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 using System.Collections;
 using System.Reflection;
-#if NET
+using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
-#endif
 
 namespace Aspire.Hosting;
 
@@ -18,6 +17,7 @@ namespace Aspire.Hosting;
 /// This class uses reflection to load Microsoft.EntityFrameworkCore.Design from the target project
 /// and invoke its OperationExecutor to execute design-time operations. The target project must reference
 /// Microsoft.EntityFrameworkCore.Design package for these operations to work.
+/// Assemblies are loaded into a collectible AssemblyLoadContext and unloaded after operations complete.
 /// See: https://github.com/dotnet/efcore/blob/main/src/ef/ReflectionOperationExecutor.cs
 /// </remarks>
 internal sealed class EFCoreOperationExecutor : IDisposable
@@ -32,11 +32,10 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     private readonly ILogger _logger;
     private readonly CancellationToken _cancellationToken;
     
-    private object? _executor;
-    private Assembly? _commandsAssembly;
-    private Type? _resultHandlerType;
+    private string? _assemblyPath;
+    private string? _projectDirectory;
+    private string? _assemblyFileName;
     private bool _initialized;
-    private string? _appBasePath;
 
     public EFCoreOperationExecutor(
         ProjectResource projectResource,
@@ -50,13 +49,13 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         _cancellationToken = cancellationToken;
     }
 
-    private EFOperationResult EnsureInitialized()
+    private EFOperationResult EnsurePathsInitialized()
     {
         if (_initialized)
         {
-            return _executor != null 
+            return _assemblyPath != null 
                 ? new EFOperationResult { Success = true } 
-                : new EFOperationResult { Success = false, ErrorMessage = "EF Core Design assembly not found." };
+                : new EFOperationResult { Success = false, ErrorMessage = "Could not find compiled assembly for project." };
         }
 
         _initialized = true;
@@ -67,31 +66,30 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             return new EFOperationResult { Success = false, ErrorMessage = "Could not determine project path." };
         }
 
-        var projectDirectory = Path.GetDirectoryName(projectPath)!;
-        var assemblyFileName = Path.GetFileNameWithoutExtension(projectPath);
+        _projectDirectory = Path.GetDirectoryName(projectPath)!;
+        _assemblyFileName = Path.GetFileNameWithoutExtension(projectPath);
         
         // Try to find the output assembly - look in common output directories
-        string? assemblyPath = null;
         var possiblePaths = new[]
         {
-            Path.Combine(projectDirectory, "bin", "Debug", "net10.0", $"{assemblyFileName}.dll"),
-            Path.Combine(projectDirectory, "bin", "Debug", "net9.0", $"{assemblyFileName}.dll"),
-            Path.Combine(projectDirectory, "bin", "Debug", "net8.0", $"{assemblyFileName}.dll"),
-            Path.Combine(projectDirectory, "bin", "Release", "net10.0", $"{assemblyFileName}.dll"),
-            Path.Combine(projectDirectory, "bin", "Release", "net9.0", $"{assemblyFileName}.dll"),
-            Path.Combine(projectDirectory, "bin", "Release", "net8.0", $"{assemblyFileName}.dll"),
+            Path.Combine(_projectDirectory, "bin", "Debug", "net10.0", $"{_assemblyFileName}.dll"),
+            Path.Combine(_projectDirectory, "bin", "Debug", "net9.0", $"{_assemblyFileName}.dll"),
+            Path.Combine(_projectDirectory, "bin", "Debug", "net8.0", $"{_assemblyFileName}.dll"),
+            Path.Combine(_projectDirectory, "bin", "Release", "net10.0", $"{_assemblyFileName}.dll"),
+            Path.Combine(_projectDirectory, "bin", "Release", "net9.0", $"{_assemblyFileName}.dll"),
+            Path.Combine(_projectDirectory, "bin", "Release", "net8.0", $"{_assemblyFileName}.dll"),
         };
 
         foreach (var path in possiblePaths)
         {
             if (File.Exists(path))
             {
-                assemblyPath = path;
+                _assemblyPath = path;
                 break;
             }
         }
 
-        if (assemblyPath == null)
+        if (_assemblyPath == null)
         {
             return new EFOperationResult 
             { 
@@ -100,28 +98,77 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             };
         }
 
-        _appBasePath = Path.GetDirectoryName(assemblyPath)!;
+        return new EFOperationResult { Success = true };
+    }
 
-        // Set up assembly resolution
-        AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;
+    /// <summary>
+    /// Executes an EF Core operation in an isolated, collectible AssemblyLoadContext.
+    /// The context is unloaded after the operation completes to free memory.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private EFOperationResult ExecuteInIsolatedContext(
+        Func<object, Assembly, Type, object?> operation)
+    {
+        var initResult = EnsurePathsInitialized();
+        if (!initResult.Success)
+        {
+            return initResult;
+        }
+
+        var appBasePath = Path.GetDirectoryName(_assemblyPath)!;
+        var designAssemblyPath = Path.Combine(appBasePath, $"{DesignAssemblyName}.dll");
+
+        if (!File.Exists(designAssemblyPath))
+        {
+            return new EFOperationResult
+            {
+                Success = false,
+                ErrorMessage = "Microsoft.EntityFrameworkCore.Design assembly not found. Ensure the target project references Microsoft.EntityFrameworkCore.Design."
+            };
+        }
+
+        WeakReference? alcWeakRef = null;
+        
+        try
+        {
+            var result = ExecuteOperationInContext(
+                designAssemblyPath,
+                appBasePath,
+                operation,
+                out alcWeakRef);
+            
+            return result;
+        }
+        finally
+        {
+            // Try to unload the context
+            if (alcWeakRef != null)
+            {
+                for (int i = 0; alcWeakRef.IsAlive && i < 10; i++)
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                }
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private EFOperationResult ExecuteOperationInContext(
+        string designAssemblyPath,
+        string appBasePath,
+        Func<object, Assembly, Type, object?> operation,
+        out WeakReference alcWeakRef)
+    {
+        var alc = new EFCoreDesignLoadContext(appBasePath, designAssemblyPath);
+        alcWeakRef = new WeakReference(alc, trackResurrection: true);
 
         try
         {
-            // Load the design assembly
-            var designAssemblyPath = Path.Combine(_appBasePath, $"{DesignAssemblyName}.dll");
-            
-#if NET
-            _commandsAssembly = File.Exists(designAssemblyPath)
-                ? AssemblyLoadContext.Default.LoadFromAssemblyPath(designAssemblyPath)
-                : AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(DesignAssemblyName));
-#else
-            _commandsAssembly = File.Exists(designAssemblyPath)
-                ? Assembly.LoadFrom(designAssemblyPath)
-                : Assembly.Load(DesignAssemblyName);
-#endif
+            var commandsAssembly = alc.LoadFromAssemblyPath(designAssemblyPath);
 
             // Create report handler
-            var reportHandlerType = _commandsAssembly.GetType(ReportHandlerTypeName, throwOnError: true, ignoreCase: false)!;
+            var reportHandlerType = commandsAssembly.GetType(ReportHandlerTypeName, throwOnError: true, ignoreCase: false)!;
             var reportHandler = Activator.CreateInstance(
                 reportHandlerType,
                 (Action<string>)(msg => _logger.LogError("[EF] {Message}", msg)),
@@ -130,24 +177,30 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 (Action<string>)(msg => _logger.LogDebug("[EF] {Message}", msg)))!;
 
             // Create executor
-            var executorType = _commandsAssembly.GetType(ExecutorTypeName, throwOnError: true, ignoreCase: false)!;
-            _executor = Activator.CreateInstance(
+            var executorType = commandsAssembly.GetType(ExecutorTypeName, throwOnError: true, ignoreCase: false)!;
+            var executor = Activator.CreateInstance(
                 executorType,
                 reportHandler,
                 new Dictionary<string, object?>
                 {
-                    { "targetName", assemblyFileName },
-                    { "startupTargetName", assemblyFileName },
-                    { "projectDir", projectDirectory },
-                    { "rootNamespace", assemblyFileName },
+                    { "targetName", _assemblyFileName },
+                    { "startupTargetName", _assemblyFileName },
+                    { "projectDir", _projectDirectory },
+                    { "rootNamespace", _assemblyFileName },
                     { "language", "C#" },
                     { "nullable", true },
                     { "remainingArguments", Array.Empty<string>() }
                 })!;
 
-            _resultHandlerType = _commandsAssembly.GetType(ResultHandlerTypeName, throwOnError: true, ignoreCase: false)!;
+            var resultHandlerType = commandsAssembly.GetType(ResultHandlerTypeName, throwOnError: true, ignoreCase: false)!;
 
-            return new EFOperationResult { Success = true };
+            var operationResult = operation(executor, commandsAssembly, resultHandlerType);
+
+            return new EFOperationResult 
+            { 
+                Success = true, 
+                Output = operationResult?.ToString() 
+            };
         }
         catch (FileNotFoundException ex)
         {
@@ -160,8 +213,51 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to initialize EF Core operation executor.");
-            return new EFOperationResult { Success = false, ErrorMessage = ex.Message };
+            _logger.LogError(ex, "Failed to execute EF Core operation.");
+            return new EFOperationResult { Success = false, ErrorMessage = GetInnerExceptionMessage(ex) };
+        }
+        finally
+        {
+            alc.Unload();
+        }
+    }
+
+    /// <summary>
+    /// A collectible AssemblyLoadContext for loading EF Core Design assemblies in isolation.
+    /// </summary>
+    private sealed class EFCoreDesignLoadContext : AssemblyLoadContext
+    {
+        private readonly AssemblyDependencyResolver _resolver;
+        private readonly string _appBasePath;
+
+        public EFCoreDesignLoadContext(string appBasePath, string mainAssemblyPath) 
+            : base(isCollectible: true)
+        {
+            _appBasePath = appBasePath;
+            _resolver = new AssemblyDependencyResolver(mainAssemblyPath);
+        }
+
+        protected override Assembly? Load(AssemblyName assemblyName)
+        {
+            // First try to resolve using the dependency resolver
+            var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
+            if (assemblyPath != null)
+            {
+                return LoadFromAssemblyPath(assemblyPath);
+            }
+
+            // Fall back to looking in the app base path
+            foreach (var extension in new[] { ".dll", ".exe" })
+            {
+                var path = Path.Combine(_appBasePath, assemblyName.Name + extension);
+                if (File.Exists(path))
+                {
+                    return LoadFromAssemblyPath(path);
+                }
+            }
+
+            // Return null to let the default context try to load it
+            return null;
         }
     }
 
@@ -169,27 +265,16 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     {
         return Task.Run(() =>
         {
-            var initResult = EnsureInitialized();
-            if (!initResult.Success)
+            return ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
             {
-                return initResult;
-            }
-
-            try
-            {
-                InvokeOperation("UpdateDatabase", new Dictionary<string, object?>
+                InvokeOperation(executor, commandsAssembly, resultHandlerType, "UpdateDatabase", new Dictionary<string, object?>
                 {
                     { "targetMigration", null },
                     { "connectionString", null },
                     { "contextType", _contextTypeName }
                 });
-
-                return new EFOperationResult { Success = true };
-            }
-            catch (Exception ex)
-            {
-                return new EFOperationResult { Success = false, ErrorMessage = GetInnerExceptionMessage(ex) };
-            }
+                return null;
+            });
         }, _cancellationToken);
     }
 
@@ -197,25 +282,14 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     {
         return Task.Run(() =>
         {
-            var initResult = EnsureInitialized();
-            if (!initResult.Success)
+            return ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
             {
-                return initResult;
-            }
-
-            try
-            {
-                InvokeOperation("DropDatabase", new Dictionary<string, object?>
+                InvokeOperation(executor, commandsAssembly, resultHandlerType, "DropDatabase", new Dictionary<string, object?>
                 {
                     { "contextType", _contextTypeName }
                 });
-
-                return new EFOperationResult { Success = true };
-            }
-            catch (Exception ex)
-            {
-                return new EFOperationResult { Success = false, ErrorMessage = GetInnerExceptionMessage(ex) };
-            }
+                return null;
+            });
         }, _cancellationToken);
     }
 
@@ -238,20 +312,14 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
     public Task<EFOperationResult> AddMigrationAsync(string? migrationName = null)
     {
+        migrationName ??= $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
+        _logger.LogInformation("Creating migration with name: {MigrationName}", migrationName);
+
         return Task.Run(() =>
         {
-            var initResult = EnsureInitialized();
-            if (!initResult.Success)
+            return ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
             {
-                return initResult;
-            }
-
-            migrationName ??= $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
-            _logger.LogInformation("Creating migration with name: {MigrationName}", migrationName);
-
-            try
-            {
-                var result = InvokeOperation<IDictionary>("AddMigration", new Dictionary<string, object?>
+                var result = InvokeOperation<IDictionary>(executor, commandsAssembly, resultHandlerType, "AddMigration", new Dictionary<string, object?>
                 {
                     { "name", migrationName },
                     { "outputDir", null },
@@ -259,16 +327,8 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                     { "namespace", null }
                 });
 
-                return new EFOperationResult 
-                { 
-                    Success = true, 
-                    Output = result?["MigrationFile"]?.ToString() 
-                };
-            }
-            catch (Exception ex)
-            {
-                return new EFOperationResult { Success = false, ErrorMessage = GetInnerExceptionMessage(ex) };
-            }
+                return result?["MigrationFile"]?.ToString();
+            });
         }, _cancellationToken);
     }
 
@@ -276,26 +336,15 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     {
         return Task.Run(() =>
         {
-            var initResult = EnsureInitialized();
-            if (!initResult.Success)
+            return ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
             {
-                return initResult;
-            }
-
-            try
-            {
-                InvokeOperation<IDictionary>("RemoveMigration", new Dictionary<string, object?>
+                InvokeOperation<IDictionary>(executor, commandsAssembly, resultHandlerType, "RemoveMigration", new Dictionary<string, object?>
                 {
                     { "contextType", _contextTypeName },
                     { "force", true }
                 });
-
-                return new EFOperationResult { Success = true };
-            }
-            catch (Exception ex)
-            {
-                return new EFOperationResult { Success = false, ErrorMessage = GetInnerExceptionMessage(ex) };
-            }
+                return null;
+            });
         }, _cancellationToken);
     }
 
@@ -303,96 +352,161 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     {
         return Task.Run(() =>
         {
-            var initResult = EnsureInitialized();
+            var initResult = EnsurePathsInitialized();
             if (!initResult.Success)
             {
                 return initResult;
             }
 
+            var appBasePath = Path.GetDirectoryName(_assemblyPath)!;
+            var designAssemblyPath = Path.Combine(appBasePath, $"{DesignAssemblyName}.dll");
+
+            if (!File.Exists(designAssemblyPath))
+            {
+                return new EFOperationResult
+                {
+                    Success = false,
+                    ErrorMessage = "Microsoft.EntityFrameworkCore.Design assembly not found. Ensure the target project references Microsoft.EntityFrameworkCore.Design."
+                };
+            }
+
+            WeakReference? alcWeakRef = null;
+
             try
             {
-                var migrations = InvokeOperation<IEnumerable<IDictionary>>("GetMigrations", new Dictionary<string, object?>
-                {
-                    { "contextType", _contextTypeName },
-                    { "connectionString", null },
-                    { "noConnect", false }
-                });
+                var alc = new EFCoreDesignLoadContext(appBasePath, designAssemblyPath);
+                alcWeakRef = new WeakReference(alc, trackResurrection: true);
 
-                var statusLines = new List<string>();
-                string? lastAppliedMigration = null;
-                string? lastMigration = null;
-                var pendingMigrations = new List<string>();
-
-                if (migrations != null)
-                {
-                    foreach (var migration in migrations)
-                    {
-                        var id = migration["Id"]?.ToString() ?? "Unknown";
-                        var applied = migration["Applied"] as bool? ?? false;
-                        lastMigration = id;
-                        
-                        if (applied)
-                        {
-                            lastAppliedMigration = id;
-                            statusLines.Add($"  [Applied] {id}");
-                        }
-                        else
-                        {
-                            pendingMigrations.Add(id);
-                            statusLines.Add($"  [Pending] {id}");
-                        }
-                    }
-                }
-
-                // Try to check for pending model changes
-                bool hasPendingModelChanges = false;
                 try
                 {
-                    InvokeOperation("HasPendingModelChanges", new Dictionary<string, object?>
+                    var commandsAssembly = alc.LoadFromAssemblyPath(designAssemblyPath);
+
+                    // Create report handler
+                    var reportHandlerType = commandsAssembly.GetType(ReportHandlerTypeName, throwOnError: true, ignoreCase: false)!;
+                    var reportHandler = Activator.CreateInstance(
+                        reportHandlerType,
+                        (Action<string>)(msg => _logger.LogError("[EF] {Message}", msg)),
+                        (Action<string>)(msg => _logger.LogWarning("[EF] {Message}", msg)),
+                        (Action<string>)(msg => _logger.LogInformation("[EF] {Message}", msg)),
+                        (Action<string>)(msg => _logger.LogDebug("[EF] {Message}", msg)))!;
+
+                    // Create executor
+                    var executorType = commandsAssembly.GetType(ExecutorTypeName, throwOnError: true, ignoreCase: false)!;
+                    var executor = Activator.CreateInstance(
+                        executorType,
+                        reportHandler,
+                        new Dictionary<string, object?>
+                        {
+                            { "targetName", _assemblyFileName },
+                            { "startupTargetName", _assemblyFileName },
+                            { "projectDir", _projectDirectory },
+                            { "rootNamespace", _assemblyFileName },
+                            { "language", "C#" },
+                            { "nullable", true },
+                            { "remainingArguments", Array.Empty<string>() }
+                        })!;
+
+                    var resultHandlerType = commandsAssembly.GetType(ResultHandlerTypeName, throwOnError: true, ignoreCase: false)!;
+
+                    var migrations = InvokeOperation<IEnumerable<IDictionary>>(executor, commandsAssembly, resultHandlerType, "GetMigrations", new Dictionary<string, object?>
                     {
-                        { "contextType", _contextTypeName }
+                        { "contextType", _contextTypeName },
+                        { "connectionString", null },
+                        { "noConnect", false }
                     });
-                }
-                catch
-                {
-                    // HasPendingModelChanges throws if there are pending changes
-                    hasPendingModelChanges = true;
-                }
 
-                var summary = new List<string>
-                {
-                    $"Current Applied Migration: {lastAppliedMigration ?? "None (database not created)"}",
-                    $"Latest Migration: {lastMigration ?? "None"}",
-                    $"Pending Migrations: {(pendingMigrations.Count > 0 ? string.Join(", ", pendingMigrations) : "None")}",
-                    $"Has Pending Model Changes: {(hasPendingModelChanges ? "Yes" : "No")}"
-                };
+                    var statusLines = new List<string>();
+                    string? lastAppliedMigration = null;
+                    string? lastMigration = null;
+                    var pendingMigrations = new List<string>();
 
-                if (statusLines.Count > 0)
-                {
-                    summary.Add("");
-                    summary.Add("Migration History:");
-                    summary.AddRange(statusLines);
-                }
+                    if (migrations != null)
+                    {
+                        foreach (var migration in migrations)
+                        {
+                            var id = migration["Id"]?.ToString() ?? "Unknown";
+                            var applied = migration["Applied"] as bool? ?? false;
+                            lastMigration = id;
+                            
+                            if (applied)
+                            {
+                                lastAppliedMigration = id;
+                                statusLines.Add($"  [Applied] {id}");
+                            }
+                            else
+                            {
+                                pendingMigrations.Add(id);
+                                statusLines.Add($"  [Pending] {id}");
+                            }
+                        }
+                    }
 
-                var output = string.Join(Environment.NewLine, summary);
-                _logger.LogInformation("Database migration status: {Status}", output);
+                    // Try to check for pending model changes
+                    bool hasPendingModelChanges = false;
+                    try
+                    {
+                        InvokeOperation(executor, commandsAssembly, resultHandlerType, "HasPendingModelChanges", new Dictionary<string, object?>
+                        {
+                            { "contextType", _contextTypeName }
+                        });
+                    }
+                    catch
+                    {
+                        // HasPendingModelChanges throws if there are pending changes
+                        hasPendingModelChanges = true;
+                    }
 
-                return new EFOperationResult { Success = true, Output = output };
-            }
-            catch (Exception ex)
-            {
-                var errorMessage = GetInnerExceptionMessage(ex);
-                // Check if database doesn't exist
-                if (errorMessage.Contains("does not exist", StringComparison.OrdinalIgnoreCase) ||
-                    errorMessage.Contains("Cannot open database", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new EFOperationResult 
-                    { 
-                        Success = true, 
-                        Output = "Database has not been created yet.\nRun 'Update Database' to create and apply migrations." 
+                    var summary = new List<string>
+                    {
+                        $"Current Applied Migration: {lastAppliedMigration ?? "None (database not created)"}",
+                        $"Latest Migration: {lastMigration ?? "None"}",
+                        $"Pending Migrations: {(pendingMigrations.Count > 0 ? string.Join(", ", pendingMigrations) : "None")}",
+                        $"Has Pending Model Changes: {(hasPendingModelChanges ? "Yes" : "No")}"
                     };
+
+                    if (statusLines.Count > 0)
+                    {
+                        summary.Add("");
+                        summary.Add("Migration History:");
+                        summary.AddRange(statusLines);
+                    }
+
+                    var output = string.Join(Environment.NewLine, summary);
+                    _logger.LogInformation("Database migration status: {Status}", output);
+
+                    return new EFOperationResult { Success = true, Output = output };
                 }
-                return new EFOperationResult { Success = false, ErrorMessage = errorMessage };
+                catch (Exception ex)
+                {
+                    var errorMessage = GetInnerExceptionMessage(ex);
+                    // Check if database doesn't exist
+                    if (errorMessage.Contains("does not exist", StringComparison.OrdinalIgnoreCase) ||
+                        errorMessage.Contains("Cannot open database", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new EFOperationResult 
+                        { 
+                            Success = true, 
+                            Output = "Database has not been created yet.\nRun 'Update Database' to create and apply migrations." 
+                        };
+                    }
+                    return new EFOperationResult { Success = false, ErrorMessage = errorMessage };
+                }
+                finally
+                {
+                    alc.Unload();
+                }
+            }
+            finally
+            {
+                // Try to unload the context
+                if (alcWeakRef != null)
+                {
+                    for (int i = 0; alcWeakRef.IsAlive && i < 10; i++)
+                    {
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
+                    }
+                }
             }
         }, _cancellationToken);
     }
@@ -401,15 +515,9 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     {
         return Task.Run(() =>
         {
-            var initResult = EnsureInitialized();
-            if (!initResult.Success)
+            var result = ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
             {
-                return initResult;
-            }
-
-            try
-            {
-                var script = InvokeOperation<string>("ScriptMigration", new Dictionary<string, object?>
+                var script = InvokeOperation<string>(executor, commandsAssembly, resultHandlerType, "ScriptMigration", new Dictionary<string, object?>
                 {
                     { "fromMigration", null },
                     { "toMigration", null },
@@ -423,12 +531,10 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                     File.WriteAllText(outputPath, script);
                 }
 
-                return new EFOperationResult { Success = true, Output = script };
-            }
-            catch (Exception ex)
-            {
-                return new EFOperationResult { Success = false, ErrorMessage = GetInnerExceptionMessage(ex) };
-            }
+                return script;
+            });
+
+            return result;
         }, _cancellationToken);
     }
 
@@ -436,8 +542,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     {
         // Note: Migration bundles require using dotnet ef migrations bundle command
         // as there's no direct API for this in OperationExecutor
-        // Include initialization check to match other methods
-        var initResult = EnsureInitialized();
+        var initResult = EnsurePathsInitialized();
         if (!initResult.Success)
         {
             return Task.FromResult(initResult);
@@ -452,38 +557,33 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         });
     }
 
-    private void InvokeOperation(string operationName, IDictionary arguments)
+    private static void InvokeOperation(object executor, Assembly commandsAssembly, Type resultHandlerType, string operationName, IDictionary arguments)
     {
-        InvokeOperationImpl(operationName, arguments);
+        InvokeOperationImpl(executor, commandsAssembly, resultHandlerType, operationName, arguments);
     }
 
-    private TResult InvokeOperation<TResult>(string operationName, IDictionary arguments)
+    private static TResult InvokeOperation<TResult>(object executor, Assembly commandsAssembly, Type resultHandlerType, string operationName, IDictionary arguments)
     {
-        return (TResult)InvokeOperationImpl(operationName, arguments);
+        return (TResult)InvokeOperationImpl(executor, commandsAssembly, resultHandlerType, operationName, arguments);
     }
 
-    private object InvokeOperationImpl(string operationName, IDictionary arguments)
+    private static object InvokeOperationImpl(object executor, Assembly commandsAssembly, Type resultHandlerType, string operationName, IDictionary arguments)
     {
-        if (_executor == null || _commandsAssembly == null || _resultHandlerType == null)
-        {
-            throw new InvalidOperationException("Executor not initialized.");
-        }
-
-        var resultHandler = Activator.CreateInstance(_resultHandlerType)!;
+        var resultHandler = Activator.CreateInstance(resultHandlerType)!;
 
         // Execute the operation by creating the nested operation type
-        var operationType = _commandsAssembly.GetType($"{ExecutorTypeName}+{operationName}", throwOnError: true, ignoreCase: true)!;
-        Activator.CreateInstance(operationType, _executor, resultHandler, arguments);
+        var operationType = commandsAssembly.GetType($"{ExecutorTypeName}+{operationName}", throwOnError: true, ignoreCase: true)!;
+        Activator.CreateInstance(operationType, executor, resultHandler, arguments);
 
         // Check for errors
-        var errorType = (string?)_resultHandlerType.GetProperty("ErrorType")?.GetValue(resultHandler);
+        var errorType = (string?)resultHandlerType.GetProperty("ErrorType")?.GetValue(resultHandler);
         if (errorType != null)
         {
-            var errorMessage = (string?)_resultHandlerType.GetProperty("ErrorMessage")?.GetValue(resultHandler);
+            var errorMessage = (string?)resultHandlerType.GetProperty("ErrorMessage")?.GetValue(resultHandler);
             throw new InvalidOperationException(errorMessage ?? "Unknown error occurred.");
         }
 
-        return _resultHandlerType.GetProperty("Result")?.GetValue(resultHandler)!;
+        return resultHandlerType.GetProperty("Result")?.GetValue(resultHandler)!;
     }
 
     private static string GetInnerExceptionMessage(Exception ex)
@@ -505,41 +605,9 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         return null;
     }
 
-    private Assembly? ResolveAssembly(object? sender, ResolveEventArgs args)
-    {
-        if (_appBasePath == null)
-        {
-            return null;
-        }
-
-        var assemblyName = new AssemblyName(args.Name);
-
-        foreach (var extension in new[] { ".dll", ".exe" })
-        {
-            var path = Path.Combine(_appBasePath, assemblyName.Name + extension);
-            if (File.Exists(path))
-            {
-                try
-                {
-#if NET
-                    return AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
-#else
-                    return Assembly.LoadFrom(path);
-#endif
-                }
-                catch
-                {
-                    // Ignore loading errors
-                }
-            }
-        }
-
-        return null;
-    }
-
     public void Dispose()
     {
-        AppDomain.CurrentDomain.AssemblyResolve -= ResolveAssembly;
+        // Nothing to dispose - context is unloaded after each operation
     }
 }
 
