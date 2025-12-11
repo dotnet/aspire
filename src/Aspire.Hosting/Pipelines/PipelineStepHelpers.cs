@@ -9,6 +9,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -20,12 +21,30 @@ internal static class PipelineStepHelpers
     /// <summary>
     /// Pushes a container image to a registry with proper logging and task reporting.
     /// If the registry is a local registry (empty endpoint), only tags the image without pushing.
+    /// If the image format is OCI (or other non-Docker format), this is a no-op since OCI images
+    /// are typically written to local file paths and don't require a push to a registry.
     /// </summary>
     /// <param name="resource">The resource whose image should be pushed.</param>
     /// <param name="context">The pipeline step context for logging and task reporting.</param>
     /// <returns>A task representing the async operation.</returns>
     public static async Task PushImageToRegistryAsync(IResource resource, PipelineStepContext context)
     {
+        // Check if the resource is configured to build non-Docker format images
+        // (e.g., OCI format to a local file path). These don't require a push operation.
+        var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
+            context.Services,
+            context.Logger,
+            context.ExecutionContext,
+            context.CancellationToken).ConfigureAwait(false);
+
+        // Skip push operation if ImageFormat is explicitly set to non-Docker
+        if (buildOptionsContext.ImageFormat is not null && buildOptionsContext.ImageFormat != ContainerImageFormat.Docker)
+        {
+            context.Logger.LogInformation("Skipping push for resource '{ResourceName}' - image format is {ImageFormat}, not Docker", 
+                resource.Name, buildOptionsContext.ImageFormat);
+            return;
+        }
+
         var registry = resource.GetContainerRegistry();
         var registryEndpoint = await registry.Endpoint.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
 
