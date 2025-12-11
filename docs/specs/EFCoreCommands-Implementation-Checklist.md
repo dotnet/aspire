@@ -140,7 +140,9 @@ The following items are part of the feature outline but require additional imple
 
 ### RunDatabaseUpdateOnStart Implementation
 
-- [ ] Create hosted service to run migrations on startup
+This likely needs to be implemented using `IDistributedApplicationEventingSubscriber` to hook into the application lifecycle events.
+
+- [ ] Create hosted service to run migrations on startup using `IDistributedApplicationEventingSubscriber`
 - [ ] Implement resource state transitions (Pending → Running → Finished)
 - [ ] Handle migration failures and error states
 - [ ] Integrate with resource health checks

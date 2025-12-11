@@ -91,7 +91,7 @@ public class AddEFMigrationsTests
         });
 
         Assert.Contains("TestDbContext", exception.Message);
-        Assert.Contains("already been added", exception.Message);
+        Assert.Contains("already been registered", exception.Message);
     }
 
     [Fact]

@@ -20,6 +20,10 @@ public static class EFMigrationsBuilderExtensions
     /// <param name="name">The name of the migration resource.</param>
     /// <returns>A resource builder for the EF migration resource.</returns>
     /// <exception cref="InvalidOperationException">Thrown if migrations for this context type have already been added.</exception>
+    /// <remarks>
+    /// Multiple calls to this method with different context types are supported, allowing you to manage
+    /// migrations for multiple DbContexts in the same project.
+    /// </remarks>
     public static IResourceBuilder<EFMigrationResource> AddEFMigrations<TContext>(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name) where TContext : class
@@ -35,6 +39,10 @@ public static class EFMigrationsBuilderExtensions
     /// <param name="contextType">The DbContext type to manage migrations for.</param>
     /// <returns>A resource builder for the EF migration resource.</returns>
     /// <exception cref="InvalidOperationException">Thrown if migrations for this context type have already been added.</exception>
+    /// <remarks>
+    /// Multiple calls to this method with different context types are supported, allowing you to manage
+    /// migrations for multiple DbContexts in the same project.
+    /// </remarks>
     public static IResourceBuilder<EFMigrationResource> AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name,
@@ -52,7 +60,7 @@ public static class EFMigrationsBuilderExtensions
         if (existingMigrations.Any())
         {
             throw new InvalidOperationException(
-                $"EF migrations for context type '{contextType.FullName}' have already been added to project '{builder.Resource.Name}'.");
+                $"The DbContext type '{contextType.Name}' has already been registered for EF migrations on resource '{builder.Resource.Name}'.");
         }
 
         var migrationResource = new EFMigrationResource(name, builder.Resource, contextType);

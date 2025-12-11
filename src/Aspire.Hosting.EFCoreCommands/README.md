@@ -4,6 +4,18 @@ Provides extension methods and resource definitions for an Aspire AppHost to con
 
 ## Getting started
 
+### Prerequisites
+
+The target project must reference `Microsoft.EntityFrameworkCore.Design`. Add the following to your project file:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="x.y.z" />
+</ItemGroup>
+```
+
+Note: Using `dotnet add package` will add the reference with `PrivateAssets="All"` which may not work correctly with the migration commands.
+
 ### Install the package
 
 In your AppHost project, install the Aspire EFCoreCommands Hosting library with [NuGet](https://www.nuget.org):
@@ -21,13 +33,6 @@ var api = builder.AddProject<Projects.Api>("api");
 
 // Add EF migrations for a specific DbContext
 var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations");
-
-// Optionally, run migrations on AppHost start
-apiMigrations.RunDatabaseUpdateOnStart();
-
-// Other resources can wait for migrations to complete
-var worker = builder.AddProject<Projects.Worker>("worker")
-                    .WaitFor(apiMigrations);
 ```
 
 ### Resource Commands
@@ -42,6 +47,22 @@ When `AddEFMigrations` is called, the following commands become available in the
 | Add Migration... | Create a new migration |
 | Remove Migration | Remove the last migration |
 | Get Database Status | Show the current migration status |
+
+### Running migrations on startup
+
+You can configure migrations to run automatically when the AppHost starts:
+
+```csharp
+var api = builder.AddProject<Projects.Api>("api");
+
+// Add EF migrations and run on startup
+var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
+    .RunDatabaseUpdateOnStart();
+
+// Other resources can wait for migrations to complete
+var worker = builder.AddProject<Projects.Worker>("worker")
+                    .WaitFor(apiMigrations);
+```
 
 ### Multiple DbContexts
 
@@ -59,20 +80,18 @@ var orderMigrations = api.AddEFMigrations<OrderDbContext>("order-migrations");
 Configure migration script or bundle generation during publishing:
 
 ```csharp
+// Generate SQL script during publish
 var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
-    .PublishAsMigrationScript();  // Generate SQL script during publish
-```
+    .PublishAsMigrationScript();
 
-## Prerequisites
-
-The target project must reference `Microsoft.EntityFrameworkCore.Design`:
-
-```dotnetcli
-dotnet add package Microsoft.EntityFrameworkCore.Design
+// Or generate a self-contained migration bundle executable
+var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
+    .PublishAsMigrationBundle();
 ```
 
 ## Additional documentation
 
+<!-- TODO: Update this to the EFCoreCommands-specific page once published -->
 https://learn.microsoft.com/dotnet/aspire/
 https://learn.microsoft.com/ef/core/managing-schemas/migrations/
 
