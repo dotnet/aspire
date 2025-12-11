@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIRECERTIFICATES001
 
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -85,6 +86,7 @@ internal class HttpsCertificateExecutionConfigurationGatherer : IResourceExecuti
 /// <summary>
 /// Metadata for HTTPS/TLS server certificate configuration.
 /// </summary>
+[Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class HttpsCertificateExecutionConfigurationData : IResourceExecutionConfigurationData
 {
     private ReferenceExpression? _keyPathReference;
@@ -170,6 +172,7 @@ public class HttpsCertificateExecutionConfigurationData : IResourceExecutionConf
 /// <summary>
 /// Configuration context for server authentication certificate configuration.
 /// </summary>
+[Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class HttpsCertificateExecutionConfigurationContext
 {
     /// <summary>

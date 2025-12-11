@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIRECERTIFICATES001
 
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -119,6 +120,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecuti
 /// <summary>
 /// Metadata about the resource certificate trust configuration.
 /// </summary>
+[Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class CertificateTrustExecutionConfigurationData : IResourceExecutionConfigurationData
 {
     /// <summary>
@@ -135,6 +137,7 @@ public class CertificateTrustExecutionConfigurationData : IResourceExecutionConf
 /// <summary>
 /// Context for configuring certificate trust configuration properties.
 /// </summary>
+[Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class CertificateTrustExecutionConfigurationContext
 {
     /// <summary>

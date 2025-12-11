@@ -23,6 +23,6 @@ public interface IResourceExecutionConfigurationBuilder
     /// <param name="executionContext">The distributed application execution context.</param>
     /// <param name="resourceLogger">A logger instance for the resource. If none is provided, a default logger will be used.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A tuple of the resource configuration and any exceptions that occurred while processing it.</returns>
-    Task<(IProcessedResourceExecutionConfiguration, Exception?)> BuildAsync(DistributedApplicationExecutionContext executionContext, ILogger? resourceLogger = null, CancellationToken cancellationToken = default);
+    /// <returns>The resource configuration result. Any exceptions that occurred while processing are available via the <see cref="IResourceExecutionConfigurationResult.Exception"/> property.</returns>
+    Task<IResourceExecutionConfigurationResult> BuildAsync(DistributedApplicationExecutionContext executionContext, ILogger? resourceLogger = null, CancellationToken cancellationToken = default);
 }

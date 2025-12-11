@@ -1598,7 +1598,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
             var baseServerAuthOutputPath = Path.Join(certificatesRootDir, "private");
 
-            (var configuration, var configException) = await er.ModelResource.ExecutionConfigurationBuilder()
+            var configuration = await er.ModelResource.CreateExecutionConfigurationBuilder()
                 .WithArgumentsConfig()
                 .WithEnvironmentVariablesConfig()
                 .WithCertificateTrustConfig(scope =>
@@ -1698,7 +1698,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             spec.Env = configuration.EnvironmentVariables.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList();
 
-            if (configException is not null)
+            if (configuration.Exception is not null)
             {
                 throw new FailedToApplyEnvironmentException();
             }
@@ -1943,7 +1943,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             var serverAuthCertificatesBasePath = $"{certificatesDestination}/private";
 
-            (var configuration, var configException) = await cr.ModelResource.ExecutionConfigurationBuilder()
+            var configuration = await cr.ModelResource.CreateExecutionConfigurationBuilder()
                 .WithArgumentsConfig()
                 .WithEnvironmentVariablesConfig()
                 .WithCertificateTrustConfig(scope =>
@@ -2093,7 +2093,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 spec.Command = containerResource.Entrypoint;
             }
 
-            if (failedToApplyRunArgs || configException is not null)
+            if (failedToApplyRunArgs || configuration.Exception is not null)
             {
                 throw new FailedToApplyEnvironmentException();
             }

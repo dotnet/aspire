@@ -6,8 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-#pragma warning disable ASPIRECOMPUTE001
-#pragma warning disable ASPIRECOMPUTE002
 #pragma warning disable ASPIRECOMPUTE003
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -171,7 +169,7 @@ public static class ResourceExtensions
     /// </para>
     /// <example>
     /// <code>
-    /// var resolvedConfiguration = await myResource.ExecutionConfigurationBuilder()
+    /// var resolvedConfiguration = await myResource.CreateExecutionConfigurationBuilder()
     ///     .WithArguments()
     ///     .WithEnvironmentVariables()
     ///     .BuildAsync(executionContext, resourceLogger: null, cancellationToken: cancellationToken)
@@ -184,7 +182,7 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceExecutionConfigurationBuilder ExecutionConfigurationBuilder(this IResource resource)
+    public static IResourceExecutionConfigurationBuilder CreateExecutionConfigurationBuilder(this IResource resource)
     {
         return ResourceExecutionConfigurationBuilder.Create(resource);
     }
@@ -228,7 +226,7 @@ public static class ResourceExtensions
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        (var executionConfiguration, _) = await resource.ExecutionConfigurationBuilder()
+        var executionConfiguration = await resource.CreateExecutionConfigurationBuilder()
             .WithEnvironmentVariablesConfig()
             .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 
@@ -272,7 +270,7 @@ public static class ResourceExtensions
     public static async ValueTask<string[]> GetArgumentValuesAsync(this IResourceWithArgs resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        (var argumentConfiguration, _) = await resource.ExecutionConfigurationBuilder()
+        var argumentConfiguration = await resource.CreateExecutionConfigurationBuilder()
             .WithArgumentsConfig()
             .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 
@@ -478,7 +476,7 @@ public static class ResourceExtensions
     /// <param name="executionContext">The optional execution context.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
     /// <returns>A context object containing the accumulated container build options from all callbacks.</returns>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     internal static async ValueTask<ContainerBuildOptionsCallbackContext> ProcessContainerBuildOptionsCallbackAsync(
         this IResource resource,
         IServiceProvider serviceProvider,
@@ -511,7 +509,7 @@ public static class ResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback to configure container build options.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithContainerBuildOptions<T>(
         this IResourceBuilder<T> builder,
         Action<ContainerBuildOptionsCallbackContext> callback)
@@ -530,7 +528,7 @@ public static class ResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">An async callback to configure container build options.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithContainerBuildOptions<T>(
         this IResourceBuilder<T> builder,
         Func<ContainerBuildOptionsCallbackContext, Task> callback)
@@ -1099,6 +1097,7 @@ public static class ResourceExtensions
     /// <param name="resource">The resource to process image push options for.</param>
     /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
     /// <returns>The resolved image push options.</returns>
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
     internal static async Task<ContainerImagePushOptions> ProcessImagePushOptionsCallbackAsync(
         this IResource resource,
         CancellationToken cancellationToken)
@@ -1185,6 +1184,7 @@ public static class ResourceExtensions
     /// This method processes any image push options callbacks on the resource and combines the result
     /// with the container registry to produce the full remote image name.
     /// </remarks>
+    [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
     internal static async Task<string> GetFullRemoteImageNameAsync(
         this IResource resource,
         CancellationToken cancellationToken)
