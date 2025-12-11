@@ -7,16 +7,16 @@ using System.Security.Cryptography.X509Certificates;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Provides extension methods for <see cref="IResourceExecutionConfigurationBuilder"/>.
+/// Provides extension methods for <see cref="IExecutionConfigurationBuilder"/>.
 /// </summary>
-public static class ResourceExecutionConfigurationBuilderExtensions
+public static class ExecutionConfigurationBuilderExtensions
 {
     /// <summary>
     /// Adds a command line arguments configuration gatherer to the builder.
     /// </summary>
     /// <param name="builder">The builder to add the configuration gatherer to.</param>
     /// <returns>The builder with the configuration gatherer added.</returns>
-    public static IResourceExecutionConfigurationBuilder WithArgumentsConfig(this IResourceExecutionConfigurationBuilder builder)
+    public static IExecutionConfigurationBuilder WithArgumentsConfig(this IExecutionConfigurationBuilder builder)
     {
         return builder.AddExecutionConfigurationGatherer(new ArgumentsExecutionConfigurationGatherer());
     }
@@ -26,7 +26,7 @@ public static class ResourceExecutionConfigurationBuilderExtensions
     /// </summary>
     /// <param name="builder">The builder to add the configuration gatherer to.</param>
     /// <returns>The builder with the configuration gatherer added.</returns>
-    public static IResourceExecutionConfigurationBuilder WithEnvironmentVariablesConfig(this IResourceExecutionConfigurationBuilder builder)
+    public static IExecutionConfigurationBuilder WithEnvironmentVariablesConfig(this IExecutionConfigurationBuilder builder)
     {
         return builder.AddExecutionConfigurationGatherer(new EnvironmentVariablesExecutionConfigurationGatherer());
     }
@@ -38,7 +38,7 @@ public static class ResourceExecutionConfigurationBuilderExtensions
     /// <param name="configContextFactory">A factory function to create the configuration context.</param>
     /// <returns>The builder with the configuration gatherer added.</returns>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceExecutionConfigurationBuilder WithCertificateTrustConfig(this IResourceExecutionConfigurationBuilder builder, Func<CertificateTrustScope, CertificateTrustExecutionConfigurationContext> configContextFactory)
+    public static IExecutionConfigurationBuilder WithCertificateTrustConfig(this IExecutionConfigurationBuilder builder, Func<CertificateTrustScope, CertificateTrustExecutionConfigurationContext> configContextFactory)
     {
         return builder.AddExecutionConfigurationGatherer(new CertificateTrustExecutionConfigurationGatherer(configContextFactory));
     }
@@ -50,7 +50,7 @@ public static class ResourceExecutionConfigurationBuilderExtensions
     /// <param name="configContextFactory">A factory function to create the configuration context.</param>
     /// <returns>The builder with the configuration gatherer added.</returns>
     [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceExecutionConfigurationBuilder WithHttpsCertificateConfig(this IResourceExecutionConfigurationBuilder builder, Func<X509Certificate2, HttpsCertificateExecutionConfigurationContext> configContextFactory)
+    public static IExecutionConfigurationBuilder WithHttpsCertificateConfig(this IExecutionConfigurationBuilder builder, Func<X509Certificate2, HttpsCertificateExecutionConfigurationContext> configContextFactory)
     {
         return builder.AddExecutionConfigurationGatherer(new HttpsCertificateExecutionConfigurationGatherer(configContextFactory));
     }

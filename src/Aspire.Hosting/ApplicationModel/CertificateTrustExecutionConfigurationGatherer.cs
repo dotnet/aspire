@@ -14,7 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Gathers certificate trust configuration for resources that require it.
 /// </summary>
-internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecutionConfigurationGatherer
+internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfigurationGatherer
 {
     private readonly Func<CertificateTrustScope, CertificateTrustExecutionConfigurationContext> _configContextFactory;
 
@@ -28,7 +28,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecuti
     }
 
     /// <inheritdoc/>
-    public async ValueTask GatherAsync(IResourceExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
+    public async ValueTask GatherAsync(IExecutionConfigurationGathererContext context, IResource resource, ILogger resourceLogger, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
         var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
         var trustDevCert = developerCertificateService.TrustCertificate;
@@ -121,7 +121,7 @@ internal class CertificateTrustExecutionConfigurationGatherer : IResourceExecuti
 /// Metadata about the resource certificate trust configuration.
 /// </summary>
 [Experimental("ASPIRECERTIFICATES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class CertificateTrustExecutionConfigurationData : IResourceExecutionConfigurationData
+public class CertificateTrustExecutionConfigurationData : IExecutionConfigurationData
 {
     /// <summary>
     /// The certificate trust scope for the resource.
