@@ -113,7 +113,7 @@ public static class EFMigrationsBuilderExtensions
             .WithIconName("Database")
             .AddEFMigrationCommands(contextTypeName);
 
-        return new EFMigrationResourceBuilder(innerBuilder, contextTypeName);
+        return new EFMigrationResourceBuilder(innerBuilder);
     }
 
     /// <summary>
@@ -145,7 +145,7 @@ public static class EFMigrationsBuilderExtensions
             .WithIconName("Database")
             .AddEFMigrationCommands(contextTypeName: null);
 
-        return new EFMigrationResourceBuilder(innerBuilder, contextTypeName: null);
+        return new EFMigrationResourceBuilder(innerBuilder);
     }
 
     private static EFMigrationResourceBuilder AddEFMigrationsCore(
@@ -184,7 +184,7 @@ public static class EFMigrationsBuilderExtensions
             .WithIconName("Database")
             .AddEFMigrationCommands(contextTypeName ?? contextType?.FullName);
 
-        return new EFMigrationResourceBuilder(innerBuilder, contextTypeName ?? contextType?.FullName);
+        return new EFMigrationResourceBuilder(innerBuilder);
     }
 
     private static void EnsureEventSubscriberRegistered(IDistributedApplicationBuilder applicationBuilder)

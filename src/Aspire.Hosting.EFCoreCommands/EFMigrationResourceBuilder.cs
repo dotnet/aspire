@@ -18,11 +18,9 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     /// Initializes a new instance of the <see cref="EFMigrationResourceBuilder"/> class.
     /// </summary>
     /// <param name="innerBuilder">The underlying resource builder.</param>
-    /// <param name="contextTypeName">The fully qualified name of the DbContext type, or null to auto-detect.</param>
-    internal EFMigrationResourceBuilder(IResourceBuilder<EFMigrationResource> innerBuilder, string? contextTypeName)
+    internal EFMigrationResourceBuilder(IResourceBuilder<EFMigrationResource> innerBuilder)
     {
         _innerBuilder = innerBuilder;
-        ContextTypeName = contextTypeName;
     }
 
     /// <inheritdoc />
@@ -30,11 +28,6 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
 
     /// <inheritdoc />
     public IDistributedApplicationBuilder ApplicationBuilder => _innerBuilder.ApplicationBuilder;
-
-    /// <summary>
-    /// Gets the fully qualified name of the DbContext type to manage migrations for, or <see langword="null"/> to auto-detect.
-    /// </summary>
-    public string? ContextTypeName { get; }
 
     /// <inheritdoc />
     public IResourceBuilder<EFMigrationResource> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append)

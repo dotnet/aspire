@@ -43,9 +43,11 @@ internal sealed class EFMigrationEventSubscriber(
 
         logger.LogInformation("Found {Count} EF migration resource(s) configured to run on startup.", migrationResources.Count);
 
-        // Run migrations in parallel for each resource
-        var migrationTasks = migrationResources.Select(r => RunMigrationsAsync(r, cancellationToken));
-        await Task.WhenAll(migrationTasks).ConfigureAwait(false);
+        // Run migrations sequentially to avoid concurrency issues
+        foreach (var migrationResource in migrationResources)
+        {
+            await RunMigrationsAsync(migrationResource, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async Task RunMigrationsAsync(EFMigrationResource migrationResource, CancellationToken cancellationToken)

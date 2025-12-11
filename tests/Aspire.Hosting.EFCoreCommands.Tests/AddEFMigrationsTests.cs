@@ -22,7 +22,7 @@ public class AddEFMigrationsTests
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
         Assert.Equal(typeof(TestDbContext), migrations.Resource.ContextType);
-        Assert.Equal(typeof(TestDbContext).FullName, migrations.ContextTypeName);
+        Assert.Equal(typeof(TestDbContext).FullName, migrations.Resource.ContextTypeName);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class AddEFMigrationsTests
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
         Assert.Null(migrations.Resource.ContextType);
-        Assert.Null(migrations.ContextTypeName);
+        Assert.Null(migrations.Resource.ContextTypeName);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public class AddEFMigrationsTests
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
         Assert.Equal(typeof(TestDbContext), migrations.Resource.ContextType);
-        Assert.Equal(typeof(TestDbContext).FullName, migrations.ContextTypeName);
+        Assert.Equal(typeof(TestDbContext).FullName, migrations.Resource.ContextTypeName);
     }
 
     [Fact]
@@ -68,7 +68,6 @@ public class AddEFMigrationsTests
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
         Assert.Null(migrations.Resource.ContextType); // Type is not available at compile time
-        Assert.Equal(contextTypeName, migrations.ContextTypeName);
         Assert.Equal(contextTypeName, migrations.Resource.ContextTypeName);
     }
 
@@ -111,8 +110,8 @@ public class AddEFMigrationsTests
         var migrations2 = project.AddEFMigrations("migrations2", "MyApp.Data.LoggingDbContext");
 
         Assert.NotEqual(migrations1.Resource, migrations2.Resource);
-        Assert.Equal("MyApp.Data.AppDbContext", migrations1.ContextTypeName);
-        Assert.Equal("MyApp.Data.LoggingDbContext", migrations2.ContextTypeName);
+        Assert.Equal("MyApp.Data.AppDbContext", migrations1.Resource.ContextTypeName);
+        Assert.Equal("MyApp.Data.LoggingDbContext", migrations2.Resource.ContextTypeName);
     }
 
     [Fact]
