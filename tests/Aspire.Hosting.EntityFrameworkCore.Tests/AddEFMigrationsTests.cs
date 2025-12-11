@@ -6,7 +6,7 @@ using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Aspire.Hosting.EFCoreCommands.Tests;
+namespace Aspire.Hosting.EntityFrameworkCore.Tests;
 
 public class AddEFMigrationsTests
 {

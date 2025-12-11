@@ -4,7 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
-namespace Aspire.Hosting.EFCoreCommands.Tests;
+namespace Aspire.Hosting.EntityFrameworkCore.Tests;
 
 public class EFMigrationCommandsTests
 {

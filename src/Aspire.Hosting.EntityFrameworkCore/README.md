@@ -1,4 +1,4 @@
-# Aspire.Hosting.EFCoreCommands library
+# Aspire.Hosting.EntityFrameworkCore library
 
 Provides extension methods and resource definitions for an Aspire AppHost to configure Entity Framework Core migration management.
 
@@ -18,10 +18,10 @@ Note: Using `dotnet add package` will add the reference with `PrivateAssets="All
 
 ### Install the package
 
-In your AppHost project, install the Aspire EFCoreCommands Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire EntityFrameworkCore Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.EFCoreCommands
+dotnet add package Aspire.Hosting.EntityFrameworkCore
 ```
 
 ## Usage example
@@ -91,7 +91,7 @@ var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
 
 ## Additional documentation
 
-<!-- TODO: Update this to the EFCoreCommands-specific page once published -->
+<!-- TODO: Update this to the EntityFrameworkCore-specific page once published -->
 https://learn.microsoft.com/dotnet/aspire/
 https://learn.microsoft.com/ef/core/managing-schemas/migrations/
 

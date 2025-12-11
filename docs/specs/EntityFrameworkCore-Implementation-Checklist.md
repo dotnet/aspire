@@ -1,11 +1,11 @@
-# EF Core Commands Hosting Integration - Implementation Checklist
+# Entity Framework Core Hosting Integration - Implementation Checklist
 
-This document provides a detailed step-by-step implementation checklist for the `Aspire.Hosting.EFCoreCommands` hosting integration.
+This document provides a detailed step-by-step implementation checklist for the `Aspire.Hosting.EntityFrameworkCore` hosting integration.
 
 ## Overview
 
-Package name: `Aspire.Hosting.EFCoreCommands`
-Assembly name: `Aspire.Hosting.EFCoreCommands`
+Package name: `Aspire.Hosting.EntityFrameworkCore`
+Assembly name: `Aspire.Hosting.EntityFrameworkCore`
 
 This integration provides Entity Framework Core migration management commands for Aspire AppHost projects.
 
@@ -13,8 +13,8 @@ This integration provides Entity Framework Core migration management commands fo
 
 ### Phase 1: Project Setup
 
-- [x] Create new source project `src/Aspire.Hosting.EFCoreCommands/`
-  - [x] Create `Aspire.Hosting.EFCoreCommands.csproj`
+- [x] Create new source project `src/Aspire.Hosting.EntityFrameworkCore/`
+  - [x] Create `Aspire.Hosting.EntityFrameworkCore.csproj`
   - [x] Configure multi-targeting (net8.0, net9.0, net10.0)
   - [x] Add reference to `Aspire.Hosting`
   - [x] Disable package validation for new package
@@ -94,8 +94,8 @@ This integration provides Entity Framework Core migration management commands fo
 
 ### Phase 8: Test Project Setup
 
-- [x] Create test project `tests/Aspire.Hosting.EFCoreCommands.Tests/`
-  - [x] Create `Aspire.Hosting.EFCoreCommands.Tests.csproj`
+- [x] Create test project `tests/Aspire.Hosting.EntityFrameworkCore.Tests/`
+  - [x] Create `Aspire.Hosting.EntityFrameworkCore.Tests.csproj`
   - [x] Add reference to source project
   - [x] Add reference to `Aspire.Hosting.Tests` for test utilities
 - [x] Add test project to solution file

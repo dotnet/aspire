@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.EFCoreCommands.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.EntityFrameworkCore.Tests" />
   </ItemGroup>
 
 </Project>

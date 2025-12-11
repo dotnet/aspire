@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Aspire.Hosting.EFCoreCommands.Tests;
+namespace Aspire.Hosting.EntityFrameworkCore.Tests;
 
 public class EFMigrationWaitForTests
 {
