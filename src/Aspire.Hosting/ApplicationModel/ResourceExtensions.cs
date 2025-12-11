@@ -153,10 +153,10 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Gets a <see cref="IResourceExecutionConfigurationBuilder"/> for the given resource.
+    /// Gets a <see cref="IExecutionConfigurationBuilder"/> for the given resource.
     /// </summary>
     /// <param name="resource">The resource to generate configuration for</param>
-    /// <returns>A <see cref="IResourceExecutionConfigurationBuilder"/> instance for the given resource.</returns>
+    /// <returns>A <see cref="IExecutionConfigurationBuilder"/> instance for the given resource.</returns>
     /// <remarks>
     /// <para>
     /// This method is useful for building resource execution configurations (command line arguments and environment variables)
@@ -182,9 +182,9 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceExecutionConfigurationBuilder CreateExecutionConfigurationBuilder(this IResource resource)
+    public static IExecutionConfigurationBuilder CreateExecutionConfigurationBuilder(this IResource resource)
     {
-        return ResourceExecutionConfigurationBuilder.Create(resource);
+        return ExecutionConfigurationBuilder.Create(resource);
     }
 
     /// <summary>
@@ -222,7 +222,7 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Obsolete("Use ResourceExecutionConfigurationBuilder instead.")]
+    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {

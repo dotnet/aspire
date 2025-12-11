@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal class ResourceExecutionConfigurationGathererContext : IResourceExecutionConfigurationGathererContext
+internal class ExecutionConfigurationGathererContext : IExecutionConfigurationGathererContext
 {
     /// <inheritdoc/>
     public List<object> Arguments { get; } = new();
@@ -16,16 +16,16 @@ internal class ResourceExecutionConfigurationGathererContext : IResourceExecutio
     /// <summary>
     /// Additional configuration data collected during gathering.
     /// </summary>
-    internal HashSet<IResourceExecutionConfigurationData> AdditionalConfigurationData { get; } = new();
+    internal HashSet<IExecutionConfigurationData> AdditionalConfigurationData { get; } = new();
 
     /// <inheritdoc/>
-    public void AddAdditionalData(IResourceExecutionConfigurationData metadata)
+    public void AddAdditionalData(IExecutionConfigurationData metadata)
     {
         AdditionalConfigurationData.Add(metadata);
     }
 
     /// <summary>
-    /// Resolves the actual <see cref="IResourceExecutionConfigurationResult"/> from the gatherer context.
+    /// Resolves the actual <see cref="IExecutionConfigurationResult"/> from the gatherer context.
     /// </summary>
     /// <param name="resource">The resource for which the configuration is being resolved.</param>
     /// <param name="resourceLogger">The logger associated with the resource.</param>
@@ -34,7 +34,7 @@ internal class ResourceExecutionConfigurationGathererContext : IResourceExecutio
     /// <returns>
     /// A task that represents the asynchronous operation. The task result contains the resolved resource configuration.
     /// </returns>
-    internal async Task<IResourceExecutionConfigurationResult> ResolveAsync(
+    internal async Task<IExecutionConfigurationResult> ResolveAsync(
         IResource resource,
         ILogger resourceLogger,
         DistributedApplicationExecutionContext executionContext,
@@ -85,7 +85,7 @@ internal class ResourceExecutionConfigurationGathererContext : IResourceExecutio
             }
         }
 
-        return new ResourceExecutionConfigurationResult
+        return new ExecutionConfigurationResult
         {
             References = references,
             ArgumentsWithUnprocessed = resolvedArguments,

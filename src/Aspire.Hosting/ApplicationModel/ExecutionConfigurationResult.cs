@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents the configuration (arguments and environment variables) to apply to a specific resource.
 /// </summary>
-internal sealed class ResourceExecutionConfigurationResult : IResourceExecutionConfigurationResult
+internal sealed class ExecutionConfigurationResult : IExecutionConfigurationResult
 {
     /// <inheritdoc/>
     public required IEnumerable<object> References { get; init; }
@@ -24,7 +24,7 @@ internal sealed class ResourceExecutionConfigurationResult : IResourceExecutionC
     public IEnumerable<KeyValuePair<string, string>> EnvironmentVariables => EnvironmentVariablesWithUnprocessed.Select(kvp => new KeyValuePair<string, string>(kvp.Key, kvp.Value.Processed));
 
     /// <inheritdoc/>
-    public required IEnumerable<IResourceExecutionConfigurationData> AdditionalConfigurationData { get; init; }
+    public required IEnumerable<IExecutionConfigurationData> AdditionalConfigurationData { get; init; }
 
     /// <inheritdoc/>
     public Exception? Exception { get; init; }

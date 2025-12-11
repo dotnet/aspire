@@ -8,6 +8,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// This allows gatherers to provide additional data required to properly configure or run
 /// the resource.
 /// </summary>
-public interface IResourceExecutionConfigurationData
+public interface IExecutionConfigurationData
 {
 }

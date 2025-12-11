@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Configuration (arguments and environment variables) to apply to a specific resource.
 /// </summary>
-public interface IResourceExecutionConfigurationResult
+public interface IExecutionConfigurationResult
 {
     /// <summary>
     /// Gets the set of references such as <see cref="IValueProvider"/> or <see cref="IManifestExpressionProvider"/> that were used to produce this configuration.
@@ -36,7 +36,7 @@ public interface IResourceExecutionConfigurationResult
     /// <summary>
     /// Gets additional configuration data associated with the resource configuration.
     /// </summary>
-    IEnumerable<IResourceExecutionConfigurationData> AdditionalConfigurationData { get; }
+    IEnumerable<IExecutionConfigurationData> AdditionalConfigurationData { get; }
 
     /// <summary>
     /// Gets any exception that occurred while building the configuration.
