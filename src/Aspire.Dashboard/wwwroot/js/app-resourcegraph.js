@@ -56,10 +56,10 @@ class ResourceGraph {
                 // adaptive distance: longer for highly connected nodes
                 const sourceDegree = link.source.degree || 1;
                 const targetDegree = link.target.degree || 1;
-                const avgDegree = (sourceDegree + targetDegree) / 2;
+                const maxDegree = Math.max(sourceDegree, targetDegree);
 
                 // scale distance with degree: 150 for low degree, up to 250 for high degree
-                return Math.min(150 + (avgDegree * 10), 250);
+                return Math.min(150 + (maxDegree * 10), 250);
             });
 
         this.simulation = d3
@@ -72,8 +72,8 @@ class ResourceGraph {
                 // scale collide radius with degree: 90 for low degree, up to 180 for high degree
                 return 90 + Math.min(degree * 10, 90);
             }).iterations(10))
-            .force("x", d3.forceX().strength(0.1))
-            .force("y", d3.forceY().strength(0.2))
+            .force("x", d3.forceX().strength(0.2))
+            .force("y", d3.forceY().strength(0.4))
             .force("center", d3.forceCenter().strength(0.01));
 
         // Drag start is trigger on mousedown from click.
@@ -494,7 +494,7 @@ class ResourceGraph {
             }
             return text;
         }
-   }
+    }
 
     onTick = () => {
         this.nodeElements.attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; });
