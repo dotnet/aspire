@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 using System.Collections;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
@@ -48,7 +49,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         _cancellationToken = cancellationToken;
     }
 
-    private EFOperationResult EnsurePathsInitialized()
+    private async Task<EFOperationResult> EnsurePathsInitializedAsync()
     {
         if (_initialized)
         {
@@ -62,42 +63,82 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         var projectPath = GetProjectPath();
         if (projectPath == null)
         {
-            return new EFOperationResult { Success = false, ErrorMessage = "Could not determine project path." };
+            return new EFOperationResult { Success = false, ErrorMessage = "Could not determine project path. Ensure the project has an IProjectMetadata annotation." };
         }
 
         _projectDirectory = Path.GetDirectoryName(projectPath)!;
         _assemblyFileName = Path.GetFileNameWithoutExtension(projectPath);
         
-        // Try to find the output assembly - look in common output directories
-        var possiblePaths = new[]
-        {
-            Path.Combine(_projectDirectory, "bin", "Debug", "net10.0", $"{_assemblyFileName}.dll"),
-            Path.Combine(_projectDirectory, "bin", "Debug", "net9.0", $"{_assemblyFileName}.dll"),
-            Path.Combine(_projectDirectory, "bin", "Debug", "net8.0", $"{_assemblyFileName}.dll"),
-            Path.Combine(_projectDirectory, "bin", "Release", "net10.0", $"{_assemblyFileName}.dll"),
-            Path.Combine(_projectDirectory, "bin", "Release", "net9.0", $"{_assemblyFileName}.dll"),
-            Path.Combine(_projectDirectory, "bin", "Release", "net8.0", $"{_assemblyFileName}.dll"),
-        };
+        // Use MSBuild to get the actual output assembly path (TargetPath property)
+        _assemblyPath = await GetTargetPathAsync(projectPath).ConfigureAwait(false);
 
-        foreach (var path in possiblePaths)
-        {
-            if (File.Exists(path))
-            {
-                _assemblyPath = path;
-                break;
-            }
-        }
-
-        if (_assemblyPath == null)
+        if (_assemblyPath == null || !File.Exists(_assemblyPath))
         {
             return new EFOperationResult 
             { 
                 Success = false, 
-                ErrorMessage = $"Could not find compiled assembly for project. Ensure the project is built. Looked in: {string.Join(", ", possiblePaths)}" 
+                ErrorMessage = $"Could not find compiled assembly for project. Ensure the project is built. Expected at: {_assemblyPath ?? "(unknown)"}" 
             };
         }
 
         return new EFOperationResult { Success = true };
+    }
+
+    private async Task<string?> GetTargetPathAsync(string projectPath)
+    {
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"msbuild -getProperty:TargetPath \"{projectPath}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                _logger.LogWarning("Failed to start dotnet msbuild process.");
+                return null;
+            }
+
+            var output = await process.StandardOutput.ReadToEndAsync(_cancellationToken).ConfigureAwait(false);
+            await process.WaitForExitAsync(_cancellationToken).ConfigureAwait(false);
+
+            if (process.ExitCode != 0)
+            {
+                var errorOutput = await process.StandardError.ReadToEndAsync(_cancellationToken).ConfigureAwait(false);
+                _logger.LogWarning("dotnet msbuild failed with exit code {ExitCode}: {Error}", process.ExitCode, errorOutput);
+                return null;
+            }
+
+            var targetPath = output.Trim();
+            if (!string.IsNullOrEmpty(targetPath))
+            {
+                _logger.LogDebug("Resolved TargetPath for project {ProjectPath}: {TargetPath}", projectPath, targetPath);
+                return targetPath;
+            }
+
+            _logger.LogWarning("dotnet msbuild returned empty TargetPath for project {ProjectPath}", projectPath);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error getting TargetPath via dotnet msbuild");
+            return null;
+        }
+    }
+
+    private string? GetProjectPath()
+    {
+        if (_projectResource.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
+        {
+            return metadata.ProjectPath;
+        }
+        return null;
     }
 
     /// <summary>
@@ -105,11 +146,11 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     /// The context is unloaded after the operation completes to free memory.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private EFOperationResult ExecuteInIsolatedContext(
+    private async Task<EFOperationResult> ExecuteInIsolatedContextAsync(
         Func<object, Assembly, Type, object?> operation,
         bool handleDatabaseNotFound = false)
     {
-        var initResult = EnsurePathsInitialized();
+        var initResult = await EnsurePathsInitializedAsync().ConfigureAwait(false);
         if (!initResult.Success)
         {
             return initResult;
@@ -277,36 +318,30 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
     }
 
-    public Task<EFOperationResult> UpdateDatabaseAsync()
+    public async Task<EFOperationResult> UpdateDatabaseAsync()
     {
-        return Task.Run(() =>
+        return await ExecuteInIsolatedContextAsync((executor, commandsAssembly, resultHandlerType) =>
         {
-            return ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
+            InvokeOperation(executor, commandsAssembly, resultHandlerType, "UpdateDatabase", new Dictionary<string, object?>
             {
-                InvokeOperation(executor, commandsAssembly, resultHandlerType, "UpdateDatabase", new Dictionary<string, object?>
-                {
-                    { "targetMigration", null },
-                    { "connectionString", null },
-                    { "contextType", _contextTypeName }
-                });
-                return null;
+                { "targetMigration", null },
+                { "connectionString", null },
+                { "contextType", _contextTypeName }
             });
-        }, _cancellationToken);
+            return null;
+        }).ConfigureAwait(false);
     }
 
-    public Task<EFOperationResult> DropDatabaseAsync()
+    public async Task<EFOperationResult> DropDatabaseAsync()
     {
-        return Task.Run(() =>
+        return await ExecuteInIsolatedContextAsync((executor, commandsAssembly, resultHandlerType) =>
         {
-            return ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
+            InvokeOperation(executor, commandsAssembly, resultHandlerType, "DropDatabase", new Dictionary<string, object?>
             {
-                InvokeOperation(executor, commandsAssembly, resultHandlerType, "DropDatabase", new Dictionary<string, object?>
-                {
-                    { "contextType", _contextTypeName }
-                });
-                return null;
+                { "contextType", _contextTypeName }
             });
-        }, _cancellationToken);
+            return null;
+        }).ConfigureAwait(false);
     }
 
     public async Task<EFOperationResult> ResetDatabaseAsync()
@@ -326,73 +361,65 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         return await UpdateDatabaseAsync().ConfigureAwait(false);
     }
 
-    public Task<EFOperationResult> AddMigrationAsync(string? migrationName = null)
+    public async Task<EFOperationResult> AddMigrationAsync(string? migrationName = null)
     {
         migrationName ??= $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
         _logger.LogInformation("Creating migration with name: {MigrationName}", migrationName);
 
-        return Task.Run(() =>
+        return await ExecuteInIsolatedContextAsync((executor, commandsAssembly, resultHandlerType) =>
         {
-            return ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
+            var result = InvokeOperation<IDictionary>(executor, commandsAssembly, resultHandlerType, "AddMigration", new Dictionary<string, object?>
             {
-                var result = InvokeOperation<IDictionary>(executor, commandsAssembly, resultHandlerType, "AddMigration", new Dictionary<string, object?>
-                {
-                    { "name", migrationName },
-                    { "outputDir", null },
-                    { "contextType", _contextTypeName },
-                    { "namespace", null }
-                });
-
-                return result?["MigrationFile"]?.ToString();
+                { "name", migrationName },
+                { "outputDir", null },
+                { "contextType", _contextTypeName },
+                { "namespace", null }
             });
-        }, _cancellationToken);
+
+            return result?["MigrationFile"]?.ToString();
+        }).ConfigureAwait(false);
     }
 
-    public Task<EFOperationResult> RemoveMigrationAsync()
+    public async Task<EFOperationResult> RemoveMigrationAsync()
     {
-        return Task.Run(() =>
+        return await ExecuteInIsolatedContextAsync((executor, commandsAssembly, resultHandlerType) =>
         {
-            return ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
+            InvokeOperation<IDictionary>(executor, commandsAssembly, resultHandlerType, "RemoveMigration", new Dictionary<string, object?>
             {
-                InvokeOperation<IDictionary>(executor, commandsAssembly, resultHandlerType, "RemoveMigration", new Dictionary<string, object?>
-                {
-                    { "contextType", _contextTypeName },
-                    { "force", true }
-                });
-                return null;
+                { "contextType", _contextTypeName },
+                { "force", true }
             });
-        }, _cancellationToken);
+            return null;
+        }).ConfigureAwait(false);
     }
 
-    public Task<EFOperationResult> GetDatabaseStatusAsync()
+    public async Task<EFOperationResult> GetDatabaseStatusAsync()
     {
-        return Task.Run(() =>
+        return await ExecuteInIsolatedContextAsync((executor, commandsAssembly, resultHandlerType) =>
         {
-            return ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
+            var migrations = InvokeOperation<IEnumerable<IDictionary>>(executor, commandsAssembly, resultHandlerType, "GetMigrations", new Dictionary<string, object?>
             {
-                var migrations = InvokeOperation<IEnumerable<IDictionary>>(executor, commandsAssembly, resultHandlerType, "GetMigrations", new Dictionary<string, object?>
-                {
-                    { "contextType", _contextTypeName },
-                    { "connectionString", null },
-                    { "noConnect", false }
-                });
+                { "contextType", _contextTypeName },
+                { "connectionString", null },
+                { "noConnect", false }
+            });
 
-                var statusLines = new List<string>();
-                string? lastAppliedMigration = null;
-                string? lastMigration = null;
-                var pendingMigrations = new List<string>();
+            var statusLines = new List<string>();
+            string? lastAppliedMigration = null;
+            string? lastMigration = null;
+            var pendingMigrations = new List<string>();
 
-                if (migrations != null)
+            if (migrations != null)
+            {
+                foreach (var migration in migrations)
                 {
-                    foreach (var migration in migrations)
+                    var id = migration["Id"]?.ToString() ?? "Unknown";
+                    var applied = migration["Applied"] as bool? ?? false;
+                    lastMigration = id;
+                    
+                    if (applied)
                     {
-                        var id = migration["Id"]?.ToString() ?? "Unknown";
-                        var applied = migration["Applied"] as bool? ?? false;
-                        lastMigration = id;
-                        
-                        if (applied)
-                        {
-                            lastAppliedMigration = id;
+                        lastAppliedMigration = id;
                             statusLines.Add($"  [Applied] {id}");
                         }
                         else
@@ -434,54 +461,48 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 }
 
                 return string.Join(Environment.NewLine, summary);
-            }, handleDatabaseNotFound: true);
-        }, _cancellationToken);
+            }, handleDatabaseNotFound: true).ConfigureAwait(false);
     }
 
-    public Task<EFOperationResult> GenerateMigrationScriptAsync(string? outputPath = null)
+    public async Task<EFOperationResult> GenerateMigrationScriptAsync(string? outputPath = null)
     {
-        return Task.Run(() =>
+        return await ExecuteInIsolatedContextAsync((executor, commandsAssembly, resultHandlerType) =>
         {
-            var result = ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
+            var script = InvokeOperation<string>(executor, commandsAssembly, resultHandlerType, "ScriptMigration", new Dictionary<string, object?>
             {
-                var script = InvokeOperation<string>(executor, commandsAssembly, resultHandlerType, "ScriptMigration", new Dictionary<string, object?>
-                {
-                    { "fromMigration", null },
-                    { "toMigration", null },
-                    { "idempotent", true },
-                    { "noTransactions", false },
-                    { "contextType", _contextTypeName }
-                });
-
-                if (outputPath != null && script != null)
-                {
-                    File.WriteAllText(outputPath, script);
-                }
-
-                return script;
+                { "fromMigration", null },
+                { "toMigration", null },
+                { "idempotent", true },
+                { "noTransactions", false },
+                { "contextType", _contextTypeName }
             });
 
-            return result;
-        }, _cancellationToken);
+            if (outputPath != null && script != null)
+            {
+                File.WriteAllText(outputPath, script);
+            }
+
+            return script;
+        }).ConfigureAwait(false);
     }
 
-    public Task<EFOperationResult> GenerateMigrationBundleAsync(string? outputPath = null)
+    public async Task<EFOperationResult> GenerateMigrationBundleAsync(string? outputPath = null)
     {
         // Note: Migration bundles require using dotnet ef migrations bundle command
         // as there's no direct API for this in OperationExecutor
-        var initResult = EnsurePathsInitialized();
+        var initResult = await EnsurePathsInitializedAsync().ConfigureAwait(false);
         if (!initResult.Success)
         {
-            return Task.FromResult(initResult);
+            return initResult;
         }
 
         _ = outputPath; // Unused - included for API consistency
         _logger.LogWarning("Migration bundle generation is not yet implemented via reflection. Use 'dotnet ef migrations bundle' from the command line.");
-        return Task.FromResult(new EFOperationResult 
+        return new EFOperationResult 
         { 
             Success = false, 
             ErrorMessage = "Migration bundle generation requires the dotnet ef CLI. Use 'dotnet ef migrations bundle' from the command line." 
-        });
+        };
     }
 
     private static void InvokeOperation(object executor, Assembly commandsAssembly, Type resultHandlerType, string operationName, IDictionary arguments)
@@ -521,15 +542,6 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             innermost = innermost.InnerException;
         }
         return innermost.Message;
-    }
-
-    private string? GetProjectPath()
-    {
-        if (_projectResource.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
-        {
-            return metadata.ProjectPath;
-        }
-        return null;
     }
 
     public void Dispose()
