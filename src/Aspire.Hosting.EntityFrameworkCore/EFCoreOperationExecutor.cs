@@ -7,6 +7,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 namespace Aspire.Hosting;
 
@@ -173,10 +174,13 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     {
         try
         {
+            // Construct MSBuild arguments with build configuration heuristics
+            var msbuildArgs = BuildMSBuildArguments(arguments, projectPath);
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = $"msbuild {arguments} \"{projectPath}\"",
+                Arguments = msbuildArgs,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -213,6 +217,71 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             _logger.LogDebug(ex, "Error running dotnet msbuild");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Builds MSBuild arguments with heuristics to determine target framework, configuration and runtime.
+    /// </summary>
+    private static string BuildMSBuildArguments(string arguments, string projectPath)
+    {
+        var args = $"msbuild {arguments} \"{projectPath}\"";
+
+        // Determine configuration from debugger state
+        var configuration = Debugger.IsAttached ? "Debug" : "Release";
+        args += $" /p:Configuration={configuration}";
+
+        // Determine runtime identifier based on current platform
+        var rid = GetRuntimeIdentifier();
+        if (rid != null)
+        {
+            args += $" /p:RuntimeIdentifier={rid}";
+        }
+
+        return args;
+    }
+
+    /// <summary>
+    /// Gets the runtime identifier for the current platform using heuristics.
+    /// </summary>
+    private static string? GetRuntimeIdentifier()
+    {
+        // Try to get from environment first (may be set by build)
+        var envRid = Environment.GetEnvironmentVariable("DOTNET_RUNTIME_IDENTIFIER");
+        if (!string.IsNullOrEmpty(envRid))
+        {
+            return envRid;
+        }
+
+        // Determine based on current OS and architecture
+        var osArch = RuntimeInformation.OSArchitecture;
+        var archSuffix = osArch switch
+        {
+            Architecture.X64 => "x64",
+            Architecture.X86 => "x86",
+            Architecture.Arm64 => "arm64",
+            Architecture.Arm => "arm",
+            _ => null
+        };
+
+        if (archSuffix == null)
+        {
+            return null;
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return $"win-{archSuffix}";
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return $"linux-{archSuffix}";
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return $"osx-{archSuffix}";
+        }
+
+        return null;
     }
 
     private static string? GetProjectPath(ProjectResource projectResource)
