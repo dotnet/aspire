@@ -13,6 +13,16 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class EFResourceBuilderExtensions
 {
+    private static string GetShortTypeName(string? fullTypeName)
+    {
+        if (string.IsNullOrEmpty(fullTypeName))
+        {
+            return string.Empty;
+        }
+        var lastDotIndex = fullTypeName.LastIndexOf('.');
+        return lastDotIndex >= 0 ? fullTypeName[(lastDotIndex + 1)..] : fullTypeName;
+    }
+
     /// <summary>
     /// Adds EF Core migration management for a specific DbContext type.
     /// </summary>
@@ -117,17 +127,12 @@ public static class EFResourceBuilderExtensions
 
         if (contextTypeName != null)
         {
-            // Adding migration for a specific context type
             if (existingMigrations.Any(r => r.ContextTypeName == contextTypeName))
             {
-                var shortName = contextTypeName.Contains('.') 
-                    ? contextTypeName.Substring(contextTypeName.LastIndexOf('.') + 1)
-                    : contextTypeName;
                 throw new InvalidOperationException(
-                    $"The DbContext type '{shortName}' has already been registered for EF migrations on resource '{builder.Resource.Name}'.");
+                    $"The DbContext type '{GetShortTypeName(contextTypeName)}' has already been registered for EF migrations on resource '{builder.Resource.Name}'.");
             }
-            
-            // Cannot add specific context when there's already a null context registered
+
             if (existingMigrations.Any(r => r.ContextTypeName == null))
             {
                 throw new InvalidOperationException(
@@ -136,8 +141,6 @@ public static class EFResourceBuilderExtensions
         }
         else
         {
-            // Adding migration for auto-detected context (null)
-            // Cannot add null context when there's already a specific context registered
             if (existingMigrations.Any())
             {
                 throw new InvalidOperationException(
@@ -170,18 +173,9 @@ public static class EFResourceBuilderExtensions
         this IResourceBuilder<EFMigrationResource> builder,
         string? contextTypeName)
     {
-        // Get short name from fully qualified name for display purposes
-        string? contextShortName = null;
-        if (!string.IsNullOrEmpty(contextTypeName))
-        {
-            var lastDotIndex = contextTypeName.LastIndexOf('.');
-            contextShortName = lastDotIndex >= 0 ? contextTypeName.Substring(lastDotIndex + 1) : contextTypeName;
-        }
-
-        // Command names must be valid identifiers (no spaces/parentheses)
-        var contextNameSuffix = contextShortName != null ? $"-{contextShortName}" : "";
-        // Display names can have friendly formatting
-        var contextDisplaySuffix = contextShortName != null ? $" ({contextShortName})" : "";
+        var contextShortName = GetShortTypeName(contextTypeName);
+        var contextNameSuffix = !string.IsNullOrEmpty(contextShortName) ? $"-{contextShortName}" : "";
+        var contextDisplaySuffix = !string.IsNullOrEmpty(contextShortName) ? $" ({contextShortName})" : "";
 
         builder.WithCommand(
             name: $"ef-database-update{contextNameSuffix}",
