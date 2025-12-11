@@ -180,6 +180,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                     // Check if the resource is configured to build non-Docker format images
                     // (e.g., OCI format to a local file path). These don't require a registry.
+                    // We pass executionContext: null because we only need the ImageFormat value
+                    // for validation, not the full execution context.
                     var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
                         context.Services,
                         context.Logger,
