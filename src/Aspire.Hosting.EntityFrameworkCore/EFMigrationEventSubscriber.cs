@@ -4,12 +4,13 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Event subscriber that handles EF migration operations on startup.
+/// Event subscriber that handles EF migration operations on startup and during publishing.
 /// </summary>
 internal sealed class EFMigrationEventSubscriber(
     ResourceNotificationService resourceNotificationService,
@@ -18,15 +19,96 @@ internal sealed class EFMigrationEventSubscriber(
 {
     public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
-        // Only subscribe in run mode, not publish mode
-        if (!executionContext.IsRunMode)
+        if (executionContext.IsRunMode)
         {
-            return Task.CompletedTask;
+            // In run mode, apply migrations on startup
+            eventing.Subscribe<AfterResourcesCreatedEvent>(OnAfterResourcesCreatedAsync);
+        }
+        else if (executionContext.IsPublishMode)
+        {
+            // In publish mode, generate migration scripts/bundles
+            eventing.Subscribe<BeforePublishEvent>(OnBeforePublishAsync);
         }
 
-        eventing.Subscribe<AfterResourcesCreatedEvent>(OnAfterResourcesCreatedAsync);
-
         return Task.CompletedTask;
+    }
+
+    private async Task OnBeforePublishAsync(BeforePublishEvent @event, CancellationToken cancellationToken)
+    {
+        var migrationResources = @event.Model.Resources
+            .OfType<EFMigrationResource>()
+            .Where(r => r.Options.PublishAsMigrationScript || r.Options.PublishAsMigrationBundle)
+            .ToList();
+
+        if (migrationResources.Count == 0)
+        {
+            return;
+        }
+
+        logger.LogInformation("Found {Count} EF migration resource(s) configured for publish.", migrationResources.Count);
+
+        foreach (var migrationResource in migrationResources)
+        {
+            await GeneratePublishArtifactsAsync(migrationResource, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task GeneratePublishArtifactsAsync(EFMigrationResource migrationResource, CancellationToken cancellationToken)
+    {
+        var resourceLogger = resourceLoggerService.GetLogger(migrationResource);
+
+        try
+        {
+            using var executor = new EFCoreOperationExecutor(
+                migrationResource.ProjectResource,
+                migrationResource.ContextTypeName,
+                resourceLogger,
+                cancellationToken);
+
+            if (migrationResource.Options.PublishAsMigrationScript)
+            {
+                resourceLogger.LogInformation("Generating migration script for '{ResourceName}'...", migrationResource.Name);
+                var result = await executor.GenerateMigrationScriptAsync().ConfigureAwait(false);
+
+                if (result.Success)
+                {
+                    resourceLogger.LogInformation("Migration script generated successfully for '{ResourceName}'.", migrationResource.Name);
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        // Log the script content (first 500 chars for brevity)
+                        var preview = result.Output.Length > 500 
+                            ? string.Concat(result.Output.AsSpan(0, 500), "...") 
+                            : result.Output;
+                        resourceLogger.LogDebug("Migration script preview:\n{Script}", preview);
+                    }
+                }
+                else
+                {
+                    resourceLogger.LogWarning("Failed to generate migration script for '{ResourceName}': {Error}", 
+                        migrationResource.Name, result.ErrorMessage);
+                }
+            }
+
+            if (migrationResource.Options.PublishAsMigrationBundle)
+            {
+                resourceLogger.LogInformation("Generating migration bundle for '{ResourceName}'...", migrationResource.Name);
+                var result = await executor.GenerateMigrationBundleAsync().ConfigureAwait(false);
+
+                if (result.Success)
+                {
+                    resourceLogger.LogInformation("Migration bundle generated successfully for '{ResourceName}'.", migrationResource.Name);
+                }
+                else
+                {
+                    resourceLogger.LogWarning("Failed to generate migration bundle for '{ResourceName}': {Error}", 
+                        migrationResource.Name, result.ErrorMessage);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            resourceLogger.LogError(ex, "Failed to generate publish artifacts for '{ResourceName}'.", migrationResource.Name);
+        }
     }
 
     private async Task OnAfterResourcesCreatedAsync(AfterResourcesCreatedEvent @event, CancellationToken cancellationToken)
@@ -64,7 +146,7 @@ internal sealed class EFMigrationEventSubscriber(
 
             resourceLogger.LogInformation("Starting database migration for '{ResourceName}'...", migrationResource.Name);
 
-            var executor = new EFCoreOperationExecutor(
+            using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
                 migrationResource.ContextTypeName,
                 resourceLogger,

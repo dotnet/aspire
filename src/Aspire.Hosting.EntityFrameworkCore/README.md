@@ -64,6 +64,23 @@ var worker = builder.AddProject<Projects.Worker>("worker")
                     .WaitFor(apiMigrations);
 ```
 
+When `RunDatabaseUpdateOnStart()` is called, a health check is automatically registered for the migration resource. This enables other resources to use `.WaitFor()` to wait until migrations complete before starting. The resource transitions through the following states:
+
+- **Pending** - Initial state before migrations start
+- **Running** - Migrations are being applied
+- **Finished** - Migrations completed successfully
+- **FailedToStart** - Migration failed
+
+### Migration Configuration Options
+
+Configure where new migrations are created using the Add Migration command:
+
+```csharp
+var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
+    .WithMigrationOutputDirectory("Data/Migrations")  // Custom output directory
+    .WithMigrationNamespace("MyApp.Data.Migrations"); // Custom namespace
+```
+
 ### Multiple DbContexts
 
 You can add migrations for multiple DbContexts in the same project:
@@ -88,6 +105,8 @@ var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
 var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
     .PublishAsMigrationBundle();
 ```
+
+When publishing, the subscriber will generate the configured artifacts and log the results.
 
 ## Additional documentation
 

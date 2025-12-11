@@ -379,7 +379,11 @@ public static class EFMigrationsBuilderExtensions
                 logger,
                 context.CancellationToken);
 
-            var result = await executor.AddMigrationAsync(migrationName).ConfigureAwait(false);
+            // Pass configured output directory and namespace from options
+            var result = await executor.AddMigrationAsync(
+                migrationName, 
+                migrationResource.Options.MigrationOutputDirectory,
+                migrationResource.Options.MigrationNamespace).ConfigureAwait(false);
 
             if (result.Success)
             {

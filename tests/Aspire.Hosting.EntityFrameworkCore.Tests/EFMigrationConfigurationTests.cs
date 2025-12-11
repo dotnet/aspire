@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.EntityFrameworkCore.Tests;
@@ -16,6 +17,20 @@ public class EFMigrationConfigurationTests
             .RunDatabaseUpdateOnStart();
 
         Assert.True(migrations.Resource.Options.RunDatabaseUpdateOnStart);
+    }
+
+    [Fact]
+    public void RunDatabaseUpdateOnStartRegistersHealthCheck()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+            .RunDatabaseUpdateOnStart();
+
+        // A health check annotation should be added
+        Assert.True(migrations.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var annotations));
+        Assert.Single(annotations);
+        Assert.Contains("migration_healthcheck", annotations.First().Key);
     }
 
     [Fact]
@@ -41,6 +56,48 @@ public class EFMigrationConfigurationTests
     }
 
     [Fact]
+    public void WithMigrationOutputDirectorySetsOption()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+            .WithMigrationOutputDirectory("Data/Migrations");
+
+        Assert.Equal("Data/Migrations", migrations.Resource.Options.MigrationOutputDirectory);
+    }
+
+    [Fact]
+    public void WithMigrationNamespaceSetsOption()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+            .WithMigrationNamespace("MyApp.Data.Migrations");
+
+        Assert.Equal("MyApp.Data.Migrations", migrations.Resource.Options.MigrationNamespace);
+    }
+
+    [Fact]
+    public void WithMigrationOutputDirectoryThrowsForEmptyString()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+
+        Assert.Throws<ArgumentException>(() => migrations.WithMigrationOutputDirectory(""));
+    }
+
+    [Fact]
+    public void WithMigrationNamespaceThrowsForEmptyString()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+
+        Assert.Throws<ArgumentException>(() => migrations.WithMigrationNamespace(""));
+    }
+
+    [Fact]
     public void MultipleConfigurationOptionsCanBeChained()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -61,11 +118,15 @@ public class EFMigrationConfigurationTests
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
             .RunDatabaseUpdateOnStart()
             .PublishAsMigrationScript()
-            .PublishAsMigrationBundle();
+            .PublishAsMigrationBundle()
+            .WithMigrationOutputDirectory("CustomDir")
+            .WithMigrationNamespace("MyApp.Migrations");
 
         Assert.True(migrations.Resource.Options.RunDatabaseUpdateOnStart);
         Assert.True(migrations.Resource.Options.PublishAsMigrationScript);
         Assert.True(migrations.Resource.Options.PublishAsMigrationBundle);
+        Assert.Equal("CustomDir", migrations.Resource.Options.MigrationOutputDirectory);
+        Assert.Equal("MyApp.Migrations", migrations.Resource.Options.MigrationNamespace);
     }
 
     [Fact]
@@ -92,24 +153,30 @@ public class EFMigrationConfigurationTests
         var afterUpdate = migrations.RunDatabaseUpdateOnStart();
         var afterScript = afterUpdate.PublishAsMigrationScript();
         var afterBundle = afterScript.PublishAsMigrationBundle();
+        var afterOutputDir = afterBundle.WithMigrationOutputDirectory("Migrations");
+        var afterNamespace = afterOutputDir.WithMigrationNamespace("MyApp.Migrations");
 
         // All methods should return EFMigrationResourceBuilder for proper chaining
         Assert.IsType<EFMigrationResourceBuilder>(afterUpdate);
         Assert.IsType<EFMigrationResourceBuilder>(afterScript);
         Assert.IsType<EFMigrationResourceBuilder>(afterBundle);
+        Assert.IsType<EFMigrationResourceBuilder>(afterOutputDir);
+        Assert.IsType<EFMigrationResourceBuilder>(afterNamespace);
     }
 
     [Fact]
-    public void OptionsInitiallyFalse()
+    public void OptionsInitiallyFalseOrNull()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        // Options should all be false initially
+        // Options should all be false/null initially
         Assert.False(migrations.Resource.Options.RunDatabaseUpdateOnStart);
         Assert.False(migrations.Resource.Options.PublishAsMigrationScript);
         Assert.False(migrations.Resource.Options.PublishAsMigrationBundle);
+        Assert.Null(migrations.Resource.Options.MigrationOutputDirectory);
+        Assert.Null(migrations.Resource.Options.MigrationNamespace);
     }
 
     // Test classes for DbContext types

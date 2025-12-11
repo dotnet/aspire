@@ -22,4 +22,20 @@ public sealed class EFMigrationsOptions
     /// Gets or sets whether a migration bundle should be generated during publishing.
     /// </summary>
     public bool PublishAsMigrationBundle { get; set; }
+
+    /// <summary>
+    /// Gets or sets the output directory for new migrations. Used by the Add Migration command.
+    /// </summary>
+    /// <remarks>
+    /// If not specified, migrations will be placed in the default 'Migrations' directory.
+    /// </remarks>
+    public string? MigrationOutputDirectory { get; set; }
+
+    /// <summary>
+    /// Gets or sets the namespace for new migrations. Used by the Add Migration command.
+    /// </summary>
+    /// <remarks>
+    /// If not specified, the namespace will be derived from the project's default namespace.
+    /// </remarks>
+    public string? MigrationNamespace { get; set; }
 }

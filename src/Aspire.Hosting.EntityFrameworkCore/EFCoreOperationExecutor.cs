@@ -340,7 +340,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         return await UpdateDatabaseAsync().ConfigureAwait(false);
     }
 
-    public async Task<EFOperationResult> AddMigrationAsync(string? migrationName = null)
+    public async Task<EFOperationResult> AddMigrationAsync(string? migrationName = null, string? outputDir = null, string? @namespace = null)
     {
         migrationName ??= $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
         _logger.LogInformation("Creating migration with name: {MigrationName}", migrationName);
@@ -350,9 +350,9 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             var result = InvokeOperation<IDictionary>(executor, commandsAssembly, resultHandlerType, "AddMigration", new Dictionary<string, object?>
             {
                 { "name", migrationName },
-                { "outputDir", null },
+                { "outputDir", outputDir },
                 { "contextType", _contextTypeName },
-                { "namespace", null }
+                { "namespace", @namespace }
             });
 
             return result?["MigrationFile"]?.ToString();

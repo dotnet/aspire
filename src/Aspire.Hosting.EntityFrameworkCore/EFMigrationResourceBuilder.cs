@@ -3,6 +3,8 @@
 
 using System.ComponentModel;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -41,9 +43,35 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     /// Configures the EF migration resource to run database update when the AppHost starts.
     /// </summary>
     /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// When enabled, migrations will be applied during AppHost startup. The resource state will transition
+    /// from "Pending" to "Running" to "Finished" (or "FailedToStart" on error).
+    /// </para>
+    /// <para>
+    /// A health check is automatically registered for this resource, allowing other resources to use
+    /// <c>.WaitFor()</c> to wait until migrations complete before starting.
+    /// </para>
+    /// </remarks>
     public EFMigrationResourceBuilder RunDatabaseUpdateOnStart()
     {
         Resource.Options.RunDatabaseUpdateOnStart = true;
+
+        // Register a health check for this migration resource
+        // This allows other resources to WaitFor the migration to complete
+        var healthCheckKey = $"{Resource.Name}_migration_healthcheck";
+        
+        ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
+            healthCheckKey,
+            sp => new EFMigrationHealthCheck(
+                Resource.Name,
+                sp.GetRequiredService<ResourceNotificationService>()),
+            failureStatus: default,
+            tags: default,
+            timeout: default));
+
+        _innerBuilder.WithAnnotation(new HealthCheckAnnotation(healthCheckKey));
+
         return this;
     }
 
@@ -64,6 +92,38 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     public EFMigrationResourceBuilder PublishAsMigrationBundle()
     {
         Resource.Options.PublishAsMigrationBundle = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the output directory for new migrations created with the Add Migration command.
+    /// </summary>
+    /// <param name="outputDirectory">The output directory path relative to the project root.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// If not specified, migrations will be placed in the default 'Migrations' directory.
+    /// Example: "Data/Migrations" or "Infrastructure/Migrations".
+    /// </remarks>
+    public EFMigrationResourceBuilder WithMigrationOutputDirectory(string outputDirectory)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(outputDirectory);
+        Resource.Options.MigrationOutputDirectory = outputDirectory;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the namespace for new migrations created with the Add Migration command.
+    /// </summary>
+    /// <param name="namespace">The namespace for generated migrations.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// If not specified, the namespace will be derived from the project's default namespace.
+    /// Example: "MyApp.Data.Migrations" or "MyApp.Infrastructure.Migrations".
+    /// </remarks>
+    public EFMigrationResourceBuilder WithMigrationNamespace(string @namespace)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(@namespace);
+        Resource.Options.MigrationNamespace = @namespace;
         return this;
     }
 

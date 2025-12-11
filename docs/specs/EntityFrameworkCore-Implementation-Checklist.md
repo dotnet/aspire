@@ -154,7 +154,7 @@ Implemented using `IDistributedApplicationEventingSubscriber` to hook into the a
 - [x] Create hosted service to run migrations on startup using `IDistributedApplicationEventingSubscriber` (`EFMigrationEventSubscriber`)
 - [x] Implement resource state transitions (Pending → Running → Finished/FailedToStart)
 - [x] Handle migration failures and error states
-- [ ] Integrate with resource health checks
+- [x] Integrate with resource health checks (health check registered in `RunDatabaseUpdateOnStart()`)
 
 ### Add Migration Dialog
 
@@ -184,7 +184,7 @@ if (!result.Canceled && result.Data?.Value is { } migrationName)
 
 - [x] Implement interactive prompt for migration name using `IInteractionService.PromptInputAsync`
 - [x] Add notification about recompilation requirement using `IInteractionService.PromptNotificationAsync`
-- [ ] Add options from `dotnet ef migrations add` (--output-dir, --namespace, etc.)
+- [x] Add options from `dotnet ef migrations add` (--output-dir, --namespace) via `WithMigrationOutputDirectory()` and `WithMigrationNamespace()`
 
 ### Get Database Status Dialog
 
@@ -193,10 +193,10 @@ if (!result.Canceled && result.Data?.Value is { } migrationName)
 
 ### Publishing Support Implementation
 
-- [ ] Integrate with publish pipeline
-- [ ] Generate migration scripts during publish
-- [ ] Generate migration bundles during publish
-- [ ] Add output path configuration
+- [x] Integrate with publish pipeline via `BeforePublishEvent` subscription
+- [x] Generate migration scripts during publish (`PublishAsMigrationScript()`)
+- [x] Generate migration bundles during publish (`PublishAsMigrationBundle()`) - Note: Bundle generation requires CLI support
+- [ ] Add output path configuration for generated artifacts
 
 ### Microsoft.EntityFrameworkCore.Design Integration
 
