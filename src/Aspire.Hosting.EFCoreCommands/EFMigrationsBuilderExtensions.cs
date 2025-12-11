@@ -203,7 +203,9 @@ public static class EFMigrationsBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithAnnotation(new RunDatabaseUpdateOnStartAnnotation());
+        var options = GetOrCreateOptions(builder);
+        options.RunDatabaseUpdateOnStart = true;
+        return builder;
     }
 
     /// <summary>
@@ -216,7 +218,9 @@ public static class EFMigrationsBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithAnnotation(new PublishAsMigrationScriptAnnotation());
+        var options = GetOrCreateOptions(builder);
+        options.PublishAsMigrationScript = true;
+        return builder;
     }
 
     /// <summary>
@@ -229,7 +233,22 @@ public static class EFMigrationsBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithAnnotation(new PublishAsMigrationBundleAnnotation());
+        var options = GetOrCreateOptions(builder);
+        options.PublishAsMigrationBundle = true;
+        return builder;
+    }
+
+    private static EFMigrationsOptions GetOrCreateOptions(IResourceBuilder<EFMigrationResource> builder)
+    {
+        var existing = builder.Resource.Annotations.OfType<EFMigrationsOptions>().FirstOrDefault();
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        var options = new EFMigrationsOptions();
+        builder.WithAnnotation(options);
+        return options;
     }
 
     private static IResourceBuilder<EFMigrationResource> AddEFMigrationCommands(

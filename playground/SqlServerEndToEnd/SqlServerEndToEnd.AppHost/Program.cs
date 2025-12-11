@@ -15,7 +15,6 @@ var dbsetup = builder.AddProject<Projects.SqlServerEndToEnd_DbSetup>("dbsetup")
                      .WithReference(db1).WaitFor(sql1)
                      .WithReference(db2).WaitFor(sql2);
 
-// Demonstrate EF Core migration management
 // Add EF migrations resource for the dbsetup project (without specifying DbContext type)
 // This adds dashboard commands for managing EF migrations: Update Database, Drop Database, 
 // Reset Database, Add Migration, Remove Migration, and Get Database Status

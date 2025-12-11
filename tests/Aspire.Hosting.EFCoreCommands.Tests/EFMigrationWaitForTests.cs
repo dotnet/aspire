@@ -74,8 +74,10 @@ public class EFMigrationWaitForTests
         var anotherProject = builder.AddProject<Projects.ServiceB>("anotherproject")
             .WaitFor(migrations);
 
-        // Both annotations should be present
-        Assert.NotNull(migrations.Resource.Annotations.OfType<RunDatabaseUpdateOnStartAnnotation>().FirstOrDefault());
+        // Both options and wait annotation should be present
+        var options = migrations.Resource.Annotations.OfType<EFMigrationsOptions>().FirstOrDefault();
+        Assert.NotNull(options);
+        Assert.True(options.RunDatabaseUpdateOnStart);
         Assert.NotNull(anotherProject.Resource.Annotations.OfType<WaitAnnotation>().FirstOrDefault());
     }
 

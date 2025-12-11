@@ -33,7 +33,11 @@ internal sealed class EFMigrationEventSubscriber(
     {
         var migrationResources = @event.Model.Resources
             .OfType<EFMigrationResource>()
-            .Where(r => r.TryGetAnnotationsOfType<RunDatabaseUpdateOnStartAnnotation>(out _))
+            .Where(r => 
+            {
+                var options = r.Annotations.OfType<EFMigrationsOptions>().FirstOrDefault();
+                return options?.RunDatabaseUpdateOnStart == true;
+            })
             .ToList();
 
         if (migrationResources.Count == 0)

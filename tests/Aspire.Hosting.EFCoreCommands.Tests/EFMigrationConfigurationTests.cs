@@ -9,39 +9,42 @@ namespace Aspire.Hosting.EFCoreCommands.Tests;
 public class EFMigrationConfigurationTests
 {
     [Fact]
-    public void RunDatabaseUpdateOnStartAddsAnnotation()
+    public void RunDatabaseUpdateOnStartSetsOption()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
             .RunDatabaseUpdateOnStart();
 
-        var annotation = migrations.Resource.Annotations.OfType<RunDatabaseUpdateOnStartAnnotation>().FirstOrDefault();
-        Assert.NotNull(annotation);
+        var options = migrations.Resource.Annotations.OfType<EFMigrationsOptions>().FirstOrDefault();
+        Assert.NotNull(options);
+        Assert.True(options.RunDatabaseUpdateOnStart);
     }
 
     [Fact]
-    public void PublishAsMigrationScriptAddsAnnotation()
+    public void PublishAsMigrationScriptSetsOption()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
             .PublishAsMigrationScript();
 
-        var annotation = migrations.Resource.Annotations.OfType<PublishAsMigrationScriptAnnotation>().FirstOrDefault();
-        Assert.NotNull(annotation);
+        var options = migrations.Resource.Annotations.OfType<EFMigrationsOptions>().FirstOrDefault();
+        Assert.NotNull(options);
+        Assert.True(options.PublishAsMigrationScript);
     }
 
     [Fact]
-    public void PublishAsMigrationBundleAddsAnnotation()
+    public void PublishAsMigrationBundleSetsOption()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
             .PublishAsMigrationBundle();
 
-        var annotation = migrations.Resource.Annotations.OfType<PublishAsMigrationBundleAnnotation>().FirstOrDefault();
-        Assert.NotNull(annotation);
+        var options = migrations.Resource.Annotations.OfType<EFMigrationsOptions>().FirstOrDefault();
+        Assert.NotNull(options);
+        Assert.True(options.PublishAsMigrationBundle);
     }
 
     [Fact]
@@ -53,8 +56,27 @@ public class EFMigrationConfigurationTests
             .RunDatabaseUpdateOnStart()
             .PublishAsMigrationScript();
 
-        Assert.NotNull(migrations.Resource.Annotations.OfType<RunDatabaseUpdateOnStartAnnotation>().FirstOrDefault());
-        Assert.NotNull(migrations.Resource.Annotations.OfType<PublishAsMigrationScriptAnnotation>().FirstOrDefault());
+        var options = migrations.Resource.Annotations.OfType<EFMigrationsOptions>().FirstOrDefault();
+        Assert.NotNull(options);
+        Assert.True(options.RunDatabaseUpdateOnStart);
+        Assert.True(options.PublishAsMigrationScript);
+    }
+
+    [Fact]
+    public void AllConfigurationOptionsCanBeChained()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+            .RunDatabaseUpdateOnStart()
+            .PublishAsMigrationScript()
+            .PublishAsMigrationBundle();
+
+        var options = migrations.Resource.Annotations.OfType<EFMigrationsOptions>().FirstOrDefault();
+        Assert.NotNull(options);
+        Assert.True(options.RunDatabaseUpdateOnStart);
+        Assert.True(options.PublishAsMigrationScript);
+        Assert.True(options.PublishAsMigrationBundle);
     }
 
     [Fact]
@@ -103,6 +125,21 @@ public class EFMigrationConfigurationTests
         {
             nullBuilder!.PublishAsMigrationBundle();
         });
+    }
+
+    [Fact]
+    public void EFMigrationsOptionsOnlyCreatedOnce()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+            .RunDatabaseUpdateOnStart()
+            .PublishAsMigrationScript()
+            .PublishAsMigrationBundle();
+
+        // Should only have one EFMigrationsOptions annotation
+        var optionsCount = migrations.Resource.Annotations.OfType<EFMigrationsOptions>().Count();
+        Assert.Equal(1, optionsCount);
     }
 
     // Test classes for DbContext types
