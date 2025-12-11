@@ -77,7 +77,7 @@ public sealed class GenAIItemPartViewModel
         {
             // If a tool response is a string then decode it.
             // This handles situations where telemetry is reported incorrectly, i.e. a structured JSON response is encoded inside a string.
-            // And it allow possible Markdown content inside the string to be formatted.
+            // And it allows possible Markdown content inside the string to be formatted.
             var toolResponseContent = (toolCallResponsePart.Response?.GetValueKind() == JsonValueKind.String)
                 ? toolCallResponsePart.Response.GetValue<string>()
                 : toolCallResponsePart.Response?.ToJsonString() ?? string.Empty;
