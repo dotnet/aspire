@@ -16,6 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Verify Docker is running
+        run: docker info
+
       - name: Build solution
         # a full build is too slow; also do not fail on errors, continue so that
         # copilot can attempt to recover
