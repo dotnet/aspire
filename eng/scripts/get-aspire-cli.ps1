@@ -660,7 +660,18 @@ function Save-GlobalChannelSetting {
         if (Test-Path $globalSettingsFile) {
             try {
                 $existingContent = Get-Content $globalSettingsFile -Raw -ErrorAction Stop
-                $settings = $existingContent | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
+                # Use -AsHashtable only on PowerShell 6+ where it's available
+                $settings = Invoke-WithPowerShellVersion -ModernAction {
+                    $existingContent | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
+                } -LegacyAction {
+                    # For PowerShell 5.1, convert PSCustomObject to hashtable manually
+                    $parsed = $existingContent | ConvertFrom-Json -ErrorAction SilentlyContinue
+                    if ($parsed) {
+                        $ht = @{}
+                        $parsed.PSObject.Properties | ForEach-Object { $ht[$_.Name] = $_.Value }
+                        $ht
+                    } else { @{} }
+                }
                 if ($null -eq $settings) {
                     $settings = @{}
                 }

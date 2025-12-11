@@ -509,7 +509,8 @@ save_global_channel_setting() {
             if jq --arg channel "$channel" '.channel = $channel' "$global_settings_file" > "$temp_file" 2>/dev/null; then
                 mv "$temp_file" "$global_settings_file"
             else
-                # If jq fails, fall back to overwriting
+                # If jq fails (e.g., malformed JSON), fall back to overwriting
+                say_verbose "jq failed to parse existing settings file, overwriting with new settings"
                 rm -f "$temp_file"
                 echo "{\"channel\":\"$channel\"}" > "$global_settings_file"
             fi

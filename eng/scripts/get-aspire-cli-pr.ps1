@@ -590,6 +590,84 @@ function Remove-TempDirectory {
 # END: Shared code
 # =============================================================================
 
+# Function to save the global channel setting
+function Save-GlobalChannelSetting {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Channel
+    )
+    
+    # Get the home directory
+    $homeDirectory = Invoke-WithPowerShellVersion -ModernAction {
+        if ($env:HOME) { $env:HOME }
+        elseif ($env:USERPROFILE) { $env:USERPROFILE }
+        else { $null }
+    } -LegacyAction {
+        if ($env:USERPROFILE) { $env:USERPROFILE }
+        elseif ($env:HOME) { $env:HOME }
+        else { $null }
+    }
+    
+    if ([string]::IsNullOrWhiteSpace($homeDirectory)) {
+        Write-Message "Unable to determine home directory for saving global settings" -Level Warning
+        return
+    }
+    
+    $globalSettingsDir = Join-Path $homeDirectory ".aspire"
+    $globalSettingsFile = Join-Path $globalSettingsDir "globalsettings.json"
+    
+    if ($PSCmdlet.ShouldProcess($globalSettingsFile, "Save global channel setting '$Channel'")) {
+        Write-Message "Saving global channel setting: $Channel" -Level Verbose
+        
+        # Create directory if it doesn't exist
+        if (-not (Test-Path $globalSettingsDir)) {
+            Write-Message "Creating global settings directory: $globalSettingsDir" -Level Verbose
+            New-Item -ItemType Directory -Path $globalSettingsDir -Force | Out-Null
+        }
+        
+        # Read existing settings or create new
+        $settings = @{}
+        if (Test-Path $globalSettingsFile) {
+            try {
+                $existingContent = Get-Content $globalSettingsFile -Raw -ErrorAction Stop
+                # Use -AsHashtable only on PowerShell 6+ where it's available
+                $settings = Invoke-WithPowerShellVersion -ModernAction {
+                    $existingContent | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
+                } -LegacyAction {
+                    # For PowerShell 5.1, convert PSCustomObject to hashtable manually
+                    $parsed = $existingContent | ConvertFrom-Json -ErrorAction SilentlyContinue
+                    if ($parsed) {
+                        $ht = @{}
+                        $parsed.PSObject.Properties | ForEach-Object { $ht[$_.Name] = $_.Value }
+                        $ht
+                    } else { @{} }
+                }
+                if ($null -eq $settings) {
+                    $settings = @{}
+                }
+            }
+            catch {
+                Write-Message "Could not read existing global settings, creating new file" -Level Verbose
+                $settings = @{}
+            }
+        }
+        
+        # Update the channel setting
+        $settings["channel"] = $Channel
+        
+        # Write the settings file
+        try {
+            $jsonContent = $settings | ConvertTo-Json -Compress
+            Set-Content -Path $globalSettingsFile -Value $jsonContent -Force
+            Write-Message "Global channel setting saved to: $globalSettingsFile" -Level Verbose
+        }
+        catch {
+            Write-Message "Failed to save global channel setting: $($_.Exception.Message)" -Level Warning
+        }
+    }
+}
+
 # Function to check if gh command is available
 function Test-GitHubCLIDependency {
     [CmdletBinding()]
@@ -1094,6 +1172,12 @@ function Start-DownloadAndInstall {
         if (Test-VSCodeCLIDependency -UseInsiders:$UseInsiders) {
             Install-AspireExtensionFromDownload -DownloadDir $extensionDownloadDir -UseInsiders:$UseInsiders
         }
+    }
+
+    # Save the global channel setting to the PR hive channel
+    # This allows 'aspire new' and 'aspire init' to use the same channel by default
+    if (-not $HiveOnly) {
+        Save-GlobalChannelSetting -Channel "pr-$PRNumber"
     }
 
     # Update PATH environment variables
