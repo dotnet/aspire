@@ -203,7 +203,7 @@ if (!result.Canceled && result.Data?.Value is { } migrationName)
 - [x] Use reflection to load `Microsoft.EntityFrameworkCore.Design` from target project output (similar to [ReflectionOperationExecutor](https://github.com/dotnet/efcore/blob/main/src/ef/ReflectionOperationExecutor.cs))
 - [x] Use `OperationExecutor` from loaded design assembly to execute commands
 - [x] Implement custom `OperationReportHandler` for logging output
-- [ ] Check target project references Microsoft.EntityFrameworkCore.Design and show error message if not
+- [x] Check target project references Microsoft.EntityFrameworkCore.Design and show error message if not
 
 ### IOperationReporter Integration
 
