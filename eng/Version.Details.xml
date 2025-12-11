@@ -177,6 +177,10 @@
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
       <Sha>fbd393616ef5ce0f2f1521a7250e4311728ed93a</Sha>
     </Dependency>
+    <Dependency Name="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.1">
+      <Uri>https://github.com/dotnet/dotnet</Uri>
+      <Sha>fad253f51b461736dfd3cd9c15977bb7493becef</Sha>
+    </Dependency>
   </ProductDependencies>
   <ToolsetDependencies>
     <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="11.0.0-beta.25509.1">
