@@ -21,7 +21,6 @@ public class AddEFMigrationsTests
         Assert.IsType<EFMigrationResourceBuilder>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
-        Assert.Equal(typeof(TestDbContext), migrations.Resource.ContextType);
         Assert.Equal(typeof(TestDbContext).FullName, migrations.Resource.ContextTypeName);
     }
 
@@ -36,7 +35,6 @@ public class AddEFMigrationsTests
         Assert.IsType<EFMigrationResourceBuilder>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
-        Assert.Null(migrations.Resource.ContextType);
         Assert.Null(migrations.Resource.ContextTypeName);
     }
 
@@ -51,7 +49,6 @@ public class AddEFMigrationsTests
         Assert.IsType<EFMigrationResourceBuilder>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
-        Assert.Equal(typeof(TestDbContext), migrations.Resource.ContextType);
         Assert.Equal(typeof(TestDbContext).FullName, migrations.Resource.ContextTypeName);
     }
 
@@ -67,7 +64,6 @@ public class AddEFMigrationsTests
         Assert.IsType<EFMigrationResourceBuilder>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
-        Assert.Null(migrations.Resource.ContextType); // Type is not available at compile time
         Assert.Equal(contextTypeName, migrations.Resource.ContextTypeName);
     }
 
@@ -96,8 +92,8 @@ public class AddEFMigrationsTests
         var migrations2 = project.AddEFMigrations<AnotherDbContext>("migrations2");
 
         Assert.NotEqual(migrations1.Resource, migrations2.Resource);
-        Assert.Equal(typeof(TestDbContext), migrations1.Resource.ContextType);
-        Assert.Equal(typeof(AnotherDbContext), migrations2.Resource.ContextType);
+        Assert.Equal(typeof(TestDbContext).FullName, migrations1.Resource.ContextTypeName);
+        Assert.Equal(typeof(AnotherDbContext).FullName, migrations2.Resource.ContextTypeName);
     }
 
     [Fact]

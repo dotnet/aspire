@@ -53,7 +53,7 @@ public static class EFMigrationsBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(contextType);
 
-        return AddEFMigrationsCore(builder, name, contextType, contextType.FullName);
+        return AddEFMigrationsCore(builder, name, contextType.FullName);
     }
 
     /// <summary>
@@ -83,37 +83,7 @@ public static class EFMigrationsBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(contextTypeName);
 
-        // Register the event subscriber once
-        EnsureEventSubscriberRegistered(builder.ApplicationBuilder);
-
-        // Check for duplicate context types by name
-        var existingMigrations = builder.ApplicationBuilder.Resources
-            .OfType<EFMigrationResource>()
-            .Where(r => r.ProjectResource == builder.Resource && r.ContextTypeName == contextTypeName);
-
-        if (existingMigrations.Any())
-        {
-            var shortName = contextTypeName.Contains('.') 
-                ? contextTypeName.Substring(contextTypeName.LastIndexOf('.') + 1)
-                : contextTypeName;
-            throw new InvalidOperationException(
-                $"The DbContext type '{shortName}' has already been registered for EF migrations on resource '{builder.Resource.Name}'.");
-        }
-
-        var migrationResource = new EFMigrationResource(name, builder.Resource, contextType: null, contextTypeName);
-
-        var innerBuilder = builder.ApplicationBuilder
-            .AddResource(migrationResource)
-            .WithInitialState(new CustomResourceSnapshot
-            {
-                ResourceType = "EFMigration",
-                Properties = [],
-                State = new ResourceStateSnapshot("Pending", KnownResourceStateStyles.Info)
-            })
-            .WithIconName("Database")
-            .AddEFMigrationCommands(contextTypeName);
-
-        return new EFMigrationResourceBuilder(innerBuilder);
+        return AddEFMigrationsCore(builder, name, contextTypeName);
     }
 
     /// <summary>
@@ -129,49 +99,35 @@ public static class EFMigrationsBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        // Register the event subscriber once
-        EnsureEventSubscriberRegistered(builder.ApplicationBuilder);
-
-        var migrationResource = new EFMigrationResource(name, builder.Resource, contextType: null, contextTypeName: null);
-
-        var innerBuilder = builder.ApplicationBuilder
-            .AddResource(migrationResource)
-            .WithInitialState(new CustomResourceSnapshot
-            {
-                ResourceType = "EFMigration",
-                Properties = [],
-                State = new ResourceStateSnapshot("Pending", KnownResourceStateStyles.Info)
-            })
-            .WithIconName("Database")
-            .AddEFMigrationCommands(contextTypeName: null);
-
-        return new EFMigrationResourceBuilder(innerBuilder);
+        return AddEFMigrationsCore(builder, name, contextTypeName: null);
     }
 
     private static EFMigrationResourceBuilder AddEFMigrationsCore(
         IResourceBuilder<ProjectResource> builder,
         string name,
-        Type? contextType,
         string? contextTypeName)
     {
         // Register the event subscriber once
         EnsureEventSubscriberRegistered(builder.ApplicationBuilder);
 
         // Check for duplicate context types
-        if (contextType != null)
+        if (contextTypeName != null)
         {
             var existingMigrations = builder.ApplicationBuilder.Resources
                 .OfType<EFMigrationResource>()
-                .Where(r => r.ProjectResource == builder.Resource && r.ContextType == contextType);
+                .Where(r => r.ProjectResource == builder.Resource && r.ContextTypeName == contextTypeName);
 
             if (existingMigrations.Any())
             {
+                var shortName = contextTypeName.Contains('.') 
+                    ? contextTypeName.Substring(contextTypeName.LastIndexOf('.') + 1)
+                    : contextTypeName;
                 throw new InvalidOperationException(
-                    $"The DbContext type '{contextType.Name}' has already been registered for EF migrations on resource '{builder.Resource.Name}'.");
+                    $"The DbContext type '{shortName}' has already been registered for EF migrations on resource '{builder.Resource.Name}'.");
             }
         }
 
-        var migrationResource = new EFMigrationResource(name, builder.Resource, contextType, contextTypeName);
+        var migrationResource = new EFMigrationResource(name, builder.Resource, contextTypeName);
 
         var innerBuilder = builder.ApplicationBuilder
             .AddResource(migrationResource)
@@ -182,7 +138,7 @@ public static class EFMigrationsBuilderExtensions
                 State = new ResourceStateSnapshot("Pending", KnownResourceStateStyles.Info)
             })
             .WithIconName("Database")
-            .AddEFMigrationCommands(contextTypeName ?? contextType?.FullName);
+            .AddEFMigrationCommands(contextTypeName);
 
         return new EFMigrationResourceBuilder(innerBuilder);
     }
@@ -303,6 +259,16 @@ public static class EFMigrationsBuilderExtensions
         return builder;
     }
 
+    private static EFMigrationResource? FindMigrationResource(
+        DistributedApplicationModel appModel,
+        string resourceName,
+        string? contextTypeName)
+    {
+        return appModel.Resources
+            .OfType<EFMigrationResource>()
+            .FirstOrDefault(r => r.Name == resourceName && r.ContextTypeName == contextTypeName);
+    }
+
     private static async Task<ExecuteCommandResult> ExecuteEFCommandAsync(
         ExecuteCommandContext context,
         string operationDisplayName,
@@ -312,9 +278,7 @@ public static class EFMigrationsBuilderExtensions
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
         var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
 
-        var migrationResource = appModel.Resources
-            .OfType<EFMigrationResource>()
-            .FirstOrDefault(r => r.Name == context.ResourceName);
+        var migrationResource = FindMigrationResource(appModel, context.ResourceName, contextTypeName);
 
         if (migrationResource == null)
         {
@@ -368,9 +332,7 @@ public static class EFMigrationsBuilderExtensions
         var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
         var interactionService = context.ServiceProvider.GetService<IInteractionService>();
 
-        var migrationResource = appModel.Resources
-            .OfType<EFMigrationResource>()
-            .FirstOrDefault(r => r.Name == context.ResourceName);
+        var migrationResource = FindMigrationResource(appModel, context.ResourceName, contextTypeName);
 
         if (migrationResource == null)
         {
@@ -467,9 +429,7 @@ public static class EFMigrationsBuilderExtensions
         var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
         var interactionService = context.ServiceProvider.GetService<IInteractionService>();
 
-        var migrationResource = appModel.Resources
-            .OfType<EFMigrationResource>()
-            .FirstOrDefault(r => r.Name == context.ResourceName);
+        var migrationResource = FindMigrationResource(appModel, context.ResourceName, contextTypeName);
 
         if (migrationResource == null)
         {

@@ -7,7 +7,6 @@ using System.Collections;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
-
 namespace Aspire.Hosting;
 
 /// <summary>
@@ -107,7 +106,8 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private EFOperationResult ExecuteInIsolatedContext(
-        Func<object, Assembly, Type, object?> operation)
+        Func<object, Assembly, Type, object?> operation,
+        bool handleDatabaseNotFound = false)
     {
         var initResult = EnsurePathsInitialized();
         if (!initResult.Success)
@@ -135,6 +135,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 designAssemblyPath,
                 appBasePath,
                 operation,
+                handleDatabaseNotFound,
                 out alcWeakRef);
             
             return result;
@@ -158,6 +159,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         string designAssemblyPath,
         string appBasePath,
         Func<object, Assembly, Type, object?> operation,
+        bool handleDatabaseNotFound,
         out WeakReference alcWeakRef)
     {
         var alc = new EFCoreDesignLoadContext(appBasePath, designAssemblyPath);
@@ -213,8 +215,22 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
         catch (Exception ex)
         {
+            var errorMessage = GetInnerExceptionMessage(ex);
+            
+            // Check if database doesn't exist (when handling GetDatabaseStatus)
+            if (handleDatabaseNotFound && 
+                (errorMessage.Contains("does not exist", StringComparison.OrdinalIgnoreCase) ||
+                 errorMessage.Contains("Cannot open database", StringComparison.OrdinalIgnoreCase)))
+            {
+                return new EFOperationResult 
+                { 
+                    Success = true, 
+                    Output = "Database has not been created yet.\nRun 'Update Database' to create and apply migrations." 
+                };
+            }
+            
             _logger.LogError(ex, "Failed to execute EF Core operation.");
-            return new EFOperationResult { Success = false, ErrorMessage = GetInnerExceptionMessage(ex) };
+            return new EFOperationResult { Success = false, ErrorMessage = errorMessage };
         }
         finally
         {
@@ -352,162 +368,73 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     {
         return Task.Run(() =>
         {
-            var initResult = EnsurePathsInitialized();
-            if (!initResult.Success)
+            return ExecuteInIsolatedContext((executor, commandsAssembly, resultHandlerType) =>
             {
-                return initResult;
-            }
-
-            var appBasePath = Path.GetDirectoryName(_assemblyPath)!;
-            var designAssemblyPath = Path.Combine(appBasePath, $"{DesignAssemblyName}.dll");
-
-            if (!File.Exists(designAssemblyPath))
-            {
-                return new EFOperationResult
+                var migrations = InvokeOperation<IEnumerable<IDictionary>>(executor, commandsAssembly, resultHandlerType, "GetMigrations", new Dictionary<string, object?>
                 {
-                    Success = false,
-                    ErrorMessage = "Microsoft.EntityFrameworkCore.Design assembly not found. Ensure the target project references Microsoft.EntityFrameworkCore.Design."
-                };
-            }
+                    { "contextType", _contextTypeName },
+                    { "connectionString", null },
+                    { "noConnect", false }
+                });
 
-            WeakReference? alcWeakRef = null;
+                var statusLines = new List<string>();
+                string? lastAppliedMigration = null;
+                string? lastMigration = null;
+                var pendingMigrations = new List<string>();
 
-            try
-            {
-                var alc = new EFCoreDesignLoadContext(appBasePath, designAssemblyPath);
-                alcWeakRef = new WeakReference(alc, trackResurrection: true);
-
-                try
+                if (migrations != null)
                 {
-                    var commandsAssembly = alc.LoadFromAssemblyPath(designAssemblyPath);
-
-                    // Create report handler
-                    var reportHandlerType = commandsAssembly.GetType(ReportHandlerTypeName, throwOnError: true, ignoreCase: false)!;
-                    var reportHandler = Activator.CreateInstance(
-                        reportHandlerType,
-                        (Action<string>)(msg => _logger.LogError("[EF] {Message}", msg)),
-                        (Action<string>)(msg => _logger.LogWarning("[EF] {Message}", msg)),
-                        (Action<string>)(msg => _logger.LogInformation("[EF] {Message}", msg)),
-                        (Action<string>)(msg => _logger.LogDebug("[EF] {Message}", msg)))!;
-
-                    // Create executor
-                    var executorType = commandsAssembly.GetType(ExecutorTypeName, throwOnError: true, ignoreCase: false)!;
-                    var executor = Activator.CreateInstance(
-                        executorType,
-                        reportHandler,
-                        new Dictionary<string, object?>
-                        {
-                            { "targetName", _assemblyFileName },
-                            { "startupTargetName", _assemblyFileName },
-                            { "projectDir", _projectDirectory },
-                            { "rootNamespace", _assemblyFileName },
-                            { "language", "C#" },
-                            { "nullable", true },
-                            { "remainingArguments", Array.Empty<string>() }
-                        })!;
-
-                    var resultHandlerType = commandsAssembly.GetType(ResultHandlerTypeName, throwOnError: true, ignoreCase: false)!;
-
-                    var migrations = InvokeOperation<IEnumerable<IDictionary>>(executor, commandsAssembly, resultHandlerType, "GetMigrations", new Dictionary<string, object?>
+                    foreach (var migration in migrations)
                     {
-                        { "contextType", _contextTypeName },
-                        { "connectionString", null },
-                        { "noConnect", false }
-                    });
-
-                    var statusLines = new List<string>();
-                    string? lastAppliedMigration = null;
-                    string? lastMigration = null;
-                    var pendingMigrations = new List<string>();
-
-                    if (migrations != null)
-                    {
-                        foreach (var migration in migrations)
+                        var id = migration["Id"]?.ToString() ?? "Unknown";
+                        var applied = migration["Applied"] as bool? ?? false;
+                        lastMigration = id;
+                        
+                        if (applied)
                         {
-                            var id = migration["Id"]?.ToString() ?? "Unknown";
-                            var applied = migration["Applied"] as bool? ?? false;
-                            lastMigration = id;
-                            
-                            if (applied)
-                            {
-                                lastAppliedMigration = id;
-                                statusLines.Add($"  [Applied] {id}");
-                            }
-                            else
-                            {
-                                pendingMigrations.Add(id);
-                                statusLines.Add($"  [Pending] {id}");
-                            }
+                            lastAppliedMigration = id;
+                            statusLines.Add($"  [Applied] {id}");
+                        }
+                        else
+                        {
+                            pendingMigrations.Add(id);
+                            statusLines.Add($"  [Pending] {id}");
                         }
                     }
-
-                    // Try to check for pending model changes
-                    bool hasPendingModelChanges = false;
-                    try
-                    {
-                        InvokeOperation(executor, commandsAssembly, resultHandlerType, "HasPendingModelChanges", new Dictionary<string, object?>
-                        {
-                            { "contextType", _contextTypeName }
-                        });
-                    }
-                    catch
-                    {
-                        // HasPendingModelChanges throws if there are pending changes
-                        hasPendingModelChanges = true;
-                    }
-
-                    var summary = new List<string>
-                    {
-                        $"Current Applied Migration: {lastAppliedMigration ?? "None (database not created)"}",
-                        $"Latest Migration: {lastMigration ?? "None"}",
-                        $"Pending Migrations: {(pendingMigrations.Count > 0 ? string.Join(", ", pendingMigrations) : "None")}",
-                        $"Has Pending Model Changes: {(hasPendingModelChanges ? "Yes" : "No")}"
-                    };
-
-                    if (statusLines.Count > 0)
-                    {
-                        summary.Add("");
-                        summary.Add("Migration History:");
-                        summary.AddRange(statusLines);
-                    }
-
-                    var output = string.Join(Environment.NewLine, summary);
-                    _logger.LogInformation("Database migration status: {Status}", output);
-
-                    return new EFOperationResult { Success = true, Output = output };
                 }
-                catch (Exception ex)
+
+                // Try to check for pending model changes
+                bool hasPendingModelChanges = false;
+                try
                 {
-                    var errorMessage = GetInnerExceptionMessage(ex);
-                    // Check if database doesn't exist
-                    if (errorMessage.Contains("does not exist", StringComparison.OrdinalIgnoreCase) ||
-                        errorMessage.Contains("Cannot open database", StringComparison.OrdinalIgnoreCase))
+                    InvokeOperation(executor, commandsAssembly, resultHandlerType, "HasPendingModelChanges", new Dictionary<string, object?>
                     {
-                        return new EFOperationResult 
-                        { 
-                            Success = true, 
-                            Output = "Database has not been created yet.\nRun 'Update Database' to create and apply migrations." 
-                        };
-                    }
-                    return new EFOperationResult { Success = false, ErrorMessage = errorMessage };
+                        { "contextType", _contextTypeName }
+                    });
                 }
-                finally
+                catch
                 {
-                    alc.Unload();
+                    // HasPendingModelChanges throws if there are pending changes
+                    hasPendingModelChanges = true;
                 }
-            }
-            finally
-            {
-                // Try to unload the context
-                if (alcWeakRef != null)
+
+                var summary = new List<string>
                 {
-                    for (int i = 0; alcWeakRef.IsAlive && i < 10; i++)
-                    {
-                        GC.Collect();
-                        GC.WaitForPendingFinalizers();
-                    }
+                    $"Current Applied Migration: {lastAppliedMigration ?? "None (database not created)"}",
+                    $"Latest Migration: {lastMigration ?? "None"}",
+                    $"Pending Migrations: {(pendingMigrations.Count > 0 ? string.Join(", ", pendingMigrations) : "None")}",
+                    $"Has Pending Model Changes: {(hasPendingModelChanges ? "Yes" : "No")}"
+                };
+
+                if (statusLines.Count > 0)
+                {
+                    summary.Add("");
+                    summary.Add("Migration History:");
+                    summary.AddRange(statusLines);
                 }
-            }
+
+                return string.Join(Environment.NewLine, summary);
+            }, handleDatabaseNotFound: true);
         }, _cancellationToken);
     }
 

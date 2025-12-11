@@ -46,11 +46,11 @@ internal sealed class EFMigrationEventSubscriber(
         // Run migrations sequentially to avoid concurrency issues
         foreach (var migrationResource in migrationResources)
         {
-            await RunMigrationsAsync(migrationResource, cancellationToken).ConfigureAwait(false);
+            await ApplyMigrationsAsync(migrationResource, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task RunMigrationsAsync(EFMigrationResource migrationResource, CancellationToken cancellationToken)
+    private async Task ApplyMigrationsAsync(EFMigrationResource migrationResource, CancellationToken cancellationToken)
     {
         var resourceLogger = resourceLoggerService.GetLogger(migrationResource);
         
