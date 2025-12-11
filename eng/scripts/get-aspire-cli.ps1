@@ -602,6 +602,91 @@ function Expand-AspireCliArchive {
     }
 }
 
+# Function to map quality to channel name
+function ConvertTo-ChannelName {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Quality
+    )
+    
+    switch ($Quality.ToLowerInvariant()) {
+        "release" { return "stable" }
+        "staging" { return "staging" }
+        "dev" { return "daily" }
+        default { return $Quality }
+    }
+}
+
+# Function to save the global channel setting
+function Save-GlobalChannelSetting {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Channel
+    )
+    
+    # Get the home directory
+    $homeDirectory = Invoke-WithPowerShellVersion -ModernAction {
+        if ($env:HOME) { $env:HOME }
+        elseif ($IsWindows -and $env:USERPROFILE) { $env:USERPROFILE }
+        elseif ($env:USERPROFILE) { $env:USERPROFILE }
+        else { $null }
+    } -LegacyAction {
+        if ($env:USERPROFILE) { $env:USERPROFILE }
+        elseif ($env:HOME) { $env:HOME }
+        else { $null }
+    }
+    
+    if ([string]::IsNullOrWhiteSpace($homeDirectory)) {
+        Write-Message "Unable to determine home directory for saving global settings" -Level Warning
+        return
+    }
+    
+    $globalSettingsDir = Join-Path $homeDirectory ".aspire"
+    $globalSettingsFile = Join-Path $globalSettingsDir "globalsettings.json"
+    
+    if ($PSCmdlet.ShouldProcess($globalSettingsFile, "Save global channel setting '$Channel'")) {
+        Write-Message "Saving global channel setting: $Channel" -Level Verbose
+        
+        # Create directory if it doesn't exist
+        if (-not (Test-Path $globalSettingsDir)) {
+            Write-Message "Creating global settings directory: $globalSettingsDir" -Level Verbose
+            New-Item -ItemType Directory -Path $globalSettingsDir -Force | Out-Null
+        }
+        
+        # Read existing settings or create new
+        $settings = @{}
+        if (Test-Path $globalSettingsFile) {
+            try {
+                $existingContent = Get-Content $globalSettingsFile -Raw -ErrorAction Stop
+                $settings = $existingContent | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
+                if ($null -eq $settings) {
+                    $settings = @{}
+                }
+            }
+            catch {
+                Write-Message "Could not read existing global settings, creating new file" -Level Verbose
+                $settings = @{}
+            }
+        }
+        
+        # Update the channel setting
+        $settings["channel"] = $Channel
+        
+        # Write the settings file
+        try {
+            $jsonContent = $settings | ConvertTo-Json -Compress
+            Set-Content -Path $globalSettingsFile -Value $jsonContent -Force
+            Write-Message "Global channel setting saved to: $globalSettingsFile" -Level Verbose
+        }
+        catch {
+            Write-Message "Failed to save global channel setting: $($_.Exception.Message)" -Level Warning
+        }
+    }
+}
+
 # Simplified installation path determination
 function Get-InstallPath {
     [CmdletBinding()]
@@ -980,6 +1065,13 @@ function Install-AspireCli {
             $cliPath = Join-Path $InstallPath $cliExe
 
             Write-Message "Aspire CLI successfully installed to: $cliPath" -Level Success
+        }
+
+        # Save the global channel setting if using quality-based download (not version-specific)
+        # This allows 'aspire new' and 'aspire init' to use the same channel by default
+        if ([string]::IsNullOrWhiteSpace($Version)) {
+            $channel = ConvertTo-ChannelName -Quality $Quality
+            Save-GlobalChannelSetting -Channel $channel
         }
 
         # Download and install VS Code extension if requested

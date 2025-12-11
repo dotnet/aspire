@@ -454,6 +454,77 @@ install_archive() {
     say_verbose "Successfully installed archive"
 }
 
+# Function to map quality to channel name
+# Parameters:
+#   $1 - quality: The quality string (release, staging, dev)
+# Returns: The corresponding channel name (stable, staging, daily)
+map_quality_to_channel() {
+    local quality="$1"
+    
+    case "$quality" in
+        release)
+            printf "stable"
+            ;;
+        staging)
+            printf "staging"
+            ;;
+        dev)
+            printf "daily"
+            ;;
+        *)
+            # Unknown quality, return as-is
+            printf "%s" "$quality"
+            ;;
+    esac
+}
+
+# Function to save the global channel setting
+# Parameters:
+#   $1 - channel: The channel name to save
+save_global_channel_setting() {
+    local channel="$1"
+    local global_settings_dir="$HOME/.aspire"
+    local global_settings_file="$global_settings_dir/globalsettings.json"
+    
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would save global channel setting '$channel' to $global_settings_file"
+        return 0
+    fi
+    
+    say_verbose "Saving global channel setting: $channel"
+    
+    # Create directory if it doesn't exist
+    if [[ ! -d "$global_settings_dir" ]]; then
+        say_verbose "Creating global settings directory: $global_settings_dir"
+        mkdir -p "$global_settings_dir"
+    fi
+    
+    # Write or update the global settings file
+    # If file exists, try to preserve other settings
+    if [[ -f "$global_settings_file" ]]; then
+        # Read existing content and update channel
+        # Use a simple approach: if jq is available use it, otherwise overwrite
+        if command -v jq >/dev/null 2>&1; then
+            local temp_file="${global_settings_file}.tmp"
+            if jq --arg channel "$channel" '.channel = $channel' "$global_settings_file" > "$temp_file" 2>/dev/null; then
+                mv "$temp_file" "$global_settings_file"
+            else
+                # If jq fails, fall back to overwriting
+                rm -f "$temp_file"
+                echo "{\"channel\":\"$channel\"}" > "$global_settings_file"
+            fi
+        else
+            # No jq available, overwrite the file (simple case)
+            echo "{\"channel\":\"$channel\"}" > "$global_settings_file"
+        fi
+    else
+        # File doesn't exist, create it
+        echo "{\"channel\":\"$channel\"}" > "$global_settings_file"
+    fi
+    
+    say_verbose "Global channel setting saved to: $global_settings_file"
+}
+
 # Function to add PATH to shell configuration file
 # Parameters:
 #   $1 - config_file: Path to the shell configuration file
@@ -907,6 +978,14 @@ download_and_install_archive() {
     cli_path="${INSTALL_PATH}/${cli_exe}"
 
     say_info "Aspire CLI successfully installed to: ${GREEN}$cli_path${RESET}"
+
+    # Save the global channel setting if using quality-based download (not version-specific)
+    # This allows 'aspire new' and 'aspire init' to use the same channel by default
+    if [[ -z "$VERSION" ]]; then
+        local channel
+        channel=$(map_quality_to_channel "$QUALITY")
+        save_global_channel_setting "$channel"
+    fi
 
     # Download and install VS Code extension if requested
     if [[ "$INSTALL_EXTENSION" == true ]]; then
