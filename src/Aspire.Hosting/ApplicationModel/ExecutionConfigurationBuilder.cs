@@ -35,7 +35,7 @@ namespace Aspire.Hosting.ApplicationModel;
 ///     .BuildAsync(executionContext).ConfigureAwait(false);
 /// </code>
 /// </example>
-internal class ExecutionConfigurationBuilder : IExecutionConfigurationBuilder
+public sealed class ExecutionConfigurationBuilder : IExecutionConfigurationBuilder
 {
     private readonly IResource _resource;
     private readonly List<IExecutionConfigurationGatherer> _gatherers = new();
@@ -51,8 +51,30 @@ internal class ExecutionConfigurationBuilder : IExecutionConfigurationBuilder
     /// <param name="resource">The resource to build the configuration for.</param>
     /// <returns>A new <see cref="IExecutionConfigurationBuilder"/>.</returns>
     /// <remarks>
-    /// Use the ExecutionConfigurationBuilder extension method on <see cref="IResource"/> instead of creating a
-    /// builder directly.
+    /// <para>
+    /// This method is useful for building resource execution configurations (command line arguments and environment variables)
+    /// in a fluent manner. Individual configuration sources can be added to the builder before finalizing the configuration to
+    /// allow only supported configuration sources to be applied in a given execution context (run vs. publish, etc).
+    /// </para>
+    /// <para>
+    /// In particular, this is used to allow certificate-related features to contribute to the final config, but only in execution
+    /// contexts where they're supported.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// var resolvedConfiguration = await ExecutionConfigurationBuilder
+    ///     .Create(myResource)
+    ///     .WithArguments()
+    ///     .WithEnvironmentVariables()
+    ///     .BuildAsync(executionContext)
+    ///     .ConfigureAwait(false);
+    ///
+    /// foreach (var argument in resolveConfiguration.Arguments)
+    /// {
+    ///     Console.WriteLine($"Argument: {argument.Value}");
+    /// }
+    /// </code>
+    /// </example>
     /// </remarks>
     public static IExecutionConfigurationBuilder Create(IResource resource)
     {

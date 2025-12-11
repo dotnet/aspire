@@ -153,41 +153,6 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Gets a <see cref="IExecutionConfigurationBuilder"/> for the given resource.
-    /// </summary>
-    /// <param name="resource">The resource to generate configuration for</param>
-    /// <returns>A <see cref="IExecutionConfigurationBuilder"/> instance for the given resource.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method is useful for building resource execution configurations (command line arguments and environment variables)
-    /// in a fluent manner. Individual configuration sources can be added to the builder before finalizing the configuration to
-    /// allow only supported configuration sources to be applied in a given execution context (run vs. publish, etc).
-    /// </para>
-    /// <para>
-    /// In particular, this is used to allow certificate-related features to contribute to the final config, but only in execution
-    /// contexts where they're supported.
-    /// </para>
-    /// <example>
-    /// <code>
-    /// var resolvedConfiguration = await myResource.CreateExecutionConfigurationBuilder()
-    ///     .WithArguments()
-    ///     .WithEnvironmentVariables()
-    ///     .BuildAsync(executionContext, resourceLogger: null, cancellationToken: cancellationToken)
-    ///     .ConfigureAwait(false);
-    ///
-    /// foreach (var argument in resolveConfiguration.Arguments)
-    /// {
-    ///     Console.WriteLine($"Argument: {argument.Value}");
-    /// }
-    /// </code>
-    /// </example>
-    /// </remarks>
-    public static IExecutionConfigurationBuilder CreateExecutionConfigurationBuilder(this IResource resource)
-    {
-        return ExecutionConfigurationBuilder.Create(resource);
-    }
-
-    /// <summary>
     /// Get the environment variables from the given resource.
     /// </summary>
     /// <param name="resource">The resource to get the environment variables from.</param>
@@ -222,11 +187,11 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
+    [Obsolete($"Use {nameof(ExecutionConfigurationBuilder)} instead.")]
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var executionConfiguration = await resource.CreateExecutionConfigurationBuilder()
+        var executionConfiguration = await ExecutionConfigurationBuilder.Create(resource)
             .WithEnvironmentVariablesConfig()
             .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 
@@ -266,11 +231,11 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Obsolete("Use ExecutionConfigurationBuilder instead.")]
+    [Obsolete($"Use {nameof(ExecutionConfigurationBuilder)} instead.")]
     public static async ValueTask<string[]> GetArgumentValuesAsync(this IResourceWithArgs resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
-        var argumentConfiguration = await resource.CreateExecutionConfigurationBuilder()
+        var argumentConfiguration = await ExecutionConfigurationBuilder.Create(resource)
             .WithArgumentsConfig()
             .BuildAsync(new(applicationOperation), NullLogger.Instance, CancellationToken.None).ConfigureAwait(false);
 

@@ -16,7 +16,7 @@ public sealed class ArgumentEvaluator
                 ServiceProvider = serviceProvider,
             });
 
-        var executionConfiguration = await resource.CreateExecutionConfigurationBuilder()
+        var executionConfiguration = await ExecutionConfigurationBuilder.Create(resource)
             .WithArgumentsConfig()
             .BuildAsync(executionContext, NullLogger.Instance, CancellationToken.None)
             .ConfigureAwait(false);

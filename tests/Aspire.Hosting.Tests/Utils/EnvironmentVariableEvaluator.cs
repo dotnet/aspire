@@ -18,7 +18,7 @@ public static class EnvironmentVariableEvaluator
             ServiceProvider = serviceProvider
         });
 
-        var executionConfiguration = await resource.CreateExecutionConfigurationBuilder()
+        var executionConfiguration = await ExecutionConfigurationBuilder.Create(resource)
             .WithEnvironmentVariablesConfig()
             .BuildAsync(executionContext, NullLogger.Instance, CancellationToken.None);
 

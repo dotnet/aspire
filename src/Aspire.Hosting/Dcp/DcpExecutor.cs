@@ -1598,7 +1598,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
             var baseServerAuthOutputPath = Path.Join(certificatesRootDir, "private");
 
-            var configuration = await er.ModelResource.CreateExecutionConfigurationBuilder()
+            var configuration = await ExecutionConfigurationBuilder.Create(er.ModelResource)
                 .WithArgumentsConfig()
                 .WithEnvironmentVariablesConfig()
                 .WithCertificateTrustConfig(scope =>
@@ -1943,7 +1943,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             var serverAuthCertificatesBasePath = $"{certificatesDestination}/private";
 
-            var configuration = await cr.ModelResource.CreateExecutionConfigurationBuilder()
+            var configuration = await ExecutionConfigurationBuilder.Create(cr.ModelResource)
                 .WithArgumentsConfig()
                 .WithEnvironmentVariablesConfig()
                 .WithCertificateTrustConfig(scope =>
