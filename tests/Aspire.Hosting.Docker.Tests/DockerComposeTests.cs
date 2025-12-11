@@ -569,6 +569,33 @@ public class DockerComposeTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task MultipleRegistries_WithoutExplicitRegistryOnEnvironment_ThrowsException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        var registry1 = builder.AddContainerRegistry("docker-hub", "docker.io", "user1");
+        var registry2 = builder.AddContainerRegistry("ghcr", "ghcr.io", "user2");
+
+        // Create Docker Compose environment WITHOUT specifying a registry
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
+
+        // Add a container to the application
+        var container = builder.AddContainer("service", "nginx");
+
+        using var app = builder.Build();
+
+        // This should throw because there are multiple registries and no explicit WithContainerRegistry on the environment
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+        Assert.Contains("Docker Compose environment 'docker-compose' has multiple container registries available", ex.Message);
+        Assert.Contains("docker-hub", ex.Message);
+        Assert.Contains("ghcr", ex.Message);
+        Assert.Contains("WithContainerRegistry", ex.Message);
+    }
+
+    [Fact]
     public async Task FullRemoteImageName_ContainerResource_WithRegistry()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
