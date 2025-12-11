@@ -214,7 +214,11 @@ public static class EFMigrationsBuilderExtensions
         builder.WithCommand(
             name: $"ef-database-update{contextNameSuffix}",
             displayName: $"Update Database{contextDisplaySuffix}",
-            executeCommand: async context => await ExecuteEFCommandAsync(context, "update", contextTypeName).ConfigureAwait(false),
+            executeCommand: context => ExecuteEFCommandAsync(
+                context, 
+                "Update Database", 
+                contextTypeName,
+                async executor => await executor.UpdateDatabaseAsync().ConfigureAwait(false)),
             commandOptions: new CommandOptions
             {
                 Description = "Apply pending migrations to the database",
@@ -226,7 +230,11 @@ public static class EFMigrationsBuilderExtensions
         builder.WithCommand(
             name: $"ef-database-drop{contextNameSuffix}",
             displayName: $"Drop Database{contextDisplaySuffix}",
-            executeCommand: async context => await ExecuteEFCommandAsync(context, "drop", contextTypeName).ConfigureAwait(false),
+            executeCommand: context => ExecuteEFCommandAsync(
+                context, 
+                "Drop Database", 
+                contextTypeName,
+                async executor => await executor.DropDatabaseAsync().ConfigureAwait(false)),
             commandOptions: new CommandOptions
             {
                 Description = "Delete the database",
@@ -239,7 +247,11 @@ public static class EFMigrationsBuilderExtensions
         builder.WithCommand(
             name: $"ef-database-reset{contextNameSuffix}",
             displayName: $"Reset Database{contextDisplaySuffix}",
-            executeCommand: async context => await ExecuteEFCommandAsync(context, "reset", contextTypeName).ConfigureAwait(false),
+            executeCommand: context => ExecuteEFCommandAsync(
+                context, 
+                "Reset Database", 
+                contextTypeName,
+                async executor => await executor.ResetDatabaseAsync().ConfigureAwait(false)),
             commandOptions: new CommandOptions
             {
                 Description = "Drop and recreate the database with all migrations applied",
@@ -252,7 +264,7 @@ public static class EFMigrationsBuilderExtensions
         builder.WithCommand(
             name: $"ef-migrations-add{contextNameSuffix}",
             displayName: $"Add Migration...{contextDisplaySuffix}",
-            executeCommand: async context => await ExecuteEFCommandAsync(context, "add-migration", contextTypeName).ConfigureAwait(false),
+            executeCommand: context => ExecuteAddMigrationCommandAsync(context, contextTypeName),
             commandOptions: new CommandOptions
             {
                 Description = "Create a new migration. Note: The target project will need to be recompiled after adding a migration.",
@@ -264,7 +276,11 @@ public static class EFMigrationsBuilderExtensions
         builder.WithCommand(
             name: $"ef-migrations-remove{contextNameSuffix}",
             displayName: $"Remove Migration{contextDisplaySuffix}",
-            executeCommand: async context => await ExecuteEFCommandAsync(context, "remove-migration", contextTypeName).ConfigureAwait(false),
+            executeCommand: context => ExecuteEFCommandAsync(
+                context, 
+                "Remove Migration", 
+                contextTypeName,
+                async executor => await executor.RemoveMigrationAsync().ConfigureAwait(false)),
             commandOptions: new CommandOptions
             {
                 Description = "Remove the last migration",
@@ -276,7 +292,7 @@ public static class EFMigrationsBuilderExtensions
         builder.WithCommand(
             name: $"ef-database-status{contextNameSuffix}",
             displayName: $"Get Database Status{contextDisplaySuffix}",
-            executeCommand: async context => await ExecuteEFCommandAsync(context, "status", contextTypeName).ConfigureAwait(false),
+            executeCommand: context => ExecuteGetStatusCommandAsync(context, contextTypeName),
             commandOptions: new CommandOptions
             {
                 Description = "Show the current migration status of the database",
@@ -289,8 +305,9 @@ public static class EFMigrationsBuilderExtensions
 
     private static async Task<ExecuteCommandResult> ExecuteEFCommandAsync(
         ExecuteCommandContext context,
-        string operation,
-        string? contextTypeName)
+        string operationDisplayName,
+        string? contextTypeName,
+        Func<EFCoreOperationExecutor, Task<EFOperationResult>> executeOperation)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
         var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
@@ -309,93 +326,209 @@ public static class EFMigrationsBuilderExtensions
         try
         {
             logger.LogInformation("Executing EF Core {Operation} command for context {ContextType}...", 
-                operation, contextTypeName ?? "(auto-detect)");
+                operationDisplayName, contextTypeName ?? "(auto-detect)");
 
-            var executor = new EFCoreOperationExecutor(
+            using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
                 contextTypeName,
                 logger,
                 context.CancellationToken);
 
-            EFOperationResult result;
-            
-            if (operation == "add-migration")
-            {
-                // Prompt for migration name using IInteractionService
-                var migrationName = await PromptForMigrationNameAsync(context).ConfigureAwait(false);
-                if (migrationName == null)
-                {
-                    logger.LogInformation("Add migration cancelled by user.");
-                    return CommandResults.Canceled();
-                }
-                result = await executor.AddMigrationAsync(migrationName).ConfigureAwait(false);
-                
-                // Notify user about recompilation requirement after successful migration addition
-                if (result.Success)
-                {
-                    logger.LogWarning("Migration '{MigrationName}' was added successfully. The target project needs to be recompiled before the migration can be applied.", migrationName);
-                }
-            }
-            else
-            {
-                result = operation switch
-                {
-                    "update" => await executor.UpdateDatabaseAsync().ConfigureAwait(false),
-                    "drop" => await executor.DropDatabaseAsync().ConfigureAwait(false),
-                    "reset" => await executor.ResetDatabaseAsync().ConfigureAwait(false),
-                    "remove-migration" => await executor.RemoveMigrationAsync().ConfigureAwait(false),
-                    "status" => await executor.GetDatabaseStatusAsync().ConfigureAwait(false),
-                    _ => throw new InvalidOperationException($"Unknown operation: {operation}")
-                };
-            }
+            var result = await executeOperation(executor).ConfigureAwait(false);
 
             if (result.Success)
             {
-                logger.LogInformation("EF Core {Operation} command completed successfully.", operation);
+                logger.LogInformation("EF Core {Operation} command completed successfully.", operationDisplayName);
                 return CommandResults.Success();
             }
             else
             {
-                logger.LogError("EF Core {Operation} command failed: {Error}", operation, result.ErrorMessage);
+                logger.LogError("EF Core {Operation} command failed: {Error}", operationDisplayName, result.ErrorMessage);
                 return CommandResults.Failure(result.ErrorMessage);
             }
         }
         catch (OperationCanceledException)
         {
-            logger.LogWarning("EF Core {Operation} command was cancelled.", operation);
+            logger.LogWarning("EF Core {Operation} command was cancelled.", operationDisplayName);
             return CommandResults.Canceled();
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "EF Core {Operation} command failed with exception.", operation);
+            logger.LogError(ex, "EF Core {Operation} command failed with exception.", operationDisplayName);
             return CommandResults.Failure(ex);
         }
     }
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only
-    private static async Task<string?> PromptForMigrationNameAsync(ExecuteCommandContext context)
+    private static async Task<ExecuteCommandResult> ExecuteAddMigrationCommandAsync(
+        ExecuteCommandContext context,
+        string? contextTypeName)
     {
+        var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+        var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
         var interactionService = context.ServiceProvider.GetService<IInteractionService>();
-        
+
+        var migrationResource = appModel.Resources
+            .OfType<EFMigrationResource>()
+            .FirstOrDefault(r => r.Name == context.ResourceName);
+
+        if (migrationResource == null)
+        {
+            return CommandResults.Failure($"Could not find EF migration resource '{context.ResourceName}'.");
+        }
+
+        var logger = resourceLoggerService.GetLogger(migrationResource);
+
+        // Prompt for migration name using IInteractionService
+        string? migrationName;
         if (interactionService == null || !interactionService.IsAvailable)
         {
             // Fall back to auto-generated name if interaction service is not available
-            return $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
+            migrationName = $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
         }
-
-        var result = await interactionService.PromptInputAsync(
-            title: "Add Migration",
-            message: "Enter the name for the new migration. Note: The target project will need to be recompiled after adding a migration.",
-            inputLabel: "Migration Name",
-            placeHolder: "e.g. InitialCreate",
-            cancellationToken: context.CancellationToken).ConfigureAwait(false);
-
-        if (result.Canceled || string.IsNullOrWhiteSpace(result.Data?.Value))
+        else
         {
-            return null;
+            var inputResult = await interactionService.PromptInputAsync(
+                title: "Add Migration",
+                message: "Enter the name for the new migration.",
+                inputLabel: "Migration Name",
+                placeHolder: "e.g. InitialCreate",
+                cancellationToken: context.CancellationToken).ConfigureAwait(false);
+
+            if (inputResult.Canceled || string.IsNullOrWhiteSpace(inputResult.Data?.Value))
+            {
+                logger.LogInformation("Add migration cancelled by user.");
+                return CommandResults.Canceled();
+            }
+
+            migrationName = inputResult.Data.Value;
         }
 
-        return result.Data.Value;
+        try
+        {
+            logger.LogInformation("Creating migration '{MigrationName}' for context {ContextType}...", 
+                migrationName, contextTypeName ?? "(auto-detect)");
+
+            using var executor = new EFCoreOperationExecutor(
+                migrationResource.ProjectResource,
+                contextTypeName,
+                logger,
+                context.CancellationToken);
+
+            var result = await executor.AddMigrationAsync(migrationName).ConfigureAwait(false);
+
+            if (result.Success)
+            {
+                logger.LogInformation("Migration '{MigrationName}' created successfully.", migrationName);
+
+                // Show notification about recompilation requirement
+                if (interactionService != null && interactionService.IsAvailable)
+                {
+                    await interactionService.PromptNotificationAsync(
+                        title: "Migration Created",
+                        message: $"Migration '{migrationName}' was added successfully.\n\nThe target project needs to be recompiled before the migration can be applied.",
+                        options: new NotificationInteractionOptions
+                        {
+                            Intent = MessageIntent.Warning,
+                            ShowSecondaryButton = false
+                        },
+                        cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    logger.LogWarning("Migration '{MigrationName}' was added successfully. The target project needs to be recompiled before the migration can be applied.", migrationName);
+                }
+
+                return CommandResults.Success();
+            }
+            else
+            {
+                logger.LogError("Add Migration command failed: {Error}", result.ErrorMessage);
+                return CommandResults.Failure(result.ErrorMessage);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("Add Migration command was cancelled.");
+            return CommandResults.Canceled();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Add Migration command failed with exception.");
+            return CommandResults.Failure(ex);
+        }
+    }
+
+    private static async Task<ExecuteCommandResult> ExecuteGetStatusCommandAsync(
+        ExecuteCommandContext context,
+        string? contextTypeName)
+    {
+        var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+        var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+        var interactionService = context.ServiceProvider.GetService<IInteractionService>();
+
+        var migrationResource = appModel.Resources
+            .OfType<EFMigrationResource>()
+            .FirstOrDefault(r => r.Name == context.ResourceName);
+
+        if (migrationResource == null)
+        {
+            return CommandResults.Failure($"Could not find EF migration resource '{context.ResourceName}'.");
+        }
+
+        var logger = resourceLoggerService.GetLogger(migrationResource);
+
+        try
+        {
+            logger.LogInformation("Getting database status for context {ContextType}...", 
+                contextTypeName ?? "(auto-detect)");
+
+            using var executor = new EFCoreOperationExecutor(
+                migrationResource.ProjectResource,
+                contextTypeName,
+                logger,
+                context.CancellationToken);
+
+            var result = await executor.GetDatabaseStatusAsync().ConfigureAwait(false);
+
+            if (result.Success)
+            {
+                // Show status in a message box if interaction service is available
+                if (interactionService != null && interactionService.IsAvailable)
+                {
+                    await interactionService.PromptMessageBoxAsync(
+                        title: "Database Migration Status",
+                        message: result.Output ?? "No migration information available.",
+                        options: new MessageBoxInteractionOptions
+                        {
+                            Intent = MessageIntent.Information,
+                            ShowSecondaryButton = false
+                        },
+                        cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    logger.LogInformation("Database status:\n{Status}", result.Output);
+                }
+
+                return CommandResults.Success();
+            }
+            else
+            {
+                logger.LogError("Get Database Status command failed: {Error}", result.ErrorMessage);
+                return CommandResults.Failure(result.ErrorMessage);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("Get Database Status command was cancelled.");
+            return CommandResults.Canceled();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Get Database Status command failed with exception.");
+            return CommandResults.Failure(ex);
+        }
     }
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only
 }

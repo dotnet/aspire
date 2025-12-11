@@ -183,8 +183,13 @@ if (!result.Canceled && result.Data?.Value is { } migrationName)
 ```
 
 - [x] Implement interactive prompt for migration name using `IInteractionService.PromptInputAsync`
-- [x] Add notification about recompilation requirement (in dialog message and log output)
+- [x] Add notification about recompilation requirement using `IInteractionService.PromptNotificationAsync`
 - [ ] Add options from `dotnet ef migrations add` (--output-dir, --namespace, etc.)
+
+### Get Database Status Dialog
+
+- [x] Implement status display using `IInteractionService.PromptMessageBoxAsync`
+- [x] Show current migration, latest migration, pending migrations, and pending model changes
 
 ### Publishing Support Implementation
 
@@ -193,17 +198,17 @@ if (!result.Canceled && result.Data?.Value is { } migrationName)
 - [ ] Generate migration bundles during publish
 - [ ] Add output path configuration
 
-### Microsoft.EntityFrameworkCore.Design Validation
+### Microsoft.EntityFrameworkCore.Design Integration
 
-- [ ] Check target project references Microsoft.EntityFrameworkCore.Design
-- [ ] Show error message if not referenced
-- [ ] Consider using reflection to invoke commands directly (see [ReflectionOperationExecutor](https://github.com/dotnet/efcore/blob/main/src/ef/ReflectionOperationExecutor.cs))
-  - Note: Directly referencing Microsoft.EntityFrameworkCore.Design causes package version conflicts with the Aspire build infrastructure
+- [x] Use reflection to load `Microsoft.EntityFrameworkCore.Design` from target project output (similar to [ReflectionOperationExecutor](https://github.com/dotnet/efcore/blob/main/src/ef/ReflectionOperationExecutor.cs))
+- [x] Use `OperationExecutor` from loaded design assembly to execute commands
+- [x] Implement custom `OperationReportHandler` for logging output
+- [ ] Check target project references Microsoft.EntityFrameworkCore.Design and show error message if not
 
 ### IOperationReporter Integration
 
-- [ ] Implement IOperationReporter to capture EF operation output
-- [ ] Display operation progress in dashboard logs
+- [x] Implement operation report handler via reflection to capture EF operation output
+- [x] Display operation progress in dashboard logs
 
 ## API Summary
 
