@@ -27,24 +27,28 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     private const string ReportHandlerTypeName = "Microsoft.EntityFrameworkCore.Design.OperationReportHandler";
     private const string ResultHandlerTypeName = "Microsoft.EntityFrameworkCore.Design.OperationResultHandler";
 
-    private readonly ProjectResource _projectResource;
+    private readonly ProjectResource _startupProjectResource;
+    private readonly ProjectResource? _targetProjectResource;
     private readonly string? _contextTypeName;
     private readonly ILogger _logger;
     private readonly CancellationToken _cancellationToken;
 
-    private string? _assemblyPath;
+    private string? _startupAssemblyPath;
+    private string? _targetAssemblyPath;
     private string? _projectDirectory;
     private string? _rootNamespace;
     private string? _designAssemblyPath;
     private bool _initialized;
 
     public EFCoreOperationExecutor(
-        ProjectResource projectResource,
+        ProjectResource startupProjectResource,
+        ProjectResource? targetProjectResource,
         string? contextTypeName,
         ILogger logger,
         CancellationToken cancellationToken)
     {
-        _projectResource = projectResource;
+        _startupProjectResource = startupProjectResource;
+        _targetProjectResource = targetProjectResource;
         _contextTypeName = contextTypeName;
         _logger = logger;
         _cancellationToken = cancellationToken;
@@ -54,39 +58,64 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     {
         if (_initialized)
         {
-            return _assemblyPath != null 
+            return _startupAssemblyPath != null 
                 ? new EFOperationResult { Success = true } 
                 : new EFOperationResult { Success = false, ErrorMessage = "Could not find compiled assembly for project." };
         }
 
         _initialized = true;
 
-        var projectPath = GetProjectPath();
-        if (projectPath == null)
+        // Get startup project path
+        var startupProjectPath = GetProjectPath(_startupProjectResource);
+        if (startupProjectPath == null)
         {
-            return new EFOperationResult { Success = false, ErrorMessage = "Could not determine project path. Ensure the project has an IProjectMetadata annotation." };
+            return new EFOperationResult { Success = false, ErrorMessage = "Could not determine startup project path. Ensure the project has an IProjectMetadata annotation." };
         }
 
-        _projectDirectory = Path.GetDirectoryName(projectPath)!;
-
-        // Use MSBuild to get properties - more reliable than guessing paths
-        _assemblyPath = await GetMSBuildPropertyAsync(projectPath, "TargetPath").ConfigureAwait(false);
-        _rootNamespace = await GetMSBuildPropertyAsync(projectPath, "RootNamespace").ConfigureAwait(false);
+        _startupAssemblyPath = await GetMSBuildPropertyAsync(startupProjectPath, "TargetPath").ConfigureAwait(false);
         
-        // Try to get design assembly path from project references
-        _designAssemblyPath = await GetDesignAssemblyPathAsync(projectPath).ConfigureAwait(false);
-
-        if (_assemblyPath == null || !File.Exists(_assemblyPath))
+        if (_startupAssemblyPath == null || !File.Exists(_startupAssemblyPath))
         {
             return new EFOperationResult 
             { 
                 Success = false, 
-                ErrorMessage = $"Could not find compiled assembly for project. Ensure the project is built. Expected at: {_assemblyPath ?? "(unknown)"}" 
+                ErrorMessage = $"Could not find compiled assembly for startup project. Ensure the project is built. Expected at: {_startupAssemblyPath ?? "(unknown)"}" 
             };
         }
 
+        // Get target project path (if different from startup)
+        if (_targetProjectResource != null)
+        {
+            var targetProjectPath = GetProjectPath(_targetProjectResource);
+            if (targetProjectPath == null)
+            {
+                return new EFOperationResult { Success = false, ErrorMessage = "Could not determine target project path. Ensure the project has an IProjectMetadata annotation." };
+            }
+
+            _projectDirectory = Path.GetDirectoryName(targetProjectPath)!;
+            _targetAssemblyPath = await GetMSBuildPropertyAsync(targetProjectPath, "TargetPath").ConfigureAwait(false);
+            _rootNamespace = await GetMSBuildPropertyAsync(targetProjectPath, "RootNamespace").ConfigureAwait(false);
+            _designAssemblyPath = await GetDesignAssemblyPathAsync(targetProjectPath, _targetAssemblyPath).ConfigureAwait(false);
+
+            if (_targetAssemblyPath == null || !File.Exists(_targetAssemblyPath))
+            {
+                return new EFOperationResult 
+                { 
+                    Success = false, 
+                    ErrorMessage = $"Could not find compiled assembly for target project. Ensure the project is built. Expected at: {_targetAssemblyPath ?? "(unknown)"}" 
+                };
+            }
+        }
+        else
+        {
+            _projectDirectory = Path.GetDirectoryName(startupProjectPath)!;
+            _targetAssemblyPath = _startupAssemblyPath;
+            _rootNamespace = await GetMSBuildPropertyAsync(startupProjectPath, "RootNamespace").ConfigureAwait(false);
+            _designAssemblyPath = await GetDesignAssemblyPathAsync(startupProjectPath, _startupAssemblyPath).ConfigureAwait(false);
+        }
+
         // Fall back to assembly name if RootNamespace not found
-        _rootNamespace ??= Path.GetFileNameWithoutExtension(_assemblyPath);
+        _rootNamespace ??= Path.GetFileNameWithoutExtension(_targetAssemblyPath);
 
         return new EFOperationResult { Success = true };
     }
@@ -96,7 +125,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         return await RunMSBuildAsync($"-getProperty:{propertyName}", projectPath).ConfigureAwait(false);
     }
 
-    private async Task<string?> GetDesignAssemblyPathAsync(string projectPath)
+    private async Task<string?> GetDesignAssemblyPathAsync(string projectPath, string? assemblyPath)
     {
         // Use MSBuild to get the design assembly path from referenced packages
         var result = await RunMSBuildAsync(
@@ -124,9 +153,9 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
 
         // Fall back to looking in the output directory
-        if (_assemblyPath != null)
+        if (assemblyPath != null)
         {
-            var outputDir = Path.GetDirectoryName(_assemblyPath);
+            var outputDir = Path.GetDirectoryName(assemblyPath);
             if (outputDir != null)
             {
                 var designPath = Path.Combine(outputDir, $"{DesignAssemblyName}.dll");
@@ -186,9 +215,9 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
     }
 
-    private string? GetProjectPath()
+    private static string? GetProjectPath(ProjectResource projectResource)
     {
-        if (_projectResource.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
+        if (projectResource.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
         {
             return metadata.ProjectPath;
         }
@@ -206,7 +235,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             return initResult;
         }
 
-        var appBasePath = Path.GetDirectoryName(_assemblyPath)!;
+        var appBasePath = Path.GetDirectoryName(_targetAssemblyPath)!;
         
         // Use the design assembly path obtained via MSBuild, or fall back to output directory
         var designAssemblyPath = _designAssemblyPath ?? Path.Combine(appBasePath, $"{DesignAssemblyName}.dll");
@@ -235,11 +264,18 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         Func<object, Assembly, Type, object?> operation,
         bool handleDatabaseNotFound)
     {
-        var alc = new EFCoreDesignLoadContext(appBasePath, designAssemblyPath);
+        var alc = new EFCoreDesignLoadContext(appBasePath, designAssemblyPath, _startupAssemblyPath);
 
         try
         {
             var commandsAssembly = alc.LoadFromAssemblyPath(designAssemblyPath);
+
+            // Load the target and startup assemblies in the same context
+            alc.LoadFromAssemblyPath(_targetAssemblyPath!);
+            if (_startupAssemblyPath != _targetAssemblyPath)
+            {
+                alc.LoadFromAssemblyPath(_startupAssemblyPath!);
+            }
 
             // Create report handler
             var reportHandlerType = commandsAssembly.GetType(ReportHandlerTypeName, throwOnError: true, ignoreCase: false)!;
@@ -257,8 +293,8 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 reportHandler,
                 new Dictionary<string, object?>
                 {
-                    { "targetName", _assemblyPath },
-                    { "startupTargetName", _assemblyPath },
+                    { "targetName", _targetAssemblyPath },
+                    { "startupTargetName", _startupAssemblyPath },
                     { "projectDir", _projectDirectory },
                     { "rootNamespace", _rootNamespace },
                     { "language", "C#" },
@@ -312,22 +348,37 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     private sealed class EFCoreDesignLoadContext : AssemblyLoadContext
     {
         private readonly AssemblyDependencyResolver _resolver;
+        private readonly AssemblyDependencyResolver? _startupResolver;
         private readonly string _appBasePath;
 
-        public EFCoreDesignLoadContext(string appBasePath, string mainAssemblyPath) 
+        public EFCoreDesignLoadContext(string appBasePath, string mainAssemblyPath, string? startupAssemblyPath) 
             : base(isCollectible: true)
         {
             _appBasePath = appBasePath;
             _resolver = new AssemblyDependencyResolver(mainAssemblyPath);
+            if (startupAssemblyPath != null && startupAssemblyPath != mainAssemblyPath)
+            {
+                _startupResolver = new AssemblyDependencyResolver(startupAssemblyPath);
+            }
         }
 
         protected override Assembly? Load(AssemblyName assemblyName)
         {
-            // First try to resolve using the dependency resolver
+            // First try to resolve using the main dependency resolver
             var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
             if (assemblyPath != null)
             {
                 return LoadFromAssemblyPath(assemblyPath);
+            }
+
+            // Try the startup resolver if available
+            if (_startupResolver != null)
+            {
+                assemblyPath = _startupResolver.ResolveAssemblyToPath(assemblyName);
+                if (assemblyPath != null)
+                {
+                    return LoadFromAssemblyPath(assemblyPath);
+                }
             }
 
             // Fall back to looking in the app base path

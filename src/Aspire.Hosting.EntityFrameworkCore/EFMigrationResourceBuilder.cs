@@ -127,6 +127,29 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
         return this;
     }
 
+    /// <summary>
+    /// Configures a separate project resource containing the migrations.
+    /// </summary>
+    /// <param name="projectBuilder">The project resource builder containing the migrations.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// Use this method when the migrations are in a different project than the startup project.
+    /// The target project's assembly will be used for migration operations while the startup project
+    /// remains the original project.
+    /// </para>
+    /// <para>
+    /// Both the target and startup assemblies will be loaded in the same AssemblyLoadContext
+    /// as the design assembly.
+    /// </para>
+    /// </remarks>
+    public EFMigrationResourceBuilder WithMigrationProject(IResourceBuilder<ProjectResource> projectBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(projectBuilder);
+        Resource.Options.MigrationProject = projectBuilder.Resource;
+        return this;
+    }
+
     /// <inheritdoc />
     [EditorBrowsable(EditorBrowsableState.Never)]
     public override string? ToString() => base.ToString();

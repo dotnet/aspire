@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
+
 namespace Aspire.Hosting;
 
 /// <summary>
@@ -38,4 +40,13 @@ public sealed class EFMigrationsOptions
     /// If not specified, the namespace will be derived from the project's default namespace.
     /// </remarks>
     public string? MigrationNamespace { get; set; }
+
+    /// <summary>
+    /// Gets or sets the project resource containing the migrations, when it's not the same as the startup project.
+    /// </summary>
+    /// <remarks>
+    /// If not specified, migrations are assumed to be in the startup project.
+    /// When specified, this project's assembly will be used as the target for migration operations.
+    /// </remarks>
+    public ProjectResource? MigrationProject { get; set; }
 }

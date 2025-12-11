@@ -81,6 +81,21 @@ var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
     .WithMigrationNamespace("MyApp.Data.Migrations"); // Custom namespace
 ```
 
+### Separate Migration Project
+
+When migrations are in a different project than the startup project, use `WithMigrationProject`:
+
+```csharp
+var startup = builder.AddProject<Projects.Api>("api");
+var dataProject = builder.AddProject<Projects.Data>("data");
+
+// Migrations are in the Data project, but Api is the startup project
+var apiMigrations = startup.AddEFMigrations<MyDbContext>("api-migrations")
+    .WithMigrationProject(dataProject);
+```
+
+Both the target and startup assemblies are loaded in the same AssemblyLoadContext as the design assembly.
+
 ### Multiple DbContexts
 
 You can add migrations for multiple DbContexts in the same project:

@@ -177,6 +177,29 @@ public class EFMigrationConfigurationTests
         Assert.False(migrations.Resource.Options.PublishAsMigrationBundle);
         Assert.Null(migrations.Resource.Options.MigrationOutputDirectory);
         Assert.Null(migrations.Resource.Options.MigrationNamespace);
+        Assert.Null(migrations.Resource.Options.MigrationProject);
+    }
+
+    [Fact]
+    public void WithMigrationProjectSetsOption()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var startupProject = builder.AddProject<Projects.ServiceA>("startup");
+        var targetProject = builder.AddProject<Projects.ServiceB>("target");
+        var migrations = startupProject.AddEFMigrations<TestDbContext>("mymigrations")
+            .WithMigrationProject(targetProject);
+
+        Assert.Equal(targetProject.Resource, migrations.Resource.Options.MigrationProject);
+    }
+
+    [Fact]
+    public void WithMigrationProjectThrowsForNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
+
+        Assert.Throws<ArgumentNullException>(() => migrations.WithMigrationProject(null!));
     }
 
     // Test classes for DbContext types

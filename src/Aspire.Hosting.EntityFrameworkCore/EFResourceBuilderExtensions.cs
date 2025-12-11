@@ -158,8 +158,10 @@ public static class EFResourceBuilderExtensions
                 Properties = [],
                 State = new ResourceStateSnapshot("Pending", KnownResourceStateStyles.Info)
             })
-            .WithIconName("Database")
-            .AddEFMigrationCommands(contextTypeName);
+            .WithIconName("Database");
+
+        // Add commands to the original project resource builder
+        AddEFMigrationCommands(builder, migrationResource, contextTypeName);
 
         return new EFMigrationResourceBuilder(innerBuilder);
     }
@@ -169,21 +171,22 @@ public static class EFResourceBuilderExtensions
         applicationBuilder.Services.TryAddEventingSubscriber<EFMigrationEventSubscriber>();
     }
 
-    private static IResourceBuilder<EFMigrationResource> AddEFMigrationCommands(
-        this IResourceBuilder<EFMigrationResource> builder,
+    private static void AddEFMigrationCommands(
+        IResourceBuilder<ProjectResource> projectBuilder,
+        EFMigrationResource migrationResource,
         string? contextTypeName)
     {
         var contextShortName = GetShortTypeName(contextTypeName);
         var contextNameSuffix = !string.IsNullOrEmpty(contextShortName) ? $"-{contextShortName}" : "";
         var contextDisplaySuffix = !string.IsNullOrEmpty(contextShortName) ? $" ({contextShortName})" : "";
 
-        builder.WithCommand(
+        projectBuilder.WithCommand(
             name: $"ef-database-update{contextNameSuffix}",
             displayName: $"Update Database{contextDisplaySuffix}",
             executeCommand: context => ExecuteEFCommandAsync(
                 context, 
                 "Update Database", 
-                contextTypeName,
+                migrationResource,
                 executor => executor.UpdateDatabaseAsync()),
             commandOptions: new CommandOptions
             {
@@ -192,13 +195,13 @@ public static class EFResourceBuilderExtensions
                 IconVariant = IconVariant.Regular
             });
 
-        builder.WithCommand(
+        projectBuilder.WithCommand(
             name: $"ef-database-drop{contextNameSuffix}",
             displayName: $"Drop Database{contextDisplaySuffix}",
             executeCommand: context => ExecuteEFCommandAsync(
                 context, 
                 "Drop Database", 
-                contextTypeName,
+                migrationResource,
                 executor => executor.DropDatabaseAsync()),
             commandOptions: new CommandOptions
             {
@@ -208,13 +211,13 @@ public static class EFResourceBuilderExtensions
                 ConfirmationMessage = "Are you sure you want to drop the database? This action cannot be undone."
             });
 
-        builder.WithCommand(
+        projectBuilder.WithCommand(
             name: $"ef-database-reset{contextNameSuffix}",
             displayName: $"Reset Database{contextDisplaySuffix}",
             executeCommand: context => ExecuteEFCommandAsync(
                 context, 
                 "Reset Database", 
-                contextTypeName,
+                migrationResource,
                 executor => executor.ResetDatabaseAsync()),
             commandOptions: new CommandOptions
             {
@@ -224,10 +227,10 @@ public static class EFResourceBuilderExtensions
                 ConfirmationMessage = "Are you sure you want to reset the database? This will delete all data and cannot be undone."
             });
 
-        builder.WithCommand(
+        projectBuilder.WithCommand(
             name: $"ef-migrations-add{contextNameSuffix}",
             displayName: $"Add Migration...{contextDisplaySuffix}",
-            executeCommand: context => ExecuteAddMigrationCommandAsync(context, contextTypeName),
+            executeCommand: context => ExecuteAddMigrationCommandAsync(context, migrationResource),
             commandOptions: new CommandOptions
             {
                 Description = "Create a new migration. Note: The target project will need to be recompiled after adding a migration.",
@@ -235,10 +238,10 @@ public static class EFResourceBuilderExtensions
                 IconVariant = IconVariant.Regular
             });
 
-        builder.WithCommand(
+        projectBuilder.WithCommand(
             name: $"ef-migrations-remove{contextNameSuffix}",
             displayName: $"Remove Migration{contextDisplaySuffix}",
-            executeCommand: context => ExecuteRemoveMigrationCommandAsync(context, contextTypeName),
+            executeCommand: context => ExecuteRemoveMigrationCommandAsync(context, migrationResource),
             commandOptions: new CommandOptions
             {
                 Description = "Remove the last migration. Note: The target project will need to be recompiled after removing a migration.",
@@ -246,61 +249,36 @@ public static class EFResourceBuilderExtensions
                 IconVariant = IconVariant.Regular
             });
 
-        builder.WithCommand(
+        projectBuilder.WithCommand(
             name: $"ef-database-status{contextNameSuffix}",
             displayName: $"Get Database Status{contextDisplaySuffix}",
-            executeCommand: context => ExecuteGetStatusCommandAsync(context, contextTypeName),
+            executeCommand: context => ExecuteGetStatusCommandAsync(context, migrationResource),
             commandOptions: new CommandOptions
             {
                 Description = "Show the current migration status of the database",
                 IconName = "Info",
                 IconVariant = IconVariant.Regular
             });
-
-        return builder;
-    }
-
-    private static (EFMigrationResource? Resource, ExecuteCommandResult? ErrorResult) FindMigrationResource(
-        ExecuteCommandContext context,
-        string? contextTypeName)
-    {
-        var appModel = context.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
-        var resource = appModel.Resources
-            .OfType<EFMigrationResource>()
-            .FirstOrDefault(r => r.Name == context.ResourceName && r.ContextTypeName == contextTypeName);
-        
-        if (resource == null)
-        {
-            return (null, CommandResults.Failure($"Could not find EF migration resource '{context.ResourceName}'."));
-        }
-        
-        return (resource, null);
     }
 
     private static async Task<ExecuteCommandResult> ExecuteEFCommandAsync(
         ExecuteCommandContext context,
         string operationDisplayName,
-        string? contextTypeName,
+        EFMigrationResource migrationResource,
         Func<EFCoreOperationExecutor, Task<EFOperationResult>> executeOperation)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
-
-        var (migrationResource, errorResult) = FindMigrationResource(context, contextTypeName);
-        if (migrationResource == null)
-        {
-            return errorResult!;
-        }
-
         var logger = resourceLoggerService.GetLogger(migrationResource);
 
         try
         {
             logger.LogInformation("Executing EF Core {Operation} command for context {ContextType}...", 
-                operationDisplayName, contextTypeName ?? "(auto-detect)");
+                operationDisplayName, migrationResource.ContextTypeName ?? "(auto-detect)");
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                contextTypeName,
+                migrationResource.Options.MigrationProject,
+                migrationResource.ContextTypeName,
                 logger,
                 context.CancellationToken);
 
@@ -332,18 +310,12 @@ public static class EFResourceBuilderExtensions
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only
     private static async Task<ExecuteCommandResult> ExecuteAddMigrationCommandAsync(
         ExecuteCommandContext context,
-        string? contextTypeName)
+        EFMigrationResource migrationResource)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
         var interactionService = context.ServiceProvider.GetService<IInteractionService>();
-
-        var (migrationResource, errorResult) = FindMigrationResource(context, contextTypeName);
-        if (migrationResource == null)
-        {
-            return errorResult!;
-        }
-
         var logger = resourceLoggerService.GetLogger(migrationResource);
+        var contextTypeName = migrationResource.ContextTypeName;
 
         string? migrationName;
         if (interactionService == null || !interactionService.IsAvailable)
@@ -375,6 +347,7 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
+                migrationResource.Options.MigrationProject,
                 contextTypeName,
                 logger,
                 context.CancellationToken);
@@ -427,18 +400,12 @@ public static class EFResourceBuilderExtensions
 
     private static async Task<ExecuteCommandResult> ExecuteRemoveMigrationCommandAsync(
         ExecuteCommandContext context,
-        string? contextTypeName)
+        EFMigrationResource migrationResource)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
         var interactionService = context.ServiceProvider.GetService<IInteractionService>();
-
-        var (migrationResource, errorResult) = FindMigrationResource(context, contextTypeName);
-        if (migrationResource == null)
-        {
-            return errorResult!;
-        }
-
         var logger = resourceLoggerService.GetLogger(migrationResource);
+        var contextTypeName = migrationResource.ContextTypeName;
 
         try
         {
@@ -447,6 +414,7 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
+                migrationResource.Options.MigrationProject,
                 contextTypeName,
                 logger,
                 context.CancellationToken);
@@ -496,18 +464,12 @@ public static class EFResourceBuilderExtensions
 
     private static async Task<ExecuteCommandResult> ExecuteGetStatusCommandAsync(
         ExecuteCommandContext context,
-        string? contextTypeName)
+        EFMigrationResource migrationResource)
     {
         var resourceLoggerService = context.ServiceProvider.GetRequiredService<ResourceLoggerService>();
         var interactionService = context.ServiceProvider.GetService<IInteractionService>();
-
-        var (migrationResource, errorResult) = FindMigrationResource(context, contextTypeName);
-        if (migrationResource == null)
-        {
-            return errorResult!;
-        }
-
         var logger = resourceLoggerService.GetLogger(migrationResource);
+        var contextTypeName = migrationResource.ContextTypeName;
 
         try
         {
@@ -516,6 +478,7 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
+                migrationResource.Options.MigrationProject,
                 contextTypeName,
                 logger,
                 context.CancellationToken);
