@@ -152,7 +152,14 @@ Implemented using `IDistributedApplicationEventingSubscriber` to hook into the a
 Implemented using `IInteractionService.PromptInputAsync` to prompt for migration name:
 
 ```csharp
-var interactionService = context.ServiceProvider.GetRequiredService<IInteractionService>();
+var interactionService = context.ServiceProvider.GetService<IInteractionService>();
+
+// Fall back to auto-generated name if interaction service is not available
+if (interactionService == null || !interactionService.IsAvailable)
+{
+    return $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
+}
+
 var result = await interactionService.PromptInputAsync(
     title: "Add Migration",
     message: "Enter the name for the new migration.",
