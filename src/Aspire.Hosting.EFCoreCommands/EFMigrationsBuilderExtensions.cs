@@ -25,7 +25,7 @@ public static class EFMigrationsBuilderExtensions
     /// Multiple calls to this method with different context types are supported, allowing you to manage
     /// migrations for multiple DbContexts in the same project.
     /// </remarks>
-    public static IEFMigrationResourceBuilder AddEFMigrations<TContext>(
+    public static EFMigrationResourceBuilder AddEFMigrations<TContext>(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name) where TContext : class
     {
@@ -44,7 +44,7 @@ public static class EFMigrationsBuilderExtensions
     /// Multiple calls to this method with different context types are supported, allowing you to manage
     /// migrations for multiple DbContexts in the same project.
     /// </remarks>
-    public static IEFMigrationResourceBuilder AddEFMigrations(
+    public static EFMigrationResourceBuilder AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name,
         Type contextType)
@@ -74,7 +74,7 @@ public static class EFMigrationsBuilderExtensions
     /// using runtime-discovered context types.
     /// </para>
     /// </remarks>
-    public static IEFMigrationResourceBuilder AddEFMigrations(
+    public static EFMigrationResourceBuilder AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name,
         string contextTypeName)
@@ -122,7 +122,7 @@ public static class EFMigrationsBuilderExtensions
     /// <param name="builder">The resource builder for the project.</param>
     /// <param name="name">The name of the migration resource.</param>
     /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
-    public static IEFMigrationResourceBuilder AddEFMigrations(
+    public static EFMigrationResourceBuilder AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name)
     {
@@ -148,7 +148,7 @@ public static class EFMigrationsBuilderExtensions
         return new EFMigrationResourceBuilder(innerBuilder, contextTypeName: null);
     }
 
-    private static IEFMigrationResourceBuilder AddEFMigrationsCore(
+    private static EFMigrationResourceBuilder AddEFMigrationsCore(
         IResourceBuilder<ProjectResource> builder,
         string name,
         Type? contextType,
@@ -191,64 +191,6 @@ public static class EFMigrationsBuilderExtensions
     {
         // TryAddEventingSubscriber uses TryAddEnumerable which handles the "already registered" check automatically
         applicationBuilder.Services.TryAddEventingSubscriber<EFMigrationEventSubscriber>();
-    }
-
-    /// <summary>
-    /// Configures the EF migration resource to run database update when the AppHost starts.
-    /// </summary>
-    /// <param name="builder">The resource builder for the EF migration resource.</param>
-    /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<EFMigrationResource> RunDatabaseUpdateOnStart(
-        this IResourceBuilder<EFMigrationResource> builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        var options = GetOrCreateOptions(builder);
-        options.RunDatabaseUpdateOnStart = true;
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures the EF migration resource to generate a migration script during publishing.
-    /// </summary>
-    /// <param name="builder">The resource builder for the EF migration resource.</param>
-    /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<EFMigrationResource> PublishAsMigrationScript(
-        this IResourceBuilder<EFMigrationResource> builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        var options = GetOrCreateOptions(builder);
-        options.PublishAsMigrationScript = true;
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures the EF migration resource to generate a migration bundle during publishing.
-    /// </summary>
-    /// <param name="builder">The resource builder for the EF migration resource.</param>
-    /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<EFMigrationResource> PublishAsMigrationBundle(
-        this IResourceBuilder<EFMigrationResource> builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        var options = GetOrCreateOptions(builder);
-        options.PublishAsMigrationBundle = true;
-        return builder;
-    }
-
-    private static EFMigrationsOptions GetOrCreateOptions(IResourceBuilder<EFMigrationResource> builder)
-    {
-        var existing = builder.Resource.Annotations.OfType<EFMigrationsOptions>().FirstOrDefault();
-        if (existing != null)
-        {
-            return existing;
-        }
-
-        var options = new EFMigrationsOptions();
-        builder.WithAnnotation(options);
-        return options;
     }
 
     private static IResourceBuilder<EFMigrationResource> AddEFMigrationCommands(

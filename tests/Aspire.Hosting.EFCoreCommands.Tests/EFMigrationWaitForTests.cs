@@ -75,9 +75,7 @@ public class EFMigrationWaitForTests
             .WaitFor(migrations);
 
         // Both options and wait annotation should be present
-        var options = migrations.Resource.Annotations.OfType<EFMigrationsOptions>().FirstOrDefault();
-        Assert.NotNull(options);
-        Assert.True(options.RunDatabaseUpdateOnStart);
+        Assert.True(migrations.Resource.Options.RunDatabaseUpdateOnStart);
         Assert.NotNull(anotherProject.Resource.Annotations.OfType<WaitAnnotation>().FirstOrDefault());
     }
 

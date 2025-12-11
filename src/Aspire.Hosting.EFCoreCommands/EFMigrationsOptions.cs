@@ -1,18 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
-
 namespace Aspire.Hosting;
 
 /// <summary>
 /// Contains the configuration options for an EF migration resource/context type.
 /// </summary>
-/// <remarks>
-/// This type is stored as an annotation on the EF migration resource and contains
-/// all the specified options for the given resource/context type.
-/// </remarks>
-public sealed class EFMigrationsOptions : IResourceAnnotation
+public sealed class EFMigrationsOptions
 {
     /// <summary>
     /// Gets or sets whether database migrations should be run when the AppHost starts.

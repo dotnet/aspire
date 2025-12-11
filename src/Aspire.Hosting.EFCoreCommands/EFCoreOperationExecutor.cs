@@ -10,6 +10,11 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Executes EF Core design-time operations against a project.
 /// </summary>
+/// <remarks>
+/// This class uses the dotnet ef CLI to execute design-time operations. The target project must reference
+/// Microsoft.EntityFrameworkCore.Design package for these operations to work.
+/// See: https://github.com/dotnet/efcore/blob/main/src/ef/ReflectionOperationExecutor.cs for the underlying implementation.
+/// </remarks>
 internal sealed class EFCoreOperationExecutor
 {
     private readonly ProjectResource _projectResource;
@@ -63,7 +68,6 @@ internal sealed class EFCoreOperationExecutor
         // If no migration name provided, use a default based on timestamp
         migrationName ??= $"Migration_{DateTime.UtcNow:yyyyMMddHHmmss}";
         _logger.LogInformation("Creating migration with name: {MigrationName}", migrationName);
-        _logger.LogWarning("Note: After adding a migration, the target project needs to be recompiled for the migration to take effect.");
 
         var args = BuildEFArgs("migrations", "add", migrationName);
         return ExecuteDotnetEFAsync(args);

@@ -37,21 +37,22 @@ This integration provides Entity Framework Core migration management commands fo
   - [x] Add validation for duplicate context types on same project
   - [x] Configure initial resource state ("Pending")
   - [x] Add Database icon to resources
-- [x] Create custom builder interface `IEFMigrationResourceBuilder`
+- [x] Create `EFMigrationResourceBuilder` class (public, non-interface based)
   - [x] Stores context type name for use by configuration methods
-  - [x] Extends `IResourceBuilder<EFMigrationResource>`
-- [x] Create `EFMigrationResourceBuilder` implementation
-- [x] Implement configuration methods:
-  - [x] `RunDatabaseUpdateOnStart()` - Add annotation to run migrations on start
-  - [x] `PublishAsMigrationScript()` - Add annotation for script generation
-  - [x] `PublishAsMigrationBundle()` - Add annotation for bundle generation
+  - [x] Implements `IResourceBuilder<EFMigrationResource>`
+  - [x] Hide `ToString`, `Equals`, `GetHashCode` with `[EditorBrowsable]`
+- [x] Implement configuration methods as instance methods on builder:
+  - [x] `RunDatabaseUpdateOnStart()` - Set option on Resource.Options
+  - [x] `PublishAsMigrationScript()` - Set option on Resource.Options
+  - [x] `PublishAsMigrationBundle()` - Set option on Resource.Options
 
-### Phase 4: Annotations
+### Phase 4: Options
 
-- [x] Create `EFMigrationAnnotations.cs`
-  - [x] `RunDatabaseUpdateOnStartAnnotation`
-  - [x] `PublishAsMigrationScriptAnnotation`
-  - [x] `PublishAsMigrationBundleAnnotation`
+- [x] Create `EFMigrationsOptions` class
+  - [x] `RunDatabaseUpdateOnStart` property
+  - [x] `PublishAsMigrationScript` property  
+  - [x] `PublishAsMigrationBundle` property
+  - [x] Referenced directly from `EFMigrationResource.Options` (not as annotation)
 
 ### Phase 5: Resource Commands
 
@@ -67,7 +68,10 @@ This integration provides Entity Framework Core migration management commands fo
 
 ### Phase 6: Command Executor
 
-- [x] Create `EFCoreOperationExecutor.cs`
+- [x] Create `EFCoreOperationExecutor.cs` using `dotnet ef` CLI
+  - [x] Uses dotnet ef CLI commands which internally uses OperationExecutor from target project's Microsoft.EntityFrameworkCore.Design reference
+  - [x] Target project must reference Microsoft.EntityFrameworkCore.Design
+  - [x] See: https://github.com/dotnet/efcore/blob/main/src/ef/ReflectionOperationExecutor.cs for how ef CLI invokes operations
   - [x] Implement `UpdateDatabaseAsync()`
   - [x] Implement `DropDatabaseAsync()`
   - [x] Implement `ResetDatabaseAsync()` (drop + update)
@@ -194,6 +198,7 @@ if (!result.Canceled && result.Data?.Value is { } migrationName)
 - [ ] Check target project references Microsoft.EntityFrameworkCore.Design
 - [ ] Show error message if not referenced
 - [ ] Consider using reflection to invoke commands directly (see [ReflectionOperationExecutor](https://github.com/dotnet/efcore/blob/main/src/ef/ReflectionOperationExecutor.cs))
+  - Note: Directly referencing Microsoft.EntityFrameworkCore.Design causes package version conflicts with the Aspire build infrastructure
 
 ### IOperationReporter Integration
 
@@ -202,13 +207,18 @@ if (!result.Canceled && result.Data?.Value is { } migrationName)
 
 ## API Summary
 
-### Custom Builder Interface
+### Custom Builder Class
 
 ```csharp
-// Custom builder that stores the context type name
-public interface IEFMigrationResourceBuilder : IResourceBuilder<EFMigrationResource>
+// Custom builder that stores the context type name (no interface)
+public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationResource>
 {
     string? ContextTypeName { get; }
+    
+    // Configuration methods as instance methods
+    EFMigrationResourceBuilder RunDatabaseUpdateOnStart();
+    EFMigrationResourceBuilder PublishAsMigrationScript();
+    EFMigrationResourceBuilder PublishAsMigrationBundle();
 }
 ```
 
@@ -216,36 +226,38 @@ public interface IEFMigrationResourceBuilder : IResourceBuilder<EFMigrationResou
 
 ```csharp
 // Add EF migrations with specific context type (generic)
-IEFMigrationResourceBuilder AddEFMigrations<TContext>(
+EFMigrationResourceBuilder AddEFMigrations<TContext>(
     this IResourceBuilder<ProjectResource> builder,
     string name) where TContext : class;
 
 // Add EF migrations with explicit context type
-IEFMigrationResourceBuilder AddEFMigrations(
+EFMigrationResourceBuilder AddEFMigrations(
     this IResourceBuilder<ProjectResource> builder,
     string name,
     Type contextType);
 
 // Add EF migrations with context type name as string (runtime discovery)
-IEFMigrationResourceBuilder AddEFMigrations(
+EFMigrationResourceBuilder AddEFMigrations(
     this IResourceBuilder<ProjectResource> builder,
     string name,
     string contextTypeName);
 
 // Add EF migrations with auto-detected context
-IEFMigrationResourceBuilder AddEFMigrations(
+EFMigrationResourceBuilder AddEFMigrations(
     this IResourceBuilder<ProjectResource> builder,
     string name);
+```
 
-// Configuration methods (extend IResourceBuilder<EFMigrationResource>)
-IResourceBuilder<EFMigrationResource> RunDatabaseUpdateOnStart(
-    this IResourceBuilder<EFMigrationResource> builder);
+### EFMigrationResource
 
-IResourceBuilder<EFMigrationResource> PublishAsMigrationScript(
-    this IResourceBuilder<EFMigrationResource> builder);
-
-IResourceBuilder<EFMigrationResource> PublishAsMigrationBundle(
-    this IResourceBuilder<EFMigrationResource> builder);
+```csharp
+public class EFMigrationResource : Resource, IResourceWithWaitSupport
+{
+    ProjectResource ProjectResource { get; }
+    Type? ContextType { get; }
+    string? ContextTypeName { get; }
+    EFMigrationsOptions Options { get; }  // Direct reference, not annotation
+}
 ```
 
 ### Usage Example
@@ -267,8 +279,8 @@ var worker = builder.AddProject<Projects.Worker>("worker")
 
 ## Test Results
 
-All 42 unit tests pass:
-- AddEFMigrationsTests: 17 tests
-- EFMigrationConfigurationTests: 9 tests
+All 43 unit tests pass:
+- AddEFMigrationsTests: 18 tests
+- EFMigrationConfigurationTests: 8 tests
 - EFMigrationCommandsTests: 12 tests
 - EFMigrationWaitForTests: 6 tests

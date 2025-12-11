@@ -34,4 +34,9 @@ public class EFMigrationResource(string name, ProjectResource projectResource, T
     /// This property is useful when the context type is specified as a string at runtime.
     /// </remarks>
     public string? ContextTypeName { get; } = contextTypeName ?? contextType?.FullName;
+
+    /// <summary>
+    /// Gets the configuration options for this EF migration resource.
+    /// </summary>
+    public EFMigrationsOptions Options { get; } = new EFMigrationsOptions();
 }
