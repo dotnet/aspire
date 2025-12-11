@@ -98,7 +98,7 @@ The Azure AI Foundry deployment resource inherits all properties from its parent
 
 | Property Name | Description |
 |---------------|-------------|
-| `ModelName`       | The deployment name when targeting Azure or model identifier when running Foundry Local, e.g., `Phi-4`, `my-chat` |
+| `ModelName`   | The deployment name when targeting Azure or model identifier when running Foundry Local, e.g., `Phi-4`, `my-chat` |
 | `Format`      | The deployment format, .e.g., `OpenAI`, `Microsoft`, `xAi`, `Deepseek` |
 | `Version`     | The deployment version, e.g., `1`, `2025-08-07` |
 
