@@ -10,7 +10,6 @@
 
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
@@ -2114,7 +2113,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Configure the project to use OCI format (non-Docker)
         project.WithContainerBuildOptions(ctx =>
         {
-            ctx.ImageFormat = Publishing.ContainerImageFormat.Oci;
+            ctx.ImageFormat = Aspire.Hosting.Publishing.ContainerImageFormat.Oci;
             ctx.OutputPath = "/tmp/output";
         });
 
@@ -2141,7 +2140,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Configure the project to use Docker format (the default)
         project.WithContainerBuildOptions(ctx =>
         {
-            ctx.ImageFormat = Publishing.ContainerImageFormat.Docker;
+            ctx.ImageFormat = Aspire.Hosting.Publishing.ContainerImageFormat.Docker;
         });
 
         using var app = builder.Build();
