@@ -20,6 +20,10 @@ internal static class ErrorHandlingExtensions
     /// <param name="exception">The exception to handle.</param>
     /// <param name="commandContext">Optional context about the command being executed.</param>
     /// <param name="verbose">Whether to display verbose error information.</param>
+    /// <remarks>
+    /// This method displays the log file path each time it's called. If handling multiple exceptions,
+    /// consider logging them separately and showing the log file path once at the end.
+    /// </remarks>
     public static void HandleException(
         this IErrorLogger errorLogger,
         IInteractionService interactionService,

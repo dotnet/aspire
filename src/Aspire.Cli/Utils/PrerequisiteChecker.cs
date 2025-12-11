@@ -124,6 +124,7 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             using var process = Process.Start(startInfo);
             if (process == null)
             {
+                _logger.LogDebug("Failed to start 'dotnet --version' process");
                 return (false, null, ".NET SDK not found or could not be executed.");
             }
 
@@ -146,6 +147,8 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
                 }
             }
 
+            _logger.LogDebug("Failed to determine .NET SDK version. Exit code: {ExitCode}, Version string: '{VersionString}'", 
+                process.ExitCode, versionString);
             return (false, null, ".NET SDK not found or version could not be determined.");
         }
         catch (Exception ex)
@@ -158,14 +161,14 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
     public async Task<(bool IsAvailable, string? RuntimeName, string? Message)> CheckContainerRuntimeAsync(CancellationToken cancellationToken = default)
     {
         // Try Docker first
-        var dockerAvailable = await TryExecuteCommandAsync("docker", ["--version"], cancellationToken);
+        var (dockerAvailable, _, _) = await TryExecuteCommandAsync("docker", ["--version"], cancellationToken);
         if (dockerAvailable)
         {
             return (true, "docker", null);
         }
 
         // Try Podman
-        var podmanAvailable = await TryExecuteCommandAsync("podman", ["--version"], cancellationToken);
+        var (podmanAvailable, _, _) = await TryExecuteCommandAsync("podman", ["--version"], cancellationToken);
         if (podmanAvailable)
         {
             return (true, "podman", null);
@@ -217,57 +220,24 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
     {
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "docker",
-                // Use escaped double quotes for cross-platform compatibility
-                // Single quotes don't work correctly on Windows
-                Arguments = "info --format \"{{.ServerVersion}}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(startInfo);
-            if (process == null)
-            {
-                return (false, null);
-            }
-
-            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
-
-            if (process.ExitCode == 0)
+            // Check Docker info to verify it's running
+            var (infoSuccess, _, _) = await TryExecuteCommandAsync("docker", ["info", "--format", "{{.ServerVersion}}"], cancellationToken);
+            
+            if (infoSuccess)
             {
                 // Check if Docker Desktop is running by looking for desktop-specific context
-                var contextStartInfo = new ProcessStartInfo
-                {
-                    FileName = "docker",
-                    // Use escaped double quotes for cross-platform compatibility
-                    Arguments = "context ls --format \"{{.Name}}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
+                var (contextSuccess, contextOutput, _) = await TryExecuteCommandAsync("docker", ["context", "ls", "--format", "{{.Name}}"], cancellationToken);
 
-                using var contextProcess = Process.Start(contextStartInfo);
-                if (contextProcess != null)
+                if (contextSuccess)
                 {
-                    var contextOutput = await contextProcess.StandardOutput.ReadToEndAsync(cancellationToken);
-                    await contextProcess.WaitForExitAsync(cancellationToken);
-
-                    if (contextProcess.ExitCode == 0)
+                    // If no desktop context found, likely using Docker Engine
+                    if (!contextOutput.Contains("desktop", StringComparison.OrdinalIgnoreCase))
                     {
-                        // If no desktop context found, likely using Docker Engine
-                        if (!contextOutput.Contains("desktop", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var message = "Using Docker Engine (not Docker Desktop). " +
-                                          "You may need to configure the Aspire tunnel for service-to-service communication. " +
-                                          "See: https://aka.ms/aspire-docker-engine";
-                            return (true, message);
-                        }
+                        _logger.LogDebug("Docker Engine detected (no desktop context found)");
+                        var message = "Using Docker Engine (not Docker Desktop). " +
+                                      "You may need to configure the Aspire tunnel for service-to-service communication. " +
+                                      "See: https://aka.ms/aspire-docker-engine";
+                        return (true, message);
                     }
                 }
             }
@@ -280,7 +250,7 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
         return (false, null);
     }
 
-    private static async Task<bool> TryExecuteCommandAsync(string command, string[] arguments, CancellationToken cancellationToken)
+    private async Task<(bool Success, string Output, string Error)> TryExecuteCommandAsync(string command, string[] arguments, CancellationToken cancellationToken)
     {
         try
         {
@@ -301,15 +271,33 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             using var process = Process.Start(startInfo);
             if (process == null)
             {
-                return false;
+                _logger.LogDebug("Failed to start process for command: {Command}", command);
+                return (false, string.Empty, string.Empty);
             }
 
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var error = await process.StandardError.ReadToEndAsync(cancellationToken);
             await process.WaitForExitAsync(cancellationToken);
-            return process.ExitCode == 0;
+            
+            var success = process.ExitCode == 0;
+            
+            if (!success)
+            {
+                _logger.LogDebug("Command '{Command} {Arguments}' failed with exit code {ExitCode}. Output: {Output}, Error: {Error}", 
+                    command, string.Join(" ", arguments), process.ExitCode, output, error);
+            }
+            else
+            {
+                _logger.LogDebug("Command '{Command} {Arguments}' succeeded. Output: {Output}", 
+                    command, string.Join(" ", arguments), output);
+            }
+            
+            return (success, output, error);
         }
-        catch
+        catch (Exception ex)
         {
-            return false;
+            _logger.LogDebug(ex, "Exception executing command: {Command}", command);
+            return (false, string.Empty, string.Empty);
         }
     }
 }
