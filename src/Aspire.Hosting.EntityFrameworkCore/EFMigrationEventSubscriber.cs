@@ -62,7 +62,7 @@ internal sealed class EFMigrationEventSubscriber(
         {
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.Options.MigrationProject,
+                migrationResource.Options.MigrationsProject,
                 migrationResource.ContextTypeName,
                 resourceLogger,
                 cancellationToken);
@@ -142,7 +142,7 @@ internal sealed class EFMigrationEventSubscriber(
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.Options.MigrationProject,
+                migrationResource.Options.MigrationsProject,
                 migrationResource.ContextTypeName,
                 resourceLogger,
                 cancellationToken);

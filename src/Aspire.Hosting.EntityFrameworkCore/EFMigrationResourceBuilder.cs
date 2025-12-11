@@ -143,10 +143,10 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     /// as the design assembly.
     /// </para>
     /// </remarks>
-    public EFMigrationResourceBuilder WithMigrationProject(IResourceBuilder<ProjectResource> projectBuilder)
+    public EFMigrationResourceBuilder WithMigrationsProject(IResourceBuilder<ProjectResource> projectBuilder)
     {
         ArgumentNullException.ThrowIfNull(projectBuilder);
-        Resource.Options.MigrationProject = projectBuilder.Resource;
+        Resource.Options.MigrationsProject = projectBuilder.Resource;
         return this;
     }
 

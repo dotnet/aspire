@@ -48,5 +48,5 @@ public sealed class EFMigrationsOptions
     /// If not specified, migrations are assumed to be in the startup project.
     /// When specified, this project's assembly will be used as the target for migration operations.
     /// </remarks>
-    public ProjectResource? MigrationProject { get; set; }
+    public ProjectResource? MigrationsProject { get; set; }
 }

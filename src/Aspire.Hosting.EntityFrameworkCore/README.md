@@ -83,7 +83,7 @@ var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
 
 ### Separate Migration Project
 
-When migrations are in a different project than the startup project, use `WithMigrationProject`:
+When migrations are in a different project than the startup project, use `WithMigrationsProject`:
 
 ```csharp
 var startup = builder.AddProject<Projects.Api>("api");
@@ -91,7 +91,7 @@ var dataProject = builder.AddProject<Projects.Data>("data");
 
 // Migrations are in the Data project, but Api is the startup project
 var apiMigrations = startup.AddEFMigrations<MyDbContext>("api-migrations")
-    .WithMigrationProject(dataProject);
+    .WithMigrationsProject(dataProject);
 ```
 
 Both the target and startup assemblies are loaded in the same AssemblyLoadContext as the design assembly.

@@ -277,7 +277,7 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.Options.MigrationProject,
+                migrationResource.Options.MigrationsProject,
                 migrationResource.ContextTypeName,
                 logger,
                 context.CancellationToken);
@@ -347,7 +347,7 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.Options.MigrationProject,
+                migrationResource.Options.MigrationsProject,
                 contextTypeName,
                 logger,
                 context.CancellationToken);
@@ -414,7 +414,7 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.Options.MigrationProject,
+                migrationResource.Options.MigrationsProject,
                 contextTypeName,
                 logger,
                 context.CancellationToken);
@@ -478,7 +478,7 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.Options.MigrationProject,
+                migrationResource.Options.MigrationsProject,
                 contextTypeName,
                 logger,
                 context.CancellationToken);
