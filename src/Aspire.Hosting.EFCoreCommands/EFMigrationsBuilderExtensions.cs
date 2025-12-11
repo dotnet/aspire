@@ -19,13 +19,13 @@ public static class EFMigrationsBuilderExtensions
     /// <typeparam name="TContext">The DbContext type to manage migrations for.</typeparam>
     /// <param name="builder">The resource builder for the project.</param>
     /// <param name="name">The name of the migration resource.</param>
-    /// <returns>A resource builder for the EF migration resource.</returns>
+    /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
     /// <exception cref="InvalidOperationException">Thrown if migrations for this context type have already been added.</exception>
     /// <remarks>
     /// Multiple calls to this method with different context types are supported, allowing you to manage
     /// migrations for multiple DbContexts in the same project.
     /// </remarks>
-    public static IResourceBuilder<EFMigrationResource> AddEFMigrations<TContext>(
+    public static IEFMigrationResourceBuilder AddEFMigrations<TContext>(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name) where TContext : class
     {
@@ -38,13 +38,13 @@ public static class EFMigrationsBuilderExtensions
     /// <param name="builder">The resource builder for the project.</param>
     /// <param name="name">The name of the migration resource.</param>
     /// <param name="contextType">The DbContext type to manage migrations for.</param>
-    /// <returns>A resource builder for the EF migration resource.</returns>
+    /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
     /// <exception cref="InvalidOperationException">Thrown if migrations for this context type have already been added.</exception>
     /// <remarks>
     /// Multiple calls to this method with different context types are supported, allowing you to manage
     /// migrations for multiple DbContexts in the same project.
     /// </remarks>
-    public static IResourceBuilder<EFMigrationResource> AddEFMigrations(
+    public static IEFMigrationResourceBuilder AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name,
         Type contextType)
@@ -53,23 +53,56 @@ public static class EFMigrationsBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(contextType);
 
+        return AddEFMigrationsCore(builder, name, contextType, contextType.FullName);
+    }
+
+    /// <summary>
+    /// Adds EF Core migration management for a specific DbContext type identified by name.
+    /// </summary>
+    /// <param name="builder">The resource builder for the project.</param>
+    /// <param name="name">The name of the migration resource.</param>
+    /// <param name="contextTypeName">The fully qualified name of the DbContext type to manage migrations for.</param>
+    /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if migrations for this context type have already been added.</exception>
+    /// <remarks>
+    /// <para>
+    /// Multiple calls to this method with different context types are supported, allowing you to manage
+    /// migrations for multiple DbContexts in the same project.
+    /// </para>
+    /// <para>
+    /// This overload is useful when the DbContext type is not available at compile time, such as when
+    /// using runtime-discovered context types.
+    /// </para>
+    /// </remarks>
+    public static IEFMigrationResourceBuilder AddEFMigrations(
+        this IResourceBuilder<ProjectResource> builder,
+        [ResourceName] string name,
+        string contextTypeName)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(contextTypeName);
+
         // Register the event subscriber once
         EnsureEventSubscriberRegistered(builder.ApplicationBuilder);
 
-        // Check for duplicate context types
+        // Check for duplicate context types by name
         var existingMigrations = builder.ApplicationBuilder.Resources
             .OfType<EFMigrationResource>()
-            .Where(r => r.ProjectResource == builder.Resource && r.ContextType == contextType);
+            .Where(r => r.ProjectResource == builder.Resource && r.ContextTypeName == contextTypeName);
 
         if (existingMigrations.Any())
         {
+            var shortName = contextTypeName.Contains('.') 
+                ? contextTypeName.Substring(contextTypeName.LastIndexOf('.') + 1)
+                : contextTypeName;
             throw new InvalidOperationException(
-                $"The DbContext type '{contextType.Name}' has already been registered for EF migrations on resource '{builder.Resource.Name}'.");
+                $"The DbContext type '{shortName}' has already been registered for EF migrations on resource '{builder.Resource.Name}'.");
         }
 
-        var migrationResource = new EFMigrationResource(name, builder.Resource, contextType);
+        var migrationResource = new EFMigrationResource(name, builder.Resource, contextType: null, contextTypeName);
 
-        return builder.ApplicationBuilder
+        var innerBuilder = builder.ApplicationBuilder
             .AddResource(migrationResource)
             .WithInitialState(new CustomResourceSnapshot
             {
@@ -78,7 +111,9 @@ public static class EFMigrationsBuilderExtensions
                 State = new ResourceStateSnapshot("Pending", KnownResourceStateStyles.Info)
             })
             .WithIconName("Database")
-            .AddEFMigrationCommands(contextType);
+            .AddEFMigrationCommands(contextTypeName);
+
+        return new EFMigrationResourceBuilder(innerBuilder, contextTypeName);
     }
 
     /// <summary>
@@ -86,8 +121,8 @@ public static class EFMigrationsBuilderExtensions
     /// </summary>
     /// <param name="builder">The resource builder for the project.</param>
     /// <param name="name">The name of the migration resource.</param>
-    /// <returns>A resource builder for the EF migration resource.</returns>
-    public static IResourceBuilder<EFMigrationResource> AddEFMigrations(
+    /// <returns>An EF migration resource builder for chaining additional configuration.</returns>
+    public static IEFMigrationResourceBuilder AddEFMigrations(
         this IResourceBuilder<ProjectResource> builder,
         [ResourceName] string name)
     {
@@ -97,9 +132,9 @@ public static class EFMigrationsBuilderExtensions
         // Register the event subscriber once
         EnsureEventSubscriberRegistered(builder.ApplicationBuilder);
 
-        var migrationResource = new EFMigrationResource(name, builder.Resource, contextType: null);
+        var migrationResource = new EFMigrationResource(name, builder.Resource, contextType: null, contextTypeName: null);
 
-        return builder.ApplicationBuilder
+        var innerBuilder = builder.ApplicationBuilder
             .AddResource(migrationResource)
             .WithInitialState(new CustomResourceSnapshot
             {
@@ -108,7 +143,48 @@ public static class EFMigrationsBuilderExtensions
                 State = new ResourceStateSnapshot("Pending", KnownResourceStateStyles.Info)
             })
             .WithIconName("Database")
-            .AddEFMigrationCommands(contextType: null);
+            .AddEFMigrationCommands(contextTypeName: null);
+
+        return new EFMigrationResourceBuilder(innerBuilder, contextTypeName: null);
+    }
+
+    private static IEFMigrationResourceBuilder AddEFMigrationsCore(
+        IResourceBuilder<ProjectResource> builder,
+        string name,
+        Type? contextType,
+        string? contextTypeName)
+    {
+        // Register the event subscriber once
+        EnsureEventSubscriberRegistered(builder.ApplicationBuilder);
+
+        // Check for duplicate context types
+        if (contextType != null)
+        {
+            var existingMigrations = builder.ApplicationBuilder.Resources
+                .OfType<EFMigrationResource>()
+                .Where(r => r.ProjectResource == builder.Resource && r.ContextType == contextType);
+
+            if (existingMigrations.Any())
+            {
+                throw new InvalidOperationException(
+                    $"The DbContext type '{contextType.Name}' has already been registered for EF migrations on resource '{builder.Resource.Name}'.");
+            }
+        }
+
+        var migrationResource = new EFMigrationResource(name, builder.Resource, contextType, contextTypeName);
+
+        var innerBuilder = builder.ApplicationBuilder
+            .AddResource(migrationResource)
+            .WithInitialState(new CustomResourceSnapshot
+            {
+                ResourceType = "EFMigration",
+                Properties = [],
+                State = new ResourceStateSnapshot("Pending", KnownResourceStateStyles.Info)
+            })
+            .WithIconName("Database")
+            .AddEFMigrationCommands(contextTypeName ?? contextType?.FullName);
+
+        return new EFMigrationResourceBuilder(innerBuilder, contextTypeName ?? contextType?.FullName);
     }
 
     private static void EnsureEventSubscriberRegistered(IDistributedApplicationBuilder applicationBuilder)
@@ -158,13 +234,20 @@ public static class EFMigrationsBuilderExtensions
 
     private static IResourceBuilder<EFMigrationResource> AddEFMigrationCommands(
         this IResourceBuilder<EFMigrationResource> builder,
-        Type? contextType)
+        string? contextTypeName)
     {
-        var contextTypeName = contextType?.FullName;
+        // Get short name from fully qualified name for display purposes
+        string? contextShortName = null;
+        if (!string.IsNullOrEmpty(contextTypeName))
+        {
+            var lastDotIndex = contextTypeName.LastIndexOf('.');
+            contextShortName = lastDotIndex >= 0 ? contextTypeName.Substring(lastDotIndex + 1) : contextTypeName;
+        }
+
         // Command names must be valid identifiers (no spaces/parentheses)
-        var contextNameSuffix = contextType != null ? $"-{contextType.Name}" : "";
+        var contextNameSuffix = contextShortName != null ? $"-{contextShortName}" : "";
         // Display names can have friendly formatting
-        var contextDisplaySuffix = contextType != null ? $" ({contextType.Name})" : "";
+        var contextDisplaySuffix = contextShortName != null ? $" ({contextShortName})" : "";
 
         // Update Database command
         builder.WithCommand(
@@ -285,6 +368,12 @@ public static class EFMigrationsBuilderExtensions
                     return CommandResults.Canceled();
                 }
                 result = await executor.AddMigrationAsync(migrationName).ConfigureAwait(false);
+                
+                // Notify user about recompilation requirement after successful migration addition
+                if (result.Success)
+                {
+                    logger.LogWarning("Migration '{MigrationName}' was added successfully. The target project needs to be recompiled before the migration can be applied.", migrationName);
+                }
             }
             else
             {

@@ -18,9 +18,11 @@ public class AddEFMigrationsTests
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
         Assert.NotNull(migrations);
+        Assert.IsAssignableFrom<IEFMigrationResourceBuilder>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
         Assert.Equal(typeof(TestDbContext), migrations.Resource.ContextType);
+        Assert.Equal(typeof(TestDbContext).FullName, migrations.ContextTypeName);
     }
 
     [Fact]
@@ -31,9 +33,11 @@ public class AddEFMigrationsTests
         var migrations = project.AddEFMigrations("mymigrations");
 
         Assert.NotNull(migrations);
+        Assert.IsAssignableFrom<IEFMigrationResourceBuilder>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
         Assert.Null(migrations.Resource.ContextType);
+        Assert.Null(migrations.ContextTypeName);
     }
 
     [Fact]
@@ -44,9 +48,28 @@ public class AddEFMigrationsTests
         var migrations = project.AddEFMigrations("mymigrations", typeof(TestDbContext));
 
         Assert.NotNull(migrations);
+        Assert.IsAssignableFrom<IEFMigrationResourceBuilder>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
         Assert.Equal(typeof(TestDbContext), migrations.Resource.ContextType);
+        Assert.Equal(typeof(TestDbContext).FullName, migrations.ContextTypeName);
+    }
+
+    [Fact]
+    public void AddEFMigrationsWithContextTypeNameStringCreatesResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var contextTypeName = "MyApp.Data.ApplicationDbContext";
+        var migrations = project.AddEFMigrations("mymigrations", contextTypeName);
+
+        Assert.NotNull(migrations);
+        Assert.IsAssignableFrom<IEFMigrationResourceBuilder>(migrations);
+        Assert.Equal("mymigrations", migrations.Resource.Name);
+        Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
+        Assert.Null(migrations.Resource.ContextType); // Type is not available at compile time
+        Assert.Equal(contextTypeName, migrations.ContextTypeName);
+        Assert.Equal(contextTypeName, migrations.Resource.ContextTypeName);
     }
 
     [Fact]
@@ -79,6 +102,20 @@ public class AddEFMigrationsTests
     }
 
     [Fact]
+    public void AddEFMigrationsForMultipleContextsWithStringNamesSucceeds()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+
+        var migrations1 = project.AddEFMigrations("migrations1", "MyApp.Data.AppDbContext");
+        var migrations2 = project.AddEFMigrations("migrations2", "MyApp.Data.LoggingDbContext");
+
+        Assert.NotEqual(migrations1.Resource, migrations2.Resource);
+        Assert.Equal("MyApp.Data.AppDbContext", migrations1.ContextTypeName);
+        Assert.Equal("MyApp.Data.LoggingDbContext", migrations2.ContextTypeName);
+    }
+
+    [Fact]
     public void AddEFMigrationsDuplicateContextTypeThrows()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -92,6 +129,23 @@ public class AddEFMigrationsTests
         });
 
         Assert.Contains("TestDbContext", exception.Message);
+        Assert.Contains("already been registered", exception.Message);
+    }
+
+    [Fact]
+    public void AddEFMigrationsDuplicateContextTypeNameStringThrows()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+
+        project.AddEFMigrations("migrations1", "MyApp.Data.AppDbContext");
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+        {
+            project.AddEFMigrations("migrations2", "MyApp.Data.AppDbContext");
+        });
+
+        Assert.Contains("AppDbContext", exception.Message);
         Assert.Contains("already been registered", exception.Message);
     }
 
@@ -116,6 +170,18 @@ public class AddEFMigrationsTests
         Assert.Throws<ArgumentException>(() =>
         {
             project.AddEFMigrations<TestDbContext>("");
+        });
+    }
+
+    [Fact]
+    public void AddEFMigrationsWithEmptyContextTypeNameThrows()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+
+        Assert.Throws<ArgumentException>(() =>
+        {
+            project.AddEFMigrations("mymigrations", "");
         });
     }
 

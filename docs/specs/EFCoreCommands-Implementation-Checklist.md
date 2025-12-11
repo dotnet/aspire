@@ -32,10 +32,15 @@ This integration provides Entity Framework Core migration management commands fo
 - [x] Create `EFMigrationsBuilderExtensions.cs`
   - [x] Implement `AddEFMigrations<TContext>()` generic method
   - [x] Implement `AddEFMigrations(name, contextType)` method with explicit type
+  - [x] Implement `AddEFMigrations(name, contextTypeName)` method with context type as string
   - [x] Implement `AddEFMigrations(name)` method without context (auto-detect)
   - [x] Add validation for duplicate context types on same project
   - [x] Configure initial resource state ("Pending")
   - [x] Add Database icon to resources
+- [x] Create custom builder interface `IEFMigrationResourceBuilder`
+  - [x] Stores context type name for use by configuration methods
+  - [x] Extends `IResourceBuilder<EFMigrationResource>`
+- [x] Create `EFMigrationResourceBuilder` implementation
 - [x] Implement configuration methods:
   - [x] `RunDatabaseUpdateOnStart()` - Add annotation to run migrations on start
   - [x] `PublishAsMigrationScript()` - Add annotation for script generation
@@ -197,26 +202,42 @@ if (!result.Canceled && result.Data?.Value is { } migrationName)
 
 ## API Summary
 
+### Custom Builder Interface
+
+```csharp
+// Custom builder that stores the context type name
+public interface IEFMigrationResourceBuilder : IResourceBuilder<EFMigrationResource>
+{
+    string? ContextTypeName { get; }
+}
+```
+
 ### Extension Methods
 
 ```csharp
-// Add EF migrations with specific context type
-IResourceBuilder<EFMigrationResource> AddEFMigrations<TContext>(
+// Add EF migrations with specific context type (generic)
+IEFMigrationResourceBuilder AddEFMigrations<TContext>(
     this IResourceBuilder<ProjectResource> builder,
-    string name);
+    string name) where TContext : class;
 
 // Add EF migrations with explicit context type
-IResourceBuilder<EFMigrationResource> AddEFMigrations(
+IEFMigrationResourceBuilder AddEFMigrations(
     this IResourceBuilder<ProjectResource> builder,
     string name,
     Type contextType);
 
+// Add EF migrations with context type name as string (runtime discovery)
+IEFMigrationResourceBuilder AddEFMigrations(
+    this IResourceBuilder<ProjectResource> builder,
+    string name,
+    string contextTypeName);
+
 // Add EF migrations with auto-detected context
-IResourceBuilder<EFMigrationResource> AddEFMigrations(
+IEFMigrationResourceBuilder AddEFMigrations(
     this IResourceBuilder<ProjectResource> builder,
     string name);
 
-// Configuration methods
+// Configuration methods (extend IResourceBuilder<EFMigrationResource>)
 IResourceBuilder<EFMigrationResource> RunDatabaseUpdateOnStart(
     this IResourceBuilder<EFMigrationResource> builder);
 
@@ -232,9 +253,12 @@ IResourceBuilder<EFMigrationResource> PublishAsMigrationBundle(
 ```csharp
 var api = builder.AddProject<Projects.Api>("api");
 
-// Add EF migrations for a specific DbContext
+// Add EF migrations for a specific DbContext (compile-time type)
 var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
     .RunDatabaseUpdateOnStart();
+
+// Or specify context type as a string (runtime discovery)
+var otherMigrations = api.AddEFMigrations("other-migrations", "MyApp.Data.OtherDbContext");
 
 // Other resources can wait for migrations to complete
 var worker = builder.AddProject<Projects.Worker>("worker")
@@ -243,8 +267,8 @@ var worker = builder.AddProject<Projects.Worker>("worker")
 
 ## Test Results
 
-All 36 unit tests pass:
-- AddEFMigrationsTests: 12 tests
-- EFMigrationConfigurationTests: 8 tests
+All 42 unit tests pass:
+- AddEFMigrationsTests: 17 tests
+- EFMigrationConfigurationTests: 9 tests
 - EFMigrationCommandsTests: 12 tests
 - EFMigrationWaitForTests: 6 tests

@@ -11,7 +11,8 @@ namespace Aspire.Hosting;
 /// <param name="name">The name of the resource.</param>
 /// <param name="projectResource">The parent project resource that contains the DbContext.</param>
 /// <param name="contextType">The DbContext type to use for migrations, or null to auto-detect.</param>
-public class EFMigrationResource(string name, ProjectResource projectResource, Type? contextType) 
+/// <param name="contextTypeName">The fully qualified name of the DbContext type, or null to auto-detect.</param>
+public class EFMigrationResource(string name, ProjectResource projectResource, Type? contextType, string? contextTypeName) 
     : Resource(name), IResourceWithWaitSupport
 {
     /// <summary>
@@ -23,4 +24,14 @@ public class EFMigrationResource(string name, ProjectResource projectResource, T
     /// Gets the DbContext type to use for migrations, or null to auto-detect.
     /// </summary>
     public Type? ContextType { get; } = contextType;
+
+    /// <summary>
+    /// Gets the fully qualified name of the DbContext type to use for migrations, or null to auto-detect.
+    /// </summary>
+    /// <remarks>
+    /// When both <see cref="ContextType"/> and <see cref="ContextTypeName"/> are provided,
+    /// this value is typically the fully qualified name of the <see cref="ContextType"/>.
+    /// This property is useful when the context type is specified as a string at runtime.
+    /// </remarks>
+    public string? ContextTypeName { get; } = contextTypeName ?? contextType?.FullName;
 }

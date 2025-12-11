@@ -58,6 +58,21 @@ public class EFMigrationConfigurationTests
     }
 
     [Fact]
+    public void ConfigurationMethodsPreserveContextTypeName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var project = builder.AddProject<Projects.ServiceA>("myproject");
+        var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
+            .RunDatabaseUpdateOnStart()
+            .PublishAsMigrationScript()
+            .PublishAsMigrationBundle();
+
+        // The context type name should be preserved through chaining
+        // Access via the resource since IResourceBuilder doesn't expose it
+        Assert.Equal(typeof(TestDbContext).FullName, migrations.Resource.ContextTypeName);
+    }
+
+    [Fact]
     public void RunDatabaseUpdateOnStartWithNullBuilderThrows()
     {
         IResourceBuilder<EFMigrationResource>? nullBuilder = null;
