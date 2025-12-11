@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Aspire.Hosting.EFCoreCommands.Tests;
+namespace Aspire.Hosting.EntityFrameworkCore.Tests;
 
 public class EFMigrationWaitForTests
 {
@@ -75,7 +75,7 @@ public class EFMigrationWaitForTests
             .WaitFor(migrations);
 
         // Both options and wait annotation should be present
-        Assert.True(migrations.Resource.Options.RunDatabaseUpdateOnStart);
+        Assert.True(migrations.Resource.RunDatabaseUpdateOnStart);
         Assert.NotNull(anotherProject.Resource.Annotations.OfType<WaitAnnotation>().FirstOrDefault());
     }
 

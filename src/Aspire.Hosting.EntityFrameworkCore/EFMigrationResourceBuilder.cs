@@ -1,0 +1,164 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.ComponentModel;
+using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
+namespace Aspire.Hosting;
+
+/// <summary>
+/// A resource builder for EF Core migration resources that wraps an underlying builder
+/// and provides additional context type information.
+/// </summary>
+public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationResource>
+{
+    private readonly IResourceBuilder<EFMigrationResource> _innerBuilder;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EFMigrationResourceBuilder"/> class.
+    /// </summary>
+    /// <param name="innerBuilder">The underlying resource builder.</param>
+    internal EFMigrationResourceBuilder(IResourceBuilder<EFMigrationResource> innerBuilder)
+    {
+        _innerBuilder = innerBuilder;
+    }
+
+    /// <inheritdoc />
+    public EFMigrationResource Resource => _innerBuilder.Resource;
+
+    /// <inheritdoc />
+    public IDistributedApplicationBuilder ApplicationBuilder => _innerBuilder.ApplicationBuilder;
+
+    /// <inheritdoc />
+    public IResourceBuilder<EFMigrationResource> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append)
+        where TAnnotation : IResourceAnnotation
+    {
+        _innerBuilder.WithAnnotation(annotation, behavior);
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the EF migration resource to run database update when the AppHost starts.
+    /// </summary>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// When enabled, migrations will be applied during AppHost startup. The resource state will transition
+    /// from "Pending" to "Running" to "Finished" (or "FailedToStart" on error).
+    /// </para>
+    /// <para>
+    /// A health check is automatically registered for this resource, allowing other resources to use
+    /// <c>.WaitFor()</c> to wait until migrations complete before starting.
+    /// </para>
+    /// </remarks>
+    public EFMigrationResourceBuilder RunDatabaseUpdateOnStart()
+    {
+        Resource.RunDatabaseUpdateOnStart = true;
+
+        // Register a health check for this migration resource
+        // This allows other resources to WaitFor the migration to complete
+        var healthCheckKey = $"{Resource.Name}_migration_healthcheck";
+
+        ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
+            healthCheckKey,
+            sp => new EFMigrationHealthCheck(
+                Resource.Name,
+                sp.GetRequiredService<ResourceNotificationService>()),
+            failureStatus: default,
+            tags: default,
+            timeout: default));
+
+        _innerBuilder.WithAnnotation(new HealthCheckAnnotation(healthCheckKey));
+
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the EF migration resource to generate a migration script during publishing.
+    /// </summary>
+    /// <returns>The resource builder for chaining.</returns>
+    public EFMigrationResourceBuilder PublishAsMigrationScript()
+    {
+        Resource.PublishAsMigrationScript = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the EF migration resource to generate a migration bundle during publishing.
+    /// </summary>
+    /// <returns>The resource builder for chaining.</returns>
+    public EFMigrationResourceBuilder PublishAsMigrationBundle()
+    {
+        Resource.PublishAsMigrationBundle = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the output directory for new migrations created with the Add Migration command.
+    /// </summary>
+    /// <param name="outputDirectory">The output directory path relative to the project root.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// If not specified, migrations will be placed in the default 'Migrations' directory.
+    /// Example: "Data/Migrations" or "Infrastructure/Migrations".
+    /// </remarks>
+    public EFMigrationResourceBuilder WithMigrationOutputDirectory(string outputDirectory)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(outputDirectory);
+        Resource.MigrationOutputDirectory = outputDirectory;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the namespace for new migrations created with the Add Migration command.
+    /// </summary>
+    /// <param name="namespace">The namespace for generated migrations.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// If not specified, the namespace will be derived from the project's default namespace.
+    /// Example: "MyApp.Data.Migrations" or "MyApp.Infrastructure.Migrations".
+    /// </remarks>
+    public EFMigrationResourceBuilder WithMigrationNamespace(string @namespace)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(@namespace);
+        Resource.MigrationNamespace = @namespace;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a separate project resource containing the migrations.
+    /// </summary>
+    /// <param name="projectBuilder">The project resource builder containing the migrations.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// Use this method when the migrations are in a different project than the startup project.
+    /// The target project's assembly will be used for migration operations while the startup project
+    /// remains the original project.
+    /// </para>
+    /// <para>
+    /// Both the target and startup assemblies will be loaded in the same AssemblyLoadContext
+    /// as the design assembly.
+    /// </para>
+    /// </remarks>
+    public EFMigrationResourceBuilder WithMigrationsProject(IResourceBuilder<ProjectResource> projectBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(projectBuilder);
+        Resource.MigrationsProject = projectBuilder.Resource;
+        return this;
+    }
+
+    /// <inheritdoc />
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public override string? ToString() => base.ToString();
+
+    /// <inheritdoc />
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public override bool Equals(object? obj) => base.Equals(obj);
+
+    /// <inheritdoc />
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public override int GetHashCode() => base.GetHashCode();
+}

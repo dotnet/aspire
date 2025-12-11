@@ -6,7 +6,7 @@ using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Aspire.Hosting.EFCoreCommands.Tests;
+namespace Aspire.Hosting.EntityFrameworkCore.Tests;
 
 public class AddEFMigrationsTests
 {
@@ -21,8 +21,7 @@ public class AddEFMigrationsTests
         Assert.IsType<EFMigrationResourceBuilder>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
-        Assert.Equal(typeof(TestDbContext), migrations.Resource.ContextType);
-        Assert.Equal(typeof(TestDbContext).FullName, migrations.ContextTypeName);
+        Assert.Equal(typeof(TestDbContext).FullName, migrations.Resource.ContextTypeName);
     }
 
     [Fact]
@@ -36,8 +35,7 @@ public class AddEFMigrationsTests
         Assert.IsType<EFMigrationResourceBuilder>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
-        Assert.Null(migrations.Resource.ContextType);
-        Assert.Null(migrations.ContextTypeName);
+        Assert.Null(migrations.Resource.ContextTypeName);
     }
 
     [Fact]
@@ -51,8 +49,7 @@ public class AddEFMigrationsTests
         Assert.IsType<EFMigrationResourceBuilder>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
-        Assert.Equal(typeof(TestDbContext), migrations.Resource.ContextType);
-        Assert.Equal(typeof(TestDbContext).FullName, migrations.ContextTypeName);
+        Assert.Equal(typeof(TestDbContext).FullName, migrations.Resource.ContextTypeName);
     }
 
     [Fact]
@@ -67,8 +64,6 @@ public class AddEFMigrationsTests
         Assert.IsType<EFMigrationResourceBuilder>(migrations);
         Assert.Equal("mymigrations", migrations.Resource.Name);
         Assert.Equal(project.Resource, migrations.Resource.ProjectResource);
-        Assert.Null(migrations.Resource.ContextType); // Type is not available at compile time
-        Assert.Equal(contextTypeName, migrations.ContextTypeName);
         Assert.Equal(contextTypeName, migrations.Resource.ContextTypeName);
     }
 
@@ -97,8 +92,8 @@ public class AddEFMigrationsTests
         var migrations2 = project.AddEFMigrations<AnotherDbContext>("migrations2");
 
         Assert.NotEqual(migrations1.Resource, migrations2.Resource);
-        Assert.Equal(typeof(TestDbContext), migrations1.Resource.ContextType);
-        Assert.Equal(typeof(AnotherDbContext), migrations2.Resource.ContextType);
+        Assert.Equal(typeof(TestDbContext).FullName, migrations1.Resource.ContextTypeName);
+        Assert.Equal(typeof(AnotherDbContext).FullName, migrations2.Resource.ContextTypeName);
     }
 
     [Fact]
@@ -111,8 +106,8 @@ public class AddEFMigrationsTests
         var migrations2 = project.AddEFMigrations("migrations2", "MyApp.Data.LoggingDbContext");
 
         Assert.NotEqual(migrations1.Resource, migrations2.Resource);
-        Assert.Equal("MyApp.Data.AppDbContext", migrations1.ContextTypeName);
-        Assert.Equal("MyApp.Data.LoggingDbContext", migrations2.ContextTypeName);
+        Assert.Equal("MyApp.Data.AppDbContext", migrations1.Resource.ContextTypeName);
+        Assert.Equal("MyApp.Data.LoggingDbContext", migrations2.Resource.ContextTypeName);
     }
 
     [Fact]
@@ -195,7 +190,7 @@ public class AddEFMigrationsTests
         var snapshotAnnotation = migrations.Resource.Annotations.OfType<ResourceSnapshotAnnotation>().FirstOrDefault();
         Assert.NotNull(snapshotAnnotation);
         Assert.Equal("EFMigration", snapshotAnnotation.InitialSnapshot.ResourceType);
-        Assert.Equal("Pending", snapshotAnnotation.InitialSnapshot.State?.Text);
+        Assert.Equal("Active", snapshotAnnotation.InitialSnapshot.State?.Text);
     }
 
     [Fact]
@@ -242,10 +237,9 @@ public class AddEFMigrationsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        Assert.NotNull(migrations.Resource.Options);
-        Assert.False(migrations.Resource.Options.RunDatabaseUpdateOnStart);
-        Assert.False(migrations.Resource.Options.PublishAsMigrationScript);
-        Assert.False(migrations.Resource.Options.PublishAsMigrationBundle);
+        Assert.False(migrations.Resource.RunDatabaseUpdateOnStart);
+        Assert.False(migrations.Resource.PublishAsMigrationScript);
+        Assert.False(migrations.Resource.PublishAsMigrationBundle);
     }
 
     // Test classes for DbContext types

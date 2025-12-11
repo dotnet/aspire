@@ -1,4 +1,4 @@
-# Aspire.Hosting.EFCoreCommands library
+# Aspire.Hosting.EntityFrameworkCore library
 
 Provides extension methods and resource definitions for an Aspire AppHost to configure Entity Framework Core migration management.
 
@@ -18,10 +18,10 @@ Note: Using `dotnet add package` will add the reference with `PrivateAssets="All
 
 ### Install the package
 
-In your AppHost project, install the Aspire EFCoreCommands Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire EntityFrameworkCore Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.EFCoreCommands
+dotnet add package Aspire.Hosting.EntityFrameworkCore
 ```
 
 ## Usage example
@@ -64,6 +64,38 @@ var worker = builder.AddProject<Projects.Worker>("worker")
                     .WaitFor(apiMigrations);
 ```
 
+When `RunDatabaseUpdateOnStart()` is called, a health check is automatically registered for the migration resource. This enables other resources to use `.WaitFor()` to wait until migrations complete before starting. The resource transitions through the following states:
+
+- **Pending** - Initial state before migrations start
+- **Running** - Migrations are being applied
+- **Active** - Migrations completed successfully
+- **FailedToStart** - Migration failed
+
+### Migration Configuration Options
+
+Configure where new migrations are created using the Add Migration command:
+
+```csharp
+var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
+    .WithMigrationOutputDirectory("Data/Migrations")  // Custom output directory
+    .WithMigrationNamespace("MyApp.Data.Migrations"); // Custom namespace
+```
+
+### Separate Migration Project
+
+When migrations are in a different project than the startup project, use `WithMigrationsProject`:
+
+```csharp
+var startup = builder.AddProject<Projects.Api>("api");
+var dataProject = builder.AddProject<Projects.Data>("data");
+
+// Migrations are in the Data project, but Api is the startup project
+var apiMigrations = startup.AddEFMigrations<MyDbContext>("api-migrations")
+    .WithMigrationsProject(dataProject);
+```
+
+Both the target and startup assemblies are loaded in the same AssemblyLoadContext as the design assembly.
+
 ### Multiple DbContexts
 
 You can add migrations for multiple DbContexts in the same project:
@@ -89,9 +121,11 @@ var apiMigrations = api.AddEFMigrations<MyDbContext>("api-migrations")
     .PublishAsMigrationBundle();
 ```
 
+When publishing, the subscriber will generate the configured artifacts and log the results.
+
 ## Additional documentation
 
-<!-- TODO: Update this to the EFCoreCommands-specific page once published -->
+<!-- TODO: Update this to the EntityFrameworkCore-specific page once published -->
 https://learn.microsoft.com/dotnet/aspire/
 https://learn.microsoft.com/ef/core/managing-schemas/migrations/
 
