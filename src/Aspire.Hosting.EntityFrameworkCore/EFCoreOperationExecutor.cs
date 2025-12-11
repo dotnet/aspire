@@ -168,31 +168,12 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             };
         }
 
-        WeakReference? alcWeakRef = null;
-        
-        try
-        {
-            var result = ExecuteOperationInContext(
-                designAssemblyPath,
-                appBasePath,
-                operation,
-                handleDatabaseNotFound,
-                out alcWeakRef);
-            
-            return result;
-        }
-        finally
-        {
-            // Try to unload the context
-            if (alcWeakRef != null)
-            {
-                for (int i = 0; alcWeakRef.IsAlive && i < 10; i++)
-                {
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                }
-            }
-        }
+        // ExecuteOperationInContext uses alc.Unload() to trigger unloading
+        return ExecuteOperationInContext(
+            designAssemblyPath,
+            appBasePath,
+            operation,
+            handleDatabaseNotFound);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -200,11 +181,9 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         string designAssemblyPath,
         string appBasePath,
         Func<object, Assembly, Type, object?> operation,
-        bool handleDatabaseNotFound,
-        out WeakReference alcWeakRef)
+        bool handleDatabaseNotFound)
     {
         var alc = new EFCoreDesignLoadContext(appBasePath, designAssemblyPath);
-        alcWeakRef = new WeakReference(alc, trackResurrection: true);
 
         try
         {
