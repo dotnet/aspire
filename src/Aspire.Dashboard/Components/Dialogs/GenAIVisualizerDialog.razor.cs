@@ -239,6 +239,16 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
         };
     }
 
+    private static string GetToolHeadingTooltip(ToolDefinitionViewModel vm)
+    {
+        if (string.IsNullOrEmpty(vm.ToolDefinition.Description))
+        {
+            return vm.ToolDefinition.Name ?? string.Empty;
+        }
+
+        return $"{vm.ToolDefinition.Name} - {vm.ToolDefinition.Description}";
+    }
+
     private record DataInfo(string Url, string MimeType, string FileName);
 
     private static bool TryGetDataPart(GenAIItemPartViewModel itemPart, HashSet<string>? matchingMimeTypes, [NotNullWhen(true)] out DataInfo? dataInfo)

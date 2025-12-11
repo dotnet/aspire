@@ -11,7 +11,7 @@ public class ConnectionPropertiesTests
     public void PostgresServerResourceGetConnectionPropertiesReturnsExpectedValues()
     {
         var user = new ParameterResource("user", _ => "pgadmin");
-    var password = new ParameterResource("password", _ => "p@ssw0rd1", secret: true);
+        var password = new ParameterResource("password", _ => "p@ssw0rd1", secret: true);
         var resource = new PostgresServerResource("postgres", user, password);
 
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToArray();

@@ -300,9 +300,9 @@ public class AddMongoDBTests(ITestOutputHelper testOutputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var mongoExpressResource = Assert.Single(appModel.Resources.OfType<MongoExpressContainerResource>());
 
-        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
-        var config1 = await mongoExpressResource.GetEnvironmentVariableValuesAsync();
-        var config2 = await mongoExpressResource.GetEnvironmentVariableValuesAsync();
+        // Call GetEnvironmentVariablesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mongoExpressResource);
+        var config2 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mongoExpressResource);
 
         // Both calls should succeed and return the same values
         Assert.Equal(config1.Count, config2.Count);

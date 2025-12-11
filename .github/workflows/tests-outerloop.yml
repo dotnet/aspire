@@ -35,6 +35,7 @@ jobs:
     uses: ./.github/workflows/specialized-test-runner.yml
     with:
       testRunnerName: "OuterloopTestRunsheetBuilder"
+      attributeName: "OuterloopTest"
       extraRunSheetBuilderArgs: "-p:RunOuterloopTests=true"
       extraTestArgs: "--filter-trait outerloop=true"
       enablePlaywrightInstall: true

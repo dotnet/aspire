@@ -528,42 +528,35 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EnvironmentCallbackAnnotation"/> annotations.</param>
     public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
-        var env = new Dictionary<string, (object, string)>();
+        (var executionConfiguration, var exception) = await resource.ExecutionConfigurationBuilder()
+            .WithEnvironmentVariablesConfig()
+            .BuildAsync(ExecutionContext, NullLogger.Instance, CancellationToken)
+            .ConfigureAwait(false);
 
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            ExecutionContext,
-            (key, unprocessed, processed, ex) =>
-            {
-                if (ex is not null)
-                {
-                    ExceptionDispatchInfo.Throw(ex);
-                }
-
-                if (unprocessed is not null && processed is not null)
-                {
-                    env[key] = (unprocessed, processed);
-                }
-            },
-            NullLogger.Instance,
-            cancellationToken: CancellationToken).ConfigureAwait(false);
-
-        if (env.Count > 0)
+        if (exception is not null)
         {
-            Writer.WriteStartObject("env");
-
-            foreach (var (key, value) in env)
-            {
-                var (unprocessed, processed) = value;
-
-                var manifestExpression = GetManifestExpression(unprocessed, processed);
-
-                Writer.WriteString(key, manifestExpression);
-
-                TryAddDependentResources(unprocessed);
-            }
-
-            Writer.WriteEndObject();
+            ExceptionDispatchInfo.Throw(exception);
         }
+
+        if (!executionConfiguration.EnvironmentVariablesWithUnprocessed.Any())
+        {
+            return;
+        }
+
+        Writer.WriteStartObject("env");
+
+        foreach (var kvp in executionConfiguration.EnvironmentVariablesWithUnprocessed)
+        {
+            var (unprocessed, processed) = kvp.Value;
+
+            var manifestExpression = GetManifestExpression(unprocessed, processed);
+
+            Writer.WriteString(kvp.Key, manifestExpression);
+
+            TryAddDependentResources(unprocessed);
+        }
+
+        Writer.WriteEndObject();
     }
 
     /// <summary>
@@ -573,40 +566,33 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <returns>The <see cref="Task"/> to await for completion.</returns>
     public async Task WriteCommandLineArgumentsAsync(IResource resource)
     {
-        var args = new List<(object, string)>();
+        (var executionConfiguration, var exception) = await resource.ExecutionConfigurationBuilder()
+            .WithArgumentsConfig()
+            .BuildAsync(ExecutionContext, NullLogger.Instance, CancellationToken)
+            .ConfigureAwait(false);
 
-        await resource.ProcessArgumentValuesAsync(
-            ExecutionContext,
-            (unprocessed, expression, ex, _) =>
-            {
-                if (ex is not null)
-                {
-                    ExceptionDispatchInfo.Throw(ex);
-                }
-
-                if (unprocessed is not null && expression is not null)
-                {
-                    args.Add((unprocessed, expression));
-                }
-            },
-            NullLogger.Instance,
-            cancellationToken: CancellationToken).ConfigureAwait(false);
-
-        if (args.Count > 0)
+        if (exception is not null)
         {
-            Writer.WriteStartArray("args");
-
-            foreach (var (unprocessed, expression) in args)
-            {
-                var manifestExpression = GetManifestExpression(unprocessed, expression);
-
-                Writer.WriteStringValue(manifestExpression);
-
-                TryAddDependentResources(unprocessed);
-            }
-
-            Writer.WriteEndArray();
+            ExceptionDispatchInfo.Throw(exception);
         }
+
+        if (!executionConfiguration.ArgumentsWithUnprocessed.Any())
+        {
+            return;
+        }
+
+        Writer.WriteStartArray("args");
+
+        foreach ((var Unprocessed, var Processed, _) in executionConfiguration.ArgumentsWithUnprocessed)
+        {
+            var manifestExpression = GetManifestExpression(Unprocessed, Processed);
+
+            Writer.WriteStringValue(manifestExpression);
+
+            TryAddDependentResources(Unprocessed);
+        }
+
+        Writer.WriteEndArray();
     }
     private void WriteContainerMounts(ContainerResource container)
     {

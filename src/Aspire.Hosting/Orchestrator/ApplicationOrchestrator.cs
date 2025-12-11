@@ -353,11 +353,12 @@ internal sealed class ApplicationOrchestrator
             var primaryUrl = urls.FirstOrDefault(u => string.Equals(u.Endpoint?.EndpointName, primaryLaunchProfileEndpoint.Name, StringComparisons.EndpointAnnotationName));
             if (primaryUrl is not null)
             {
-                var primaryUri = new Uri(primaryUrl.Url);
-                var primaryPath = primaryUri.AbsolutePath;
+                Uri.TryCreate(primaryUrl.Url, UriKind.RelativeOrAbsolute, out var primaryUri);
+                var primaryPath = primaryUri?.IsAbsoluteUri == true ? primaryUri.AbsolutePath : primaryUrl.Url;
 
-                if (primaryPath != "/")
+                if (primaryPath.StartsWith('/') && primaryPath.Length > 1)
                 {
+                    // The primary launch profile endpoint has a path, apply that path to all other launch profile endpoint URLs.
                     foreach (var url in urls)
                     {
                         if (url.Endpoint?.EndpointAnnotation == primaryLaunchProfileEndpoint && !string.Equals(url.Url, primaryUrl.Url, StringComparisons.Url))

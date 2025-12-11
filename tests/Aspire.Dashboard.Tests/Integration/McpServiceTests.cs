@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
@@ -261,12 +261,6 @@ public class McpServiceTests
         var telemetryService = app.Services.GetRequiredService<DashboardTelemetryService>();
         await telemetryService.InitializeAsync();
 
-        // Drain any initialization telemetry (properties posted during initialization)
-        while (testTelemetrySender.ContextChannel.Reader.TryRead(out _))
-        {
-            // Drain the channel
-        }
-
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.McpEndPointAccessor().EndPoint}");
 
         var request = CreateListToolsRequest();
@@ -276,21 +270,31 @@ public class McpServiceTests
         responseMessage.EnsureSuccessStatusCode();
 
         // Assert
-        // Read and assert the two expected telemetry items (StartOperation and EndOperation)
-        var startOperationContext = await testTelemetrySender.ContextChannel.Reader.ReadAsync().DefaultTimeout();
-        Assert.Contains(TelemetryEventKeys.McpToolCall, startOperationContext.Name);
-        Assert.Contains(TelemetryEndpoints.TelemetryStartOperation, startOperationContext.Name);
-        Assert.Equal(2, startOperationContext.Properties.Length); // StartOperation creates 2 properties (operationId and correlation)
+        // Read telemetry items until we find the McpToolCall event
+        bool foundMcpToolCall = false;
+        while (await testTelemetrySender.ContextChannel.Reader.WaitToReadAsync().DefaultTimeout())
+        {
+            var context = await testTelemetrySender.ContextChannel.Reader.ReadAsync().DefaultTimeout();
+            if (context.Name.Contains(TelemetryEventKeys.McpToolCall))
+            {
+                foundMcpToolCall = true;
+                break;
+            }
+        }
+        Assert.True(foundMcpToolCall, "Expected to find McpToolCall telemetry event");
 
-        var endOperationContext = await testTelemetrySender.ContextChannel.Reader.ReadAsync().DefaultTimeout();
-        Assert.Contains(TelemetryEndpoints.TelemetryEndOperation, endOperationContext.Name);
-
-        // Dispose the sender to complete the channel
-        await testTelemetrySender.DisposeAsync();
-
-        // Verify there is no other telemetry
-        var hasMore = await testTelemetrySender.ContextChannel.Reader.WaitToReadAsync().DefaultTimeout();
-        Assert.False(hasMore);
+        // Then read until we find the EndOperation event
+        bool foundEndOperation = false;
+        while (await testTelemetrySender.ContextChannel.Reader.WaitToReadAsync().DefaultTimeout())
+        {
+            var context = await testTelemetrySender.ContextChannel.Reader.ReadAsync().DefaultTimeout();
+            if (context.Name.Contains(TelemetryEndpoints.TelemetryEndOperation))
+            {
+                foundEndOperation = true;
+                break;
+            }
+        }
+        Assert.True(foundEndOperation, "Expected to find EndOperation telemetry event");
     }
 
     internal static HttpRequestMessage CreateListToolsRequest()

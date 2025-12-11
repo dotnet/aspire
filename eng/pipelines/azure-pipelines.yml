@@ -94,6 +94,10 @@ extends:
       autoEnablePREfastWithNewRuleset: false
       autoEnableRoslynWithNewRuleset: false
     sdl:
+      componentgovernance:
+        # Exclude .packages folder from CG scanning. This folder contains older versions of our own
+        # packages restored for API compatibility validation, which may have since-fixed vulnerabilities.
+        ignoreDirectories: $(Build.SourcesDirectory)/.packages
       policheck:
         enabled: true
         exclusionsFile: $(Build.SourcesDirectory)\.config\PoliCheckExclusions.xml
@@ -234,7 +238,8 @@ extends:
                 inputs:
                   targetType: 'inline'
                   script: |
-                    npm install -g yarn
+                    $env:NPM_CONFIG_USERCONFIG="$(Build.SourcesDirectory)\.npmrc"
+                    npm install -g yarn@1.22.22
                     yarn --version
                   workingDirectory: '$(Build.SourcesDirectory)'
 
@@ -243,7 +248,8 @@ extends:
                 inputs:
                   targetType: 'inline'
                   script: |
-                    npm install -g @vscode/vsce
+                    $env:NPM_CONFIG_USERCONFIG="$(Build.SourcesDirectory)\.npmrc"
+                    npm install -g @vscode/vsce@3.7.1
                     vsce --version
                   workingDirectory: '$(Build.SourcesDirectory)'
 

@@ -3,9 +3,10 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire hosting devtunnels</PackageTags>
     <Description>DevTunnels support for Aspire.</Description>
+    <!-- Disabled until this package ships stable. -->
+    <DisablePackageBaselineValidation>true</DisablePackageBaselineValidation>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +15,7 @@
     <Compile Include="$(SharedDir)RequiredCommandValidator.cs" LinkBase="Shared" />
     <Compile Include="$(SharedDir)StringComparers.cs" LinkBase="Shared" />
     <Compile Include="$(SharedDir)ResourceNameComparer.cs" LinkBase="Shared" />
+    <Compile Include="$(SharedDir)EnvironmentVariableNameEncoder.cs" LinkBase="Shared" />
     <Compile Include="$(SharedDir)/Model/KnownRelationshipTypes.cs" LinkBase="Shared" />
   </ItemGroup>
 

@@ -7,24 +7,59 @@
         <target state="translated">管理 MCP (模型內容通訊協定) 伺服器。</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
+        <source>Which additional options do you want to enable?</source>
+        <target state="new">Which additional options do you want to enable?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
-        <source>Select agent environments to configure:</source>
-        <target state="new">Select agent environments to configure:</target>
+        <source>Which agent environments do you want to configure?</source>
+        <target state="new">Which agent environments do you want to configure?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">
         <source>Agent environment configuration complete.</source>
-        <target state="new">Agent environment configuration complete.</target>
+        <target state="translated">代理程式環境設定完成。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
+        <source>Pre-configure Playwright MCP server?</source>
+        <target state="new">Pre-configure Playwright MCP server?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
+        <source>Create agent environment specific instruction files?</source>
+        <target state="new">Create agent environment specific instruction files?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize MCP server configuration for detected agent environments.</source>
-        <target state="new">Initialize MCP server configuration for detected agent environments.</target>
+        <target state="translated">為偵測到的代理程式環境初始化 MCP 伺服器設定。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_DetectingAgentEnvironments">
+        <source>Detecting agent environments...</source>
+        <target state="translated">正在偵測代理程式環境...</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_NoAgentEnvironmentsDetected">
         <source>No agent environments were detected.</source>
-        <target state="new">No agent environments were detected.</target>
+        <target state="translated">未偵測到代理程式環境。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_WorkspaceRootNotFound">
+        <source>Directory not found: {0}</source>
+        <target state="translated">找不到目錄: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_WorkspaceRootPrompt">
+        <source>Enter the path to the root of your workspace:</source>
+        <target state="translated">輸入工作區根目錄的路徑:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_WorkspaceRootRequired">
+        <source>Workspace root path is required.</source>
+        <target state="translated">需要工作區根路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="StartCommand_Description">

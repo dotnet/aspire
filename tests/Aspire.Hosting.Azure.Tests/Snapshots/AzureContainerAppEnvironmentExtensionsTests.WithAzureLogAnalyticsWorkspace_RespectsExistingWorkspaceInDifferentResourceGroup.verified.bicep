@@ -5,6 +5,8 @@ param userPrincipalId string = ''
 
 param tags object = { }
 
+param app_host_acr_outputs_name string
+
 param log_env_shared_name string
 
 param log_env_shared_rg string
@@ -15,13 +17,8 @@ resource app_host_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-3
   tags: tags
 }
 
-resource app_host_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
-  name: take('apphostacr${uniqueString(resourceGroup().id)}', 50)
-  location: location
-  sku: {
-    name: 'Basic'
-  }
-  tags: tags
+resource app_host_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
+  name: app_host_acr_outputs_name
 }
 
 resource app_host_acr_app_host_mi_AcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

@@ -13,7 +13,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAsync_GeneratesValidHelmChart()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
@@ -79,7 +79,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAppliesServiceCustomizations()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env")
@@ -110,7 +110,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAsync_CustomWorkloadAndResourceType()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
@@ -174,7 +174,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAsync_HandlesSpecialResourceName()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env")
@@ -228,7 +228,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAsync_ResourceWithProbes()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
@@ -283,7 +283,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task PublishAsync_WithDockerfileFactory_WritesDockerfileToOutputFolder()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");
@@ -356,7 +356,7 @@ public class KubernetesPublisherTests()
     [Fact]
     public async Task KubernetesWithProjectResources()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddKubernetesEnvironment("env");

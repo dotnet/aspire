@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -118,7 +119,7 @@ public class AddKafkaTests(ITestOutputHelper testOutputHelper)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
             .WithDataVolume("kafka-data");
 
-        var config = await kafka.Resource.GetEnvironmentVariableValuesAsync();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafka.Resource);
 
         var volumeAnnotation = kafka.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
@@ -136,7 +137,7 @@ public class AddKafkaTests(ITestOutputHelper testOutputHelper)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
             .WithDataBindMount("kafka-data");
 
-        var config = await kafka.Resource.GetEnvironmentVariableValuesAsync();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafka.Resource);
 
         var volumeAnnotation = kafka.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
@@ -186,9 +187,9 @@ public class AddKafkaTests(ITestOutputHelper testOutputHelper)
         var kafka = appBuilder.AddKafka("kafka")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017));
 
-        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
-        var config1 = await kafka.Resource.GetEnvironmentVariableValuesAsync();
-        var config2 = await kafka.Resource.GetEnvironmentVariableValuesAsync();
+        // Call GetEnvironmentVariablesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafka.Resource);
+        var config2 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafka.Resource);
 
         // Both calls should succeed and return the same values
         Assert.Equal(config1.Count, config2.Count);
@@ -217,9 +218,9 @@ public class AddKafkaTests(ITestOutputHelper testOutputHelper)
             new BeforeResourceStartedEvent(kafkaUiResource, app.Services),
             EventDispatchBehavior.BlockingSequential);
 
-        // Call GetEnvironmentVariableValuesAsync multiple times to ensure callbacks are idempotent
-        var config1 = await kafkaUiResource.GetEnvironmentVariableValuesAsync();
-        var config2 = await kafkaUiResource.GetEnvironmentVariableValuesAsync();
+        // Call GetEnvironmentVariablesAsync multiple times to ensure callbacks are idempotent
+        var config1 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafkaUiResource);
+        var config2 = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(kafkaUiResource);
 
         // Both calls should succeed and return the same values
         Assert.Equal(config1.Count, config2.Count);

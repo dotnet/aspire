@@ -24,7 +24,8 @@ internal class DotNetTemplateFactory(
     IPackagingService packagingService,
     INewCommandPrompter prompter,
     CliExecutionContext executionContext,
-    IFeatures features)
+    IFeatures features,
+    IConfigurationService configurationService)
     : ITemplateFactory
 {
     public IEnumerable<ITemplate> GetTemplates()
@@ -48,6 +49,16 @@ internal class DotNetTemplateFactory(
             nonInteractive
                 ? ApplyTemplateWithNoExtraArgsAsync
                 : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
+            );
+
+        yield return new CallbackTemplate(
+            "aspire-ts-cs-starter",
+            TemplatingStrings.AspireJsFrontendStarter_Description,
+            projectName => $"./{projectName}",
+            ApplyExtraAspireJsFrontendStarterOptions,
+            nonInteractive
+                ? ApplyTemplateWithNoExtraArgsAsync
+                : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireJsFrontendStarterOptionsAsync, ct)
             );
 
         // Single-file AppHost templates
@@ -179,6 +190,16 @@ internal class DotNetTemplateFactory(
         return extraArgs.ToArray();
     }
 
+    private async Task<string[]> PromptForExtraAspireJsFrontendStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
+    {
+        var extraArgs = new List<string>();
+
+        await PromptForDevLocalhostTldOptionAsync(result, extraArgs, cancellationToken);
+        await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
     private async Task<string[]> PromptForExtraAspireXUnitOptionsAsync(ParseResult result, CancellationToken cancellationToken)
     {
         var extraArgs = new List<string>();
@@ -301,6 +322,16 @@ internal class DotNetTemplateFactory(
         var xunitVersionOption = new Option<string?>("--xunit-version");
         xunitVersionOption.Description = TemplatingStrings.EnterXUnitVersion_Description;
         command.Options.Add(xunitVersionOption);
+    }
+
+    private static void ApplyExtraAspireJsFrontendStarterOptions(Command command)
+    {
+        ApplyDevLocalhostTldOption(command);
+
+        var useRedisCacheOption = new Option<bool?>("--use-redis-cache");
+        useRedisCacheOption.Description = TemplatingStrings.UseRedisCache_Description;
+        useRedisCacheOption.DefaultValueFactory = _ => false;
+        command.Options.Add(useRedisCacheOption);
     }
 
     private static void ApplyDevLocalhostTldOption(Command command)
@@ -463,6 +494,11 @@ internal class DotNetTemplateFactory(
             interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
             return new TemplateResult(ExitCodeConstants.FailedToTrustCertificates);
         }
+        catch (Exceptions.ChannelNotFoundException ex)
+        {
+            interactionService.DisplayError(ex.Message);
+            return new TemplateResult(ExitCodeConstants.FailedToCreateNewProject);
+        }
         catch (EmptyChoicesException ex)
         {
             interactionService.DisplayError(ex.Message);
@@ -493,8 +529,40 @@ internal class DotNetTemplateFactory(
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        _ = parseResult;
-        var channels = await packagingService.GetChannelsAsync(cancellationToken);
+        var allChannels = await packagingService.GetChannelsAsync(cancellationToken);
+        
+        // Check if --channel option was provided (highest priority)
+        var channelName = parseResult.GetValue<string?>("--channel");
+        
+        // If no --channel option, check for global channel setting
+        if (string.IsNullOrEmpty(channelName))
+        {
+            channelName = await configurationService.GetConfigurationAsync("channel", cancellationToken);
+        }
+        
+        IEnumerable<PackageChannel> channels;
+        bool hasChannelSetting = !string.IsNullOrEmpty(channelName);
+        
+        if (hasChannelSetting)
+        {
+            // If --channel option is provided or global channel setting exists, find the matching channel
+            // (--channel option takes precedence over global setting)
+            var matchingChannel = allChannels.FirstOrDefault(c => string.Equals(c.Name, channelName, StringComparison.OrdinalIgnoreCase));
+            if (matchingChannel is null)
+            {
+                throw new Exceptions.ChannelNotFoundException($"No channel found matching '{channelName}'. Valid options are: {string.Join(", ", allChannels.Select(c => c.Name))}");
+            }
+            channels = new[] { matchingChannel };
+        }
+        else
+        {
+            // If there are hives (PR build directories), include all channels.
+            // Otherwise, only use the implicit/default channel to avoid prompting.
+            var hasHives = executionContext.GetPrHiveCount() > 0;
+            channels = hasHives 
+                ? allChannels 
+                : allChannels.Where(c => c.Type is PackageChannelType.Implicit);
+        }
 
         var packagesFromChannels = await interactionService.ShowStatusAsync(TemplatingStrings.SearchingForAvailableTemplateVersions, async () =>
         {
@@ -527,6 +595,13 @@ internal class DotNetTemplateFactory(
             {
                 return explicitPackageFromChannel;
             }
+        }
+
+        // If channel was specified via --channel option or global setting (but no --version), 
+        // automatically select the highest version from that channel without prompting
+        if (hasChannelSetting)
+        {
+            return orderedPackagesFromChannels.First();
         }
 
         var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);

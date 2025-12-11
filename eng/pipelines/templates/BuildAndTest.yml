@@ -123,9 +123,7 @@ steps:
         DOCKER_BUILDKIT: 1
         # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
         DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
-        DCP_DIAGNOSTICS_LOG_LEVEL: debug
-        DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
-        DCP_PRESERVE_EXECUTABLE_LOGS: 1
+        ASPIRE__TEST__DCPLOGBASEPATH: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
         DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
       displayName: Run non-helix tests
 
