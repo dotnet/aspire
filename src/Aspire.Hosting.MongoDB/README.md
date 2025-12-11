@@ -37,9 +37,9 @@ The MongoDB server resource exposes the following connection properties:
 | `Port` | The port number the MongoDB server is listening on |
 | `Username` | The username for authentication |
 | `Password` | The password for authentication (available when a password parameter is configured) |
-| `AuthenticationDatabaseName` | The authentication database (available when a password parameter is configured) |
+| `AuthenticationDatabase` | The authentication database (available when a password parameter is configured) |
 | `AuthenticationMechanism` | The authentication mechanism (available when a password parameter is configured) |
-| `Uri` | The connection URI, with the format `mongodb://{Username}:{Password}@{Host}:{Port}/?authSource={AuthenticationDatabaseName}&authMechanism={AuthenticationMechanism}` |
+| `Uri` | The connection URI, with the format `mongodb://{Username}:{Password}@{Host}:{Port}/?authSource={AuthenticationDatabase}&authMechanism={AuthenticationMechanism}` |
 
 ### MongoDB database
 

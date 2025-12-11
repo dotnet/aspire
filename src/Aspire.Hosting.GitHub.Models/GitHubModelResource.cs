@@ -90,7 +90,7 @@ public class GitHubModelResource : Resource, IResourceWithConnectionString
 
         if (Organization is not null)
         {
-            yield return new("OrganizationName", ReferenceExpression.Create($"{Organization}"));
+            yield return new("Organization", ReferenceExpression.Create($"{Organization}"));
         }
     }
 }
