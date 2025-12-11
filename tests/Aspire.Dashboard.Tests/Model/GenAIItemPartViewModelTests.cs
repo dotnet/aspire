@@ -53,4 +53,46 @@ public sealed class GenAIItemPartViewModelTests
             """,
             itemPart.TextVisualizerViewModel.FormattedText);
     }
+
+    [Fact]
+    public void CreateMessagePart_ToolCallResponse_ArrayResponse_SerializedAsJson()
+    {
+        // Arrange
+        var responsePart = new ToolCallResponsePart
+        {
+            Response = JsonNode.Parse("""["Jack","Jane"]""")
+        };
+
+        // Act
+        var itemPart = GenAIItemPartViewModel.CreateMessagePart(responsePart);
+
+        // Assert
+        Assert.Equal("""["Jack","Jane"]""", itemPart.TextVisualizerViewModel.Text);
+        Assert.Equal(DashboardUIHelpers.JsonFormat, itemPart.TextVisualizerViewModel.FormatKind);
+        Assert.Equal(
+            """
+            [
+              "Jack",
+              "Jane"
+            ]
+            """,
+            itemPart.TextVisualizerViewModel.FormattedText);
+    }
+
+    [Fact]
+    public void CreateMessagePart_ToolCallResponse_ObjectResponse_SerializedAsJson()
+    {
+        // Arrange
+        var responsePart = new ToolCallResponsePart
+        {
+            Response = JsonNode.Parse("""{"name":"Jack","age":30}""")
+        };
+
+        // Act
+        var itemPart = GenAIItemPartViewModel.CreateMessagePart(responsePart);
+
+        // Assert
+        Assert.Equal("""{"name":"Jack","age":30}""", itemPart.TextVisualizerViewModel.Text);
+        Assert.Equal(DashboardUIHelpers.JsonFormat, itemPart.TextVisualizerViewModel.FormatKind);
+    }
 }
