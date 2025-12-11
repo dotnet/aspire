@@ -14,8 +14,6 @@ namespace Aspire.Hosting.ApplicationModel;
 [DebuggerDisplay("{ValueExpression}")]
 public class ContainerImageReference : IManifestExpressionProvider, IValueWithReferences, IValueProvider
 {
-    private readonly IServiceProvider? _serviceProvider;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="ContainerImageReference"/> class.
     /// </summary>
@@ -23,17 +21,6 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
     public ContainerImageReference(IResource resource)
     {
         Resource = resource;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ContainerImageReference"/> class.
-    /// </summary>
-    /// <param name="resource">The resource that this container image is associated with.</param>
-    /// <param name="serviceProvider">The service provider for resolving dependencies.</param>
-    internal ContainerImageReference(IResource resource, IServiceProvider serviceProvider)
-    {
-        Resource = resource;
-        _serviceProvider = serviceProvider;
     }
 
     /// <summary>
@@ -50,14 +37,20 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
     /// <inheritdoc/>
     async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
+        return await Resource.GetFullRemoteImageNameAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    async ValueTask<string?> IValueProvider.GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken)
+    {
         // Check if this resource is configured for non-Docker image format (e.g., OCI)
-        if (_serviceProvider is not null)
+        if (context.ExecutionContext?.ServiceProvider is { } serviceProvider)
         {
-            var logger = Resource.GetLogger(_serviceProvider);
+            var logger = Resource.GetLogger(serviceProvider);
             var buildOptionsContext = await Resource.ProcessContainerBuildOptionsCallbackAsync(
-                _serviceProvider,
+                serviceProvider,
                 logger,
-                executionContext: null,
+                context.ExecutionContext,
                 cancellationToken).ConfigureAwait(false);
 
             // For non-Docker formats like OCI, return the local file path

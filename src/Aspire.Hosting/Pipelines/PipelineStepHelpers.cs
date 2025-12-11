@@ -63,8 +63,8 @@ internal static class PipelineStepHelpers
 
     private static async Task TagImageForLocalRegistryAsync(IResource resource, PipelineStepContext context)
     {
-        IValueProvider cir = new ContainerImageReference(resource, context.Services);
-        var targetTag = await cir.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        IValueProvider cir = new ContainerImageReference(resource);
+        var targetTag = await cir.GetValueAsync(new ValueProviderContext { ExecutionContext = context.ExecutionContext }, context.CancellationToken).ConfigureAwait(false);
 
         var tagTask = await context.ReportingStep.CreateTaskAsync(
             $"Tagging **{resource.Name}** for local use",
@@ -109,8 +109,8 @@ internal static class PipelineStepHelpers
         var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("Failed to retrieve container registry information.");
 
-        IValueProvider cir = new ContainerImageReference(resource, context.Services);
-        var targetTag = await cir.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        IValueProvider cir = new ContainerImageReference(resource);
+        var targetTag = await cir.GetValueAsync(new ValueProviderContext { ExecutionContext = context.ExecutionContext }, context.CancellationToken).ConfigureAwait(false);
 
         var pushTask = await context.ReportingStep.CreateTaskAsync(
             $"Pushing **{resource.Name}** to **{registryName}**",
