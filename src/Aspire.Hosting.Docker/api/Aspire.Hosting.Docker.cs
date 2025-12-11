@@ -58,8 +58,6 @@ namespace Aspire.Hosting.Docker
 
         public bool DashboardEnabled { get { throw null; } set { } }
 
-        public string? DefaultContainerRegistry { get { throw null; } set { } }
-
         public string? DefaultNetworkName { get { throw null; } set { } }
 
         ApplicationModel.ReferenceExpression ApplicationModel.IComputeEnvironmentResource.GetHostAddressExpression(ApplicationModel.EndpointReference endpointReference) { throw null; }
