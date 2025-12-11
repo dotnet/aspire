@@ -11,13 +11,37 @@ jobs:
     permissions:
       contents: read
 
+    # Enable Docker-in-Docker for container-based tests
+    services:
+      dind:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+        env:
+          DOCKER_TLS_CERTDIR: ""
+
+    env:
+      DOCKER_HOST: tcp://localhost:2375
+
     # You can define any steps you want, and they will run before the agent starts.
     # If you do not check out your code, Copilot will do this for you.
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Verify Docker is running
-        run: docker info
+      - name: Wait for Docker to be ready
+        run: |
+          for i in {1..30}; do
+            if docker info >/dev/null 2>&1; then
+              echo "Docker is ready"
+              docker info
+              exit 0
+            fi
+            echo "Waiting for Docker... ($i/30)"
+            sleep 2
+          done
+          echo "Docker failed to start"
+          exit 1
 
       - name: Build solution
         # a full build is too slow; also do not fail on errors, continue so that
