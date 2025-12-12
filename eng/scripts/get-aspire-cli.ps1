@@ -697,6 +697,97 @@ function Save-GlobalChannelSetting {
     }
 }
 
+# Function to remove the global channel setting
+# This is used when installing the release/stable channel to avoid forcing nuget.config creation
+function Remove-GlobalChannelSetting {
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+    
+    # Get the home directory
+    $homeDirectory = Invoke-WithPowerShellVersion -ModernAction {
+        if ($env:HOME) { $env:HOME }
+        elseif ($env:USERPROFILE) { $env:USERPROFILE }
+        else { $null }
+    } -LegacyAction {
+        if ($env:USERPROFILE) { $env:USERPROFILE }
+        elseif ($env:HOME) { $env:HOME }
+        else { $null }
+    }
+    
+    if ([string]::IsNullOrWhiteSpace($homeDirectory)) {
+        Write-Message "Unable to determine home directory for removing global settings" -Level Warning
+        return
+    }
+    
+    $globalSettingsDir = Join-Path $homeDirectory ".aspire"
+    $globalSettingsFile = Join-Path $globalSettingsDir "globalsettings.json"
+    
+    if ($PSCmdlet.ShouldProcess($globalSettingsFile, "Remove global channel setting")) {
+        Write-Message "Removing global channel setting" -Level Verbose
+        
+        # If file doesn't exist, nothing to do
+        if (-not (Test-Path $globalSettingsFile)) {
+            Write-Message "Global settings file does not exist, nothing to remove" -Level Verbose
+            return
+        }
+        
+        # Read existing settings
+        $settings = @{}
+        try {
+            $existingContent = Get-Content $globalSettingsFile -Raw -ErrorAction Stop
+            # Use -AsHashtable only on PowerShell 6+ where it's available
+            $settings = Invoke-WithPowerShellVersion -ModernAction {
+                $existingContent | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
+            } -LegacyAction {
+                # For PowerShell 5.1, convert PSCustomObject to hashtable manually
+                $parsed = $existingContent | ConvertFrom-Json -ErrorAction SilentlyContinue
+                if ($parsed) {
+                    $ht = @{}
+                    $parsed.PSObject.Properties | ForEach-Object { $ht[$_.Name] = $_.Value }
+                    $ht
+                } else { @{} }
+            }
+            if ($null -eq $settings) {
+                $settings = @{}
+            }
+        }
+        catch {
+            Write-Message "Could not read existing global settings, nothing to remove" -Level Verbose
+            return
+        }
+        
+        # Remove the channel key
+        if ($settings.ContainsKey("channel")) {
+            $settings.Remove("channel")
+            
+            # If settings is now empty, remove the file
+            if ($settings.Count -eq 0) {
+                try {
+                    Remove-Item -Path $globalSettingsFile -Force
+                    Write-Message "Global settings file removed (was empty after removing channel)" -Level Verbose
+                }
+                catch {
+                    Write-Message "Failed to remove global settings file: $($_.Exception.Message)" -Level Warning
+                }
+            }
+            else {
+                # Write the updated settings file
+                try {
+                    $jsonContent = $settings | ConvertTo-Json -Compress
+                    Set-Content -Path $globalSettingsFile -Value $jsonContent -Force
+                    Write-Message "Channel setting removed from global settings" -Level Verbose
+                }
+                catch {
+                    Write-Message "Failed to update global settings file: $($_.Exception.Message)" -Level Warning
+                }
+            }
+        }
+        else {
+            Write-Message "Channel setting not found in global settings" -Level Verbose
+        }
+    }
+}
+
 # Simplified installation path determination
 function Get-InstallPath {
     [CmdletBinding()]
@@ -1079,9 +1170,15 @@ function Install-AspireCli {
 
         # Save the global channel setting if using quality-based download (not version-specific)
         # This allows 'aspire new' and 'aspire init' to use the same channel by default
+        # For release/stable channel, remove the setting to avoid forcing nuget.config creation
         if ([string]::IsNullOrWhiteSpace($Version)) {
             $channel = ConvertTo-ChannelName -Quality $Quality
-            Save-GlobalChannelSetting -Channel $channel
+            if ($channel -eq "stable") {
+                Remove-GlobalChannelSetting
+            }
+            else {
+                Save-GlobalChannelSetting -Channel $channel
+            }
         }
 
         # Download and install VS Code extension if requested

@@ -526,6 +526,52 @@ save_global_channel_setting() {
     say_verbose "Global channel setting saved to: $global_settings_file"
 }
 
+# Function to remove the global channel setting
+# This is used when installing the release/stable channel to avoid forcing nuget.config creation
+remove_global_channel_setting() {
+    local global_settings_dir="$HOME/.aspire"
+    local global_settings_file="$global_settings_dir/globalsettings.json"
+    
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would remove global channel setting from $global_settings_file"
+        return 0
+    fi
+    
+    say_verbose "Removing global channel setting"
+    
+    # If file doesn't exist, nothing to do
+    if [[ ! -f "$global_settings_file" ]]; then
+        say_verbose "Global settings file does not exist, nothing to remove"
+        return 0
+    fi
+    
+    # Use jq to remove the channel key if available
+    if command -v jq >/dev/null 2>&1; then
+        local temp_file="${global_settings_file}.tmp"
+        if jq 'del(.channel)' "$global_settings_file" > "$temp_file" 2>/dev/null; then
+            # Check if the result is an empty object
+            local result
+            result=$(cat "$temp_file")
+            if [[ "$result" == "{}" ]]; then
+                # If empty, remove the file entirely
+                rm -f "$temp_file" "$global_settings_file"
+                say_verbose "Global settings file removed (was empty after removing channel)"
+            else
+                mv "$temp_file" "$global_settings_file"
+                say_verbose "Channel setting removed from global settings"
+            fi
+        else
+            # If jq fails, just remove the file
+            say_verbose "jq failed to parse existing settings file, removing file"
+            rm -f "$temp_file" "$global_settings_file"
+        fi
+    else
+        # No jq available, just remove the file (simple case)
+        rm -f "$global_settings_file"
+        say_verbose "Global settings file removed"
+    fi
+}
+
 # Function to add PATH to shell configuration file
 # Parameters:
 #   $1 - config_file: Path to the shell configuration file
@@ -982,10 +1028,15 @@ download_and_install_archive() {
 
     # Save the global channel setting if using quality-based download (not version-specific)
     # This allows 'aspire new' and 'aspire init' to use the same channel by default
+    # For release/stable channel, remove the setting to avoid forcing nuget.config creation
     if [[ -z "$VERSION" ]]; then
         local channel
         channel=$(map_quality_to_channel "$QUALITY")
-        save_global_channel_setting "$channel"
+        if [[ "$channel" == "stable" ]]; then
+            remove_global_channel_setting
+        else
+            save_global_channel_setting "$channel"
+        fi
     fi
 
     # Download and install VS Code extension if requested
