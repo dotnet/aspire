@@ -59,7 +59,7 @@ public class ConnectionPropertiesTests
         var properties = ((IResourceWithConnectionString)resource).GetConnectionProperties().ToArray();
 
         Assert.Collection(
-            properties,
+            properties.OrderBy(p => p.Key),
             property =>
             {
                 Assert.Equal("DatabaseName", property.Key);
