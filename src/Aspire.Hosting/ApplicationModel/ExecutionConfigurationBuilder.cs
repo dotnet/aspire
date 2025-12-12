@@ -30,8 +30,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <code>
 /// var resolvedConfiguration = await ExecutionConfigurationBuilder
 ///     .Create(myResource);
-///     .WithArguments()
-///     .WithEnvironmentVariables()
+///     .WithArgumentsConfig()
+///     .WithEnvironmentVariablesConfig()
 ///     .BuildAsync(executionContext).ConfigureAwait(false);
 /// </code>
 /// </example>
@@ -64,12 +64,12 @@ public sealed class ExecutionConfigurationBuilder : IExecutionConfigurationBuild
     /// <code>
     /// var resolvedConfiguration = await ExecutionConfigurationBuilder
     ///     .Create(myResource)
-    ///     .WithArguments()
-    ///     .WithEnvironmentVariables()
+    ///     .WithArgumentsConfig()
+    ///     .WithEnvironmentVariablesConfig()
     ///     .BuildAsync(executionContext)
     ///     .ConfigureAwait(false);
     ///
-    /// foreach (var argument in resolveConfiguration.Arguments)
+    /// foreach (var argument in resolvedConfiguration.Arguments)
     /// {
     ///     Console.WriteLine($"Argument: {argument.Value}");
     /// }
