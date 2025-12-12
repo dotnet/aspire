@@ -346,7 +346,7 @@ jobs:
             }
           }
 
-          if (-not ${{ inputs.ignoreTestFailures }}) {
+          if ('${{ inputs.ignoreTestFailures }}' -ne 'true') {
             exit $testExitCode
           }
 
@@ -430,7 +430,7 @@ jobs:
             }
           }
 
-          if (-not ${{ inputs.ignoreTestFailures }}) {
+          if ('${{ inputs.ignoreTestFailures }}' -ne 'true') {
             exit $testExitCode
           }
 
