@@ -478,98 +478,102 @@ map_quality_to_channel() {
     esac
 }
 
-# Function to save the global channel setting
+# Function to save the global settings using the aspire CLI
+# Uses 'aspire config set -g' to set global configuration values
 # Parameters:
-#   $1 - channel: The channel name to save
-save_global_channel_setting() {
-    local channel="$1"
-    local global_settings_dir="$HOME/.aspire"
-    local global_settings_file="$global_settings_dir/globalsettings.json"
+#   $1 - cli_path: Path to the aspire CLI executable
+#   $2 - key: The configuration key to set
+#   $3 - value: The value to set
+# Expected schema of ~/.aspire/globalsettings.json:
+# {
+#   "channel": "string"  // The channel name (e.g., "daily", "staging", "pr-1234")
+# }
+save_global_settings() {
+    local cli_path="$1"
+    local key="$2"
+    local value="$3"
     
     if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would save global channel setting '$channel' to $global_settings_file"
+        say_info "[DRY RUN] Would run: $cli_path config set -g $key $value"
         return 0
     fi
     
-    say_verbose "Saving global channel setting: $channel"
+    say_verbose "Setting global config: $key = $value"
     
-    # Create directory if it doesn't exist
-    if [[ ! -d "$global_settings_dir" ]]; then
-        say_verbose "Creating global settings directory: $global_settings_dir"
-        mkdir -p "$global_settings_dir"
-    fi
-    
-    # Write or update the global settings file
-    # If file exists, try to preserve other settings
-    if [[ -f "$global_settings_file" ]]; then
-        # Read existing content and update channel
-        # Use a simple approach: if jq is available use it, otherwise overwrite
-        if command -v jq >/dev/null 2>&1; then
+    if ! "$cli_path" config set -g "$key" "$value" 2>/dev/null; then
+        say_warn "Failed to set global config via aspire CLI, falling back to direct file edit"
+        # Fallback to direct file edit if CLI fails
+        local global_settings_dir="$HOME/.aspire"
+        local global_settings_file="$global_settings_dir/globalsettings.json"
+        
+        # Create directory if it doesn't exist
+        if [[ ! -d "$global_settings_dir" ]]; then
+            mkdir -p "$global_settings_dir"
+        fi
+        
+        # Write the settings file
+        if [[ -f "$global_settings_file" ]] && command -v jq >/dev/null 2>&1; then
             local temp_file="${global_settings_file}.tmp"
-            if jq --arg channel "$channel" '.channel = $channel' "$global_settings_file" > "$temp_file" 2>/dev/null; then
+            if jq --arg value "$value" ".$key = \$value" "$global_settings_file" > "$temp_file" 2>/dev/null; then
                 mv "$temp_file" "$global_settings_file"
             else
-                # If jq fails (e.g., malformed JSON), fall back to overwriting
-                say_verbose "jq failed to parse existing settings file, overwriting with new settings"
                 rm -f "$temp_file"
-                echo "{\"channel\":\"$channel\"}" > "$global_settings_file"
+                echo "{\"$key\":\"$value\"}" > "$global_settings_file"
             fi
         else
-            # No jq available, overwrite the file (simple case)
-            echo "{\"channel\":\"$channel\"}" > "$global_settings_file"
+            echo "{\"$key\":\"$value\"}" > "$global_settings_file"
         fi
-    else
-        # File doesn't exist, create it
-        echo "{\"channel\":\"$channel\"}" > "$global_settings_file"
     fi
     
-    say_verbose "Global channel setting saved to: $global_settings_file"
+    say_verbose "Global config saved: $key = $value"
 }
 
-# Function to remove the global channel setting
+# Function to remove a global setting using the aspire CLI
+# Uses 'aspire config unset -g' to remove global configuration values
 # This is used when installing the release/stable channel to avoid forcing nuget.config creation
-remove_global_channel_setting() {
-    local global_settings_dir="$HOME/.aspire"
-    local global_settings_file="$global_settings_dir/globalsettings.json"
+# Parameters:
+#   $1 - cli_path: Path to the aspire CLI executable
+#   $2 - key: The configuration key to remove
+remove_global_settings() {
+    local cli_path="$1"
+    local key="$2"
     
     if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would remove global channel setting from $global_settings_file"
+        say_info "[DRY RUN] Would run: $cli_path config unset -g $key"
         return 0
     fi
     
-    say_verbose "Removing global channel setting"
+    say_verbose "Removing global config: $key"
     
-    # If file doesn't exist, nothing to do
-    if [[ ! -f "$global_settings_file" ]]; then
-        say_verbose "Global settings file does not exist, nothing to remove"
-        return 0
-    fi
-    
-    # Use jq to remove the channel key if available
-    if command -v jq >/dev/null 2>&1; then
-        local temp_file="${global_settings_file}.tmp"
-        if jq 'del(.channel)' "$global_settings_file" > "$temp_file" 2>/dev/null; then
-            # Check if the result is an empty object
-            local result
-            result=$(cat "$temp_file")
-            if [[ "$result" == "{}" ]]; then
-                # If empty, remove the file entirely
-                rm -f "$temp_file" "$global_settings_file"
-                say_verbose "Global settings file removed (was empty after removing channel)"
+    if ! "$cli_path" config unset -g "$key" 2>/dev/null; then
+        say_warn "Failed to unset global config via aspire CLI, falling back to direct file edit"
+        # Fallback to direct file edit if CLI fails
+        local global_settings_dir="$HOME/.aspire"
+        local global_settings_file="$global_settings_dir/globalsettings.json"
+        
+        if [[ ! -f "$global_settings_file" ]]; then
+            return 0
+        fi
+        
+        if command -v jq >/dev/null 2>&1; then
+            local temp_file="${global_settings_file}.tmp"
+            if jq "del(.$key)" "$global_settings_file" > "$temp_file" 2>/dev/null; then
+                local result
+                result=$(cat "$temp_file")
+                if [[ "$result" == "{}" ]]; then
+                    rm -f "$temp_file" "$global_settings_file"
+                else
+                    mv "$temp_file" "$global_settings_file"
+                fi
             else
-                mv "$temp_file" "$global_settings_file"
-                say_verbose "Channel setting removed from global settings"
+                rm -f "$temp_file" "$global_settings_file"
             fi
         else
-            # If jq fails, just remove the file
-            say_verbose "jq failed to parse existing settings file, removing file"
-            rm -f "$temp_file" "$global_settings_file"
+            rm -f "$global_settings_file"
         fi
-    else
-        # No jq available, just remove the file (simple case)
-        rm -f "$global_settings_file"
-        say_verbose "Global settings file removed"
     fi
+    
+    say_verbose "Global config removed: $key"
 }
 
 # Function to add PATH to shell configuration file
@@ -1033,9 +1037,9 @@ download_and_install_archive() {
         local channel
         channel=$(map_quality_to_channel "$QUALITY")
         if [[ "$channel" == "stable" ]]; then
-            remove_global_channel_setting
+            remove_global_settings "$cli_path" "channel"
         else
-            save_global_channel_setting "$channel"
+            save_global_settings "$cli_path" "channel" "$channel"
         fi
     fi
 

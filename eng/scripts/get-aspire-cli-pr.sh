@@ -408,52 +408,54 @@ install_archive() {
     say_verbose "Successfully installed archive"
 }
 
-# Function to save the global channel setting
+# Function to save global settings using the aspire CLI
+# Uses 'aspire config set -g' to set global configuration values
 # Parameters:
-#   $1 - channel: The channel name to save
-save_global_channel_setting() {
-    local channel="$1"
-    local global_settings_dir="$HOME/.aspire"
-    local global_settings_file="$global_settings_dir/globalsettings.json"
+#   $1 - cli_path: Path to the aspire CLI executable
+#   $2 - key: The configuration key to set
+#   $3 - value: The value to set
+# Expected schema of ~/.aspire/globalsettings.json:
+# {
+#   "channel": "string"  // The channel name (e.g., "daily", "staging", "pr-1234")
+# }
+save_global_settings() {
+    local cli_path="$1"
+    local key="$2"
+    local value="$3"
     
     if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would save global channel setting '$channel' to $global_settings_file"
+        say_info "[DRY RUN] Would run: $cli_path config set -g $key $value"
         return 0
     fi
     
-    say_verbose "Saving global channel setting: $channel"
+    say_verbose "Setting global config: $key = $value"
     
-    # Create directory if it doesn't exist
-    if [[ ! -d "$global_settings_dir" ]]; then
-        say_verbose "Creating global settings directory: $global_settings_dir"
-        mkdir -p "$global_settings_dir"
-    fi
-    
-    # Write or update the global settings file
-    # If file exists, try to preserve other settings
-    if [[ -f "$global_settings_file" ]]; then
-        # Read existing content and update channel
-        # Use a simple approach: if jq is available use it, otherwise overwrite
-        if command -v jq >/dev/null 2>&1; then
+    if ! "$cli_path" config set -g "$key" "$value" 2>/dev/null; then
+        say_warn "Failed to set global config via aspire CLI, falling back to direct file edit"
+        # Fallback to direct file edit if CLI fails
+        local global_settings_dir="$HOME/.aspire"
+        local global_settings_file="$global_settings_dir/globalsettings.json"
+        
+        # Create directory if it doesn't exist
+        if [[ ! -d "$global_settings_dir" ]]; then
+            mkdir -p "$global_settings_dir"
+        fi
+        
+        # Write the settings file
+        if [[ -f "$global_settings_file" ]] && command -v jq >/dev/null 2>&1; then
             local temp_file="${global_settings_file}.tmp"
-            if jq --arg channel "$channel" '.channel = $channel' "$global_settings_file" > "$temp_file" 2>/dev/null; then
+            if jq --arg value "$value" ".$key = \$value" "$global_settings_file" > "$temp_file" 2>/dev/null; then
                 mv "$temp_file" "$global_settings_file"
             else
-                # If jq fails (e.g., malformed JSON), fall back to overwriting
-                say_verbose "jq failed to parse existing settings file, overwriting with new settings"
                 rm -f "$temp_file"
-                echo "{\"channel\":\"$channel\"}" > "$global_settings_file"
+                echo "{\"$key\":\"$value\"}" > "$global_settings_file"
             fi
         else
-            # No jq available, overwrite the file (simple case)
-            echo "{\"channel\":\"$channel\"}" > "$global_settings_file"
+            echo "{\"$key\":\"$value\"}" > "$global_settings_file"
         fi
-    else
-        # File doesn't exist, create it
-        echo "{\"channel\":\"$channel\"}" > "$global_settings_file"
     fi
     
-    say_verbose "Global channel setting saved to: $global_settings_file"
+    say_verbose "Global config saved: $key = $value"
 }
 
 # Function to add PATH to shell configuration file
@@ -1060,7 +1062,14 @@ download_and_install_from_pr() {
     # Save the global channel setting to the PR hive channel
     # This allows 'aspire new' and 'aspire init' to use the same channel by default
     if [[ "$HIVE_ONLY" != true ]]; then
-        save_global_channel_setting "pr-$PR_NUMBER"
+        # Determine CLI path
+        local cli_path
+        if [[ -f "$cli_install_dir/aspire.exe" ]]; then
+            cli_path="$cli_install_dir/aspire.exe"
+        else
+            cli_path="$cli_install_dir/aspire"
+        fi
+        save_global_settings "$cli_path" "channel" "pr-$PR_NUMBER"
     fi
 }
 

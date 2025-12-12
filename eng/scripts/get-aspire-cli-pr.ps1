@@ -590,80 +590,85 @@ function Remove-TempDirectory {
 # END: Shared code
 # =============================================================================
 
-# Function to save the global channel setting
-function Save-GlobalChannelSetting {
+# Function to save global settings using the aspire CLI
+# Uses 'aspire config set -g' to set global configuration values
+# Expected schema of ~/.aspire/globalsettings.json:
+# {
+#   "channel": "string"  // The channel name (e.g., "daily", "staging", "pr-1234")
+# }
+function Save-GlobalSettings {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$Channel
+        [string]$CliPath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Key,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Value
     )
     
-    # Get the home directory
-    $homeDirectory = Invoke-WithPowerShellVersion -ModernAction {
-        if ($env:HOME) { $env:HOME }
-        elseif ($env:USERPROFILE) { $env:USERPROFILE }
-        else { $null }
-    } -LegacyAction {
-        if ($env:USERPROFILE) { $env:USERPROFILE }
-        elseif ($env:HOME) { $env:HOME }
-        else { $null }
-    }
-    
-    if ([string]::IsNullOrWhiteSpace($homeDirectory)) {
-        Write-Message "Unable to determine home directory for saving global settings" -Level Warning
-        return
-    }
-    
-    $globalSettingsDir = Join-Path $homeDirectory ".aspire"
-    $globalSettingsFile = Join-Path $globalSettingsDir "globalsettings.json"
-    
-    if ($PSCmdlet.ShouldProcess($globalSettingsFile, "Save global channel setting '$Channel'")) {
-        Write-Message "Saving global channel setting: $Channel" -Level Verbose
+    if ($PSCmdlet.ShouldProcess("$Key = $Value", "Set global config via aspire CLI")) {
+        Write-Message "Setting global config: $Key = $Value" -Level Verbose
         
-        # Create directory if it doesn't exist
-        if (-not (Test-Path $globalSettingsDir)) {
-            Write-Message "Creating global settings directory: $globalSettingsDir" -Level Verbose
-            New-Item -ItemType Directory -Path $globalSettingsDir -Force | Out-Null
-        }
-        
-        # Read existing settings or create new
-        $settings = @{}
-        if (Test-Path $globalSettingsFile) {
-            try {
-                $existingContent = Get-Content $globalSettingsFile -Raw -ErrorAction Stop
-                # Use -AsHashtable only on PowerShell 6+ where it's available
-                $settings = Invoke-WithPowerShellVersion -ModernAction {
-                    $existingContent | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
-                } -LegacyAction {
-                    # For PowerShell 5.1, convert PSCustomObject to hashtable manually
-                    $parsed = $existingContent | ConvertFrom-Json -ErrorAction SilentlyContinue
-                    if ($parsed) {
-                        $ht = @{}
-                        $parsed.PSObject.Properties | ForEach-Object { $ht[$_.Name] = $_.Value }
-                        $ht
-                    } else { @{} }
-                }
-                if ($null -eq $settings) {
-                    $settings = @{}
-                }
-            }
-            catch {
-                Write-Message "Could not read existing global settings, creating new file" -Level Verbose
-                $settings = @{}
-            }
-        }
-        
-        # Update the channel setting
-        $settings["channel"] = $Channel
-        
-        # Write the settings file
         try {
-            $jsonContent = $settings | ConvertTo-Json -Compress
-            Set-Content -Path $globalSettingsFile -Value $jsonContent -Force
-            Write-Message "Global channel setting saved to: $globalSettingsFile" -Level Verbose
+            $output = & $CliPath config set -g $Key $Value 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw "aspire config set failed with exit code $LASTEXITCODE"
+            }
+            Write-Message "Global config saved: $Key = $Value" -Level Verbose
         }
         catch {
-            Write-Message "Failed to save global channel setting: $($_.Exception.Message)" -Level Warning
+            Write-Message "Failed to set global config via aspire CLI, falling back to direct file edit: $($_.Exception.Message)" -Level Warning
+            
+            # Fallback to direct file edit
+            $homeDirectory = Invoke-WithPowerShellVersion -ModernAction {
+                if ($env:HOME) { $env:HOME }
+                elseif ($env:USERPROFILE) { $env:USERPROFILE }
+                else { $null }
+            } -LegacyAction {
+                if ($env:USERPROFILE) { $env:USERPROFILE }
+                elseif ($env:HOME) { $env:HOME }
+                else { $null }
+            }
+            
+            if ([string]::IsNullOrWhiteSpace($homeDirectory)) {
+                Write-Message "Unable to determine home directory for saving global settings" -Level Warning
+                return
+            }
+            
+            $globalSettingsDir = Join-Path $homeDirectory ".aspire"
+            $globalSettingsFile = Join-Path $globalSettingsDir "globalsettings.json"
+            
+            # Create directory if it doesn't exist
+            if (-not (Test-Path $globalSettingsDir)) {
+                New-Item -ItemType Directory -Path $globalSettingsDir -Force | Out-Null
+            }
+            
+            # Read existing settings or create new
+            $settings = @{}
+            if (Test-Path $globalSettingsFile) {
+                try {
+                    $existingContent = Get-Content $globalSettingsFile -Raw -ErrorAction Stop
+                    $settings = Invoke-WithPowerShellVersion -ModernAction {
+                        $existingContent | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
+                    } -LegacyAction {
+                        $parsed = $existingContent | ConvertFrom-Json -ErrorAction SilentlyContinue
+                        if ($parsed) {
+                            $ht = @{}
+                            $parsed.PSObject.Properties | ForEach-Object { $ht[$_.Name] = $_.Value }
+                            $ht
+                        } else { @{} }
+                    }
+                    if ($null -eq $settings) { $settings = @{} }
+                }
+                catch { $settings = @{} }
+            }
+            
+            $settings[$Key] = $Value
+            $jsonContent = $settings | ConvertTo-Json -Compress
+            Set-Content -Path $globalSettingsFile -Value $jsonContent -Force
         }
     }
 }
@@ -1177,7 +1182,10 @@ function Start-DownloadAndInstall {
     # Save the global channel setting to the PR hive channel
     # This allows 'aspire new' and 'aspire init' to use the same channel by default
     if (-not $HiveOnly) {
-        Save-GlobalChannelSetting -Channel "pr-$PRNumber"
+        # Determine CLI path
+        $cliExe = if ($Script:HostOS -eq "win") { "aspire.exe" } else { "aspire" }
+        $cliPath = Join-Path $cliBinDir $cliExe
+        Save-GlobalSettings -CliPath $cliPath -Key "channel" -Value "pr-$PRNumber"
     }
 
     # Update PATH environment variables
