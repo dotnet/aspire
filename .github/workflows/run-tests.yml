@@ -115,21 +115,6 @@ jobs:
         if: inputs.os == 'ubuntu-latest'
         run: docker info
 
-      - name: Start heartbeat monitor (Linux/macOS)
-        if: inputs.testShortName == 'Hosting' && inputs.os != 'windows-latest'
-        run: |
-          ${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs 5 &
-          echo $! > ${{ github.workspace }}/heartbeat.pid
-          echo "Started heartbeat monitor with PID $(cat ${{ github.workspace }}/heartbeat.pid)"
-
-      - name: Start heartbeat monitor (Windows)
-        if: inputs.testShortName == 'Hosting' && inputs.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          $process = Start-Process -FilePath "${{ env.DOTNET_SCRIPT }}" -ArgumentList "${{ github.workspace }}/tools/scripts/Heartbeat.cs", "5" -PassThru -NoNewWindow
-          $process.Id | Out-File -FilePath "${{ github.workspace }}/heartbeat.pid" -Encoding ascii -NoNewline
-          Write-Host "Started heartbeat monitor with PID $($process.Id)"
-
       - name: Download built nugets
         if: ${{ inputs.requiresNugets }}
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -290,8 +275,8 @@ jobs:
         if: runner.os == 'macOS'
         uses: ./.github/actions/unlock-macos-keychain
 
-      - name: Run nuget dependent tests
-        if: ${{ inputs.requiresNugets }}
+      - name: Run nuget dependent tests (Linux/macOS)
+        if: ${{ inputs.requiresNugets && (inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest') }}
         working-directory: ${{ github.workspace }}/run-tests/
         env:
           ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
@@ -301,20 +286,73 @@ jobs:
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
-        run: >
-          dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
-          --ignore-exit-code 8
-          --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
-          --crashdump
-          --results-directory ${{ github.workspace }}/testresults
-          --filter-not-trait "category=failing"
-          --timeout ${{ inputs.testSessionTimeout }}
-          ${{ inputs.extraTestArgs }}
-          ${{ inputs.ignoreTestFailures && '|| true' || '' }}
+        run: |
+          # Start heartbeat monitor in background
+          ${{ github.workspace }}/${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs &
+          HEARTBEAT_PID=$!
 
-      - name: Run tests
-        if: ${{ ! inputs.requiresNugets }}
-        id: run-tests
+          # Run tests
+          dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll \
+            --ignore-exit-code 8 \
+            --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx" \
+            --crashdump \
+            --results-directory ${{ github.workspace }}/testresults \
+            --filter-not-trait "category=failing" \
+            --timeout ${{ inputs.testSessionTimeout }} \
+            ${{ inputs.extraTestArgs }} \
+            ${{ inputs.ignoreTestFailures && '|| true' || '' }}
+          TEST_EXIT_CODE=$?
+
+          # Stop heartbeat monitor
+          kill $HEARTBEAT_PID 2>/dev/null || true
+          wait $HEARTBEAT_PID 2>/dev/null || true
+
+          exit $TEST_EXIT_CODE
+
+      - name: Run nuget dependent tests (Windows)
+        if: ${{ inputs.requiresNugets && inputs.os == 'windows-latest' }}
+        working-directory: ${{ github.workspace }}/run-tests/
+        shell: pwsh
+        env:
+          ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
+          BUILT_NUGETS_PATH: ${{ github.workspace }}/artifacts/packages/Debug/Shipping
+          NUGET_PACKAGES: ${{ github.workspace }}/nuget-cache
+          PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
+          TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
+          TestsRunningOutsideOfRepo: true
+          TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+        run: |
+          # Start heartbeat monitor in background (output goes to console directly)
+          $heartbeatProcess = Start-Process -FilePath "dotnet" `
+            -ArgumentList "${{ github.workspace }}\tools\scripts\Heartbeat.cs" `
+            -NoNewWindow -PassThru
+
+          try {
+            # Run tests
+            dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll `
+              --ignore-exit-code 8 `
+              --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx" `
+              --crashdump `
+              --results-directory ${{ github.workspace }}/testresults `
+              --filter-not-trait "category=failing" `
+              --timeout ${{ inputs.testSessionTimeout }} `
+              ${{ inputs.extraTestArgs }}
+            $testExitCode = $LASTEXITCODE
+          }
+          finally {
+            # Stop heartbeat monitor
+            if ($heartbeatProcess -and !$heartbeatProcess.HasExited) {
+              $heartbeatProcess | Stop-Process -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          if (-not ${{ inputs.ignoreTestFailures }}) {
+            exit $testExitCode
+          }
+
+      - name: Run tests (Linux/macOS)
+        if: ${{ ! inputs.requiresNugets && (inputs.os == 'ubuntu-latest' || inputs.os == 'macos-latest') }}
+        id: run-tests-unix
         env:
           ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
           # During restore and build, we use -ci, which causes NUGET_PACKAGES to point to a local cache (Arcade behavior).
@@ -323,22 +361,78 @@ jobs:
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
           PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
-        run: >
-          ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
-          /p:ContinuousIntegrationBuild=true
-          /p:TrxFileNamePrefix="${{ inputs.testShortName }}"
-          -bl:${{ github.workspace }}/testresults/test.binlog
-          -tl:false
-          --no-restore
-          --no-build
-          --
-          --ignore-exit-code 8
-          --report-trx
-          --crashdump
-          --results-directory ${{ github.workspace }}/testresults
-          --timeout ${{ inputs.testSessionTimeout }}
-          ${{ inputs.extraTestArgs }}
-          ${{ inputs.ignoreTestFailures && '|| true' || '' }}
+        run: |
+          # Start heartbeat monitor in background
+          ${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs &
+          HEARTBEAT_PID=$!
+
+          # Run tests
+          ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }} \
+            /p:ContinuousIntegrationBuild=true \
+            /p:TrxFileNamePrefix="${{ inputs.testShortName }}" \
+            -bl:${{ github.workspace }}/testresults/test.binlog \
+            -tl:false \
+            --no-restore \
+            --no-build \
+            -- \
+            --ignore-exit-code 8 \
+            --report-trx \
+            --crashdump \
+            --results-directory ${{ github.workspace }}/testresults \
+            --timeout ${{ inputs.testSessionTimeout }} \
+            ${{ inputs.extraTestArgs }} \
+            ${{ inputs.ignoreTestFailures && '|| true' || '' }}
+          TEST_EXIT_CODE=$?
+
+          # Stop heartbeat monitor
+          kill $HEARTBEAT_PID 2>/dev/null || true
+          wait $HEARTBEAT_PID 2>/dev/null || true
+
+          exit $TEST_EXIT_CODE
+
+      - name: Run tests (Windows)
+        if: ${{ ! inputs.requiresNugets && inputs.os == 'windows-latest' }}
+        id: run-tests-windows
+        shell: pwsh
+        env:
+          ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
+          NUGET_PACKAGES: ${{ github.workspace }}/.packages
+          PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
+          TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
+        run: |
+          # Start heartbeat monitor in background (output goes to console directly)
+          $heartbeatProcess = Start-Process -FilePath "${{ env.DOTNET_SCRIPT }}" `
+            -ArgumentList "${{ github.workspace }}\tools\scripts\Heartbeat.cs" `
+            -NoNewWindow -PassThru
+
+          try {
+            # Run tests
+            & ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }} `
+              /p:ContinuousIntegrationBuild=true `
+              /p:TrxFileNamePrefix="${{ inputs.testShortName }}" `
+              -bl:${{ github.workspace }}/testresults/test.binlog `
+              -tl:false `
+              --no-restore `
+              --no-build `
+              -- `
+              --ignore-exit-code 8 `
+              --report-trx `
+              --crashdump `
+              --results-directory ${{ github.workspace }}/testresults `
+              --timeout ${{ inputs.testSessionTimeout }} `
+              ${{ inputs.extraTestArgs }}
+            $testExitCode = $LASTEXITCODE
+          }
+          finally {
+            # Stop heartbeat monitor
+            if ($heartbeatProcess -and !$heartbeatProcess.HasExited) {
+              $heartbeatProcess | Stop-Process -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          if (-not ${{ inputs.ignoreTestFailures }}) {
+            exit $testExitCode
+          }
 
       - name: Verify test results exist
         if: ${{ inputs.ignoreTestFailures }}
@@ -386,26 +480,6 @@ jobs:
           }
 
           Write-Host "✓ Test execution completed successfully (found $validFileCount valid .trx file(s))"
-
-      - name: Stop heartbeat monitor (Linux/macOS)
-        if: always() && inputs.testShortName == 'Hosting' && inputs.os != 'windows-latest'
-        run: |
-          if [ -f "${{ github.workspace }}/heartbeat.pid" ]; then
-            PID=$(cat "${{ github.workspace }}/heartbeat.pid")
-            echo "Stopping heartbeat monitor (PID: $PID)"
-            kill $PID 2>/dev/null || true
-          fi
-
-      - name: Stop heartbeat monitor (Windows)
-        if: always() && inputs.testShortName == 'Hosting' && inputs.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          $pidFile = "${{ github.workspace }}/heartbeat.pid"
-          if (Test-Path $pidFile) {
-            $processId = Get-Content $pidFile
-            Write-Host "Stopping heartbeat monitor (PID: $processId)"
-            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
-          }
 
       - name: Dump docker info
         if: ${{ always() && inputs.os == 'ubuntu-latest' }}
