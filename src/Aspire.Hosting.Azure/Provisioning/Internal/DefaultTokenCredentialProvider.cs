@@ -15,6 +15,7 @@ internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
     private readonly DistributedApplicationExecutionContext _distributedApplicationExecutionContext;
     private TokenCredential? _credential;
     private string? _lastTenantId;
+    private string? _lastCredentialSource;
     private readonly object _lock = new();
 
     public DefaultTokenCredentialProvider(
@@ -34,12 +35,14 @@ internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
             lock (_lock)
             {
                 var currentTenantId = _options.Value.TenantId;
+                var currentCredentialSource = _options.Value.CredentialSource;
 
-                // Recreate credential if tenant ID has changed or credential doesn't exist
-                if (_credential == null || _lastTenantId != currentTenantId)
+                // Recreate credential if tenant ID or credential source has changed, or credential doesn't exist
+                if (_credential == null || _lastTenantId != currentTenantId || _lastCredentialSource != currentCredentialSource)
                 {
                     _credential = CreateCredential(currentTenantId);
                     _lastTenantId = currentTenantId;
+                    _lastCredentialSource = currentCredentialSource;
                 }
 
                 return _credential;
@@ -64,6 +67,11 @@ internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
                 AdditionallyAllowedTenants = { "*" }
             }),
             "VisualStudio" => new VisualStudioCredential(new()
+            {
+                TenantId = tenantId,
+                AdditionallyAllowedTenants = { "*" }
+            }),
+            "VisualStudioCode" => new VisualStudioCodeCredential(new()
             {
                 TenantId = tenantId,
                 AdditionallyAllowedTenants = { "*" }

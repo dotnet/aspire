@@ -12,12 +12,12 @@ public class CredentialProviderDetectorTests
     public async Task DetectAvailableProvidersAsync_ReturnsAtLeastInteractiveBrowser()
     {
         // Arrange
-        var logger = NullLogger<CredentialProviderDetector>.Instance;
+        var logger = NullLogger.Instance;
         var detector = new CredentialProviderDetector(logger);
 
         // Act - use CancellationToken with timeout to avoid hanging
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var providers = await detector.DetectAvailableProvidersAsync(cts.Token);
+        var providers = await detector.DetectAvailableProvidersAsync(tenantId: null, cts.Token);
 
         // Assert
         Assert.NotNull(providers);
@@ -29,14 +29,14 @@ public class CredentialProviderDetectorTests
     public async Task DetectAvailableProvidersAsync_DoesNotThrow()
     {
         // Arrange
-        var logger = NullLogger<CredentialProviderDetector>.Instance;
+        var logger = NullLogger.Instance;
         var detector = new CredentialProviderDetector(logger);
 
         // Act & Assert - should not throw even if no credentials are configured
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         var exception = await Record.ExceptionAsync(async () =>
         {
-            var providers = await detector.DetectAvailableProvidersAsync(cts.Token);
+            var providers = await detector.DetectAvailableProvidersAsync(tenantId: null, cts.Token);
         });
 
         Assert.Null(exception);

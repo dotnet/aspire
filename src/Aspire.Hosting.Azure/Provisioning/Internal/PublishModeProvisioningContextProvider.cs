@@ -135,10 +135,8 @@ internal sealed class PublishModeProvisioningContextProvider(
 
                 await using (task.ConfigureAwait(false))
                 {
-                    var loggerFactory = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
-                    var detectorLogger = loggerFactory.CreateLogger<CredentialProviderDetector>();
-                    var detector = new CredentialProviderDetector(detectorLogger);
-                    availableProviders = await detector.DetectAvailableProvidersAsync(cancellationToken).ConfigureAwait(false);
+                    var detector = new CredentialProviderDetector(_logger);
+                    availableProviders = await detector.DetectAvailableProvidersAsync(_options.TenantId, cancellationToken).ConfigureAwait(false);
                 }
 
                 await step.SucceedAsync($"Detected {availableProviders.Count} credential provider(s)", cancellationToken).ConfigureAwait(false);

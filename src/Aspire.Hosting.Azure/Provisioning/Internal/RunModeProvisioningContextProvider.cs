@@ -139,10 +139,8 @@ internal sealed class RunModeProvisioningContextProvider(
                         {
                             LoadCallback = async (context) =>
                             {
-                                var loggerFactory = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
-                                var detectorLogger = loggerFactory.CreateLogger<CredentialProviderDetector>();
-                                var detector = new CredentialProviderDetector(detectorLogger);
-                                var availableProviders = await detector.DetectAvailableProvidersAsync(cancellationToken).ConfigureAwait(false);
+                                var detector = new CredentialProviderDetector(_logger);
+                                var availableProviders = await detector.DetectAvailableProvidersAsync(_options.TenantId, cancellationToken).ConfigureAwait(false);
 
                                 context.Input.Options = availableProviders
                                     .Select(provider => KeyValuePair.Create(provider, GetCredentialProviderDisplayName(provider)))
