@@ -87,9 +87,12 @@ internal sealed class CredentialProviderDetector(ILogger<CredentialProviderDetec
                 ProcessTimeout = TimeSpan.FromSeconds(5)
             });
 
-            // Try to get a token for Azure Resource Manager
+            // Try to get a token for Azure Resource Manager with a timeout
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(5));
+            
             var tokenRequest = new TokenRequestContext(["https://management.azure.com/.default"]);
-            var token = await credential.GetTokenAsync(tokenRequest, cancellationToken).ConfigureAwait(false);
+            var token = await credential.GetTokenAsync(tokenRequest, cts.Token).ConfigureAwait(false);
             return !string.IsNullOrEmpty(token.Token);
         }
         catch (Exception ex)
