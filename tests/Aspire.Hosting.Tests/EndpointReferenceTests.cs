@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Tests;
 
@@ -283,6 +285,36 @@ public class EndpointReferenceTests
 
         var targetPort = endpointRef.TargetPort;
         Assert.Null(targetPort);
+    }
+
+    [Fact]
+    public async Task EndpointReferenceEnvironmentVariableEvaluatesToCorrectUrl()
+    {
+        // This test case is from issue #6548 - verifies that endpoint references
+        // resolve to the correct URL when used in environment variables
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var dependency = builder
+            .AddResource(new FakeResource("fake"))
+            .WithHttpEndpoint();
+
+        var consumer = builder
+            .AddContainer("test", "redis")
+            .WithImageRegistry("docker.io")
+            .WithReference(dependency.GetEndpoint("http"));
+
+        var endpointAnnotation = dependency.Resource.Annotations.OfType<EndpointAnnotation>().Single();
+        endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "localhost", 1234);
+
+        var envVars = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(consumer.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        
+        // The test expects the environment variable to contain the full URL
+        // Currently fails with "http://:" instead of "http://localhost:1234"
+        Assert.Equal("http://localhost:1234", envVars["services__fake__http__0"]);
+    }
+
+    private sealed class FakeResource(string name) : Resource(name), IResourceWithEndpoints
+    {
     }
 
     private sealed class TestResource(string name) : Resource(name), IResourceWithEndpoints
