@@ -102,6 +102,16 @@ public class ReferenceExpressionTests
         Assert.Equal("Text: Hello%20World", await expr.GetValueAsync(default));
     }
 
+    [Fact]
+    public async Task ReferenceExpressionBuilderSupportsNullFormat()
+    {
+        var b = new ReferenceExpressionBuilder();
+        b.Append($"Text: ");
+        b.AppendFormatted("foo", format: null);
+
+        Assert.Equal("Text: foo", await b.Build().GetValueAsync(default));
+    }
+
     private sealed class Value : IValueProvider, IManifestExpressionProvider
     {
         public string ValueExpression => "{value}";
