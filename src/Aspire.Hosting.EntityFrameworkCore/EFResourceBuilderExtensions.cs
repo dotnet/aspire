@@ -1,8 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -158,7 +161,9 @@ public static class EFResourceBuilderExtensions
                 Properties = [],
                 State = new ResourceStateSnapshot("Pending", KnownResourceStateStyles.Info)
             })
-            .WithIconName("Database");
+            .WithIconName("Database")
+            .WaitFor(builder)
+            .WithPipelineStepFactory(CreateMigrationPipelineStep);
 
         // Add commands to the original project resource builder
         AddEFMigrationCommands(builder, migrationResource, contextTypeName);
@@ -169,6 +174,83 @@ public static class EFResourceBuilderExtensions
     private static void EnsureEventSubscriberRegistered(IDistributedApplicationBuilder applicationBuilder)
     {
         applicationBuilder.Services.TryAddEventingSubscriber<EFMigrationEventSubscriber>();
+    }
+
+    private static IEnumerable<PipelineStep> CreateMigrationPipelineStep(PipelineStepFactoryContext context)
+    {
+        if (context.Resource is not EFMigrationResource migrationResource
+            || !migrationResource.Options.PublishAsMigrationScript && !migrationResource.Options.PublishAsMigrationBundle)
+        {
+            yield break;
+        }
+
+        if (migrationResource.Options.PublishAsMigrationScript)
+        {
+            yield return new PipelineStep
+            {
+                Name = $"{migrationResource.Name}-generate-migration-script",
+                Description = $"Generate EF Core migration SQL script for {migrationResource.Name}",
+                Resource = migrationResource,
+                Action = async stepContext =>
+                {
+                    var loggerFactory = stepContext.Services.GetRequiredService<ILoggerFactory>();
+                    var logger = loggerFactory.CreateLogger<EFMigrationResource>();
+
+                    using var executor = new EFCoreOperationExecutor(
+                        migrationResource.ProjectResource,
+                        migrationResource.Options.MigrationsProject,
+                        migrationResource.ContextTypeName,
+                        logger,
+                        stepContext.CancellationToken);
+
+                    logger.LogInformation("Generating migration script for '{ResourceName}'...", migrationResource.Name);
+                    var result = await executor.GenerateMigrationScriptAsync().ConfigureAwait(false);
+
+                    if (result.Success)
+                    {
+                        logger.LogInformation("Migration script generated successfully for '{ResourceName}'.", migrationResource.Name);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Failed to generate migration script for '{migrationResource.Name}': {result.ErrorMessage}");
+                    }
+                }
+            };
+        }
+
+        if (migrationResource.Options.PublishAsMigrationBundle)
+        {
+            yield return new PipelineStep
+            {
+                Name = $"{migrationResource.Name}-generate-migration-bundle",
+                Description = $"Generate EF Core migration bundle for {migrationResource.Name}",
+                Resource = migrationResource,
+                Action = async stepContext =>
+                {
+                    var loggerFactory = stepContext.Services.GetRequiredService<ILoggerFactory>();
+                    var logger = loggerFactory.CreateLogger<EFMigrationResource>();
+
+                    using var executor = new EFCoreOperationExecutor(
+                        migrationResource.ProjectResource,
+                        migrationResource.Options.MigrationsProject,
+                        migrationResource.ContextTypeName,
+                        logger,
+                        stepContext.CancellationToken);
+
+                    logger.LogInformation("Generating migration bundle for '{ResourceName}'...", migrationResource.Name);
+                    var result = await executor.GenerateMigrationBundleAsync().ConfigureAwait(false);
+
+                    if (result.Success)
+                    {
+                        logger.LogInformation("Migration bundle generated successfully for '{ResourceName}'.", migrationResource.Name);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Failed to generate migration bundle for '{migrationResource.Name}': {result.ErrorMessage}");
+                    }
+                }
+            };
+        }
     }
 
     private static void AddEFMigrationCommands(

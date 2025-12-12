@@ -7,8 +7,9 @@ using System.Collections;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using System.Text.Json;
+
 namespace Aspire.Hosting;
 
 /// <summary>
@@ -18,8 +19,6 @@ namespace Aspire.Hosting;
 /// This class uses reflection to load Microsoft.EntityFrameworkCore.Design from the target project
 /// and invoke its OperationExecutor to execute design-time operations. The target project must reference
 /// Microsoft.EntityFrameworkCore.Design package for these operations to work.
-/// Assemblies are loaded into a collectible AssemblyLoadContext and unloaded after operations complete.
-/// See: https://github.com/dotnet/efcore/blob/main/src/ef/ReflectionOperationExecutor.cs
 /// </remarks>
 internal sealed class EFCoreOperationExecutor : IDisposable
 {
@@ -39,6 +38,10 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     private string? _projectDirectory;
     private string? _rootNamespace;
     private string? _designAssemblyPath;
+    private string? _framework;
+    private string? _configuration;
+    private string? _runtime;
+    private bool? _nullable;
     private bool _initialized;
 
     public EFCoreOperationExecutor(
@@ -66,14 +69,14 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
         _initialized = true;
 
-        // Get startup project path
         var startupProjectPath = GetProjectPath(_startupProjectResource);
         if (startupProjectPath == null)
         {
             return new EFOperationResult { Success = false, ErrorMessage = "Could not determine startup project path. Ensure the project has an IProjectMetadata annotation." };
         }
 
-        _startupAssemblyPath = await GetMSBuildPropertyAsync(startupProjectPath, "TargetPath").ConfigureAwait(false);
+        var startupProps = await GetProjectPropertiesAsync(startupProjectPath).ConfigureAwait(false);
+        _startupAssemblyPath = startupProps.TargetPath;
         
         if (_startupAssemblyPath == null || !File.Exists(_startupAssemblyPath))
         {
@@ -84,7 +87,8 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             };
         }
 
-        // Get target project path (if different from startup)
+        ParseBuildSettingsFromPath(_startupAssemblyPath);
+
         if (_targetProjectResource != null)
         {
             var targetProjectPath = GetProjectPath(_targetProjectResource);
@@ -93,10 +97,15 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 return new EFOperationResult { Success = false, ErrorMessage = "Could not determine target project path. Ensure the project has an IProjectMetadata annotation." };
             }
 
-            _projectDirectory = Path.GetDirectoryName(targetProjectPath)!;
-            _targetAssemblyPath = await GetMSBuildPropertyAsync(targetProjectPath, "TargetPath").ConfigureAwait(false);
-            _rootNamespace = await GetMSBuildPropertyAsync(targetProjectPath, "RootNamespace").ConfigureAwait(false);
-            _designAssemblyPath = await GetDesignAssemblyPathAsync(targetProjectPath, _targetAssemblyPath).ConfigureAwait(false);
+            var targetProps = await GetProjectPropertiesAsync(targetProjectPath).ConfigureAwait(false);
+            
+            _projectDirectory = targetProps.ProjectDir ?? Path.GetDirectoryName(targetProjectPath)!;
+            _targetAssemblyPath = targetProps.TargetPath;
+            _rootNamespace = targetProps.RootNamespace;
+            _nullable = string.Equals(targetProps.Nullable, "enable", StringComparison.OrdinalIgnoreCase);
+            
+            // Look for design assembly in target project first, then startup project
+            _designAssemblyPath = targetProps.DesignAssemblyPath ?? startupProps.DesignAssemblyPath;
 
             if (_targetAssemblyPath == null || !File.Exists(_targetAssemblyPath))
             {
@@ -109,10 +118,11 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
         else
         {
-            _projectDirectory = Path.GetDirectoryName(startupProjectPath)!;
+            _projectDirectory = startupProps.ProjectDir ?? Path.GetDirectoryName(startupProjectPath)!;
             _targetAssemblyPath = _startupAssemblyPath;
-            _rootNamespace = await GetMSBuildPropertyAsync(startupProjectPath, "RootNamespace").ConfigureAwait(false);
-            _designAssemblyPath = await GetDesignAssemblyPathAsync(startupProjectPath, _startupAssemblyPath).ConfigureAwait(false);
+            _rootNamespace = startupProps.RootNamespace;
+            _nullable = string.Equals(startupProps.Nullable, "enable", StringComparison.OrdinalIgnoreCase);
+            _designAssemblyPath = startupProps.DesignAssemblyPath;
         }
 
         // Fall back to assembly name if RootNamespace not found
@@ -121,167 +131,212 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         return new EFOperationResult { Success = true };
     }
 
-    private async Task<string?> GetMSBuildPropertyAsync(string projectPath, string propertyName)
+    private record ProjectProperties(
+        string? TargetPath, 
+        string? RootNamespace, 
+        string? ProjectDir, 
+        string? OutputPath,
+        string? DesignAssemblyPath,
+        string? Nullable);
+
+    /// <summary>
+    /// Record for deserializing MSBuild JSON output.
+    /// </summary>
+    private sealed record MSBuildOutput
     {
-        return await RunMSBuildAsync($"-getProperty:{propertyName}", projectPath).ConfigureAwait(false);
+        public Dictionary<string, string>? Properties { get; init; }
+        public Dictionary<string, Dictionary<string, string>[]>? Items { get; init; }
     }
 
-    private async Task<string?> GetDesignAssemblyPathAsync(string projectPath, string? assemblyPath)
+    private async Task<ProjectProperties> GetProjectPropertiesAsync(string projectPath)
     {
-        // Use MSBuild to get the design assembly path from referenced packages
-        var result = await RunMSBuildAsync(
-            $"-getItem:ReferencePath -getItemMetadata:NuGetPackageId \"{projectPath}\"", 
-            projectPath).ConfigureAwait(false);
-
-        if (result == null)
+        // Build MSBuild arguments similar to how EF Core does it
+        // Use /t:ResolvePackageAssets to ensure RuntimeCopyLocalItems are available
+        var args = new List<string>
         {
-            return null;
+            "/getProperty:TargetPath",
+            "/getProperty:RootNamespace",
+            "/getProperty:ProjectDir",
+            "/getProperty:OutputPath",
+            "/getProperty:Nullable",
+            "/t:ResolvePackageAssets",
+            "/getItem:RuntimeCopyLocalItems"
+        };
+
+        var result = await RunMSBuildAsync(string.Join(" ", args), projectPath).ConfigureAwait(false);
+
+        if (string.IsNullOrEmpty(result))
+        {
+            throw new InvalidOperationException($"MSBuild returned empty output for project '{projectPath}'. Ensure the project is built.");
         }
 
-        // Parse MSBuild output to find Microsoft.EntityFrameworkCore.Design reference
-        var lines = result.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-        foreach (var line in lines)
-        {
-            if (line.Contains(DesignAssemblyName, StringComparison.OrdinalIgnoreCase))
-            {
-                // Extract the path from the MSBuild output
-                var path = line.Trim();
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-            }
-        }
-
-        // Fall back to looking in the output directory
-        if (assemblyPath != null)
-        {
-            var outputDir = Path.GetDirectoryName(assemblyPath);
-            if (outputDir != null)
-            {
-                var designPath = Path.Combine(outputDir, $"{DesignAssemblyName}.dll");
-                if (File.Exists(designPath))
-                {
-                    return designPath;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private async Task<string?> RunMSBuildAsync(string arguments, string projectPath)
-    {
+        // Parse JSON output
+        MSBuildOutput? msbuildOutput;
         try
         {
-            // Construct MSBuild arguments with build configuration heuristics
-            var msbuildArgs = BuildMSBuildArguments(arguments, projectPath);
-
-            var startInfo = new ProcessStartInfo
+            msbuildOutput = JsonSerializer.Deserialize<MSBuildOutput>(result, new JsonSerializerOptions
             {
-                FileName = "dotnet",
-                Arguments = msbuildArgs,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(startInfo);
-            if (process == null)
-            {
-                _logger.LogWarning("Failed to start dotnet msbuild process.");
-                return null;
-            }
-
-            var output = await process.StandardOutput.ReadToEndAsync(_cancellationToken).ConfigureAwait(false);
-            await process.WaitForExitAsync(_cancellationToken).ConfigureAwait(false);
-
-            if (process.ExitCode != 0)
-            {
-                var errorOutput = await process.StandardError.ReadToEndAsync(_cancellationToken).ConfigureAwait(false);
-                _logger.LogDebug("dotnet msbuild failed with exit code {ExitCode}: {Error}", process.ExitCode, errorOutput);
-                return null;
-            }
-
-            var result = output.Trim();
-            if (!string.IsNullOrEmpty(result))
-            {
-                return result;
-            }
-
-            return null;
+                PropertyNameCaseInsensitive = true
+            });
         }
-        catch (Exception ex)
+        catch (JsonException ex)
         {
-            _logger.LogDebug(ex, "Error running dotnet msbuild");
-            return null;
+            _logger.LogError(ex, "Failed to parse MSBuild JSON output: {Output}", result);
+            throw new InvalidOperationException($"Failed to parse MSBuild output as JSON. Output: {result}", ex);
         }
+
+        if (msbuildOutput?.Properties == null)
+        {
+            throw new InvalidOperationException($"MSBuild output did not contain expected Properties. Output: {result}");
+        }
+
+        var properties = msbuildOutput.Properties;
+
+        properties.TryGetValue("TargetPath", out var targetPath);
+        properties.TryGetValue("RootNamespace", out var rootNamespace);
+        properties.TryGetValue("ProjectDir", out var projectDir);
+        properties.TryGetValue("OutputPath", out var outputPath);
+        properties.TryGetValue("Nullable", out var nullable);
+
+        string? designAssemblyPath = null;
+        if (msbuildOutput.Items?.TryGetValue("RuntimeCopyLocalItems", out var runtimeItems) == true && runtimeItems != null)
+        {
+            designAssemblyPath = runtimeItems
+                .Select(item => item.TryGetValue("FullPath", out var fullPath) ? fullPath : null)
+                .FirstOrDefault(path => path != null && path.Contains(DesignAssemblyName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        _logger.LogDebug(
+            "Project properties for '{ProjectPath}': TargetPath={TargetPath}, RootNamespace={RootNamespace}, " +
+            "ProjectDir={ProjectDir}, OutputPath={OutputPath}, Nullable={Nullable}, DesignAssemblyPath={DesignAssemblyPath}",
+            projectPath, targetPath, rootNamespace, projectDir, outputPath, nullable, designAssemblyPath);
+
+        return new ProjectProperties(targetPath, rootNamespace, projectDir, outputPath, designAssemblyPath, nullable);
+    }
+
+    private async Task<string> RunMSBuildAsync(string arguments, string projectPath)
+    {
+        // Construct MSBuild arguments with build configuration heuristics
+        var msbuildArgs = BuildMSBuildArguments(arguments, projectPath);
+
+        _logger.LogDebug("Running MSBuild: dotnet {Arguments}", msbuildArgs);
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = msbuildArgs,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = Process.Start(startInfo);
+        if (process == null)
+        {
+            throw new InvalidOperationException("Failed to start dotnet msbuild process.");
+        }
+
+        var output = await process.StandardOutput.ReadToEndAsync(_cancellationToken).ConfigureAwait(false);
+        var errorOutput = await process.StandardError.ReadToEndAsync(_cancellationToken).ConfigureAwait(false);
+        await process.WaitForExitAsync(_cancellationToken).ConfigureAwait(false);
+
+        if (process.ExitCode != 0)
+        {
+            _logger.LogDebug("dotnet msbuild failed with exit code {ExitCode}: {Error}", process.ExitCode, errorOutput);
+            throw new InvalidOperationException($"MSBuild failed with exit code {process.ExitCode}: {errorOutput}");
+        }
+
+        var result = output.Trim();
+        _logger.LogDebug("MSBuild output:\n{Output}", result);
+        
+        return result;
     }
 
     /// <summary>
-    /// Builds MSBuild arguments with heuristics to determine target framework, configuration and runtime.
+    /// Builds MSBuild arguments using stored framework, configuration, and runtime.
     /// </summary>
-    private static string BuildMSBuildArguments(string arguments, string projectPath)
+    private string BuildMSBuildArguments(string arguments, string projectPath)
     {
         var args = $"msbuild {arguments} \"{projectPath}\"";
 
-        // Determine configuration from debugger state
-        var configuration = Debugger.IsAttached ? "Debug" : "Release";
-        args += $" /p:Configuration={configuration}";
-
-        // Determine runtime identifier based on current platform
-        var rid = GetRuntimeIdentifier();
-        if (rid != null)
+        if (_framework != null)
         {
-            args += $" /p:RuntimeIdentifier={rid}";
+            args += $" /p:TargetFramework={_framework}";
+        }
+
+        if (_configuration != null)
+        {
+            args += $" /p:Configuration={_configuration}";
+        }
+
+        if (_runtime != null)
+        {
+            args += $" /p:RuntimeIdentifier={_runtime}";
         }
 
         return args;
     }
 
     /// <summary>
-    /// Gets the runtime identifier for the current platform using heuristics.
+    /// Parses framework, configuration, and runtime from an assembly path.
+    /// Typical path patterns:
+    ///   bin/{Configuration}/{Framework}/{AssemblyName}.dll
+    ///   bin/{Configuration}/{Framework}/{Runtime}/{AssemblyName}.dll
     /// </summary>
-    private static string? GetRuntimeIdentifier()
+    private void ParseBuildSettingsFromPath(string assemblyPath)
     {
-        // Try to get from environment first (may be set by build)
-        var envRid = Environment.GetEnvironmentVariable("DOTNET_RUNTIME_IDENTIFIER");
-        if (!string.IsNullOrEmpty(envRid))
+        // Split the path into segments
+        var segments = assemblyPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        
+        // Find the "bin" segment as an anchor point
+        var binIndex = -1;
+        for (var i = 0; i < segments.Length; i++)
         {
-            return envRid;
+            if (segments[i].Equals("bin", StringComparison.OrdinalIgnoreCase))
+            {
+                binIndex = i;
+                break;
+            }
         }
 
-        // Determine based on current OS and architecture
-        var osArch = RuntimeInformation.OSArchitecture;
-        var archSuffix = osArch switch
+        if (binIndex < 0 || binIndex + 2 >= segments.Length)
         {
-            Architecture.X64 => "x64",
-            Architecture.X86 => "x86",
-            Architecture.Arm64 => "arm64",
-            Architecture.Arm => "arm",
-            _ => null
-        };
-
-        if (archSuffix == null)
-        {
-            return null;
+            _logger.LogDebug("Could not parse build settings from assembly path: {AssemblyPath}", assemblyPath);
+            return;
         }
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        // Configuration is typically right after "bin"
+        var configCandidate = segments[binIndex + 1];
+        if (configCandidate.Equals("Debug", StringComparison.OrdinalIgnoreCase) || 
+            configCandidate.Equals("Release", StringComparison.OrdinalIgnoreCase))
         {
-            return $"win-{archSuffix}";
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            return $"linux-{archSuffix}";
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            return $"osx-{archSuffix}";
+            _configuration = configCandidate;
         }
 
-        return null;
+        // Framework is typically after configuration (e.g., net8.0, net9.0)
+        var frameworkCandidate = segments[binIndex + 2];
+        if (frameworkCandidate.StartsWith("net", StringComparison.OrdinalIgnoreCase))
+        {
+            _framework = frameworkCandidate;
+        }
+
+        // Runtime is optional and comes after framework (e.g., win-x64, linux-arm64)
+        // The assembly name is the last segment, so if there are 4+ segments after bin, 
+        // the 4th one (index binIndex + 3) might be a runtime identifier
+        if (binIndex + 4 < segments.Length)
+        {
+            var runtimeCandidate = segments[binIndex + 3];
+            // Runtime identifiers typically contain a hyphen (win-x64, linux-arm64, osx-x64, etc.)
+            if (runtimeCandidate.Contains('-') && !runtimeCandidate.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            {
+                _runtime = runtimeCandidate;
+            }
+        }
+
+        _logger.LogDebug(
+            "Parsed build settings from path: Framework={Framework}, Configuration={Configuration}, Runtime={Runtime}",
+            _framework, _configuration, _runtime);
     }
 
     private static string? GetProjectPath(ProjectResource projectResource)
@@ -304,12 +359,24 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             return initResult;
         }
 
-        var appBasePath = Path.GetDirectoryName(_targetAssemblyPath)!;
-        
-        // Use the design assembly path obtained via MSBuild, or fall back to output directory
-        var designAssemblyPath = _designAssemblyPath ?? Path.Combine(appBasePath, $"{DesignAssemblyName}.dll");
+        var targetBasePath = Path.GetDirectoryName(_targetAssemblyPath)!;
+        var startupBasePath = Path.GetDirectoryName(_startupAssemblyPath)!;
 
-        if (!File.Exists(designAssemblyPath))
+        return ExecuteOperationInContext(
+            targetBasePath,
+            startupBasePath,
+            operation,
+            handleDatabaseNotFound);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private EFOperationResult ExecuteOperationInContext(
+        string targetBasePath,
+        string startupBasePath,
+        Func<object, Assembly, Type, object?> operation,
+        bool handleDatabaseNotFound)
+    {
+        if (string.IsNullOrEmpty(_designAssemblyPath) || !File.Exists(_designAssemblyPath))
         {
             return new EFOperationResult
             {
@@ -318,26 +385,11 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             };
         }
 
-        // ExecuteOperationInContext uses alc.Unload() to trigger unloading
-        return ExecuteOperationInContext(
-            designAssemblyPath,
-            appBasePath,
-            operation,
-            handleDatabaseNotFound);
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private EFOperationResult ExecuteOperationInContext(
-        string designAssemblyPath,
-        string appBasePath,
-        Func<object, Assembly, Type, object?> operation,
-        bool handleDatabaseNotFound)
-    {
-        var alc = new EFCoreDesignLoadContext(appBasePath, designAssemblyPath, _startupAssemblyPath);
+        var alc = new EFCoreDesignLoadContext(targetBasePath, startupBasePath, _targetAssemblyPath!, _startupAssemblyPath);
 
         try
         {
-            var commandsAssembly = alc.LoadFromAssemblyPath(designAssemblyPath);
+            var commandsAssembly = alc.LoadFromAssemblyPath(_designAssemblyPath);
 
             // Load the target and startup assemblies in the same context
             alc.LoadFromAssemblyPath(_targetAssemblyPath!);
@@ -367,7 +419,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                     { "projectDir", _projectDirectory },
                     { "rootNamespace", _rootNamespace },
                     { "language", "C#" },
-                    { "nullable", true },
+                    { "nullable", _nullable ?? false },
                     { "remainingArguments", Array.Empty<string>() }
                 })!;
 
@@ -418,14 +470,16 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     {
         private readonly AssemblyDependencyResolver _resolver;
         private readonly AssemblyDependencyResolver? _startupResolver;
-        private readonly string _appBasePath;
+        private readonly string _targetBasePath;
+        private readonly string _startupBasePath;
 
-        public EFCoreDesignLoadContext(string appBasePath, string mainAssemblyPath, string? startupAssemblyPath) 
+        public EFCoreDesignLoadContext(string targetBasePath, string startupBasePath, string targetAssemblyPath, string? startupAssemblyPath) 
             : base(isCollectible: true)
         {
-            _appBasePath = appBasePath;
-            _resolver = new AssemblyDependencyResolver(mainAssemblyPath);
-            if (startupAssemblyPath != null && startupAssemblyPath != mainAssemblyPath)
+            _targetBasePath = targetBasePath;
+            _startupBasePath = startupBasePath;
+            _resolver = new AssemblyDependencyResolver(targetAssemblyPath);
+            if (startupAssemblyPath != null && startupAssemblyPath != targetAssemblyPath)
             {
                 _startupResolver = new AssemblyDependencyResolver(startupAssemblyPath);
             }
@@ -450,13 +504,26 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 }
             }
 
-            // Fall back to looking in the app base path
+            // Fall back to looking in the target base path
             foreach (var extension in new[] { ".dll", ".exe" })
             {
-                var path = Path.Combine(_appBasePath, assemblyName.Name + extension);
+                var path = Path.Combine(_targetBasePath, assemblyName.Name + extension);
                 if (File.Exists(path))
                 {
                     return LoadFromAssemblyPath(path);
+                }
+            }
+
+            // Fall back to looking in the startup base path
+            if (_startupBasePath != _targetBasePath)
+            {
+                foreach (var extension in new[] { ".dll", ".exe" })
+                {
+                    var path = Path.Combine(_startupBasePath, assemblyName.Name + extension);
+                    if (File.Exists(path))
+                    {
+                        return LoadFromAssemblyPath(path);
+                    }
                 }
             }
 
