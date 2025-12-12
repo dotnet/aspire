@@ -130,7 +130,7 @@ string GenerateLocalCode(string csNamespace, List<ModelEntity> models)
     sb.AppendLine("    /// <summary>");
     sb.AppendLine("    /// Models available on Foundry Local.");
     sb.AppendLine("    /// </summary>");
-    sb.AppendLine(CultureInfo.InvariantCulture, $"    public static class Local");
+    sb.AppendLine(CultureInfo.InvariantCulture, $"    public static partial class Local");
     sb.AppendLine("    {");
 
     foreach (var publisherGroup in modelsByPublisher)
