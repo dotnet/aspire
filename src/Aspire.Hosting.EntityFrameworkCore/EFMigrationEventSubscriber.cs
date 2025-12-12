@@ -132,6 +132,14 @@ internal sealed class EFMigrationEventSubscriber(
         
         try
         {
+            // Wait for the project resource (containing the DB connection) to be healthy before applying migrations
+            resourceLogger.LogInformation("Waiting for '{ProjectName}' to be healthy before applying migrations...", 
+                migrationResource.ProjectResource.Name);
+            
+            await resourceNotificationService.WaitForResourceHealthyAsync(
+                migrationResource.ProjectResource.Name,
+                cancellationToken).ConfigureAwait(false);
+
             // Update state to Running
             await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
             {
