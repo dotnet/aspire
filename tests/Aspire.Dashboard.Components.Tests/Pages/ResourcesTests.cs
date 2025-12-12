@@ -634,4 +634,166 @@ public partial class ResourcesTests : DashboardTestContext
         var resource = filteredResources[0];
         Assert.Equal("error", resource.StateStyle);
     }
+
+    [Fact]
+    public void GraphView_FiltersResourcesByType()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("Resource1", "Type1", "Running", null),
+            CreateResource("Resource2", "Type2", "Running", null),
+            CreateResource("Resource3", "Type3", "Running", null),
+        };
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+
+        var resourceGraphModule = JSInterop.SetupModule("/js/app-resourcegraph.js");
+        resourceGraphModule.SetupVoid("initializeResourcesGraph", _ => true);
+        resourceGraphModule.SetupVoid("updateResourcesGraph", _ => true);
+        resourceGraphModule.SetupVoid("updateResourcesGraphSelected", _ => true);
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo(DashboardUrls.ResourcesUrl(view: "Graph"));
+
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Initially all resources are visible
+        Assert.Equal(3, cut.Instance.GetFilteredResources().Count());
+
+        // Act - Hide Type1 resources
+        cut.Instance.PageViewModel.ResourceTypesToVisibility["Type1"] = false;
+
+        // Assert - Only 2 resources should be visible
+        var filteredResources = cut.Instance.GetFilteredResources().ToList();
+        Assert.Equal(2, filteredResources.Count);
+        Assert.Contains(filteredResources, r => r.Name == "Resource2");
+        Assert.Contains(filteredResources, r => r.Name == "Resource3");
+        Assert.DoesNotContain(filteredResources, r => r.Name == "Resource1");
+    }
+
+    [Fact]
+    public void GraphView_FiltersResourcesByState()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("Resource1", "Type1", "Running", null),
+            CreateResource("Resource2", "Type1", "Stopping", null),
+            CreateResource("Resource3", "Type1", "Running", null),
+        };
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+
+        var resourceGraphModule = JSInterop.SetupModule("/js/app-resourcegraph.js");
+        resourceGraphModule.SetupVoid("initializeResourcesGraph", _ => true);
+        resourceGraphModule.SetupVoid("updateResourcesGraph", _ => true);
+        resourceGraphModule.SetupVoid("updateResourcesGraphSelected", _ => true);
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo(DashboardUrls.ResourcesUrl(view: "Graph"));
+
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Initially all resources are visible
+        Assert.Equal(3, cut.Instance.GetFilteredResources().Count());
+
+        // Act - Hide Running resources
+        cut.Instance.PageViewModel.ResourceStatesToVisibility["Running"] = false;
+
+        // Assert - Only Stopping resource should be visible
+        var filteredResources = cut.Instance.GetFilteredResources().ToList();
+        Assert.Single(filteredResources);
+        Assert.Contains(filteredResources, r => r.Name == "Resource2" && r.State == "Stopping");
+    }
+
+    [Fact]
+    public void GraphView_FiltersResourcesByHealthState()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("Resource1", "Type1", "Running", ImmutableArray.Create(new HealthReportViewModel("Healthy", HealthStatus.Healthy, "Description1", null))),
+            CreateResource("Resource2", "Type1", "Running", ImmutableArray.Create(new HealthReportViewModel("Unhealthy", HealthStatus.Unhealthy, "Description2", null))),
+            CreateResource("Resource3", "Type1", "Running", ImmutableArray.Create(new HealthReportViewModel("Degraded", HealthStatus.Degraded, "Description3", null))),
+        };
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+
+        var resourceGraphModule = JSInterop.SetupModule("/js/app-resourcegraph.js");
+        resourceGraphModule.SetupVoid("initializeResourcesGraph", _ => true);
+        resourceGraphModule.SetupVoid("updateResourcesGraph", _ => true);
+        resourceGraphModule.SetupVoid("updateResourcesGraphSelected", _ => true);
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo(DashboardUrls.ResourcesUrl(view: "Graph"));
+
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Initially all resources are visible
+        Assert.Equal(3, cut.Instance.GetFilteredResources().Count());
+
+        // Act - Hide Healthy resources
+        cut.Instance.PageViewModel.ResourceHealthStatusesToVisibility["Healthy"] = false;
+
+        // Assert - Only Unhealthy and Degraded resources should be visible
+        var filteredResources = cut.Instance.GetFilteredResources().ToList();
+        Assert.Equal(2, filteredResources.Count);
+        Assert.Contains(filteredResources, r => r.Name == "Resource2");
+        Assert.Contains(filteredResources, r => r.Name == "Resource3");
+        Assert.DoesNotContain(filteredResources, r => r.Name == "Resource1");
+    }
+
+    [Fact]
+    public void GraphView_FiltersResourcesByMultipleCriteria()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("Resource1", "Type1", "Running", null),
+            CreateResource("Resource2", "Type2", "Running", null),
+            CreateResource("Resource3", "Type1", "Stopping", null),
+            CreateResource("Resource4", "Type2", "Stopping", null),
+        };
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+
+        var resourceGraphModule = JSInterop.SetupModule("/js/app-resourcegraph.js");
+        resourceGraphModule.SetupVoid("initializeResourcesGraph", _ => true);
+        resourceGraphModule.SetupVoid("updateResourcesGraph", _ => true);
+        resourceGraphModule.SetupVoid("updateResourcesGraphSelected", _ => true);
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo(DashboardUrls.ResourcesUrl(view: "Graph"));
+
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Initially all resources are visible
+        Assert.Equal(4, cut.Instance.GetFilteredResources().Count());
+
+        // Act - Hide Type1 resources AND Stopping resources
+        cut.Instance.PageViewModel.ResourceTypesToVisibility["Type1"] = false;
+        cut.Instance.PageViewModel.ResourceStatesToVisibility["Stopping"] = false;
+
+        // Assert - Only Resource2 (Type2 + Running) should be visible
+        var filteredResources = cut.Instance.GetFilteredResources().ToList();
+        Assert.Single(filteredResources);
+        Assert.Contains(filteredResources, r => r.Name == "Resource2" && r.ResourceType == "Type2" && r.State == "Running");
+    }
 }
