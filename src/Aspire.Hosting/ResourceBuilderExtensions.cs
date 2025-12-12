@@ -3120,6 +3120,44 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a resource configuration finalizer callback annotation to the resource.
+    /// This is the last safe opportunity to modify resource annotations before configuration processing begins and provides an
+    /// opportunity to apply default behaviors based on the final resource configuration.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to be invoked during resource finalization. All resource configuration finalizers will be invoked in reverse order of their registration immediately after the BeforeStartEvent is complete.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Add a configuration finalizer to set default values:
+    /// <code lang="csharp">
+    /// var resource = builder.AddResource("myresource");
+    /// resource.WithConfigurationFinalizer(async ctx =>
+    ///     {
+    ///         // Apply defaults based on final configuration
+    ///         if (ctx.Resource.TryGetLastAnnotation&lt;MyAnnotation&gt;(out var annotation))
+    ///         {
+    ///             resource.WithHttpsEndpoint(port: annotation.Port);
+    ///         }
+    ///     });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIRELIFECYCLE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithConfigurationFinalizer<T>(this IResourceBuilder<T> builder, Func<FinalizeResourceConfigurationCallbackAnnotationContext, Task> callback)
+        where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new FinalizeResourceConfigurationCallbackAnnotation
+        {
+            Callback = callback,
+        }, ResourceAnnotationMutationBehavior.Append);
+    }
+
+    /// <summary>
     /// Adds a callback to configure container image push options for the resource.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
