@@ -88,7 +88,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
     /// <remarks>
     /// Format: <c>https://{name}.documents.azure.com:443/</c>.
     /// </remarks>
-    public ReferenceExpression Uri =>
+    public ReferenceExpression UriExpression =>
         IsEmulator ?
             IsPreviewEmulator ?
                 ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Url)}") :
@@ -239,7 +239,7 @@ public class AzureCosmosDBResource(string name, Action<AzureResourceInfrastructu
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        yield return new("Uri", ReferenceExpression.Create($"{Uri}"));
+        yield return new("Uri", ReferenceExpression.Create($"{UriExpression}"));
 
         if (AccountKey is not null)
         {

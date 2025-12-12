@@ -26,7 +26,7 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     /// <remarks>
     /// Format: <c>https://{host}:{port}</c> for emulator or <c>{blobEndpoint}</c> for Azure.
     /// </remarks>
-    public ReferenceExpression ServiceUriExpression => Parent.BlobServiceUriExpression;
+    public ReferenceExpression UriExpression => Parent.BlobUriExpression;
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
@@ -83,11 +83,11 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        foreach (var property in Parent.GetConnectionProperties())
-        {
-            yield return property;
-        }
+        yield return new("Uri", UriExpression);
 
-        yield return new("Uri", ServiceUriExpression);
+        if (Parent.IsEmulator)
+        {
+            yield return new("ConnectionString", ConnectionStringExpression);
+        } 
     }
 }

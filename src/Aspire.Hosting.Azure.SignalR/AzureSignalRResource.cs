@@ -40,7 +40,7 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
     /// In Azure mode, resolves to the Azure SignalR service endpoint.
     /// Format: <c>https://{hostname}</c>.
     /// </remarks>
-    public ReferenceExpression Endpoint =>
+    public ReferenceExpression UriExpression =>
         IsEmulator ? 
             ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Url)}") : 
             ReferenceExpression.Create($"https://{HostName}");
@@ -84,6 +84,6 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        yield return new("Uri", Endpoint);
+        yield return new("Uri", UriExpression);
     }
 }

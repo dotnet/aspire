@@ -62,7 +62,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// <remarks>
     /// Format: <c>https://{host}:{port}</c> for emulator or <c>{blobEndpoint}</c> for Azure.
     /// </remarks>
-    public ReferenceExpression BlobServiceUriExpression => IsEmulator
+    public ReferenceExpression BlobUriExpression => IsEmulator
         ? ReferenceExpression.Create($"{EmulatorBlobEndpoint.Property(EndpointProperty.Url)}")
         : ReferenceExpression.Create($"{BlobEndpoint}");
 
@@ -72,7 +72,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// <remarks>
     /// Format: <c>https://{host}:{port}</c> for emulator or <c>{queueEndpoint}</c> for Azure.
     /// </remarks>
-    public ReferenceExpression QueueServiceUriExpression => IsEmulator
+    public ReferenceExpression QueueUriExpression => IsEmulator
         ? ReferenceExpression.Create($"{EmulatorQueueEndpoint.Property(EndpointProperty.Url)}")
         : ReferenceExpression.Create($"{QueueEndpoint}");
 
@@ -82,7 +82,7 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     /// <remarks>
     /// Format: <c>https://{host}:{port}</c> for emulator or <c>{tableEndpoint}</c> for Azure.
     /// </remarks>
-    public ReferenceExpression TableServiceUriExpression => IsEmulator
+    public ReferenceExpression TableUriExpression => IsEmulator
         ? ReferenceExpression.Create($"{EmulatorTableEndpoint.Property(EndpointProperty.Url)}")
         : ReferenceExpression.Create($"{TableEndpoint}");
 
@@ -93,11 +93,6 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     internal ReferenceExpression GetEmulatorConnectionString() => IsEmulator
        ? AzureStorageEmulatorConnectionString.Create(blobEndpoint: EmulatorBlobEndpoint, queueEndpoint: EmulatorQueueEndpoint, tableEndpoint: EmulatorTableEndpoint)
        : throw new InvalidOperationException("The Azure Storage resource is not running in the local emulator.");
-
-    /// <summary>
-    /// Gets the connection string for the Azure Storage resource.
-    /// </summary>
-    public ReferenceExpression ConnectionStringExpression => GetEmulatorConnectionString();
 
     internal ReferenceExpression GetTableConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(tableEndpoint: EmulatorTableEndpoint)
@@ -163,13 +158,5 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
 
         infra.Add(account);
         return account;
-    }
-
-    internal IEnumerable<KeyValuePair<string, ReferenceExpression>> GetConnectionProperties()
-    {
-        if (IsEmulator)
-        {
-            yield return new("ConnectionString", ConnectionStringExpression);
-        }
     }
 }

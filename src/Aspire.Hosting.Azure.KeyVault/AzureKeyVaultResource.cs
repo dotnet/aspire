@@ -44,7 +44,7 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// In Azure mode, resolves to the Azure Key Vault URI.
     /// Format: <c>https://{name}.vault.azure.net/</c>.
     /// </remarks>
-    public ReferenceExpression Endpoint =>
+    public ReferenceExpression UriExpression =>
         IsEmulator ?
             ReferenceExpression.Create($"{EmulatorEndpoint.Property(EndpointProperty.Url)}") :
             ReferenceExpression.Create($"{VaultUri}");
@@ -137,6 +137,6 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        yield return new("Uri", Endpoint);
+        yield return new("Uri", UriExpression);
     }
 }
