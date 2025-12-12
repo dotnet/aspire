@@ -501,28 +501,8 @@ save_global_settings() {
     say_verbose "Setting global config: $key = $value"
     
     if ! "$cli_path" config set -g "$key" "$value" 2>/dev/null; then
-        say_warn "Failed to set global config via aspire CLI, falling back to direct file edit"
-        # Fallback to direct file edit if CLI fails
-        local global_settings_dir="$HOME/.aspire"
-        local global_settings_file="$global_settings_dir/globalsettings.json"
-        
-        # Create directory if it doesn't exist
-        if [[ ! -d "$global_settings_dir" ]]; then
-            mkdir -p "$global_settings_dir"
-        fi
-        
-        # Write the settings file
-        if [[ -f "$global_settings_file" ]] && command -v jq >/dev/null 2>&1; then
-            local temp_file="${global_settings_file}.tmp"
-            if jq --arg value "$value" ".$key = \$value" "$global_settings_file" > "$temp_file" 2>/dev/null; then
-                mv "$temp_file" "$global_settings_file"
-            else
-                rm -f "$temp_file"
-                echo "{\"$key\":\"$value\"}" > "$global_settings_file"
-            fi
-        else
-            echo "{\"$key\":\"$value\"}" > "$global_settings_file"
-        fi
+        say_warn "Failed to set global config via aspire CLI"
+        return 1
     fi
     
     say_verbose "Global config saved: $key = $value"
@@ -546,31 +526,8 @@ remove_global_settings() {
     say_verbose "Removing global config: $key"
     
     if ! "$cli_path" config unset -g "$key" 2>/dev/null; then
-        say_warn "Failed to unset global config via aspire CLI, falling back to direct file edit"
-        # Fallback to direct file edit if CLI fails
-        local global_settings_dir="$HOME/.aspire"
-        local global_settings_file="$global_settings_dir/globalsettings.json"
-        
-        if [[ ! -f "$global_settings_file" ]]; then
-            return 0
-        fi
-        
-        if command -v jq >/dev/null 2>&1; then
-            local temp_file="${global_settings_file}.tmp"
-            if jq "del(.$key)" "$global_settings_file" > "$temp_file" 2>/dev/null; then
-                local result
-                result=$(cat "$temp_file")
-                if [[ "$result" == "{}" ]]; then
-                    rm -f "$temp_file" "$global_settings_file"
-                else
-                    mv "$temp_file" "$global_settings_file"
-                fi
-            else
-                rm -f "$temp_file" "$global_settings_file"
-            fi
-        else
-            rm -f "$global_settings_file"
-        fi
+        say_warn "Failed to unset global config via aspire CLI"
+        return 1
     fi
     
     say_verbose "Global config removed: $key"

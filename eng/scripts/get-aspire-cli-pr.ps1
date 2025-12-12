@@ -612,64 +612,12 @@ function Save-GlobalSettings {
     if ($PSCmdlet.ShouldProcess("$Key = $Value", "Set global config via aspire CLI")) {
         Write-Message "Setting global config: $Key = $Value" -Level Verbose
         
-        try {
-            $output = & $CliPath config set -g $Key $Value 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                throw "aspire config set failed with exit code $LASTEXITCODE"
-            }
-            Write-Message "Global config saved: $Key = $Value" -Level Verbose
+        $output = & $CliPath config set -g $Key $Value 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Message "Failed to set global config via aspire CLI" -Level Warning
+            return
         }
-        catch {
-            Write-Message "Failed to set global config via aspire CLI, falling back to direct file edit: $($_.Exception.Message)" -Level Warning
-            
-            # Fallback to direct file edit
-            $homeDirectory = Invoke-WithPowerShellVersion -ModernAction {
-                if ($env:HOME) { $env:HOME }
-                elseif ($env:USERPROFILE) { $env:USERPROFILE }
-                else { $null }
-            } -LegacyAction {
-                if ($env:USERPROFILE) { $env:USERPROFILE }
-                elseif ($env:HOME) { $env:HOME }
-                else { $null }
-            }
-            
-            if ([string]::IsNullOrWhiteSpace($homeDirectory)) {
-                Write-Message "Unable to determine home directory for saving global settings" -Level Warning
-                return
-            }
-            
-            $globalSettingsDir = Join-Path $homeDirectory ".aspire"
-            $globalSettingsFile = Join-Path $globalSettingsDir "globalsettings.json"
-            
-            # Create directory if it doesn't exist
-            if (-not (Test-Path $globalSettingsDir)) {
-                New-Item -ItemType Directory -Path $globalSettingsDir -Force | Out-Null
-            }
-            
-            # Read existing settings or create new
-            $settings = @{}
-            if (Test-Path $globalSettingsFile) {
-                try {
-                    $existingContent = Get-Content $globalSettingsFile -Raw -ErrorAction Stop
-                    $settings = Invoke-WithPowerShellVersion -ModernAction {
-                        $existingContent | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
-                    } -LegacyAction {
-                        $parsed = $existingContent | ConvertFrom-Json -ErrorAction SilentlyContinue
-                        if ($parsed) {
-                            $ht = @{}
-                            $parsed.PSObject.Properties | ForEach-Object { $ht[$_.Name] = $_.Value }
-                            $ht
-                        } else { @{} }
-                    }
-                    if ($null -eq $settings) { $settings = @{} }
-                }
-                catch { $settings = @{} }
-            }
-            
-            $settings[$Key] = $Value
-            $jsonContent = $settings | ConvertTo-Json -Compress
-            Set-Content -Path $globalSettingsFile -Value $jsonContent -Force
-        }
+        Write-Message "Global config saved: $Key = $Value" -Level Verbose
     }
 }
 
