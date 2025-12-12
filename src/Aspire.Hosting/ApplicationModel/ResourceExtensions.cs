@@ -1135,25 +1135,25 @@ public static class ResourceExtensions
     /// <remarks>
     /// This method checks for a container registry in the following order:
     /// <list type="number">
-    /// <item>The <see cref="DeploymentTargetAnnotation"/> on the resource.</item>
     /// <item>The <see cref="ContainerRegistryReferenceAnnotation"/> on the resource (set via <c>WithContainerRegistry</c>).</item>
+    /// <item>The <see cref="DeploymentTargetAnnotation"/> on the resource.</item>
     /// <item>The <see cref="RegistryTargetAnnotation"/> on the resource (automatically added when a registry is added to the app model).</item>
     /// </list>
     /// </remarks>
     internal static IContainerRegistry GetContainerRegistry(this IResource resource)
     {
-        // Try to get the container registry from DeploymentTargetAnnotation first
-        var deploymentTarget = resource.GetDeploymentTargetAnnotation();
-        if (deploymentTarget?.ContainerRegistry is not null)
-        {
-            return deploymentTarget.ContainerRegistry;
-        }
-
         // Try ContainerRegistryReferenceAnnotation (explicit WithContainerRegistry call)
         var registryAnnotation = resource.Annotations.OfType<ContainerRegistryReferenceAnnotation>().LastOrDefault();
         if (registryAnnotation is not null)
         {
             return registryAnnotation.Registry;
+        }
+
+        // Try to get the container registry from DeploymentTargetAnnotation first
+        var deploymentTarget = resource.GetDeploymentTargetAnnotation();
+        if (deploymentTarget?.ContainerRegistry is not null)
+        {
+            return deploymentTarget.ContainerRegistry;
         }
 
         // Fall back to RegistryTargetAnnotation (added automatically via BeforeStartEvent)
