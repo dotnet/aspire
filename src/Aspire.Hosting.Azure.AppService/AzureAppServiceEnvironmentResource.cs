@@ -5,11 +5,13 @@
 #pragma warning disable ASPIREAZURE001
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.AppService;
 using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
@@ -47,6 +49,29 @@ public class AzureAppServiceEnvironmentResource :
             };
 
             steps.Add(printDashboardUrlStep);
+
+            var dashboardGetHostNameStep = new PipelineStep
+            {
+                Name = $"fetch-dashboard-hostname",
+                Action = async ctx =>
+                {
+                    var websiteSuffix = await WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    var websiteName = $"{EnvironmentPrefix.ToLowerInvariant()}-{AzureAppServiceEnvironmentUtility.ResourceName}-{websiteSuffix?.ToLowerInvariant()}";
+
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Fetching host name for dashboard website: {websiteName}", false);
+
+                    var hostName = await AzureAppServiceWebSiteResource.GetDnlHostNameAsync(websiteName, "Site", ctx).ConfigureAwait(false);
+
+                    if (hostName is not null)
+                    {
+                        AzureAppServiceEnvironmentUtility.SetDashboardHostName(hostName);
+                    }
+                },
+                Tags = ["fetch-website-hostname"],
+                DependsOnSteps = new List<string> { "create-provisioning-context" },
+            };
+
+            steps.Add(dashboardGetHostNameStep);
 
             // Expand deployment target steps for all compute resources
             // This ensures the push/provision steps from deployment targets are included in the pipeline
@@ -117,8 +142,10 @@ public class AzureAppServiceEnvironmentResource :
 
             // Make print-summary step depend on provisioning of this environment
             var printSummarySteps = context.GetSteps(this, "print-summary");
+            var fetchDashboardHostNameSteps = context.GetSteps(this, "fetch-dashboard-hostname");
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            printSummarySteps.DependsOn(provisionSteps);
+            fetchDashboardHostNameSteps.DependsOn(provisionSteps);
+            printSummarySteps.DependsOn(fetchDashboardHostNameSteps);
         }));
     }
 
@@ -146,6 +173,11 @@ public class AzureAppServiceEnvironmentResource :
     /// Gets the suffix added to each web app created in this App Service Environment.
     /// </summary>
     internal BicepOutputReference WebSiteSuffix => new("webSiteSuffix", this);
+
+    /// <summary>
+    /// Gets or sets the prefix used to identify environment resources.
+    /// </summary>
+    internal string EnvironmentPrefix { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
@@ -239,7 +271,17 @@ public class AzureAppServiceEnvironmentResource :
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
-        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.azurewebsites.net");
+
+        if (!this.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+        {
+            throw new InvalidOperationException("Azure App Service Environment context annotation is missing.");
+        }
+
+        var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(resource);
+        bool isSlot = DeploymentSlot is not null || DeploymentSlotParameter is not null;
+        var hostName = context.GetWebsiteHostName(isSlot);
+
+        return ReferenceExpression.Create($"https://{hostName.Value}");
     }
 
     /// <inheritdoc/>

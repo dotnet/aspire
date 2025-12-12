@@ -144,6 +144,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     if (hostName is not null)
                     {
                         context.SetWebsiteHostName(hostName, slotHostName);
+
+                        targetResource.Annotations.Add(new AzureAppServiceWebsiteHostNameAnnotation(hostName, slotHostName));
                     }
                 },
                 Tags = ["fetch-website-hostname"],
@@ -164,14 +166,17 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Action = async ctx =>
                 {
                     var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-                    if (!computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+                    if (!targetResource.TryGetLastAnnotation<AzureAppServiceWebsiteHostNameAnnotation>(out var hostNameAnnotation))
                     {
-                        ctx.ReportingStep.Log(LogLevel.Information, $"No environment context annotation found on the target resource", false);
+                        ctx.ReportingStep.Log(LogLevel.Information, $"No host name annotation found on the target resource", false);
                         return;
                     }
-                    var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
+                    
                     bool isSlot = computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null;
-                    var endpoint = context.GetWebsiteHostName(isSlot);
+
+                    string endpoint = isSlot && hostNameAnnotation.SlotHostName is not null
+                        ? $"https://{hostNameAnnotation.SlotHostName}"
+                        : $"https://{hostNameAnnotation.HostName}";
 
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
                 },
@@ -250,7 +255,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// <param name="context"></param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public static async Task<string?> GetDnlHostNameAsync(string websiteName, string resourceType, PipelineStepContext context)
+    internal static async Task<string?> GetDnlHostNameAsync(string websiteName, string resourceType, PipelineStepContext context)
     {
         context.ReportingStep.Log(LogLevel.Information, $"Checking availability of site name: {websiteName}", false);
         var armContext = await GetArmContextAsync(context).ConfigureAwait(false);
@@ -337,7 +342,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
         if (!string.IsNullOrWhiteSpace(deploymentSlot))
         {
-            websiteName += $"-{deploymentSlot}";
+            websiteName += $"({deploymentSlot})";
         }
 
         if (websiteName.Length > 60)

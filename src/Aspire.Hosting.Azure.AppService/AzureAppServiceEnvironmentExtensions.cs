@@ -52,6 +52,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
         {
             var prefix = infra.AspireResource.Name;
             var resource = (AzureAppServiceEnvironmentResource)infra.AspireResource;
+            resource.EnvironmentPrefix = prefix;
 
             // This tells azd to avoid creating infrastructure
             var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string)) { Value = new BicepValue<string>(string.Empty) };
@@ -150,11 +151,11 @@ public static partial class AzureAppServiceEnvironmentExtensions
             if (resource.EnableDashboard)
             {
                 // Add aspire dashboard website
-                var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id);
+                var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id, resource.EnableRegionalDnlHostName);
 
                 infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
                 {
-                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.azurewebsites.net")
+                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName()}")
                 });
             }
 
