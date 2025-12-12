@@ -425,7 +425,8 @@ public class ModelClient : IDisposable
                 {"resourceId": "azureml-deepseek", "entityContainerType": "Registry"},
                 {"resourceId": "azureml-stabilityai", "entityContainerType": "Registry"},
                 {"resourceId": "azureml-xai", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-blackforestlabs", "entityContainerType": "Registry"}
+                {"resourceId": "azureml-blackforestlabs", "entityContainerType": "Registry"},
+                {"resourceId": "azureml-anthropic", "entityContainerType": "Registry"}
             ],
             "indexEntitiesRequest": {
                 "filters": [
