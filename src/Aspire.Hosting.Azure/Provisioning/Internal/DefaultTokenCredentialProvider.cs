@@ -85,21 +85,13 @@ internal class DefaultTokenCredentialProvider : ITokenCredentialProvider
             {
                 TenantId = tenantId
             }),
-            // Use AzureCli as default for publish mode when no explicit credential source is set
-            null or "Default" when _distributedApplicationExecutionContext.IsPublishMode => new AzureCliCredential(new()
+            // Use AzureCli as default when no explicit credential source is set
+            null or "Default" => new AzureCliCredential(new()
             {
                 TenantId = tenantId,
                 AdditionallyAllowedTenants = { "*" }
             }),
-            _ => new DefaultAzureCredential(new DefaultAzureCredentialOptions()
-            {
-                TenantId = tenantId,
-                ExcludeManagedIdentityCredential = true,
-                ExcludeWorkloadIdentityCredential = true,
-                ExcludeAzurePowerShellCredential = true,
-                CredentialProcessTimeout = TimeSpan.FromSeconds(15),
-                AdditionallyAllowedTenants = { "*" }
-            })
+            _ => throw new InvalidOperationException($"Unsupported credential source: {credentialSetting}")
         };
 
         return credential;
