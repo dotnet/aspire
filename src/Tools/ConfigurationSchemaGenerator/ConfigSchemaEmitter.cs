@@ -719,7 +719,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
     {
         if (!jsonObject.TryAdd(key, value, out var index))
         {
-            // Since System.Text.Json v9, the casing of the new key is not adapted. See https://github.com/dotnet/runtime/issues/108790.
+            // Starting from System.Text.Json v9, the casing of the new key is not adapted. See https://github.com/dotnet/runtime/issues/108790.
             // So instead, remove the existing node and insert a new one with the updated key.
             jsonObject.RemoveAt(index);
             jsonObject.Insert(index, key, value);
