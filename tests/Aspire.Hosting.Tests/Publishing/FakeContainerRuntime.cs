@@ -4,10 +4,13 @@
 using Aspire.Hosting.Publishing;
 
 #pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIRECONTAINERRUNTIME001
 
 namespace Aspire.Hosting.Tests.Publishing;
 
-internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRuntime
+using Aspire.Hosting.ApplicationModel;
+
+public sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRuntime
 {
     public string Name => "fake-runtime";
     public bool WasHealthCheckCalled { get; private set; }
@@ -15,14 +18,16 @@ internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainer
     public bool WasRemoveImageCalled { get; private set; }
     public bool WasPushImageCalled { get; private set; }
     public bool WasBuildImageCalled { get; private set; }
+    public bool WasLoginToRegistryCalled { get; private set; }
     public List<(string localImageName, string targetImageName)> TagImageCalls { get; } = [];
     public List<string> RemoveImageCalls { get; } = [];
-    public List<string> PushImageCalls { get; } = [];
-    public List<(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options)> BuildImageCalls { get; } = [];
+    public List<IResource> PushImageCalls { get; } = [];
+    public List<(string contextPath, string dockerfilePath, ContainerImageBuildOptions? options)> BuildImageCalls { get; } = [];
+    public List<(string registryServer, string username, string password)> LoginToRegistryCalls { get; } = [];
     public Dictionary<string, string?>? CapturedBuildArguments { get; private set; }
     public Dictionary<string, string?>? CapturedBuildSecrets { get; private set; }
     public string? CapturedStage { get; private set; }
-    public Func<string, string, string, ContainerBuildOptions?, Dictionary<string, string?>, Dictionary<string, string?>, string?, CancellationToken, Task>? BuildImageAsyncCallback { get; set; }
+    public Func<string, string, ContainerImageBuildOptions?, Dictionary<string, string?>, Dictionary<string, string?>, string?, CancellationToken, Task>? BuildImageAsyncCallback { get; set; }
 
     public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
     {
@@ -52,10 +57,10 @@ internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainer
         return Task.CompletedTask;
     }
 
-    public Task PushImageAsync(string imageName, CancellationToken cancellationToken)
+    public Task PushImageAsync(IResource resource, CancellationToken cancellationToken)
     {
         WasPushImageCalled = true;
-        PushImageCalls.Add(imageName);
+        PushImageCalls.Add(resource);
         if (shouldFail)
         {
             throw new InvalidOperationException("Fake container runtime is configured to fail");
@@ -63,14 +68,14 @@ internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainer
         return Task.CompletedTask;
     }
 
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, ContainerImageBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         // Capture the arguments for verification in tests
         CapturedBuildArguments = buildArguments;
         CapturedBuildSecrets = buildSecrets;
         CapturedStage = stage;
         WasBuildImageCalled = true;
-        BuildImageCalls.Add((contextPath, dockerfilePath, imageName, options));
+        BuildImageCalls.Add((contextPath, dockerfilePath, options));
 
         if (shouldFail)
         {
@@ -79,9 +84,20 @@ internal sealed class FakeContainerRuntime(bool shouldFail = false) : IContainer
 
         if (BuildImageAsyncCallback is not null)
         {
-            await BuildImageAsyncCallback(contextPath, dockerfilePath, imageName, options, buildArguments, buildSecrets, stage, cancellationToken);
+            await BuildImageAsyncCallback(contextPath, dockerfilePath, options, buildArguments, buildSecrets, stage, cancellationToken);
         }
 
         // For testing, we don't need to actually build anything
+    }
+
+    public Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken)
+    {
+        WasLoginToRegistryCalled = true;
+        LoginToRegistryCalls.Add((registryServer, username, password));
+        if (shouldFail)
+        {
+            throw new InvalidOperationException("Fake container runtime is configured to fail");
+        }
+        return Task.CompletedTask;
     }
 }

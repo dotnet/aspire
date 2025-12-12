@@ -3,7 +3,6 @@
 
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
@@ -33,14 +32,18 @@ public class ConformanceTests_Topic : ConformanceTests
     protected override void TriggerActivity(ServiceBusClient service)
         => _ = service.CreateReceiver(topicName: HealthCheckTopicName, subscriptionName: SubscriptionName).PeekMessageAsync().GetAwaiter().GetResult();
 
+    public ConformanceTests_Topic(ITestOutputHelper? output = null)
+        : base(output)
+    {
+    }
+
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null), EnableTracingForAzureSdk()).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests_Topic().ActivitySourceTest(key: null), Output, EnableTracingForAzureSdk());
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTracingForAzureSdk()).Dispose();
-
+        => RemoteInvokeWithLogging(() => new ConformanceTests_Topic().ActivitySourceTest(key: "key"), Output, EnableTracingForAzureSdk());
     private static bool GetCanConnect()
     {
         ServiceBusClientOptions clientOptions = new();

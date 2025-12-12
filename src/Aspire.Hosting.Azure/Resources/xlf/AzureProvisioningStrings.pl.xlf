@@ -51,9 +51,24 @@ Aby dowiedzieć się więcej, zobacz [dokumentację aprowizacji platformy Azure]
         <target state="translated">Aprowizowanie platformy Azure</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceGroupDialogTitle">
+        <source>Azure resource group</source>
+        <target state="translated">Grupa zasobów platformy Azure</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceGroupLabel">
         <source>Resource group</source>
         <target state="translated">Grupa zasobów</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupPlaceholder">
+        <source>Select or enter resource group</source>
+        <target state="translated">Wybierz lub wprowadź grupę zasobów</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceGroupSelectionMessage">
+        <source>Select your Azure resource group or enter a new name:</source>
+        <target state="translated">Wybierz grupę zasobów platformy Azure lub wprowadź nową nazwę:</target>
         <note />
       </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">

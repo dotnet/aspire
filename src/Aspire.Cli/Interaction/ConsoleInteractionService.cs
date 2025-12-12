@@ -164,7 +164,12 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayMessage(string emoji, string message)
     {
-        _ansiConsole.MarkupLine($":{emoji}:  {message}");
+        // This is a hack to deal with emoji of different size. We write the emoji then move the cursor to aboslute column 4
+        // on the same line before writing the message. This ensures that the message starts at the same position regardless
+        // of the emoji used. I'm not OCD .. you are!
+        _ansiConsole.Markup($":{emoji}:");
+        _ansiConsole.Write("\u001b[4G");
+        _ansiConsole.MarkupLine(message);
     }
 
     public void DisplayPlainText(string message)
@@ -243,10 +248,16 @@ internal class ConsoleInteractionService : IInteractionService
 
     private const string UpdateUrl = "https://aka.ms/aspire/update";
 
-    public void DisplayVersionUpdateNotification(string newerVersion)
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null)
     {
         _ansiConsole.WriteLine();
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        
+        if (!string.IsNullOrEmpty(updateCommand))
+        {
+            _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ToUpdateRunCommand, updateCommand));
+        }
+        
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
     }
 }

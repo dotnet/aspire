@@ -5,10 +5,6 @@ param env_outputs_azure_container_apps_environment_default_domain string
 
 param env_outputs_azure_container_apps_environment_id string
 
-param env_outputs_azure_container_registry_endpoint string
-
-param env_outputs_azure_container_registry_managed_identity_id string
-
 param apiservice_containerimage string
 
 param apiservice_identity_outputs_id string
@@ -26,6 +22,10 @@ param storage_outputs_queueendpoint string
 param storage_outputs_blobendpoint string
 
 param apiservice_identity_outputs_clientid string
+
+param env_outputs_azure_container_registry_endpoint string
+
+param env_outputs_azure_container_registry_managed_identity_id string
 
 resource apiservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'apiservice'

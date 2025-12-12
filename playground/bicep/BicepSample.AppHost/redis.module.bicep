@@ -1,28 +1,27 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-resource redis 'Microsoft.Cache/redis@2024-11-01' = {
-  name: take('redis-${uniqueString(resourceGroup().id)}', 63)
+resource redis 'Microsoft.Cache/redisEnterprise@2025-04-01' = {
+  name: take('redis-${uniqueString(resourceGroup().id)}', 60)
   location: location
-  properties: {
-    sku: {
-      name: 'Basic'
-      family: 'C'
-      capacity: 1
-    }
-    enableNonSslPort: false
-    disableAccessKeyAuthentication: true
-    minimumTlsVersion: '1.2'
-    redisConfiguration: {
-      'aad-enabled': 'true'
-    }
+  sku: {
+    name: 'Balanced_B0'
   }
-  tags: {
-    'aspire-resource-name': 'redis'
+  properties: {
+    minimumTlsVersion: '1.2'
   }
 }
 
-output connectionString string = '${redis.properties.hostName},ssl=true'
+resource redis_default 'Microsoft.Cache/redisEnterprise/databases@2025-04-01' = {
+  name: 'default'
+  properties: {
+    accessKeysAuthentication: 'Disabled'
+    port: 10000
+  }
+  parent: redis
+}
+
+output connectionString string = '${redis.properties.hostName}:10000,ssl=true'
 
 output name string = redis.name
 

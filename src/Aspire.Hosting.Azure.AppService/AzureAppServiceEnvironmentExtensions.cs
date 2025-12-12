@@ -44,6 +44,10 @@ public static partial class AzureAppServiceEnvironmentExtensions
     {
         builder.AddAzureAppServiceInfrastructureCore();
 
+        // Create the default container registry resource before creating the environment
+        var registryName = $"{name}-acr";
+        var defaultRegistry = CreateDefaultAzureContainerRegistry(builder, registryName);
+
         var resource = new AzureAppServiceEnvironmentResource(name, static infra =>
         {
             var prefix = infra.AspireResource.Name;
@@ -67,20 +71,23 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             infra.Add(identity);
 
-            ContainerRegistryService? containerRegistry = null;
-            if (resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
+            AzureProvisioningResource? registry = null;
+            if (resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) &&
+                registryReferenceAnnotation.Registry is AzureProvisioningResource explicitRegistry)
             {
-                containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
+                registry = explicitRegistry;
             }
-            else
+            else if (resource.DefaultContainerRegistry is not null)
             {
-                containerRegistry = new ContainerRegistryService(Infrastructure.NormalizeBicepIdentifier($"{prefix}_acr"))
-                {
-                    Sku = new() { Name = ContainerRegistrySkuName.Basic },
-                    Tags = tags
-                };
+                registry = resource.DefaultContainerRegistry;
             }
 
+            if (registry is null)
+            {
+                throw new InvalidOperationException($"No container registry associated with environment '{resource.Name}'. This should have been added automatically.");
+            }
+
+            var containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
             infra.Add(containerRegistry);
 
             var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, identity);
@@ -98,7 +105,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 },
                 Kind = "Linux",
                 IsReserved = true,
-                // Enable per-site scaling so each app service can scale independently
+                // Enable perSiteScaling so each app service can scale independently
                 IsPerSiteScaling = true
             };
 
@@ -106,12 +113,12 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             infra.Add(new ProvisioningOutput("name", typeof(string))
             {
-                Value = plan.Name
+                Value = plan.Name.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("planId", typeof(string))
             {
-                Value = plan.Id
+                Value = plan.Id.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("webSiteSuffix", typeof(string))
@@ -121,23 +128,23 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {
-                Value = containerRegistry.Name
+                Value = containerRegistry.Name.ToBicepExpression()
             });
 
             // AZD looks for this output to find the container registry endpoint
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_ENDPOINT", typeof(string))
             {
-                Value = containerRegistry.LoginServer
+                Value = containerRegistry.LoginServer.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", typeof(string))
             {
-                Value = identity.Id
+                Value = identity.Id.ToBicepExpression()
             });
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID", typeof(string))
             {
-                Value = identity.ClientId
+                Value = identity.ClientId.ToBicepExpression()
             });
 
             if (resource.EnableDashboard)
@@ -197,30 +204,33 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
                 infra.Add(new ProvisioningOutput("AZURE_APPLICATION_INSIGHTS_INSTRUMENTATIONKEY", typeof(string))
                 {
-                    Value = applicationInsights.InstrumentationKey
+                    Value = applicationInsights.InstrumentationKey.ToBicepExpression()
                 });
 
                 infra.Add(new ProvisioningOutput("AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING", typeof(string))
                 {
-                    Value = applicationInsights.ConnectionString
+                    Value = applicationInsights.ConnectionString.ToBicepExpression()
                 });
             }
-        });
-
-        if (!builder.ExecutionContext.IsPublishMode)
+        })
         {
-            return builder.CreateResourceBuilder(resource);
-        }
+            DefaultContainerRegistry = defaultRegistry
+        };
 
-        return builder.AddResource(resource);
+        // Create the resource builder first, then attach the registry to avoid recreating builders
+        var appServiceEnvBuilder = builder.ExecutionContext.IsPublishMode
+            ? builder.AddResource(resource)
+            : builder.CreateResourceBuilder(resource);
+
+        return appServiceEnvBuilder;
     }
 
     /// <summary>
     /// Configures whether the Aspire dashboard should be included in the Azure App Service environment.
     /// </summary>
-    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{AzureAppServiceEnvironmentResource}"/> to configure.</param>
     /// <param name="enable">Whether to include the Aspire dashboard. Default is true.</param>
-    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for chaining additional configuration."/></returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDashboard(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
     {
         builder.Resource.EnableDashboard = enable;
@@ -276,5 +286,35 @@ public static partial class AzureAppServiceEnvironmentExtensions
         builder.WithAzureApplicationInsights();
         builder.Resource.ApplicationInsightsResource = applicationInsightsBuilder.Resource;
         return builder;
+    }
+
+    private static AzureContainerRegistryResource CreateDefaultAzureContainerRegistry(IDistributedApplicationBuilder builder, string name)
+    {
+        var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
+        {
+            var registry = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
+                (identifier, resourceName) =>
+                {
+                    var resource = ContainerRegistryService.FromExisting(identifier);
+                    resource.Name = resourceName;
+                    return resource;
+                },
+                (infra) => new ContainerRegistryService(infra.AspireResource.GetBicepIdentifier())
+                {
+                    Sku = new ContainerRegistrySku { Name = ContainerRegistrySkuName.Basic },
+                    Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
+                });
+
+            infrastructure.Add(registry);
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = registry.Name });
+            infrastructure.Add(new ProvisioningOutput("loginServer", typeof(string)) { Value = registry.LoginServer });
+        };
+
+        var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            builder.AddResource(resource);
+        }
+        return resource;
     }
 }

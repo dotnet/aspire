@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="MainLayoutAspire">
         <source>Aspire</source>
-        <target state="new">Aspire</target>
+        <target state="translated">Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
         <source>Aspire repo</source>
-        <target state="new">Aspire repo</target>
+        <target state="translated">Aspire 存储库</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointLink">
         <source>More information</source>
-        <target state="new">More information</target>
+        <target state="translated">详细信息</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointMcpBody">
         <source>Untrusted apps can access sensitive information about the running services.</source>
-        <target state="new">Untrusted apps can access sensitive information about the running services.</target>
+        <target state="translated">不受信任的应用可以访问有关正在运行的服务的敏感信息。</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTelemetryBody">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="MessageUnsecuredEndpointTitle">
         <source>Endpoint is unsecured</source>
-        <target state="new">Endpoint is unsecured</target>
+        <target state="translated">终结点不安全</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">

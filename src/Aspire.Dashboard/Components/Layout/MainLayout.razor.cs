@@ -213,7 +213,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
-            Width = "700px",
+            Width = "min(800px, 100vw)",
             Id = McpDialogId,
             OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, HandleDialogClose)
         };

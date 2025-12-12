@@ -10,10 +10,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration\Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.TestUtilities\Aspire.Components.Common.TestUtilities.csproj" />
   </ItemGroup>

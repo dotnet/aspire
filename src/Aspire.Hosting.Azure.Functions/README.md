@@ -1,4 +1,4 @@
-# Aspire.Hosting.Azure.Functions library (Preview)
+# Aspire.Hosting.Azure.Functions library
 
 Provides methods to the Aspire hosting model for Azure functions.
 
@@ -14,7 +14,7 @@ Provides methods to the Aspire hosting model for Azure functions.
 In your AppHost project, install the Aspire Azure Functions Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure.Functions --prerelease
+dotnet add package Aspire.Hosting.Azure.Functions
 ```
 
 ## Usage example

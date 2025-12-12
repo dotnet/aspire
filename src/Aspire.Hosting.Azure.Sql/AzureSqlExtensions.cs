@@ -87,6 +87,7 @@ public static class AzureSqlExtensions
 
         var resource = new AzureSqlServerResource(name, configureInfrastructure);
         var azureSqlServer = builder.AddResource(resource)
+            .WithIconName("DatabaseMultiple")
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
 
         return azureSqlServer;
@@ -326,12 +327,12 @@ public static class AzureSqlExtensions
             });
         }
 
-        infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
+        infrastructure.Add(new ProvisioningOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName.ToBicepExpression() });
 
         // We need to output name to externalize role assignments.
-        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name });
+        infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = sqlServer.Name.ToBicepExpression() });
 
-        infrastructure.Add(new ProvisioningOutput("sqlServerAdminName", typeof(string)) { Value = sqlServer.Administrators.Login });
+        infrastructure.Add(new ProvisioningOutput("sqlServerAdminName", typeof(string)) { Value = sqlServer.Administrators.Login.ToBicepExpression() });
 
         return sqlServer;
     }

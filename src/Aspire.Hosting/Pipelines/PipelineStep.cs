@@ -20,6 +20,15 @@ public class PipelineStep
     public required string Name { get; init; }
 
     /// <summary>
+    /// Gets or initializes the description of the step.
+    /// </summary>
+    /// <remarks>
+    /// The description provides human-readable context about what the step does,
+    /// helping users and tools understand the purpose of the step.
+    /// </remarks>
+    public string? Description { get; init; }
+
+    /// <summary>
     /// Gets or initializes the action to execute for this step.
     /// </summary>
     public required Func<PipelineStepContext, Task> Action { get; init; }

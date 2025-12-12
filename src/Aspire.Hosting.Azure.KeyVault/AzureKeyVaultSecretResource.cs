@@ -37,6 +37,8 @@ public class AzureKeyVaultSecretResource(string name, string secretName, AzureKe
     /// </summary>
     IAzureKeyVaultResource IAzureKeyVaultSecretReference.Resource => Parent;
 
+    IResource? IAzureKeyVaultSecretReference.SecretOwner { get; set; }
+
     /// <summary>
     /// Gets the expression for the secret value in the manifest.
     /// </summary>

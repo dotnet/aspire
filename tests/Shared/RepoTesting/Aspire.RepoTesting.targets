@@ -33,7 +33,7 @@
     `AspireProjectOrPackageReference` - maps to projects in `src/` or `src/Components/`
   -->
 
-  <Import Project="Sdk.props" Sdk="Aspire.AppHost.Sdk" Version="13.0.2" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
+  <Import Project="Sdk.props" Sdk="Aspire.AppHost.Sdk" Version="13.1.0" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
 
   <PropertyGroup>
     <!-- copy by default only when archiving tests, and for test projects that support running out of repo -->
@@ -146,6 +146,14 @@
 
     <WriteLinesToFile Lines="$(_HelixPropsContent)" File="$(GeneratedPackagesVersionsPropsPath)" Overwrite="true" />
   </Target>
+  
+  <PropertyGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
+    <!--
+    When building in the repo, we don't want our Aspire.Hosting.Tasks assembly to be loaded because it causes problems with MSBuild locking the assembly.
+    Disable validation of Aspire Host project resources to avoid loading the Aspire.Hosting.Tasks assembly.
+    -->
+    <SkipValidateAspireHostProjectResources>true</SkipValidateAspireHostProjectResources>
+  </PropertyGroup>
 
   <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
     <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.in.targets')" />
@@ -157,6 +165,6 @@
     <AspireHostingSDKVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)</AspireHostingSDKVersion>
   </PropertyGroup>
 
-  <Import Project="Sdk.targets" Sdk="Aspire.AppHost.Sdk" Version="13.0.2" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
+  <Import Project="Sdk.targets" Sdk="Aspire.AppHost.Sdk" Version="13.1.0" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
 
 </Project>

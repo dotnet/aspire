@@ -40,7 +40,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
         }
         """;
 
-    public ConformanceTests(MongoDbContainerFixture containerFixture)
+    public ConformanceTests(MongoDbContainerFixture containerFixture, ITestOutputHelper? output = null) : base(output)
     {
         _containerFixture = containerFixture;
     }

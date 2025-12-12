@@ -16,6 +16,16 @@ public sealed class KeycloakResource(string name, ParameterResource? admin, Para
     internal const string PrimaryEndpointName = "tcp";
 
     /// <summary>
+    /// Features to enable for the keycloak resource
+    /// </summary>
+    internal HashSet<string> EnabledFeatures { get; } = new();
+
+    /// <summary>
+    /// Features to disable for the keycloak resource
+    /// </summary>
+    internal HashSet<string> DisabledFeatures { get; } = new();
+
+    /// <summary>
     /// Gets the parameter that contains the Keycloak admin.
     /// </summary>
     public ParameterResource? AdminUserNameParameter { get; } = admin;

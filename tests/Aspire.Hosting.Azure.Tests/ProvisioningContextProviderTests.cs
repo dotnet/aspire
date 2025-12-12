@@ -295,22 +295,34 @@ public class ProvisioningContextProviderTests
             },
             input =>
             {
+                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
+                Assert.Equal("Resource group", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.False(input.Required);
+            },
+            input =>
+            {
                 Assert.Equal(BaseProvisioningContextProvider.LocationName, input.Name);
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
-                Assert.Equal("Resource group", input.Label);
-                Assert.Equal(InputType.Text, input.InputType);
-                Assert.False(input.Required);
             });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName].Value = "12345678-1234-1234-1234-123456789012";
 
-        // Trigger dynamic update of locations based on subscription.
+        // Trigger dynamic update of resource groups based on subscription.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName],
+            Services = new ServiceCollection().BuildServiceProvider()
+        });
+
+        // Set a custom resource group name (new resource group)
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "test-new-rg";
+
+        // Trigger dynamic update of locations based on subscription and resource group.
         await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
         {
             AllInputs = inputsInteraction.Inputs,
@@ -320,7 +332,6 @@ public class ProvisioningContextProviderTests
         });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "rg-myrg";
 
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
@@ -333,7 +344,7 @@ public class ProvisioningContextProviderTests
         Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.DefaultDomain);
         Assert.Equal("/subscriptions/12345678-1234-1234-1234-123456789012", context.Subscription.Id.ToString());
         Assert.Equal("westus", context.Location.Name);
-        Assert.Equal("rg-myrg", context.ResourceGroup.Name);
+        Assert.Equal("test-new-rg", context.ResourceGroup.Name);
     }
 
     [Fact]
@@ -448,18 +459,39 @@ public class ProvisioningContextProviderTests
             },
             input =>
             {
+                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
+                Assert.Equal("Resource group", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.False(input.Required);
+            },
+            input =>
+            {
                 Assert.Equal(BaseProvisioningContextProvider.LocationName, input.Name);
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
-                Assert.Equal("Resource group", input.Label);
-                Assert.Equal(InputType.Text, input.InputType);
-                Assert.False(input.Required);
             });
+
+        // Trigger dynamic update of resource groups based on subscription.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName],
+            Services = new ServiceCollection().BuildServiceProvider()
+        });
+
+        // Set a custom resource group name
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "test-new-rg";
+
+        // Trigger dynamic update of locations based on subscription and resource group.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
+            Services = new ServiceCollection().BuildServiceProvider()
+        });
 
         // Trigger dynamic update of locations based on subscription.
         await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
@@ -471,7 +503,6 @@ public class ProvisioningContextProviderTests
         });
 
         inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
-        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "rg-myrg";
 
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
@@ -484,7 +515,7 @@ public class ProvisioningContextProviderTests
         Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.DefaultDomain);
         Assert.Equal("/subscriptions/12345678-1234-1234-1234-123456789012", context.Subscription.Id.ToString());
         Assert.Equal("westus", context.Location.Name);
-        Assert.Equal("rg-myrg", context.ResourceGroup.Name);
+        Assert.Equal("test-new-rg", context.ResourceGroup.Name);
     }
 
     [Fact]
@@ -524,5 +555,257 @@ public class ProvisioningContextProviderTests
         Assert.NotNull(context.Location.DisplayName);
         Assert.NotNull(context.Principal);
         Assert.Equal("westus2", context.Location.Name);
+    }
+
+    [Fact]
+    public async Task CreateProvisioningContextAsync_SubscriptionInputStartsDisabledWhenNotConfigured()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var options = ProvisioningTestHelpers.CreateOptions(subscriptionId: null, location: null, resourceGroup: null);
+        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var logger = ProvisioningTestHelpers.CreateLogger();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var deploymentStateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
+
+        var provider = new RunModeProvisioningContextProvider(
+            testInteractionService,
+            options,
+            environment,
+            logger,
+            armClientProvider,
+            userPrincipalProvider,
+            tokenCredentialProvider,
+            deploymentStateManager,
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+
+        // Act
+        _ = provider.CreateProvisioningContextAsync(CancellationToken.None);
+
+        // Assert - Wait for the first interaction (message bar)
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Find the subscription input
+        var subscriptionInput = inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName];
+
+        // Assert that subscription ID input starts disabled when not configured
+        Assert.True(subscriptionInput.Disabled, "Subscription ID input should be disabled initially when not configured");
+        Assert.NotNull(subscriptionInput.DynamicLoading);
+        Assert.Equal(InputType.Choice, subscriptionInput.InputType);
+
+        // Assert Resource Group input has no default value initially
+        var resourceGroupInput = inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName];
+        Assert.Null(resourceGroupInput.Value);
+    }
+
+    [Fact]
+    public async Task CreateProvisioningContextAsync_SubscriptionInputDependsOnTenantWhenNotConfigured()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var options = ProvisioningTestHelpers.CreateOptions(subscriptionId: null, location: null, resourceGroup: null);
+        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var logger = ProvisioningTestHelpers.CreateLogger();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var deploymentStateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
+
+        var provider = new RunModeProvisioningContextProvider(
+            testInteractionService,
+            options,
+            environment,
+            logger,
+            armClientProvider,
+            userPrincipalProvider,
+            tokenCredentialProvider,
+            deploymentStateManager,
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+
+        // Act
+        _ = provider.CreateProvisioningContextAsync(CancellationToken.None);
+
+        // Assert - Wait for the first interaction (message bar)
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Find the subscription input
+        var subscriptionInput = inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName];
+
+        // Assert that subscription ID has dynamic loading that depends on tenant
+        Assert.NotNull(subscriptionInput.DynamicLoading);
+        Assert.NotNull(subscriptionInput.DynamicLoading.DependsOnInputs);
+        var dependsOnInputs = Assert.Single(subscriptionInput.DynamicLoading.DependsOnInputs);
+        Assert.Equal(BaseProvisioningContextProvider.TenantName, dependsOnInputs);
+    }
+
+    [Fact]
+    public async Task CreateProvisioningContextAsync_SubscriptionInputBecomesEnabledAfterTenantSelection()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var options = ProvisioningTestHelpers.CreateOptions(subscriptionId: null, location: null, resourceGroup: null);
+        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var logger = ProvisioningTestHelpers.CreateLogger();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var deploymentStateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
+
+        var provider = new RunModeProvisioningContextProvider(
+            testInteractionService,
+            options,
+            environment,
+            logger,
+            armClientProvider,
+            userPrincipalProvider,
+            tokenCredentialProvider,
+            deploymentStateManager,
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+
+        // Act
+        var createTask = provider.CreateProvisioningContextAsync(CancellationToken.None);
+
+        // Assert - Wait for the first interaction (message bar)
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Set tenant ID
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.TenantName].Value = "87654321-4321-4321-4321-210987654321";
+
+        // Find the subscription input
+        var subscriptionInput = inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName];
+
+        // Assert subscription is initially disabled
+        Assert.True(subscriptionInput.Disabled);
+
+        // Trigger dynamic loading callback for subscription based on tenant selection
+        await subscriptionInput.DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = subscriptionInput,
+            Services = new ServiceCollection().BuildServiceProvider()
+        });
+
+        // Assert that subscription input is now enabled after tenant selection
+        Assert.False(subscriptionInput.Disabled, "Subscription ID input should be enabled after tenant selection");
+        Assert.NotNull(subscriptionInput.Options);
+        Assert.NotEmpty(subscriptionInput.Options);
+    }
+
+    [Fact]
+    public async Task CreateProvisioningContextAsync_SubscriptionInputHasNoDynamicLoadingWhenConfigured()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var subscriptionId = "12345678-1234-1234-1234-123456789012";
+        var options = ProvisioningTestHelpers.CreateOptions(subscriptionId, location: null, resourceGroup: null);
+        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var logger = ProvisioningTestHelpers.CreateLogger();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var deploymentStateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
+
+        var provider = new RunModeProvisioningContextProvider(
+            testInteractionService,
+            options,
+            environment,
+            logger,
+            armClientProvider,
+            userPrincipalProvider,
+            tokenCredentialProvider,
+            deploymentStateManager,
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+
+        // Act
+        _ = provider.CreateProvisioningContextAsync(CancellationToken.None);
+
+        // Assert - Wait for the first interaction (message bar)
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Find the subscription input
+        var subscriptionInput = inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName];
+
+        // Assert that subscription ID has no dynamic loading when pre-configured
+        Assert.Null(subscriptionInput.DynamicLoading);
+        Assert.True(subscriptionInput.Disabled, "Subscription ID input should remain disabled when pre-configured");
+        Assert.Equal(InputType.Text, subscriptionInput.InputType);
+        Assert.Equal(subscriptionId, subscriptionInput.Value);
+    }
+
+    [Fact]
+    public async Task CreateProvisioningContextAsync_ResourceGroupHasNoDefaultValueInitially()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var options = ProvisioningTestHelpers.CreateOptions(subscriptionId: null, location: null, resourceGroup: null);
+        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var logger = ProvisioningTestHelpers.CreateLogger();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var deploymentStateManager = ProvisioningTestHelpers.CreateUserSecretsManager();
+
+        var provider = new RunModeProvisioningContextProvider(
+            testInteractionService,
+            options,
+            environment,
+            logger,
+            armClientProvider,
+            userPrincipalProvider,
+            tokenCredentialProvider,
+            deploymentStateManager,
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+
+        // Act
+        _ = provider.CreateProvisioningContextAsync(CancellationToken.None);
+
+        // Assert - Wait for the first interaction (message bar)
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Find the resource group input
+        var resourceGroupInput = inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName];
+
+        // Resource group should have no default value initially (PR #13065 change)
+        Assert.Null(resourceGroupInput.Value);
+
+        // Set subscription ID to trigger resource group loading
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName].Value = "12345678-1234-1234-1234-123456789012";
+
+        // Trigger dynamic loading callback for resource group
+        await resourceGroupInput.DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = resourceGroupInput,
+            Services = new ServiceCollection().BuildServiceProvider()
+        });
+
+        // After dynamic loading with existing resource groups found, value should still be null
+        // Default value is only set when NO existing resource groups are found
+        Assert.Null(resourceGroupInput.Value);
+        Assert.NotEmpty(resourceGroupInput.Options!);
     }
 }

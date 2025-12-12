@@ -108,7 +108,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
             var selectedPathForNewNuGetConfigFile = await interactionService.PromptForStringAsync(
                 promptText: UpdateCommandStrings.WhichDirectoryNuGetConfigPrompt,
-                defaultValue: recommendedNuGetConfigFileDirectory,
+                defaultValue: recommendedNuGetConfigFileDirectory.EscapeMarkup(),
                 validator: null,
                 isSecret: false,
                 required: true,
@@ -164,7 +164,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], cancellationToken);
+        return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally"], cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
@@ -189,7 +189,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
-        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], context, cancellationToken);
+        return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion", "ManagePackageVersionsCentrally"], context, cancellationToken);
     }
 
     private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, string[] items, string[] properties, UpdateContext context, CancellationToken cancellationToken)
@@ -236,7 +236,11 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         var latestPackage = await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             var packages = await context.Channel.GetPackagesAsync(packageId, context.AppHostProjectFile.Directory!, cancellationToken);
-            var latestPackage = packages.OrderByDescending(p => SemVersion.Parse(p.Version), SemVersion.PrecedenceComparer).FirstOrDefault();
+            // Filter out packages with invalid semantic versions and find the latest valid one
+            var latestPackage = packages
+                .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Strict, out _))
+                .OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Strict), SemVersion.PrecedenceComparer)
+                .FirstOrDefault();
             return latestPackage;
         });
 
@@ -250,30 +254,134 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesWithFallbackAsync(context.AppHostProjectFile, context, cancellationToken);
         var propertiesElement = itemsAndPropertiesDocument.RootElement.GetProperty("Properties");
         var sdkVersionElement = propertiesElement.GetProperty("AspireHostingSDKVersion");
+        var sdkVersion = sdkVersionElement.GetString();
 
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
-        if (sdkVersionElement.GetString() == latestSdkPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (!string.IsNullOrEmpty(sdkVersion) && IsValidSemanticVersion(sdkVersion) && sdkVersion == latestSdkPackage?.Version)
         {
             logger.LogInformation("App Host SDK is up to date.");
             return;
         }
 
+        // Detect what migration actions will be performed for .csproj files
+        var migrationInfo = DetectMigrationActions(context.AppHostProjectFile);
+
         var sdkUpdateStep = new PackageUpdateStep(
-            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersionElement.GetString(), latestSdkPackage?.Version),
-            () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!),
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersion ?? "unknown", latestSdkPackage?.Version),
+            () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!, interactionService, migrationInfo),
             "Aspire.AppHost.Sdk",
-            sdkVersionElement.GetString() ?? "unknown",
+            sdkVersion ?? "unknown",
             latestSdkPackage?.Version ?? "unknown",
             context.AppHostProjectFile);
         context.UpdateSteps.Enqueue(sdkUpdateStep);
     }
 
-    private static async Task UpdateSdkVersionInAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
+    private static SdkMigrationInfo DetectMigrationActions(FileInfo projectFile)
+    {
+        if (!string.Equals(projectFile.Extension, ".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SdkMigrationInfo(false, false);
+        }
+
+        try
+        {
+            var projectDocument = new XmlDocument();
+            projectDocument.PreserveWhitespace = true;
+            projectDocument.Load(projectFile.FullName);
+
+            var projectNode = projectDocument.SelectSingleNode("/Project");
+            if (projectNode is null)
+            {
+                return new SdkMigrationInfo(false, false);
+            }
+
+            // Check if using old SDK format (needs migration to new format)
+            var sdkAttribute = projectNode.Attributes?["Sdk"];
+            var usesOldFormat = sdkAttribute is null || !ContainsAspireAppHostSdk(sdkAttribute.Value);
+
+            // Check if Aspire.Hosting.AppHost package reference exists (will be removed)
+            var hasAppHostPackage = projectNode.SelectSingleNode("//PackageReference[@Include='Aspire.Hosting.AppHost']") is not null;
+
+            return new SdkMigrationInfo(usesOldFormat, hasAppHostPackage);
+        }
+        catch
+        {
+            return new SdkMigrationInfo(false, false);
+        }
+    }
+
+    private const string AspireAppHostSdkName = "Aspire.AppHost.Sdk";
+
+    /// <summary>
+    /// Checks if the Sdk attribute contains the Aspire.AppHost.Sdk.
+    /// Handles formats like "Aspire.AppHost.Sdk/13.0.1" or "Aspire.AppHost.Sdk/13.0.1;Microsoft.NET.Sdk".
+    /// </summary>
+    private static bool ContainsAspireAppHostSdk(string sdkAttribute)
+    {
+        var sdks = sdkAttribute.Split(';');
+        foreach (var sdk in sdks)
+        {
+            var trimmedSdk = sdk.Trim();
+
+            // Check for exact match "Aspire.AppHost.Sdk" or "Aspire.AppHost.Sdk/version"
+            if (trimmedSdk.Equals(AspireAppHostSdkName, StringComparison.OrdinalIgnoreCase) ||
+                trimmedSdk.StartsWith(AspireAppHostSdkName + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Updates the Aspire.AppHost.Sdk version in the Sdk attribute, preserving any other SDKs.
+    /// </summary>
+    private static string UpdateAspireAppHostSdkVersion(string sdkAttribute, string newVersion)
+    {
+        var sdks = sdkAttribute.Split(';');
+        var updatedSdks = new List<string>();
+
+        foreach (var sdk in sdks)
+        {
+            var trimmedSdk = sdk.Trim();
+
+            // Check if this is the Aspire.AppHost.Sdk
+            if (trimmedSdk.Equals(AspireAppHostSdkName, StringComparison.OrdinalIgnoreCase) ||
+                trimmedSdk.StartsWith(AspireAppHostSdkName + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                // Replace with new version
+                updatedSdks.Add($"{AspireAppHostSdkName}/{newVersion}");
+            }
+            else
+            {
+                updatedSdks.Add(trimmedSdk);
+            }
+        }
+
+        return string.Join(";", updatedSdks);
+    }
+
+    internal static async Task UpdateSdkVersionInAppHostAsync(FileInfo projectFile, NuGetPackageCli package, IInteractionService interactionService, SdkMigrationInfo migrationInfo)
     {
         if (string.Equals(projectFile.Extension, ".csproj", StringComparison.OrdinalIgnoreCase))
         {
             await UpdateSdkVersionInCsprojAppHostAsync(projectFile, package);
+
+            // Display migration feedback messages
+            if (migrationInfo.WillMigrateToNewFormat)
+            {
+                interactionService.DisplaySubtleMessage(string.Format(CultureInfo.InvariantCulture,
+                    UpdateCommandStrings.MigratedToNewSdkFormat, package.Version));
+            }
+
+            if (migrationInfo.WillRemoveAppHostPackage)
+            {
+                interactionService.DisplaySubtleMessage(UpdateCommandStrings.RemovedObsoleteAppHostPackage);
+            }
         }
         else if (string.Equals(projectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
         {
@@ -286,7 +394,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
         }
     }
 
-    private static async Task UpdateSdkVersionInCsprojAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
+    internal static async Task UpdateSdkVersionInCsprojAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
     {
         var projectDocument = new XmlDocument();
         projectDocument.PreserveWhitespace = true;
@@ -301,13 +409,15 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         // Check if the SDK is set via the Sdk attribute on the Project element (new format)
         var sdkAttribute = projectNode.Attributes?["Sdk"];
-        if (sdkAttribute is not null && sdkAttribute.Value.StartsWith("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
+        if (sdkAttribute is not null && ContainsAspireAppHostSdk(sdkAttribute.Value))
         {
-            // New format: <Project Sdk="Aspire.AppHost.Sdk/version">
-            sdkAttribute.Value = $"Aspire.AppHost.Sdk/{package.Version}";
+            // Already using new format: <Project Sdk="Aspire.AppHost.Sdk/version">
+            // Update the version, preserving any other SDKs in the attribute
+            sdkAttribute.Value = UpdateAspireAppHostSdkVersion(sdkAttribute.Value, package.Version);
         }
         else
         {
+            // Migrate from old format to new format
             // Old format: <Sdk Name="Aspire.AppHost.Sdk" Version="..." />
             var sdkNode = projectNode.SelectSingleNode("Sdk[@Name='Aspire.AppHost.Sdk']");
             if (sdkNode is null)
@@ -315,12 +425,88 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
                 throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));
             }
 
-            sdkNode.Attributes?["Version"]?.Value = package.Version;
+            // Set the new format: <Project Sdk="Aspire.AppHost.Sdk/version">
+            // The Aspire.AppHost.Sdk already includes the base .NET SDK, so we replace any existing SDK attribute
+            if (sdkAttribute is not null)
+            {
+                sdkAttribute.Value = $"{AspireAppHostSdkName}/{package.Version}";
+            }
+            else
+            {
+                var newSdkAttribute = projectDocument.CreateAttribute("Sdk");
+                newSdkAttribute.Value = $"{AspireAppHostSdkName}/{package.Version}";
+                projectNode.Attributes!.SetNamedItem(newSdkAttribute);
+            }
+
+            // Remove the old <Sdk Name="Aspire.AppHost.Sdk" /> element and any surrounding whitespace
+            RemoveNodeWithWhitespace(sdkNode);
         }
+
+        // Remove the Aspire.Hosting.AppHost package reference if present (no longer needed with new SDK format)
+        RemovePackageReference(projectNode, "Aspire.Hosting.AppHost");
 
         projectDocument.Save(projectFile.FullName);
 
         await Task.CompletedTask;
+    }
+
+    private static void RemoveNodeWithWhitespace(XmlNode node)
+    {
+        var parent = node.ParentNode;
+        if (parent is null)
+        {
+            return;
+        }
+
+        // Remove preceding whitespace (any text/whitespace node type)
+        var previousSibling = node.PreviousSibling;
+        if (previousSibling is XmlCharacterData charData && string.IsNullOrWhiteSpace(charData.Data))
+        {
+            parent.RemoveChild(previousSibling);
+        }
+
+        parent.RemoveChild(node);
+    }
+
+    private static void RemovePackageReference(XmlNode projectNode, string packageId)
+    {
+        var packageNode = projectNode.SelectSingleNode($"//PackageReference[@Include='{packageId}']");
+        if (packageNode?.ParentNode is null)
+        {
+            return;
+        }
+
+        var parentNode = packageNode.ParentNode;
+
+        // Remove the package reference and any preceding whitespace
+        RemoveNodeWithWhitespace(packageNode);
+
+        // If ItemGroup is now empty (only whitespace), remove it too
+        if (parentNode.Name == "ItemGroup" && IsEmptyOrWhitespace(parentNode))
+        {
+            RemoveNodeWithWhitespace(parentNode);
+        }
+    }
+
+    private static bool IsEmptyOrWhitespace(XmlNode node)
+    {
+        foreach (XmlNode child in node.ChildNodes)
+        {
+            // Check for any type of text/whitespace node (XmlText, XmlWhitespace, XmlSignificantWhitespace)
+            if (child is XmlCharacterData charData)
+            {
+                if (!string.IsNullOrWhiteSpace(charData.Data))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                // Non-text node found (element, comment, etc.)
+                return false;
+            }
+        }
+        return true;
     }
 
     private static async Task UpdateSdkVersionInSingleFileAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
@@ -354,13 +540,30 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
             return;
         }
 
-        // Detect if this project uses Central Package Management
-        var cpmInfo = DetectCentralPackageManagement(projectFile);
-
         // Use fallback wrapper for AppHost project, normal method for others
         var itemsAndPropertiesDocument = IsAppHostProject(projectFile, context)
             ? await GetItemsAndPropertiesWithFallbackAsync(projectFile, context, cancellationToken)
             : await GetItemsAndPropertiesAsync(projectFile, cancellationToken);
+
+        // Check if this project has ManagePackageVersionsCentrally set to false
+        var usesCentralPackageManagement = true;
+        if (itemsAndPropertiesDocument.RootElement.TryGetProperty("Properties", out var propertiesElement))
+        {
+            if (propertiesElement.TryGetProperty("ManagePackageVersionsCentrally", out var managePkgVersionsElement))
+            {
+                var managePkgVersionsValue = managePkgVersionsElement.GetString();
+                // If the property is explicitly set to false, don't use CPM even if Directory.Packages.props exists
+                if (string.Equals(managePkgVersionsValue, "false", StringComparison.OrdinalIgnoreCase))
+                {
+                    usesCentralPackageManagement = false;
+                }
+            }
+        }
+
+        // Detect if this project uses Central Package Management (if not already disabled by property)
+        var cpmInfo = usesCentralPackageManagement
+            ? DetectCentralPackageManagement(projectFile)
+            : new CentralPackageManagementInfo(false, null);
 
         var itemsElement = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
 
@@ -417,6 +620,12 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private static bool IsUpdatablePackage(string packageId)
     {
+        // Skip Aspire.Hosting.AppHost - it's removed during SDK update (no longer needed with new SDK format)
+        if (string.Equals(packageId, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
         return packageId.StartsWith("Aspire.");
     }
 
@@ -439,7 +648,9 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
     {
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
-        if (packageVersion == latestPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (IsValidSemanticVersion(packageVersion) && packageVersion == latestPackage?.Version)
         {
             logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
             return;
@@ -467,7 +678,9 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
-        if (currentVersion == latestPackage?.Version)
+        // Treat unparseable versions (including range expressions) like wildcards - always update them
+        // Only skip if the version is a valid semantic version that matches the latest
+        if (IsValidSemanticVersion(currentVersion) && currentVersion == latestPackage?.Version)
         {
             logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
             return;
@@ -580,15 +793,7 @@ internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDo
 
     private static bool IsValidSemanticVersion(string version)
     {
-        try
-        {
-            SemVersion.Parse(version);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        return SemVersion.TryParse(version, SemVersionStyles.Strict, out _);
     }
 
     private static async Task UpdatePackageVersionInDirectoryPackagesProps(string packageId, string newVersion, FileInfo directoryPackagesPropsFile)
@@ -887,7 +1092,7 @@ internal record PackageUpdateStep(
 {
     public override string GetFormattedDisplayText()
     {
-        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion}[/] to [bold green]{NewVersion}[/]";
+        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion.EscapeMarkup()}[/] to [bold green]{NewVersion.EscapeMarkup()}[/]";
     }
 }
 
@@ -900,3 +1105,5 @@ internal sealed class ProjectUpdaterException : System.Exception
 }
 
 internal record CentralPackageManagementInfo(bool UsesCentralPackageManagement, FileInfo? DirectoryPackagesPropsFile);
+
+internal record SdkMigrationInfo(bool WillMigrateToNewFormat, bool WillRemoveAppHostPackage);

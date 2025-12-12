@@ -449,11 +449,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.UseMiddleware<ValidateTokenMiddleware>();
 
-        if (!_dashboardOptionsMonitor.CurrentValue.Mcp.Disabled.GetValueOrDefault())
-        {
-            _app.MapMcp("/mcp").RequireAuthorization(McpApiKeyAuthenticationHandler.PolicyName);
-        }
-
         // Configure the HTTP request pipeline.
         if (!_app.Environment.IsDevelopment())
         {
@@ -509,6 +504,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpGrpcTraceService>();
         _app.MapGrpcService<OtlpGrpcLogsService>();
 
+        _app.MapDashboardMcp(dashboardOptions);
         _app.MapDashboardApi(dashboardOptions);
         _app.MapDashboardHealthChecks();
     }

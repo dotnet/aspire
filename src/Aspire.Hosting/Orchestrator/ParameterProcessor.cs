@@ -5,7 +5,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
@@ -118,31 +117,16 @@ public sealed class ParameterProcessor(
 
     private async Task ProcessResourceDependenciesAsync(IResource resource, DistributedApplicationExecutionContext executionContext, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
     {
-        // Process environment variables
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            executionContext,
-            (key, unprocessed, processed, ex) =>
-            {
-                if (unprocessed is not null)
-                {
-                    TryAddDependentParameters(unprocessed, referencedParameters, currentDependencySet);
-                }
-            },
-            logger,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        // Process the resource's execution configuration to find referenced parameters
+        (var executionConfgiuration, _) = await resource.ExecutionConfigurationBuilder()
+            .WithArgumentsConfig()
+            .WithEnvironmentVariablesConfig()
+            .BuildAsync(executionContext, logger, cancellationToken).ConfigureAwait(false);
 
-        // Process command line arguments
-        await resource.ProcessArgumentValuesAsync(
-            executionContext,
-            (unprocessed, expression, ex, _) =>
-            {
-                if (unprocessed is not null)
-                {
-                    TryAddDependentParameters(unprocessed, referencedParameters, currentDependencySet);
-                }
-            },
-            logger,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        foreach (var reference in executionConfgiuration.References)
+        {
+            TryAddDependentParameters(reference, referencedParameters, currentDependencySet);
+        }
     }
 
     private static void TryAddDependentParameters(object? value, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet)
@@ -208,11 +192,17 @@ public sealed class ParameterProcessor(
                 "Value missing" :
                 "Error initializing parameter";
 
+            // Use warning style for missing parameters to match the notification banner,
+            // and error style for actual initialization errors.
+            var stateStyle = ex is MissingParameterValueException ?
+                KnownResourceStateStyles.Warn :
+                KnownResourceStateStyles.Error;
+
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
                 return s with
                 {
-                    State = new(stateText, KnownResourceStateStyles.Error),
+                    State = new(stateText, stateStyle),
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message)
                 };
             })
@@ -229,22 +219,9 @@ public sealed class ParameterProcessor(
     // Internal for testing purposes - allows passing specific parameters to test.
     internal async Task HandleUnresolvedParametersAsync(IList<ParameterResource> unresolvedParameters)
     {
-        DeploymentStateSection? parametersStateSection = null;
-
-        if (executionContext.IsRunMode)
-        {
-            try
-            {
-                parametersStateSection = await deploymentStateManager.AcquireSectionAsync("Parameters").ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to load deployment state. Continuing without saved parameter values.");
-            }
-        }
+        var stateModified = false;
 
         {
-            var stateModified = false;
 
             // This method will continue in a loop until all unresolved parameters are resolved.
             while (unresolvedParameters.Count > 0)
@@ -346,10 +323,19 @@ public sealed class ParameterProcessor(
                             if (executionContext.IsRunMode && showSaveToSecrets && saveParameters?.Value is not null)
                             {
                                 var shouldSave = bool.TryParse(saveParameters.Value, out var saveToDeploymentState) && saveToDeploymentState;
-                                if (shouldSave && parametersStateSection is not null)
+                                if (shouldSave)
                                 {
-                                    parametersStateSection.Data[parameter.Name] = JsonValue.Create(inputValue);
-                                    stateModified = true;
+                                    try
+                                    {
+                                        var slot = await deploymentStateManager.AcquireSectionAsync(parameter.ConfigurationKey).ConfigureAwait(false);
+                                        slot.SetValue(inputValue);
+                                        await deploymentStateManager.SaveSectionAsync(slot).ConfigureAwait(false);
+                                        stateModified = true;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        logger.LogWarning(ex, "Failed to save parameter {ParameterName} to deployment state.", parameter.Name);
+                                    }
                                 }
                             }
 
@@ -360,45 +346,38 @@ public sealed class ParameterProcessor(
                 }
             }
 
-            if (stateModified && parametersStateSection is not null)
+            if (stateModified)
             {
-                try
-                {
-                    await deploymentStateManager.SaveSectionAsync(parametersStateSection).ConfigureAwait(false);
-                    logger.LogInformation("Parameter values saved to deployment state.");
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
-                }
+                logger.LogInformation("Parameter values saved to deployment state.");
             }
         }
     }
 
     private async Task SaveParametersToDeploymentStateAsync(IEnumerable<ParameterResource> parameters, CancellationToken cancellationToken)
     {
-        try
+        var savedCount = 0;
+        foreach (var parameter in parameters)
         {
-            var parametersSection = await deploymentStateManager.AcquireSectionAsync("Parameters", cancellationToken).ConfigureAwait(false);
-
-            foreach (var parameter in parameters)
+            try
             {
                 var value = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(value))
                 {
-                    parametersSection.Data[parameter.Name] = JsonValue.Create(value);
+                    var slot = await deploymentStateManager.AcquireSectionAsync(parameter.ConfigurationKey, cancellationToken).ConfigureAwait(false);
+                    slot.SetValue(value);
+                    await deploymentStateManager.SaveSectionAsync(slot, cancellationToken).ConfigureAwait(false);
+                    savedCount++;
                 }
             }
-
-            if (parametersSection.Data.Count > 0)
+            catch (Exception ex)
             {
-                await deploymentStateManager.SaveSectionAsync(parametersSection, cancellationToken).ConfigureAwait(false);
-                logger.LogInformation("Parameter values saved to deployment state.");
+                logger.LogWarning(ex, "Failed to save parameter {ParameterName} to deployment state.", parameter.Name);
             }
         }
-        catch (Exception ex)
+
+        if (savedCount > 0)
         {
-            logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
+            logger.LogInformation("{SavedCount} parameter values saved to deployment state.", savedCount);
         }
     }
 }

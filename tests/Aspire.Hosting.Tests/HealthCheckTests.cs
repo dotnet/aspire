@@ -118,10 +118,9 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task BuildThrowsOnMissingHealthCheckRegistration()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         builder.Services.AddLogging(b => {
-            b.AddXunit(testOutputHelper);
             b.AddFakeLogging();
         });
 

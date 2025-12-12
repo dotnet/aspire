@@ -538,6 +538,212 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(expectedFriendlyName, result.FriendlyName);
         Assert.Equal(package, result.Package);
     }
+
+    [Fact]
+    public async Task AddCommandPrompter_FiltersToHighestVersionPerPackageId()
+    {
+        // Arrange
+        List<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>? displayedPackages = null;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = (sp) =>
+            {
+                var mockInteraction = new TestConsoleInteractionService();
+                mockInteraction.PromptForSelectionCallback = (message, choices, formatter, ct) =>
+                {
+                    // Capture what the prompter passes to the interaction service
+                    var choicesList = choices.Cast<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>().ToList();
+                    displayedPackages = choicesList;
+                    return choicesList.First();
+                };
+                return mockInteraction;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var prompter = new AddCommandPrompter(interactionService);
+
+        // Create a fake channel
+        var fakeCache = new FakeNuGetPackageCache();
+        var channel = PackageChannel.CreateImplicitChannel(fakeCache);
+
+        // Create multiple versions of the same package
+        var packages = new[]
+        {
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "9.0.0", Source = "nuget" }, channel),
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "9.2.0", Source = "nuget" }, channel),
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "9.1.0", Source = "nuget" }, channel),
+        };
+
+        // Act
+        await prompter.PromptForIntegrationAsync(packages, CancellationToken.None);
+
+        // Assert - should only show highest version (9.2.0) for the package ID
+        Assert.NotNull(displayedPackages);
+        Assert.Single(displayedPackages!);
+        Assert.Equal("9.2.0", displayedPackages!.First().Package.Version);
+    }
+
+    [Fact]
+    public async Task AddCommandPrompter_FiltersToHighestVersionPerChannel()
+    {
+        // Arrange
+        List<object>? displayedChoices = null;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = (sp) =>
+            {
+                var mockInteraction = new TestConsoleInteractionService();
+                mockInteraction.PromptForSelectionCallback = (message, choices, formatter, ct) =>
+                {
+                    // Capture what the prompter passes to the interaction service
+                    var choicesList = choices.Cast<object>().ToList();
+                    displayedChoices = choicesList;
+                    return choicesList.First();
+                };
+                return mockInteraction;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var prompter = new AddCommandPrompter(interactionService);
+
+        // Create a fake channel
+        var fakeCache = new FakeNuGetPackageCache();
+        var channel = PackageChannel.CreateImplicitChannel(fakeCache);
+
+        // Create multiple versions of the same package from same channel
+        var packages = new[]
+        {
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "9.0.0", Source = "nuget" }, channel),
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "9.2.0", Source = "nuget" }, channel),
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "9.1.0", Source = "nuget" }, channel),
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "9.0.1-preview.1", Source = "nuget" }, channel),
+        };
+
+        // Act
+        var result = await prompter.PromptForIntegrationVersionAsync(packages, CancellationToken.None);
+
+        // Assert - For implicit channel with no explicit channels, should automatically select highest version without prompting
+        Assert.Null(displayedChoices); // No prompt should be shown
+        Assert.Equal("9.2.0", result.Package.Version); // Should return highest version
+    }
+
+    [Fact]
+    public async Task AddCommandPrompter_ShowsHighestVersionPerChannelWhenMultipleChannels()
+    {
+        // Arrange
+        List<object>? displayedChoices = null;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = (sp) =>
+            {
+                var mockInteraction = new TestConsoleInteractionService();
+                mockInteraction.PromptForSelectionCallback = (message, choices, formatter, ct) =>
+                {
+                    // Capture what the prompter passes to the interaction service
+                    var choicesList = choices.Cast<object>().ToList();
+                    displayedChoices = choicesList;
+                    return choicesList.First();
+                };
+                return mockInteraction;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var prompter = new AddCommandPrompter(interactionService);
+
+        // Create two different channels
+        var fakeCache = new FakeNuGetPackageCache();
+        var implicitChannel = PackageChannel.CreateImplicitChannel(fakeCache);
+        
+        var mappings = new[] { new PackageMapping("Aspire*", "https://preview-feed") };
+        var explicitChannel = PackageChannel.CreateExplicitChannel("preview", PackageChannelQuality.Prerelease, mappings, fakeCache);
+
+        // Create packages from different channels with different versions
+        var packages = new[]
+        {
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "9.0.0", Source = "nuget" }, implicitChannel),
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "9.1.0", Source = "nuget" }, implicitChannel),
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "9.2.0", Source = "nuget" }, implicitChannel),
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "10.0.0-preview.1", Source = "preview-feed" }, explicitChannel),
+            ("redis", new NuGetPackage { Id = "Aspire.Hosting.Redis", Version = "10.0.0-preview.2", Source = "preview-feed" }, explicitChannel),
+        };
+
+        // Act
+        await prompter.PromptForIntegrationVersionAsync(packages, CancellationToken.None);
+
+        // Assert - should show 2 root choices: one for implicit channel, one submenu for explicit channel
+        Assert.NotNull(displayedChoices);
+        Assert.Equal(2, displayedChoices!.Count);
+    }
+
+    [Fact]
+    public async Task AddCommand_WithoutHives_UsesImplicitChannelWithoutPrompting()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        
+        var selectedPackageId = string.Empty;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService()
+            {
+                PromptForSelectionCallback = (message, choices, formatter, ct) =>
+                {
+                    return choices.Cast<object>().First();
+                }
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, useCache, options, cancellationToken) =>
+                {
+                    var redisPackage = new NuGetPackage()
+                    {
+                        Id = "Aspire.Hosting.Redis",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (0, new NuGetPackage[] { redisPackage });
+                };
+
+                runner.AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                {
+                    selectedPackageId = packageName;
+                    return 0;
+                };
+
+                return runner;
+            };
+        });
+        
+        var provider = services.BuildServiceProvider();
+
+        // Act - without hives, should automatically select from implicit channel without prompting
+        var command = provider.GetRequiredService<AddCommand>();
+        var result = command.Parse("add redis");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal("Aspire.Hosting.Redis", selectedPackageId);
+    }
 }
 
 internal sealed class TestAddCommandPrompter(IInteractionService interactionService) : AddCommandPrompter(interactionService)

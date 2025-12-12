@@ -327,14 +327,13 @@ public class ReferenceExpressionBuilder
     /// </summary>
     /// <param name="value">The formatted string to be appended to the interpolated string.</param>
     /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
-    public void AppendFormatted(string? value, string? format = null)
+    public void AppendFormatted(string? value, string format)
     {
+        ArgumentException.ThrowIfNullOrEmpty(nameof(value));
+
         if (value is not null)
         {
-            if (format is not null)
-            {
-                value = FormattingHelpers.FormatValue(value, format);
-            }
+            value = FormattingHelpers.FormatValue(value, format);
 
             _builder.Append(value);
         }
@@ -419,7 +418,7 @@ public class ReferenceExpressionBuilder
         /// </summary>
         /// <param name="value">The formatted string to be appended to the interpolated string.</param>
         /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
-        public void AppendFormatted(string? value, string? format = null)
+        public void AppendFormatted(string? value, string format)
         {
             builder.AppendFormatted(value, format);
         }

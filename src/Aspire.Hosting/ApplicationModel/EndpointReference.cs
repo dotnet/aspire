@@ -49,6 +49,18 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     public bool Exists => GetEndpointAnnotation() is not null;
 
+    /// <summary>
+    /// Gets a value indicating whether the endpoint uses HTTP scheme.
+    /// </summary>
+    public bool IsHttp => StringComparers.EndpointAnnotationUriScheme.Equals(Scheme, "http");
+
+    /// <summary>
+    ///
+    /// </summary> <summary>
+    /// Gets a value indicating whether the endpoint uses HTTPS scheme.
+    /// </summary>
+    public bool IsHttps => StringComparers.EndpointAnnotationUriScheme.Equals(Scheme, "https");
+
     string IManifestExpressionProvider.ValueExpression => GetExpression();
 
     /// <summary>

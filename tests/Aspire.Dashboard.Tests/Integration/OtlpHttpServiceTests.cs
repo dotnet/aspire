@@ -250,11 +250,11 @@ public class OtlpHttpServiceTests
     {
         // Arrange
         var testSink = new TestSink();
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, 
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
             dictionary =>
             {
                 dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0";
-            }, 
+            },
             testSink: testSink);
         await app.StartAsync().DefaultTimeout();
 
@@ -273,21 +273,21 @@ public class OtlpHttpServiceTests
         // Assert
         Assert.Equal(HttpStatusCode.UnsupportedMediaType, responseMessage.StatusCode);
         Assert.Equal("application/json", responseMessage.Content.Headers.ContentType?.MediaType);
-        
+
         // Verify JSON error response
         var responseBody = await responseMessage.Content.ReadAsStringAsync();
         var statusResponse = JsonSerializer.Deserialize<StatusResponse>(responseBody, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-        
+
         Assert.NotNull(statusResponse);
         Assert.Equal(15, statusResponse.Code); // UNIMPLEMENTED gRPC status code
         Assert.Contains("application/x-protobuf", statusResponse.Message);
         Assert.Contains("not supported", statusResponse.Message);
-        
+
         // Verify log
-        var logs = testSink.Writes.Where(w => 
+        var logs = testSink.Writes.Where(w =>
             w.LoggerName == "Aspire.Dashboard.Otlp.Http" &&
             w.Message!.Contains("OTLP HTTP request with unsupported content type")).ToList();
-        
+
         var log = Assert.Single(logs);
         Assert.Contains("application/x-protobuf", log.Message);
         Assert.Contains("unsupported content type", log.Message);

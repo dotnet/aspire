@@ -21,6 +21,13 @@ param storage_outputs_blobendpoint string
 
 param pg_kv_outputs_name string
 
+param pg_outputs_hostname string
+
+param pg_username_value string
+
+@secure()
+param pg_password_value string
+
 @secure()
 param value0_value string
 
@@ -50,6 +57,14 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
           name: 'connectionstrings--db'
           identity: api_identity_outputs_id
           keyVaultUrl: pg_kv_connectionstrings__db.properties.secretUri
+        }
+        {
+          name: 'db-uri'
+          value: 'postgresql://${uriComponent(pg_username_value)}:${uriComponent(pg_password_value)}@${pg_outputs_hostname}/db'
+        }
+        {
+          name: 'db-password'
+          value: pg_password_value
         }
         {
           name: 'secretval'
@@ -124,12 +139,48 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: mydb_outputs_connectionstring
             }
             {
+              name: 'MYDB_URI'
+              value: mydb_outputs_connectionstring
+            }
+            {
               name: 'ConnectionStrings__blobs'
+              value: storage_outputs_blobendpoint
+            }
+            {
+              name: 'BLOBS_URI'
               value: storage_outputs_blobendpoint
             }
             {
               name: 'ConnectionStrings__db'
               secretRef: 'connectionstrings--db'
+            }
+            {
+              name: 'DB_HOST'
+              value: pg_outputs_hostname
+            }
+            {
+              name: 'DB_PORT'
+              value: '5432'
+            }
+            {
+              name: 'DB_URI'
+              secretRef: 'db-uri'
+            }
+            {
+              name: 'DB_JDBCCONNECTIONSTRING'
+              value: 'jdbc:postgresql://${pg_outputs_hostname}/db?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin'
+            }
+            {
+              name: 'DB_USERNAME'
+              value: pg_username_value
+            }
+            {
+              name: 'DB_PASSWORD'
+              secretRef: 'db-password'
+            }
+            {
+              name: 'DB_DATABASE'
+              value: 'db'
             }
             {
               name: 'SecretVal'

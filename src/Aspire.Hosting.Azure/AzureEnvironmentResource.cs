@@ -71,6 +71,7 @@ public sealed class AzureEnvironmentResource : Resource
             var publishStep = new PipelineStep
             {
                 Name = $"publish-{Name}",
+                Description = $"Publishes the Azure environment configuration for {Name}.",
                 Action = ctx => PublishAsync(ctx),
                 RequiredBySteps = [WellKnownPipelineSteps.Publish],
                 DependsOnSteps = [WellKnownPipelineSteps.PublishPrereq]
@@ -79,6 +80,7 @@ public sealed class AzureEnvironmentResource : Resource
             var validateStep = new PipelineStep
             {
                 Name = "validate-azure-login",
+                Description = "Validates Azure CLI authentication before deployment.",
                 Action = ctx => ValidateAzureLoginAsync(ctx),
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy],
                 DependsOnSteps = [WellKnownPipelineSteps.DeployPrereq]
@@ -87,6 +89,7 @@ public sealed class AzureEnvironmentResource : Resource
             var createContextStep = new PipelineStep
             {
                 Name = CreateProvisioningContextStepName,
+                Description = "Creates the Azure provisioning context for infrastructure deployment.",
                 Action = async ctx =>
                 {
                     var provisioningContextProvider = ctx.Services.GetRequiredService<IProvisioningContextProvider>();
@@ -101,6 +104,7 @@ public sealed class AzureEnvironmentResource : Resource
             var provisionStep = new PipelineStep
             {
                 Name = ProvisionInfrastructureStepName,
+                Description = "Aggregation step for all Azure infrastructure provisioning operations.",
                 Action = _ => Task.CompletedTask,
                 Tags = [WellKnownPipelineTags.ProvisionInfrastructure],
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy],

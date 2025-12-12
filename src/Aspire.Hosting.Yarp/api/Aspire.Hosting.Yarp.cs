@@ -39,6 +39,8 @@ namespace Aspire.Hosting
     {
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> AddYarp(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> PublishWithStaticFiles(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, ApplicationModel.IResourceBuilder<IResourceWithContainerFiles> resourceWithFiles) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithConfiguration(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, System.Action<IYarpConfigurationBuilder> configurationBuilder) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithHostPort(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, int? port) { throw null; }
@@ -78,7 +80,7 @@ namespace Aspire.Hosting.Yarp
         public static YarpCluster WithSessionAffinityConfig(this YarpCluster cluster, global::Yarp.ReverseProxy.Configuration.SessionAffinityConfig config) { throw null; }
     }
 
-    public partial class YarpResource : ApplicationModel.ContainerResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource
+    public partial class YarpResource : ApplicationModel.ContainerResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource, ApplicationModel.IContainerFilesDestinationResource
     {
         public YarpResource(string name) : base(default!, default) { }
     }

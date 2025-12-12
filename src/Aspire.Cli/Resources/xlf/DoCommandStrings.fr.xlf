@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="Description">
         <source>Execute a specific pipeline step and its dependencies. (Preview)</source>
-        <target state="new">Execute a specific pipeline step and its dependencies. (Preview)</target>
+        <target state="translated">Exécuter une étape spécifique du pipeline ainsi que ses dépendances. (Préversion)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
         <source>Executing pipeline...</source>
-        <target state="new">Executing pipeline...</target>
+        <target state="translated">Exécution du pipeline...</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCanceled">
         <source>The operation was canceled.</source>
-        <target state="new">The operation was canceled.</target>
+        <target state="translated">L'opération a été annulée.</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>OPERATION COMPLETED</source>
-        <target state="new">OPERATION COMPLETED</target>
+        <target state="translated">OPÉRATION TERMINÉE</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationFailedPrefix">
         <source>OPERATION FAILED</source>
-        <target state="new">OPERATION FAILED</target>
+        <target state="translated">ÉCHEC DE L’OPÉRATION</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The optional output path for artifacts.</source>
-        <target state="new">The optional output path for artifacts.</target>
+        <target state="translated">Chemin de sortie optionnel pour les artefacts.</target>
         <note />
       </trans-unit>
       <trans-unit id="StepArgumentDescription">
         <source>The name of the step to execute.</source>
-        <target state="new">The name of the step to execute.</target>
+        <target state="translated">Nom de l’étape à exécuter.</target>
         <note />
       </trans-unit>
     </body>

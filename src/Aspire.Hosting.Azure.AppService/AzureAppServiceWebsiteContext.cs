@@ -77,49 +77,49 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     private void ProcessEndpoints()
     {
-        if (!resource.TryGetEndpoints(out var endpoints) || !endpoints.Any())
+        // Resolve endpoint ports using the centralized helper
+        var resolvedEndpoints = resource.ResolveEndpoints();
+
+        if (resolvedEndpoints.Count == 0)
         {
             return;
         }
 
         // Only http/https are supported in App Service
-        var unsupportedEndpoints = endpoints.Where(e => e.UriScheme is not ("http" or "https")).ToArray();
+        var unsupportedEndpoints = resolvedEndpoints.Where(r => r.Endpoint.UriScheme is not ("http" or "https")).ToArray();
         if (unsupportedEndpoints.Length > 0)
         {
-            throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(e => $"'{e.Name}'"))} on resource '{resource.Name}' specifies an unsupported scheme. Only http and https are supported in App Service.");
+            throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(r => $"'{r.Endpoint.Name}'"))} on resource '{resource.Name}' specifies an unsupported scheme. Only http and https are supported in App Service.");
         }
 
         // App Service supports only one target port
-        var targetPortEndpoints = endpoints.Where(e => e.IsExternal && e.TargetPort is not null).Select(e => e.TargetPort).Distinct().ToList();
+        var targetPortEndpoints = resolvedEndpoints
+            .Where(r => r.Endpoint.IsExternal)
+            .Select(r => r.TargetPort.Value)
+            .Distinct()
+            .ToList();
+
         if (targetPortEndpoints.Count > 1)
         {
             throw new NotSupportedException("App Service does not support resources with multiple external endpoints.");
         }
 
-        // Determine fallback target port if none is specified
-        int? fallbackTargetPort = (resource, targetPortEndpoints) switch
+        foreach (var resolved in resolvedEndpoints)
         {
-            // Project resources will fallback to container port if no target port is specified
-            (ProjectResource, []) => null,
-            // For other resources, default to port 8000 if no target port is specified
-            (_, []) => 8000,
-            // There's a target port, so no need for a fallback
-            _ => null
-        };
+            var endpoint = resolved.Endpoint;
 
-        foreach (var endpoint in endpoints)
-        {
             if (!endpoint.IsExternal)
             {
                 throw new NotSupportedException($"The endpoint '{endpoint.Name}' on resource '{resource.Name}' is not external. App Service only supports external endpoints.");
             }
 
             // For App Service, we ignore port mappings since ports are handled by the platform
+            // TargetPort is null only for default ProjectResource endpoints (container port decides)
             _endpointMapping[endpoint.Name] = new(
                 Scheme: endpoint.UriScheme,
                 Host: HostName,
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
-                TargetPort: endpoint.TargetPort ?? fallbackTargetPort,
+                TargetPort: resolved.TargetPort,
                 IsHttpIngress: true,
                 External: true); // All App Service endpoints are external
         }

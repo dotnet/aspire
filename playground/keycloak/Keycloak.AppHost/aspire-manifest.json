@@ -3,7 +3,7 @@
   "resources": {
     "keycloak": {
       "type": "container.v0",
-      "image": "quay.io/keycloak/keycloak:26.3",
+      "image": "quay.io/keycloak/keycloak:26.4",
       "args": [
         "start",
         "--import-realm"
@@ -25,7 +25,8 @@
       "env": {
         "KC_BOOTSTRAP_ADMIN_USERNAME": "admin",
         "KC_BOOTSTRAP_ADMIN_PASSWORD": "{keycloak-password.value}",
-        "KC_HEALTH_ENABLED": "true"
+        "KC_HEALTH_ENABLED": "true",
+        "KC_FEATURES": "opentelemetry"
       },
       "bindings": {
         "http": {

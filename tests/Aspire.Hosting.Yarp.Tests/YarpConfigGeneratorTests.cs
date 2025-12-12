@@ -264,7 +264,7 @@ public class YarpConfigGeneratorTests()
     [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task GenerateEnvVariablesConfigurationDockerCompose()
     {
-        using var tempDir = new TempDirectory();
+        using var tempDir = new TestTempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
 
         builder.AddDockerComposeEnvironment("docker-compose").WithDashboard(db => db.WithHostPort(18888));

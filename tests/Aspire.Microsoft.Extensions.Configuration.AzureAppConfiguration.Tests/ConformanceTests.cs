@@ -3,7 +3,6 @@
 
 using Aspire.Components.ConformanceTests;
 using Azure.Core;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.Extensions.DependencyInjection;
@@ -99,9 +98,13 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
         service.Refreshers.First().RefreshAsync().ConfigureAwait(false).GetAwaiter().GetResult();
     }
 
+    public ConformanceTests(ITestOutputHelper? output = null) : base(output)
+    {
+    }
+
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteInvokeWithLogging(() => new ConformanceTests().ActivitySourceTest(key: null), Output);
 
     internal sealed class EmptyTokenCredential : TokenCredential
     {

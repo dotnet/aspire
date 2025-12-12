@@ -19,6 +19,7 @@
   "configuration.aspire.aspireCliExecutablePath": "The path to the Aspire CLI executable. If not set, the extension will attempt to use 'aspire' from the system PATH.",
   "configuration.aspire.enableAspireCliDebugLogging": "Enable console debug logging for Aspire CLI commands executed by the extension.",
   "configuration.aspire.enableAspireDcpDebugLogging": "Enable Developer Control Plane (DCP) debug logging for Aspire applications. Logs will be stored in the workspace's .aspire/dcp/logs-{debugSessionId} folder.",
+  "configuration.aspire.enableAspireDashboardAutoLaunch": "Enable automatic launch of the Aspire Dashboard when using the Aspire debugger.",
   "command.runAppHost": "Run Aspire apphost",
 	"command.debugAppHost": "Debug Aspire apphost",
 	"aspire-vscode.strings.noCsprojFound": "No apphost found in the current workspace.",
@@ -44,7 +45,7 @@
   "aspire-vscode.strings.runProject": "Run {0}",
 	"aspire-vscode.strings.debugProject": "Debug {0}",
 	"aspire-vscode.strings.watchProject": "Watch {0} ({1})",
-	"aspire-vscode.strings.noCsharpBuildTask": "No C# Dev Kit build task found.",
+	"aspire-vscode.strings.noCsharpBuildTask": "No C# Dev Kit build task found, defaulting to dotnet CLI. Maybe the workspace hasn't finished loading?",
 	"aspire-vscode.strings.noWatchTask": "No watch task found. Please ensure a watch task is defined in your workspace.",
 	"aspire-vscode.strings.buildFailedWithExitCode": "Build failed with exit code {0}.",
 	"aspire-vscode.strings.noOutputFromMsbuild": "No output from msbuild.",
@@ -82,5 +83,11 @@
   "aspire-vscode.strings.invalidOrMissingToken": "Invalid or missing token in Authorization header.",
   "aspire-vscode.strings.invalidTokenLength": "Invalid token length in Authorization header.",
   "aspire-vscode.strings.authorizationHeaderMustStartWithBearer": "Authorization header must start with 'Bearer '.",
-  "aspire-vscode.strings.authorizationAndDcpHeadersRequired": "Authorization and Microsoft-Developer-DCP-Instance-ID headers are required."
+  "aspire-vscode.strings.authorizationAndDcpHeadersRequired": "Authorization and Microsoft-Developer-DCP-Instance-ID headers are required.",
+  "aspire-vscode.strings.buildFailedForProjectWithError": "Build failed for project {0} with error: {1}.",
+  "aspire-vscode.strings.lookingForDevkitBuildTask": "C# Dev Kit is installed, looking for C# Dev Kit build task...",
+  "aspire-vscode.strings.csharpDevKitNotInstalled": "C# Dev Kit is not installed, building using dotnet CLI...",
+  "aspire-vscode.strings.cliNotAvailable": "Aspire CLI is not available on PATH. Please install it and restart VS Code.",
+  "aspire-vscode.strings.openCliInstallInstructions": "See CLI installation instructions",
+  "aspire-vscode.strings.dismissLabel": "Dismiss"
 }

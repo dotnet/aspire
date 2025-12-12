@@ -20,6 +20,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Polly;
+using Polly.Retry;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -727,6 +728,70 @@ public class DcpExecutorTests
         Assert.Contains(watchLogsResults2, l => l.Content.Contains("Fifth"));
         Assert.Contains(watchLogsResults2, l => l.Content.Contains("Sixth"));
         Assert.Contains(watchLogsResults2, l => l.Content.Contains("Seventh"));
+    }
+
+    [Fact]
+    public async Task ResourceLogging_SystemStream_FormatsWithSysPrefix()
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        builder.AddContainer("database", "image");
+
+        var kubernetesService = new TestKubernetesService(startStream: (obj, logStreamType) =>
+        {
+            switch (logStreamType)
+            {
+                case Logs.StreamTypeStdOut:
+                    return new MemoryStream();
+                case Logs.StreamTypeStdErr:
+                    return new MemoryStream();
+                case Logs.StreamTypeStartupStdOut:
+                    return new MemoryStream();
+                case Logs.StreamTypeStartupStdErr:
+                    return new MemoryStream();
+                case Logs.StreamTypeSystem:
+                    // Simulate real DCP system log format with JSON metadata
+                    var systemLogs = 
+                        "2024-08-19T06:10:01.000Z\tinfo\tdcpctrl.ExecutableReconciler\tStarting process...\t{\"Executable\": \"/foo-pwrqgpew\", \"Reconciliation\": 4, \"Cmd\": \"bla\", \"Args\": []}" + Environment.NewLine +
+                        "2024-08-19T06:10:02.000Z\terror\tdcpctrl.ExecutableReconciler\tFailed to start process\t{\"Executable\": \"/foo-pwrqgpew\", \"Reconciliation\": 4, \"Cmd\": \"bla\", \"Args\": [], \"error\": \"exec: \\\"bla\\\": executable file not found in $PATH\"}" + Environment.NewLine;
+                    return new MemoryStream(Encoding.UTF8.GetBytes(systemLogs));
+                default:
+                    throw new InvalidOperationException("Unexpected type: " + logStreamType);
+            }
+        });
+        
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard" };
+        var resourceLoggerService = new ResourceLoggerService();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, resourceLoggerService: resourceLoggerService);
+        await appExecutor.RunApplicationAsync();
+
+        var exeResource = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
+
+        // Start watching logs for container
+        var watchSubscribers = resourceLoggerService.WatchAnySubscribersAsync();
+        var watchSubscribersEnumerator = watchSubscribers.GetAsyncEnumerator();
+        var watchLogs = resourceLoggerService.WatchAsync(exeResource.Metadata.Name);
+        // Wait for at least 3 logs (there might be additional logs like certificate authority messages)
+        var watchLogsTask = ConsoleLoggingTestHelpers.WatchForLogsAsync(watchLogs, targetLogCount: 3);
+
+        await watchSubscribersEnumerator.MoveNextAsync();
+        Assert.Equal(exeResource.Metadata.Name, watchSubscribersEnumerator.Current.Name);
+        Assert.True(watchSubscribersEnumerator.Current.AnySubscribers);
+
+        exeResource.Status = new ContainerStatus { State = ContainerState.Running };
+        kubernetesService.PushResourceModified(exeResource);
+
+        var watchLogsResults = await watchLogsTask;
+        Assert.True(watchLogsResults.Count >= 2, $"Expected at least 2 log entries, got {watchLogsResults.Count}");
+        
+        // Verify the system logs are formatted with [sys] prefix and proper formatting
+        Assert.Contains(watchLogsResults, l => l.Content.Contains("[sys] Starting process...: Cmd = bla, Args = []"));
+        Assert.Contains(watchLogsResults, l => l.Content.Contains("[sys] Failed to start process: Cmd = bla, Args = [], Error = exec: \"bla\": executable file not found in $PATH"));
     }
 
     private sealed class LogStreamPipes
@@ -1575,10 +1640,15 @@ public class DcpExecutorTests
         // Act
         await appExecutor.RunApplicationAsync();
 
-        await Task.Delay(2000);
         // Assert
-        var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
-        Assert.Equal(2, dcpExes.Count);
+        List<Executable> dcpExes = [];
+        var haveExes = RetryTillTrueOrTimeout(() =>
+        {
+            dcpExes.Clear();
+            dcpExes.AddRange(kubernetesService.CreatedResources.OfType<Executable>());
+            return dcpExes.Count == 2;
+        }, TestConstants.DefaultOrchestratorTestTimeout);
+        Assert.True(haveExes, $"Expected two running but instead got {dcpExes.Count}");
 
         var debuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
         Assert.Equal(ExecutionType.IDE, debuggableExe.Spec.ExecutionType);
@@ -1985,6 +2055,43 @@ public class DcpExecutorTests
         Assert.Equal(ExecutionType.IDE, exe.Spec.ExecutionType);
     }
 
+    [Theory]
+    [InlineData()]
+    [InlineData("alias1", "alias2")]
+    public async Task ContainerNetworkAliases(params string[]? aliases)
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        var ctr = builder.AddContainer("mycontainer", "myimage");
+        foreach (var alias in aliases ?? Array.Empty<string>())
+        {
+            ctr.WithContainerNetworkAlias(alias);
+        }
+
+        var kubernetesService = new TestKubernetesService();
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var container = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
+        Assert.NotNull(container.Spec.Networks);
+        var network = Assert.Single(container.Spec.Networks);
+        Assert.NotNull(network.Aliases);
+        Assert.Equal(2 + (aliases?.Length ?? 0), network.Aliases.Count);
+        Assert.Contains("mycontainer", network.Aliases);
+        Assert.Contains("mycontainer.dev.internal", network.Aliases);
+        foreach (var alias in aliases ?? Array.Empty<string>())
+        {
+            Assert.Contains(alias, network.Aliases);
+        }
+    }
+
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
@@ -2019,7 +2126,7 @@ public class DcpExecutorTests
         resourceLoggerService ??= new ResourceLoggerService();
         dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
 
-        var developerCertificateService = new TestDeveloperCertificateService(new List<X509Certificate2>(), false, false);
+        var developerCertificateService = new TestDeveloperCertificateService(new List<X509Certificate2>(), false, false, false);
 
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return new DcpExecutor(
@@ -2037,14 +2144,31 @@ public class DcpExecutorTests
                 ServiceProvider = new TestServiceProvider(configuration)
                     .AddService<IDeveloperCertificateService>(developerCertificateService)
                     .AddService(Options.Create(dcpOptions))
+                    .AddService(resourceLoggerService)
             }),
             resourceLoggerService,
             new TestDcpDependencyCheckService(),
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
-            new Locations(),
+            new Locations(new FileSystemService(configuration ?? new ConfigurationBuilder().Build())),
             developerCertificateService);
 #pragma warning restore ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    }
+
+    private static bool RetryTillTrueOrTimeout(Func<bool> check, int timeoutMilliseconds)
+    {
+        var retry = new ResiliencePipelineBuilder<bool>()
+            .AddRetry(new RetryStrategyOptions<bool>
+            {
+                BackoffType = DelayBackoffType.Exponential,
+                Delay = TimeSpan.FromMilliseconds(200),
+                MaxDelay = TimeSpan.FromSeconds(2),
+                MaxRetryAttempts = int.MaxValue,
+                ShouldHandle = args => ValueTask.FromResult(!args.Outcome.Result)
+            })
+            .AddTimeout(TimeSpan.FromMilliseconds(timeoutMilliseconds))
+            .Build();
+        return retry.Execute(check);
     }
 
     private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);

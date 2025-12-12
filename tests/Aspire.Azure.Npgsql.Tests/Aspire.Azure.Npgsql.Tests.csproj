@@ -15,7 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Testcontainers.PostgreSQL" />
   </ItemGroup>
 

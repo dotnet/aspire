@@ -12,6 +12,11 @@
         <target state="translated">AppHost 및 서비스 기본값</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireJsFrontendStarter_Description">
+        <source>Starter App (ASP.NET Core/React)</source>
+        <target state="translated">시작 앱(ASP.NET Core/React)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>MSTest</source>
         <target state="translated">MSTest</target>
@@ -23,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AspirePyStarter_Description">
-        <source>React (Vite) &amp; FastAPI starter</source>
-        <target state="translated">React(Vite) 및 FastAPI 스타터</target>
+        <source>Starter App (FastAPI/React)</source>
+        <target state="translated">시작 앱(FastAPI/React)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
@@ -38,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Blazor &amp; Minimal API starter</source>
-        <target state="translated">Blazor 및 최소 API 스타터</target>
+        <source>Starter App (ASP.NET Core/Blazor)</source>
+        <target state="translated">시작 앱(ASP.NET Core/Blazor)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
@@ -159,22 +164,22 @@
       </trans-unit>
       <trans-unit id="UseLocalhostTld_Description">
         <source>Configures whether to use *.dev.localhost URLs for local development.</source>
-        <target state="new">Configures whether to use *.dev.localhost URLs for local development.</target>
+        <target state="translated">로컬 개발에 *.dev.localhost URL을 사용할지 여부를 구성합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="UseLocalhostTld_Prompt">
         <source>Use *.dev.localhost URLs</source>
-        <target state="new">Use *.dev.localhost URLs</target>
+        <target state="translated">*.dev.localhost URL 사용</target>
         <note />
       </trans-unit>
       <trans-unit id="UseLocalhostTld_UnexpectedChoice">
         <source>Unexpected choice for *.dev.localhost option</source>
-        <target state="new">Unexpected choice for *.dev.localhost option</target>
+        <target state="translated">*.dev.localhost 옵션에 대한 예기치 않은 선택</target>
         <note />
       </trans-unit>
       <trans-unit id="UseLocalhostTld_UsingLocalhostTld">
         <source>Using *.dev.localhost URLs for local development.</source>
-        <target state="new">Using *.dev.localhost URLs for local development.</target>
+        <target state="translated">로컬 개발에 *.dev.localhost URL을 사용합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="UseRedisCache_Description">

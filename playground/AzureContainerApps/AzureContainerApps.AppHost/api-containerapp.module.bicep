@@ -5,10 +5,6 @@ param infra_outputs_azure_container_apps_environment_default_domain string
 
 param infra_outputs_azure_container_apps_environment_id string
 
-param infra_outputs_azure_container_registry_endpoint string
-
-param infra_outputs_azure_container_registry_managed_identity_id string
-
 param api_containerimage string
 
 param api_identity_outputs_id string
@@ -32,6 +28,10 @@ param api_identity_outputs_clientid string
 param certificateName string
 
 param customDomain string
+
+param infra_outputs_azure_container_registry_endpoint string
+
+param infra_outputs_azure_container_registry_managed_identity_id string
 
 resource account_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: account_kv_outputs_name

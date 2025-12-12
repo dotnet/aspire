@@ -23,7 +23,6 @@ jobs:
     if: ${{ github.repository_owner == 'dotnet' }}
     outputs:
       skip_workflow: ${{ (steps.check_docs.outputs.no_changes == 'true' || steps.check_docs.outputs.only_changed == 'true') && 'true' || 'false' }}
-      VERSION_SUFFIX_OVERRIDE: ${{ steps.compute_version_suffix.outputs.VERSION_SUFFIX_OVERRIDE }}
 
     steps:
       - name: Checkout code
@@ -46,16 +45,12 @@ jobs:
     name: Tests
     needs: [prepare_for_ci]
     if: ${{ github.repository_owner == 'dotnet' && needs.prepare_for_ci.outputs.skip_workflow != 'true' }}
-    with:
-      versionOverrideArg: ${{ needs.prepare_for_ci.outputs.VERSION_SUFFIX_OVERRIDE }}
 
   build_cli_archives:
     uses: ./.github/workflows/build-cli-native-archives.yml
     name: Build native CLI archives
     needs: [prepare_for_ci]
     if: ${{ github.repository_owner == 'dotnet' && needs.prepare_for_ci.outputs.skip_workflow != 'true' }}
-    with:
-      versionOverrideArg: ${{ needs.prepare_for_ci.outputs.VERSION_SUFFIX_OVERRIDE }}
 
   # This job is used for branch protection. It fails if any of the dependent jobs failed
   results:

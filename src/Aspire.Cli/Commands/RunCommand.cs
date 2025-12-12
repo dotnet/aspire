@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
@@ -14,6 +15,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using StreamJsonRpc;
@@ -22,6 +24,10 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class RunCommand : BaseCommand
 {
+    // Constants for running instance detection
+    private const int ProcessTerminationTimeoutMs = 10000; // Wait up to 10 seconds for processes to terminate
+    private const int ProcessTerminationPollIntervalMs = 250; // Check process status every 250ms
+
     private readonly IDotNetCliRunner _runner;
     private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
@@ -33,6 +39,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IServiceProvider _serviceProvider;
     private readonly IFeatures _features;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly TimeProvider _timeProvider;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -47,7 +54,8 @@ internal sealed class RunCommand : BaseCommand
         ICliUpdateNotifier updateNotifier,
         IServiceProvider serviceProvider,
         CliExecutionContext executionContext,
-        ICliHostEnvironment hostEnvironment)
+        ICliHostEnvironment hostEnvironment,
+        TimeProvider? timeProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -71,6 +79,7 @@ internal sealed class RunCommand : BaseCommand
         _sdkInstaller = sdkInstaller;
         _features = features;
         _hostEnvironment = hostEnvironment;
+        _timeProvider = timeProvider ?? TimeProvider.System;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -91,6 +100,9 @@ internal sealed class RunCommand : BaseCommand
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
+        var runningInstanceDetectionEnabled = _features.IsFeatureEnabled(KnownFeatures.RunningInstanceDetectionEnabled, defaultValue: true);
+        // Force option kept for backward compatibility but no longer used since prompt was removed
+        // var force = runningInstanceDetectionEnabled && parseResult.GetValue<bool>("--force");
 
         // A user may run `aspire run` in an Aspire terminal in VS Code. In this case, intercept and prompt
         // VS Code to start a debug session using the current directory
@@ -121,6 +133,15 @@ internal sealed class RunCommand : BaseCommand
             if (effectiveAppHostFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
+            }
+
+            // Check for running instance if feature is enabled
+            if (runningInstanceDetectionEnabled)
+            {
+                // Even if we fail to stop we won't block the apphost starting
+                // to make sure we don't ever break flow. It should mostly stop
+                // just fine though.
+                await CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, cancellationToken);
             }
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
@@ -184,7 +205,7 @@ internal sealed class RunCommand : BaseCommand
                 Debug = debug
             };
 
-            var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
+            var backchannelCompletitionSource = new TaskCompletionSource<IAppHostCliBackchannel>();
 
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
@@ -403,16 +424,16 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole.Write(ctrlCPadder);
     }
 
-    private static FileInfo GetAppHostLogFile()
+    private FileInfo GetAppHostLogFile()
     {
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var homeDirectory = ExecutionContext.HomeDirectory.FullName;
         var logsPath = Path.Combine(homeDirectory, ".aspire", "cli", "logs");
-        var logFilePath = Path.Combine(logsPath, $"apphost-{Environment.ProcessId}-{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.log");
+        var logFilePath = Path.Combine(logsPath, $"apphost-{Environment.ProcessId}-{_timeProvider.GetUtcNow():yyyy-MM-dd-HH-mm-ss}.log");
         var logFile = new FileInfo(logFilePath);
         return logFile;
     }
 
-    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
+    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostCliBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
     {
         try
         {
@@ -484,5 +505,114 @@ internal sealed class RunCommand : BaseCommand
 
             _resourceStates[resourceState.Resource] = resourceState;
         }
+    }
+
+    private string ComputeAuxiliarySocketPath(string appHostPath)
+    {
+        return AppHostHelper.ComputeAuxiliarySocketPath(appHostPath, ExecutionContext.HomeDirectory.FullName);
+    }
+
+    private async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, CancellationToken cancellationToken)
+    {
+        var auxiliarySocketPath = ComputeAuxiliarySocketPath(appHostFile.FullName);
+
+        // Check if the socket file exists
+        if (!File.Exists(auxiliarySocketPath))
+        {
+            return true; // No running instance, continue
+        }
+
+        // Stop the running instance (no prompt per mitchdenny's request)
+        var stopped = await StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
+        
+        return stopped;
+    }
+
+    private async Task<bool> StopRunningInstanceAsync(string socketPath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var logger = _serviceProvider.GetService<ILogger<RunCommand>>();
+            
+            // Connect to the auxiliary backchannel using the new encapsulated class
+            using var backchannel = await AppHostAuxiliaryBackchannel.ConnectAsync(socketPath, logger, cancellationToken).ConfigureAwait(false);
+
+            // Get the AppHost information (already retrieved during connection, but we need it)
+            var appHostInfo = backchannel.AppHostInfo;
+
+            if (appHostInfo is null)
+            {
+                InteractionService.DisplayError(RunCommandStrings.RunningInstanceStopFailed);
+                return false;
+            }
+
+            // Display message that we're stopping the previous instance
+            var cliPidText = appHostInfo.CliProcessId.HasValue ? appHostInfo.CliProcessId.Value.ToString(CultureInfo.InvariantCulture) : "N/A";
+            InteractionService.DisplayMessage("stop_sign", $"Stopping previous instance (AppHost PID: {appHostInfo.ProcessId.ToString(CultureInfo.InvariantCulture)}, CLI PID: {cliPidText})");
+
+            // Call StopAppHostAsync on the auxiliary backchannel
+            await backchannel.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
+
+            // Monitor the PIDs for termination
+            var stopped = await MonitorProcessesForTerminationAsync(appHostInfo, cancellationToken).ConfigureAwait(false);
+
+            if (stopped)
+            {
+                InteractionService.DisplaySuccess(RunCommandStrings.RunningInstanceStopped);
+            }
+            else
+            {
+                InteractionService.DisplayError(RunCommandStrings.RunningInstanceStopFailed);
+            }
+
+            return stopped;
+        }
+        catch (Exception ex)
+        {
+            var logger = _serviceProvider.GetService<ILogger<RunCommand>>();
+            logger?.LogWarning(ex, "Failed to stop running instance");
+            InteractionService.DisplayError(RunCommandStrings.RunningInstanceStopFailed);
+            return false;
+        }
+    }
+
+    private async Task<bool> MonitorProcessesForTerminationAsync(AppHostInformation appHostInfo, CancellationToken cancellationToken)
+    {
+        var startTime = _timeProvider.GetUtcNow();
+        var pidsToMonitor = new List<int> { appHostInfo.ProcessId };
+        
+        if (appHostInfo.CliProcessId.HasValue)
+        {
+            pidsToMonitor.Add(appHostInfo.CliProcessId.Value);
+        }
+
+        while ((_timeProvider.GetUtcNow() - startTime).TotalMilliseconds < ProcessTerminationTimeoutMs)
+        {
+            var allStopped = true;
+            
+            foreach (var pid in pidsToMonitor)
+            {
+                try
+                {
+                    var process = Process.GetProcessById(pid);
+                    // If we can get the process, it's still running
+                    allStopped = false;
+                }
+                catch (ArgumentException)
+                {
+                    // Process doesn't exist, it has stopped
+                }
+            }
+
+            if (allStopped)
+            {
+                return true;
+            }
+
+            await Task.Delay(ProcessTerminationPollIntervalMs, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Timeout reached
+        return false;
     }
 }

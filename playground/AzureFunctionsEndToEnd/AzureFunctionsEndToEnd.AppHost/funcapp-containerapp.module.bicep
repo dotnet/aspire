@@ -5,10 +5,6 @@ param env_outputs_azure_container_apps_environment_default_domain string
 
 param env_outputs_azure_container_apps_environment_id string
 
-param env_outputs_azure_container_registry_endpoint string
-
-param env_outputs_azure_container_registry_managed_identity_id string
-
 param funcapp_containerimage string
 
 param funcapp_identity_outputs_id string
@@ -30,6 +26,10 @@ param storage_outputs_blobendpoint string
 param storage_outputs_queueendpoint string
 
 param funcapp_identity_outputs_clientid string
+
+param env_outputs_azure_container_registry_endpoint string
+
+param env_outputs_azure_container_registry_managed_identity_id string
 
 resource funcapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: 'funcapp'

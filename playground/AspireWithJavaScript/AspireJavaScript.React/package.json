@@ -16,15 +16,15 @@
     "react-dom": "^19.2.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.28.3",
-    "@babel/preset-env": "^7.28.3",
-    "@babel/preset-react": "^7.27.1",
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-react": "^7.28.0",
     "babel-loader": "^10.0.0",
     "css-loader": "^7.1.2",
     "html-webpack-plugin": "^5.6.4",
     "run-script-os": "^1.1.6",
     "style-loader": "^4.0.0",
-    "webpack": "^5.101.2",
+    "webpack": "^5.103.0",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.2"
   }

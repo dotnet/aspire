@@ -764,8 +764,8 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
     }
 }
 
-// Test implementation of IAppHostBackchannel that simulates prompt interactions
-internal sealed class TestPromptBackchannel : IAppHostBackchannel
+// Test implementation of IAppHostCliBackchannel that simulates prompt interactions
+internal sealed class TestPromptBackchannel : IAppHostCliBackchannel
 {
     private readonly List<PromptData> _promptsToSend = [];
     private readonly TaskCompletionSource _completionSource = new();
@@ -994,7 +994,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayPlainText(string text) { }
     public void DisplayMarkdown(string markdown) { }
 
-    public void DisplayVersionUpdateNotification(string newerVersion) { }
+    public void DisplayVersionUpdateNotification(string newerVersion, string? updateCommand = null) { }
 
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {

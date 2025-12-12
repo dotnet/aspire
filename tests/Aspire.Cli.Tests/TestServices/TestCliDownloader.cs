@@ -17,8 +17,15 @@ internal sealed class TestCliDownloader : ICliDownloader
         _tempDirectory = tempDirectory;
     }
 
+    public Func<string, CancellationToken, Task<string>>? DownloadLatestCliAsyncCallback { get; set; }
+
     public Task<string> DownloadLatestCliAsync(string quality, CancellationToken cancellationToken)
     {
+        if (DownloadLatestCliAsyncCallback is not null)
+        {
+            return DownloadLatestCliAsyncCallback(quality, cancellationToken);
+        }
+
         // Ensure the directory exists
         if (!_tempDirectory.Exists)
         {

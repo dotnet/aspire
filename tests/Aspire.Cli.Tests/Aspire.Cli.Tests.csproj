@@ -21,7 +21,11 @@
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="StreamJsonRpc" VersionOverride="$(StreamJsonRpcPackageVersionForCli)" />
-  <PackageReference Include="Verify.XunitV3" />
+    <PackageReference Include="Verify.XunitV3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(TestsSharedDir)TestModuleInitializer.cs" Link="shared/TestModuleInitializer.cs" />
   </ItemGroup>
 
 </Project>

@@ -170,6 +170,43 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task UseOrFindAppHostProjectFileNormalizesForwardSlashesInSettings()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var targetAppHostDirectory = workspace.WorkspaceRoot.CreateSubdirectory("TargetAppHost");
+        var targetAppHostProjectFile = new FileInfo(Path.Combine(targetAppHostDirectory.FullName, "TargetAppHost.csproj"));
+        await File.WriteAllTextAsync(targetAppHostProjectFile.FullName, "Not a real apphost");
+
+        var workspaceSettingsDirectory = workspace.CreateDirectory(".aspire");
+        var aspireSettingsFile = new FileInfo(Path.Combine(workspaceSettingsDirectory.FullName, "settings.json"));
+
+        // Get the relative path and ensure it uses forward slashes (as stored in settings.json)
+        var relativePath = Path.GetRelativePath(aspireSettingsFile.Directory!.FullName, targetAppHostProjectFile.FullName);
+        var forwardSlashPath = relativePath.Replace(Path.DirectorySeparatorChar, '/');
+
+        using var writer = aspireSettingsFile.OpenWrite();
+        await JsonSerializer.SerializeAsync(writer, new
+        {
+            appHostPath = forwardSlashPath
+        });
+        writer.Close();
+
+        var runner = new TestDotNetCliRunner();
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+
+        var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
+
+        // Should successfully find the file even though the path in settings uses forward slashes
+        Assert.Equal(targetAppHostProjectFile.FullName, foundAppHost?.FullName);
+    }
+
+    [Fact]
     public async Task UseOrFindAppHostProjectFilePromptsWhenMultipleFilesFound()
     {
         var logger = NullLogger<ProjectLocator>.Instance;

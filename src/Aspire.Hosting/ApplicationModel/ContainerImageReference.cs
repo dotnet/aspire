@@ -36,29 +36,6 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
     /// <inheritdoc/>
     async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
-        var deploymentTarget = Resource.GetDeploymentTargetAnnotation() ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a deployment target.");
-        var containerRegistry = deploymentTarget.ContainerRegistry ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a container registry.");
-        var registryEndpoint = await containerRegistry.Endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
-
-        string tag;
-        if (Resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out var deploymentTag))
-        {
-            var context = new DeploymentImageTagCallbackAnnotationContext
-            {
-                Resource = Resource,
-                CancellationToken = cancellationToken,
-            };
-            tag = await deploymentTag.Callback(context).ConfigureAwait(false);
-        }
-        else if (Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var annotation))
-        {
-            tag = annotation.Tag ?? "latest";
-        }
-        else
-        {
-            tag = "latest";
-        }
-        
-        return $"{registryEndpoint}/{Resource.Name.ToLowerInvariant()}:{tag}";
+        return await Resource.GetFullRemoteImageNameAsync(cancellationToken).ConfigureAwait(false);
     }
 }

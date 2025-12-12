@@ -253,12 +253,12 @@ internal sealed class DashboardClient : IDashboardClient
             await Task.WhenAll(
                 Task.Run(async () =>
                 {
-                    await WatchWithRecoveryAsync(WatchResourcesAsync, cancellationToken).ConfigureAwait(false);
+                    await WatchWithRecoveryAsync(WatchResourcesAsync, "resources", cancellationToken).ConfigureAwait(false);
                     _resourceWatchCompleteTcs.TrySetResult();
                 }, cancellationToken),
                 Task.Run(async () =>
                 {
-                    await WatchWithRecoveryAsync(WatchInteractionsAsync, cancellationToken).ConfigureAwait(false);
+                    await WatchWithRecoveryAsync(WatchInteractionsAsync, "interactions", cancellationToken).ConfigureAwait(false);
                     _interactionWatchCompleteTcs.TrySetResult();
                 }, cancellationToken)).ConfigureAwait(false);
         }
@@ -294,7 +294,7 @@ internal sealed class DashboardClient : IDashboardClient
         public int ErrorCount { get; set; }
     }
 
-    private async Task WatchWithRecoveryAsync(Func<RetryContext, CancellationToken, Task<RetryResult>> action, CancellationToken cancellationToken)
+    private async Task WatchWithRecoveryAsync(Func<RetryContext, CancellationToken, Task<RetryResult>> action, string actionName, CancellationToken cancellationToken)
     {
         // Track the number of errors we've seen since the last successfully received message.
         // As this number climbs, we extend the amount of time between reconnection attempts, in
@@ -333,7 +333,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 retryContext.ErrorCount++;
 
-                _logger.LogError(ex, "Error #{ErrorCount} watching resources.", retryContext.ErrorCount);
+                _logger.LogError(ex, "Error #{ErrorCount} watching {WatchName}.", retryContext.ErrorCount, actionName);
             }
         }
 

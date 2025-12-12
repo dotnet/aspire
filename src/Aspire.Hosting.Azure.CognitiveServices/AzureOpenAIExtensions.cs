@@ -66,7 +66,7 @@ public static class AzureOpenAIExtensions
             });
 
             // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cogServicesAccount.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cogServicesAccount.Name.ToBicepExpression() });
 
             var resource = (AzureOpenAIResource)infrastructure.AspireResource;
 

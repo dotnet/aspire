@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="../InteractionServiceStrings.resx">
     <body>
+      <trans-unit id="AppHostConnectionLost">
+        <source>The connection to the app host was lost: {0}.</source>
+        <target state="translated">Se perdió la conexión con el host de la aplicación: {0}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
         <target state="translated">La versión de AppHost no es compatible. Actualice el apphost o la CLI de Aspire.</target>
@@ -108,8 +113,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectOptionNotSpecifiedNoCsprojFound">
-        <source>The project argument was not specified and no *.csproj files were detected.</source>
-        <target state="translated">No se especificó el argumento del proyecto y no se detectaron archivos *.csproj.</target>
+        <source>The project argument was not specified and no app host project files were detected.</source>
+        <target state="translated">No se especificó el argumento del proyecto y no se detectaron archivos de proyecto de host de aplicaciones.</target>
         <note />
       </trans-unit>
       <trans-unit id="RequiredCapability">
@@ -136,6 +141,11 @@
         <source>Stopping Aspire.</source>
         <target state="translated">Deteniendo Aspire.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ToUpdateRunCommand">
+        <source>[dim]To update, run: {0}[/]</source>
+        <target state="translated">[dim]Para actualizar, ejecuta: {0}[/]</target>
+        <note>Do not translate [dim]. Also leave [/] as-is. {0} is the command to run</note>
       </trans-unit>
       <trans-unit id="TrustingCertificates">
         <source>Trusting certificates...</source>

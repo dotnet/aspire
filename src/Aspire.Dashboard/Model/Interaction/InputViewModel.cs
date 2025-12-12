@@ -64,7 +64,17 @@ public sealed class InputViewModel
             return SelectOptions;
         }
 
-        return SelectOptions.Where(vm => vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+        var filteredValues = SelectOptions.Where(vm => vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+        // If no values match the filter, don't apply the filter.
+        // This improves user experience and fixes some combobox issues.
+        // https://github.com/microsoft/fluentui-blazor/issues/4314#issuecomment-3577475233
+        if (!filteredValues.Any())
+        {
+            filteredValues = SelectOptions;
+        }
+
+        return filteredValues;
     }
 
     public string? Value

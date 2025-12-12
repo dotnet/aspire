@@ -13,5 +13,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
-  
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="PathLookupHelper.cs" />
+  </ItemGroup>
+
 </Project>

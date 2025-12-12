@@ -120,12 +120,12 @@ public static class AzureStorageExtensions
                 infrastructure.Add(tableService);
             }
 
-            infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
-            infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.QueueUri });
-            infrastructure.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.TableUri });
+            infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri.ToBicepExpression() });
+            infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.QueueUri.ToBicepExpression() });
+            infrastructure.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.TableUri.ToBicepExpression() });
 
             // We need to output name to externalize role assignments.
-            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = storageAccount.Name });
+            infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = storageAccount.Name.ToBicepExpression() });
         };
 
         var resource = new AzureStorageResource(name, configureInfrastructure);

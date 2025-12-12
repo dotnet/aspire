@@ -32,24 +32,17 @@ public class AzureContainerAppEnvironmentResource :
             var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
 
-            var loginToAcrStep = new PipelineStep
-            {
-                Name = $"login-to-acr-{name}",
-                Action = context => AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, context),
-                Tags = ["acr-login"]
-            };
-
             // Add print-dashboard-url step
             var printDashboardUrlStep = new PipelineStep
             {
                 Name = $"print-dashboard-url-{name}",
+                Description = $"Prints the deployment summary and dashboard URL for {name}.",
                 Action = ctx => PrintDashboardUrlAsync(ctx),
                 Tags = ["print-summary"],
                 DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy]
             };
 
-            steps.Add(loginToAcrStep);
             steps.Add(printDashboardUrlStep);
 
             // Expand deployment target steps for all compute resources
@@ -90,8 +83,6 @@ public class AzureContainerAppEnvironmentResource :
         // This is where we wire up the build steps created by the resources
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
         {
-            var acrLoginSteps = context.GetSteps(this, "acr-login");
-
             // Wire up build step dependencies
             // Build steps are created by ProjectResource and ContainerResource
             foreach (var computeResource in context.Model.GetComputeResources())
@@ -111,9 +102,6 @@ public class AzureContainerAppEnvironmentResource :
                         annotation.Callback(context);
                     }
                 }
-
-                context.GetSteps(deploymentTarget, WellKnownPipelineTags.PushContainerImage)
-                       .DependsOn(acrLoginSteps);
             }
 
             // This ensures that resources that have to be built before deployments are handled
@@ -128,8 +116,6 @@ public class AzureContainerAppEnvironmentResource :
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
             var printDashboardUrlSteps = context.GetSteps(this, "print-summary");
             printDashboardUrlSteps.DependsOn(provisionSteps);
-
-            acrLoginSteps.DependsOn(provisionSteps);
         }));
     }
 
@@ -140,7 +126,7 @@ public class AzureContainerAppEnvironmentResource :
         var dashboardUrl = $"https://aspire-dashboard.ext.{domainValue}";
 
         await context.ReportingStep.CompleteAsync(
-            $"Dashboard available at [dashboard URL]({dashboardUrl})",
+            $"Dashboard available at [{dashboardUrl}]({dashboardUrl})",
             CompletionState.Completed,
             context.CancellationToken).ConfigureAwait(false);
     }
@@ -163,6 +149,11 @@ public class AzureContainerAppEnvironmentResource :
     internal BicepOutputReference ContainerAppDomain => new("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", this);
 
     /// <summary>
+    /// Gets the name of the associated Azure Container Registry.
+    /// </summary>
+    internal BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
+
+    /// <summary>
     /// Gets the URL endpoint of the associated Azure Container Registry.
     /// </summary>
     internal BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
@@ -177,17 +168,28 @@ public class AzureContainerAppEnvironmentResource :
     /// </summary>
     public BicepOutputReference NameOutputReference => new("AZURE_CONTAINER_APPS_ENVIRONMENT_NAME", this);
 
-    /// <summary>
-    /// Gets the container registry name.
-    /// </summary>
-    private BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
-
     internal Dictionary<string, (IResource resource, ContainerMountAnnotation volume, int index, BicepOutputReference outputReference)> VolumeNames { get; } = [];
 
-    // Implement IAzureContainerRegistry interface
-    ReferenceExpression IContainerRegistry.Name => ReferenceExpression.Create($"{ContainerRegistryName}");
+    /// <summary>
+    /// Gets the default container registry for this environment.
+    /// </summary>
+    internal AzureContainerRegistryResource? DefaultContainerRegistry { get; set; }
 
-    ReferenceExpression IContainerRegistry.Endpoint => ReferenceExpression.Create($"{ContainerRegistryUrl}");
+    ReferenceExpression IContainerRegistry.Name => GetContainerRegistry()?.Name ?? ReferenceExpression.Create($"{ContainerRegistryName}");
+
+    ReferenceExpression IContainerRegistry.Endpoint => GetContainerRegistry()?.Endpoint ?? ReferenceExpression.Create($"{ContainerRegistryUrl}");
+
+    private IContainerRegistry? GetContainerRegistry()
+    {
+        // Check for explicit container registry reference annotation
+        if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation))
+        {
+            return annotation.Registry;
+        }
+
+        // Fall back to default container registry
+        return DefaultContainerRegistry;
+    }
 
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
