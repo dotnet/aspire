@@ -1516,6 +1516,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             if (explicitStartup)
             {
+                // If explicit startup is configured, we aren't going to start the resource now.
+                // We need to exit before we send the BeforeResourceStarted event or create any DCP resources.
+                // The resource can be explicitly started later via user action or API at which point BeforeResourceStarted
+                // will be published and the DCP resource created.
                 return;
             }
 
@@ -1927,6 +1931,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             var explicitStartup = cr.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _) is true;
             if (!explicitStartup)
             {
+                // If explicit startup is configured, we aren't going to start the resource now. A DCP resource WILL be created,
+                // but it will be explicitly set to not start. We don't want to send the BeforeResourceStarted event here as it will
+                // be sent later when the resource is explicitly started via user action or API.
                 await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
             }
 
