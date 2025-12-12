@@ -238,6 +238,138 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    public async Task BeforeResourceStartedEvent_NotFiredForExplicitStartOnInitialCreation()
+    {
+        const string testName = "before-start-event-explicit-start";
+        using var testProgram = CreateTestProgram(testName, randomizePorts: false);
+
+        var explicitStartEventCount = 0;
+        var normalEventCount = 0;
+
+        testProgram.ServiceABuilder.WithExplicitStart()
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                Interlocked.Increment(ref explicitStartEventCount);
+                return Task.CompletedTask;
+            });
+
+        // ServiceB is a normal resource without explicit start
+        testProgram.ServiceBBuilder
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                Interlocked.Increment(ref normalEventCount);
+                return Task.CompletedTask;
+            });
+
+        var resourcesCreatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        testProgram.AppBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>((_, _) =>
+        {
+            resourcesCreatedTcs.SetResult();
+            return Task.CompletedTask;
+        });
+
+        using var app = testProgram.Build();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestTimeout);
+        var token = cts.Token;
+
+        // Start app in background - it won't complete because of explicit start resource
+        _ = app.StartAsync(token);
+
+        var normalResourceName = $"{testName}-serviceb";
+        var explicitStartResourceName = $"{testName}-servicea";
+
+        // Wait for normal resource to be running
+        await rns.WaitForResourceAsync(normalResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        // Wait for explicit start resource to be NotStarted
+        await rns.WaitForResourceAsync(explicitStartResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        // Wait for resource to finish being created.
+        await resourcesCreatedTcs.Task.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        // Verify BeforeResourceStartedEvent was fired for normal resource but NOT for explicit start resource
+        Assert.Equal(1, normalEventCount);
+        Assert.Equal(0, explicitStartEventCount);
+
+        await app.StopAsync(token).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+    }
+
+    [Fact]
+    public async Task BeforeResourceStartedEvent_FiredWhenExplicitStartResourceIsManuallyStarted()
+    {
+        const string testName = "before-start-event-manual-start";
+        using var testProgram = CreateTestProgram(testName, randomizePorts: false);
+
+        var eventCount = 0;
+
+        testProgram.ServiceABuilder.WithExplicitStart()
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                Interlocked.Increment(ref eventCount);
+                return Task.CompletedTask;
+            });
+
+        using var app = testProgram.Build();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestTimeout);
+        var token = cts.Token;
+
+        // Start app in background
+        var startTask = app.StartAsync(token);
+
+        var explicitStartResourceName = $"{testName}-servicea";
+
+        // Wait for the resource to be in NotStarted state
+        var notStartedResourceEvent = await rns.WaitForResourceAsync(explicitStartResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted, token).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        // Verify no event has been fired yet (initial creation should not fire the event)
+        Assert.Equal(0, eventCount);
+
+        // Manually start the resource
+        await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        // Wait for the resource to be running
+        await rns.WaitForResourceAsync(explicitStartResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        await startTask.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        // Verify that BeforeResourceStartedEvent WAS fired when manually started
+        Assert.Equal(1, eventCount);
+
+        await app.StopAsync(token).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+    }
+
+    [Fact]
+    public async Task BeforeResourceStartedEvent_FiredForNormalResourcesOnInitialStartup()
+    {
+        const string testName = "before-start-event-normal-resource";
+        using var testProgram = CreateTestProgram(testName, randomizePorts: false);
+
+        var eventCount = 0;
+
+        // Don't call WithExplicitStart() - this is a normal resource
+        testProgram.ServiceABuilder
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                Interlocked.Increment(ref eventCount);
+                return Task.CompletedTask;
+            });
+
+        using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+
+        Assert.Equal(1, eventCount);
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
+    }
+
+    [Fact]
     [RequiresDocker]
     public async Task ExplicitStart_StartContainer()
     {
