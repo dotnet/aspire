@@ -125,6 +125,40 @@ internal sealed class RunModeProvisioningContextProvider(
             {
                 var inputs = new List<InteractionInput>();
 
+                // Add credential provider selection if not already configured
+                if (string.IsNullOrEmpty(_options.CredentialSource) || _options.CredentialSource == "Default")
+                {
+                    inputs.Add(new InteractionInput
+                    {
+                        Name = CredentialSourceName,
+                        InputType = InputType.Choice,
+                        Label = AzureProvisioningStrings.CredentialLabel,
+                        Required = true,
+                        Placeholder = AzureProvisioningStrings.CredentialPlaceholder,
+                        DynamicLoading = new InputLoadOptions
+                        {
+                            LoadCallback = async (context) =>
+                            {
+                                var loggerFactory = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
+                                var detectorLogger = loggerFactory.CreateLogger<CredentialProviderDetector>();
+                                var detector = new CredentialProviderDetector(detectorLogger);
+                                var availableProviders = await detector.DetectAvailableProvidersAsync(cancellationToken).ConfigureAwait(false);
+
+                                context.Input.Options = availableProviders
+                                    .Select(provider => KeyValuePair.Create(provider, GetCredentialProviderDisplayName(provider)))
+                                    .ToList();
+
+                                // Show guidance if no providers (except InteractiveBrowser) were detected
+                                if (availableProviders.Count == 1 && availableProviders[0] == "InteractiveBrowser")
+                                {
+                                    // No actual credential providers detected, only InteractiveBrowser fallback
+                                    _logger.LogWarning(AzureProvisioningStrings.CredentialNoProvidersDetected);
+                                }
+                            }
+                        }
+                    });
+                }
+
                 // Skip tenant prompting if subscription ID is already set
                 if (string.IsNullOrEmpty(_options.SubscriptionId))
                 {
@@ -307,6 +341,12 @@ internal sealed class RunModeProvisioningContextProvider(
 
                 if (!result.Canceled)
                 {
+                    // Set credential source if it was part of the input
+                    if (result.Data.TryGetByName(CredentialSourceName, out var credentialInput))
+                    {
+                        _options.CredentialSource = credentialInput.Value ?? "Default";
+                    }
+                    
                     // Only set tenant ID if it was part of the input (when subscription ID wasn't already set)
                     if (result.Data.TryGetByName(TenantName, out var tenantInput))
                     {
