@@ -29,19 +29,19 @@ internal static class PipelineStepHelpers
     /// <returns>A task representing the async operation.</returns>
     public static async Task PushImageToRegistryAsync(IResource resource, PipelineStepContext context)
     {
-        // Check if the resource is configured to build non-Docker format images
-        // (e.g., OCI format to a local file path). These don't require a push operation.
+        // Check if the resource is configured to save images as archives
+        // rather than pushing to a registry. These don't require a push operation.
         var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
             context.Services,
             context.Logger,
             context.ExecutionContext,
             context.CancellationToken).ConfigureAwait(false);
 
-        // Skip push operation if ImageFormat is explicitly set to non-Docker
-        if (buildOptionsContext.ImageFormat is not null && buildOptionsContext.ImageFormat != ContainerImageFormat.Docker)
+        // Skip push operation if Destination is explicitly set to Archive
+        if (buildOptionsContext.Destination == ContainerImageDestination.Archive)
         {
-            context.Logger.LogInformation("Skipping push for resource '{ResourceName}' - image format is {ImageFormat}, not Docker", 
-                resource.Name, buildOptionsContext.ImageFormat);
+            context.Logger.LogInformation("Skipping push for resource '{ResourceName}' - destination is {Destination}, not Registry", 
+                resource.Name, buildOptionsContext.Destination);
             return;
         }
 

@@ -2110,10 +2110,10 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Add a project that requires build and push
         var project = builder.AddProject<DummyProject>("test-project", launchProfileName: null);
 
-        // Configure the project to use OCI format (non-Docker)
+        // Configure the project to save as archive (not push to registry)
         project.WithContainerBuildOptions(ctx =>
         {
-            ctx.ImageFormat = Aspire.Hosting.Publishing.ContainerImageFormat.Oci;
+            ctx.Destination = Aspire.Hosting.Publishing.ContainerImageDestination.Archive;
             ctx.OutputPath = "/tmp/output";
         });
 
@@ -2122,7 +2122,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         var context = CreateDeployingContext(app);
 
         // Act & Assert - Should not throw an exception even though no registry is configured
-        // because the ImageFormat is OCI, not Docker
+        // because the Destination is Archive, not Registry
         await pipeline.ExecuteAsync(context).DefaultTimeout();
     }
 
@@ -2137,17 +2137,17 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         // Add a project that requires build and push
         var project = builder.AddProject<DummyProject>("test-project", launchProfileName: null);
 
-        // Configure the project to use Docker format (the default)
+        // Configure the project to push to registry
         project.WithContainerBuildOptions(ctx =>
         {
-            ctx.ImageFormat = Aspire.Hosting.Publishing.ContainerImageFormat.Docker;
+            ctx.Destination = Aspire.Hosting.Publishing.ContainerImageDestination.Registry;
         });
 
         using var app = builder.Build();
         var pipeline = new DistributedApplicationPipeline();
         var context = CreateDeployingContext(app);
 
-        // Act & Assert - Should throw an exception because Docker format requires a registry
+        // Act & Assert - Should throw an exception because Registry destination requires a registry
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => pipeline.ExecuteAsync(context).DefaultTimeout());
 
@@ -2163,18 +2163,48 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
-        // Add a project that requires build and push without specifying ImageFormat
+        // Add a project that requires build and push without specifying Destination
         var project = builder.AddProject<DummyProject>("test-project", launchProfileName: null);
 
         using var app = builder.Build();
         var pipeline = new DistributedApplicationPipeline();
         var context = CreateDeployingContext(app);
 
-        // Act & Assert - Should throw an exception because default (null) ImageFormat is treated as Docker
+        // Act & Assert - Should throw an exception because default (null) Destination is treated as Registry
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => pipeline.ExecuteAsync(context).DefaultTimeout());
 
         Assert.Contains("no container registry is available", exception.Message);
+        Assert.Contains("test-project", exception.Message);
+    }
+
+    [Fact]
+    public async Task PushPrereq_ThrowsForArchiveDestinationWithoutOutputPath()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.PushPrereq).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+
+        // Add a project that requires build and push
+        var project = builder.AddProject<DummyProject>("test-project", launchProfileName: null);
+
+        // Configure the project to save as archive but without OutputPath
+        project.WithContainerBuildOptions(ctx =>
+        {
+            ctx.Destination = Aspire.Hosting.Publishing.ContainerImageDestination.Archive;
+            // OutputPath is not set
+        });
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(app);
+
+        // Act & Assert - Should throw an exception because Archive destination requires OutputPath
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => pipeline.ExecuteAsync(context).DefaultTimeout());
+
+        Assert.Contains("Destination set to Archive but OutputPath is not configured", exception.Message);
         Assert.Contains("test-project", exception.Message);
     }
 

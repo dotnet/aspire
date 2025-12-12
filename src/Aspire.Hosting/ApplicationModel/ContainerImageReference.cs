@@ -43,7 +43,7 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
     /// <inheritdoc/>
     async ValueTask<string?> IValueProvider.GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken)
     {
-        // Check if this resource is configured for non-Docker image format (e.g., OCI)
+        // Check if this resource is configured to save as an archive instead of pushing to a registry
         if (context.ExecutionContext?.ServiceProvider is { } serviceProvider)
         {
             var logger = Resource.GetLogger(serviceProvider);
@@ -53,9 +53,8 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
                 context.ExecutionContext,
                 cancellationToken).ConfigureAwait(false);
 
-            // For non-Docker formats like OCI, return the local file path
-            if (buildOptionsContext.ImageFormat is not null && 
-                buildOptionsContext.ImageFormat != Publishing.ContainerImageFormat.Docker)
+            // For Archive destination, return the local file path
+            if (buildOptionsContext.Destination == Publishing.ContainerImageDestination.Archive)
             {
                 if (!string.IsNullOrEmpty(buildOptionsContext.OutputPath))
                 {

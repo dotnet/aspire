@@ -178,17 +178,24 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         continue;
                     }
 
-                    // Check if the resource is configured to build non-Docker format images
-                    // (e.g., OCI format to a local file path). These don't require a registry.
+                    // Check if the resource is configured to save images as archives
+                    // rather than pushing to a registry. These don't require a registry.
                     var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
                         context.Services,
                         context.Logger,
                         context.ExecutionContext,
                         context.CancellationToken).ConfigureAwait(false);
 
-                    // Skip registry validation if ImageFormat is explicitly set to non-Docker
-                    if (buildOptionsContext.ImageFormat is not null && buildOptionsContext.ImageFormat != Publishing.ContainerImageFormat.Docker)
+                    // Skip registry validation if Destination is explicitly set to Archive
+                    if (buildOptionsContext.Destination == Publishing.ContainerImageDestination.Archive)
                     {
+                        // Ensure OutputPath is set when Destination is Archive
+                        if (string.IsNullOrEmpty(buildOptionsContext.OutputPath))
+                        {
+                            throw new InvalidOperationException(
+                                $"Resource '{resource.Name}' has Destination set to Archive but OutputPath is not configured. " +
+                                $"Please set the OutputPath in the container build options.");
+                        }
                         continue;
                     }
 
