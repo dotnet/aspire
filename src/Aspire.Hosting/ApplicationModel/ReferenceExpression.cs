@@ -329,8 +329,6 @@ public class ReferenceExpressionBuilder
     /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
     public void AppendFormatted(string? value, string? format)
     {
-        ArgumentException.ThrowIfNullOrEmpty(nameof(value));
-
         if (value is not null)
         {
             if (format is not null)
