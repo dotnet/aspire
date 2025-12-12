@@ -31,4 +31,13 @@ internal static class RedisContainerImageTags
 
     /// <remarks>2.70</remarks>
     public const string RedisInsightTag = "2.70";
+
+    /// <remarks>docker.io</remarks>
+    public const string RedisMcpRegistry = "docker.io";
+
+    /// <remarks>mcp/redis</remarks>
+    public const string RedisMcpImage = "mcp/redis";
+
+    /// <remarks>latest</remarks>
+    public const string RedisMcpTag = "latest"; // The mcp/redis image only publishes a 'latest' tag.
 }

@@ -249,6 +249,12 @@ public class McpServiceTests
 
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
             _testOutputHelper,
+            additionalConfiguration: config =>
+            {
+                // Configure resource service URL so that the telemetry filter gets registered
+                config[DashboardConfigNames.ResourceServiceUrlName.ConfigKey] = "http://localhost:5000";
+                config[DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey] = nameof(ResourceClientAuthMode.Unsecured);
+            },
             preConfigureBuilder: builder =>
             {
                 // Replace the telemetry sender with our test version
