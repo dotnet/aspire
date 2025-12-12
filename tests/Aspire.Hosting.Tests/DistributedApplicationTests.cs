@@ -243,25 +243,25 @@ public class DistributedApplicationTests
         const string testName = "before-start-event-explicit-start";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
 
-        var explicitStartResourceName = $"{testName}-servicea";
-        var normalResourceName = $"{testName}-serviceb";
+        var explicitStartEventCount = 0;
+        var normalEventCount = 0;
 
-        testProgram.ServiceABuilder.WithExplicitStart();
+        testProgram.ServiceABuilder.WithExplicitStart()
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                Interlocked.Increment(ref explicitStartEventCount);
+                return Task.CompletedTask;
+            });
+        
         // ServiceB is a normal resource without explicit start
+        testProgram.ServiceBBuilder
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                Interlocked.Increment(ref normalEventCount);
+                return Task.CompletedTask;
+            });
 
         using var app = testProgram.Build();
-        
-        var events = app.Services.GetRequiredService<IDistributedApplicationEventing>();
-        var beforeResourceStartedEvents = new List<string>();
-        events.Subscribe<BeforeResourceStartedEvent>((e, ct) =>
-        {
-            lock (beforeResourceStartedEvents)
-            {
-                beforeResourceStartedEvents.Add(e.Resource.Name);
-            }
-            return Task.CompletedTask;
-        });
-
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
         using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.LongTimeoutDuration);
@@ -269,6 +269,9 @@ public class DistributedApplicationTests
 
         // Start app in background - it won't complete because of explicit start resource
         _ = app.StartAsync(token);
+
+        var normalResourceName = $"{testName}-serviceb";
+        var explicitStartResourceName = $"{testName}-servicea";
 
         // Wait for normal resource to be running
         await rns.WaitForResourceAsync(normalResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.Running, token).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
@@ -280,11 +283,8 @@ public class DistributedApplicationTests
         await Task.Delay(TimeSpan.FromSeconds(1));
 
         // Verify BeforeResourceStartedEvent was fired for normal resource but NOT for explicit start resource
-        lock (beforeResourceStartedEvents)
-        {
-            Assert.Contains(normalResourceName, beforeResourceStartedEvents);
-            Assert.DoesNotContain(explicitStartResourceName, beforeResourceStartedEvents);
-        }
+        Assert.Equal(1, normalEventCount);
+        Assert.Equal(0, explicitStartEventCount);
 
         await app.StopAsync(token).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
@@ -295,23 +295,16 @@ public class DistributedApplicationTests
         const string testName = "before-start-event-manual-start";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
 
-        var explicitStartResourceName = $"{testName}-servicea";
+        var eventCount = 0;
 
-        testProgram.ServiceABuilder.WithExplicitStart();
+        testProgram.ServiceABuilder.WithExplicitStart()
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                Interlocked.Increment(ref eventCount);
+                return Task.CompletedTask;
+            });
 
         using var app = testProgram.Build();
-        
-        var events = app.Services.GetRequiredService<IDistributedApplicationEventing>();
-        var beforeResourceStartedEvents = new List<string>();
-        events.Subscribe<BeforeResourceStartedEvent>((e, ct) =>
-        {
-            lock (beforeResourceStartedEvents)
-            {
-                beforeResourceStartedEvents.Add(e.Resource.Name);
-            }
-            return Task.CompletedTask;
-        });
-
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         var orchestrator = app.Services.GetRequiredService<ApplicationOrchestrator>();
 
@@ -321,14 +314,13 @@ public class DistributedApplicationTests
         // Start app in background
         _ = app.StartAsync(token);
 
+        var explicitStartResourceName = $"{testName}-servicea";
+
         // Wait for the resource to be in NotStarted state
         var notStartedResourceEvent = await rns.WaitForResourceAsync(explicitStartResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted, token).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
-        // Clear any events that might have been fired (there shouldn't be any, but just to be safe)
-        lock (beforeResourceStartedEvents)
-        {
-            beforeResourceStartedEvents.Clear();
-        }
+        // Verify no event has been fired yet (initial creation should not fire the event)
+        Assert.Equal(0, eventCount);
 
         // Manually start the resource
         await orchestrator.StartResourceAsync(notStartedResourceEvent.ResourceId, token).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
@@ -340,10 +332,7 @@ public class DistributedApplicationTests
         await Task.Delay(TimeSpan.FromSeconds(1));
 
         // Verify that BeforeResourceStartedEvent WAS fired when manually started
-        lock (beforeResourceStartedEvents)
-        {
-            Assert.Contains(explicitStartResourceName, beforeResourceStartedEvents);
-        }
+        Assert.Equal(1, eventCount);
 
         await app.StopAsync(token).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
@@ -354,26 +343,21 @@ public class DistributedApplicationTests
         const string testName = "before-start-event-normal-resource";
         using var testProgram = CreateTestProgram(testName, randomizePorts: false);
 
-        var normalResourceName = $"{testName}-servicea";
+        var eventCount = 0;
 
         // Don't call WithExplicitStart() - this is a normal resource
-        
-        using var app = testProgram.Build();
-        
-        var events = app.Services.GetRequiredService<IDistributedApplicationEventing>();
-        var eventFired = false;
-        events.Subscribe<BeforeResourceStartedEvent>((e, ct) =>
-        {
-            if (e.Resource.Name == normalResourceName)
+        testProgram.ServiceABuilder
+            .OnBeforeResourceStarted((_, _, _) =>
             {
-                eventFired = true;
-            }
-            return Task.CompletedTask;
-        });
+                Interlocked.Increment(ref eventCount);
+                return Task.CompletedTask;
+            });
+
+        using var app = testProgram.Build();
 
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
-        Assert.True(eventFired, "BeforeResourceStartedEvent should fire for normal resources on initial startup");
+        Assert.Equal(1, eventCount);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
