@@ -287,7 +287,7 @@ public class DistributedApplicationTests
         // Wait for explicit start resource to be NotStarted
         await rns.WaitForResourceAsync(explicitStartResourceName, e => e.Snapshot.State?.Text == KnownResourceStates.NotStarted, token).DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
-        // Wait a bit to ensure all events have been processed
+        // Wait for resource to finish being created.
         await resourcesCreatedTcs.Task.DefaultTimeout(TestConstants.DefaultOrchestratorTestTimeout);
 
         // Verify BeforeResourceStartedEvent was fired for normal resource but NOT for explicit start resource
