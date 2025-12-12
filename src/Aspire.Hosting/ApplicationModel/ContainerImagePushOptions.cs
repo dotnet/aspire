@@ -14,7 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// and <see cref="RemoteImageTag"/> specifies the tag to apply. Use <see cref="GetFullRemoteImageNameAsync"/>
 /// to construct the complete image reference including registry endpoint and tag.
 /// </remarks>
-[Experimental("ASPIRECOMPUTE002", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
 public sealed class ContainerImagePushOptions
 {
     /// <summary>
