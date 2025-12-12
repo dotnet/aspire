@@ -115,6 +115,21 @@ jobs:
         if: inputs.os == 'ubuntu-latest'
         run: docker info
 
+      - name: Start heartbeat monitor (Linux/macOS)
+        if: inputs.testShortName == 'Hosting' && inputs.os != 'windows-latest'
+        run: |
+          ${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs 5 &
+          echo $! > ${{ github.workspace }}/heartbeat.pid
+          echo "Started heartbeat monitor with PID $(cat ${{ github.workspace }}/heartbeat.pid)"
+
+      - name: Start heartbeat monitor (Windows)
+        if: inputs.testShortName == 'Hosting' && inputs.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath "${{ env.DOTNET_SCRIPT }}" -ArgumentList "${{ github.workspace }}/tools/scripts/Heartbeat.cs", "5" -PassThru -NoNewWindow
+          $process.Id | Out-File -FilePath "${{ github.workspace }}/heartbeat.pid" -Encoding ascii -NoNewline
+          Write-Host "Started heartbeat monitor with PID $($process.Id)"
+
       - name: Download built nugets
         if: ${{ inputs.requiresNugets }}
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
@@ -371,6 +386,26 @@ jobs:
           }
 
           Write-Host "✓ Test execution completed successfully (found $validFileCount valid .trx file(s))"
+
+      - name: Stop heartbeat monitor (Linux/macOS)
+        if: always() && inputs.testShortName == 'Hosting' && inputs.os != 'windows-latest'
+        run: |
+          if [ -f "${{ github.workspace }}/heartbeat.pid" ]; then
+            PID=$(cat "${{ github.workspace }}/heartbeat.pid")
+            echo "Stopping heartbeat monitor (PID: $PID)"
+            kill $PID 2>/dev/null || true
+          fi
+
+      - name: Stop heartbeat monitor (Windows)
+        if: always() && inputs.testShortName == 'Hosting' && inputs.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $pidFile = "${{ github.workspace }}/heartbeat.pid"
+          if (Test-Path $pidFile) {
+            $processId = Get-Content $pidFile
+            Write-Host "Stopping heartbeat monitor (PID: $processId)"
+            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+          }
 
       - name: Dump docker info
         if: ${{ always() && inputs.os == 'ubuntu-latest' }}
