@@ -65,6 +65,6 @@ public class AzureCosmosDBDatabaseResource(string name, string databaseName, Azu
             yield return property;
         }
 
-        yield return new("Database", ReferenceExpression.Create($"{DatabaseName}"));
+        yield return new("DatabaseName", ReferenceExpression.Create($"{DatabaseName}"));
     }
 }

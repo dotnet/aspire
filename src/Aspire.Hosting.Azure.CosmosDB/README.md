@@ -89,7 +89,7 @@ The Cosmos DB database resource inherits all properties from its parent Cosmos D
 
 | Property Name | Description |
 |---------------|-------------|
-| `Database` | The name of the database |
+| `DatabaseName` | The name of the database |
 
 ### Cosmos DB container
 

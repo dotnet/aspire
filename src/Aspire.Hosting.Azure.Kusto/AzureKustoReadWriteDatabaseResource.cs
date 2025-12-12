@@ -75,6 +75,6 @@ public class AzureKustoReadWriteDatabaseResource : Resource, IResourceWithParent
             yield return property;
         }
 
-        yield return new("Database", ReferenceExpression.Create($"{DatabaseName}"));
+        yield return new("DatabaseName", ReferenceExpression.Create($"{DatabaseName}"));
     }
 }

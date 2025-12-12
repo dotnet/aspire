@@ -77,9 +77,9 @@ The Azure PostgreSQL database resource inherits all properties from its parent s
 
 | Property Name | Description |
 |---------------|-------------|
-| `Database` | The name of the database |
-| `Uri` | The database-specific connection URI, with the format `postgresql://{Username}:{Password}@{Host}/{Database}` (credentials omitted when not applicable) |
-| `JdbcConnectionString` | JDBC-format connection string for the database, with the format `jdbc:postgresql://{Host}/{Database}?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin` |
+| `DatabaseName` | The name of the database |
+| `Uri` | The database-specific connection URI, with the format `postgresql://{Username}:{Password}@{Host}/{DatabaseName}` (credentials omitted when not applicable) |
+| `JdbcConnectionString` | JDBC-format connection string for the database, with the format `jdbc:postgresql://{Host}/{DatabaseName}?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin` |
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `db1` becomes `DB1_URI`.
 
