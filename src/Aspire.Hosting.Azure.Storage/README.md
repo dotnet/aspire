@@ -109,11 +109,7 @@ When you reference Azure Storage resources using `WithReference`, the following 
 
 ### Azure Storage
 
-The Azure Storage account resource exposes the following connection property:
-
-| Property Name | Description |
-|---------------|-------------|
-| `ConnectionString` | **Emulator only.** For the Azurite emulator, this is a full connection string with SAS key material. |
+The Azure Storage account resource doesn't expose any connection property, reference sub-resources:
 
 ### Blob Storage
 
@@ -122,7 +118,7 @@ The Blob Storage resource exposes the following connection properties:
 | Property Name | Description |
 |---------------|-------------|
 | `Uri` | The URI of the blob storage service, with the format `https://mystorageaccount.blob.core.windows.net/` |
-| `ConnectionString` | The connection string for the blob storage service |
+| `ConnectionString` | **Emulator only.** The connection string for the blob storage service |
 
 ### Blob Container
 
@@ -139,6 +135,7 @@ The Queue Storage resource exposes the following connection properties:
 | Property Name | Description |
 |---------------|-------------|
 | `Uri` | The URI of the queue storage service, with the format `https://mystorageaccount.queue.core.windows.net/` |
+| `ConnectionString` | **Emulator only.** The connection string for the queue storage service |
 
 ### Queue
 
@@ -147,6 +144,7 @@ The Queue resource inherits all properties from its parent `AzureQueueStorageRes
 | Property Name | Description |
 |---------------|-------------|
 | `QueueName` | The name of the queue |
+| `ConnectionString` | **Emulator only.** The connection string for the table storage service |
 
 ### Table Storage
 
