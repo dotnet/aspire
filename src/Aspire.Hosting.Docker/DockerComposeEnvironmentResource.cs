@@ -24,10 +24,7 @@ namespace Aspire.Hosting.Docker;
 /// </remarks>
 public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentResource
 {
-    /// <summary>
-    /// The container registry to use.
-    /// </summary>
-    public string? DefaultContainerRegistry { get; set; }
+    private const string DockerComposeUpTag = "docker-compose-up";
 
     /// <summary>
     /// The name of an existing network to be used.
@@ -117,7 +114,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
             {
                 Name = $"docker-compose-up-{Name}",
                 Action = ctx => DockerComposeUpAsync(ctx),
-                Tags = ["docker-compose-up"],
+                Tags = [DockerComposeUpTag],
                 DependsOnSteps = [$"prepare-{Name}"]
             };
             dockerComposeUpStep.RequiredBy(WellKnownPipelineSteps.Deploy);
@@ -175,6 +172,15 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                 buildSteps.RequiredBy(WellKnownPipelineSteps.Deploy)
                         .RequiredBy($"docker-compose-up-{Name}")
                         .DependsOn(WellKnownPipelineSteps.DeployPrereq);
+            }
+
+            // This ensures that resources that have to be pushed before deployments are handled
+            foreach (var pushResource in context.Model.GetBuildAndPushResources())
+            {
+                var pushSteps = context.GetSteps(pushResource, WellKnownPipelineTags.PushContainerImage);
+                var dockerComposeUpSteps = context.GetSteps(this, DockerComposeUpTag);
+
+                dockerComposeUpSteps.DependsOn(pushSteps);
             }
         }));
     }
@@ -347,9 +353,9 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                 defaultValue = await parameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
             }
 
-            if (envVar.Source is ContainerImageReference cir && cir.Resource.TryGetContainerImageName(out var imageName))
+            if (envVar.Source is ContainerImageReference cir)
             {
-                defaultValue = imageName;
+                defaultValue = await ((IValueProvider)cir).GetValueAsync(context.CancellationToken).ConfigureAwait(false);
             }
 
             envFile.Add(entry.Key, defaultValue, envVar.Description, onlyIfMissing: false);
