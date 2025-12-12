@@ -65,6 +65,11 @@ public static class AzureOpenAIExtensions
                 Value = Interpolate($"Endpoint={cogServicesAccount.Properties.Endpoint}")
             });
 
+            infrastructure.Add(new ProvisioningOutput("endpoint", typeof(string))
+            {
+                Value = cogServicesAccount.Properties.Endpoint.ToBicepExpression()
+            });
+
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cogServicesAccount.Name.ToBicepExpression() });
 
