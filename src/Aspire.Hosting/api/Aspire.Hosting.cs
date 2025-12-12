@@ -3104,15 +3104,6 @@ namespace Aspire.Hosting.Pipelines
         System.Threading.Tasks.Task<IReportingStep> CreateStepAsync(string title, System.Threading.CancellationToken cancellationToken = default);
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES004", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public partial interface IPipelineOutputService
-    {
-        string GetOutputDirectory();
-        string GetOutputDirectory(ApplicationModel.IResource resource);
-        string GetTempDirectory();
-        string GetTempDirectory(ApplicationModel.IResource resource);
-    }
-
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public partial interface IReportingStep : System.IAsyncDisposable
     {
