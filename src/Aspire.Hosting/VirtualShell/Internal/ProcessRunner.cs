@@ -30,18 +30,18 @@ internal sealed class ProcessRunner : IProcessRunner
 
                 try
                 {
-                    return await streamRun.ResultAsync(timeoutCts.Token).ConfigureAwait(false);
+                    return await streamRun.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (!ct.IsCancellationRequested)
                 {
                     // Timeout occurred
                     streamRun.Kill();
-                    var result = await streamRun.ResultAsync(CancellationToken.None).ConfigureAwait(false);
+                    var result = await streamRun.WaitAsync(CancellationToken.None).ConfigureAwait(false);
                     return result with { Reason = CliExitReason.TimedOut };
                 }
             }
 
-            return await streamRun.ResultAsync(ct).ConfigureAwait(false);
+            return await streamRun.WaitAsync(ct).ConfigureAwait(false);
         }
     }
 

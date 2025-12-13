@@ -104,7 +104,7 @@ public sealed partial class RunningProcess : IRunningProcess
     /// </summary>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>An async enumerable of output lines.</returns>
-    public async IAsyncEnumerable<OutputLine> Lines([EnumeratorCancellation] CancellationToken ct = default)
+    public async IAsyncEnumerable<OutputLine> ReadLines([EnumeratorCancellation] CancellationToken ct = default)
     {
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _disposeCts.Token);
 
@@ -119,7 +119,7 @@ public sealed partial class RunningProcess : IRunningProcess
     /// </summary>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>The result of the process execution.</returns>
-    public async Task<CliResult> ResultAsync(CancellationToken ct = default)
+    public async Task<CliResult> WaitAsync(CancellationToken ct = default)
     {
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _disposeCts.Token);
 
@@ -144,7 +144,7 @@ public sealed partial class RunningProcess : IRunningProcess
     /// </exception>
     public async Task EnsureSuccessAsync(CancellationToken ct = default)
     {
-        var result = await ResultAsync(ct).ConfigureAwait(false);
+        var result = await WaitAsync(ct).ConfigureAwait(false);
         if (!result.Success)
         {
             var message = $"Process exited with code {result.ExitCode} (reason: {result.Reason})";

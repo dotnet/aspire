@@ -526,7 +526,7 @@ public sealed class FakeRunningProcess : IRunningProcess
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<OutputLine> Lines([EnumeratorCancellation] CancellationToken ct = default)
+    public async IAsyncEnumerable<OutputLine> ReadLines([EnumeratorCancellation] CancellationToken ct = default)
     {
         await foreach (var line in _channel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
         {
@@ -535,7 +535,7 @@ public sealed class FakeRunningProcess : IRunningProcess
     }
 
     /// <inheritdoc />
-    public Task<CliResult> ResultAsync(CancellationToken ct = default)
+    public Task<CliResult> WaitAsync(CancellationToken ct = default)
     {
         return _resultTcs.Task.WaitAsync(ct);
     }
@@ -543,7 +543,7 @@ public sealed class FakeRunningProcess : IRunningProcess
     /// <inheritdoc />
     public async Task EnsureSuccessAsync(CancellationToken ct = default)
     {
-        var result = await ResultAsync(ct).ConfigureAwait(false);
+        var result = await WaitAsync(ct).ConfigureAwait(false);
         if (!result.Success)
         {
             var message = $"Process exited with code {result.ExitCode} (reason: {result.Reason})";

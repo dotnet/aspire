@@ -10,18 +10,18 @@ namespace Aspire.Hosting.VirtualShell;
 public interface IRunningProcess : IAsyncDisposable
 {
     /// <summary>
-    /// Streams the output lines from the process.
+    /// Reads and streams the output lines from the process.
     /// </summary>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>An async enumerable of output lines.</returns>
-    IAsyncEnumerable<OutputLine> Lines(CancellationToken ct = default);
+    IAsyncEnumerable<OutputLine> ReadLines(CancellationToken ct = default);
 
     /// <summary>
-    /// Gets the full result when the process completes.
+    /// Waits for the process to complete and returns the result.
     /// </summary>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>The result of the process execution.</returns>
-    Task<CliResult> ResultAsync(CancellationToken ct = default);
+    Task<CliResult> WaitAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Ensures the process completed successfully, throwing if it did not.

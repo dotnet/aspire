@@ -61,7 +61,7 @@ public abstract record Stdin
 
 ### Output targets (Future)
 
-> **Note**: Output targets are not yet implemented. Currently, output is captured via `CliResult.Stdout/Stderr` or streamed via `IRunningProcess.Lines()`.
+> **Note**: Output targets are not yet implemented. Currently, output is captured via `CliResult.Stdout/Stderr` or streamed via `IRunningProcess.ReadLines()`.
 
 ```csharp
 public abstract record StdoutTarget
@@ -142,9 +142,9 @@ public interface ICommand
 ```csharp
 public interface IRunningProcess : IAsyncDisposable
 {
-    IAsyncEnumerable<OutputLine> Lines(CancellationToken ct = default);
+    IAsyncEnumerable<OutputLine> ReadLines(CancellationToken ct = default);
 
-    Task<CliResult> ResultAsync(CancellationToken ct = default);
+    Task<CliResult> WaitAsync(CancellationToken ct = default);
     Task EnsureSuccessAsync(CancellationToken ct = default);
 
     // stdin (interactive)
@@ -317,7 +317,7 @@ var version = result.Stdout?.Trim();
 
 ```csharp
 await using var run = sh.Start("docker build -t myimg:dev .");
-await foreach (var line in run.Lines(ct))
+await foreach (var line in run.ReadLines(ct))
     Console.WriteLine(line.Text);
 await run.EnsureSuccessAsync(ct);
 ```
@@ -386,7 +386,7 @@ await proc.WriteLineAsync("console.log('Hello');");
 await proc.WriteLineAsync("console.log(1 + 2);");
 await proc.CompleteStdinAsync();
 
-await foreach (var line in proc.Lines())
+await foreach (var line in proc.ReadLines())
     Console.WriteLine(line.Text);
 
 await proc.EnsureSuccessAsync();
@@ -403,7 +403,7 @@ await Task.Delay(1000);
 // Graceful shutdown
 server.Signal(CliSignal.Interrupt);
 
-var result = await server.ResultAsync();
+var result = await server.WaitAsync();
 if (!result.Success)
 {
     // Force kill if it didn't exit cleanly
@@ -473,14 +473,14 @@ await using var run = sh
     .Start();
 
 var errors = new List<string>();
-await foreach (var line in run.Lines(ct))
+await foreach (var line in run.ReadLines(ct))
 {
     Console.WriteLine(line.Text);
     if (line.IsStdErr)
         errors.Add(line.Text);
 }
 
-var result = await run.ResultAsync();
+var result = await run.WaitAsync();
 if (!result.Success)
     throw new Exception($"Build failed:\n{string.Join('\n', errors)}");
 ```
@@ -525,7 +525,7 @@ using var cts = new CancellationTokenSource();
 
 await using var proc = sh.Start("long-running-task");
 
-await foreach (var line in proc.Lines(cts.Token))
+await foreach (var line in proc.ReadLines(cts.Token))
 {
     Console.WriteLine(line.Text);
 
@@ -550,7 +550,7 @@ server.Signal(CliSignal.Interrupt);
 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 try
 {
-    await server.ResultAsync(timeoutCts.Token);
+    await server.WaitAsync(timeoutCts.Token);
     logger.LogInformation("Server shut down gracefully");
 }
 catch (OperationCanceledException)
