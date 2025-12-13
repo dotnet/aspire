@@ -205,28 +205,6 @@ public sealed class FakeVirtualShell : IVirtualShell
     }
 
     /// <inheritdoc />
-    public async Task<string> Cap(string commandLine, Action<ExecSpec>? perCall = null, CancellationToken ct = default)
-    {
-        var result = await Run(commandLine, perCall, ct).ConfigureAwait(false);
-        if (!result.Success)
-        {
-            throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.Stderr}");
-        }
-        return result.Stdout ?? string.Empty;
-    }
-
-    /// <inheritdoc />
-    public async Task<string> Cap(string fileName, IReadOnlyList<string> args, Action<ExecSpec>? perCall = null, CancellationToken ct = default)
-    {
-        var result = await Run(fileName, args, perCall, ct).ConfigureAwait(false);
-        if (!result.Success)
-        {
-            throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.Stderr}");
-        }
-        return result.Stdout ?? string.Empty;
-    }
-
-    /// <inheritdoc />
     public IAsyncEnumerable<OutputLine> Lines(string commandLine, Action<ExecSpec>? perCall = null, CancellationToken ct = default)
     {
         var parts = commandLine.Split(' ', 2);

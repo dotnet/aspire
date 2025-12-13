@@ -32,19 +32,9 @@ internal sealed class PackageFetcher : IPackageFetcher
 
         var result = await _shell
             .Cd(appHostDirectory)
-            .Run("dotnet", args, spec =>
-            {
-                spec.CaptureOutput = true;
-            }, cancellationToken).ConfigureAwait(false);
+            .Run("dotnet", args, ct: cancellationToken).ConfigureAwait(false);
 
-        if (!string.IsNullOrEmpty(result.Stdout))
-        {
-            _logger.LogDebug("dotnet (stdout): {Output}", result.Stdout);
-        }
-        if (!string.IsNullOrEmpty(result.Stderr))
-        {
-            _logger.LogDebug("dotnet (stderr): {Error}", result.Stderr);
-        }
+        result.LogOutput(_logger, "dotnet");
 
         if (result.ExitCode != 0)
         {

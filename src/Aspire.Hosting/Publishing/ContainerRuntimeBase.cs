@@ -102,18 +102,10 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
 
         var result = await _shell.Run(RuntimeExecutable, args, spec =>
         {
-            spec.CaptureOutput = true;
             spec.Stdin = Stdin.FromText(password + "\n");
         }, cancellationToken).ConfigureAwait(false);
 
-        if (!string.IsNullOrEmpty(result.Stdout))
-        {
-            _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, result.Stdout);
-        }
-        if (!string.IsNullOrEmpty(result.Stderr))
-        {
-            _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, result.Stderr);
-        }
+        result.LogOutput(_logger, RuntimeExecutable);
 
         if (result.ExitCode != 0)
         {
@@ -145,19 +137,9 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
 
         // The arguments string contains pre-formatted arguments, so use the command line parsing overload
         var commandLine = $"{RuntimeExecutable} {arguments}";
-        var result = await _shell.Run(commandLine, spec =>
-        {
-            spec.CaptureOutput = true;
-        }, cancellationToken).ConfigureAwait(false);
+        var result = await _shell.Run(commandLine, ct: cancellationToken).ConfigureAwait(false);
 
-        if (!string.IsNullOrEmpty(result.Stdout))
-        {
-            _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, result.Stdout);
-        }
-        if (!string.IsNullOrEmpty(result.Stderr))
-        {
-            _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, result.Stderr);
-        }
+        result.LogOutput(_logger, RuntimeExecutable);
 
         if (result.ExitCode != 0)
         {
@@ -196,19 +178,9 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
 
         // The arguments string contains pre-formatted arguments, so use the command line parsing overload
         var commandLine = $"{RuntimeExecutable} {arguments}";
-        var result = await shell.Run(commandLine, spec =>
-        {
-            spec.CaptureOutput = true;
-        }, cancellationToken).ConfigureAwait(false);
+        var result = await shell.Run(commandLine, ct: cancellationToken).ConfigureAwait(false);
 
-        if (!string.IsNullOrEmpty(result.Stdout))
-        {
-            _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, result.Stdout);
-        }
-        if (!string.IsNullOrEmpty(result.Stderr))
-        {
-            _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, result.Stderr);
-        }
+        result.LogOutput(_logger, RuntimeExecutable);
 
         if (result.ExitCode != 0)
         {

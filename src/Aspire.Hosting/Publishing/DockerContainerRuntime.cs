@@ -93,30 +93,16 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
             Logger.LogDebug("Running Docker CLI with arguments: {ArgumentList}", arguments);
 
             // Build a shell with secrets as environment variables
-            var shell = Shell;
-            foreach (var buildSecret in buildSecrets)
-            {
-                if (buildSecret.Value is not null)
-                {
-                    shell = shell.Env(buildSecret.Key.ToUpperInvariant(), buildSecret.Value);
-                }
-            }
+            var envVars = buildSecrets
+                .Where(s => s.Value is not null)
+                .ToDictionary(s => s.Key.ToUpperInvariant(), s => (string?)s.Value);
+            var shell = Shell.Env(envVars);
 
             // The arguments string contains pre-formatted arguments, so use the command line parsing overload
             var commandLine = $"docker {arguments}";
-            var result = await shell.Run(commandLine, spec =>
-            {
-                spec.CaptureOutput = true;
-            }, cancellationToken).ConfigureAwait(false);
+            var result = await shell.Run(commandLine, ct: cancellationToken).ConfigureAwait(false);
 
-            if (!string.IsNullOrEmpty(result.Stdout))
-            {
-                Logger.LogDebug("docker buildx (stdout): {Output}", result.Stdout);
-            }
-            if (!string.IsNullOrEmpty(result.Stderr))
-            {
-                Logger.LogDebug("docker buildx (stderr): {Error}", result.Stderr);
-            }
+            result.LogOutput(Logger, "docker buildx");
 
             if (result.ExitCode != 0)
             {

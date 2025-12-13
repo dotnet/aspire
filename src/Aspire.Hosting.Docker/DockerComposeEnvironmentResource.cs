@@ -239,19 +239,9 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                 var commandLine = $"docker {arguments}";
                 var result = await shell
                     .Cd(outputPath)
-                    .Run(commandLine, spec =>
-                    {
-                        spec.CaptureOutput = true;
-                    }, context.CancellationToken).ConfigureAwait(false);
+                    .Run(commandLine, ct: context.CancellationToken).ConfigureAwait(false);
 
-                if (!string.IsNullOrEmpty(result.Stdout))
-                {
-                    context.Logger.LogDebug("docker compose up (stdout): {Output}", result.Stdout);
-                }
-                if (!string.IsNullOrEmpty(result.Stderr))
-                {
-                    context.Logger.LogDebug("docker compose up (stderr): {Error}", result.Stderr);
-                }
+                result.LogOutput(context.Logger, "docker compose up");
 
                 if (result.ExitCode != 0)
                 {
@@ -294,10 +284,9 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
                 var commandLine = $"docker {arguments}";
                 var result = await shell
                     .Cd(outputPath)
-                    .Run(commandLine, spec =>
-                    {
-                        spec.CaptureOutput = true;
-                    }, context.CancellationToken).ConfigureAwait(false);
+                    .Run(commandLine, ct: context.CancellationToken).ConfigureAwait(false);
+
+                result.LogOutput(context.Logger, "docker compose down");
 
                 if (result.ExitCode != 0)
                 {

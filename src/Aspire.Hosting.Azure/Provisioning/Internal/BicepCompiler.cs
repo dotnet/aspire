@@ -46,19 +46,9 @@ internal sealed class BicepCliCompiler : IBicepCompiler
 
         _logger.LogDebug("Running {CommandPath} with arguments: {Arguments}", command, string.Join(" ", args));
 
-        var result = await _shell.Run(command, args, spec =>
-        {
-            spec.CaptureOutput = true;
-        }, cancellationToken).ConfigureAwait(false);
+        var result = await _shell.Run(command, args, ct: cancellationToken).ConfigureAwait(false);
 
-        if (!string.IsNullOrEmpty(result.Stdout))
-        {
-            _logger.LogDebug("{CommandPath} (stdout): {Output}", command, result.Stdout);
-        }
-        if (!string.IsNullOrEmpty(result.Stderr))
-        {
-            _logger.LogDebug("{CommandPath} (stderr): {Error}", command, result.Stderr);
-        }
+        result.LogOutput(_logger, command);
 
         if (result.ExitCode != 0)
         {

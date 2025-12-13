@@ -72,38 +72,6 @@ public interface IVirtualShell
         CancellationToken ct = default);
 
     /// <summary>
-    /// Executes a command and captures stdout (similar to shell $(...)).
-    /// </summary>
-    /// <param name="commandLine">The command line to execute.</param>
-    /// <param name="perCall">Optional per-call configuration.</param>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns>The trimmed stdout of the command.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the command fails (non-zero exit code).
-    /// </exception>
-    Task<string> Cap(
-        string commandLine,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
-
-    /// <summary>
-    /// Executes a command with explicit arguments and captures stdout.
-    /// </summary>
-    /// <param name="fileName">The executable name or path.</param>
-    /// <param name="args">The arguments to pass to the executable.</param>
-    /// <param name="perCall">Optional per-call configuration.</param>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns>The trimmed stdout of the command.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the command fails (non-zero exit code).
-    /// </exception>
-    Task<string> Cap(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
-
-    /// <summary>
     /// Executes a command and streams output lines.
     /// Output is not captured by default for streaming methods.
     /// </summary>

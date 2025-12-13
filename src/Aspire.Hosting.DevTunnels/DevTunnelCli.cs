@@ -231,25 +231,16 @@ internal sealed class DevTunnelCli
         // Use VirtualShell for non-shell-execute commands
         logger?.LogTrace("Invoking devtunnel CLI: {FileName} {Arguments}", _cliPath, string.Join(" ", args));
 
-        var result = await _shell.Run(_cliPath, args, spec =>
-        {
-            spec.CaptureOutput = true;
-        }, cancellationToken).ConfigureAwait(false);
+        var result = await _shell.Run(_cliPath, args, ct: cancellationToken).ConfigureAwait(false);
 
         // Write output to the provided writers
-        if (!string.IsNullOrEmpty(result.Stdout))
+        foreach (var line in result.StdoutLines)
         {
-            foreach (var line in result.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-            {
-                outputWriter?.WriteLine(line);
-            }
+            outputWriter?.WriteLine(line);
         }
-        if (!string.IsNullOrEmpty(result.Stderr))
+        foreach (var line in result.StderrLines)
         {
-            foreach (var line in result.Stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-            {
-                errorWriter?.WriteLine(line);
-            }
+            errorWriter?.WriteLine(line);
         }
 
         logger?.LogTrace("devtunnel CLI exited with exit code '{ExitCode}'.", result.ExitCode);

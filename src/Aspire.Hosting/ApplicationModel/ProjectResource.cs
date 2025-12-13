@@ -241,10 +241,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             logger.LogDebug("Getting ContainerWorkingDirectory for project {ProjectPath}", projectPath);
 
             var args = new[] { "msbuild", "-getProperty:ContainerWorkingDirectory", projectPath };
-            var result = await shell.Run("dotnet", args, spec =>
-            {
-                spec.CaptureOutput = true;
-            }, cancellationToken).ConfigureAwait(false);
+            var result = await shell.Run("dotnet", args, ct: cancellationToken).ConfigureAwait(false);
 
             if (!string.IsNullOrEmpty(result.Stderr))
             {
@@ -259,8 +256,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             }
 
             // The last non-empty line should contain the ContainerWorkingDirectory value
-            var workingDir = result.Stdout?.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .LastOrDefault();
+            var workingDir = result.StdoutLines.LastOrDefault();
 
             if (string.IsNullOrWhiteSpace(workingDir))
             {

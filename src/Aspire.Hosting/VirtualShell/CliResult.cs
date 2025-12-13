@@ -20,4 +20,18 @@ public sealed record CliResult(
     /// Gets a value indicating whether the command completed successfully.
     /// </summary>
     public bool Success => Reason == CliExitReason.Exited && ExitCode == 0;
+
+    /// <summary>
+    /// Gets stdout split into lines, excluding empty entries.
+    /// </summary>
+    public IEnumerable<string> StdoutLines =>
+        Stdout?.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.TrimEnd('\r')) ?? [];
+
+    /// <summary>
+    /// Gets stderr split into lines, excluding empty entries.
+    /// </summary>
+    public IEnumerable<string> StderrLines =>
+        Stderr?.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.TrimEnd('\r')) ?? [];
 }

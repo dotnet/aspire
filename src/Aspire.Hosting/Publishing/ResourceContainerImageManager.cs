@@ -341,19 +341,9 @@ internal sealed class ResourceContainerImageManager(
 
         // The arguments string contains pre-formatted arguments, so use the command line parsing overload
         var commandLine = $"dotnet {arguments}";
-        var result = await shell.Run(commandLine, spec =>
-        {
-            spec.CaptureOutput = true;
-        }, cancellationToken).ConfigureAwait(false);
+        var result = await shell.Run(commandLine, ct: cancellationToken).ConfigureAwait(false);
 
-        if (!string.IsNullOrEmpty(result.Stdout))
-        {
-            logger.LogDebug("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, result.Stdout);
-        }
-        if (!string.IsNullOrEmpty(result.Stderr))
-        {
-            logger.LogDebug("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, result.Stderr);
-        }
+        result.LogOutput(logger, $"dotnet publish {projectMetadata.ProjectPath}");
 
         if (result.ExitCode != 0)
         {

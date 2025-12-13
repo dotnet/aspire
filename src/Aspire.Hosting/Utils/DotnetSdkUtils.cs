@@ -32,11 +32,18 @@ internal sealed class DotnetSdkService : IDotnetSdkService
     {
         try
         {
-            var output = await _shell
+            var result = await _shell
                 .Cd(workingDirectory ?? Environment.CurrentDirectory)
                 .Env(s_dotnetCliEnvVars)
-                .Cap("dotnet", ["--version"])
+                .Run("dotnet", ["--version"])
                 .ConfigureAwait(false);
+
+            if (!result.Success)
+            {
+                return null;
+            }
+
+            var output = result.Stdout;
 
             if (!string.IsNullOrWhiteSpace(output))
             {

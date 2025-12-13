@@ -28,7 +28,7 @@ internal sealed partial class CommandLineParser : ICommandLineParser
         {
             throw new InvalidOperationException(
                 "Command substitution ($(...), ${...}, or backticks) is not supported. " +
-                "Use the IVirtualShell.Cap() method to capture command output programmatically.");
+                "Use IVirtualShell.Run() to capture command output programmatically.");
         }
 
         var tokens = Tokenize(commandLine);

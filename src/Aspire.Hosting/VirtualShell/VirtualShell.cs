@@ -148,42 +148,6 @@ public sealed class VirtualShell : IVirtualShell
     }
 
     /// <inheritdoc />
-    public async Task<string> Cap(
-        string commandLine,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default)
-    {
-        var (fileName, args) = _parser.Parse(commandLine);
-        return await Cap(fileName, args, perCall, ct).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc />
-    public async Task<string> Cap(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default)
-    {
-        var result = await Run(fileName, args, spec =>
-        {
-            spec.CaptureOutput = true;
-            perCall?.Invoke(spec);
-        }, ct).ConfigureAwait(false);
-
-        if (!result.Success)
-        {
-            var message = $"Command '{fileName}' failed with exit code {result.ExitCode}";
-            if (!string.IsNullOrWhiteSpace(result.Stderr))
-            {
-                message += $": {result.Stderr}";
-            }
-            throw new InvalidOperationException(message);
-        }
-
-        return result.Stdout?.TrimEnd() ?? string.Empty;
-    }
-
-    /// <inheritdoc />
     public IAsyncEnumerable<OutputLine> Lines(
         string commandLine,
         Action<ExecSpec>? perCall = null,

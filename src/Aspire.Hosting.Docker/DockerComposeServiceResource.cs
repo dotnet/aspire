@@ -357,10 +357,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         var commandLine = $"docker {arguments}";
         var result = await shell
             .Cd(outputPath)
-            .Run(commandLine, spec =>
-            {
-                spec.CaptureOutput = true;
-            }, context.CancellationToken).ConfigureAwait(false);
+            .Run(commandLine, ct: context.CancellationToken).ConfigureAwait(false);
 
         if (!string.IsNullOrEmpty(result.Stderr))
         {
@@ -373,17 +370,7 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
             return null;
         }
 
-        // Parse stdout into lines
-        var outputLines = new List<string>();
-        if (!string.IsNullOrEmpty(result.Stdout))
-        {
-            foreach (var line in result.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                outputLines.Add(line);
-            }
-        }
-
-        return outputLines;
+        return result.StdoutLines.ToList();
     }
 
     /// <summary>

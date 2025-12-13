@@ -67,7 +67,6 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
                 var result = await _shell.Run(dcpPath, args, spec =>
                 {
-                    spec.CaptureOutput = true;
                     spec.Timeout = timeout;
                 }, cancellationToken).ConfigureAwait(false);
 
