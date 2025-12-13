@@ -63,6 +63,9 @@ jobs:
   tests:
     uses: ./.github/workflows/tests.yml
     name: Tests
+    permissions:
+      contents: read
+      checks: write
     needs: [prepare_for_ci]
     if: ${{ github.repository_owner == 'dotnet' && needs.prepare_for_ci.outputs.skip_workflow != 'true' }}
     with:

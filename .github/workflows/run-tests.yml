@@ -59,7 +59,9 @@ jobs:
   test:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
-    name: ${{ inputs.testShortName }} (${{ inputs.os }})
+    name: ${{ inputs.testShortName }}
+    permissions:
+      checks: write
     env:
       DOTNET_ROOT: ${{ github.workspace }}/.dotnet
     steps:
@@ -506,5 +508,23 @@ jobs:
         shell: pwsh
         run: |
           if (Test-Path "${{ github.workspace }}/testresults") {
-            & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/testresults" -u "${{ steps.upload-logs.outputs.artifact-url }}"
+              # Also persist the summary to a file so it can be reused by the Check posting step
+              & ${{ env.DOTNET_SCRIPT }} run --project "${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj" -- "${{ github.workspace }}/testresults" -u "${{ steps.upload-logs.outputs.artifact-url }}" -o "${{ github.workspace }}/testresults/summary.md"
           }
+
+      - name: Post test results to GitHub Check
+        # Only post a Check when there are failures (summary.md created only when failures exist) and on PRs
+        if: always() && github.event_name == 'pull_request' && hashFiles('testresults/summary.md') != ''
+        uses: ./.github/actions/publish-check
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          check_name: Test Results - ${{ inputs.testShortName }} (${{ inputs.os }})
+          title: ${{ format('Test Results - {0} ({1})', inputs.testShortName, inputs.os) }}
+          head_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+          details_url: ${{ steps.upload-logs.outputs.artifact-url }}
+          conclusion: failure
+          summary_file: ${{ github.workspace }}/testresults/summary.md
+          # Optional: can pass an explicit suite id if available; otherwise the action discovers it
+          discover_check_suite: true
+          workflow_job_name: ${{ inputs.testShortName }}
+          runner_label: ${{ inputs.os }}
