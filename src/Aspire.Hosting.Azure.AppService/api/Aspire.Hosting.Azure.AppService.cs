@@ -10,7 +10,7 @@ namespace Aspire.Hosting
 {
     public static partial class AzureAppServiceComputeResourceExtensions
     {
-        public static ApplicationModel.IResourceBuilder<T> PublishAsAzureAppServiceWebsite<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<Azure.AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite> configure)
+        public static ApplicationModel.IResourceBuilder<T> PublishAsAzureAppServiceWebsite<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Action<Azure.AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite>? configure = null, System.Action<Azure.AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSiteSlot>? configureSlot = null)
             where T : ApplicationModel.IComputeResource { throw null; }
     }
 
@@ -27,6 +27,10 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithDashboard(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, bool enable = true) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithDeploymentSlot(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> deploymentSlot) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithDeploymentSlot(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, string deploymentSlot) { throw null; }
     }
 }
 
@@ -67,5 +71,12 @@ namespace Aspire.Hosting.Azure
         public AzureAppServiceWebSiteResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure, ApplicationModel.IResource targetResource) : base(default!, default!) { }
 
         public ApplicationModel.IResource TargetResource { get { throw null; } }
+    }
+
+    public sealed partial class AzureAppServiceWebsiteSlotCustomizationAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public AzureAppServiceWebsiteSlotCustomizationAnnotation(System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSiteSlot> configure) { }
+
+        public System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSiteSlot> Configure { get { throw null; } }
     }
 }

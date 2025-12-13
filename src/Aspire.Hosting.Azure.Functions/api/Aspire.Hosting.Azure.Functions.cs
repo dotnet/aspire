@@ -10,6 +10,8 @@ namespace Aspire.Hosting
 {
     public static partial class AzureFunctionsProjectResourceExtensions
     {
+        public static ApplicationModel.IResourceBuilder<Azure.AzureFunctionsProjectResource> AddAzureFunctionsProject(this IDistributedApplicationBuilder builder, string name, string projectPath) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Azure.AzureFunctionsProjectResource> AddAzureFunctionsProject<TProject>(this IDistributedApplicationBuilder builder, string name)
             where TProject : IProjectMetadata, new() { throw null; }
 
