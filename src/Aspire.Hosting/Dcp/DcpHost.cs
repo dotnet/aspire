@@ -236,7 +236,7 @@ internal sealed class DcpHost
                 .Env(envVars)
                 .Command(dcpExePath, args)
                 .WithCaptureOutput(false)
-                .ExecuteAsync();
+                .RunAsync();
 
             // Log when DCP process exits
             _ = dcpProcessTask.ContinueWith(t =>

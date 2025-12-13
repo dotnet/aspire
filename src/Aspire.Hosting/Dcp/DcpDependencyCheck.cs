@@ -70,7 +70,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 {
                     command = command.WithTimeout(timeout.Value);
                 }
-                var result = await command.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+                var result = await command.RunAsync(cancellationToken).ConfigureAwait(false);
 
                 if (result.ExitCode != 0)
                 {

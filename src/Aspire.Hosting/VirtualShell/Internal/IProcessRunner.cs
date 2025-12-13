@@ -32,7 +32,7 @@ internal interface IProcessRunner
     /// <param name="spec">The execution specification.</param>
     /// <param name="state">The shell state containing environment and working directory.</param>
     /// <returns>A handle for streaming output and controlling the process.</returns>
-    StreamRun Start(
+    RunningProcess Start(
         string exePath,
         IReadOnlyList<string> args,
         ExecSpec spec,

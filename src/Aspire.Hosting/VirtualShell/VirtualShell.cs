@@ -170,36 +170,24 @@ public sealed class VirtualShell : IVirtualShell
     /// <inheritdoc />
     public Task<CliResult> Run(string commandLine, CancellationToken ct = default)
     {
-        return Command(commandLine).ExecuteAsync(ct);
+        return Command(commandLine).RunAsync(ct);
     }
 
     /// <inheritdoc />
     public Task<CliResult> Run(string fileName, IReadOnlyList<string> args, CancellationToken ct = default)
     {
-        return Command(fileName, args).ExecuteAsync(ct);
+        return Command(fileName, args).RunAsync(ct);
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<OutputLine> Lines(string commandLine, CancellationToken ct = default)
+    public IRunningProcess Start(string commandLine)
     {
-        return Command(commandLine).WithCaptureOutput(false).LinesAsync(ct);
+        return Command(commandLine).WithCaptureOutput(false).Start();
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<OutputLine> Lines(string fileName, IReadOnlyList<string> args, CancellationToken ct = default)
+    public IRunningProcess Start(string fileName, IReadOnlyList<string> args)
     {
-        return Command(fileName, args).WithCaptureOutput(false).LinesAsync(ct);
-    }
-
-    /// <inheritdoc />
-    public IStreamRun Stream(string commandLine)
-    {
-        return Command(commandLine).WithCaptureOutput(false).Stream();
-    }
-
-    /// <inheritdoc />
-    public IStreamRun Stream(string fileName, IReadOnlyList<string> args)
-    {
-        return Command(fileName, args).WithCaptureOutput(false).Stream();
+        return Command(fileName, args).WithCaptureOutput(false).Start();
     }
 }

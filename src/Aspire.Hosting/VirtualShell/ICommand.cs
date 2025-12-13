@@ -44,24 +44,17 @@ public interface ICommand
     ICommand WithCancellationMode(CancellationMode mode);
 
     /// <summary>
-    /// Executes the command and waits for it to complete.
+    /// Runs the command and waits for it to complete.
     /// </summary>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>The result of the command execution.</returns>
-    Task<CliResult> ExecuteAsync(CancellationToken ct = default);
+    Task<CliResult> RunAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Executes the command and streams output lines.
-    /// </summary>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns>An async enumerable of output lines.</returns>
-    IAsyncEnumerable<OutputLine> LinesAsync(CancellationToken ct = default);
-
-    /// <summary>
-    /// Starts the command and returns an advanced handle for streaming, stdin, and control.
+    /// Starts the command and returns a handle for streaming, stdin, and control.
     /// </summary>
     /// <returns>A handle for streaming output and controlling the process.</returns>
-    IStreamRun Stream();
+    IRunningProcess Start();
 }
 
 /// <summary>

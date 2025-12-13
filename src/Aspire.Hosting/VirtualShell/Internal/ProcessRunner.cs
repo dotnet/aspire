@@ -46,7 +46,7 @@ internal sealed class ProcessRunner : IProcessRunner
     }
 
     /// <inheritdoc />
-    public StreamRun Start(
+    public RunningProcess Start(
         string exePath,
         IReadOnlyList<string> args,
         ExecSpec spec,
@@ -100,7 +100,7 @@ internal sealed class ProcessRunner : IProcessRunner
         var process = new Process { StartInfo = startInfo };
         process.Start();
 
-        var streamRun = new StreamRun(
+        var runningProcess = new RunningProcess(
             process,
             spec,
             captureOutput: spec.CaptureOutput,
@@ -112,7 +112,7 @@ internal sealed class ProcessRunner : IProcessRunner
             _ = WriteStdinAsync(process, spec.Stdin, CancellationToken.None);
         }
 
-        return streamRun;
+        return runningProcess;
     }
 
     private static async Task WriteStdinAsync(Process process, Stdin stdin, CancellationToken ct)

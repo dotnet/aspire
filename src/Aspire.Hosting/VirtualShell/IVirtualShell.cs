@@ -92,34 +92,17 @@ public interface IVirtualShell
     Task<CliResult> Run(string fileName, IReadOnlyList<string> args, CancellationToken ct = default);
 
     /// <summary>
-    /// Executes a command and streams output lines.
-    /// </summary>
-    /// <param name="commandLine">The command line to execute.</param>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns>An async enumerable of output lines.</returns>
-    IAsyncEnumerable<OutputLine> Lines(string commandLine, CancellationToken ct = default);
-
-    /// <summary>
-    /// Executes a command with explicit arguments and streams output lines.
-    /// </summary>
-    /// <param name="fileName">The executable name or path.</param>
-    /// <param name="args">The arguments to pass to the executable.</param>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns>An async enumerable of output lines.</returns>
-    IAsyncEnumerable<OutputLine> Lines(string fileName, IReadOnlyList<string> args, CancellationToken ct = default);
-
-    /// <summary>
-    /// Starts a command and returns an advanced handle for streaming, stdin, and control.
+    /// Starts a command and returns a handle for streaming, stdin, and control.
     /// </summary>
     /// <param name="commandLine">The command line to execute.</param>
     /// <returns>A handle for streaming output and controlling the process.</returns>
-    IStreamRun Stream(string commandLine);
+    IRunningProcess Start(string commandLine);
 
     /// <summary>
-    /// Starts a command with explicit arguments and returns an advanced handle.
+    /// Starts a command with explicit arguments and returns a handle.
     /// </summary>
     /// <param name="fileName">The executable name or path.</param>
     /// <param name="args">The arguments to pass to the executable.</param>
     /// <returns>A handle for streaming output and controlling the process.</returns>
-    IStreamRun Stream(string fileName, IReadOnlyList<string> args);
+    IRunningProcess Start(string fileName, IReadOnlyList<string> args);
 }

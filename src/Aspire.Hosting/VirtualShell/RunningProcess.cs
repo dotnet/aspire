@@ -13,7 +13,7 @@ namespace Aspire.Hosting.VirtualShell;
 /// Provides advanced control over a running process, including streaming output,
 /// writing to stdin, and sending signals.
 /// </summary>
-public sealed partial class StreamRun : IStreamRun
+public sealed partial class RunningProcess : IRunningProcess
 {
     private readonly Process _process;
     private readonly Channel<OutputLine> _outputChannel;
@@ -28,7 +28,7 @@ public sealed partial class StreamRun : IStreamRun
     private bool _stdinCompleted;
     private bool _disposed;
 
-    internal StreamRun(
+    internal RunningProcess(
         Process process,
         ExecSpec spec,
         bool captureOutput,

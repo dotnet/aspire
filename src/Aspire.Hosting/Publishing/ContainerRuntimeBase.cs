@@ -103,7 +103,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         var result = await _shell
             .Command(RuntimeExecutable, args)
             .WithStdin(Stdin.FromText(password + "\n"))
-            .ExecuteAsync(cancellationToken).ConfigureAwait(false);
+            .RunAsync(cancellationToken).ConfigureAwait(false);
 
         result.LogOutput(_logger, RuntimeExecutable);
 

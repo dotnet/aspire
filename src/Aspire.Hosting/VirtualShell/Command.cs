@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.CompilerServices;
 using Aspire.Hosting.VirtualShell.Internal;
 
 namespace Aspire.Hosting.VirtualShell;
@@ -85,7 +84,7 @@ public sealed class Command : ICommand
     }
 
     /// <inheritdoc />
-    public Task<CliResult> ExecuteAsync(CancellationToken ct = default)
+    public Task<CliResult> RunAsync(CancellationToken ct = default)
     {
         var spec = CreateSpec(captureByDefault: true);
         var exePath = _resolver.ResolveOrThrow(_fileName, _shellState);
@@ -93,20 +92,7 @@ public sealed class Command : ICommand
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<OutputLine> LinesAsync([EnumeratorCancellation] CancellationToken ct = default)
-    {
-        var streamRun = Stream();
-        await using (streamRun.ConfigureAwait(false))
-        {
-            await foreach (var line in streamRun.Lines(ct).ConfigureAwait(false))
-            {
-                yield return line;
-            }
-        }
-    }
-
-    /// <inheritdoc />
-    public IStreamRun Stream()
+    public IRunningProcess Start()
     {
         var spec = CreateSpec(captureByDefault: false);
         var exePath = _resolver.ResolveOrThrow(_fileName, _shellState);

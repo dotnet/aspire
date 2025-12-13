@@ -26,7 +26,7 @@ public sealed class FakeVirtualShell : IVirtualShell
     internal string? _tag;
 
     /// <summary>
-    /// Gets all commands that have been executed (after calling ExecuteAsync, LinesAsync, or Stream).
+    /// Gets all commands that have been executed (after calling RunAsync or Start).
     /// </summary>
     public IReadOnlyList<CapturedCommand> ExecutedCommands => _executedCommands.ToArray();
 
@@ -263,37 +263,25 @@ public sealed class FakeVirtualShell : IVirtualShell
     /// <inheritdoc />
     public Task<CliResult> Run(string commandLine, CancellationToken ct = default)
     {
-        return Command(commandLine).ExecuteAsync(ct);
+        return Command(commandLine).RunAsync(ct);
     }
 
     /// <inheritdoc />
     public Task<CliResult> Run(string fileName, IReadOnlyList<string> args, CancellationToken ct = default)
     {
-        return Command(fileName, args).ExecuteAsync(ct);
+        return Command(fileName, args).RunAsync(ct);
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<OutputLine> Lines(string commandLine, CancellationToken ct = default)
+    public IRunningProcess Start(string commandLine)
     {
-        return Command(commandLine).WithCaptureOutput(false).LinesAsync(ct);
+        return Command(commandLine).WithCaptureOutput(false).Start();
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<OutputLine> Lines(string fileName, IReadOnlyList<string> args, CancellationToken ct = default)
+    public IRunningProcess Start(string fileName, IReadOnlyList<string> args)
     {
-        return Command(fileName, args).WithCaptureOutput(false).LinesAsync(ct);
-    }
-
-    /// <inheritdoc />
-    public IStreamRun Stream(string commandLine)
-    {
-        return Command(commandLine).WithCaptureOutput(false).Stream();
-    }
-
-    /// <inheritdoc />
-    public IStreamRun Stream(string fileName, IReadOnlyList<string> args)
-    {
-        return Command(fileName, args).WithCaptureOutput(false).Stream();
+        return Command(fileName, args).WithCaptureOutput(false).Start();
     }
 }
 
@@ -453,7 +441,7 @@ public sealed class FakeCommand : ICommand
     }
 
     /// <inheritdoc />
-    public Task<CliResult> ExecuteAsync(CancellationToken ct = default)
+    public Task<CliResult> RunAsync(CancellationToken ct = default)
     {
         var captured = CreateCapturedCommand();
         _shell._executedCommands.Enqueue(captured);
@@ -462,44 +450,12 @@ public sealed class FakeCommand : ICommand
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<OutputLine> LinesAsync([EnumeratorCancellation] CancellationToken ct = default)
+    public IRunningProcess Start()
     {
         var captured = CreateCapturedCommand();
         _shell._executedCommands.Enqueue(captured);
         var result = GetResult(captured);
-
-        if (!string.IsNullOrEmpty(result.Stdout))
-        {
-            foreach (var line in result.Stdout.Split('\n'))
-            {
-                if (!string.IsNullOrEmpty(line))
-                {
-                    yield return new OutputLine(IsStdErr: false, line.TrimEnd('\r'));
-                }
-            }
-        }
-
-        if (!string.IsNullOrEmpty(result.Stderr))
-        {
-            foreach (var line in result.Stderr.Split('\n'))
-            {
-                if (!string.IsNullOrEmpty(line))
-                {
-                    yield return new OutputLine(IsStdErr: true, line.TrimEnd('\r'));
-                }
-            }
-        }
-
-        await Task.CompletedTask.ConfigureAwait(false);
-    }
-
-    /// <inheritdoc />
-    public IStreamRun Stream()
-    {
-        var captured = CreateCapturedCommand();
-        _shell._executedCommands.Enqueue(captured);
-        var result = GetResult(captured);
-        return new FakeStreamRun(result);
+        return new FakeRunningProcess(result);
     }
 
     private CapturedCommand CreateCapturedCommand()
@@ -535,9 +491,9 @@ public sealed class FakeCommand : ICommand
 }
 
 /// <summary>
-/// A fake implementation of <see cref="IStreamRun"/> for testing purposes.
+/// A fake implementation of <see cref="IRunningProcess"/> for testing purposes.
 /// </summary>
-public sealed class FakeStreamRun : IStreamRun
+public sealed class FakeRunningProcess : IRunningProcess
 {
     private readonly CliResult _result;
     private readonly Channel<OutputLine> _channel;
@@ -546,10 +502,10 @@ public sealed class FakeStreamRun : IStreamRun
     private bool _stdinCompleted;
 
     /// <summary>
-    /// Creates a new instance of <see cref="FakeStreamRun"/> with the specified result.
+    /// Creates a new instance of <see cref="FakeRunningProcess"/> with the specified result.
     /// </summary>
     /// <param name="result">The result to return when the process completes.</param>
-    public FakeStreamRun(CliResult result)
+    public FakeRunningProcess(CliResult result)
     {
         _result = result;
         _channel = Channel.CreateUnbounded<OutputLine>();

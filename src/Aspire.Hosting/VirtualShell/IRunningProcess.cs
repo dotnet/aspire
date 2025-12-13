@@ -7,7 +7,7 @@ namespace Aspire.Hosting.VirtualShell;
 /// Provides advanced control over a running process, including streaming output,
 /// writing to stdin, and sending signals.
 /// </summary>
-public interface IStreamRun : IAsyncDisposable
+public interface IRunningProcess : IAsyncDisposable
 {
     /// <summary>
     /// Streams the output lines from the process.
