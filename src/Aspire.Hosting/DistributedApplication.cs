@@ -49,12 +49,13 @@ namespace Aspire.Hosting;
 /// </example>
 /// </remarks>
 [DebuggerDisplay("{_host}")]
+[DebuggerTypeProxy(typeof(DistributedApplicationDebuggerProxy))]
 public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
-    private ResourceNotificationService? _resourceNotifications;
     private ResourceCommandService? _resourceCommands;
     private LocaleOverrideContext? _localeOverrideContext;
+    private readonly DistributedApplicationModel _model;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplication"/> class.
@@ -65,6 +66,13 @@ public class DistributedApplication : IHost, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(host);
 
         _host = host;
+
+        // Model and ResourceNotifications need to be set up front
+        // If the Debugger Proxy tries to lazy load them, VS fails with the error:
+        // > calls into native method System.Runtime.CompilerServices.RuntimeHelpers.TryEnsureSufficientExecutionStack()
+        // > Evaluation of native methods in this context is not supported.
+        _model = host.Services.GetRequiredService<DistributedApplicationModel>();
+        ResourceNotifications = host.Services.GetRequiredService<ResourceNotificationService>();
     }
 
     /// <summary>
@@ -293,7 +301,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </code>
     /// </example>
     /// </remarks>
-    public ResourceNotificationService ResourceNotifications => _resourceNotifications ??= _host.Services.GetRequiredService<ResourceNotificationService>();
+    public ResourceNotificationService ResourceNotifications { get; }
 
     /// <summary>
     /// Gets the service for executing resource commands.
@@ -544,4 +552,53 @@ public class DistributedApplication : IHost, IAsyncDisposable
     Task IHost.StartAsync(CancellationToken cancellationToken) => StartAsync(cancellationToken);
 
     Task IHost.StopAsync(CancellationToken cancellationToken) => StopAsync(cancellationToken);
+
+    internal class DistributedApplicationDebuggerProxy(DistributedApplication app)
+    {
+        public IHost Host => app._host;
+        public DistributedApplicationModel? Model => app._model;
+
+        public List<ResourceState> ResourceStates
+        {
+            get
+            {
+                if (Model == null)
+                {
+                    return [];
+                }
+
+                var results = new List<ResourceState>(Model.Resources.Count);
+                foreach (var resource in Model.Resources)
+                {
+                    //TODO: This probably doesn't handle replicas properly...
+                    if (app.ResourceNotifications.TryGetCurrentState(resource.Name, out var resourceEvent) && resourceEvent != null)
+                    {
+                        results.Add(new(resourceEvent.ResourceId, resource, resourceEvent.Snapshot));
+                    }
+                    else
+                    {
+                        results.Add(new(resource.Name, resource, null));
+                    }
+                }
+                return results;
+            }
+        }
+
+        [DebuggerDisplay("{Resource}", Name = "{ResourceId}", Type = "{Resource.GetType().FullName,nq}")]
+        internal class ResourceState(
+            string resourceId,
+            IResource resource,
+            CustomResourceSnapshot? snapshot)
+        {
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            public string ResourceId => resourceId;
+
+            [DebuggerDisplay(null, Name ="Resource")]
+            public IResource Resource => resource;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+            public CustomResourceSnapshot? Snapshot => snapshot;
+
+        }
+    }
 }
