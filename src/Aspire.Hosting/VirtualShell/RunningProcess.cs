@@ -118,17 +118,6 @@ public sealed partial class RunningProcess : IRunningProcess
     }
 
     /// <summary>
-    /// Gets the exit code when the process completes.
-    /// </summary>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns>The exit code of the process.</returns>
-    public async Task<int> ExitCodeAsync(CancellationToken ct = default)
-    {
-        var result = await ResultAsync(ct).ConfigureAwait(false);
-        return result.ExitCode;
-    }
-
-    /// <summary>
     /// Gets the full result when the process completes.
     /// </summary>
     /// <param name="ct">A cancellation token.</param>

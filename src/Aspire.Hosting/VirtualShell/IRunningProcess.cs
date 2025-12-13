@@ -17,13 +17,6 @@ public interface IRunningProcess : IAsyncDisposable
     IAsyncEnumerable<OutputLine> Lines(CancellationToken ct = default);
 
     /// <summary>
-    /// Gets the exit code when the process completes.
-    /// </summary>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns>The exit code of the process.</returns>
-    Task<int> ExitCodeAsync(CancellationToken ct = default);
-
-    /// <summary>
     /// Gets the full result when the process completes.
     /// </summary>
     /// <param name="ct">A cancellation token.</param>

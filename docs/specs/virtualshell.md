@@ -159,7 +159,6 @@ public interface IRunningProcess : IAsyncDisposable
 {
     IAsyncEnumerable<OutputLine> Lines(CancellationToken ct = default);
 
-    Task<int> ExitCodeAsync(CancellationToken ct = default);
     Task<CliResult> ResultAsync(CancellationToken ct = default);
     Task EnsureSuccessAsync(CancellationToken ct = default);
 
@@ -482,8 +481,8 @@ await foreach (var line in run.Lines(ct))
         errors.Add(line.Text);
 }
 
-var exitCode = await run.ExitCodeAsync();
-if (exitCode != 0)
+var result = await run.ResultAsync();
+if (!result.Success)
     throw new Exception($"Build failed:\n{string.Join('\n', errors)}");
 ```
 

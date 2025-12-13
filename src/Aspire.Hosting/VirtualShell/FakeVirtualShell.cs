@@ -551,13 +551,6 @@ public sealed class FakeRunningProcess : IRunningProcess
     }
 
     /// <inheritdoc />
-    public async Task<int> ExitCodeAsync(CancellationToken ct = default)
-    {
-        var result = await ResultAsync(ct).ConfigureAwait(false);
-        return result.ExitCode;
-    }
-
-    /// <inheritdoc />
     public Task<CliResult> ResultAsync(CancellationToken ct = default)
     {
         return _resultTcs.Task.WaitAsync(ct);
