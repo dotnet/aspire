@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Resource configuration gatherer context.
 /// </summary>
-public interface IResourceExecutionConfigurationGathererContext
+public interface IExecutionConfigurationGathererContext
 {
     /// <summary>
     /// Collection of unprocessed resource command line arguments.
@@ -22,5 +22,5 @@ public interface IResourceExecutionConfigurationGathererContext
     /// Adds metadata associated with the resource configuration.
     /// </summary>
     /// <param name="metadata">The metadata to add.</param>
-    void AddAdditionalData(IResourceExecutionConfigurationData metadata);
+    void AddAdditionalData(IExecutionConfigurationData metadata);
 }
