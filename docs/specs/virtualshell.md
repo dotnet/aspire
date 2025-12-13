@@ -73,7 +73,9 @@ public abstract record Stdin
 }
 ```
 
-### Output targets (minimal)
+### Output targets (Future)
+
+> **Note**: Output targets are not yet implemented. Currently, output is captured via `CliResult.Stdout/Stderr` or streamed via `IRunningProcess.Lines()`.
 
 ```csharp
 public abstract record StdoutTarget
@@ -106,6 +108,8 @@ public interface IVirtualShell
     IVirtualShell Cd(string workingDirectory);
     IVirtualShell Env(string key, string? value);
     IVirtualShell Env(IReadOnlyDictionary<string, string?> vars);
+    IVirtualShell PrependPath(string path);
+    IVirtualShell AppendPath(string path);
     IVirtualShell Timeout(TimeSpan timeout);
     IVirtualShell Tag(string category); // optional diagnostic label (deploy/build/etc.)
 
@@ -113,17 +117,13 @@ public interface IVirtualShell
     ICommand Command(string commandLine);
     ICommand Command(string fileName, IReadOnlyList<string> args);
 
-    // Shortcuts for simple cases (delegate to Command().ExecuteAsync())
+    // Shortcuts for simple cases (delegate to Command().RunAsync())
     Task<CliResult> Run(string commandLine, CancellationToken ct = default);
     Task<CliResult> Run(string fileName, IReadOnlyList<string> args, CancellationToken ct = default);
 
-    // Efficient streaming shortcuts (no capture by default)
-    IAsyncEnumerable<OutputLine> Lines(string commandLine, CancellationToken ct = default);
-    IAsyncEnumerable<OutputLine> Lines(string fileName, IReadOnlyList<string> args, CancellationToken ct = default);
-
     // Advanced handle shortcuts (stdin writing, signals, ensure success after streaming)
-    IStreamRun Stream(string commandLine);
-    IStreamRun Stream(string fileName, IReadOnlyList<string> args);
+    IRunningProcess Start(string commandLine);
+    IRunningProcess Start(string fileName, IReadOnlyList<string> args);
 }
 ```
 
@@ -142,22 +142,20 @@ public interface ICommand
     ICommand WithCancellationMode(CancellationMode mode);
 
     // Execution methods
-    Task<CliResult> ExecuteAsync(CancellationToken ct = default);
-    IAsyncEnumerable<OutputLine> LinesAsync(CancellationToken ct = default);
-    IStreamRun Stream();
+    Task<CliResult> RunAsync(CancellationToken ct = default);
+    IRunningProcess Start();
 }
 ```
 
 **Design notes**:
-- `IVirtualShell.Run()` is a shortcut for `Command().ExecuteAsync()`
-- `IVirtualShell.Lines()` is a shortcut for `Command().WithCaptureOutput(false).LinesAsync()`
-- `IVirtualShell.Stream()` is a shortcut for `Command().WithCaptureOutput(false).Stream()`
+- `IVirtualShell.Run()` is a shortcut for `Command().RunAsync()`
+- `IVirtualShell.Start()` is a shortcut for `Command().WithCaptureOutput(false).Start()`
 - For advanced configuration (stdin, timeout, cancellation mode), use `Command()` explicitly
 
-### IStreamRun
+### IRunningProcess
 
 ```csharp
-public interface IStreamRun : IAsyncDisposable
+public interface IRunningProcess : IAsyncDisposable
 {
     IAsyncEnumerable<OutputLine> Lines(CancellationToken ct = default);
 
@@ -183,18 +181,16 @@ public enum CliSignal
 }
 ```
 
-**Streaming defaults**
+**Defaults**
 
-* `Lines(...)`: `CaptureOutput = false` unless overridden (avoid buffering giant output)
-* `Stream(...)`: same default as `Lines(...)` (stream-first)
-
-**Run defaults**
-
-* `Run(...)` defaults to `CaptureOutput = true` (so `Stdout/Stderr` are available)
+* `Start(...)`: `CaptureOutput = false` (stream-first, avoid buffering giant output)
+* `Run(...)`: `CaptureOutput = true` (so `Stdout/Stderr` are available)
 
 ---
 
-## Custom Interpolated String Handler Surface
+## Custom Interpolated String Handler Surface (Future)
+
+> **Note**: This section describes planned features that are not yet implemented.
 
 Goal: eliminate quoting bugs and reduce verbosity, especially for stdin/secrets.
 
@@ -280,7 +276,7 @@ public sealed record ShellState(
 internal interface IProcessRunner
 {
     Task<CliResult> RunAsync(string exePath, IReadOnlyList<string> args, ExecSpec spec, ShellState state, CancellationToken ct);
-    IStreamRun Start(string exePath, IReadOnlyList<string> args, ExecSpec spec, ShellState state);
+    IRunningProcess Start(string exePath, IReadOnlyList<string> args, ExecSpec spec, ShellState state);
 }
 ```
 
@@ -301,7 +297,7 @@ await sh.Run("docker build -t myimg:dev .");
 ```csharp
 await sh.Command("docker build -t myimg:dev .")
     .WithTimeout(TimeSpan.FromMinutes(10))
-    .ExecuteAsync(ct);
+    .RunAsync(ct);
 ```
 
 ### Capture stdout
@@ -314,8 +310,10 @@ var version = result.Stdout?.Trim();
 ### Stream docker build
 
 ```csharp
-await foreach (var line in sh.Lines("docker build -t myimg:dev .", ct))
+await using var run = sh.Start("docker build -t myimg:dev .");
+await foreach (var line in run.Lines(ct))
     Console.WriteLine(line.Text);
+await run.EnsureSuccessAsync(ct);
 ```
 
 ### Docker login with stdin (fluent)
@@ -323,7 +321,7 @@ await foreach (var line in sh.Lines("docker build -t myimg:dev .", ct))
 ```csharp
 await sh.Command("docker", ["login", "ghcr.io", "--username", user, "--password-stdin"])
     .WithStdin(Stdin.FromText(password + "\n"))
-    .ExecuteAsync();
+    .RunAsync();
 ```
 
 ### Same with handler sugar (target form)
@@ -337,5 +335,5 @@ await sh.Run($"docker login ghcr.io --username {user} --password-stdin < {Secret
 ```csharp
 await sh.Command("long-running-server")
     .WithCancellationMode(CancellationMode.Detach)
-    .ExecuteAsync(ct);
+    .RunAsync(ct);
 ```
