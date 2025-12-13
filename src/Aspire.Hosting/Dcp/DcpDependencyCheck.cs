@@ -60,37 +60,17 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                     args.Add(containerRuntime);
                 }
 
-                CliResult result;
-                var timeout = _dcpOptions.DependencyCheckTimeout;
+                // Create timeout CTS if needed, linked to the caller's cancellation token
+                using var timeoutCts = _dcpOptions.DependencyCheckTimeout > 0
+                    ? new CancellationTokenSource(TimeSpan.FromSeconds(_dcpOptions.DependencyCheckTimeout))
+                    : null;
 
-                if (timeout > 0)
-                {
-                    // Use Start() + WaitAsync() with timeout to match original behavior:
-                    // on timeout, we stop waiting but don't kill the process
-                    var process = _shell.Command(dcpPath, args).Start();
-                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
-                    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                using var linkedCts = timeoutCts != null
+                    ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token)
+                    : null;
 
-                    try
-                    {
-                        result = await process.WaitAsync(linkedCts.Token).ConfigureAwait(false);
-                        // Normal completion - clean up the process
-                        await process.DisposeAsync().ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-                    {
-                        // Timeout - don't dispose/kill the process (matches original behavior where process continues)
-                        throw new DistributedApplicationException(string.Format(
-                            CultureInfo.InvariantCulture,
-                            MessageStrings.DcpDependencyCheckFailedMessage,
-                            $"Timed out after {timeout} seconds"
-                        ));
-                    }
-                }
-                else
-                {
-                    result = await _shell.Command(dcpPath, args).RunAsync(cancellationToken).ConfigureAwait(false);
-                }
+                var effectiveCt = linkedCts?.Token ?? cancellationToken;
+                var result = await _shell.Run(dcpPath, args, effectiveCt).ConfigureAwait(false);
 
                 if (result.ExitCode != 0)
                 {
