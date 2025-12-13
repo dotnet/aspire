@@ -37,13 +37,6 @@ public interface ICommand
     ICommand WithMaxCaptureBytes(int maxBytes);
 
     /// <summary>
-    /// Configures how the process should be handled when cancellation is requested.
-    /// </summary>
-    /// <param name="mode">The cancellation mode.</param>
-    /// <returns>This command for chaining.</returns>
-    ICommand WithCancellationMode(CancellationMode mode);
-
-    /// <summary>
     /// Runs the command and waits for it to complete.
     /// </summary>
     /// <param name="ct">A cancellation token.</param>
@@ -55,25 +48,4 @@ public interface ICommand
     /// </summary>
     /// <returns>A handle for streaming output and controlling the process.</returns>
     IRunningProcess Start();
-}
-
-/// <summary>
-/// Specifies how the process should be handled when cancellation is requested.
-/// </summary>
-public enum CancellationMode
-{
-    /// <summary>
-    /// Kill the process and all child processes (default).
-    /// </summary>
-    KillTree,
-
-    /// <summary>
-    /// Kill only the process, children become orphaned.
-    /// </summary>
-    KillProcess,
-
-    /// <summary>
-    /// Stop waiting, process continues running in background.
-    /// </summary>
-    Detach
 }

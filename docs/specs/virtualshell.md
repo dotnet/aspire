@@ -46,20 +46,6 @@ public enum CliExitReason
 }
 ```
 
-### CancellationMode
-
-```csharp
-public enum CancellationMode
-{
-    /// <summary>Kill the process and all child processes (default).</summary>
-    KillTree,
-    /// <summary>Kill only the process, children become orphaned.</summary>
-    KillProcess,
-    /// <summary>Stop waiting, process continues running in background.</summary>
-    Detach
-}
-```
-
 ### Stdin
 
 ```csharp
@@ -139,7 +125,6 @@ public interface ICommand
     ICommand WithTimeout(TimeSpan timeout);
     ICommand WithCaptureOutput(bool capture);
     ICommand WithMaxCaptureBytes(int maxBytes);
-    ICommand WithCancellationMode(CancellationMode mode);
 
     // Execution methods
     Task<CliResult> RunAsync(CancellationToken ct = default);
@@ -150,7 +135,7 @@ public interface ICommand
 **Design notes**:
 - `IVirtualShell.Run()` is a shortcut for `Command().RunAsync()`
 - `IVirtualShell.Start()` is a shortcut for `Command().WithCaptureOutput(false).Start()`
-- For advanced configuration (stdin, timeout, cancellation mode), use `Command()` explicitly
+- For advanced configuration (stdin, timeout), use `Command()` explicitly
 
 ### IRunningProcess
 
@@ -351,14 +336,6 @@ await sh.Command("docker", ["login", "ghcr.io", "--username", user, "--password-
 await sh.Run($"docker login ghcr.io --username {user} --password-stdin < {Secret(password)}");
 ```
 
-### Advanced: detach on cancel
-
-```csharp
-await sh.Command("long-running-server")
-    .WithCancellationMode(CancellationMode.Detach)
-    .RunAsync(ct);
-```
-
 ### PATH manipulation
 
 ```csharp
@@ -523,4 +500,88 @@ IVirtualShell CreateDockerShell(IVirtualShell baseShell, string registry)
 var dockerShell = CreateDockerShell(sh, "ghcr.io");
 await dockerShell.Run("docker build -t myapp .");
 await dockerShell.Run("docker push ghcr.io/myorg/myapp");
+```
+
+### Cancellation with RunAsync
+
+```csharp
+using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+try
+{
+    await sh.Run("npm run build", cts.Token);
+}
+catch (OperationCanceledException)
+{
+    // Process tree was killed
+    logger.LogWarning("Build was cancelled");
+}
+```
+
+### Cancellation with streaming
+
+```csharp
+using var cts = new CancellationTokenSource();
+
+await using var proc = sh.Start("long-running-task");
+
+await foreach (var line in proc.Lines(cts.Token))
+{
+    Console.WriteLine(line.Text);
+
+    if (ShouldStop(line))
+    {
+        cts.Cancel(); // Will kill the process tree
+        break;
+    }
+}
+```
+
+### Graceful shutdown with fallback
+
+```csharp
+await using var server = sh.Start("web-server --port 8080");
+
+// ... server is running ...
+
+// Try graceful shutdown first
+server.Signal(CliSignal.Interrupt);
+
+using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+try
+{
+    await server.ResultAsync(timeoutCts.Token);
+    logger.LogInformation("Server shut down gracefully");
+}
+catch (OperationCanceledException)
+{
+    // Graceful shutdown timed out, force kill
+    server.Kill();
+    logger.LogWarning("Server was force killed");
+}
+```
+
+### Checking exit reason
+
+```csharp
+var result = await sh
+    .Command("slow-task")
+    .WithTimeout(TimeSpan.FromMinutes(10))
+    .RunAsync(ct);
+
+switch (result.Reason)
+{
+    case CliExitReason.Exited:
+        Console.WriteLine($"Completed with code {result.ExitCode}");
+        break;
+    case CliExitReason.TimedOut:
+        Console.WriteLine("Timed out");
+        break;
+    case CliExitReason.Canceled:
+        Console.WriteLine("Cancelled");
+        break;
+    case CliExitReason.Killed:
+        Console.WriteLine("Killed");
+        break;
+}
 ```

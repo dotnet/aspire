@@ -107,8 +107,7 @@ internal sealed class ProcessRunner : IProcessRunner
         var runningProcess = new RunningProcess(
             process,
             spec,
-            captureOutput: spec.CaptureOutput,
-            killProcessTree: spec.KillProcessTree);
+            captureOutput: spec.CaptureOutput);
 
         // Handle stdin asynchronously
         if (spec.Stdin != null)

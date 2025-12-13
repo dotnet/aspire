@@ -296,7 +296,6 @@ public sealed class FakeVirtualShell : IVirtualShell
 /// <param name="Timeout">The timeout, if configured.</param>
 /// <param name="CaptureOutput">Whether output capture was enabled.</param>
 /// <param name="MaxCaptureBytes">The max capture bytes, if configured.</param>
-/// <param name="CancellationMode">The cancellation mode.</param>
 public sealed record CapturedCommand(
     string FileName,
     string[] Arguments,
@@ -305,8 +304,7 @@ public sealed record CapturedCommand(
     Stdin? Stdin,
     TimeSpan? Timeout,
     bool CaptureOutput,
-    int? MaxCaptureBytes,
-    CancellationMode CancellationMode)
+    int? MaxCaptureBytes)
 {
     /// <summary>
     /// Gets the command line as a single string.
@@ -327,7 +325,6 @@ public sealed class FakeCommand : ICommand
     private TimeSpan? _timeout;
     private bool _captureOutput = true;
     private int? _maxCaptureBytes;
-    private CancellationMode _cancellationMode = CancellationMode.KillTree;
 
     internal FakeCommand(FakeVirtualShell shell, string fileName, IReadOnlyList<string> args)
     {
@@ -392,11 +389,6 @@ public sealed class FakeCommand : ICommand
             json["maxCaptureBytes"] = _maxCaptureBytes.Value;
         }
 
-        if (_cancellationMode != CancellationMode.KillTree)
-        {
-            json["cancellationMode"] = _cancellationMode.ToString();
-        }
-
         if (_shell._tag is not null)
         {
             json["tag"] = _shell._tag;
@@ -434,13 +426,6 @@ public sealed class FakeCommand : ICommand
     }
 
     /// <inheritdoc />
-    public ICommand WithCancellationMode(CancellationMode mode)
-    {
-        _cancellationMode = mode;
-        return this;
-    }
-
-    /// <inheritdoc />
     public Task<CliResult> RunAsync(CancellationToken ct = default)
     {
         var captured = CreateCapturedCommand();
@@ -468,8 +453,7 @@ public sealed class FakeCommand : ICommand
             _stdin,
             _timeout,
             _captureOutput,
-            _maxCaptureBytes,
-            _cancellationMode);
+            _maxCaptureBytes);
     }
 
     private CliResult GetResult(CapturedCommand command)

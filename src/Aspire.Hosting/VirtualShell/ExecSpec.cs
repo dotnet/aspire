@@ -25,12 +25,6 @@ public sealed class ExecSpec
     public TimeSpan? Timeout { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether to kill the entire process tree on termination.
-    /// Defaults to true.
-    /// </summary>
-    public bool KillProcessTree { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets a value indicating whether to capture stdout and stderr.
     /// Defaults to true for Run/Cap methods, false for streaming methods.
     /// </summary>

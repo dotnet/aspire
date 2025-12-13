@@ -22,7 +22,6 @@ public sealed class Command : ICommand
     private TimeSpan? _timeout;
     private bool _captureOutput = true;
     private int? _maxCaptureBytes;
-    private CancellationMode _cancellationMode = CancellationMode.KillTree;
 
     internal Command(
         ShellState shellState,
@@ -77,13 +76,6 @@ public sealed class Command : ICommand
     }
 
     /// <inheritdoc />
-    public ICommand WithCancellationMode(CancellationMode mode)
-    {
-        _cancellationMode = mode;
-        return this;
-    }
-
-    /// <inheritdoc />
     public Task<CliResult> RunAsync(CancellationToken ct = default)
     {
         var spec = CreateSpec(captureByDefault: true);
@@ -107,8 +99,7 @@ public sealed class Command : ICommand
             Timeout = _timeout ?? _shellDefaultTimeout,
             CaptureOutput = _captureOutput && captureByDefault,
             MaxCaptureBytes = _maxCaptureBytes,
-            Stdin = _stdin,
-            KillProcessTree = _cancellationMode == CancellationMode.KillTree
+            Stdin = _stdin
         };
 
         return spec;

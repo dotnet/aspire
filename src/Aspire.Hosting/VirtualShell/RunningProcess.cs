@@ -22,7 +22,6 @@ public sealed partial class RunningProcess : IRunningProcess
     private readonly StringBuilder? _stdoutCapture;
     private readonly StringBuilder? _stderrCapture;
     private readonly CancellationTokenSource _disposeCts;
-    private readonly bool _killProcessTree;
 
     private volatile CliExitReason _exitReason = CliExitReason.Exited;
     private bool _stdinCompleted;
@@ -31,12 +30,10 @@ public sealed partial class RunningProcess : IRunningProcess
     internal RunningProcess(
         Process process,
         ExecSpec spec,
-        bool captureOutput,
-        bool killProcessTree)
+        bool captureOutput)
     {
         _process = process;
         _spec = spec;
-        _killProcessTree = killProcessTree;
         _outputChannel = Channel.CreateUnbounded<OutputLine>(new UnboundedChannelOptions
         {
             SingleReader = false,
@@ -243,7 +240,7 @@ public sealed partial class RunningProcess : IRunningProcess
 
         try
         {
-            _process.Kill(entireProcessTree && _killProcessTree);
+            _process.Kill(entireProcessTree);
         }
         catch (InvalidOperationException)
         {
