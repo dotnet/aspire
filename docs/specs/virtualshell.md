@@ -97,6 +97,12 @@ public interface IVirtualShell
     IVirtualShell PrependPath(string path);
     IVirtualShell AppendPath(string path);
     IVirtualShell Tag(string category); // optional diagnostic label (deploy/build/etc.)
+    IVirtualShell WithLogging(); // enable structured logging for commands
+
+    // Secrets (values redacted in logs/traces)
+    IVirtualShell DefineSecret(string name, string value);
+    string Secret(string name);
+    IVirtualShell SecretEnv(string key, string value);
 
     // Command builder (fluent API for per-command configuration)
     ICommand Command(string commandLine);
@@ -600,3 +606,103 @@ switch (result.Reason)
         break;
 }
 ```
+
+---
+
+## Secrets
+
+VirtualShell supports marking values as secrets so they are automatically redacted in logs and traces.
+
+### Defining and using secrets
+
+```csharp
+// Define named secrets at shell level
+var shell = sh
+    .DefineSecret("db-password", config["Database:Password"])
+    .DefineSecret("api-key", config["Api:Key"]);
+
+// Use Secret() to get the value for use in arguments
+await shell.Run("tool", ["--password", shell.Secret("db-password")]);
+
+// SecretEnv sets an env var and marks its value for redaction
+var buildShell = sh
+    .SecretEnv("NPM_TOKEN", config["Npm:Token"])
+    .SecretEnv("DOCKER_PASSWORD", config["Docker:Password"]);
+
+await buildShell.Run("npm publish");
+await buildShell.Run("docker login --password-stdin");
+```
+
+### Redaction behavior
+
+- Secret values are automatically replaced with `[REDACTED]` in:
+  - Log messages
+  - Activity/trace tags
+  - Error messages containing stderr
+- The shell tracks secret values and redacts any argument or env value that matches
+- `SecretEnv` keys are tracked separately (the key names are logged, only values are redacted)
+
+---
+
+## Diagnostics
+
+VirtualShell provides built-in observability through OpenTelemetry-compatible diagnostics.
+
+### Logging
+
+Logging is **opt-in** via `WithLogging()`:
+
+```csharp
+var sh = shell.WithLogging();
+await sh.Run("docker build .");  // This command will be logged
+```
+
+When enabled, commands are logged at appropriate levels:
+
+| Event | Level | Example |
+|-------|-------|---------|
+| Command start | Debug | "Starting command: docker build in /app" |
+| Command success | Information | "Command completed: docker build exited 0 in 1234ms" |
+| Command failure | Warning | "Command failed: docker build exited 1 (Exited) in 567ms: error message" |
+| Exception | Error | "Command threw exception: docker build in 100ms" |
+
+Secret values in arguments and stderr are automatically redacted.
+
+### Tracing (ActivitySource)
+
+Each command creates an Activity with:
+
+- **Name**: The executable name (e.g., "docker", "dotnet")
+- **Tags**:
+  - `virtualshell.command`: Full command line (redacted)
+  - `virtualshell.working_dir`: Working directory
+  - `virtualshell.tag`: Diagnostic tag if set
+  - `virtualshell.exit_code`: Exit code on completion
+- **Status**: `Ok` for success, `Error` for failures
+
+ActivitySource name: `Aspire.VirtualShell`
+
+### Metrics (Meter)
+
+Two metrics are recorded:
+
+| Metric | Type | Tags | Description |
+|--------|------|------|-------------|
+| `virtualshell.command.duration` | Histogram (ms) | command, tag, exit_code, success | Execution duration |
+| `virtualshell.command.count` | Counter | command, tag, exit_code, success | Number of executions |
+
+Meter name: `Aspire.VirtualShell`
+
+### Dependency injection
+
+Register VirtualShell with diagnostics via:
+
+```csharp
+services.AddVirtualShell();
+```
+
+This registers:
+- `IVirtualShell` (transient)
+- `VirtualShellActivitySource` (singleton)
+- Internal parsers and runners
+- Calls `AddMetrics()` to ensure `IMeterFactory` is available

@@ -22,6 +22,8 @@ public sealed class FakeVirtualShell : IVirtualShell
 
     internal string? _workingDirectory;
     internal readonly Dictionary<string, string?> _environment = new(StringComparer.OrdinalIgnoreCase);
+    internal readonly Dictionary<string, string> _secrets = new(StringComparer.Ordinal);
+    internal readonly HashSet<string> _secretEnvKeys = new(StringComparer.OrdinalIgnoreCase);
     internal string? _tag;
 
     /// <summary>
@@ -98,6 +100,14 @@ public sealed class FakeVirtualShell : IVirtualShell
         foreach (var kvp in parent._environment)
         {
             _environment[kvp.Key] = kvp.Value;
+        }
+        foreach (var kvp in parent._secrets)
+        {
+            _secrets[kvp.Key] = kvp.Value;
+        }
+        foreach (var key in parent._secretEnvKeys)
+        {
+            _secretEnvKeys.Add(key);
         }
         _tag = parent._tag;
     }
@@ -217,6 +227,33 @@ public sealed class FakeVirtualShell : IVirtualShell
     }
 
     /// <inheritdoc />
+    public IVirtualShell DefineSecret(string name, string value)
+    {
+        var clone = new FakeVirtualShell(this);
+        clone._secrets[name] = value;
+        return clone;
+    }
+
+    /// <inheritdoc />
+    public string Secret(string name)
+    {
+        if (!_secrets.TryGetValue(name, out var value))
+        {
+            throw new KeyNotFoundException($"Secret '{name}' is not defined. Use DefineSecret() first.");
+        }
+        return value;
+    }
+
+    /// <inheritdoc />
+    public IVirtualShell SecretEnv(string key, string value)
+    {
+        var clone = new FakeVirtualShell(this);
+        clone._environment[key] = value;
+        clone._secretEnvKeys.Add(key);
+        return clone;
+    }
+
+    /// <inheritdoc />
     public IVirtualShell Tag(string category)
     {
         var clone = new FakeVirtualShell(this)
@@ -224,6 +261,13 @@ public sealed class FakeVirtualShell : IVirtualShell
             _tag = category
         };
         return clone;
+    }
+
+    /// <inheritdoc />
+    public IVirtualShell WithLogging()
+    {
+        // Fake shell doesn't log, but maintain immutable pattern
+        return new FakeVirtualShell(this);
     }
 
     /// <inheritdoc />

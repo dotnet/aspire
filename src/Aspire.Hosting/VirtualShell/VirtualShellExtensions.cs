@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.Metrics;
 using Aspire.Hosting.VirtualShell;
 using Aspire.Hosting.VirtualShell.Internal;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -18,14 +20,19 @@ public static class VirtualShellExtensions
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddVirtualShell(this IServiceCollection services)
     {
+        services.AddMetrics();
         services.AddSingleton<ICommandLineParser, CommandLineParser>();
         services.AddSingleton<IExecutableResolver, ExecutableResolver>();
         services.AddSingleton<IProcessRunner, ProcessRunner>();
+        services.AddSingleton<VirtualShellActivitySource>();
         services.AddTransient<IVirtualShell>(sp =>
             new VirtualShell(
                 sp.GetRequiredService<ICommandLineParser>(),
                 sp.GetRequiredService<IExecutableResolver>(),
-                sp.GetRequiredService<IProcessRunner>()));
+                sp.GetRequiredService<IProcessRunner>(),
+                sp.GetRequiredService<ILoggerFactory>(),
+                sp.GetRequiredService<VirtualShellActivitySource>(),
+                sp.GetRequiredService<IMeterFactory>()));
 
         return services;
     }
