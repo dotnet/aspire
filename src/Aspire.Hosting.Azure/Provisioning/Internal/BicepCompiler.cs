@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
-using System.Text;
-using Aspire.Hosting.Dcp.Process;
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+using Aspire.Hosting.Execution;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
@@ -14,23 +14,25 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 internal sealed class BicepCliCompiler : IBicepCompiler
 {
     private readonly ILogger<BicepCliCompiler> _logger;
+    private readonly IVirtualShell _shell;
 
-    public BicepCliCompiler(ILogger<BicepCliCompiler> logger)
+    public BicepCliCompiler(ILogger<BicepCliCompiler> logger, IVirtualShell shell)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _shell = shell ?? throw new ArgumentNullException(nameof(shell));
     }
 
     public async Task<string> CompileBicepToArmAsync(string bicepFilePath, CancellationToken cancellationToken = default)
     {
         // Try bicep command first for better performance
         var bicepPath = PathLookupHelper.FindFullPathFromPath("bicep");
-        string commandPath;
-        string arguments;
+        string command;
+        string[] args;
 
         if (bicepPath is not null)
         {
-            commandPath = bicepPath;
-            arguments = $"build \"{bicepFilePath}\" --stdout";
+            command = bicepPath;
+            args = ["build", bicepFilePath, "--stdout"];
         }
         else
         {
@@ -40,55 +42,24 @@ internal sealed class BicepCliCompiler : IBicepCompiler
             {
                 throw new AzureCliNotOnPathException();
             }
-            commandPath = azPath;
-            arguments = $"bicep build --file \"{bicepFilePath}\" --stdout";
+            command = azPath;
+            args = ["bicep", "build", "--file", bicepFilePath, "--stdout"];
         }
 
-        var armTemplateContents = new StringBuilder();
-        var templateSpec = new ProcessSpec(commandPath)
+        _logger.LogDebug("Running {CommandPath} with arguments: {Arguments}", command, string.Join(" ", args));
+
+        var result = await _shell.RunAsync(command, args, ct: cancellationToken).ConfigureAwait(false);
+
+        result.LogOutput(_logger, command);
+
+        if (result.ExitCode != 0)
         {
-            Arguments = arguments,
-            OnOutputData = data =>
-            {
-                _logger.LogDebug("{CommandPath} (stdout): {Output}", commandPath, data);
-                armTemplateContents.AppendLine(data);
-            },
-            OnErrorData = data =>
-            {
-                _logger.LogDebug("{CommandPath} (stderr): {Error}", commandPath, data);
-            },
-        };
-
-        _logger.LogDebug("Running {CommandPath} with arguments: {Arguments}", commandPath, arguments);
-
-        var exitCode = await ExecuteCommand(templateSpec).ConfigureAwait(false);
-
-        if (exitCode != 0)
-        {
-            _logger.LogError("Bicep compilation for {BicepFilePath} failed with exit code {ExitCode}.", bicepFilePath, exitCode);
+            _logger.LogError("Bicep compilation for {BicepFilePath} failed with exit code {ExitCode}.", bicepFilePath, result.ExitCode);
             throw new InvalidOperationException($"Failed to compile bicep file: {bicepFilePath}");
         }
 
         _logger.LogDebug("Bicep compilation for {BicepFilePath} succeeded.", bicepFilePath);
 
-        return armTemplateContents.ToString();
-    }
-
-    private static async Task<int> ExecuteCommand(ProcessSpec processSpec)
-    {
-        var sw = Stopwatch.StartNew();
-        var (task, disposable) = ProcessUtil.Run(processSpec);
-
-        try
-        {
-            var result = await task.ConfigureAwait(false);
-            sw.Stop();
-
-            return result.ExitCode;
-        }
-        finally
-        {
-            await disposable.DisposeAsync().ConfigureAwait(false);
-        }
+        return result.Stdout ?? string.Empty;
     }
 }

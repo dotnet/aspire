@@ -1,13 +1,20 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Dcp.Process;
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
+
+using Aspire.Hosting.Execution;
 
 namespace Aspire.Hosting.Utils;
 
-internal static class DotnetSdkUtils
+internal interface IDotnetSdkService
 {
-    private static readonly Dictionary<string, string> s_dotnetCliEnvVars = new()
+    Task<Version?> TryGetVersionAsync(string? workingDirectory);
+}
+
+internal sealed class DotnetSdkService : IDotnetSdkService
+{
+    private static readonly Dictionary<string, string?> s_dotnetCliEnvVars = new()
     {
         ["DOTNET_NOLOGO"] = "true",
         ["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false",
@@ -16,41 +23,48 @@ internal static class DotnetSdkUtils
         ["SuppressNETCoreSdkPreviewMessage"] = "true"
     };
 
-    public static async Task<Version?> TryGetVersionAsync(string? workingDirectory)
-    {
-        // Get version by parsing the SDK version string
-        Version? parsedVersion = null;
+    private readonly IVirtualShell _shell;
 
+    public DotnetSdkService(IVirtualShell shell)
+    {
+        _shell = shell;
+    }
+
+    public async Task<Version?> TryGetVersionAsync(string? workingDirectory)
+    {
         try
         {
-            var (task, _) = ProcessUtil.Run(new("dotnet")
+            var result = await _shell
+                .Cd(workingDirectory ?? Environment.CurrentDirectory)
+                .Env(s_dotnetCliEnvVars)
+                .RunAsync("dotnet", ["--version"])
+                .ConfigureAwait(false);
+
+            if (!result.Success)
             {
-                WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory,
-                Arguments = "--version",
-                EnvironmentVariables = s_dotnetCliEnvVars,
-                OnOutputData = data =>
+                return null;
+            }
+
+            var output = result.Stdout;
+
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                // The SDK version is in the output
+                var line = output.AsSpan().Trim();
+                // Trim any pre-release suffix
+                var hyphenIndex = line.IndexOf('-');
+                var versionSpan = hyphenIndex >= 0 ? line[..hyphenIndex] : line;
+                if (Version.TryParse(versionSpan, out var version))
                 {
-                    if (!string.IsNullOrWhiteSpace(data))
-                    {
-                        // The SDK version is in the first line of output
-                        var line = data.AsSpan().Trim();
-                        // Trim any pre-release suffix
-                        var hyphenIndex = line.IndexOf('-');
-                        var versionSpan = hyphenIndex >= 0 ? line[..hyphenIndex] : line;
-                        if (Version.TryParse(versionSpan, out var v))
-                        {
-                            parsedVersion = v;
-                        }
-                    }
+                    return version;
                 }
-            });
-            var result = await task.ConfigureAwait(false);
-            if (result.ExitCode == 0)
-            {
-                return parsedVersion;
             }
         }
-        catch (Exception) { }
+        catch (Exception)
+        {
+            // Best effort - return null on any error
+        }
+
         return null;
     }
 }

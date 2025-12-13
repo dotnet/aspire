@@ -1,11 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
+using Aspire.Hosting.Execution;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -19,10 +22,11 @@ internal sealed class DevTunnelCli
     public static readonly Version MinimumSupportedVersion = new(1, 0, 1435);
 
     private readonly string _cliPath;
+    private readonly IVirtualShell _shell;
 
     public static string GetCliPath(IConfiguration configuration) => configuration["ASPIRE_DEVTUNNEL_CLI_PATH"] ?? "devtunnel";
 
-    public DevTunnelCli(string filePath)
+    public DevTunnelCli(string filePath, IVirtualShell shell)
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
@@ -30,6 +34,7 @@ internal sealed class DevTunnelCli
         }
 
         _cliPath = filePath;
+        _shell = shell ?? throw new ArgumentNullException(nameof(shell));
     }
 
     public Task<int> GetVersionAsync(TextWriter? outputWriter = null, TextWriter? errorWriter = null, ILogger? logger = default, CancellationToken cancellationToken = default)
@@ -217,45 +222,51 @@ internal sealed class DevTunnelCli
     private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, ILogger? logger = default, CancellationToken cancellationToken = default)
         => RunAsync(args, outputWriter, errorWriter, useShellExecute: false, logger, cancellationToken);
 
-    private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, bool useShellExecute = false, ILogger? logger = default, CancellationToken cancellationToken = default)
+    private async Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, bool useShellExecute = false, ILogger? logger = default, CancellationToken cancellationToken = default)
     {
-        return RunAsync((isError, line) =>
+        // For shell execute (interactive login), fall back to direct Process
+        if (useShellExecute)
         {
-            if (isError)
-            {
-                errorWriter?.WriteLine(line);
-            }
-            else
-            {
-                outputWriter?.WriteLine(line);
-            }
-        }, args, useShellExecute, logger, cancellationToken);
+            return await RunWithShellExecuteAsync(args, logger, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Use VirtualShell for non-shell-execute commands
+        logger?.LogTrace("Invoking devtunnel CLI: {FileName} {Arguments}", _cliPath, string.Join(" ", args));
+
+        var result = await _shell.RunAsync(_cliPath, args, ct: cancellationToken).ConfigureAwait(false);
+
+        // Write output to the provided writers
+        foreach (var line in result.StdoutLines)
+        {
+            outputWriter?.WriteLine(line);
+        }
+        foreach (var line in result.StderrLines)
+        {
+            errorWriter?.WriteLine(line);
+        }
+
+        logger?.LogTrace("devtunnel CLI exited with exit code '{ExitCode}'.", result.ExitCode);
+        return result.ExitCode;
     }
 
-    private async Task<int> RunAsync(Action<bool, string> onOutput, string[] args, bool useShellExecute = false, ILogger? logger = default, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Runs with UseShellExecute=true for interactive login commands that need to open a browser.
+    /// </summary>
+    private async Task<int> RunWithShellExecuteAsync(string[] args, ILogger? logger = default, CancellationToken cancellationToken = default)
     {
         using var process = new Process
         {
-            StartInfo = BuildStartInfo(args, useShellExecute),
+            StartInfo = BuildStartInfo(args, useShellExecute: true),
             EnableRaisingEvents = true
         };
 
-        var stdoutTask = Task.CompletedTask;
-        var stderrTask = Task.CompletedTask;
-
-        logger?.LogTrace("Invoking devtunnel CLI{ShellExecuteInfo}: {FileName} {Arguments}", useShellExecute ? " (UseShellExecute=true)" : "", process.StartInfo.FileName, EscapeArgList(process.StartInfo.ArgumentList));
+        logger?.LogTrace("Invoking devtunnel CLI (UseShellExecute=true): {FileName} {Arguments}", process.StartInfo.FileName, EscapeArgList(process.StartInfo.ArgumentList));
 
         try
         {
             if (!process.Start())
             {
                 throw new InvalidOperationException("Failed to start devtunnel process.");
-            }
-
-            if (!useShellExecute)
-            {
-                stdoutTask = PumpAsync(process.StandardOutput, line => onOutput(false, line), cancellationToken);
-                stderrTask = PumpAsync(process.StandardError, line => onOutput(true, line), cancellationToken);
             }
 
             using var ctr = cancellationToken.Register(() =>
@@ -279,20 +290,9 @@ internal sealed class DevTunnelCli
             logger?.LogTrace("devtunnel CLI exited with exit code '{ExitCode}'.", process.ExitCode);
             return process.ExitCode;
         }
-        finally
+        catch
         {
-            if (!useShellExecute)
-            {
-                try
-                {
-                    logger?.LogTrace("devtunnel CLI exited, draining stdout/stderr.");
-                    await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // ignored
-                }
-            }
+            throw;
         }
     }
 
@@ -374,22 +374,6 @@ internal sealed class DevTunnelCli
         }
 
         return psi;
-    }
-
-    private static async Task PumpAsync(StreamReader reader, Action<string> onLine, CancellationToken cancellationToken = default)
-    {
-        while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
-        {
-            var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
-            if (line is null)
-            {
-                break;
-            }
-            if (line.Length > 0)
-            {
-                onLine(line);
-            }
-        }
     }
 }
 

@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECONTAINERRUNTIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -11,6 +12,7 @@
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -156,7 +158,8 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         var projectMetadata = this.GetProjectMetadata();
 
         // Get the container working directory for the project
-        var containerWorkingDir = await GetContainerWorkingDirectoryAsync(projectMetadata.ProjectPath, logger, ctx.CancellationToken).ConfigureAwait(false);
+        var shell = ctx.Services.GetRequiredService<IVirtualShell>();
+        var containerWorkingDir = await GetContainerWorkingDirectoryAsync(shell, projectMetadata.ProjectPath, logger, ctx.CancellationToken).ConfigureAwait(false);
 
         // Add COPY --from: statements for each source
         stage.AddContainerFiles(this, containerWorkingDir, logger);
@@ -231,51 +234,38 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
         }
     }
 
-    private static async Task<string> GetContainerWorkingDirectoryAsync(string projectPath, ILogger logger, CancellationToken cancellationToken)
+    private static async Task<string> GetContainerWorkingDirectoryAsync(IVirtualShell shell, string projectPath, ILogger logger, CancellationToken cancellationToken)
     {
         try
         {
-            var outputLines = new List<string>();
-            var spec = new Dcp.Process.ProcessSpec("dotnet")
-            {
-                Arguments = $"msbuild -getProperty:ContainerWorkingDirectory \"{projectPath}\"",
-                OnOutputData = output =>
-                {
-                    if (!string.IsNullOrWhiteSpace(output))
-                    {
-                        outputLines.Add(output.Trim());
-                    }
-                },
-                OnErrorData = error => logger.LogDebug("dotnet msbuild (stderr): {Error}", error),
-                ThrowOnNonZeroReturnCode = false
-            };
-
             logger.LogDebug("Getting ContainerWorkingDirectory for project {ProjectPath}", projectPath);
-            var (pendingResult, processDisposable) = Dcp.Process.ProcessUtil.Run(spec);
 
-            await using (processDisposable.ConfigureAwait(false))
+            var args = new[] { "msbuild", "-getProperty:ContainerWorkingDirectory", projectPath };
+            var result = await shell.RunAsync("dotnet", args, ct: cancellationToken).ConfigureAwait(false);
+
+            if (!string.IsNullOrEmpty(result.Stderr))
             {
-                var result = await pendingResult.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-                if (result.ExitCode != 0)
-                {
-                    logger.LogDebug("Failed to get ContainerWorkingDirectory from dotnet msbuild for project {ProjectPath}. Exit code: {ExitCode}. Using default /app",
-                        projectPath, result.ExitCode);
-                    return "/app";
-                }
-
-                // The last non-empty line should contain the ContainerWorkingDirectory value
-                var workingDir = outputLines.LastOrDefault();
-
-                if (string.IsNullOrWhiteSpace(workingDir))
-                {
-                    logger.LogDebug("dotnet msbuild returned empty ContainerWorkingDirectory for project {ProjectPath}. Using default /app", projectPath);
-                    return "/app";
-                }
-
-                logger.LogDebug("Resolved ContainerWorkingDirectory for project {ProjectPath}: {WorkingDir}", projectPath, workingDir);
-                return workingDir;
+                logger.LogDebug("dotnet msbuild (stderr): {Error}", result.Stderr);
             }
+
+            if (result.ExitCode != 0)
+            {
+                logger.LogDebug("Failed to get ContainerWorkingDirectory from dotnet msbuild for project {ProjectPath}. Exit code: {ExitCode}. Using default /app",
+                    projectPath, result.ExitCode);
+                return "/app";
+            }
+
+            // The last non-empty line should contain the ContainerWorkingDirectory value
+            var workingDir = result.StdoutLines.LastOrDefault();
+
+            if (string.IsNullOrWhiteSpace(workingDir))
+            {
+                logger.LogDebug("dotnet msbuild returned empty ContainerWorkingDirectory for project {ProjectPath}. Using default /app", projectPath);
+                return "/app";
+            }
+
+            logger.LogDebug("Resolved ContainerWorkingDirectory for project {ProjectPath}: {WorkingDir}", projectPath, workingDir);
+            return workingDir;
         }
         catch (Exception ex)
         {

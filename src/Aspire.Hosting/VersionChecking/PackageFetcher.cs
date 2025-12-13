@@ -1,8 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text;
-using Aspire.Hosting.Dcp.Process;
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
+
+using Aspire.Hosting.Execution;
 using Aspire.Shared;
 using Microsoft.Extensions.Logging;
 
@@ -17,54 +18,38 @@ internal sealed class PackageFetcher : IPackageFetcher
     private const int SearchPageSize = 1000;
 
     private readonly ILogger<PackageFetcher> _logger;
+    private readonly IVirtualShell _shell;
 
-    public PackageFetcher(ILogger<PackageFetcher> logger)
+    public PackageFetcher(ILogger<PackageFetcher> logger, IVirtualShell shell)
     {
         _logger = logger;
+        _shell = shell;
     }
 
     public async Task<List<NuGetPackage>> TryFetchPackagesAsync(string appHostDirectory, CancellationToken cancellationToken)
     {
-        var outputJson = new StringBuilder();
-        var spec = new ProcessSpec("dotnet")
+        var args = new[] { "package", "search", PackageId, "--format", "json", "--prerelease", "--take", SearchPageSize.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+
+        _logger.LogDebug("Running dotnet CLI to check for latest version of {PackageId} with arguments: {ArgumentList}", PackageId, string.Join(" ", args));
+
+        var result = await _shell
+            .Cd(appHostDirectory)
+            .RunAsync("dotnet", args, ct: cancellationToken).ConfigureAwait(false);
+
+        result.LogOutput(_logger, "dotnet");
+
+        if (result.ExitCode != 0)
         {
-            Arguments = $"package search {PackageId} --format json --prerelease --take {SearchPageSize}",
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true,
-            OnOutputData = output =>
-            {
-                outputJson.Append(output);
-                _logger.LogDebug("dotnet (stdout): {Output}", output);
-            },
-            OnErrorData = error =>
-            {
-                _logger.LogDebug("dotnet (stderr): {Error}", error);
-            },
-            WorkingDirectory = appHostDirectory
-        };
-
-        _logger.LogDebug("Running dotnet CLI to check for latest version of {PackageId} with arguments: {ArgumentList}", PackageId, spec.Arguments);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                _logger.LogDebug("The dotnet CLI call to check for latest version failed with exit code {ExitCode}.", processResult.ExitCode);
-                return [];
-            }
+            _logger.LogDebug("The dotnet CLI call to check for latest version failed with exit code {ExitCode}.", result.ExitCode);
+            return [];
         }
 
         // Filter packages to only consider "Aspire.Hosting.AppHost".
-        // Although the CLI command 'dotnet package search Aspire.Hosting.AppHost --format json' 
-        // should already limit results according to NuGet search syntax 
+        // Although the CLI command 'dotnet package search Aspire.Hosting.AppHost --format json'
+        // should already limit results according to NuGet search syntax
         // (https://learn.microsoft.com/en-us/nuget/consume-packages/finding-and-choosing-packages#search-syntax),
         // we add this extra check for robustness in case the CLI output includes unexpected packages.
-        var packages = PackageUpdateHelpers.ParsePackageSearchResults(outputJson.ToString(), PackageId);
+        var packages = PackageUpdateHelpers.ParsePackageSearchResults(result.Stdout ?? string.Empty, PackageId);
         _logger.LogDebug("Found {PackageCount} packages.", packages.Count);
 
         return packages;

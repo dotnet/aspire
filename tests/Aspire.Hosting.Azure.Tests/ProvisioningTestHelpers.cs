@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
 #pragma warning disable CS0618 // Type or member is obsolete
 
 using System.Diagnostics.CodeAnalysis;
@@ -11,7 +12,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
-using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Azure;
@@ -640,53 +640,4 @@ internal sealed class TestTokenCredentialProvider : ITokenCredentialProvider
     public TokenCredential TokenCredential => new TestTokenCredential();
 }
 
-/// <summary>
-/// Mock implementation of IProcessRunner for testing that captures executed commands.
-/// </summary>
-internal sealed class MockProcessRunner : IProcessRunner
-{
-    /// <summary>
-    /// Gets the list of commands that were executed.
-    /// </summary>
-    public List<ExecutedCommand> ExecutedCommands { get; } = [];
-
-    /// <summary>
-    /// Gets or sets the configured results for specific commands.
-    /// Key format: "{executablePath} {arguments}"
-    /// </summary>
-    public Dictionary<string, ProcessResult> CommandResults { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the default process result to return when no specific result is configured.
-    /// </summary>
-    public ProcessResult DefaultResult { get; set; } = new(0);
-
-    /// <summary>
-    /// Represents a command that was executed.
-    /// </summary>
-    public sealed record ExecutedCommand(string ExecutablePath, string? Arguments, string? WorkingDirectory);
-
-    public (Task<ProcessResult>, IAsyncDisposable) Run(ProcessSpec processSpec)
-    {
-        // Capture the executed command
-        var executedCommand = new ExecutedCommand(processSpec.ExecutablePath, processSpec.Arguments, processSpec.WorkingDirectory);
-        ExecutedCommands.Add(executedCommand);
-
-        // Determine the result to return
-        var commandKey = $"{processSpec.ExecutablePath} {processSpec.Arguments ?? ""}".Trim();
-        var result = CommandResults.TryGetValue(commandKey, out var configuredResult) ? configuredResult : DefaultResult;
-
-        // Create a task that completes immediately with the configured result
-        var resultTask = Task.FromResult(result);
-
-        // Create a no-op disposable
-        var disposable = new NoOpAsyncDisposable();
-
-        return (resultTask, disposable);
-    }
-
-    private sealed class NoOpAsyncDisposable : IAsyncDisposable
-    {
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-    }
-}
+// For testing process execution, use FakeVirtualShell from Aspire.Hosting.Execution

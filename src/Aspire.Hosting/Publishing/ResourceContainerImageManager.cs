@@ -4,11 +4,13 @@
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIRECONTAINERRUNTIME001
+#pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Execution;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
@@ -159,6 +161,7 @@ public interface IResourceContainerImageManager
 internal sealed class ResourceContainerImageManager(
     ILogger<ResourceContainerImageManager> logger,
     IContainerRuntime containerRuntime,
+    IVirtualShell shell,
     IServiceProvider serviceProvider,
     DistributedApplicationExecutionContext? executionContext = null) : IResourceContainerImageManager
 {
@@ -357,45 +360,22 @@ internal sealed class ResourceContainerImageManager(
         }
 #pragma warning restore ASPIREDOCKERFILEBUILDER001
 
-        var spec = new ProcessSpec("dotnet")
+        logger.LogDebug("Starting .NET CLI with arguments: {Arguments}", arguments);
+
+        // The arguments string contains pre-formatted arguments, so use the command line parsing overload
+        var commandLine = $"dotnet {arguments}";
+        var result = await shell.RunAsync(commandLine, ct: cancellationToken).ConfigureAwait(false);
+
+        result.LogOutput(logger, $"dotnet publish {projectMetadata.ProjectPath}");
+
+        if (result.ExitCode != 0)
         {
-            Arguments = arguments,
-            OnOutputData = output =>
-            {
-                logger.LogDebug("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogDebug("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
-            }
-        };
-
-        logger.LogDebug(
-            "Starting .NET CLI with arguments: {Arguments}",
-            string.Join(" ", spec.Arguments)
-            );
-
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                logger.LogError("dotnet publish for project {ProjectPath} failed with exit code {ExitCode}.", projectMetadata.ProjectPath, processResult.ExitCode);
-                return false;
-            }
-            else
-            {
-                logger.LogDebug(
-                    ".NET CLI completed with exit code: {ExitCode}",
-                    processResult.ExitCode);
-                return true;
-            }
+            logger.LogError("dotnet publish for project {ProjectPath} failed with exit code {ExitCode}.", projectMetadata.ProjectPath, result.ExitCode);
+            return false;
         }
+
+        logger.LogDebug(".NET CLI completed with exit code: {ExitCode}", result.ExitCode);
+        return true;
     }
 
     private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, ResolvedContainerBuildOptions options, CancellationToken cancellationToken)
