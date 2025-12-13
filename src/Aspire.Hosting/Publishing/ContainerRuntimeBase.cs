@@ -5,7 +5,7 @@
 #pragma warning disable ASPIRECONTAINERRUNTIME001
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.VirtualShell;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
@@ -17,16 +17,23 @@ namespace Aspire.Hosting.Publishing;
 internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where TLogger : class
 {
     private readonly ILogger<TLogger> _logger;
+    private readonly IVirtualShell _shell;
 
-    protected ContainerRuntimeBase(ILogger<TLogger> logger)
+    protected ContainerRuntimeBase(ILogger<TLogger> logger, IVirtualShell shell)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _shell = shell ?? throw new ArgumentNullException(nameof(shell));
     }
 
     /// <summary>
     /// Gets the logger instance for use in derived classes.
     /// </summary>
     protected ILogger<TLogger> Logger => _logger;
+
+    /// <summary>
+    /// Gets the virtual shell for process execution.
+    /// </summary>
+    protected IVirtualShell Shell => _shell;
 
     /// <summary>
     /// Gets the name of the container runtime executable (e.g., "docker", "podman").
@@ -88,45 +95,33 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
 
     public virtual async Task LoginToRegistryAsync(string registryServer, string username, string password, CancellationToken cancellationToken)
     {
-        // Escape quotes in arguments to prevent command injection
-        var escapedRegistryServer = registryServer.Replace("\"", "\\\"");
-        var escapedUsername = username.Replace("\"", "\\\"");
-        var arguments = $"login \"{escapedRegistryServer}\" --username \"{escapedUsername}\" --password-stdin";
+        var args = new[] { "login", registryServer, "--username", username, "--password-stdin" };
 
-        var spec = new ProcessSpec(RuntimeExecutable)
-        {
-            Arguments = arguments,
-            StandardInputContent = password,
-            OnOutputData = output =>
-            {
-                _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
-            },
-            OnErrorData = error =>
-            {
-                _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
-
-        _logger.LogDebug("Running {RuntimeName} with arguments: {Arguments}", RuntimeExecutable, arguments);
+        _logger.LogDebug("Running {RuntimeName} with arguments: {Arguments}", RuntimeExecutable, string.Join(" ", args));
         _logger.LogDebug("Password length being passed to stdin: {PasswordLength}", password?.Length ?? 0);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
-        await using (processDisposable)
+        var result = await _shell.Run(RuntimeExecutable, args, spec =>
         {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
+            spec.CaptureOutput = true;
+            spec.Stdin = Stdin.FromText(password + "\n");
+        }, cancellationToken).ConfigureAwait(false);
 
-            if (processResult.ExitCode != 0)
-            {
-                _logger.LogError("{RuntimeName} login to {RegistryServer} failed with exit code {ExitCode}.", Name, registryServer, processResult.ExitCode);
-                throw new DistributedApplicationException($"{Name} login failed with exit code {processResult.ExitCode}.");
-            }
-
-            _logger.LogInformation("{RuntimeName} login to {RegistryServer} succeeded.", Name, registryServer);
+        if (!string.IsNullOrEmpty(result.Stdout))
+        {
+            _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, result.Stdout);
         }
+        if (!string.IsNullOrEmpty(result.Stderr))
+        {
+            _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, result.Stderr);
+        }
+
+        if (result.ExitCode != 0)
+        {
+            _logger.LogError("{RuntimeName} login to {RegistryServer} failed with exit code {ExitCode}.", Name, registryServer, result.ExitCode);
+            throw new DistributedApplicationException($"{Name} login failed with exit code {result.ExitCode}.");
+        }
+
+        _logger.LogInformation("{RuntimeName} login to {RegistryServer} succeeded.", Name, registryServer);
     }
 
     /// <summary>
@@ -146,26 +141,32 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         CancellationToken cancellationToken,
         params object[] logArguments)
     {
-        var spec = CreateProcessSpec(arguments);
+        _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, arguments);
 
-        _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
+        // The arguments string contains pre-formatted arguments, so use the command line parsing overload
+        var commandLine = $"{RuntimeExecutable} {arguments}";
+        var result = await _shell.Run(commandLine, spec =>
         {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
+            spec.CaptureOutput = true;
+        }, cancellationToken).ConfigureAwait(false);
 
-            if (processResult.ExitCode != 0)
-            {
-                var errorArgs = logArguments.Concat(new object[] { processResult.ExitCode }).ToArray();
-                _logger.LogError(errorLogTemplate, errorArgs);
-                throw new DistributedApplicationException(string.Format(System.Globalization.CultureInfo.InvariantCulture, exceptionMessageTemplate, processResult.ExitCode));
-            }
-
-            _logger.LogInformation(successLogTemplate, logArguments);
+        if (!string.IsNullOrEmpty(result.Stdout))
+        {
+            _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, result.Stdout);
         }
+        if (!string.IsNullOrEmpty(result.Stderr))
+        {
+            _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, result.Stderr);
+        }
+
+        if (result.ExitCode != 0)
+        {
+            var errorArgs = logArguments.Concat(new object[] { result.ExitCode }).ToArray();
+            _logger.LogError(errorLogTemplate, errorArgs);
+            throw new DistributedApplicationException(string.Format(System.Globalization.CultureInfo.InvariantCulture, exceptionMessageTemplate, result.ExitCode));
+        }
+
+        _logger.LogInformation(successLogTemplate, logArguments);
     }
 
     /// <summary>
@@ -186,36 +187,38 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         object[] logArguments,
         Dictionary<string, string>? environmentVariables = null)
     {
-        var spec = CreateProcessSpec(arguments);
+        _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, arguments);
 
-        // Add environment variables if provided
-        if (environmentVariables is not null)
+        // Build the shell with environment variables if provided
+        var shell = environmentVariables is not null
+            ? _shell.Env(environmentVariables.ToDictionary(kvp => kvp.Key, kvp => (string?)kvp.Value))
+            : _shell;
+
+        // The arguments string contains pre-formatted arguments, so use the command line parsing overload
+        var commandLine = $"{RuntimeExecutable} {arguments}";
+        var result = await shell.Run(commandLine, spec =>
         {
-            foreach (var (key, value) in environmentVariables)
-            {
-                spec.EnvironmentVariables[key] = value;
-            }
+            spec.CaptureOutput = true;
+        }, cancellationToken).ConfigureAwait(false);
+
+        if (!string.IsNullOrEmpty(result.Stdout))
+        {
+            _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, result.Stdout);
+        }
+        if (!string.IsNullOrEmpty(result.Stderr))
+        {
+            _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, result.Stderr);
         }
 
-        _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
+        if (result.ExitCode != 0)
         {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                var errorArgs = logArguments.Concat(new object[] { processResult.ExitCode }).ToArray();
-                _logger.LogError(errorLogTemplate, errorArgs);
-                return processResult.ExitCode;
-            }
-
-            _logger.LogDebug(successLogTemplate, logArguments);
-            return processResult.ExitCode;
+            var errorArgs = logArguments.Concat(new object[] { result.ExitCode }).ToArray();
+            _logger.LogError(errorLogTemplate, errorArgs);
+            return result.ExitCode;
         }
+
+        _logger.LogDebug(successLogTemplate, logArguments);
+        return result.ExitCode;
     }
 
     /// <summary>
@@ -266,28 +269,5 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     protected static string BuildStageString(string? stage)
     {
         return !string.IsNullOrEmpty(stage) ? $" --target \"{stage}\"" : string.Empty;
-    }
-
-    /// <summary>
-    /// Creates a ProcessSpec for executing container runtime commands.
-    /// </summary>
-    /// <param name="arguments">The command arguments.</param>
-    /// <returns>A configured ProcessSpec instance.</returns>
-    private ProcessSpec CreateProcessSpec(string arguments)
-    {
-        return new ProcessSpec(RuntimeExecutable)
-        {
-            Arguments = arguments,
-            OnOutputData = output =>
-            {
-                _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
-            },
-            OnErrorData = error =>
-            {
-                _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
     }
 }

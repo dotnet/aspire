@@ -8,11 +8,12 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Docker.Resources.ServiceNodes;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.VirtualShell;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Docker;
@@ -352,42 +353,33 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         var arguments = DockerComposeEnvironmentResource.GetDockerComposeArguments(context, environment);
         arguments += " ps --format json";
 
+        var shell = context.Services.GetRequiredService<IVirtualShell>();
+        var commandLine = $"docker {arguments}";
+        var result = await shell
+            .Cd(outputPath)
+            .Run(commandLine, spec =>
+            {
+                spec.CaptureOutput = true;
+            }, context.CancellationToken).ConfigureAwait(false);
+
+        if (!string.IsNullOrEmpty(result.Stderr))
+        {
+            context.Logger.LogDebug("docker compose ps (stderr): {Error}", result.Stderr);
+        }
+
+        if (result.ExitCode != 0)
+        {
+            context.Logger.LogDebug("docker compose ps failed with exit code {ExitCode}", result.ExitCode);
+            return null;
+        }
+
+        // Parse stdout into lines
         var outputLines = new List<string>();
-
-        var spec = new ProcessSpec("docker")
+        if (!string.IsNullOrEmpty(result.Stdout))
         {
-            Arguments = arguments,
-            WorkingDirectory = outputPath,
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true,
-            OnOutputData = output =>
+            foreach (var line in result.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                if (!string.IsNullOrWhiteSpace(output))
-                {
-                    outputLines.Add(output);
-                }
-            },
-            OnErrorData = error =>
-            {
-                if (!string.IsNullOrWhiteSpace(error))
-                {
-                    context.Logger.LogDebug("docker compose ps (stderr): {Error}", error);
-                }
-            }
-        };
-
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(context.CancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                context.Logger.LogDebug("docker compose ps failed with exit code {ExitCode}", processResult.ExitCode);
-                return null;
+                outputLines.Add(line);
             }
         }
 

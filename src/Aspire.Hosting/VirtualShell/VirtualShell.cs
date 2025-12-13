@@ -215,7 +215,7 @@ public sealed class VirtualShell : IVirtualShell
     }
 
     /// <inheritdoc />
-    public StreamRun Stream(
+    public IStreamRun Stream(
         string commandLine,
         Action<ExecSpec>? perCall = null)
     {
@@ -224,7 +224,7 @@ public sealed class VirtualShell : IVirtualShell
     }
 
     /// <inheritdoc />
-    public StreamRun Stream(
+    public IStreamRun Stream(
         string fileName,
         IReadOnlyList<string> args,
         Action<ExecSpec>? perCall = null)

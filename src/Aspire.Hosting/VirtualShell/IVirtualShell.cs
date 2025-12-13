@@ -136,7 +136,7 @@ public interface IVirtualShell
     /// <param name="commandLine">The command line to execute.</param>
     /// <param name="perCall">Optional per-call configuration.</param>
     /// <returns>A handle for streaming output and controlling the process.</returns>
-    StreamRun Stream(
+    IStreamRun Stream(
         string commandLine,
         Action<ExecSpec>? perCall = null);
 
@@ -147,7 +147,7 @@ public interface IVirtualShell
     /// <param name="args">The arguments to pass to the executable.</param>
     /// <param name="perCall">Optional per-call configuration.</param>
     /// <returns>A handle for streaming output and controlling the process.</returns>
-    StreamRun Stream(
+    IStreamRun Stream(
         string fileName,
         IReadOnlyList<string> args,
         Action<ExecSpec>? perCall = null);

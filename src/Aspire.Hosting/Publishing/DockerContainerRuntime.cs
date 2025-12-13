@@ -3,14 +3,14 @@
 
 #pragma warning disable ASPIREPIPELINES003
 
-using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.VirtualShell;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
 
 internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContainerRuntime>
 {
-    public DockerContainerRuntime(ILogger<DockerContainerRuntime> logger) : base(logger)
+    public DockerContainerRuntime(ILogger<DockerContainerRuntime> logger, IVirtualShell shell) : base(logger, shell)
     {
     }
 
@@ -90,48 +90,42 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
 
             arguments += $" \"{contextPath}\"";
 
-            var spec = new ProcessSpec("docker")
-            {
-                Arguments = arguments,
-                OnOutputData = output =>
-                {
-                    Logger.LogDebug("docker buildx (stdout): {Output}", output);
-                },
-                OnErrorData = error =>
-                {
-                    Logger.LogDebug("docker buildx (stderr): {Error}", error);
-                },
-                ThrowOnNonZeroReturnCode = false,
-                InheritEnv = true,
-            };
+            Logger.LogDebug("Running Docker CLI with arguments: {ArgumentList}", arguments);
 
-            // Add build secrets as environment variables
+            // Build a shell with secrets as environment variables
+            var shell = Shell;
             foreach (var buildSecret in buildSecrets)
             {
                 if (buildSecret.Value is not null)
                 {
-                    spec.EnvironmentVariables[buildSecret.Key.ToUpperInvariant()] = buildSecret.Value;
+                    shell = shell.Env(buildSecret.Key.ToUpperInvariant(), buildSecret.Value);
                 }
             }
 
-            Logger.LogDebug("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
-            var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-            await using (processDisposable)
+            // The arguments string contains pre-formatted arguments, so use the command line parsing overload
+            var commandLine = $"docker {arguments}";
+            var result = await shell.Run(commandLine, spec =>
             {
-                var processResult = await pendingProcessResult
-                    .WaitAsync(cancellationToken)
-                    .ConfigureAwait(false);
+                spec.CaptureOutput = true;
+            }, cancellationToken).ConfigureAwait(false);
 
-                if (processResult.ExitCode != 0)
-                {
-                    Logger.LogError("docker buildx for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
-                    return processResult.ExitCode;
-                }
-
-                Logger.LogInformation("docker buildx for {ImageName} succeeded.", imageName);
-                return processResult.ExitCode;
+            if (!string.IsNullOrEmpty(result.Stdout))
+            {
+                Logger.LogDebug("docker buildx (stdout): {Output}", result.Stdout);
             }
+            if (!string.IsNullOrEmpty(result.Stderr))
+            {
+                Logger.LogDebug("docker buildx (stderr): {Error}", result.Stderr);
+            }
+
+            if (result.ExitCode != 0)
+            {
+                Logger.LogError("docker buildx for {ImageName} failed with exit code {ExitCode}.", imageName, result.ExitCode);
+                return result.ExitCode;
+            }
+
+            Logger.LogInformation("docker buildx for {ImageName} succeeded.", imageName);
+            return result.ExitCode;
         }
         finally
         {
