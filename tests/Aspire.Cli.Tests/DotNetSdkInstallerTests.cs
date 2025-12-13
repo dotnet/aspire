@@ -382,15 +382,21 @@ public class DotNetSdkInstallerTests
     }
 }
 
-public class MinimumSdkCheckFeature(bool enabled = true) : IFeatures
+internal class MinimumSdkCheckFeature(bool enabled = true) : IFeatures
 {
     public bool IsFeatureEnabled(string featureName, bool defaultValue = false)
     {
         return featureName == KnownFeatures.MinimumSdkCheckEnabled ? enabled : false;
     }
+
+    public bool Enabled<TFeatureFlag>() where TFeatureFlag : IFeatureFlag, new()
+    {
+        var featureFlag = new TFeatureFlag();
+        return IsFeatureEnabled(featureFlag.ConfigurationKey, featureFlag.DefaultValue);
+    }
 }
 
-public class TestFeatures : IFeatures
+internal class TestFeatures : IFeatures
 {
     private readonly Dictionary<string, bool> _features = new();
 
@@ -403,5 +409,11 @@ public class TestFeatures : IFeatures
     public bool IsFeatureEnabled(string featureName, bool defaultValue = false)
     {
         return _features.TryGetValue(featureName, out var value) ? value : defaultValue;
+    }
+
+    public bool Enabled<TFeatureFlag>() where TFeatureFlag : IFeatureFlag, new()
+    {
+        var featureFlag = new TFeatureFlag();
+        return IsFeatureEnabled(featureFlag.ConfigurationKey, featureFlag.DefaultValue);
     }
 }
