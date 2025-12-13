@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -35,9 +36,9 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
     public IEnumerable<object> References => [Resource];
 
     /// <inheritdoc/>
-    async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
-        return await Resource.GetFullRemoteImageNameAsync(cancellationToken).ConfigureAwait(false);
+        return ((IValueProvider)this).GetValueAsync(new ValueProviderContext(), cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -54,13 +55,13 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
                 cancellationToken).ConfigureAwait(false);
 
             // For Archive destination, return the local file path
-            if (buildOptionsContext.Destination == Publishing.ContainerImageDestination.Archive)
+            if (buildOptionsContext.Destination == ContainerImageDestination.Archive)
             {
                 if (!string.IsNullOrEmpty(buildOptionsContext.OutputPath))
                 {
                     var imageName = buildOptionsContext.LocalImageName ?? Resource.Name.ToLowerInvariant();
-                    var imageTag = buildOptionsContext.LocalImageTag ?? "latest";
-                    return Path.Combine(buildOptionsContext.OutputPath, $"{imageName}-{imageTag}.tar");
+                    var imageTag = buildOptionsContext.LocalImageTag;
+                    return ResourceExtensions.GetContainerImageArchivePath(buildOptionsContext.OutputPath, imageName, imageTag);
                 }
             }
         }

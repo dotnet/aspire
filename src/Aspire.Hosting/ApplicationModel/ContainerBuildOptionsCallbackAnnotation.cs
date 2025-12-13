@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES003
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -90,7 +91,7 @@ public sealed class ContainerBuildOptionsCallbackContext
     /// <summary>
     /// Gets or sets the destination for the container image.
     /// </summary>
-    public Publishing.ContainerImageDestination? Destination { get; set; }
+    public ContainerImageDestination? Destination { get; set; }
 
     /// <summary>
     /// Gets or sets the output path for the container archive.
@@ -100,12 +101,12 @@ public sealed class ContainerBuildOptionsCallbackContext
     /// <summary>
     /// Gets or sets the container image format.
     /// </summary>
-    public Publishing.ContainerImageFormat? ImageFormat { get; set; }
+    public ContainerImageFormat? ImageFormat { get; set; }
 
     /// <summary>
     /// Gets or sets the target platform for the container.
     /// </summary>
-    public Publishing.ContainerTargetPlatform? TargetPlatform { get; set; }
+    public ContainerTargetPlatform? TargetPlatform { get; set; }
 
     /// <summary>
     /// Gets or sets the local image name for the built container.
