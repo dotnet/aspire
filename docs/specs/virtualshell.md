@@ -96,13 +96,15 @@ public interface IVirtualShell
     IVirtualShell Env(IReadOnlyDictionary<string, string?> vars);
     IVirtualShell PrependPath(string path);
     IVirtualShell AppendPath(string path);
-    IVirtualShell Tag(string category); // optional diagnostic label (deploy/build/etc.)
-    IVirtualShell WithLogging(); // enable structured logging for commands
 
     // Secrets (values redacted in logs/traces)
     IVirtualShell DefineSecret(string name, string value);
     string Secret(string name);
     IVirtualShell SecretEnv(string key, string value);
+
+    // Diagnostics
+    IVirtualShell Tag(string category); // optional diagnostic label (deploy/build/etc.)
+    IVirtualShell WithLogging(); // enable structured logging for commands
 
     // Command builder (fluent API for per-command configuration)
     ICommand Command(string commandLine);
@@ -515,12 +517,27 @@ IVirtualShell CreateDockerShell(IVirtualShell baseShell, string registry)
     return baseShell
         .Env("DOCKER_BUILDKIT", "1")
         .Env("DOCKER_DEFAULT_PLATFORM", "linux/amd64")
-        .Tag("docker");
+        .Tag("docker")
+        .WithLogging();  // Enable logging for all commands
 }
 
 var dockerShell = CreateDockerShell(sh, "ghcr.io");
 await dockerShell.Run("docker build -t myapp .");
 await dockerShell.Run("docker push ghcr.io/myorg/myapp");
+```
+
+### Secrets with logging
+
+```csharp
+// Configure shell with secrets and logging
+var deployShell = sh
+    .DefineSecret("registry-password", config["Registry:Password"])
+    .SecretEnv("DOCKER_PASSWORD", sh.Secret("registry-password"))
+    .Tag("deploy")
+    .WithLogging();
+
+// Password will be redacted in logs as [REDACTED]
+await deployShell.Run("docker", ["login", "ghcr.io", "-u", user, "-p", deployShell.Secret("registry-password")]);
 ```
 
 ### Cancellation with RunAsync
