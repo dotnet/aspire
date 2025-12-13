@@ -179,12 +179,12 @@ public static class EFResourceBuilderExtensions
     private static IEnumerable<PipelineStep> CreateMigrationPipelineStep(PipelineStepFactoryContext context)
     {
         if (context.Resource is not EFMigrationResource migrationResource
-            || !migrationResource.Options.PublishAsMigrationScript && !migrationResource.Options.PublishAsMigrationBundle)
+            || !migrationResource.PublishAsMigrationScript && !migrationResource.PublishAsMigrationBundle)
         {
             yield break;
         }
 
-        if (migrationResource.Options.PublishAsMigrationScript)
+        if (migrationResource.PublishAsMigrationScript)
         {
             yield return new PipelineStep
             {
@@ -198,7 +198,7 @@ public static class EFResourceBuilderExtensions
 
                     using var executor = new EFCoreOperationExecutor(
                         migrationResource.ProjectResource,
-                        migrationResource.Options.MigrationsProject,
+                        migrationResource.MigrationsProject,
                         migrationResource.ContextTypeName,
                         logger,
                         stepContext.CancellationToken);
@@ -218,7 +218,7 @@ public static class EFResourceBuilderExtensions
             };
         }
 
-        if (migrationResource.Options.PublishAsMigrationBundle)
+        if (migrationResource.PublishAsMigrationBundle)
         {
             yield return new PipelineStep
             {
@@ -232,7 +232,7 @@ public static class EFResourceBuilderExtensions
 
                     using var executor = new EFCoreOperationExecutor(
                         migrationResource.ProjectResource,
-                        migrationResource.Options.MigrationsProject,
+                        migrationResource.MigrationsProject,
                         migrationResource.ContextTypeName,
                         logger,
                         stepContext.CancellationToken);
@@ -359,7 +359,7 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.Options.MigrationsProject,
+                migrationResource.MigrationsProject,
                 migrationResource.ContextTypeName,
                 logger,
                 context.CancellationToken);
@@ -429,15 +429,15 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.Options.MigrationsProject,
+                migrationResource.MigrationsProject,
                 contextTypeName,
                 logger,
                 context.CancellationToken);
 
             var result = await executor.AddMigrationAsync(
                 migrationName, 
-                migrationResource.Options.MigrationOutputDirectory,
-                migrationResource.Options.MigrationNamespace).ConfigureAwait(false);
+                migrationResource.MigrationOutputDirectory,
+                migrationResource.MigrationNamespace).ConfigureAwait(false);
 
             if (result.Success)
             {
@@ -496,7 +496,7 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.Options.MigrationsProject,
+                migrationResource.MigrationsProject,
                 contextTypeName,
                 logger,
                 context.CancellationToken);
@@ -560,7 +560,7 @@ public static class EFResourceBuilderExtensions
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.Options.MigrationsProject,
+                migrationResource.MigrationsProject,
                 contextTypeName,
                 logger,
                 context.CancellationToken);

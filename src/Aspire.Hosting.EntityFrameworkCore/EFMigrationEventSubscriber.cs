@@ -33,7 +33,7 @@ internal sealed class EFMigrationEventSubscriber(
     {
         var migrationResources = @event.Model.Resources
             .OfType<EFMigrationResource>()
-            .Where(r => r.Options.RunDatabaseUpdateOnStart)
+            .Where(r => r.RunDatabaseUpdateOnStart)
             .ToList();
 
         if (migrationResources.Count == 0)
@@ -72,7 +72,7 @@ internal sealed class EFMigrationEventSubscriber(
 
             using var executor = new EFCoreOperationExecutor(
                 migrationResource.ProjectResource,
-                migrationResource.Options.MigrationsProject,
+                migrationResource.MigrationsProject,
                 migrationResource.ContextTypeName,
                 resourceLogger,
                 cancellationToken);

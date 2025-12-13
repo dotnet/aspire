@@ -55,7 +55,7 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     /// </remarks>
     public EFMigrationResourceBuilder RunDatabaseUpdateOnStart()
     {
-        Resource.Options.RunDatabaseUpdateOnStart = true;
+        Resource.RunDatabaseUpdateOnStart = true;
 
         // Register a health check for this migration resource
         // This allows other resources to WaitFor the migration to complete
@@ -81,7 +81,7 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     /// <returns>The resource builder for chaining.</returns>
     public EFMigrationResourceBuilder PublishAsMigrationScript()
     {
-        Resource.Options.PublishAsMigrationScript = true;
+        Resource.PublishAsMigrationScript = true;
         return this;
     }
 
@@ -91,7 +91,7 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     /// <returns>The resource builder for chaining.</returns>
     public EFMigrationResourceBuilder PublishAsMigrationBundle()
     {
-        Resource.Options.PublishAsMigrationBundle = true;
+        Resource.PublishAsMigrationBundle = true;
         return this;
     }
 
@@ -107,7 +107,7 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     public EFMigrationResourceBuilder WithMigrationOutputDirectory(string outputDirectory)
     {
         ArgumentException.ThrowIfNullOrEmpty(outputDirectory);
-        Resource.Options.MigrationOutputDirectory = outputDirectory;
+        Resource.MigrationOutputDirectory = outputDirectory;
         return this;
     }
 
@@ -123,7 +123,7 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     public EFMigrationResourceBuilder WithMigrationNamespace(string @namespace)
     {
         ArgumentException.ThrowIfNullOrEmpty(@namespace);
-        Resource.Options.MigrationNamespace = @namespace;
+        Resource.MigrationNamespace = @namespace;
         return this;
     }
 
@@ -146,7 +146,7 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
     public EFMigrationResourceBuilder WithMigrationsProject(IResourceBuilder<ProjectResource> projectBuilder)
     {
         ArgumentNullException.ThrowIfNull(projectBuilder);
-        Resource.Options.MigrationsProject = projectBuilder.Resource;
+        Resource.MigrationsProject = projectBuilder.Resource;
         return this;
     }
 

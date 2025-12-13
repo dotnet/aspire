@@ -283,6 +283,8 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     /// Typical path patterns:
     ///   bin/{Configuration}/{Framework}/{AssemblyName}.dll
     ///   bin/{Configuration}/{Framework}/{Runtime}/{AssemblyName}.dll
+    ///   bin/{AssemblyName}/{Configuration}/{Framework}/{AssemblyName}.dll
+    ///   bin/{AssemblyName}/{Configuration}/{Framework}/{Runtime}/{AssemblyName}.dll
     /// </summary>
     private void ParseBuildSettingsFromPath(string assemblyPath)
     {
@@ -306,27 +308,61 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             return;
         }
 
-        // Configuration is typically right after "bin"
-        var configCandidate = segments[binIndex + 1];
-        if (configCandidate.Equals("Debug", StringComparison.OrdinalIgnoreCase) || 
-            configCandidate.Equals("Release", StringComparison.OrdinalIgnoreCase))
+        // Check if the first segment after "bin" is a configuration or assembly name
+        // If it's a configuration (Debug/Release), use standard layout
+        // Otherwise, assume it's assembly name and configuration is next
+        var firstSegment = segments[binIndex + 1];
+        var isStandardLayout = firstSegment.Equals("Debug", StringComparison.OrdinalIgnoreCase) || 
+                               firstSegment.Equals("Release", StringComparison.OrdinalIgnoreCase);
+
+        int configIndex, frameworkIndex;
+        
+        if (isStandardLayout)
         {
-            _configuration = configCandidate;
+            // Pattern: bin/{Configuration}/{Framework}/{Runtime?}/{AssemblyName}.dll
+            configIndex = binIndex + 1;
+            frameworkIndex = binIndex + 2;
+        }
+        else
+        {
+            // Pattern: bin/{AssemblyName}/{Configuration}/{Framework}/{Runtime?}/{AssemblyName}.dll
+            configIndex = binIndex + 2;
+            frameworkIndex = binIndex + 3;
+            
+            if (frameworkIndex >= segments.Length)
+            {
+                _logger.LogDebug("Could not parse build settings from assembly path: {AssemblyPath}", assemblyPath);
+                return;
+            }
         }
 
-        // Framework is typically after configuration (e.g., net8.0, net9.0)
-        var frameworkCandidate = segments[binIndex + 2];
-        if (frameworkCandidate.StartsWith("net", StringComparison.OrdinalIgnoreCase))
+        // Parse configuration
+        if (configIndex < segments.Length)
         {
-            _framework = frameworkCandidate;
+            var configCandidate = segments[configIndex];
+            if (configCandidate.Equals("Debug", StringComparison.OrdinalIgnoreCase) || 
+                configCandidate.Equals("Release", StringComparison.OrdinalIgnoreCase))
+            {
+                _configuration = configCandidate;
+            }
         }
 
-        // Runtime is optional and comes after framework (e.g., win-x64, linux-arm64)
-        // The assembly name is the last segment, so if there are 4+ segments after bin, 
-        // the 4th one (index binIndex + 3) might be a runtime identifier
-        if (binIndex + 4 < segments.Length)
+        // Parse framework (e.g., net8.0, net9.0)
+        if (frameworkIndex < segments.Length)
         {
-            var runtimeCandidate = segments[binIndex + 3];
+            var frameworkCandidate = segments[frameworkIndex];
+            if (frameworkCandidate.StartsWith("net", StringComparison.OrdinalIgnoreCase))
+            {
+                _framework = frameworkCandidate;
+            }
+        }
+
+        // Parse runtime if present (e.g., win-x64, linux-arm64)
+        // Runtime comes after framework and before the assembly name
+        var runtimeIndex = frameworkIndex + 1;
+        if (runtimeIndex < segments.Length - 1) // Ensure it's not the last segment (assembly name)
+        {
+            var runtimeCandidate = segments[runtimeIndex];
             // Runtime identifiers typically contain a hyphen (win-x64, linux-arm64, osx-x64, etc.)
             if (runtimeCandidate.Contains('-') && !runtimeCandidate.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
             {
