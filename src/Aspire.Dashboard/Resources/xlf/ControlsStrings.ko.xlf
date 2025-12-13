@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
         <source>Graph. For an accessible view please navigate to the Resources tab</source>
-        <target state="new">Graph. For an accessible view please navigate to the Resources tab</target>
+        <target state="translated">그래프. 액세스 가능한 보기를 보려면 리소스 탭으로 이동하세요.</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerParametersTab">
         <source>Parameters</source>
-        <target state="new">Parameters</target>
+        <target state="translated">매개 변수</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">리소스</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
@@ -344,7 +344,7 @@
       </trans-unit>
       <trans-unit id="ParameterValueNotSet">
         <source>Value not set</source>
-        <target state="new">Value not set</target>
+        <target state="translated">값이 설정되지 않음</target>
         <note />
       </trans-unit>
       <trans-unit id="PauseButtonTitle">

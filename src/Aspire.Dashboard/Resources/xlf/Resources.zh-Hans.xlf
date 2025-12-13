@@ -224,7 +224,7 @@
       </trans-unit>
       <trans-unit id="ResourcesNoParameters">
         <source>No parameters found</source>
-        <target state="new">No parameters found</target>
+        <target state="translated">未找到参数</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNotFiltered">

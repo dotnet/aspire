@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="ChannelOptionDescription">
         <source>Channel to use for templates (stable, daily)</source>
-        <target state="new">Channel to use for templates (stable, daily)</target>
+        <target state="translated">Kanál, který se má použít pro šablony (stabilní, denní)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChannelOptionDescriptionWithStaging">
         <source>Channel to use for templates (stable, staging, daily)</source>
-        <target state="new">Channel to use for templates (stable, staging, daily)</target>
+        <target state="translated">Kanál, který se má použít pro šablony (stabilní, příprava, denní)</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">

@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
         <source>Graph. For an accessible view please navigate to the Resources tab</source>
-        <target state="new">Graph. For an accessible view please navigate to the Resources tab</target>
+        <target state="translated">Graph. Erişilebilir bir görünüm için lütfen Kaynaklar sekmesine gidin</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerParametersTab">
         <source>Parameters</source>
-        <target state="new">Parameters</target>
+        <target state="translated">Parametreler</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">Kaynaklar</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
@@ -344,7 +344,7 @@
       </trans-unit>
       <trans-unit id="ParameterValueNotSet">
         <source>Value not set</source>
-        <target state="new">Value not set</target>
+        <target state="translated">Değer ayarlanmadı</target>
         <note />
       </trans-unit>
       <trans-unit id="PauseButtonTitle">
