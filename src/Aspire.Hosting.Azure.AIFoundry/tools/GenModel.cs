@@ -1,14 +1,21 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 #:property PublishAot=false
+#:package Markdig
 
 using System.Globalization;
+using System.IO;
 using System.Net;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
+using Markdig;
+using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
 
 var isFoundryLocal = args.Contains("--local");
 
@@ -90,11 +97,9 @@ string GenerateHostedCode(string csNamespace, List<ModelEntity> models)
             var descriptorName = ToPascalCase(modelName); // Reuse method name logic for descriptor property name
             var version = GetModelVersion(model);
             var publisher = model.Annotations!.SystemCatalogData!.Publisher!;
-            var description = CleanDescription(model.Annotations?.SystemCatalogData?.Summary ?? model.Annotations?.Description ?? $"Descriptor for {modelName} model");
+            var summaryElement = CreateSummaryElement(model.Annotations?.SystemCatalogData?.Summary ?? model.Annotations?.Description ?? $"Descriptor for {modelName} model");
 
-            sb.AppendLine("        /// <summary>");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        /// {EscapeXml(description)}");
-            sb.AppendLine("        /// </summary>");
+            AppendXmlDocComment(sb, 8, summaryElement);
             sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModel {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
         }
 
@@ -144,7 +149,7 @@ string GenerateLocalCode(string csNamespace, List<ModelEntity> models)
             var descriptorName = ToPascalCase(modelName); // Reuse method name logic for descriptor property name
             var version = GetModelVersion(model);
             var publisher = model.Annotations!.SystemCatalogData!.Publisher!;
-            var description = CleanDescription(model.Annotations?.SystemCatalogData?.Summary ?? model.Annotations?.Description ?? $"Descriptor for {modelName} model");
+            var summaryElement = CreateSummaryElement(model.Annotations?.SystemCatalogData?.Summary ?? model.Annotations?.Description ?? $"Descriptor for {modelName} model");
 
             if (!firstMethod)
             {
@@ -153,9 +158,7 @@ string GenerateLocalCode(string csNamespace, List<ModelEntity> models)
 
             firstMethod = false;
 
-            sb.AppendLine("        /// <summary>");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        /// {EscapeXml(description)}");
-            sb.AppendLine("        /// </summary>");
+            AppendXmlDocComment(sb, indentSpaces: 8, summaryElement);
             sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModel {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
         }
     }
@@ -164,6 +167,273 @@ string GenerateLocalCode(string csNamespace, List<ModelEntity> models)
 
     sb.AppendLine("}");
     return sb.ToString();
+}
+
+static void AppendXmlDocComment(StringBuilder sb, int indentSpaces, XElement element)
+{
+    var indent = new string(' ', indentSpaces);
+    var xml = element.ToString();
+    using var reader = new StringReader(xml);
+    string? line;
+    while ((line = reader.ReadLine()) is not null)
+    {
+        sb.Append(indent).Append("/// ");
+        sb.AppendLine(line);
+    }
+}
+
+static XElement CreateSummaryElement(string? markdown)
+{
+    var sanitized = CleanDescription(markdown);
+    var summary = new XElement("summary");
+    foreach (var node in ConvertMarkdownToXmlNodes(sanitized))
+    {
+        summary.Add(node);
+    }
+
+    var count = summary.Nodes().Count();
+    if (count == 0)
+    {
+        summary.Value = sanitized;
+    }
+
+    // If the summary contains a single <para> with only text, simplify to just text
+    if (count == 1 &&
+        summary.Nodes().First() is XElement paraNode &&
+        paraNode.Name == "para" &&
+        paraNode.Nodes().All(n => n is XText))
+    {
+        summary.Value = "\n" + paraNode.Value + "\n";
+    }
+
+    return summary;
+}
+
+static IEnumerable<XNode> ConvertMarkdownToXmlNodes(string markdown)
+{
+    if (string.IsNullOrWhiteSpace(markdown))
+    {
+        yield break;
+    }
+
+    var document = Markdown.Parse(markdown, MarkdownPipelineHolder.Instance);
+
+    if (document.Count == 0)
+    {
+        yield break;
+    }
+
+    foreach (var block in document)
+    {
+        foreach (var node in ConvertMarkdownBlock(block))
+        {
+            yield return node;
+        }
+    }
+}
+
+static IEnumerable<XNode> ConvertMarkdownBlock(Block block)
+{
+    switch (block)
+    {
+        case ParagraphBlock paragraphBlock:
+        {
+            var para = new XElement("para");
+            AddInlineContent(para, ConvertInlines(paragraphBlock.Inline));
+            yield return para;
+            yield break;
+        }
+        case HeadingBlock headingBlock:
+        {
+            var para = new XElement("para");
+            var bold = new XElement("b");
+            AddInlineContent(bold, ConvertInlines(headingBlock.Inline));
+            if (bold.IsEmpty)
+            {
+                var text = headingBlock.Inline?.ToString();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    bold.Add(new XText(text));
+                }
+            }
+            if (bold.IsEmpty)
+            {
+                var fallbackText = headingBlock.Inline?.ToString();
+                if (!string.IsNullOrWhiteSpace(fallbackText))
+                {
+                    para.Add(new XText(fallbackText));
+                }
+            }
+            else
+            {
+                para.Add(bold);
+            }
+            yield return para;
+            yield break;
+        }
+        case ListBlock listBlock:
+        {
+            var listElement = new XElement("list", new XAttribute("type", listBlock.IsOrdered ? "number" : "bullet"));
+            foreach (var item in listBlock.OfType<ListItemBlock>())
+            {
+                listElement.Add(ConvertListItem(item));
+            }
+            yield return listElement;
+            yield break;
+        }
+        case FencedCodeBlock:
+        {
+            var codeText = (((LeafBlock)block).Lines.ToString() ?? string.Empty).TrimEnd('\r', '\n');
+            var content = string.IsNullOrEmpty(codeText) ? string.Empty : string.Concat(Environment.NewLine, codeText);
+            var codeElement = new XElement("code", content);
+            yield return codeElement;
+            yield break;
+        }
+    }
+
+    if (block is ContainerBlock containerBlock)
+    {
+        foreach (var child in containerBlock)
+        {
+            foreach (var node in ConvertMarkdownBlock(child))
+            {
+                yield return node;
+            }
+        }
+        yield break;
+    }
+
+    if (block is LeafBlock leafBlock)
+    {
+        var text = leafBlock.Lines.ToString();
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            yield return new XElement("para", text.Trim());
+        }
+    }
+}
+
+static XElement ConvertListItem(ListItemBlock listItemBlock)
+{
+    var itemElement = new XElement("item");
+    var descriptionElement = new XElement("description");
+
+    foreach (var childBlock in listItemBlock)
+    {
+        foreach (var node in ConvertMarkdownBlock(childBlock))
+        {
+            descriptionElement.Add(node);
+        }
+    }
+
+    itemElement.Add(descriptionElement);
+    return itemElement;
+}
+
+static IEnumerable<object> ConvertInlines(ContainerInline? container)
+{
+    if (container is null)
+    {
+        yield break;
+    }
+
+    foreach (var inline in container)
+    {
+        foreach (var content in ConvertInline(inline))
+        {
+            yield return content;
+        }
+    }
+}
+
+static IEnumerable<object> ConvertInline(Inline inline)
+{
+    switch (inline)
+    {
+        case LiteralInline literalInline:
+            yield return literalInline.Content.ToString();
+            yield break;
+        case CodeInline codeInline:
+            yield return new XElement("c", codeInline.Content ?? string.Empty);
+            yield break;
+        case EmphasisInline emphasisInline when emphasisInline.DelimiterCount >= 2:
+        {
+            var bold = new XElement("b");
+            AddInlineContent(bold, ConvertInlines(emphasisInline));
+            yield return bold;
+            yield break;
+        }
+        case EmphasisInline emphasisInline:
+        {
+            foreach (var content in ConvertInlines(emphasisInline))
+            {
+                yield return content;
+            }
+            yield break;
+        }
+        case LinkInline linkInline:
+        {
+            var seeElement = new XElement("see");
+            if (!string.IsNullOrEmpty(linkInline.Url))
+            {
+                seeElement.SetAttributeValue("href", linkInline.Url);
+            }
+
+            var linkContent = ConvertInlines(linkInline).ToList();
+            if (linkContent.Count == 0 && !string.IsNullOrEmpty(linkInline.Url))
+            {
+                seeElement.Value = linkInline.Url;
+            }
+            else
+            {
+                AddInlineContent(seeElement, linkContent);
+            }
+
+            yield return seeElement;
+            yield break;
+        }
+        case LineBreakInline lineBreakInline:
+            yield return lineBreakInline.IsHard ? new XElement("br") : " ";
+            yield break;
+        default:
+        {
+            if (inline is ContainerInline containerInline)
+            {
+                foreach (var content in ConvertInlines(containerInline))
+                {
+                    yield return content;
+                }
+            }
+            else
+            {
+                var fallback = inline?.ToString();
+                if (!string.IsNullOrEmpty(fallback))
+                {
+                    yield return fallback;
+                }
+            }
+
+            yield break;
+        }
+    }
+}
+
+static void AddInlineContent(XElement parent, IEnumerable<object> contents)
+{
+    foreach (var content in contents)
+    {
+        switch (content)
+        {
+            case null:
+                continue;
+            case XNode node:
+                parent.Add(node);
+                break;
+            default:
+                parent.Add(new XText(content.ToString() ?? string.Empty));
+                break;
+        }
+    }
 }
 
 static string EscapeXml(string? value)
@@ -251,22 +521,22 @@ static string GetModelVersion(ModelEntity model)
     return "1"; // Default version
 }
 
-static string CleanDescription(string description)
+static string CleanDescription(string? description)
 {
-    if (string.IsNullOrEmpty(description))
+    if (string.IsNullOrWhiteSpace(description))
     {
         return "AI model deployment";
     }
 
-    // Clean up description for XML documentation
-    return description
-        .Replace("\n", " ")
-        .Replace("\r", " ")
-        .Replace("  ", " ")
-        .Replace(" on CUDA GPUs", "")
-        .Replace(" on GPUs", "")
-        .Replace(" on CPUs", "")
-        .Trim();
+    var sanitized = description
+        .Replace(" on CUDA GPUs", string.Empty, StringComparison.OrdinalIgnoreCase)
+        .Replace(" on GPUs", string.Empty, StringComparison.OrdinalIgnoreCase)
+        .Replace(" on CPUs", string.Empty, StringComparison.OrdinalIgnoreCase);
+
+    // Remove invisible BOM.
+    sanitized = sanitized.TrimStart('\uFEFF');
+
+    return sanitized.Trim();
 }
 
 static string EscapeStringForCSharp(string value)
@@ -848,4 +1118,9 @@ public class ConsolidatedResponse
 
     [JsonPropertyName("entities")]
     public List<ModelEntity>? Entities { get; set; }
+}
+
+file static class MarkdownPipelineHolder
+{
+    public static MarkdownPipeline Instance { get; } = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 }
