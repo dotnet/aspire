@@ -32,7 +32,6 @@ internal sealed class DcpHost
     private readonly TimeProvider _timeProvider;
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _logProcessorTask;
-    private IStreamRun? _dcpProcess;
 
     // These environment variables should never be inherited by DCP from app host.
     private static readonly string[] s_doNotInheritEnvironmentVars =
@@ -232,38 +231,33 @@ internal sealed class DcpHost
 
             _logger.LogInformation("Starting DCP with arguments: {Arguments}", string.Join(" ", args));
 
-            // Start the process with output going to console
-            _dcpProcess = _shell
-                .Cd(Directory.GetCurrentDirectory())
+            // DCP runs with --detach so it exits quickly after starting the API server
+            var dcpProcessTask = _shell
                 .Env(envVars)
-                .Stream(dcpExePath, args);
+                .Command(dcpExePath, args)
+                .WithCaptureOutput(false)
+                .ExecuteAsync();
 
-            // Fire and forget - redirect output to console in background
-            _ = Task.Run(async () =>
+            // Log when DCP process exits
+            _ = dcpProcessTask.ContinueWith(t =>
             {
-                try
+                if (t.IsCompletedSuccessfully)
                 {
-                    await foreach (var line in _dcpProcess.Lines(_shutdownCts.Token).ConfigureAwait(false))
+                    var result = t.Result;
+                    if (result.Success)
                     {
-                        if (line.IsStdErr)
-                        {
-                            Console.Error.WriteLine(line.Text);
-                        }
-                        else
-                        {
-                            Console.Out.WriteLine(line.Text);
-                        }
+                        _logger.LogDebug("DCP process exited successfully.");
+                    }
+                    else
+                    {
+                        _logger.LogWarning("DCP process exited with code {ExitCode}.", result.ExitCode);
                     }
                 }
-                catch (OperationCanceledException)
+                else if (t.IsFaulted)
                 {
-                    // Expected on shutdown
+                    _logger.LogError(t.Exception, "DCP process failed.");
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Error reading DCP output");
-                }
-            });
+            }, TaskScheduler.Default);
         }
         finally
         {
