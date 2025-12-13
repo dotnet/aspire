@@ -59,6 +59,8 @@ namespace Aspire.Hosting.ApplicationModel
         public int SkuCapacity { get { throw null; } set { } }
 
         public string SkuName { get { throw null; } set { } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
     public partial class AzureOpenAIResource : Azure.AzureProvisioningResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
@@ -74,6 +76,10 @@ namespace Aspire.Hosting.ApplicationModel
 
         public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
 
+        public ReferenceExpression UriExpression { get { throw null; } }
+
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }

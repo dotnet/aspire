@@ -36,9 +36,13 @@ namespace Aspire.Hosting.Azure
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 
         public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
     public partial class AzureKustoEmulatorResource : ApplicationModel.ContainerResource
@@ -57,5 +61,7 @@ namespace Aspire.Hosting.Azure
         public string DatabaseName { get { throw null; } }
 
         public AzureKustoClusterResource Parent { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }
