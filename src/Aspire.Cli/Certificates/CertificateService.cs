@@ -40,6 +40,9 @@ internal sealed class CertificateService(IInteractionService interactionService,
 
         if (checkExitCode != 0)
         {
+            // Warn user that certificate trust dialog may appear in background
+            interactionService.DisplayMessage("warning", ErrorStrings.CertificateTrustDialogWarning);
+            
             var options = new DotNetCliRunnerInvocationOptions
             {
                 StandardOutputCallback = ensureCertificateCollector.AppendOutput,

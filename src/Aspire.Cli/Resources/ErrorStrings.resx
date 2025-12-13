@@ -226,4 +226,21 @@
   <data name="CommandNotSupportedWithSingleFileAppHost" xml:space="preserve">
     <value>This command is not yet supported with single file AppHosts.</value>
   </data>
+  <data name="ErrorLoggedToFile" xml:space="preserve">
+    <value>Full error details have been logged to: {0}</value>
+    <comment>{0} is a file path</comment>
+  </data>
+  <data name="TroubleshootingGuideUrl" xml:space="preserve">
+    <value>For troubleshooting help, visit: https://aka.ms/aspire-troubleshooting</value>
+  </data>
+  <data name="CertificateTrustDialogWarning" xml:space="preserve">
+    <value>A certificate trust dialog may appear in the background. Please check your taskbar and bring the dialog to the foreground to approve the certificate trust.</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>An unexpected error occurred: {0}</value>
+    <comment>{0} is the error message</comment>
+  </data>
+  <data name="UseVerboseForDetails" xml:space="preserve">
+    <value>Use --verbose flag for detailed error information.</value>
+  </data>
 </root>

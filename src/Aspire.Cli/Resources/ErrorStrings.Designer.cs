@@ -329,5 +329,45 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CommandNotSupportedWithSingleFileAppHost", resourceCulture);
             }
         }
+        
+        public static string ErrorLoggedToFile
+        {
+            get
+            {
+                return ResourceManager.GetString("ErrorLoggedToFile", resourceCulture);
+            }
+        }
+        
+        public static string TroubleshootingGuideUrl
+        {
+            get
+            {
+                return ResourceManager.GetString("TroubleshootingGuideUrl", resourceCulture);
+            }
+        }
+        
+        public static string CertificateTrustDialogWarning
+        {
+            get
+            {
+                return ResourceManager.GetString("CertificateTrustDialogWarning", resourceCulture);
+            }
+        }
+        
+        public static string UnexpectedError
+        {
+            get
+            {
+                return ResourceManager.GetString("UnexpectedError", resourceCulture);
+            }
+        }
+        
+        public static string UseVerboseForDetails
+        {
+            get
+            {
+                return ResourceManager.GetString("UseVerboseForDetails", resourceCulture);
+            }
+        }
     }
 }

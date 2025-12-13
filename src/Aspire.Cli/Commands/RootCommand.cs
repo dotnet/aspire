@@ -65,6 +65,11 @@ internal sealed class RootCommand : BaseRootCommand
         nonInteractiveOption.Recursive = true;
         Options.Add(nonInteractiveOption);
 
+        var verboseOption = new Option<bool>("--verbose");
+        verboseOption.Description = "Display detailed error information including stack traces";
+        verboseOption.Recursive = true;
+        Options.Add(verboseOption);
+
         var waitForDebuggerOption = new Option<bool>("--wait-for-debugger");
         waitForDebuggerOption.Description = RootCommandStrings.WaitForDebuggerArgumentDescription;
         waitForDebuggerOption.Recursive = true;

@@ -37,6 +37,11 @@
         <target state="translated">--watch と --no-build を同時に使用することはできません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="CertificateTrustDialogWarning">
+        <source>A certificate trust dialog may appear in the background. Please check your taskbar and bring the dialog to the foreground to approve the certificate trust.</source>
+        <target state="new">A certificate trust dialog may appear in the background. Please check your taskbar and bring the dialog to the foreground to approve the certificate trust.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CertificatesMayNotBeFullyTrusted">
         <source>Developer certificates may not be fully trusted (trust exit code was: {0}).</source>
         <target state="translated">開発者証明書が完全に信頼されていない可能性があります (信頼終了コード: {0})。</target>
@@ -71,6 +76,11 @@
         <source>Error deleting configuration: {0}</source>
         <target state="translated">次の構成の削除でエラーが発生しました: {0}</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ErrorLoggedToFile">
+        <source>Full error details have been logged to: {0}</source>
+        <target state="new">Full error details have been logged to: {0}</target>
+        <note>{0} is a file path</note>
       </trans-unit>
       <trans-unit id="ErrorSettingConfiguration">
         <source>Error setting configuration: {0}</source>
@@ -167,15 +177,30 @@
         <target state="translated">単一ファイル AppHost 機能が有効になっていません。.cs AppHost ファイルを使用するには、構成を使用して機能を有効にします。</target>
         <note />
       </trans-unit>
+      <trans-unit id="TroubleshootingGuideUrl">
+        <source>For troubleshooting help, visit: https://aka.ms/aspire-troubleshooting</source>
+        <target state="new">For troubleshooting help, visit: https://aka.ms/aspire-troubleshooting</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">
         <source>Unable to retrieve the assembly version.</source>
         <target state="translated">アセンブリのバージョンを取得できません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="UnexpectedError">
+        <source>An unexpected error occurred: {0}</source>
+        <target state="new">An unexpected error occurred: {0}</target>
+        <note>{0} is the error message</note>
+      </trans-unit>
       <trans-unit id="UnsupportedLocaleProvided">
         <source>Unsupported locale {0} provided will not be used. Supported locales are: {1}.</source>
         <target state="translated">指定されたサポート対象外のロケール {0} は使用されません。サポート対象のロケールは {1} です。</target>
         <note>{1} is a comma-separated list of locales.</note>
+      </trans-unit>
+      <trans-unit id="UseVerboseForDetails">
+        <source>Use --verbose flag for detailed error information.</source>
+        <target state="new">Use --verbose flag for detailed error information.</target>
+        <note />
       </trans-unit>
     </body>
   </file>

@@ -40,6 +40,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IFeatures _features;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly TimeProvider _timeProvider;
+    private readonly IPrerequisiteChecker _prerequisiteChecker;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -55,6 +56,7 @@ internal sealed class RunCommand : BaseCommand
         IServiceProvider serviceProvider,
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment,
+        IPrerequisiteChecker prerequisiteChecker,
         TimeProvider? timeProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
@@ -67,11 +69,13 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(prerequisiteChecker);
 
         _runner = runner;
         _interactionService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
+        _prerequisiteChecker = prerequisiteChecker;
         _ansiConsole = ansiConsole;
         _telemetry = telemetry;
         _configuration = configuration;
@@ -118,6 +122,15 @@ internal sealed class RunCommand : BaseCommand
         if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
+        }
+
+        // Check prerequisites (container runtime, WSL, Docker Engine)
+        var prerequisiteResult = await _prerequisiteChecker.CheckPrerequisitesAsync(cancellationToken);
+        
+        // Display warnings (non-blocking)
+        foreach (var warning in prerequisiteResult.Warnings)
+        {
+            InteractionService.DisplayMessage("warning", warning);
         }
 
         var buildOutputCollector = new OutputCollector();

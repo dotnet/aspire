@@ -127,10 +127,20 @@
         <target state="translated">偵測到 Aspire 在 Aspire 擴充功能中執行，正在 VS Code 中啟動偵錯工作階段...</target>
         <note />
       </trans-unit>
+      <trans-unit id="StartupTakingLongerThanExpected">
+        <source>Startup is taking longer than expected. Press Ctrl+C to cancel or wait to continue...</source>
+        <target state="new">Startup is taking longer than expected. Press Ctrl+C to cancel or wait to continue...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="State">
         <source>State</source>
         <target state="translated">狀態</target>
         <note>The state of the resource, eg Running</note>
+      </trans-unit>
+      <trans-unit id="StillWaitingForStartup">
+        <source>Still waiting for startup to complete...</source>
+        <target state="new">Still waiting for startup to complete...</target>
+        <note />
       </trans-unit>
       <trans-unit id="Type">
         <source>Type</source>
