@@ -96,6 +96,36 @@ public sealed class VirtualShell : IVirtualShell
     }
 
     /// <inheritdoc />
+    public IVirtualShell PrependPath(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var currentPath = GetCurrentPath();
+        var newPath = string.IsNullOrEmpty(currentPath)
+            ? path
+            : $"{path}{Path.PathSeparator}{currentPath}";
+        return Env("PATH", newPath);
+    }
+
+    /// <inheritdoc />
+    public IVirtualShell AppendPath(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var currentPath = GetCurrentPath();
+        var newPath = string.IsNullOrEmpty(currentPath)
+            ? path
+            : $"{currentPath}{Path.PathSeparator}{path}";
+        return Env("PATH", newPath);
+    }
+
+    private string? GetCurrentPath()
+    {
+        // Check shell state environment first, then system environment
+        return _state.Environment.TryGetValue("PATH", out var statePath)
+            ? statePath
+            : Environment.GetEnvironmentVariable("PATH");
+    }
+
+    /// <inheritdoc />
     public IVirtualShell Timeout(TimeSpan timeout)
     {
         if (timeout <= TimeSpan.Zero)

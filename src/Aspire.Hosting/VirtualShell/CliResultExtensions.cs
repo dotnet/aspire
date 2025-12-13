@@ -46,4 +46,25 @@ public static class CliResultExtensions
             throw new InvalidOperationException(message);
         }
     }
+
+    /// <summary>
+    /// Ensures the command succeeded, throwing if it failed. Returns the result for chaining.
+    /// </summary>
+    /// <param name="result">The CLI result.</param>
+    /// <param name="errorMessage">An optional error message. If not provided, a default message is used.</param>
+    /// <returns>The result, for chaining.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the result indicates failure.</exception>
+    public static CliResult EnsureSuccess(this CliResult result, string? errorMessage = null)
+    {
+        if (!result.Success)
+        {
+            var message = errorMessage ?? $"Command failed with exit code {result.ExitCode}";
+            if (!string.IsNullOrWhiteSpace(result.Stderr))
+            {
+                message += $": {result.Stderr}";
+            }
+            throw new InvalidOperationException(message);
+        }
+        return result;
+    }
 }

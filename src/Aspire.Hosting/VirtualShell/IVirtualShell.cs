@@ -32,6 +32,20 @@ public interface IVirtualShell
     IVirtualShell Env(IReadOnlyDictionary<string, string?> vars);
 
     /// <summary>
+    /// Creates a new shell with the specified path prepended to the PATH environment variable.
+    /// </summary>
+    /// <param name="path">The path to prepend.</param>
+    /// <returns>A new shell instance with the updated PATH.</returns>
+    IVirtualShell PrependPath(string path);
+
+    /// <summary>
+    /// Creates a new shell with the specified path appended to the PATH environment variable.
+    /// </summary>
+    /// <param name="path">The path to append.</param>
+    /// <returns>A new shell instance with the updated PATH.</returns>
+    IVirtualShell AppendPath(string path);
+
+    /// <summary>
     /// Creates a new shell with the specified default timeout for commands.
     /// </summary>
     /// <param name="timeout">The default timeout for commands.</param>

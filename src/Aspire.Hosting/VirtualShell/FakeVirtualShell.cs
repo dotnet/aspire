@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Nodes;
 using System.Threading.Channels;
 
 namespace Aspire.Hosting.VirtualShell;
@@ -13,7 +14,8 @@ namespace Aspire.Hosting.VirtualShell;
 /// </summary>
 public sealed class FakeVirtualShell : IVirtualShell
 {
-    internal readonly ConcurrentQueue<CapturedCommand> _commands = new();
+    internal readonly ConcurrentQueue<CapturedCommand> _executedCommands = new();
+    internal readonly ConcurrentQueue<FakeCommand> _createdCommands = new();
     internal readonly ConcurrentDictionary<string, CliResult> _responses = new(StringComparer.OrdinalIgnoreCase);
     internal readonly ConcurrentDictionary<string, Func<CapturedCommand, CliResult>> _responseHandlers = new(StringComparer.OrdinalIgnoreCase);
     internal CliResult _defaultResult = new(0, "", "", CliExitReason.Exited);
@@ -24,9 +26,14 @@ public sealed class FakeVirtualShell : IVirtualShell
     internal string? _tag;
 
     /// <summary>
-    /// Gets all commands that have been executed.
+    /// Gets all commands that have been executed (after calling ExecuteAsync, LinesAsync, or Stream).
     /// </summary>
-    public IReadOnlyList<CapturedCommand> Commands => _commands.ToArray();
+    public IReadOnlyList<CapturedCommand> ExecutedCommands => _executedCommands.ToArray();
+
+    /// <summary>
+    /// Gets all commands that have been created (via Command method), including their current configuration.
+    /// </summary>
+    public IReadOnlyList<FakeCommand> CreatedCommands => _createdCommands.ToArray();
 
     /// <summary>
     /// Gets the current working directory.
@@ -49,6 +56,37 @@ public sealed class FakeVirtualShell : IVirtualShell
     public string? CurrentTag => _tag;
 
     /// <summary>
+    /// Gets the current shell state as a JSON object for test assertions.
+    /// </summary>
+    /// <returns>A JSON object containing the shell state.</returns>
+    public JsonObject GetStateAsJson()
+    {
+        var json = new JsonObject();
+
+        if (_workingDirectory is not null)
+        {
+            json["workingDirectory"] = _workingDirectory;
+        }
+
+        if (_environment.Count > 0)
+        {
+            var envObj = new JsonObject();
+            foreach (var kvp in _environment.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                envObj[kvp.Key] = kvp.Value;
+            }
+            json["environment"] = envObj;
+        }
+
+        if (_tag is not null)
+        {
+            json["tag"] = _tag;
+        }
+
+        return json;
+    }
+
+    /// <summary>
     /// Creates a new instance of <see cref="FakeVirtualShell"/>.
     /// </summary>
     public FakeVirtualShell()
@@ -57,7 +95,8 @@ public sealed class FakeVirtualShell : IVirtualShell
 
     private FakeVirtualShell(FakeVirtualShell parent)
     {
-        _commands = parent._commands;
+        _executedCommands = parent._executedCommands;
+        _createdCommands = parent._createdCommands;
         _responses = parent._responses;
         _responseHandlers = parent._responseHandlers;
         _defaultResult = parent._defaultResult;
@@ -110,7 +149,8 @@ public sealed class FakeVirtualShell : IVirtualShell
     /// </summary>
     public void ClearCommands()
     {
-        while (_commands.TryDequeue(out _)) { }
+        while (_executedCommands.TryDequeue(out _)) { }
+        while (_createdCommands.TryDequeue(out _)) { }
     }
 
     /// <inheritdoc />
@@ -157,6 +197,33 @@ public sealed class FakeVirtualShell : IVirtualShell
     }
 
     /// <inheritdoc />
+    public IVirtualShell PrependPath(string path)
+    {
+        var currentPath = GetCurrentPath();
+        var newPath = string.IsNullOrEmpty(currentPath)
+            ? path
+            : $"{path}{Path.PathSeparator}{currentPath}";
+        return Env("PATH", newPath);
+    }
+
+    /// <inheritdoc />
+    public IVirtualShell AppendPath(string path)
+    {
+        var currentPath = GetCurrentPath();
+        var newPath = string.IsNullOrEmpty(currentPath)
+            ? path
+            : $"{currentPath}{Path.PathSeparator}{path}";
+        return Env("PATH", newPath);
+    }
+
+    private string? GetCurrentPath()
+    {
+        return _environment.TryGetValue("PATH", out var statePath)
+            ? statePath
+            : "{SYSTEMPATH}";
+    }
+
+    /// <inheritdoc />
     public IVirtualShell Timeout(TimeSpan timeout)
     {
         var clone = new FakeVirtualShell(this)
@@ -188,7 +255,9 @@ public sealed class FakeVirtualShell : IVirtualShell
     /// <inheritdoc />
     public ICommand Command(string fileName, IReadOnlyList<string> args)
     {
-        return new FakeCommand(this, fileName, args);
+        var command = new FakeCommand(this, fileName, args);
+        _createdCommands.Enqueue(command);
+        return command;
     }
 
     /// <inheritdoc />
@@ -279,6 +348,75 @@ public sealed class FakeCommand : ICommand
         _args = args;
     }
 
+    /// <summary>
+    /// Gets the current command state as a JSON object for test assertions.
+    /// </summary>
+    /// <returns>A JSON object containing the command state.</returns>
+    public JsonObject GetStateAsJson()
+    {
+        var json = new JsonObject
+        {
+            ["fileName"] = _fileName
+        };
+
+        if (_args.Count > 0)
+        {
+            var argsArray = new JsonArray();
+            foreach (var arg in _args)
+            {
+                argsArray.Add(arg);
+            }
+            json["args"] = argsArray;
+        }
+
+        if (_shell._workingDirectory is not null)
+        {
+            json["workingDirectory"] = _shell._workingDirectory;
+        }
+
+        if (_shell._environment.Count > 0)
+        {
+            var envObj = new JsonObject();
+            foreach (var kvp in _shell._environment.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                envObj[kvp.Key] = kvp.Value;
+            }
+            json["environment"] = envObj;
+        }
+
+        if (_stdin is not null)
+        {
+            json["stdin"] = _stdin.ToString();
+        }
+
+        if (_timeout is not null)
+        {
+            json["timeout"] = _timeout.Value.ToString();
+        }
+
+        if (!_captureOutput)
+        {
+            json["captureOutput"] = false;
+        }
+
+        if (_maxCaptureBytes is not null)
+        {
+            json["maxCaptureBytes"] = _maxCaptureBytes.Value;
+        }
+
+        if (_cancellationMode != CancellationMode.KillTree)
+        {
+            json["cancellationMode"] = _cancellationMode.ToString();
+        }
+
+        if (_shell._tag is not null)
+        {
+            json["tag"] = _shell._tag;
+        }
+
+        return json;
+    }
+
     /// <inheritdoc />
     public ICommand WithStdin(Stdin stdin)
     {
@@ -318,7 +456,7 @@ public sealed class FakeCommand : ICommand
     public Task<CliResult> ExecuteAsync(CancellationToken ct = default)
     {
         var captured = CreateCapturedCommand();
-        _shell._commands.Enqueue(captured);
+        _shell._executedCommands.Enqueue(captured);
         var result = GetResult(captured);
         return Task.FromResult(result);
     }
@@ -327,7 +465,7 @@ public sealed class FakeCommand : ICommand
     public async IAsyncEnumerable<OutputLine> LinesAsync([EnumeratorCancellation] CancellationToken ct = default)
     {
         var captured = CreateCapturedCommand();
-        _shell._commands.Enqueue(captured);
+        _shell._executedCommands.Enqueue(captured);
         var result = GetResult(captured);
 
         if (!string.IsNullOrEmpty(result.Stdout))
@@ -359,7 +497,7 @@ public sealed class FakeCommand : ICommand
     public IStreamRun Stream()
     {
         var captured = CreateCapturedCommand();
-        _shell._commands.Enqueue(captured);
+        _shell._executedCommands.Enqueue(captured);
         var result = GetResult(captured);
         return new FakeStreamRun(result);
     }
