@@ -94,21 +94,28 @@ public sealed class Command : ICommand
     {
         var spec = CreateSpec(captureByDefault: true);
         var exePath = _resolver.ResolveOrThrow(_fileName, _shellState);
-        var redactedArgs = RedactArgs(_args);
-        var redactedCommand = $"{_fileName} {string.Join(" ", redactedArgs)}".Trim();
 
         using var activity = _activitySource.StartActivity(_fileName);
-        activity?.SetTag("virtualshell.command", redactedCommand);
-        activity?.SetTag("virtualshell.working_dir", _shellState.WorkingDirectory);
-        if (_tag is not null)
-        {
-            activity?.SetTag("virtualshell.tag", _tag);
-        }
 
-        if (_loggingEnabled)
+        // Only build redacted command string when needed for diagnostics
+        string? redactedCommand = null;
+        if (activity is not null || _loggingEnabled)
         {
-            _logger.LogDebug("Starting command: {Command} in {WorkingDirectory}",
-                redactedCommand, _shellState.WorkingDirectory ?? ".");
+            var redactedArgs = RedactArgs(_args);
+            redactedCommand = $"{_fileName} {string.Join(" ", redactedArgs)}".Trim();
+
+            activity?.SetTag("virtualshell.command", redactedCommand);
+            activity?.SetTag("virtualshell.working_dir", _shellState.WorkingDirectory);
+            if (_tag is not null)
+            {
+                activity?.SetTag("virtualshell.tag", _tag);
+            }
+
+            if (_loggingEnabled)
+            {
+                _logger.LogDebug("Starting command: {Command} in {WorkingDirectory}",
+                    redactedCommand, _shellState.WorkingDirectory ?? ".");
+            }
         }
 
         var stopwatch = Stopwatch.StartNew();
@@ -156,11 +163,11 @@ public sealed class Command : ICommand
     {
         var spec = CreateSpec(captureByDefault: false);
         var exePath = _resolver.ResolveOrThrow(_fileName, _shellState);
-        var redactedArgs = RedactArgs(_args);
-        var redactedCommand = $"{_fileName} {string.Join(" ", redactedArgs)}".Trim();
 
         if (_loggingEnabled)
         {
+            var redactedArgs = RedactArgs(_args);
+            var redactedCommand = $"{_fileName} {string.Join(" ", redactedArgs)}".Trim();
             _logger.LogDebug("Starting streaming command: {Command} in {WorkingDirectory}",
                 redactedCommand, _shellState.WorkingDirectory ?? ".");
         }
@@ -217,6 +224,11 @@ public sealed class Command : ICommand
 
     private IReadOnlyList<string> RedactArgs(IReadOnlyList<string> args)
     {
+        if (_secretValues.Count == 0)
+        {
+            return args; // No secrets, no allocation needed
+        }
+
         var redacted = new string[args.Count];
         for (var i = 0; i < args.Count; i++)
         {
