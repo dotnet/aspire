@@ -84,9 +84,19 @@ public sealed partial class RunningProcess : IRunningProcess
 
     private void SetupExitHandler()
     {
-        _process.EnableRaisingEvents = true;
-        _process.Exited += (_, _) =>
+        // Use WaitForExitAsync which waits for both process exit AND async output reading to complete.
+        // The Exited event fires as soon as the process terminates but before all output is read.
+        _ = WaitForExitAndSetResultAsync();
+    }
+
+    private async Task WaitForExitAndSetResultAsync()
+    {
+        try
         {
+            // WaitForExitAsync waits for both process termination and all redirected output to be read.
+            // Use the dispose token so that if DisposeAsync is called, this task can complete.
+            await _process.WaitForExitAsync(_disposeCts.Token).ConfigureAwait(false);
+
             // Complete the output channel
             _outputChannel.Writer.TryComplete();
 
@@ -98,7 +108,25 @@ public sealed partial class RunningProcess : IRunningProcess
                 _exitReason);
 
             _resultTcs.TrySetResult(result);
-        };
+        }
+        catch (OperationCanceledException) when (_disposeCts.IsCancellationRequested)
+        {
+            // Process is being disposed, complete with what we have
+            _outputChannel.Writer.TryComplete();
+
+            var result = new CliResult(
+                _process.HasExited ? _process.ExitCode : -1,
+                _stdoutCapture?.ToString().TrimEnd(),
+                _stderrCapture?.ToString().TrimEnd(),
+                CliExitReason.Killed);
+
+            _resultTcs.TrySetResult(result);
+        }
+        catch (Exception ex)
+        {
+            _outputChannel.Writer.TryComplete(ex);
+            _resultTcs.TrySetException(ex);
+        }
     }
 
     /// <summary>

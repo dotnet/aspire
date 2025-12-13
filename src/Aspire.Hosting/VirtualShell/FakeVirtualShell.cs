@@ -320,7 +320,6 @@ public sealed class FakeVirtualShell : IVirtualShell
 /// <param name="WorkingDirectory">The working directory at time of execution.</param>
 /// <param name="Environment">The environment variables at time of execution.</param>
 /// <param name="Stdin">The stdin source, if configured.</param>
-/// <param name="Timeout">The timeout, if configured.</param>
 /// <param name="CaptureOutput">Whether output capture was enabled.</param>
 /// <param name="MaxCaptureBytes">The max capture bytes, if configured.</param>
 public sealed record CapturedCommand(
@@ -329,7 +328,6 @@ public sealed record CapturedCommand(
     string? WorkingDirectory,
     IReadOnlyDictionary<string, string?> Environment,
     Stdin? Stdin,
-    TimeSpan? Timeout,
     bool CaptureOutput,
     int? MaxCaptureBytes)
 {
@@ -349,7 +347,6 @@ public sealed class FakeCommand : ICommand
     private readonly IReadOnlyList<string> _args;
 
     private Stdin? _stdin;
-    private TimeSpan? _timeout;
     private bool _captureOutput = true;
     private int? _maxCaptureBytes;
 
@@ -401,11 +398,6 @@ public sealed class FakeCommand : ICommand
             json["stdin"] = _stdin.ToString();
         }
 
-        if (_timeout is not null)
-        {
-            json["timeout"] = _timeout.Value.ToString();
-        }
-
         if (!_captureOutput)
         {
             json["captureOutput"] = false;
@@ -428,13 +420,6 @@ public sealed class FakeCommand : ICommand
     public ICommand WithStdin(Stdin stdin)
     {
         _stdin = stdin;
-        return this;
-    }
-
-    /// <inheritdoc />
-    public ICommand WithTimeout(TimeSpan timeout)
-    {
-        _timeout = timeout;
         return this;
     }
 
@@ -478,7 +463,6 @@ public sealed class FakeCommand : ICommand
             _shell._workingDirectory,
             new Dictionary<string, string?>(_shell._environment),
             _stdin,
-            _timeout,
             _captureOutput,
             _maxCaptureBytes);
     }
