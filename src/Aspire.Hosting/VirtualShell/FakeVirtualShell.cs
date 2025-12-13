@@ -22,7 +22,6 @@ public sealed class FakeVirtualShell : IVirtualShell
 
     internal string? _workingDirectory;
     internal readonly Dictionary<string, string?> _environment = new(StringComparer.OrdinalIgnoreCase);
-    internal TimeSpan _timeout = TimeSpan.FromMinutes(2);
     internal string? _tag;
 
     /// <summary>
@@ -44,11 +43,6 @@ public sealed class FakeVirtualShell : IVirtualShell
     /// Gets the current environment variables.
     /// </summary>
     public IReadOnlyDictionary<string, string?> Environment => _environment;
-
-    /// <summary>
-    /// Gets the current timeout.
-    /// </summary>
-    public TimeSpan CurrentTimeout => _timeout;
 
     /// <summary>
     /// Gets the current tag.
@@ -105,7 +99,6 @@ public sealed class FakeVirtualShell : IVirtualShell
         {
             _environment[kvp.Key] = kvp.Value;
         }
-        _timeout = parent._timeout;
         _tag = parent._tag;
     }
 
@@ -221,16 +214,6 @@ public sealed class FakeVirtualShell : IVirtualShell
         return _environment.TryGetValue("PATH", out var statePath)
             ? statePath
             : "{SYSTEMPATH}";
-    }
-
-    /// <inheritdoc />
-    public IVirtualShell Timeout(TimeSpan timeout)
-    {
-        var clone = new FakeVirtualShell(this)
-        {
-            _timeout = timeout
-        };
-        return clone;
     }
 
     /// <inheritdoc />

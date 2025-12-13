@@ -12,7 +12,6 @@ namespace Aspire.Hosting.VirtualShell;
 public sealed class VirtualShell : IVirtualShell
 {
     private readonly ShellState _state;
-    private readonly TimeSpan? _defaultTimeout;
     private readonly string? _tag;
     private readonly ICommandLineParser _parser;
     private readonly IExecutableResolver _resolver;
@@ -22,7 +21,7 @@ public sealed class VirtualShell : IVirtualShell
     /// Creates a new VirtualShell instance with default settings.
     /// </summary>
     public VirtualShell()
-        : this(ShellState.Default, null, null, new CommandLineParser(), new ExecutableResolver(), new ProcessRunner())
+        : this(ShellState.Default, null, new CommandLineParser(), new ExecutableResolver(), new ProcessRunner())
     {
     }
 
@@ -36,20 +35,18 @@ public sealed class VirtualShell : IVirtualShell
         ICommandLineParser parser,
         IExecutableResolver resolver,
         IProcessRunner runner)
-        : this(ShellState.Default, null, null, parser, resolver, runner)
+        : this(ShellState.Default, null, parser, resolver, runner)
     {
     }
 
     private VirtualShell(
         ShellState state,
-        TimeSpan? defaultTimeout,
         string? tag,
         ICommandLineParser parser,
         IExecutableResolver resolver,
         IProcessRunner runner)
     {
         _state = state;
-        _defaultTimeout = defaultTimeout;
         _tag = tag;
         _parser = parser;
         _resolver = resolver;
@@ -62,7 +59,6 @@ public sealed class VirtualShell : IVirtualShell
         ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
         return new VirtualShell(
             _state with { WorkingDirectory = Path.GetFullPath(workingDirectory) },
-            _defaultTimeout,
             _tag,
             _parser,
             _resolver,
@@ -75,7 +71,6 @@ public sealed class VirtualShell : IVirtualShell
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         return new VirtualShell(
             _state.WithEnv(key, value),
-            _defaultTimeout,
             _tag,
             _parser,
             _resolver,
@@ -88,7 +83,6 @@ public sealed class VirtualShell : IVirtualShell
         ArgumentNullException.ThrowIfNull(vars);
         return new VirtualShell(
             _state.WithEnv(vars),
-            _defaultTimeout,
             _tag,
             _parser,
             _resolver,
@@ -126,28 +120,11 @@ public sealed class VirtualShell : IVirtualShell
     }
 
     /// <inheritdoc />
-    public IVirtualShell Timeout(TimeSpan timeout)
-    {
-        if (timeout <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be positive.");
-        }
-        return new VirtualShell(
-            _state,
-            timeout,
-            _tag,
-            _parser,
-            _resolver,
-            _runner);
-    }
-
-    /// <inheritdoc />
     public IVirtualShell Tag(string category)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(category);
         return new VirtualShell(
             _state,
-            _defaultTimeout,
             category,
             _parser,
             _resolver,
@@ -164,7 +141,7 @@ public sealed class VirtualShell : IVirtualShell
     /// <inheritdoc />
     public ICommand Command(string fileName, IReadOnlyList<string> args)
     {
-        return new Command(_state, _defaultTimeout, _resolver, _runner, fileName, args);
+        return new Command(_state, _resolver, _runner, fileName, args);
     }
 
     /// <inheritdoc />

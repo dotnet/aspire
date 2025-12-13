@@ -46,13 +46,6 @@ public interface IVirtualShell
     IVirtualShell AppendPath(string path);
 
     /// <summary>
-    /// Creates a new shell with the specified default timeout for commands.
-    /// </summary>
-    /// <param name="timeout">The default timeout for commands.</param>
-    /// <returns>A new shell instance with the specified timeout.</returns>
-    IVirtualShell Timeout(TimeSpan timeout);
-
-    /// <summary>
     /// Creates a new shell with a diagnostic tag for categorizing operations.
     /// </summary>
     /// <param name="category">The category tag (e.g., "build", "deploy").</param>

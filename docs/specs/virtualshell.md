@@ -96,7 +96,6 @@ public interface IVirtualShell
     IVirtualShell Env(IReadOnlyDictionary<string, string?> vars);
     IVirtualShell PrependPath(string path);
     IVirtualShell AppendPath(string path);
-    IVirtualShell Timeout(TimeSpan timeout);
     IVirtualShell Tag(string category); // optional diagnostic label (deploy/build/etc.)
 
     // Command builder (fluent API for per-command configuration)

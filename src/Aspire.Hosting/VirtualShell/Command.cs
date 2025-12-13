@@ -11,7 +11,6 @@ namespace Aspire.Hosting.VirtualShell;
 public sealed class Command : ICommand
 {
     private readonly ShellState _shellState;
-    private readonly TimeSpan? _shellDefaultTimeout;
     private readonly IExecutableResolver _resolver;
     private readonly IProcessRunner _runner;
     private readonly string _fileName;
@@ -25,14 +24,12 @@ public sealed class Command : ICommand
 
     internal Command(
         ShellState shellState,
-        TimeSpan? shellDefaultTimeout,
         IExecutableResolver resolver,
         IProcessRunner runner,
         string fileName,
         IReadOnlyList<string> args)
     {
         _shellState = shellState;
-        _shellDefaultTimeout = shellDefaultTimeout;
         _resolver = resolver;
         _runner = runner;
         _fileName = fileName;
@@ -96,7 +93,7 @@ public sealed class Command : ICommand
         var spec = new ExecSpec
         {
             WorkingDirectory = _shellState.WorkingDirectory,
-            Timeout = _timeout ?? _shellDefaultTimeout,
+            Timeout = _timeout,
             CaptureOutput = _captureOutput && captureByDefault,
             MaxCaptureBytes = _maxCaptureBytes,
             Stdin = _stdin
