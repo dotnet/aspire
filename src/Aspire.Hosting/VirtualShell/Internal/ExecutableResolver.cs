@@ -9,37 +9,20 @@ namespace Aspire.Hosting.VirtualShell.Internal;
 /// </summary>
 internal sealed class ExecutableResolver : IExecutableResolver
 {
-    private static readonly char s_pathSeparator = OperatingSystem.IsWindows() ? ';' : ':';
-
-    private static readonly string[] s_defaultPathExt = OperatingSystem.IsWindows()
-        ? [".COM", ".EXE", ".BAT", ".CMD", ".VBS", ".VBE", ".JS", ".JSE", ".WSF", ".WSH", ".MSC", ".PS1"]
-        : [];
-
     /// <inheritdoc />
     public string ResolveOrThrow(string fileName, ShellState state)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
 
-        // If it's already a rooted path, verify it exists
+        var pathExtensions = GetPathExtensions(state);
+
+        // Stage 1: Rooted/absolute paths (e.g., "/usr/bin/docker", "C:\Program Files\Docker\docker.exe")
         if (Path.IsPathRooted(fileName))
         {
-            if (IsExecutable(fileName))
+            var resolved = PathLookupHelper.TryResolveWithExtensions(fileName, File.Exists, pathExtensions);
+            if (resolved is not null)
             {
-                return fileName;
-            }
-
-            // On Windows, try adding extensions
-            if (OperatingSystem.IsWindows())
-            {
-                var extensions = GetPathExtensions(state);
-                foreach (var ext in extensions)
-                {
-                    var withExt = fileName + ext;
-                    if (IsExecutable(withExt))
-                    {
-                        return withExt;
-                    }
-                }
+                return resolved;
             }
 
             throw new FileNotFoundException(
@@ -47,30 +30,17 @@ internal sealed class ExecutableResolver : IExecutableResolver
                 fileName);
         }
 
-        // If it contains a directory separator, treat as relative path
+        // Stage 2: Relative paths (e.g., "./build.sh", "tools/compile", "../bin/app")
         if (fileName.Contains(Path.DirectorySeparatorChar) ||
             fileName.Contains(Path.AltDirectorySeparatorChar))
         {
             var workingDir = state.WorkingDirectory ?? Environment.CurrentDirectory;
             var fullPath = Path.GetFullPath(Path.Combine(workingDir, fileName));
 
-            if (IsExecutable(fullPath))
+            var resolved = PathLookupHelper.TryResolveWithExtensions(fullPath, File.Exists, pathExtensions);
+            if (resolved is not null)
             {
-                return fullPath;
-            }
-
-            // On Windows, try adding extensions
-            if (OperatingSystem.IsWindows())
-            {
-                var extensions = GetPathExtensions(state);
-                foreach (var ext in extensions)
-                {
-                    var withExt = fullPath + ext;
-                    if (IsExecutable(withExt))
-                    {
-                        return withExt;
-                    }
-                }
+                return resolved;
             }
 
             throw new FileNotFoundException(
@@ -78,90 +48,39 @@ internal sealed class ExecutableResolver : IExecutableResolver
                 fileName);
         }
 
-        // Search PATH
-        var pathDirs = GetPathDirectories(state);
-        var pathExtensions = OperatingSystem.IsWindows() ? GetPathExtensions(state) : [""];
+        // Stage 3: Bare command names (e.g., "docker", "dotnet", "git")
+        var pathValue = state.Environment.TryGetValue("PATH", out var p) ? p
+            : Environment.GetEnvironmentVariable("PATH");
 
-        foreach (var dir in pathDirs)
+        var result = PathLookupHelper.FindFullPathFromPath(
+            fileName,
+            pathValue,
+            Path.PathSeparator,
+            File.Exists,
+            pathExtensions);
+
+        if (result is not null)
         {
-            foreach (var ext in pathExtensions)
-            {
-                var candidate = Path.Combine(dir, fileName + ext);
-                if (IsExecutable(candidate))
-                {
-                    return candidate;
-                }
-            }
+            return result;
         }
 
         throw new FileNotFoundException(
-            $"Executable '{fileName}' not found in PATH. " +
-            $"Searched directories: {string.Join(s_pathSeparator, pathDirs)}",
+            $"Executable '{fileName}' not found in PATH.",
             fileName);
     }
 
-    private static string[] GetPathDirectories(ShellState state)
-    {
-        // Check shell state environment first, then system environment
-        string? pathValue = null;
-
-        if (state.Environment.TryGetValue("PATH", out var statePathValue))
-        {
-            pathValue = statePathValue;
-        }
-
-        pathValue ??= Environment.GetEnvironmentVariable("PATH");
-
-        if (string.IsNullOrEmpty(pathValue))
-        {
-            return [];
-        }
-
-        return pathValue.Split(s_pathSeparator, StringSplitOptions.RemoveEmptyEntries);
-    }
-
-    private static string[] GetPathExtensions(ShellState state)
+    private static string[]? GetPathExtensions(ShellState state)
     {
         if (!OperatingSystem.IsWindows())
         {
-            return [];
+            return null;
         }
 
         // Check shell state environment first, then system environment
-        string? pathExtValue = null;
+        var pathExtValue = state.Environment.TryGetValue("PATHEXT", out var statePathExtValue)
+            ? statePathExtValue
+            : Environment.GetEnvironmentVariable("PATHEXT");
 
-        if (state.Environment.TryGetValue("PATHEXT", out var statePathExtValue))
-        {
-            pathExtValue = statePathExtValue;
-        }
-
-        pathExtValue ??= Environment.GetEnvironmentVariable("PATHEXT");
-
-        if (string.IsNullOrEmpty(pathExtValue))
-        {
-            return s_defaultPathExt;
-        }
-
-        // Include empty string first to check the filename as-is
-        return ["", .. pathExtValue.Split(';', StringSplitOptions.RemoveEmptyEntries)];
-    }
-
-    private static bool IsExecutable(string path)
-    {
-        if (!File.Exists(path))
-        {
-            return false;
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            // On Windows, if the file exists it's considered executable
-            return true;
-        }
-
-        // On Unix, check executable permission using file info
-        // We use a simple existence check here; actual execution
-        // permission is checked by the OS when the process is started
-        return true;
+        return pathExtValue?.Split(';', StringSplitOptions.RemoveEmptyEntries);
     }
 }
