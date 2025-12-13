@@ -13,15 +13,15 @@ namespace Aspire.Hosting.VirtualShell;
 /// </summary>
 public sealed class FakeVirtualShell : IVirtualShell
 {
-    private readonly ConcurrentQueue<CapturedCommand> _commands = new();
-    private readonly ConcurrentDictionary<string, CliResult> _responses = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, Func<CapturedCommand, CliResult>> _responseHandlers = new(StringComparer.OrdinalIgnoreCase);
-    private CliResult _defaultResult = new(0, "", "", CliExitReason.Exited);
+    internal readonly ConcurrentQueue<CapturedCommand> _commands = new();
+    internal readonly ConcurrentDictionary<string, CliResult> _responses = new(StringComparer.OrdinalIgnoreCase);
+    internal readonly ConcurrentDictionary<string, Func<CapturedCommand, CliResult>> _responseHandlers = new(StringComparer.OrdinalIgnoreCase);
+    internal CliResult _defaultResult = new(0, "", "", CliExitReason.Exited);
 
-    private string? _workingDirectory;
-    private readonly Dictionary<string, string?> _environment = new(StringComparer.OrdinalIgnoreCase);
-    private TimeSpan _timeout = TimeSpan.FromMinutes(2);
-    private string? _tag;
+    internal string? _workingDirectory;
+    internal readonly Dictionary<string, string?> _environment = new(StringComparer.OrdinalIgnoreCase);
+    internal TimeSpan _timeout = TimeSpan.FromMinutes(2);
+    internal string? _tag;
 
     /// <summary>
     /// Gets all commands that have been executed.
@@ -177,46 +177,158 @@ public sealed class FakeVirtualShell : IVirtualShell
     }
 
     /// <inheritdoc />
-    public Task<CliResult> Run(string commandLine, Action<ExecSpec>? perCall = null, CancellationToken ct = default)
+    public ICommand Command(string commandLine)
     {
         var parts = commandLine.Split(' ', 2);
         var fileName = parts[0];
         var args = parts.Length > 1 ? [parts[1]] : Array.Empty<string>();
-        return Run(fileName, args, perCall, ct);
+        return Command(fileName, args);
     }
 
     /// <inheritdoc />
-    public Task<CliResult> Run(string fileName, IReadOnlyList<string> args, Action<ExecSpec>? perCall = null, CancellationToken ct = default)
+    public ICommand Command(string fileName, IReadOnlyList<string> args)
     {
-        var spec = new ExecSpec();
-        perCall?.Invoke(spec);
+        return new FakeCommand(this, fileName, args);
+    }
 
-        var command = new CapturedCommand(
-            fileName,
-            args.ToArray(),
-            _workingDirectory,
-            new Dictionary<string, string?>(_environment),
-            spec);
+    /// <inheritdoc />
+    public Task<CliResult> Run(string commandLine, CancellationToken ct = default)
+    {
+        return Command(commandLine).ExecuteAsync(ct);
+    }
 
-        _commands.Enqueue(command);
+    /// <inheritdoc />
+    public Task<CliResult> Run(string fileName, IReadOnlyList<string> args, CancellationToken ct = default)
+    {
+        return Command(fileName, args).ExecuteAsync(ct);
+    }
 
-        var result = GetResult(command);
+    /// <inheritdoc />
+    public IAsyncEnumerable<OutputLine> Lines(string commandLine, CancellationToken ct = default)
+    {
+        return Command(commandLine).WithCaptureOutput(false).LinesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public IAsyncEnumerable<OutputLine> Lines(string fileName, IReadOnlyList<string> args, CancellationToken ct = default)
+    {
+        return Command(fileName, args).WithCaptureOutput(false).LinesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public IStreamRun Stream(string commandLine)
+    {
+        return Command(commandLine).WithCaptureOutput(false).Stream();
+    }
+
+    /// <inheritdoc />
+    public IStreamRun Stream(string fileName, IReadOnlyList<string> args)
+    {
+        return Command(fileName, args).WithCaptureOutput(false).Stream();
+    }
+}
+
+/// <summary>
+/// Represents a command that was captured by <see cref="FakeVirtualShell"/>.
+/// </summary>
+/// <param name="FileName">The executable name or path.</param>
+/// <param name="Arguments">The arguments passed to the command.</param>
+/// <param name="WorkingDirectory">The working directory at time of execution.</param>
+/// <param name="Environment">The environment variables at time of execution.</param>
+/// <param name="Stdin">The stdin source, if configured.</param>
+/// <param name="Timeout">The timeout, if configured.</param>
+/// <param name="CaptureOutput">Whether output capture was enabled.</param>
+/// <param name="MaxCaptureBytes">The max capture bytes, if configured.</param>
+/// <param name="CancellationMode">The cancellation mode.</param>
+public sealed record CapturedCommand(
+    string FileName,
+    string[] Arguments,
+    string? WorkingDirectory,
+    IReadOnlyDictionary<string, string?> Environment,
+    Stdin? Stdin,
+    TimeSpan? Timeout,
+    bool CaptureOutput,
+    int? MaxCaptureBytes,
+    CancellationMode CancellationMode)
+{
+    /// <summary>
+    /// Gets the command line as a single string.
+    /// </summary>
+    public string CommandLine => Arguments.Length == 0 ? FileName : $"{FileName} {string.Join(" ", Arguments)}";
+}
+
+/// <summary>
+/// A fake implementation of <see cref="ICommand"/> for testing purposes.
+/// </summary>
+public sealed class FakeCommand : ICommand
+{
+    private readonly FakeVirtualShell _shell;
+    private readonly string _fileName;
+    private readonly IReadOnlyList<string> _args;
+
+    private Stdin? _stdin;
+    private TimeSpan? _timeout;
+    private bool _captureOutput = true;
+    private int? _maxCaptureBytes;
+    private CancellationMode _cancellationMode = CancellationMode.KillTree;
+
+    internal FakeCommand(FakeVirtualShell shell, string fileName, IReadOnlyList<string> args)
+    {
+        _shell = shell;
+        _fileName = fileName;
+        _args = args;
+    }
+
+    /// <inheritdoc />
+    public ICommand WithStdin(Stdin stdin)
+    {
+        _stdin = stdin;
+        return this;
+    }
+
+    /// <inheritdoc />
+    public ICommand WithTimeout(TimeSpan timeout)
+    {
+        _timeout = timeout;
+        return this;
+    }
+
+    /// <inheritdoc />
+    public ICommand WithCaptureOutput(bool capture)
+    {
+        _captureOutput = capture;
+        return this;
+    }
+
+    /// <inheritdoc />
+    public ICommand WithMaxCaptureBytes(int maxBytes)
+    {
+        _maxCaptureBytes = maxBytes;
+        return this;
+    }
+
+    /// <inheritdoc />
+    public ICommand WithCancellationMode(CancellationMode mode)
+    {
+        _cancellationMode = mode;
+        return this;
+    }
+
+    /// <inheritdoc />
+    public Task<CliResult> ExecuteAsync(CancellationToken ct = default)
+    {
+        var captured = CreateCapturedCommand();
+        _shell._commands.Enqueue(captured);
+        var result = GetResult(captured);
         return Task.FromResult(result);
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<OutputLine> Lines(string commandLine, Action<ExecSpec>? perCall = null, CancellationToken ct = default)
+    public async IAsyncEnumerable<OutputLine> LinesAsync([EnumeratorCancellation] CancellationToken ct = default)
     {
-        var parts = commandLine.Split(' ', 2);
-        var fileName = parts[0];
-        var args = parts.Length > 1 ? [parts[1]] : Array.Empty<string>();
-        return Lines(fileName, args, perCall, ct);
-    }
-
-    /// <inheritdoc />
-    public async IAsyncEnumerable<OutputLine> Lines(string fileName, IReadOnlyList<string> args, Action<ExecSpec>? perCall = null, [EnumeratorCancellation] CancellationToken ct = default)
-    {
-        var result = await Run(fileName, args, perCall, ct).ConfigureAwait(false);
+        var captured = CreateCapturedCommand();
+        _shell._commands.Enqueue(captured);
+        var result = GetResult(captured);
 
         if (!string.IsNullOrEmpty(result.Stdout))
         {
@@ -239,73 +351,49 @@ public sealed class FakeVirtualShell : IVirtualShell
                 }
             }
         }
+
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public IStreamRun Stream(string commandLine, Action<ExecSpec>? perCall = null)
+    public IStreamRun Stream()
     {
-        var parts = commandLine.Split(' ', 2);
-        var fileName = parts[0];
-        var args = parts.Length > 1 ? [parts[1]] : Array.Empty<string>();
-        return Stream(fileName, args, perCall);
-    }
-
-    /// <inheritdoc />
-    public IStreamRun Stream(string fileName, IReadOnlyList<string> args, Action<ExecSpec>? perCall = null)
-    {
-        var spec = new ExecSpec();
-        perCall?.Invoke(spec);
-
-        var command = new CapturedCommand(
-            fileName,
-            args.ToArray(),
-            _workingDirectory,
-            new Dictionary<string, string?>(_environment),
-            spec);
-
-        _commands.Enqueue(command);
-
-        var result = GetResult(command);
+        var captured = CreateCapturedCommand();
+        _shell._commands.Enqueue(captured);
+        var result = GetResult(captured);
         return new FakeStreamRun(result);
+    }
+
+    private CapturedCommand CreateCapturedCommand()
+    {
+        return new CapturedCommand(
+            _fileName,
+            _args.ToArray(),
+            _shell._workingDirectory,
+            new Dictionary<string, string?>(_shell._environment),
+            _stdin,
+            _timeout,
+            _captureOutput,
+            _maxCaptureBytes,
+            _cancellationMode);
     }
 
     private CliResult GetResult(CapturedCommand command)
     {
         // Check for response handler first
-        if (_responseHandlers.TryGetValue(command.FileName, out var handler))
+        if (_shell._responseHandlers.TryGetValue(command.FileName, out var handler))
         {
             return handler(command);
         }
 
         // Check for static response
-        if (_responses.TryGetValue(command.FileName, out var result))
+        if (_shell._responses.TryGetValue(command.FileName, out var result))
         {
             return result;
         }
 
-        return _defaultResult;
+        return _shell._defaultResult;
     }
-}
-
-/// <summary>
-/// Represents a command that was captured by <see cref="FakeVirtualShell"/>.
-/// </summary>
-/// <param name="FileName">The executable name or path.</param>
-/// <param name="Arguments">The arguments passed to the command.</param>
-/// <param name="WorkingDirectory">The working directory at time of execution.</param>
-/// <param name="Environment">The environment variables at time of execution.</param>
-/// <param name="Spec">The execution spec used.</param>
-public sealed record CapturedCommand(
-    string FileName,
-    string[] Arguments,
-    string? WorkingDirectory,
-    IReadOnlyDictionary<string, string?> Environment,
-    ExecSpec Spec)
-{
-    /// <summary>
-    /// Gets the command line as a single string.
-    /// </summary>
-    public string CommandLine => Arguments.Length == 0 ? FileName : $"{FileName} {string.Join(" ", Arguments)}";
 }
 
 /// <summary>

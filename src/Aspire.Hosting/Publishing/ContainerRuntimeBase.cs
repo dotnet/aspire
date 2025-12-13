@@ -100,10 +100,10 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         _logger.LogDebug("Running {RuntimeName} with arguments: {Arguments}", RuntimeExecutable, string.Join(" ", args));
         _logger.LogDebug("Password length being passed to stdin: {PasswordLength}", password?.Length ?? 0);
 
-        var result = await _shell.Run(RuntimeExecutable, args, spec =>
-        {
-            spec.Stdin = Stdin.FromText(password + "\n");
-        }, cancellationToken).ConfigureAwait(false);
+        var result = await _shell
+            .Command(RuntimeExecutable, args)
+            .WithStdin(Stdin.FromText(password + "\n"))
+            .ExecuteAsync(cancellationToken).ConfigureAwait(false);
 
         result.LogOutput(_logger, RuntimeExecutable);
 

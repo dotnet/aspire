@@ -65,10 +65,12 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                     ? TimeSpan.FromSeconds(_dcpOptions.DependencyCheckTimeout)
                     : null;
 
-                var result = await _shell.Run(dcpPath, args, spec =>
+                var command = _shell.Command(dcpPath, args);
+                if (timeout.HasValue)
                 {
-                    spec.Timeout = timeout;
-                }, cancellationToken).ConfigureAwait(false);
+                    command = command.WithTimeout(timeout.Value);
+                }
+                var result = await command.ExecuteAsync(cancellationToken).ConfigureAwait(false);
 
                 if (result.ExitCode != 0)
                 {

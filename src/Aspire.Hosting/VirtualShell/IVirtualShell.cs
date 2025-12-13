@@ -46,77 +46,66 @@ public interface IVirtualShell
     IVirtualShell Tag(string category);
 
     /// <summary>
+    /// Creates a command builder for fluent configuration.
+    /// </summary>
+    /// <param name="commandLine">The command line to execute.</param>
+    /// <returns>A command builder for fluent configuration.</returns>
+    ICommand Command(string commandLine);
+
+    /// <summary>
+    /// Creates a command builder with explicit arguments for fluent configuration.
+    /// </summary>
+    /// <param name="fileName">The executable name or path.</param>
+    /// <param name="args">The arguments to pass to the executable.</param>
+    /// <returns>A command builder for fluent configuration.</returns>
+    ICommand Command(string fileName, IReadOnlyList<string> args);
+
+    /// <summary>
     /// Executes a command and waits for it to complete.
     /// </summary>
     /// <param name="commandLine">The command line to execute.</param>
-    /// <param name="perCall">Optional per-call configuration.</param>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>The result of the command execution.</returns>
-    Task<CliResult> Run(
-        string commandLine,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
+    Task<CliResult> Run(string commandLine, CancellationToken ct = default);
 
     /// <summary>
     /// Executes a command with explicit arguments and waits for it to complete.
     /// </summary>
     /// <param name="fileName">The executable name or path.</param>
     /// <param name="args">The arguments to pass to the executable.</param>
-    /// <param name="perCall">Optional per-call configuration.</param>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>The result of the command execution.</returns>
-    Task<CliResult> Run(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
+    Task<CliResult> Run(string fileName, IReadOnlyList<string> args, CancellationToken ct = default);
 
     /// <summary>
     /// Executes a command and streams output lines.
-    /// Output is not captured by default for streaming methods.
     /// </summary>
     /// <param name="commandLine">The command line to execute.</param>
-    /// <param name="perCall">Optional per-call configuration.</param>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>An async enumerable of output lines.</returns>
-    IAsyncEnumerable<OutputLine> Lines(
-        string commandLine,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
+    IAsyncEnumerable<OutputLine> Lines(string commandLine, CancellationToken ct = default);
 
     /// <summary>
     /// Executes a command with explicit arguments and streams output lines.
     /// </summary>
     /// <param name="fileName">The executable name or path.</param>
     /// <param name="args">The arguments to pass to the executable.</param>
-    /// <param name="perCall">Optional per-call configuration.</param>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>An async enumerable of output lines.</returns>
-    IAsyncEnumerable<OutputLine> Lines(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
+    IAsyncEnumerable<OutputLine> Lines(string fileName, IReadOnlyList<string> args, CancellationToken ct = default);
 
     /// <summary>
     /// Starts a command and returns an advanced handle for streaming, stdin, and control.
     /// </summary>
     /// <param name="commandLine">The command line to execute.</param>
-    /// <param name="perCall">Optional per-call configuration.</param>
     /// <returns>A handle for streaming output and controlling the process.</returns>
-    IStreamRun Stream(
-        string commandLine,
-        Action<ExecSpec>? perCall = null);
+    IStreamRun Stream(string commandLine);
 
     /// <summary>
     /// Starts a command with explicit arguments and returns an advanced handle.
     /// </summary>
     /// <param name="fileName">The executable name or path.</param>
     /// <param name="args">The arguments to pass to the executable.</param>
-    /// <param name="perCall">Optional per-call configuration.</param>
     /// <returns>A handle for streaming output and controlling the process.</returns>
-    IStreamRun Stream(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null);
+    IStreamRun Stream(string fileName, IReadOnlyList<string> args);
 }

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.CompilerServices;
 using Aspire.Hosting.VirtualShell.Internal;
 
 namespace Aspire.Hosting.VirtualShell;
@@ -126,90 +125,51 @@ public sealed class VirtualShell : IVirtualShell
     }
 
     /// <inheritdoc />
-    public Task<CliResult> Run(
-        string commandLine,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default)
+    public ICommand Command(string commandLine)
     {
         var (fileName, args) = _parser.Parse(commandLine);
-        return Run(fileName, args, perCall, ct);
+        return Command(fileName, args);
     }
 
     /// <inheritdoc />
-    public Task<CliResult> Run(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default)
+    public ICommand Command(string fileName, IReadOnlyList<string> args)
     {
-        var spec = CreateSpec(perCall, captureByDefault: true);
-        var exePath = _resolver.ResolveOrThrow(fileName, _state);
-        return _runner.RunAsync(exePath, args, spec, _state, ct);
+        return new Command(_state, _defaultTimeout, _resolver, _runner, fileName, args);
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<OutputLine> Lines(
-        string commandLine,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default)
+    public Task<CliResult> Run(string commandLine, CancellationToken ct = default)
     {
-        var (fileName, args) = _parser.Parse(commandLine);
-        return Lines(fileName, args, perCall, ct);
+        return Command(commandLine).ExecuteAsync(ct);
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<OutputLine> Lines(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null,
-        [EnumeratorCancellation] CancellationToken ct = default)
+    public Task<CliResult> Run(string fileName, IReadOnlyList<string> args, CancellationToken ct = default)
     {
-        var streamRun = Stream(fileName, args, spec =>
-        {
-            spec.CaptureOutput = false; // Streaming default: don't capture
-            perCall?.Invoke(spec);
-        });
-        await using (streamRun.ConfigureAwait(false))
-        {
-            await foreach (var line in streamRun.Lines(ct).ConfigureAwait(false))
-            {
-                yield return line;
-            }
-        }
+        return Command(fileName, args).ExecuteAsync(ct);
     }
 
     /// <inheritdoc />
-    public IStreamRun Stream(
-        string commandLine,
-        Action<ExecSpec>? perCall = null)
+    public IAsyncEnumerable<OutputLine> Lines(string commandLine, CancellationToken ct = default)
     {
-        var (fileName, args) = _parser.Parse(commandLine);
-        return Stream(fileName, args, perCall);
+        return Command(commandLine).WithCaptureOutput(false).LinesAsync(ct);
     }
 
     /// <inheritdoc />
-    public IStreamRun Stream(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null)
+    public IAsyncEnumerable<OutputLine> Lines(string fileName, IReadOnlyList<string> args, CancellationToken ct = default)
     {
-        var spec = CreateSpec(perCall, captureByDefault: false);
-        var exePath = _resolver.ResolveOrThrow(fileName, _state);
-        return _runner.Start(exePath, args, spec, _state);
+        return Command(fileName, args).WithCaptureOutput(false).LinesAsync(ct);
     }
 
-    private ExecSpec CreateSpec(Action<ExecSpec>? perCall, bool captureByDefault)
+    /// <inheritdoc />
+    public IStreamRun Stream(string commandLine)
     {
-        var spec = new ExecSpec
-        {
-            WorkingDirectory = _state.WorkingDirectory,
-            Timeout = _defaultTimeout,
-            CaptureOutput = captureByDefault
-        };
+        return Command(commandLine).WithCaptureOutput(false).Stream();
+    }
 
-        // Apply per-call customization
-        perCall?.Invoke(spec);
-
-        return spec;
+    /// <inheritdoc />
+    public IStreamRun Stream(string fileName, IReadOnlyList<string> args)
+    {
+        return Command(fileName, args).WithCaptureOutput(false).Stream();
     }
 }

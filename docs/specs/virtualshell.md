@@ -46,29 +46,17 @@ public enum CliExitReason
 }
 ```
 
-### ExecSpec
-
-Used to override behavior per call (and as defaults stored on the shell).
+### CancellationMode
 
 ```csharp
-public sealed class ExecSpec
+public enum CancellationMode
 {
-    // State
-    public string? WorkingDirectory { get; set; }
-    public Dictionary<string, string?> Environment { get; } = new(StringComparer.Ordinal);
-
-    // Control
-    public TimeSpan? Timeout { get; set; }
-    public bool KillProcessTree { get; set; } = true;
-
-    // Output policy
-    public bool CaptureOutput { get; set; } = true;   // default for Run/Cap
-    public int? MaxCaptureBytes { get; set; }         // optional guardrail
-
-    // I/O
-    public Stdin? Stdin { get; set; }
-    public StdoutTarget? Stdout { get; set; }         // optional override
-    public StderrTarget? Stderr { get; set; }         // optional override
+    /// <summary>Kill the process and all child processes (default).</summary>
+    KillTree,
+    /// <summary>Kill only the process, children become orphaned.</summary>
+    KillProcess,
+    /// <summary>Stop waiting, process continues running in background.</summary>
+    Detach
 }
 ```
 
@@ -121,75 +109,70 @@ public interface IVirtualShell
     IVirtualShell Timeout(TimeSpan timeout);
     IVirtualShell Tag(string category); // optional diagnostic label (deploy/build/etc.)
 
-    // One-shot execution (portable parse + PATH resolve + direct exec)
-    Task<CliResult> Run(
-        string commandLine,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
+    // Command builder (fluent API for per-command configuration)
+    ICommand Command(string commandLine);
+    ICommand Command(string fileName, IReadOnlyList<string> args);
 
-    Task<CliResult> Run(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
+    // Shortcuts for simple cases (delegate to Command().ExecuteAsync())
+    Task<CliResult> Run(string commandLine, CancellationToken ct = default);
+    Task<CliResult> Run(string fileName, IReadOnlyList<string> args, CancellationToken ct = default);
 
-    // Capture stdout (shell-style $(...))
-    Task<string> Cap(
-        string commandLine,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
+    // Efficient streaming shortcuts (no capture by default)
+    IAsyncEnumerable<OutputLine> Lines(string commandLine, CancellationToken ct = default);
+    IAsyncEnumerable<OutputLine> Lines(string fileName, IReadOnlyList<string> args, CancellationToken ct = default);
 
-    Task<string> Cap(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
-
-    // Efficient streaming (no capture by default)
-    IAsyncEnumerable<OutputLine> Lines(
-        string commandLine,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
-
-    IAsyncEnumerable<OutputLine> Lines(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
-
-    // Advanced handle (stdin writing, signals, ensure success after streaming)
-    StreamRun Stream(
-        string commandLine,
-        Action<ExecSpec>? perCall = null);
-
-    StreamRun Stream(
-        string fileName,
-        IReadOnlyList<string> args,
-        Action<ExecSpec>? perCall = null);
+    // Advanced handle shortcuts (stdin writing, signals, ensure success after streaming)
+    IStreamRun Stream(string commandLine);
+    IStreamRun Stream(string fileName, IReadOnlyList<string> args);
 }
 ```
 
-### StreamRun
+### ICommand
+
+Fluent builder for per-command configuration. Created via `IVirtualShell.Command()`.
 
 ```csharp
-public sealed class StreamRun : IAsyncDisposable
+public interface ICommand
 {
-    public IAsyncEnumerable<OutputLine> Lines(CancellationToken ct = default);
+    // Fluent configuration
+    ICommand WithStdin(Stdin stdin);
+    ICommand WithTimeout(TimeSpan timeout);
+    ICommand WithCaptureOutput(bool capture);
+    ICommand WithMaxCaptureBytes(int maxBytes);
+    ICommand WithCancellationMode(CancellationMode mode);
 
-    public Task<int> ExitCodeAsync(CancellationToken ct = default);
-    public Task<CliResult> ResultAsync(CancellationToken ct = default); // optional
-    public Task EnsureSuccessAsync(CancellationToken ct = default);
+    // Execution methods
+    Task<CliResult> ExecuteAsync(CancellationToken ct = default);
+    IAsyncEnumerable<OutputLine> LinesAsync(CancellationToken ct = default);
+    IStreamRun Stream();
+}
+```
+
+**Design notes**:
+- `IVirtualShell.Run()` is a shortcut for `Command().ExecuteAsync()`
+- `IVirtualShell.Lines()` is a shortcut for `Command().WithCaptureOutput(false).LinesAsync()`
+- `IVirtualShell.Stream()` is a shortcut for `Command().WithCaptureOutput(false).Stream()`
+- For advanced configuration (stdin, timeout, cancellation mode), use `Command()` explicitly
+
+### IStreamRun
+
+```csharp
+public interface IStreamRun : IAsyncDisposable
+{
+    IAsyncEnumerable<OutputLine> Lines(CancellationToken ct = default);
+
+    Task<int> ExitCodeAsync(CancellationToken ct = default);
+    Task<CliResult> ResultAsync(CancellationToken ct = default);
+    Task EnsureSuccessAsync(CancellationToken ct = default);
 
     // stdin (interactive)
-    public Task WriteAsync(ReadOnlyMemory<char> text, CancellationToken ct = default);
-    public Task WriteLineAsync(string line, CancellationToken ct = default);
-    public Task CompleteStdinAsync(CancellationToken ct = default);
+    Task WriteAsync(ReadOnlyMemory<char> text, CancellationToken ct = default);
+    Task WriteLineAsync(string line, CancellationToken ct = default);
+    Task CompleteStdinAsync(CancellationToken ct = default);
 
     // control
-    public void Signal(CliSignal signal);
-    public void Kill(bool entireProcessTree = true);
-
-    public ValueTask DisposeAsync();
+    void Signal(CliSignal signal);
+    void Kill(bool entireProcessTree = true);
 }
 
 public enum CliSignal
@@ -205,10 +188,9 @@ public enum CliSignal
 * `Lines(...)`: `CaptureOutput = false` unless overridden (avoid buffering giant output)
 * `Stream(...)`: same default as `Lines(...)` (stream-first)
 
-**Run/Cap defaults**
+**Run defaults**
 
 * `Run(...)` defaults to `CaptureOutput = true` (so `Stdout/Stderr` are available)
-* `Cap(...)` implies capture of stdout and returns `Stdout.TrimEnd()` by default
 
 ---
 
@@ -240,24 +222,12 @@ public static SecretText Secret(string value) => new(value);
 ```csharp
 public interface IVirtualShell
 {
-    Task<CliResult> Run(
-        ShCommand command,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
+    ICommand Command(ShCommand command);
 
-    Task<string> Cap(
-        ShCommand command,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
-
-    IAsyncEnumerable<OutputLine> Lines(
-        ShCommand command,
-        Action<ExecSpec>? perCall = null,
-        CancellationToken ct = default);
-
-    StreamRun Stream(
-        ShCommand command,
-        Action<ExecSpec>? perCall = null);
+    // Shortcuts
+    Task<CliResult> Run(ShCommand command, CancellationToken ct = default);
+    IAsyncEnumerable<OutputLine> Lines(ShCommand command, CancellationToken ct = default);
+    IStreamRun Stream(ShCommand command);
 }
 ```
 
@@ -304,48 +274,68 @@ public sealed record ShellState(
 );
 ```
 
-### IProcessRunner (direct exec)
+### IProcessRunner (direct exec, internal)
 
 ```csharp
-public interface IProcessRunner
+internal interface IProcessRunner
 {
-    Task<CliResult> RunAsync(string exePath, IReadOnlyList<string> args, ExecSpec spec, CancellationToken ct);
-    StreamRun Start(string exePath, IReadOnlyList<string> args, ExecSpec spec);
+    Task<CliResult> RunAsync(string exePath, IReadOnlyList<string> args, ExecSpec spec, ShellState state, CancellationToken ct);
+    IStreamRun Start(string exePath, IReadOnlyList<string> args, ExecSpec spec, ShellState state);
 }
 ```
+
+Note: `ExecSpec` is an internal class used by infrastructure; the public API is the fluent `ICommand` interface.
 
 ---
 
 ## Quick Usage Examples (as spec guidance)
 
-### One-shot
+### One-shot (simple)
 
 ```csharp
 await sh.Run("docker build -t myimg:dev .");
 ```
 
+### One-shot with timeout
+
+```csharp
+await sh.Command("docker build -t myimg:dev .")
+    .WithTimeout(TimeSpan.FromMinutes(10))
+    .ExecuteAsync(ct);
+```
+
 ### Capture stdout
 
 ```csharp
-var version = await sh.Cap("dotnet --version");
+var result = await sh.Run("dotnet --version");
+var version = result.Stdout?.Trim();
 ```
 
 ### Stream docker build
 
 ```csharp
-await foreach (var line in sh.Lines("docker build -t myimg:dev .", ct: ct))
+await foreach (var line in sh.Lines("docker build -t myimg:dev .", ct))
     Console.WriteLine(line.Text);
 ```
 
-### Docker login with stdin
+### Docker login with stdin (fluent)
 
 ```csharp
-await sh.Run("docker", ["login", "ghcr.io", "--username", user, "--password-stdin"],
-    spec => spec.Stdin = Stdin.FromText(password + "\n"));
+await sh.Command("docker", ["login", "ghcr.io", "--username", user, "--password-stdin"])
+    .WithStdin(Stdin.FromText(password + "\n"))
+    .ExecuteAsync();
 ```
 
 ### Same with handler sugar (target form)
 
 ```csharp
 await sh.Run($"docker login ghcr.io --username {user} --password-stdin < {Secret(password)}");
+```
+
+### Advanced: detach on cancel
+
+```csharp
+await sh.Command("long-running-server")
+    .WithCancellationMode(CancellationMode.Detach)
+    .ExecuteAsync(ct);
 ```
