@@ -255,16 +255,22 @@ public sealed partial class RunningProcess : IRunningProcess
     {
         if (OperatingSystem.IsWindows())
         {
-            // On Windows, try to close the main window first
+#if NET10_0_OR_GREATER
+            // On Windows with .NET 10+, send CTRL+C via GenerateConsoleCtrlEvent
+            // Process must be started with CreateNewProcessGroup = true
+            SendWindowsCtrlEvent(CtrlEvent.CtrlC);
+#else
+            // On older .NET, try to close the main window first
             if (!_process.CloseMainWindow())
             {
                 Kill();
             }
+#endif
         }
         else
         {
             // On Unix, send SIGINT
-            SendSignal(2); // SIGINT
+            SendUnixSignal(2); // SIGINT
         }
     }
 
@@ -272,28 +278,61 @@ public sealed partial class RunningProcess : IRunningProcess
     {
         if (OperatingSystem.IsWindows())
         {
+#if NET10_0_OR_GREATER
+            // On Windows with .NET 10+, send CTRL+BREAK (similar to SIGTERM)
+            SendWindowsCtrlEvent(CtrlEvent.CtrlBreak);
+#else
+            // On older .NET, just kill the process
             Kill();
+#endif
         }
         else
         {
             // On Unix, send SIGTERM
-            SendSignal(15); // SIGTERM
+            SendUnixSignal(15); // SIGTERM
         }
     }
 
-    private void SendSignal(int sig)
+#if NET10_0_OR_GREATER
+    private void SendWindowsCtrlEvent(CtrlEvent ctrlEvent)
     {
-        if (!OperatingSystem.IsWindows())
+        try
         {
-            try
-            {
-                SysKill(_process.Id, sig);
-            }
-            catch
+            // When CreateNewProcessGroup is true, the process group ID equals the process ID
+            if (!GenerateConsoleCtrlEvent((uint)ctrlEvent, (uint)_process.Id))
             {
                 // If signal fails, fall back to kill
                 Kill();
             }
+        }
+        catch
+        {
+            // If signal fails, fall back to kill
+            Kill();
+        }
+    }
+
+    private enum CtrlEvent : uint
+    {
+        CtrlC = 0,
+        CtrlBreak = 1
+    }
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GenerateConsoleCtrlEvent(uint dwCtrlEvent, uint dwProcessGroupId);
+#endif
+
+    private void SendUnixSignal(int sig)
+    {
+        try
+        {
+            SysKill(_process.Id, sig);
+        }
+        catch
+        {
+            // If signal fails, fall back to kill
+            Kill();
         }
     }
 

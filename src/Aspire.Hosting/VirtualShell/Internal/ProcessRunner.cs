@@ -61,7 +61,11 @@ internal sealed class ProcessRunner : IProcessRunner
             RedirectStandardInput = spec.Stdin != null,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WindowStyle = ProcessWindowStyle.Hidden
+            WindowStyle = ProcessWindowStyle.Hidden,
+#if NET10_0_OR_GREATER
+            // On Windows, create a new process group so we can send CTRL+C via GenerateConsoleCtrlEvent
+            CreateNewProcessGroup = OperatingSystem.IsWindows()
+#endif
         };
 
         // Build arguments

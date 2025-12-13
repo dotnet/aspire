@@ -185,6 +185,28 @@ public enum CliSignal
 * `Start(...)`: `CaptureOutput = false` (stream-first, avoid buffering giant output)
 * `Run(...)`: `CaptureOutput = true` (so `Stdout/Stderr` are available)
 
+### Signal Handling (Platform-Specific)
+
+The `Signal()` method provides portable intent, but actual behavior varies by platform and .NET version:
+
+| Platform | .NET Version | `Interrupt` | `Terminate` | `Kill` |
+|----------|--------------|-------------|-------------|--------|
+| Windows  | .NET 10+     | CTRL+C (`GenerateConsoleCtrlEvent`) | CTRL+BREAK | `Process.Kill()` |
+| Windows  | .NET 8/9     | `CloseMainWindow()` → Kill | Kill | `Process.Kill()` |
+| Unix     | Any          | SIGINT (2) | SIGTERM (15) | SIGKILL (9) |
+
+**Implementation notes**:
+
+* On Windows with .NET 10+, processes are started with `CreateNewProcessGroup = true`, enabling proper CTRL+C/CTRL+BREAK signals via `GenerateConsoleCtrlEvent`.
+* On older .NET versions on Windows, graceful signal support is limited. `Interrupt` attempts `CloseMainWindow()` (works for GUI apps) and falls back to `Kill()`. `Terminate` directly calls `Kill()`.
+* `GenerateConsoleCtrlEvent` only works for console applications. GUI applications will fall back to `Kill()`.
+* On Unix, signals are sent via the `kill` syscall and work for all process types.
+
+**Considerations**:
+
+* Behavioral inconsistency across .NET versions means apps expecting graceful shutdown on Windows may not get it on .NET 8/9.
+* With `CreateNewProcessGroup`, CTRL+C sent to the parent console won't automatically propagate to child processes—signals must be sent explicitly via `Signal()`.
+
 ---
 
 ## Custom Interpolated String Handler Surface (Future)
