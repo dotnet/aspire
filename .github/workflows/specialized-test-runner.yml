@@ -28,6 +28,12 @@ on:
         required: false
         type: boolean
         default: false
+      # When true (default), only failed tests are shown in the summary. When false, all tests are shown.
+      showOnlyFailedTestsInSummary:
+        required: false
+        type: boolean
+        default: true
+        description: 'When true, only failed tests are shown in the summary. When false, all tests are shown.'
 
 jobs:
 
@@ -180,6 +186,7 @@ jobs:
           --
           ${{ github.workspace }}/testresults
           --combined
+          ${{ inputs.showOnlyFailedTestsInSummary == false && '--show-all-tests' || '' }}
 
       - name: Fail if any dependency failed
         # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
