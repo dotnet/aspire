@@ -57,19 +57,6 @@
             </FluentButton>
         </span>
 
-        <span class="defaultHidden">
-            @{
-                var copyButtonId = $"copy-{Guid.NewGuid():N}";
-                var attributes = FluentUIExtensions.GetClipboardCopyAdditionalAttributes(Value, Loc[nameof(ControlsStrings.GridValueCopyToClipboard)], Loc[nameof(ControlsStrings.GridValueCopied)]);
-            }
-            <FluentButton Appearance="Appearance.Lightweight" Id="@copyButtonId" AdditionalAttributes="attributes">
-                <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom"
-                    Icon="Icons.Regular.Size16.Copy" />
-                <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom"
-                    Icon="Icons.Regular.Size16.Checkmark" />
-            </FluentButton>
-        </span>
-
         @if (ContentInButtonArea is not null)
         {
             @ContentInButtonArea
