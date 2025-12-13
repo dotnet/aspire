@@ -30,7 +30,7 @@
         "REVERSEPROXY__CLUSTERS__cluster_external-service__DESTINATIONS__destination1__ADDRESS": "{external-service-url.value}",
         "services__nuget__https__0": "https://api.nuget.org/",
         "services__external-service__default__0": "{external-service-url.value}",
-        "EXTERNAL-SERVICE": "{external-service-url.value}"
+        "EXTERNAL_SERVICE": "{external-service-url.value}"
       },
       "bindings": {
         "http": {
