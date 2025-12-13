@@ -168,7 +168,6 @@ internal sealed class ApplicationOrchestrator
                 await PublishUpdateAsync(_notificationService, context.Resource, context.DcpResourceName, s => s with
                 {
                     State = KnownResourceStates.Starting,
-                    ResourceType = context.ResourceType,
                     HealthReports = GetInitialHealthReports(context.Resource)
                 })
                 .ConfigureAwait(false);
@@ -179,7 +178,6 @@ internal sealed class ApplicationOrchestrator
                 {
                     State = KnownResourceStates.Starting,
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Container.Image, context.Resource.TryGetContainerImageName(out var imageName) ? imageName : ""),
-                    ResourceType = KnownResourceTypes.Container,
                     HealthReports = GetInitialHealthReports(context.Resource)
                 })
                 .ConfigureAwait(false);
