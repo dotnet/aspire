@@ -337,3 +337,169 @@ await sh.Command("long-running-server")
     .WithCancellationMode(CancellationMode.Detach)
     .RunAsync(ct);
 ```
+
+### PATH manipulation
+
+```csharp
+// Add tool to PATH and run it
+var result = await sh
+    .PrependPath("/opt/mytool/bin")
+    .Run("mytool --version");
+
+// Chain multiple PATH additions
+var buildShell = sh
+    .PrependPath(sdkPath)
+    .AppendPath(fallbackToolsPath);
+
+await buildShell.Run("dotnet build");
+```
+
+### Environment configuration
+
+```csharp
+// Configure environment for a build
+var buildShell = sh
+    .Env("DOTNET_CLI_TELEMETRY_OPTOUT", "1")
+    .Env("DOTNET_NOLOGO", "1")
+    .Env(new Dictionary<string, string?>
+    {
+        ["NODE_ENV"] = "production",
+        ["CI"] = "true"
+    });
+
+await buildShell.Run("npm run build");
+```
+
+### Working directory
+
+```csharp
+// Run commands in a specific directory
+var projectShell = sh.Cd("/path/to/project");
+await projectShell.Run("dotnet restore");
+await projectShell.Run("dotnet build");
+```
+
+### Interactive process with stdin
+
+```csharp
+await using var proc = sh.Start("node");
+
+await proc.WriteLineAsync("console.log('Hello');");
+await proc.WriteLineAsync("console.log(1 + 2);");
+await proc.CompleteStdinAsync();
+
+await foreach (var line in proc.Lines())
+    Console.WriteLine(line.Text);
+
+await proc.EnsureSuccessAsync();
+```
+
+### Graceful shutdown with signals
+
+```csharp
+await using var server = sh.Start("my-server --port 8080");
+
+// Let it start up
+await Task.Delay(1000);
+
+// Graceful shutdown
+server.Signal(CliSignal.Interrupt);
+
+var result = await server.ResultAsync();
+if (!result.Success)
+{
+    // Force kill if it didn't exit cleanly
+    server.Kill();
+}
+```
+
+### Fire-and-forget with logging
+
+```csharp
+var processTask = sh
+    .Command("background-worker")
+    .WithCaptureOutput(false)
+    .RunAsync();
+
+_ = processTask.ContinueWith(t =>
+{
+    if (t.IsCompletedSuccessfully && t.Result.Success)
+        logger.LogDebug("Worker exited successfully");
+    else if (t.IsFaulted)
+        logger.LogError(t.Exception, "Worker failed");
+    else
+        logger.LogWarning("Worker exited with code {Code}", t.Result?.ExitCode);
+}, TaskScheduler.Default);
+```
+
+### Conditional execution
+
+```csharp
+// Check if a tool exists before using it
+var whichResult = await sh.Run("which docker");
+if (whichResult.Success)
+{
+    await sh.Run("docker ps");
+}
+
+// Or check exit codes for branching
+var testResult = await sh.Run("dotnet test --no-build");
+if (!testResult.Success)
+{
+    // Rebuild and retry
+    await sh.Run("dotnet build");
+    await sh.Run("dotnet test");
+}
+```
+
+### Timeout with cleanup
+
+```csharp
+var result = await sh
+    .Command("long-running-task")
+    .WithTimeout(TimeSpan.FromMinutes(5))
+    .RunAsync(ct);
+
+if (result.Reason == CliExitReason.TimedOut)
+{
+    logger.LogWarning("Task timed out after 5 minutes");
+}
+```
+
+### Streaming with selective capture
+
+```csharp
+await using var run = sh
+    .Command("docker build -t myapp .")
+    .WithCaptureOutput(false)  // Don't buffer everything
+    .Start();
+
+var errors = new List<string>();
+await foreach (var line in run.Lines(ct))
+{
+    Console.WriteLine(line.Text);
+    if (line.IsStdErr)
+        errors.Add(line.Text);
+}
+
+var exitCode = await run.ExitCodeAsync();
+if (exitCode != 0)
+    throw new Exception($"Build failed:\n{string.Join('\n', errors)}");
+```
+
+### Reusable shell configurations
+
+```csharp
+// Create a configured shell for Docker operations
+IVirtualShell CreateDockerShell(IVirtualShell baseShell, string registry)
+{
+    return baseShell
+        .Env("DOCKER_BUILDKIT", "1")
+        .Env("DOCKER_DEFAULT_PLATFORM", "linux/amd64")
+        .Tag("docker");
+}
+
+var dockerShell = CreateDockerShell(sh, "ghcr.io");
+await dockerShell.Run("docker build -t myapp .");
+await dockerShell.Run("docker push ghcr.io/myorg/myapp");
+```
