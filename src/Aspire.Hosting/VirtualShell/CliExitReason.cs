@@ -14,16 +14,6 @@ public enum CliExitReason
     Exited,
 
     /// <summary>
-    /// The process was canceled via a cancellation token.
-    /// </summary>
-    Canceled,
-
-    /// <summary>
-    /// The process exceeded its timeout.
-    /// </summary>
-    TimedOut,
-
-    /// <summary>
     /// The process was killed programmatically.
     /// </summary>
     Killed,

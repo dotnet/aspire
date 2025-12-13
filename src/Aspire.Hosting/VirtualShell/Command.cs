@@ -31,7 +31,6 @@ public sealed class Command : ICommand
 
     // Per-command settings
     private Stdin? _stdin;
-    private TimeSpan? _timeout;
     private bool _captureOutput = true;
     private int? _maxCaptureBytes;
 
@@ -69,17 +68,6 @@ public sealed class Command : ICommand
     public ICommand WithStdin(Stdin stdin)
     {
         _stdin = stdin;
-        return this;
-    }
-
-    /// <inheritdoc />
-    public ICommand WithTimeout(TimeSpan timeout)
-    {
-        if (timeout <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be positive.");
-        }
-        _timeout = timeout;
         return this;
     }
 
@@ -186,7 +174,6 @@ public sealed class Command : ICommand
         var spec = new ExecSpec
         {
             WorkingDirectory = _shellState.WorkingDirectory,
-            Timeout = _timeout,
             CaptureOutput = _captureOutput && captureByDefault,
             MaxCaptureBytes = _maxCaptureBytes,
             Stdin = _stdin

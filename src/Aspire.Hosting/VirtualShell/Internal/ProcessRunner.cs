@@ -22,25 +22,6 @@ internal sealed class ProcessRunner : IProcessRunner
         var streamRun = Start(exePath, args, spec, state);
         await using (streamRun.ConfigureAwait(false))
         {
-            // Handle timeout
-            if (spec.Timeout.HasValue)
-            {
-                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                timeoutCts.CancelAfter(spec.Timeout.Value);
-
-                try
-                {
-                    return await streamRun.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-                {
-                    // Timeout occurred
-                    streamRun.Kill();
-                    var result = await streamRun.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-                    return result with { Reason = CliExitReason.TimedOut };
-                }
-            }
-
             return await streamRun.WaitAsync(ct).ConfigureAwait(false);
         }
     }

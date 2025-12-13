@@ -16,13 +16,6 @@ public interface ICommand
     ICommand WithStdin(Stdin stdin);
 
     /// <summary>
-    /// Configures the timeout for the command.
-    /// </summary>
-    /// <param name="timeout">The timeout duration.</param>
-    /// <returns>This command for chaining.</returns>
-    ICommand WithTimeout(TimeSpan timeout);
-
-    /// <summary>
     /// Configures whether to capture stdout and stderr.
     /// </summary>
     /// <param name="capture">True to capture output, false otherwise.</param>

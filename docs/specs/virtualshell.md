@@ -39,8 +39,6 @@ public sealed record CliResult(
 public enum CliExitReason
 {
     Exited,
-    Canceled,
-    TimedOut,
     Killed,
     Signaled
 }
@@ -129,7 +127,6 @@ public interface ICommand
 {
     // Fluent configuration
     ICommand WithStdin(Stdin stdin);
-    ICommand WithTimeout(TimeSpan timeout);
     ICommand WithCaptureOutput(bool capture);
     ICommand WithMaxCaptureBytes(int maxBytes);
 
@@ -142,7 +139,8 @@ public interface ICommand
 **Design notes**:
 - `IVirtualShell.Run()` is a shortcut for `Command().RunAsync()`
 - `IVirtualShell.Start()` is a shortcut for `Command().WithCaptureOutput(false).Start()`
-- For advanced configuration (stdin, timeout), use `Command()` explicitly
+- For advanced configuration (stdin), use `Command()` explicitly
+- For timeouts, use `CancellationTokenSource` with timeout (see examples below)
 
 ### IRunningProcess
 
@@ -214,6 +212,165 @@ The `Signal()` method provides portable intent, but actual behavior varies by pl
 
 * Behavioral inconsistency across .NET versions means apps expecting graceful shutdown on Windows may not get it on .NET 8/9.
 * With `CreateNewProcessGroup`, CTRL+C sent to the parent console won't automatically propagate to child processes—signals must be sent explicitly via `Signal()`.
+
+---
+
+## Core Usage Patterns
+
+This section documents the key usage patterns and process lifecycle behavior.
+
+### Two execution models
+
+**1. `RunAsync()` - Fire and wait**
+
+```csharp
+var result = await sh.Run("dotnet build");
+```
+
+- Starts the process, waits for exit, returns `CliResult`
+- Process is automatically cleaned up when done
+- If cancellation token fires, process is killed and `OperationCanceledException` is thrown
+
+**2. `Start()` - Manual control**
+
+```csharp
+await using var process = sh.Start("dotnet build");
+// ... use process (stream output, send signals, etc.) ...
+var result = await process.WaitAsync();
+// process is cleaned up automatically when scope exits
+```
+
+- Returns `IRunningProcess` immediately (process is running)
+- Caller controls the process lifetime
+- Use `await using` to ensure cleanup on scope exit
+
+### Process lifecycle with IRunningProcess
+
+| Method | Behavior |
+|--------|----------|
+| `WaitAsync(ct)` | Waits for process to exit. Does **not** kill the process. If cancelled, throws `OperationCanceledException` but process continues running. |
+| `DisposeAsync()` | Sends interrupt signal, waits up to 5 seconds for graceful shutdown, then force-kills if still running. Always cleans up. |
+| `Kill()` | Immediately kills the process (and optionally its tree). |
+| `Signal(signal)` | Sends a signal to the process (interrupt, terminate, kill). |
+
+### Common patterns
+
+**Pattern 1: Run and wait (most common)**
+
+```csharp
+// Process is started, awaited, and cleaned up automatically
+var result = await sh.Run("dotnet test");
+if (!result.Success)
+{
+    Console.WriteLine($"Failed: {result.Stderr}");
+}
+```
+
+**Pattern 2: Stream output then ensure success**
+
+```csharp
+await using var proc = sh.Start("docker build .");
+await foreach (var line in proc.ReadLines())
+{
+    Console.WriteLine(line.Text);
+}
+await proc.EnsureSuccessAsync(); // Throws if exit code != 0
+```
+
+The `await using` ensures the process is killed if we exit early (e.g., exception).
+
+**Pattern 3: Timeout with process cleanup**
+
+```csharp
+using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+try
+{
+    await sh.Run("long-task", cts.Token);
+}
+catch (OperationCanceledException)
+{
+    // Process was killed due to timeout
+}
+```
+
+`RunAsync` kills the process when the token fires.
+
+**Pattern 4: Timeout without killing the process**
+
+```csharp
+// NOTE: intentionally NOT using "await using" here
+var process = sh.Start("background-task");
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+try
+{
+    var result = await process.WaitAsync(cts.Token);
+    await process.DisposeAsync(); // Clean up on success
+}
+catch (OperationCanceledException)
+{
+    // Timed out - process continues running (we didn't dispose)
+    // This is useful when you want to stop waiting but let it finish
+}
+```
+
+`WaitAsync` does not kill the process—it just stops waiting. By not using `await using`, we allow the process to outlive our wait.
+
+**Pattern 5: Graceful shutdown**
+
+```csharp
+await using var server = sh.Start("web-server");
+
+// ... server is running ...
+
+// Try graceful shutdown
+server.Signal(CliSignal.Interrupt);
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+try
+{
+    await server.WaitAsync(cts.Token);
+}
+catch (OperationCanceledException)
+{
+    // Didn't exit gracefully, will be force-killed by DisposeAsync
+}
+// DisposeAsync called automatically by await using
+```
+
+### Key differences: WaitAsync vs DisposeAsync
+
+| Aspect | `WaitAsync(ct)` | `DisposeAsync()` |
+|--------|-----------------|------------------|
+| Purpose | Wait for process to exit | Clean up resources |
+| Kills process? | **No** | **Yes** (if still running) |
+| On cancellation | Throws, process continues | N/A |
+| Returns | `CliResult` | void |
+| Required? | Optional | Yes (for cleanup) |
+
+### The golden rule
+
+> **Always dispose `IRunningProcess`** unless you intentionally want the process to outlive your code.
+
+Use `await using` to ensure cleanup:
+
+```csharp
+await using var proc = sh.Start("command");
+// If anything throws here, process is still cleaned up
+await proc.WaitAsync();
+```
+
+Or manually dispose:
+
+```csharp
+var proc = sh.Start("command");
+try
+{
+    await proc.WaitAsync();
+}
+finally
+{
+    await proc.DisposeAsync();
+}
+```
 
 ---
 
@@ -324,9 +481,9 @@ await sh.Run("docker build -t myimg:dev .");
 ### One-shot with timeout
 
 ```csharp
-await sh.Command("docker build -t myimg:dev .")
-    .WithTimeout(TimeSpan.FromMinutes(10))
-    .RunAsync(ct);
+using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+await sh.Run("docker build -t myimg:dev .", linkedCts.Token);
 ```
 
 ### Capture stdout
@@ -473,15 +630,17 @@ if (!testResult.Success)
 }
 ```
 
-### Timeout with cleanup
+### Timeout handling
 
 ```csharp
-var result = await sh
-    .Command("long-running-task")
-    .WithTimeout(TimeSpan.FromMinutes(5))
-    .RunAsync(ct);
+using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
-if (result.Reason == CliExitReason.TimedOut)
+try
+{
+    var result = await sh.Run("long-running-task", linkedCts.Token);
+}
+catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
 {
     logger.LogWarning("Task timed out after 5 minutes");
 }
@@ -602,24 +761,18 @@ catch (OperationCanceledException)
 ### Checking exit reason
 
 ```csharp
-var result = await sh
-    .Command("slow-task")
-    .WithTimeout(TimeSpan.FromMinutes(10))
-    .RunAsync(ct);
+var result = await sh.Run("task", ct);
 
 switch (result.Reason)
 {
     case CliExitReason.Exited:
         Console.WriteLine($"Completed with code {result.ExitCode}");
         break;
-    case CliExitReason.TimedOut:
-        Console.WriteLine("Timed out");
-        break;
-    case CliExitReason.Canceled:
-        Console.WriteLine("Cancelled");
-        break;
     case CliExitReason.Killed:
-        Console.WriteLine("Killed");
+        Console.WriteLine("Process was killed");
+        break;
+    case CliExitReason.Signaled:
+        Console.WriteLine("Process was signaled");
         break;
 }
 ```

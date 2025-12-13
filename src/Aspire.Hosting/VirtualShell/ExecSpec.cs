@@ -20,11 +20,6 @@ public sealed class ExecSpec
     public Dictionary<string, string?> Environment { get; } = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// Gets or sets the timeout for the process.
-    /// </summary>
-    public TimeSpan? Timeout { get; set; }
-
-    /// <summary>
     /// Gets or sets a value indicating whether to capture stdout and stderr.
     /// Defaults to true for Run/Cap methods, false for streaming methods.
     /// </summary>

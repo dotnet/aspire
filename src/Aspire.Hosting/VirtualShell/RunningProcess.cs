@@ -130,24 +130,18 @@ public sealed partial class RunningProcess : IRunningProcess
     /// </summary>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>The result of the process execution.</returns>
+    /// <remarks>
+    /// When the cancellation token is triggered, this method throws <see cref="OperationCanceledException"/>
+    /// but does NOT automatically kill the process. The caller is responsible for calling <see cref="Kill"/>
+    /// if desired.
+    /// </remarks>
     public async Task<CliResult> WaitAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
 
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _disposeCts.Token);
 
-        try
-        {
-            return await _resultTcs.Task.WaitAsync(linkedCts.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            _exitReason = CliExitReason.Canceled;
-            // Use KillCore to avoid ThrowIfDisposed - we're about to throw anyway
-            // and DisposeAsync may have been called concurrently
-            KillCore();
-            throw;
-        }
+        return await _resultTcs.Task.WaitAsync(linkedCts.Token).ConfigureAwait(false);
     }
 
     /// <summary>
