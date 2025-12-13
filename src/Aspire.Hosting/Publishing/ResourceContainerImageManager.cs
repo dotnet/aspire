@@ -32,6 +32,23 @@ public enum ContainerImageFormat
 }
 
 /// <summary>
+/// Specifies the destination for container images.
+/// </summary>
+[Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public enum ContainerImageDestination
+{
+    /// <summary>
+    /// Image will be pushed to a container registry.
+    /// </summary>
+    Registry,
+
+    /// <summary>
+    /// Image will be saved as an archive file.
+    /// </summary>
+    Archive
+}
+
+/// <summary>
 /// Specifies the target platform for container images.
 /// </summary>
 [Experimental("ASPIREPIPELINES003", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
@@ -89,6 +106,11 @@ public class ContainerImageBuildOptions
     /// Gets the tag to assign to the built image.
     /// </summary>
     public string? Tag { get; init; }
+
+    /// <summary>
+    /// Gets the destination for the container image.
+    /// </summary>
+    public ContainerImageDestination? Destination { get; init; }
 
     /// <summary>
     /// Gets the output path for the container archive.
