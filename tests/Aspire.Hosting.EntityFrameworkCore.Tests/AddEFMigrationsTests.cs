@@ -237,10 +237,9 @@ public class AddEFMigrationsTests
         var project = builder.AddProject<Projects.ServiceA>("myproject");
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
-        Assert.NotNull(migrations.Resource.Options);
-        Assert.False(migrations.Resource.Options.RunDatabaseUpdateOnStart);
-        Assert.False(migrations.Resource.Options.PublishAsMigrationScript);
-        Assert.False(migrations.Resource.Options.PublishAsMigrationBundle);
+        Assert.False(migrations.Resource.RunDatabaseUpdateOnStart);
+        Assert.False(migrations.Resource.PublishAsMigrationScript);
+        Assert.False(migrations.Resource.PublishAsMigrationBundle);
     }
 
     // Test classes for DbContext types

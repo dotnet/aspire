@@ -159,7 +159,8 @@ public static class EFResourceBuilderExtensions
             {
                 ResourceType = "EFMigration",
                 Properties = [],
-                State = new ResourceStateSnapshot("Pending", KnownResourceStateStyles.Info)
+                State = new ResourceStateSnapshot("Pending", KnownResourceStateStyles.Info),
+                IsHidden = true
             })
             .WithIconName("Database")
             .WaitFor(builder)

@@ -16,7 +16,7 @@ public class EFMigrationConfigurationTests
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
             .RunDatabaseUpdateOnStart();
 
-        Assert.True(migrations.Resource.Options.RunDatabaseUpdateOnStart);
+        Assert.True(migrations.Resource.RunDatabaseUpdateOnStart);
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public class EFMigrationConfigurationTests
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
             .PublishAsMigrationScript();
 
-        Assert.True(migrations.Resource.Options.PublishAsMigrationScript);
+        Assert.True(migrations.Resource.PublishAsMigrationScript);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public class EFMigrationConfigurationTests
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
             .PublishAsMigrationBundle();
 
-        Assert.True(migrations.Resource.Options.PublishAsMigrationBundle);
+        Assert.True(migrations.Resource.PublishAsMigrationBundle);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class EFMigrationConfigurationTests
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
             .WithMigrationOutputDirectory("Data/Migrations");
 
-        Assert.Equal("Data/Migrations", migrations.Resource.Options.MigrationOutputDirectory);
+        Assert.Equal("Data/Migrations", migrations.Resource.MigrationOutputDirectory);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class EFMigrationConfigurationTests
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations")
             .WithMigrationNamespace("MyApp.Data.Migrations");
 
-        Assert.Equal("MyApp.Data.Migrations", migrations.Resource.Options.MigrationNamespace);
+        Assert.Equal("MyApp.Data.Migrations", migrations.Resource.MigrationNamespace);
     }
 
     [Fact]
@@ -106,8 +106,8 @@ public class EFMigrationConfigurationTests
             .RunDatabaseUpdateOnStart()
             .PublishAsMigrationScript();
 
-        Assert.True(migrations.Resource.Options.RunDatabaseUpdateOnStart);
-        Assert.True(migrations.Resource.Options.PublishAsMigrationScript);
+        Assert.True(migrations.Resource.RunDatabaseUpdateOnStart);
+        Assert.True(migrations.Resource.PublishAsMigrationScript);
     }
 
     [Fact]
@@ -122,11 +122,11 @@ public class EFMigrationConfigurationTests
             .WithMigrationOutputDirectory("CustomDir")
             .WithMigrationNamespace("MyApp.Migrations");
 
-        Assert.True(migrations.Resource.Options.RunDatabaseUpdateOnStart);
-        Assert.True(migrations.Resource.Options.PublishAsMigrationScript);
-        Assert.True(migrations.Resource.Options.PublishAsMigrationBundle);
-        Assert.Equal("CustomDir", migrations.Resource.Options.MigrationOutputDirectory);
-        Assert.Equal("MyApp.Migrations", migrations.Resource.Options.MigrationNamespace);
+        Assert.True(migrations.Resource.RunDatabaseUpdateOnStart);
+        Assert.True(migrations.Resource.PublishAsMigrationScript);
+        Assert.True(migrations.Resource.PublishAsMigrationBundle);
+        Assert.Equal("CustomDir", migrations.Resource.MigrationOutputDirectory);
+        Assert.Equal("MyApp.Migrations", migrations.Resource.MigrationNamespace);
     }
 
     [Fact]
@@ -172,12 +172,12 @@ public class EFMigrationConfigurationTests
         var migrations = project.AddEFMigrations<TestDbContext>("mymigrations");
 
         // Options should all be false/null initially
-        Assert.False(migrations.Resource.Options.RunDatabaseUpdateOnStart);
-        Assert.False(migrations.Resource.Options.PublishAsMigrationScript);
-        Assert.False(migrations.Resource.Options.PublishAsMigrationBundle);
-        Assert.Null(migrations.Resource.Options.MigrationOutputDirectory);
-        Assert.Null(migrations.Resource.Options.MigrationNamespace);
-        Assert.Null(migrations.Resource.Options.MigrationsProject);
+        Assert.False(migrations.Resource.RunDatabaseUpdateOnStart);
+        Assert.False(migrations.Resource.PublishAsMigrationScript);
+        Assert.False(migrations.Resource.PublishAsMigrationBundle);
+        Assert.Null(migrations.Resource.MigrationOutputDirectory);
+        Assert.Null(migrations.Resource.MigrationNamespace);
+        Assert.Null(migrations.Resource.MigrationsProject);
     }
 
     [Fact]
@@ -189,7 +189,7 @@ public class EFMigrationConfigurationTests
         var migrations = startupProject.AddEFMigrations<TestDbContext>("mymigrations")
             .WithMigrationsProject(targetProject);
 
-        Assert.Equal(targetProject.Resource, migrations.Resource.Options.MigrationsProject);
+        Assert.Equal(targetProject.Resource, migrations.Resource.MigrationsProject);
     }
 
     [Fact]

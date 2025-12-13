@@ -65,7 +65,8 @@ internal sealed class EFMigrationEventSubscriber(
             // Update state to Running
             await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
             {
-                State = new ResourceStateSnapshot("Running", KnownResourceStateStyles.Info)
+                State = new ResourceStateSnapshot("Running", KnownResourceStateStyles.Info),
+                IsHidden = false
             }).ConfigureAwait(false);
 
             resourceLogger.LogInformation("Starting database migration for '{ResourceName}'...", migrationResource.Name);
