@@ -3,13 +3,14 @@
 
 #pragma warning disable ASPIREPIPELINES003
 
+using Aspire.Hosting.VirtualShell;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
 
 internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContainerRuntime>
 {
-    public PodmanContainerRuntime(ILogger<PodmanContainerRuntime> logger) : base(logger)
+    public PodmanContainerRuntime(ILogger<PodmanContainerRuntime> logger, IVirtualShell shell) : base(logger, shell)
     {
     }
 

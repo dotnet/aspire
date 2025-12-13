@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Python;
+using Aspire.Hosting.VirtualShell;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -453,7 +454,7 @@ public static class PythonAppResourceBuilderExtensions
             }
 
             c.WithDockerfileBuilder(resource.WorkingDirectory,
-                context =>
+                async context =>
                 {
                     if (!context.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))
                     {
@@ -469,7 +470,8 @@ public static class PythonAppResourceBuilderExtensions
                     if (pythonVersion is null)
                     {
                         var virtualEnvironment = pythonEnvironmentAnnotation?.VirtualEnvironment;
-                        pythonVersion = PythonVersionDetector.DetectVersion(appDirectory, virtualEnvironment);
+                        var shell = context.Services.GetRequiredService<IVirtualShell>();
+                        pythonVersion = await PythonVersionDetector.DetectVersionAsync(appDirectory, virtualEnvironment, shell).ConfigureAwait(false);
                     }
 
                     // if we could not detect Python version, use the default
