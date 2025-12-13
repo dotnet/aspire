@@ -509,7 +509,7 @@ save_global_settings() {
 }
 
 # Function to remove a global setting using the aspire CLI
-# Uses 'aspire config unset -g' to remove global configuration values
+# Uses 'aspire config delete -g' to remove global configuration values
 # This is used when installing the release/stable channel to avoid forcing nuget.config creation
 # Parameters:
 #   $1 - cli_path: Path to the aspire CLI executable
@@ -519,14 +519,14 @@ remove_global_settings() {
     local key="$2"
     
     if [[ "$DRY_RUN" == true ]]; then
-        say_info "[DRY RUN] Would run: $cli_path config unset -g $key"
+        say_info "[DRY RUN] Would run: $cli_path config delete -g $key"
         return 0
     fi
     
     say_verbose "Removing global config: $key"
     
-    if ! "$cli_path" config unset -g "$key" 2>/dev/null; then
-        say_warn "Failed to unset global config via aspire CLI"
+    if ! "$cli_path" config delete -g "$key" 2>/dev/null; then
+        say_warn "Failed to delete global config via aspire CLI"
         return 1
     fi
     

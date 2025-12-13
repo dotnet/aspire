@@ -651,7 +651,7 @@ function Save-GlobalSettings {
 }
 
 # Function to remove a global setting using the aspire CLI
-# Uses 'aspire config unset -g' to remove global configuration values
+# Uses 'aspire config delete -g' to remove global configuration values
 # This is used when installing the release/stable channel to avoid forcing nuget.config creation
 function Remove-GlobalSettings {
     [CmdletBinding(SupportsShouldProcess)]
@@ -666,9 +666,9 @@ function Remove-GlobalSettings {
     if ($PSCmdlet.ShouldProcess($Key, "Remove global config via aspire CLI")) {
         Write-Message "Removing global config: $Key" -Level Verbose
         
-        $output = & $CliPath config unset -g $Key 2>&1
+        $output = & $CliPath config delete -g $Key 2>&1
         if ($LASTEXITCODE -ne 0) {
-            Write-Message "Failed to unset global config via aspire CLI" -Level Warning
+            Write-Message "Failed to delete global config via aspire CLI" -Level Warning
             return
         }
         Write-Message "Global config removed: $Key" -Level Verbose
