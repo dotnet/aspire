@@ -28,6 +28,7 @@ internal sealed class VersionCheckService : BackgroundService
     private readonly IInteractionService _interactionService;
     private readonly ILogger<VersionCheckService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly AppHostEnvironment _appHostEnvironment;
     private readonly DistributedApplicationOptions _options;
     private readonly IPackageFetcher _packageFetcher;
     private readonly DistributedApplicationExecutionContext _executionContext;
@@ -36,13 +37,14 @@ internal sealed class VersionCheckService : BackgroundService
     private readonly IUserSecretsManager _userSecretsManager;
 
     public VersionCheckService(IInteractionService interactionService, ILogger<VersionCheckService> logger,
-        IConfiguration configuration, DistributedApplicationOptions options, IPackageFetcher packageFetcher,
+        IConfiguration configuration, AppHostEnvironment appHostEnvironment, DistributedApplicationOptions options, IPackageFetcher packageFetcher,
         DistributedApplicationExecutionContext executionContext, TimeProvider timeProvider, IPackageVersionProvider packageVersionProvider,
         IUserSecretsManager userSecretsManager)
     {
         _interactionService = interactionService;
         _logger = logger;
         _configuration = configuration;
+        _appHostEnvironment = appHostEnvironment;
         _options = options;
         _packageFetcher = packageFetcher;
         _executionContext = executionContext;
@@ -104,7 +106,7 @@ internal sealed class VersionCheckService : BackgroundService
         SemVersion? storedKnownLatestVersion = null;
         if (checkForLatestVersion)
         {
-            var appHostDirectory = _configuration["AppHost:Directory"]!;
+            var appHostDirectory = _appHostEnvironment.ProjectDirectory;
 
             _userSecretsManager.TrySetSecret(LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
             packages = await _packageFetcher.TryFetchPackagesAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);

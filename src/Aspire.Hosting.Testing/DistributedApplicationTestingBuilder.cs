@@ -237,6 +237,8 @@ public static class DistributedApplicationTestingBuilder
 
             public IHostEnvironment Environment => innerBuilder.Environment;
 
+            public AppHostEnvironment AppHostEnvironment => innerBuilder.AppHostEnvironment;
+
             public IServiceCollection Services => innerBuilder.Services;
 
             public DistributedApplicationExecutionContext ExecutionContext => innerBuilder.ExecutionContext;
@@ -391,6 +393,8 @@ public static class DistributedApplicationTestingBuilder
 
         public IHostEnvironment Environment => _innerBuilder.Environment;
 
+        public AppHostEnvironment AppHostEnvironment => _innerBuilder.AppHostEnvironment;
+
         public IServiceCollection Services => _innerBuilder.Services;
 
         public DistributedApplicationExecutionContext ExecutionContext => _innerBuilder.ExecutionContext;
@@ -498,6 +502,9 @@ public interface IDistributedApplicationTestingBuilder : IDistributedApplication
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.UserSecretsManager" />
     new IUserSecretsManager UserSecretsManager => ((IDistributedApplicationBuilder)this).UserSecretsManager;
+
+    /// <inheritdoc cref="IDistributedApplicationBuilder.AppHostEnvironment" />
+    new AppHostEnvironment AppHostEnvironment => ((IDistributedApplicationBuilder)this).AppHostEnvironment;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.AddResource{T}(T)" />
     new IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => ((IDistributedApplicationBuilder)this).AddResource(resource);

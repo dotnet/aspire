@@ -509,8 +509,10 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         codespacesOptions ??= Options.Create(new CodespacesOptions());
         dashboardOptions ??= Options.Create(new DashboardOptions { DashboardPath = "test.dll" });
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
+        var appHostEnvironment = TestAppHostEnvironment.Create(configuration);
 
         return new DashboardEventHandlers(
+            appHostEnvironment,
             configuration,
             dashboardOptions,
             NullLogger<DistributedApplication>.Instance,
@@ -519,7 +521,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             resourceNotificationService,
             resourceLoggerService,
             loggerFactory ?? NullLoggerFactory.Instance,
-            new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
+            new DcpNameGenerator(appHostEnvironment, Options.Create(new DcpOptions())),
             new TestHostApplicationLifetime(),
             new Hosting.Eventing.DistributedApplicationEventing(),
             rewriter,

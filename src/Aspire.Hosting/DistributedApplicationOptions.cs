@@ -13,14 +13,14 @@ public sealed class DistributedApplicationOptions
     private readonly Lazy<Assembly?> _assembly;
     private readonly Lazy<string?> _projectDirectoryLazy;
     private readonly Lazy<string?> _projectNameLazy;
-    private readonly Lazy<string?> _dashboardApplicationNameLazy;
+    private readonly Lazy<string?> _singleFileAppHostNameLazy;
     private readonly Lazy<string?> _appHostFilePathLazy;
     private readonly Lazy<string?> _configurationLazy;
     // This is for testing
     private string? _projectDirectory;
     private bool _projectDirectorySet;
     private string? _projectName;
-    private string? _dashboardApplicationName;
+    private string? _singleFileAppHostName;
 
     /// <summary>
     /// Initializes a new instance of <see cref="DistributedApplicationOptions"/>.
@@ -30,7 +30,7 @@ public sealed class DistributedApplicationOptions
         _assembly = new(ResolveAssembly);
         _projectDirectoryLazy = new(ResolveProjectDirectory);
         _projectNameLazy = new(ResolveProjectName);
-        _dashboardApplicationNameLazy = new(ResolveDashboardApplicationName);
+        _singleFileAppHostNameLazy = new(ResolveSingleFileAppHostName);
         _appHostFilePathLazy = new(ResolveAppHostFilePath);
         _configurationLazy = new(ResolveConfiguration);
     }
@@ -85,13 +85,13 @@ public sealed class DistributedApplicationOptions
     }
 
     /// <summary>
-    /// The application name to display in the dashboard. For file-based app hosts, this defaults to the directory name.
-    /// For other apps, it falls back to the environment's application name.
+    /// The application name for single-file (file-based) app hosts. This defaults to the directory name
+    /// containing the app host file. For non-file-based apps, this is null.
     /// </summary>
-    public string? DashboardApplicationName
+    public string? SingleFileAppHostName
     {
-        get => _dashboardApplicationName ?? _dashboardApplicationNameLazy.Value;
-        set => _dashboardApplicationName = value;
+        get => _singleFileAppHostName ?? _singleFileAppHostNameLazy.Value;
+        set => _singleFileAppHostName = value;
     }
 
     /// <summary>
@@ -132,12 +132,12 @@ public sealed class DistributedApplicationOptions
         return GetMetadataValue(assemblyMetadata, "AppHostProjectName");
     }
 
-    private string? ResolveDashboardApplicationName()
+    private string? ResolveSingleFileAppHostName()
     {
-        // For file-based app hosts (single-file programs), use the directory name as the dashboard application name
+        // For file-based app hosts (single-file programs), use the directory name as the application name
         // to provide a more meaningful identifier than the generated assembly name.
         // File-based programs set the "EntryPointFilePath" data in AppContext.
-        // For example, if the apphost file is at "foo/apphost.cs", the dashboard name becomes "foo".
+        // For example, if the apphost file is at "myapp/apphost.cs", the name becomes "myapp".
         var entryPointFilePath = AppContext.GetData("EntryPointFilePath") as string;
         if (!string.IsNullOrEmpty(entryPointFilePath))
         {

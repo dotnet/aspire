@@ -95,8 +95,8 @@ public static class AzureEnvironmentResourceExtensions
 
     private static string CreateDefaultAzureEnvironmentName(this IDistributedApplicationBuilder builder)
     {
-        // Use ProjectNameSha256 for stable naming across deployments
-        var applicationHash = builder.Configuration["AppHost:ProjectNameSha256"]?[..5].ToLowerInvariant();
+        // Use ProjectNameHash for stable naming across deployments
+        var applicationHash = builder.AppHostEnvironment.ProjectNameHash[..5].ToLowerInvariant();
         return $"azure{applicationHash}";
     }
 }
