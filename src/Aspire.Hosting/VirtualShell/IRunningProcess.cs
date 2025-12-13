@@ -11,9 +11,11 @@ public interface IRunningProcess : IAsyncDisposable
 {
     /// <summary>
     /// Reads and streams the output lines from the process.
+    /// This method can only be called once per process instance.
     /// </summary>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>An async enumerable of output lines.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if ReadLines has already been called.</exception>
     IAsyncEnumerable<OutputLine> ReadLines(CancellationToken ct = default);
 
     /// <summary>

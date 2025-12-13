@@ -484,6 +484,7 @@ public sealed class FakeRunningProcess : IRunningProcess
     private readonly TaskCompletionSource<CliResult> _resultTcs;
     private bool _disposed;
     private bool _stdinCompleted;
+    private bool _readLinesStarted;
 
     /// <summary>
     /// Creates a new instance of <see cref="FakeRunningProcess"/> with the specified result.
@@ -528,6 +529,14 @@ public sealed class FakeRunningProcess : IRunningProcess
     /// <inheritdoc />
     public async IAsyncEnumerable<OutputLine> ReadLines([EnumeratorCancellation] CancellationToken ct = default)
     {
+        ThrowIfDisposed();
+
+        if (_readLinesStarted)
+        {
+            throw new InvalidOperationException("ReadLines can only be called once per process.");
+        }
+        _readLinesStarted = true;
+
         await foreach (var line in _channel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
         {
             yield return line;
@@ -537,12 +546,15 @@ public sealed class FakeRunningProcess : IRunningProcess
     /// <inheritdoc />
     public Task<CliResult> WaitAsync(CancellationToken ct = default)
     {
+        ThrowIfDisposed();
         return _resultTcs.Task.WaitAsync(ct);
     }
 
     /// <inheritdoc />
     public async Task EnsureSuccessAsync(CancellationToken ct = default)
     {
+        ThrowIfDisposed();
+
         var result = await WaitAsync(ct).ConfigureAwait(false);
         if (!result.Success)
         {
@@ -558,6 +570,7 @@ public sealed class FakeRunningProcess : IRunningProcess
     /// <inheritdoc />
     public Task WriteAsync(ReadOnlyMemory<char> text, CancellationToken ct = default)
     {
+        ThrowIfDisposed();
         ThrowIfStdinCompleted();
         // No-op for fake
         return Task.CompletedTask;
@@ -566,6 +579,7 @@ public sealed class FakeRunningProcess : IRunningProcess
     /// <inheritdoc />
     public Task WriteLineAsync(string line, CancellationToken ct = default)
     {
+        ThrowIfDisposed();
         ThrowIfStdinCompleted();
         // No-op for fake
         return Task.CompletedTask;
@@ -574,6 +588,7 @@ public sealed class FakeRunningProcess : IRunningProcess
     /// <inheritdoc />
     public Task CompleteStdinAsync(CancellationToken ct = default)
     {
+        ThrowIfDisposed();
         ThrowIfStdinCompleted();
         _stdinCompleted = true;
         return Task.CompletedTask;
@@ -587,15 +602,22 @@ public sealed class FakeRunningProcess : IRunningProcess
         }
     }
 
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+
     /// <inheritdoc />
     public void Signal(CliSignal signal)
     {
+        ThrowIfDisposed();
         // No-op for fake
     }
 
     /// <inheritdoc />
     public void Kill(bool entireProcessTree = true)
     {
+        ThrowIfDisposed();
         // No-op for fake
     }
 

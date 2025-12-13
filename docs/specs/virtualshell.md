@@ -170,6 +170,22 @@ public enum CliSignal
 * `Start(...)`: `CaptureOutput = false` (stream-first, avoid buffering giant output)
 * `Run(...)`: `CaptureOutput = true` (so `Stdout/Stderr` are available)
 
+### Thread Safety and Usage Constraints
+
+**ReadLines() - Single consumer only**:
+* `ReadLines()` can only be called once per `IRunningProcess` instance
+* Subsequent calls throw `InvalidOperationException`
+* This prevents multiple consumers from racing to read output lines
+
+**Stdin operations - Thread-safe**:
+* `WriteAsync()`, `WriteLineAsync()`, and `CompleteStdinAsync()` are thread-safe
+* Concurrent calls are serialized internally via locking
+* After `CompleteStdinAsync()` is called, further stdin operations throw `InvalidOperationException`
+
+**Disposed state**:
+* All methods throw `ObjectDisposedException` after `DisposeAsync()` is called
+* `DisposeAsync()` sends `SIGINT`/`Interrupt` and waits up to 5 seconds before force-killing
+
 ### Signal Handling (Platform-Specific)
 
 The `Signal()` method provides portable intent, but actual behavior varies by platform and .NET version:

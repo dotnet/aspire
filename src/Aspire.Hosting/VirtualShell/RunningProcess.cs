@@ -22,10 +22,12 @@ public sealed partial class RunningProcess : IRunningProcess
     private readonly StringBuilder? _stdoutCapture;
     private readonly StringBuilder? _stderrCapture;
     private readonly CancellationTokenSource _disposeCts;
+    private readonly SemaphoreSlim _stdinLock = new(1, 1);
 
     private volatile CliExitReason _exitReason = CliExitReason.Exited;
     private bool _stdinCompleted;
     private bool _disposed;
+    private bool _readLinesStarted;
 
     internal RunningProcess(
         Process process,
@@ -104,8 +106,17 @@ public sealed partial class RunningProcess : IRunningProcess
     /// </summary>
     /// <param name="ct">A cancellation token.</param>
     /// <returns>An async enumerable of output lines.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if ReadLines has already been called.</exception>
     public async IAsyncEnumerable<OutputLine> ReadLines([EnumeratorCancellation] CancellationToken ct = default)
     {
+        ThrowIfDisposed();
+
+        if (_readLinesStarted)
+        {
+            throw new InvalidOperationException("ReadLines can only be called once per process.");
+        }
+        _readLinesStarted = true;
+
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _disposeCts.Token);
 
         await foreach (var line in _outputChannel.Reader.ReadAllAsync(linkedCts.Token).ConfigureAwait(false))
@@ -121,6 +132,8 @@ public sealed partial class RunningProcess : IRunningProcess
     /// <returns>The result of the process execution.</returns>
     public async Task<CliResult> WaitAsync(CancellationToken ct = default)
     {
+        ThrowIfDisposed();
+
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _disposeCts.Token);
 
         try
@@ -130,7 +143,9 @@ public sealed partial class RunningProcess : IRunningProcess
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             _exitReason = CliExitReason.Canceled;
-            Kill();
+            // Use KillCore to avoid ThrowIfDisposed - we're about to throw anyway
+            // and DisposeAsync may have been called concurrently
+            KillCore();
             throw;
         }
     }
@@ -144,6 +159,8 @@ public sealed partial class RunningProcess : IRunningProcess
     /// </exception>
     public async Task EnsureSuccessAsync(CancellationToken ct = default)
     {
+        ThrowIfDisposed();
+
         var result = await WaitAsync(ct).ConfigureAwait(false);
         if (!result.Success)
         {
@@ -163,8 +180,18 @@ public sealed partial class RunningProcess : IRunningProcess
     /// <param name="ct">A cancellation token.</param>
     public async Task WriteAsync(ReadOnlyMemory<char> text, CancellationToken ct = default)
     {
-        ThrowIfStdinCompleted();
-        await _process.StandardInput.WriteAsync(text, ct).ConfigureAwait(false);
+        ThrowIfDisposed();
+        await _stdinLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            ThrowIfStdinCompleted();
+            await _process.StandardInput.WriteAsync(text, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _stdinLock.Release();
+        }
     }
 
     /// <summary>
@@ -174,20 +201,39 @@ public sealed partial class RunningProcess : IRunningProcess
     /// <param name="ct">A cancellation token.</param>
     public async Task WriteLineAsync(string line, CancellationToken ct = default)
     {
-        ThrowIfStdinCompleted();
-        await _process.StandardInput.WriteLineAsync(line.AsMemory(), ct).ConfigureAwait(false);
+        ThrowIfDisposed();
+        await _stdinLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            ThrowIfStdinCompleted();
+            await _process.StandardInput.WriteLineAsync(line.AsMemory(), ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _stdinLock.Release();
+        }
     }
 
     /// <summary>
     /// Completes stdin, signaling to the process that no more input is coming.
     /// </summary>
     /// <param name="ct">A cancellation token.</param>
-    public Task CompleteStdinAsync(CancellationToken ct = default)
+    public async Task CompleteStdinAsync(CancellationToken ct = default)
     {
-        ThrowIfStdinCompleted();
-        _stdinCompleted = true;
-        _process.StandardInput.Close();
-        return Task.CompletedTask;
+        ThrowIfDisposed();
+        await _stdinLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            ThrowIfStdinCompleted();
+            _stdinCompleted = true;
+            _process.StandardInput.Close();
+        }
+        finally
+        {
+            _stdinLock.Release();
+        }
     }
 
     private void ThrowIfStdinCompleted()
@@ -198,11 +244,22 @@ public sealed partial class RunningProcess : IRunningProcess
         }
     }
 
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+
     /// <summary>
     /// Sends a signal to the process.
     /// </summary>
     /// <param name="signal">The signal to send.</param>
     public void Signal(CliSignal signal)
+    {
+        ThrowIfDisposed();
+        SignalCore(signal);
+    }
+
+    private void SignalCore(CliSignal signal)
     {
         if (_process.HasExited)
         {
@@ -220,7 +277,7 @@ public sealed partial class RunningProcess : IRunningProcess
                 SendTerminate();
                 break;
             case CliSignal.Kill:
-                Kill();
+                KillCore();
                 break;
         }
     }
@@ -230,6 +287,12 @@ public sealed partial class RunningProcess : IRunningProcess
     /// </summary>
     /// <param name="entireProcessTree">Whether to kill the entire process tree.</param>
     public void Kill(bool entireProcessTree = true)
+    {
+        ThrowIfDisposed();
+        KillCore(entireProcessTree);
+    }
+
+    private void KillCore(bool entireProcessTree = true)
     {
         if (_process.HasExited)
         {
@@ -260,7 +323,7 @@ public sealed partial class RunningProcess : IRunningProcess
             // On older .NET, try to close the main window first
             if (!_process.CloseMainWindow())
             {
-                Kill();
+                KillCore();
             }
 #endif
         }
@@ -280,7 +343,7 @@ public sealed partial class RunningProcess : IRunningProcess
             SendWindowsCtrlEvent(CtrlEvent.CtrlBreak);
 #else
             // On older .NET, just kill the process
-            Kill();
+            KillCore();
 #endif
         }
         else
@@ -299,13 +362,13 @@ public sealed partial class RunningProcess : IRunningProcess
             if (!GenerateConsoleCtrlEvent((uint)ctrlEvent, (uint)_process.Id))
             {
                 // If signal fails, fall back to kill
-                Kill();
+                KillCore();
             }
         }
         catch
         {
             // If signal fails, fall back to kill
-            Kill();
+            KillCore();
         }
     }
 
@@ -329,7 +392,7 @@ public sealed partial class RunningProcess : IRunningProcess
         catch
         {
             // If signal fails, fall back to kill
-            Kill();
+            KillCore();
         }
     }
 
@@ -350,7 +413,7 @@ public sealed partial class RunningProcess : IRunningProcess
         if (!_process.HasExited)
         {
             // Give the process a chance to exit gracefully
-            Signal(CliSignal.Interrupt);
+            SignalCore(CliSignal.Interrupt);
 
             try
             {
@@ -360,10 +423,11 @@ public sealed partial class RunningProcess : IRunningProcess
             catch (OperationCanceledException)
             {
                 // Timeout - force kill
-                Kill();
+                KillCore();
             }
         }
 
+        _stdinLock.Dispose();
         _process.Dispose();
         _disposeCts.Dispose();
     }
