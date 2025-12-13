@@ -248,26 +248,7 @@ static IEnumerable<XNode> ConvertMarkdownBlock(Block block)
             var para = new XElement("para");
             var bold = new XElement("b");
             AddInlineContent(bold, ConvertInlines(headingBlock.Inline));
-            if (bold.IsEmpty)
-            {
-                var text = headingBlock.Inline?.ToString();
-                if (!string.IsNullOrWhiteSpace(text))
-                {
-                    bold.Add(new XText(text));
-                }
-            }
-            if (bold.IsEmpty)
-            {
-                var fallbackText = headingBlock.Inline?.ToString();
-                if (!string.IsNullOrWhiteSpace(fallbackText))
-                {
-                    para.Add(new XText(fallbackText));
-                }
-            }
-            else
-            {
-                para.Add(bold);
-            }
+            para.Add(bold);
             yield return para;
             yield break;
         }
