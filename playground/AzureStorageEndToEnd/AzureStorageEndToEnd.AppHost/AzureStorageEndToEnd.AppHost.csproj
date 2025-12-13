@@ -14,7 +14,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Provisioning" VersionOverride="1.4.0-beta.1" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppContainers" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Network" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
 
