@@ -370,11 +370,11 @@ string GetDcpProcesses()
                 // CSV format: Node,Name,ProcessId,WorkingSetSize
                 if (parts.Length >= 4)
                 {
-                    var name = parts[1].Trim();
+                    var name = parts[1];
                     // Only include processes that start with "dcp"
                     if (name.StartsWith("dcp", StringComparison.OrdinalIgnoreCase) &&
-                        int.TryParse(parts[2].Trim(), out var pid) && 
-                        long.TryParse(parts[3].Trim(), out var workingSet))
+                        int.TryParse(parts[2], out var pid) && 
+                        long.TryParse(parts[3], out var workingSet))
                     {
                         dcpProcesses.Add((name, pid, 0, workingSet / 1024.0 / 1024.0));
                     }
