@@ -256,7 +256,7 @@ string GetMemoryUsage()
     else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
     {
         // Use PowerShell for Windows (wmic is deprecated)
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"$os = Get-CimInstance Win32_OperatingSystem; Write-Host ($os.FreePhysicalMemory, $os.TotalVisibleMemorySize -join ',')\"");
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"$os = Get-CimInstance Win32_OperatingSystem; Write-Host \\\"$($os.FreePhysicalMemory),$($os.TotalVisibleMemorySize)\\\"\"");
         if (success)
         {
             var parts = output.Trim().Split(',');
@@ -351,7 +351,7 @@ string GetDcpProcesses()
     {
         // Use PowerShell to find dcp processes on Windows (wmic is deprecated)
         // Use pipe delimiter to avoid issues with commas in process names
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process | Where-Object { $_.ProcessName -like 'dcp*' } | ForEach-Object { '{0}|{1}|{2}' -f $_.ProcessName, $_.Id, $_.WorkingSet64 }\"", timeoutMs: 5000);
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process -Name 'dcp*' -ErrorAction SilentlyContinue | ForEach-Object { '{0}|{1}|{2}' -f $_.ProcessName, $_.Id, $_.WorkingSet64 }\"", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
