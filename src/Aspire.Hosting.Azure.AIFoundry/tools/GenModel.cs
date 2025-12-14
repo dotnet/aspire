@@ -99,7 +99,7 @@ string GenerateHostedCode(string csNamespace, List<ModelEntity> models)
             var publisher = model.Annotations!.SystemCatalogData!.Publisher!;
             var summaryElement = CreateSummaryElement(model.Annotations?.SystemCatalogData?.Summary ?? model.Annotations?.Description ?? $"Descriptor for {modelName} model");
 
-            AppendXmlDocComment(sb, 8, summaryElement);
+            AppendXmlDocComment(sb, indentSpaces: 8, summaryElement);
             sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModel {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
         }
 
