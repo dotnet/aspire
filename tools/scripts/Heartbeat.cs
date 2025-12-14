@@ -358,14 +358,9 @@ string GetDcpProcesses()
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            // Skip blank lines and the header (Node,Name,ProcessId,WorkingSetSize)
+            // Skip the header (Node,Name,ProcessId,WorkingSetSize)
             foreach (var line in lines.Skip(1))
             {
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    continue;
-                }
-                
                 var parts = line.Split(',', StringSplitOptions.TrimEntries);
                 // CSV format: Node,Name,ProcessId,WorkingSetSize
                 if (parts.Length >= 4)
