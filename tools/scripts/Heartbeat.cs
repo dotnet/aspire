@@ -168,13 +168,14 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
     else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
     {
         // Use PowerShell for Windows (wmic is deprecated)
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"(Get-CimInstance Win32_Processor).LoadPercentage\"");
+        // Get average CPU load across all processors
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"(Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average\"");
         if (success)
         {
             var trimmed = output.Trim();
-            if (int.TryParse(trimmed, out var loadPercentage))
+            if (double.TryParse(trimmed, out var loadPercentage))
             {
-                return $"{loadPercentage}%";
+                return $"{loadPercentage:F1}%";
             }
         }
     }
@@ -349,22 +350,20 @@ string GetDcpProcesses()
     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
     {
         // Use PowerShell to find dcp processes on Windows (wmic is deprecated)
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process | Where-Object { $_.ProcessName -like 'dcp*' } | Select-Object ProcessName,Id,WorkingSet64 | ConvertTo-Csv -NoTypeInformation\"", timeoutMs: 5000);
+        // Use pipe delimiter to avoid issues with commas in process names
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process | Where-Object { $_.ProcessName -like 'dcp*' } | ForEach-Object { '{0}|{1}|{2}' -f $_.ProcessName, $_.Id, $_.WorkingSet64 }\"", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            // Skip the header line
-            foreach (var line in lines.Skip(1))
+            foreach (var line in lines)
             {
-                // Remove quotes and split by comma
-                var cleanLine = line.Trim('"');
-                var parts = cleanLine.Split(new[] { "\",\"" }, StringSplitOptions.None);
+                var parts = line.Split('|', StringSplitOptions.TrimEntries);
                 
                 if (parts.Length >= 3 &&
                     int.TryParse(parts[1], out var pid) && 
                     long.TryParse(parts[2], out var workingSet))
                 {
-                    var name = parts[0].Trim('"');
+                    var name = parts[0];
                     dcpProcesses.Add((name, pid, 0, workingSet / 1024.0 / 1024.0));
                 }
             }
