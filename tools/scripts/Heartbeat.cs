@@ -167,15 +167,14 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
     }
     else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
     {
-        // Use wmic for Windows
-        var (success, output) = RunCommand("wmic", "cpu get loadpercentage /value");
+        // Use PowerShell for Windows (wmic is deprecated)
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"(Get-CimInstance Win32_Processor).LoadPercentage\"");
         if (success)
         {
-            // Handle potential BOM and whitespace in wmic output
-            var match = System.Text.RegularExpressions.Regex.Match(output, @"LoadPercentage\s*=\s*(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            if (match.Success)
+            var trimmed = output.Trim();
+            if (int.TryParse(trimmed, out var loadPercentage))
             {
-                return $"{match.Groups[1].Value}%";
+                return $"{loadPercentage}%";
             }
         }
     }
@@ -255,20 +254,16 @@ string GetMemoryUsage()
     }
     else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
     {
-        // Use GC memory info as a baseline, plus wmic for system memory
-        var (success, output) = RunCommand("wmic", "OS get FreePhysicalMemory,TotalVisibleMemorySize /value");
+        // Use PowerShell for Windows (wmic is deprecated)
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"$os = Get-CimInstance Win32_OperatingSystem; Write-Host ($os.FreePhysicalMemory, $os.TotalVisibleMemorySize -join ',')\"");
         if (success)
         {
-            // Handle potential BOM and whitespace in wmic output
-            var freeMatch = System.Text.RegularExpressions.Regex.Match(output, @"FreePhysicalMemory\s*=\s*(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            var totalMatch = System.Text.RegularExpressions.Regex.Match(output, @"TotalVisibleMemorySize\s*=\s*(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-            if (freeMatch.Success && totalMatch.Success)
+            var parts = output.Trim().Split(',');
+            if (parts.Length == 2 && 
+                long.TryParse(parts[0].Trim(), out var freeKb) && 
+                long.TryParse(parts[1].Trim(), out var totalKb))
             {
-                var freeKb = long.Parse(freeMatch.Groups[1].Value, CultureInfo.InvariantCulture);
-                var totalKb = long.Parse(totalMatch.Groups[1].Value, CultureInfo.InvariantCulture);
                 var usedKb = totalKb - freeKb;
-
                 var totalGb = totalKb / 1024.0 / 1024.0;
                 var usedGb = usedKb / 1024.0 / 1024.0;
                 var pct = totalKb > 0 ? (100.0 * usedKb / totalKb) : 0;
@@ -353,21 +348,23 @@ string GetDcpProcesses()
 
     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
     {
-        // Use wmic to find dcp processes on Windows
-        var (success, output) = RunCommand("wmic", "process where \"name like 'dcp%'\" get ProcessId,Name,WorkingSetSize /format:csv", timeoutMs: 5000);
+        // Use PowerShell to find dcp processes on Windows (wmic is deprecated)
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process | Where-Object { $_.ProcessName -like 'dcp*' } | Select-Object ProcessName,Id,WorkingSet64 | ConvertTo-Csv -NoTypeInformation\"", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            // Skip the header (Node,Name,ProcessId,WorkingSetSize)
+            // Skip the header line
             foreach (var line in lines.Skip(1))
             {
-                var parts = line.Split(',', StringSplitOptions.TrimEntries);
-                // CSV format: Node,Name,ProcessId,WorkingSetSize
-                if (parts.Length >= 4 &&
-                    int.TryParse(parts[2], out var pid) && 
-                    long.TryParse(parts[3], out var workingSet))
+                // Remove quotes and split by comma
+                var cleanLine = line.Trim('"');
+                var parts = cleanLine.Split(new[] { "\",\"" }, StringSplitOptions.None);
+                
+                if (parts.Length >= 3 &&
+                    int.TryParse(parts[1], out var pid) && 
+                    long.TryParse(parts[2], out var workingSet))
                 {
-                    var name = parts[1];
+                    var name = parts[0].Trim('"');
                     dcpProcesses.Add((name, pid, 0, workingSet / 1024.0 / 1024.0));
                 }
             }
