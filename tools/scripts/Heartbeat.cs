@@ -171,7 +171,8 @@ string GetCpuUsage(ref long prevIdle, ref long prevTotal, ref TimeSpan prevCpu, 
         var (success, output) = RunCommand("wmic", "cpu get loadpercentage /value");
         if (success)
         {
-            var match = System.Text.RegularExpressions.Regex.Match(output, @"LoadPercentage=(\d+)");
+            // Handle potential BOM and whitespace in wmic output
+            var match = System.Text.RegularExpressions.Regex.Match(output, @"LoadPercentage\s*=\s*(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 return $"{match.Groups[1].Value}%";
@@ -258,8 +259,9 @@ string GetMemoryUsage()
         var (success, output) = RunCommand("wmic", "OS get FreePhysicalMemory,TotalVisibleMemorySize /value");
         if (success)
         {
-            var freeMatch = System.Text.RegularExpressions.Regex.Match(output, @"FreePhysicalMemory=(\d+)");
-            var totalMatch = System.Text.RegularExpressions.Regex.Match(output, @"TotalVisibleMemorySize=(\d+)");
+            // Handle potential BOM and whitespace in wmic output
+            var freeMatch = System.Text.RegularExpressions.Regex.Match(output, @"FreePhysicalMemory\s*=\s*(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var totalMatch = System.Text.RegularExpressions.Regex.Match(output, @"TotalVisibleMemorySize\s*=\s*(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
             if (freeMatch.Success && totalMatch.Success)
             {
@@ -355,14 +357,24 @@ string GetDcpProcesses()
         var (success, output) = RunCommand("wmic", "process where \"name like 'dcp%'\" get ProcessId,Name,WorkingSetSize /format:csv", timeoutMs: 5000);
         if (success)
         {
-            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(1); // Skip header
-            foreach (var line in lines)
+            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            // Skip blank lines and the header (Node,Name,ProcessId,WorkingSetSize)
+            foreach (var line in lines.Skip(1))
             {
-                var parts = line.Split(',');
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
+                
+                var parts = line.Split(',', StringSplitOptions.TrimEntries);
+                // CSV format: Node,Name,ProcessId,WorkingSetSize
                 if (parts.Length >= 4)
                 {
-                    var name = parts[1];
-                    if (int.TryParse(parts[2], out var pid) && long.TryParse(parts[3], out var workingSet))
+                    var name = parts[1].Trim();
+                    // Only include processes that start with "dcp"
+                    if (name.StartsWith("dcp", StringComparison.OrdinalIgnoreCase) &&
+                        int.TryParse(parts[2].Trim(), out var pid) && 
+                        long.TryParse(parts[3].Trim(), out var workingSet))
                     {
                         dcpProcesses.Add((name, pid, 0, workingSet / 1024.0 / 1024.0));
                     }
