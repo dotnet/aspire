@@ -493,6 +493,13 @@ internal sealed class ResourceContainerImageManager(
     {
         foreach (var resource in resources)
         {
+            // Dockerfile resources always need container runtime
+            if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
+                resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _))
+            {
+                return true;
+            }
+
             // Check the container build options for each resource
             var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
                 serviceProvider,
@@ -500,17 +507,10 @@ internal sealed class ResourceContainerImageManager(
                 executionContext,
                 cancellationToken).ConfigureAwait(false);
 
-            // Skip resources that are configured to save as archives - they don't need Docker
+            // Skip resources that are explicitly configured to save as archives - they don't need Docker
             if (buildOptionsContext.Destination == ContainerImageDestination.Archive)
             {
                 continue;
-            }
-
-            // Dockerfile resources always need container runtime
-            if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
-                resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _))
-            {
-                return true;
             }
 
             // Check if any resource uses Docker format or has no output path
