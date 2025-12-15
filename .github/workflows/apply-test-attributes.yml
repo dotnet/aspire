@@ -298,9 +298,9 @@ jobs:
               return;
             }
 
-            // Check if PR is from a fork (not supported)
-            if (pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
-              const msg = `PR #${targetPrNumber} is from a fork. Cannot push to fork branches.`;
+            // Check if PR is from a fork (not supported) - also handle deleted fork repos
+            if (!pr.head.repo || pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              const msg = `PR #${targetPrNumber} is from a fork or the source repository was deleted. Cannot push to fork branches.`;
               core.setOutput('error_message', msg);
               core.setFailed(msg);
               return;
@@ -381,14 +381,13 @@ jobs:
         IFS=' ' read -ra TEST_ARRAY <<< "$TEST_NAMES"
 
         # Run the tool and capture output
-        echo "Running: dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m $MODE -i \"$ISSUE_URL\" ${TEST_ARRAY[*]}"
-
         if [ "$ACTION" = "quarantine" ]; then
-          OUTPUT=$(dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m "$MODE" -i "$ISSUE_URL" "${TEST_ARRAY[@]}" 2>&1 || true)
+          echo "Running: dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m $MODE -i \"$ISSUE_URL\" ${TEST_ARRAY[*]}"
+          OUTPUT=$(dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m "$MODE" -i "$ISSUE_URL" "${TEST_ARRAY[@]}" 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
         else
-          OUTPUT=$(dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m "$MODE" "${TEST_ARRAY[@]}" 2>&1 || true)
+          echo "Running: dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m $MODE ${TEST_ARRAY[*]}"
+          OUTPUT=$(dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m "$MODE" "${TEST_ARRAY[@]}" 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
         fi
-        EXIT_CODE=$?
 
         echo "$OUTPUT"
 
@@ -425,7 +424,7 @@ jobs:
         IS_NEW_PR: ${{ steps.determine-target.outputs.is_new_pr }}
       with:
         script: |
-          const { execSync } = require('child_process');
+          const { execSync, spawnSync } = require('child_process');
           const fs = require('fs');
           const path = require('path');
 
@@ -447,13 +446,26 @@ jobs:
           const testList = testNames.length === 1 ? testNames[0] : `${testNames.length} tests`;
           const commitMessage = `[automated] ${actionVerb} ${testList}`;
 
-          // Helper to run git commands safely (avoids shell injection)
+          // Helper to run git commands safely using spawnSync (avoids shell injection)
+          function runGit(args) {
+            const result = spawnSync('git', args, { encoding: 'utf-8', stdio: 'pipe' });
+            if (result.status !== 0) {
+              const error = new Error(result.stderr || result.stdout || 'Git command failed');
+              error.status = result.status;
+              throw error;
+            }
+            return result.stdout;
+          }
+
+          // Helper to commit with a message (uses temp file for safety)
           function gitCommit(message) {
-            // Write commit message to a temp file to avoid shell injection
             const msgFile = path.join(process.env.RUNNER_TEMP || '/tmp', 'commit-msg.txt');
             fs.writeFileSync(msgFile, message);
-            execSync(`git commit -F "${msgFile}"`);
-            fs.unlinkSync(msgFile);
+            try {
+              runGit(['commit', '-F', msgFile]);
+            } finally {
+              fs.unlinkSync(msgFile);
+            }
           }
 
           let prUrl = '';
@@ -468,12 +480,12 @@ jobs:
             prNumber = targetPrNumber;
 
             // Stage and commit
-            execSync('git add -A');
+            runGit(['add', '-A']);
             gitCommit(commitMessage);
 
-            // Push to the PR branch
+            // Push to the PR branch (checkoutRef comes from PR, use spawnSync for safety)
             try {
-              execSync(`git push origin HEAD:${checkoutRef}`);
+              runGit(['push', 'origin', `HEAD:${checkoutRef}`]);
             } catch (pushError) {
               core.setFailed(`Failed to push to PR #${targetPrNumber}: ${pushError.message}. The branch may be protected or have been force-pushed.`);
               return;
@@ -484,18 +496,19 @@ jobs:
             // Create a new PR
             createdNewPr = true;
             const timestamp = Date.now();
+            // Branch name is safe: actionVerb is from controlled lookup (Quarantine/Disable/etc), timestamp is numeric
             const branchName = `automated/${actionVerb.toLowerCase()}-test-${timestamp}`;
 
-            // Create and checkout branch
-            execSync(`git checkout -b ${branchName}`);
+            // Create and checkout branch (use spawnSync for safety)
+            runGit(['checkout', '-b', branchName]);
 
             // Stage and commit changes
-            execSync('git add -A');
+            runGit(['add', '-A']);
             gitCommit(commitMessage);
 
             // Push branch
             try {
-              execSync(`git push origin ${branchName}`);
+              runGit(['push', 'origin', branchName]);
             } catch (pushError) {
               core.setFailed(`Failed to push branch '${branchName}': ${pushError.message}`);
               return;
@@ -537,7 +550,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNumber,
-                labels: ['automated', 'area-codeflow']
+                labels: ['area-codeflow']
               });
             } catch (labelError) {
               console.log(`Note: Could not add labels: ${labelError.message}`);
@@ -600,6 +613,11 @@ jobs:
     - name: Post failure comment
       if: failure()
       uses: actions/github-script@v7
+      env:
+        ACTION_VERB: ${{ steps.extract-command.outputs.action_verb || '' }}
+        TOOL_OUTPUT: ${{ steps.run-tool.outputs.tool_output || '' }}
+        EXTRACT_ERROR: ${{ steps.extract-command.outputs.error_message || '' }}
+        TARGET_ERROR: ${{ steps.determine-target.outputs.error_message || '' }}
       with:
         script: |
           const comment_user = context.payload.comment.user.login;
@@ -607,11 +625,11 @@ jobs:
           const actionVerb = process.env.ACTION_VERB || 'Operation';
           const toolOutput = process.env.TOOL_OUTPUT || '';
           const extractError = process.env.EXTRACT_ERROR || '';
+          const targetError = process.env.TARGET_ERROR || '';
 
           let body = `@${comment_user} ❌ ${actionVerb} failed.\n\n`;
 
           // Check for errors from various steps
-          const targetError = process.env.TARGET_ERROR || '';
           const errorMessage = extractError || targetError;
           if (errorMessage) {
             body += `**Error:** ${errorMessage}\n\n`;
@@ -639,11 +657,6 @@ jobs:
             repo: context.repo.repo,
             body: body
           });
-      env:
-        ACTION_VERB: ${{ steps.extract-command.outputs.action_verb }}
-        TOOL_OUTPUT: ${{ steps.run-tool.outputs.tool_output }}
-        EXTRACT_ERROR: ${{ steps.extract-command.outputs.error_message }}
-        TARGET_ERROR: ${{ steps.determine-target.outputs.error_message }}
 
     - name: Re-lock issue/PR if it was locked
       if: github.event.issue.locked == true && (success() || failure())
