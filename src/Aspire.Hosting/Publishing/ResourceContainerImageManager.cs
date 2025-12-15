@@ -125,6 +125,11 @@ public class ContainerImageBuildOptions
     /// Gets the target platform for the container.
     /// </summary>
     public ContainerTargetPlatform? TargetPlatform { get; init; }
+
+    /// <summary>
+    /// Gets the additional arguments to pass to the container build command.
+    /// </summary>
+    public List<string>? AdditionalArguments { get; init; }
 }
 
 /// <summary>
@@ -174,6 +179,7 @@ internal sealed class ResourceContainerImageManager(
         public ContainerTargetPlatform? TargetPlatform { get; set; }
         public string LocalImageName { get; set; } = string.Empty;
         public string LocalImageTag { get; set; } = "latest";
+        public List<string>? AdditionalArguments { get; set; }
     }
 
     private async Task<ResolvedContainerBuildOptions> ResolveContainerBuildOptionsAsync(
@@ -197,6 +203,7 @@ internal sealed class ResourceContainerImageManager(
         options.TargetPlatform = context.TargetPlatform;
         options.LocalImageName = context.LocalImageName ?? options.LocalImageName;
         options.LocalImageTag = context.LocalImageTag ?? options.LocalImageTag;
+        options.AdditionalArguments = context.AdditionalArguments.Count > 0 ? context.AdditionalArguments : null;
 
         return options;
     }
@@ -446,7 +453,8 @@ internal sealed class ResourceContainerImageManager(
             Tag = imageTag,
             OutputPath = options.OutputPath,
             ImageFormat = options.ImageFormat,
-            TargetPlatform = options.TargetPlatform
+            TargetPlatform = options.TargetPlatform,
+            AdditionalArguments = options.AdditionalArguments
         };
 
         try
