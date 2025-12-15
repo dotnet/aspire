@@ -94,12 +94,11 @@ internal sealed class OtlpLogRecordJson
     public ulong? ObservedTimeUnixNano { get; set; }
 
     /// <summary>
-    /// Numerical value of the severity.
+    /// Numerical value of the severity. Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("severityNumber")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonConverter(typeof(JsonStringEnumConverter<OtlpSeverityNumberJson>))]
-    public OtlpSeverityNumberJson? SeverityNumber { get; set; }
+    public int? SeverityNumber { get; set; }
 
     /// <summary>
     /// The severity text (also known as log level).
@@ -130,22 +129,21 @@ internal sealed class OtlpLogRecordJson
     public uint DroppedAttributesCount { get; set; }
 
     /// <summary>
-    /// Flags, a bit field. Serialized as string per protojson spec for fixed32.
+    /// Flags, a bit field (fixed32 per protobuf).
     /// </summary>
     [JsonPropertyName("flags")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public uint? Flags { get; set; }
 
     /// <summary>
-    /// A unique identifier for a trace. Serialized as base64.
+    /// A unique identifier for a trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("traceId")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TraceId { get; set; }
 
     /// <summary>
-    /// A unique identifier for a span within a trace. Serialized as base64.
+    /// A unique identifier for a span within a trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("spanId")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -160,160 +158,84 @@ internal sealed class OtlpLogRecordJson
 }
 
 /// <summary>
-/// Represents SeverityNumber enumeration values.
+/// SeverityNumber constants for OTLP/JSON. Use integer values per OTLP spec.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<OtlpSeverityNumberJson>))]
-internal enum OtlpSeverityNumberJson
+internal static class OtlpSeverityNumber
 {
-    /// <summary>
-    /// Unspecified severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_UNSPECIFIED")]
-    SeverityNumberUnspecified = 0,
+    /// <summary>Unspecified severity.</summary>
+    public const int Unspecified = 0;
 
-    /// <summary>
-    /// Trace severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_TRACE")]
-    SeverityNumberTrace = 1,
+    /// <summary>Trace severity.</summary>
+    public const int Trace = 1;
 
-    /// <summary>
-    /// Trace2 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_TRACE2")]
-    SeverityNumberTrace2 = 2,
+    /// <summary>Trace2 severity.</summary>
+    public const int Trace2 = 2;
 
-    /// <summary>
-    /// Trace3 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_TRACE3")]
-    SeverityNumberTrace3 = 3,
+    /// <summary>Trace3 severity.</summary>
+    public const int Trace3 = 3;
 
-    /// <summary>
-    /// Trace4 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_TRACE4")]
-    SeverityNumberTrace4 = 4,
+    /// <summary>Trace4 severity.</summary>
+    public const int Trace4 = 4;
 
-    /// <summary>
-    /// Debug severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_DEBUG")]
-    SeverityNumberDebug = 5,
+    /// <summary>Debug severity.</summary>
+    public const int Debug = 5;
 
-    /// <summary>
-    /// Debug2 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_DEBUG2")]
-    SeverityNumberDebug2 = 6,
+    /// <summary>Debug2 severity.</summary>
+    public const int Debug2 = 6;
 
-    /// <summary>
-    /// Debug3 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_DEBUG3")]
-    SeverityNumberDebug3 = 7,
+    /// <summary>Debug3 severity.</summary>
+    public const int Debug3 = 7;
 
-    /// <summary>
-    /// Debug4 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_DEBUG4")]
-    SeverityNumberDebug4 = 8,
+    /// <summary>Debug4 severity.</summary>
+    public const int Debug4 = 8;
 
-    /// <summary>
-    /// Info severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_INFO")]
-    SeverityNumberInfo = 9,
+    /// <summary>Info severity.</summary>
+    public const int Info = 9;
 
-    /// <summary>
-    /// Info2 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_INFO2")]
-    SeverityNumberInfo2 = 10,
+    /// <summary>Info2 severity.</summary>
+    public const int Info2 = 10;
 
-    /// <summary>
-    /// Info3 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_INFO3")]
-    SeverityNumberInfo3 = 11,
+    /// <summary>Info3 severity.</summary>
+    public const int Info3 = 11;
 
-    /// <summary>
-    /// Info4 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_INFO4")]
-    SeverityNumberInfo4 = 12,
+    /// <summary>Info4 severity.</summary>
+    public const int Info4 = 12;
 
-    /// <summary>
-    /// Warn severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_WARN")]
-    SeverityNumberWarn = 13,
+    /// <summary>Warn severity.</summary>
+    public const int Warn = 13;
 
-    /// <summary>
-    /// Warn2 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_WARN2")]
-    SeverityNumberWarn2 = 14,
+    /// <summary>Warn2 severity.</summary>
+    public const int Warn2 = 14;
 
-    /// <summary>
-    /// Warn3 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_WARN3")]
-    SeverityNumberWarn3 = 15,
+    /// <summary>Warn3 severity.</summary>
+    public const int Warn3 = 15;
 
-    /// <summary>
-    /// Warn4 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_WARN4")]
-    SeverityNumberWarn4 = 16,
+    /// <summary>Warn4 severity.</summary>
+    public const int Warn4 = 16;
 
-    /// <summary>
-    /// Error severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_ERROR")]
-    SeverityNumberError = 17,
+    /// <summary>Error severity.</summary>
+    public const int Error = 17;
 
-    /// <summary>
-    /// Error2 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_ERROR2")]
-    SeverityNumberError2 = 18,
+    /// <summary>Error2 severity.</summary>
+    public const int Error2 = 18;
 
-    /// <summary>
-    /// Error3 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_ERROR3")]
-    SeverityNumberError3 = 19,
+    /// <summary>Error3 severity.</summary>
+    public const int Error3 = 19;
 
-    /// <summary>
-    /// Error4 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_ERROR4")]
-    SeverityNumberError4 = 20,
+    /// <summary>Error4 severity.</summary>
+    public const int Error4 = 20;
 
-    /// <summary>
-    /// Fatal severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_FATAL")]
-    SeverityNumberFatal = 21,
+    /// <summary>Fatal severity.</summary>
+    public const int Fatal = 21;
 
-    /// <summary>
-    /// Fatal2 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_FATAL2")]
-    SeverityNumberFatal2 = 22,
+    /// <summary>Fatal2 severity.</summary>
+    public const int Fatal2 = 22;
 
-    /// <summary>
-    /// Fatal3 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_FATAL3")]
-    SeverityNumberFatal3 = 23,
+    /// <summary>Fatal3 severity.</summary>
+    public const int Fatal3 = 23;
 
-    /// <summary>
-    /// Fatal4 severity.
-    /// </summary>
-    [JsonStringEnumMemberName("SEVERITY_NUMBER_FATAL4")]
-    SeverityNumberFatal4 = 24,
+    /// <summary>Fatal4 severity.</summary>
+    public const int Fatal4 = 24;
 }
 
 /// <summary>

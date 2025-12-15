@@ -78,14 +78,14 @@ internal sealed class OtlpScopeSpansJson
 internal sealed class OtlpSpanJson
 {
     /// <summary>
-    /// A unique identifier for a trace. Serialized as base64.
+    /// A unique identifier for a trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("traceId")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TraceId { get; set; }
 
     /// <summary>
-    /// A unique identifier for a span within a trace. Serialized as base64.
+    /// A unique identifier for a span within a trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("spanId")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -99,18 +99,17 @@ internal sealed class OtlpSpanJson
     public string? TraceState { get; set; }
 
     /// <summary>
-    /// The span_id of this span's parent span. Serialized as base64.
+    /// The span_id of this span's parent span. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("parentSpanId")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ParentSpanId { get; set; }
 
     /// <summary>
-    /// Flags, a bit field. Serialized as string per protojson spec for fixed32.
+    /// Flags, a bit field (fixed32 per protobuf).
     /// </summary>
     [JsonPropertyName("flags")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public uint? Flags { get; set; }
 
     /// <summary>
@@ -122,12 +121,11 @@ internal sealed class OtlpSpanJson
 
     /// <summary>
     /// Distinguishes between spans generated in a particular context.
-    /// Serialized as string per protojson enum spec.
+    /// Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("kind")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonConverter(typeof(JsonStringEnumConverter<OtlpSpanKindJson>))]
-    public OtlpSpanKindJson? Kind { get; set; }
+    public int? Kind { get; set; }
 
     /// <summary>
     /// The start time of the span. Serialized as string per protojson spec for fixed64.
@@ -196,46 +194,27 @@ internal sealed class OtlpSpanJson
 }
 
 /// <summary>
-/// Represents SpanKind enumeration values.
+/// SpanKind constants for OTLP/JSON. Use integer values per OTLP spec.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<OtlpSpanKindJson>))]
-internal enum OtlpSpanKindJson
+internal static class OtlpSpanKind
 {
-    /// <summary>
-    /// Unspecified span kind.
-    /// </summary>
-    [JsonStringEnumMemberName("SPAN_KIND_UNSPECIFIED")]
-    SpanKindUnspecified = 0,
+    /// <summary>Unspecified span kind.</summary>
+    public const int Unspecified = 0;
 
-    /// <summary>
-    /// Internal operation within an application.
-    /// </summary>
-    [JsonStringEnumMemberName("SPAN_KIND_INTERNAL")]
-    SpanKindInternal = 1,
+    /// <summary>Internal operation within an application.</summary>
+    public const int Internal = 1;
 
-    /// <summary>
-    /// Server-side handling of an RPC or remote request.
-    /// </summary>
-    [JsonStringEnumMemberName("SPAN_KIND_SERVER")]
-    SpanKindServer = 2,
+    /// <summary>Server-side handling of an RPC or remote request.</summary>
+    public const int Server = 2;
 
-    /// <summary>
-    /// Request to some remote service.
-    /// </summary>
-    [JsonStringEnumMemberName("SPAN_KIND_CLIENT")]
-    SpanKindClient = 3,
+    /// <summary>Request to some remote service.</summary>
+    public const int Client = 3;
 
-    /// <summary>
-    /// Producer sending a message to a broker.
-    /// </summary>
-    [JsonStringEnumMemberName("SPAN_KIND_PRODUCER")]
-    SpanKindProducer = 4,
+    /// <summary>Producer sending a message to a broker.</summary>
+    public const int Producer = 4;
 
-    /// <summary>
-    /// Consumer receiving a message from a broker.
-    /// </summary>
-    [JsonStringEnumMemberName("SPAN_KIND_CONSUMER")]
-    SpanKindConsumer = 5,
+    /// <summary>Consumer receiving a message from a broker.</summary>
+    public const int Consumer = 5;
 }
 
 /// <summary>
@@ -279,14 +258,14 @@ internal sealed class OtlpSpanEventJson
 internal sealed class OtlpSpanLinkJson
 {
     /// <summary>
-    /// A unique identifier of a trace. Serialized as base64.
+    /// A unique identifier of a trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("traceId")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TraceId { get; set; }
 
     /// <summary>
-    /// A unique identifier for the linked span. Serialized as base64.
+    /// A unique identifier for the linked span. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("spanId")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -314,11 +293,10 @@ internal sealed class OtlpSpanLinkJson
     public uint DroppedAttributesCount { get; set; }
 
     /// <summary>
-    /// Flags, a bit field. Serialized as string per protojson spec for fixed32.
+    /// Flags, a bit field (fixed32 per protobuf).
     /// </summary>
     [JsonPropertyName("flags")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public uint? Flags { get; set; }
 }
 
@@ -335,37 +313,26 @@ internal sealed class OtlpSpanStatusJson
     public string? Message { get; set; }
 
     /// <summary>
-    /// The status code. Serialized as string per protojson enum spec.
+    /// The status code. Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("code")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonConverter(typeof(JsonStringEnumConverter<OtlpStatusCodeJson>))]
-    public OtlpStatusCodeJson? Code { get; set; }
+    public int? Code { get; set; }
 }
 
 /// <summary>
-/// Represents StatusCode enumeration values.
+/// StatusCode constants for OTLP/JSON. Use integer values per OTLP spec.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<OtlpStatusCodeJson>))]
-internal enum OtlpStatusCodeJson
+internal static class OtlpStatusCode
 {
-    /// <summary>
-    /// The default status.
-    /// </summary>
-    [JsonStringEnumMemberName("STATUS_CODE_UNSET")]
-    StatusCodeUnset = 0,
+    /// <summary>The default status.</summary>
+    public const int Unset = 0;
 
-    /// <summary>
-    /// The span has been validated to have completed successfully.
-    /// </summary>
-    [JsonStringEnumMemberName("STATUS_CODE_OK")]
-    StatusCodeOk = 1,
+    /// <summary>The span has been validated to have completed successfully.</summary>
+    public const int Ok = 1;
 
-    /// <summary>
-    /// The span contains an error.
-    /// </summary>
-    [JsonStringEnumMemberName("STATUS_CODE_ERROR")]
-    StatusCodeError = 2,
+    /// <summary>The span contains an error.</summary>
+    public const int Error = 2;
 }
 
 /// <summary>

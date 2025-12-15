@@ -167,12 +167,11 @@ internal sealed class OtlpSumJson
     public OtlpNumberDataPointJson[]? DataPoints { get; set; }
 
     /// <summary>
-    /// Aggregation temporality.
+    /// Aggregation temporality. Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("aggregationTemporality")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonConverter(typeof(JsonStringEnumConverter<OtlpAggregationTemporalityJson>))]
-    public OtlpAggregationTemporalityJson? AggregationTemporality { get; set; }
+    public int? AggregationTemporality { get; set; }
 
     /// <summary>
     /// Represents whether the sum is monotonic.
@@ -195,12 +194,11 @@ internal sealed class OtlpHistogramJson
     public OtlpHistogramDataPointJson[]? DataPoints { get; set; }
 
     /// <summary>
-    /// Aggregation temporality.
+    /// Aggregation temporality. Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("aggregationTemporality")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonConverter(typeof(JsonStringEnumConverter<OtlpAggregationTemporalityJson>))]
-    public OtlpAggregationTemporalityJson? AggregationTemporality { get; set; }
+    public int? AggregationTemporality { get; set; }
 }
 
 /// <summary>
@@ -216,12 +214,11 @@ internal sealed class OtlpExponentialHistogramJson
     public OtlpExponentialHistogramDataPointJson[]? DataPoints { get; set; }
 
     /// <summary>
-    /// Aggregation temporality.
+    /// Aggregation temporality. Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("aggregationTemporality")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonConverter(typeof(JsonStringEnumConverter<OtlpAggregationTemporalityJson>))]
-    public OtlpAggregationTemporalityJson? AggregationTemporality { get; set; }
+    public int? AggregationTemporality { get; set; }
 }
 
 /// <summary>
@@ -238,28 +235,18 @@ internal sealed class OtlpSummaryJson
 }
 
 /// <summary>
-/// Represents AggregationTemporality enumeration.
+/// AggregationTemporality constants for OTLP/JSON. Use integer values per OTLP spec.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<OtlpAggregationTemporalityJson>))]
-internal enum OtlpAggregationTemporalityJson
+internal static class OtlpAggregationTemporality
 {
-    /// <summary>
-    /// Unspecified aggregation temporality.
-    /// </summary>
-    [JsonStringEnumMemberName("AGGREGATION_TEMPORALITY_UNSPECIFIED")]
-    AggregationTemporalityUnspecified = 0,
+    /// <summary>Unspecified aggregation temporality.</summary>
+    public const int Unspecified = 0;
 
-    /// <summary>
-    /// Delta aggregation temporality.
-    /// </summary>
-    [JsonStringEnumMemberName("AGGREGATION_TEMPORALITY_DELTA")]
-    AggregationTemporalityDelta = 1,
+    /// <summary>Delta aggregation temporality.</summary>
+    public const int Delta = 1;
 
-    /// <summary>
-    /// Cumulative aggregation temporality.
-    /// </summary>
-    [JsonStringEnumMemberName("AGGREGATION_TEMPORALITY_CUMULATIVE")]
-    AggregationTemporalityCumulative = 2,
+    /// <summary>Cumulative aggregation temporality.</summary>
+    public const int Cumulative = 2;
 }
 
 /// <summary>
@@ -648,14 +635,14 @@ internal sealed class OtlpExemplarJson
     public long? AsInt { get; set; }
 
     /// <summary>
-    /// Span ID of the exemplar trace. Serialized as base64.
+    /// Span ID of the exemplar trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("spanId")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SpanId { get; set; }
 
     /// <summary>
-    /// Trace ID of the exemplar trace. Serialized as base64.
+    /// Trace ID of the exemplar trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("traceId")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
