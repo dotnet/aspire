@@ -504,9 +504,10 @@ jobs:
           } else {
             // Create a new PR
             createdNewPr = true;
-            const timestamp = Date.now();
-            // Branch name is safe: actionVerb is from controlled lookup (Quarantine/Disable/etc), timestamp is numeric
-            const branchName = `automated/${actionVerb.toLowerCase()}-test-${timestamp}`;
+            // Branch name is safe: actionVerb is from controlled lookup (Quarantine/Disable/etc), runId is numeric
+            // Branch name format: automated/{quarantine|unquarantine|disable|enable}-test-{runId}
+            // Using runId instead of timestamp to guarantee uniqueness across parallel workflow runs
+            const branchName = `automated/${actionVerb.toLowerCase()}-test-${context.runId}`;
 
             // Create and checkout branch (use spawnSync for safety)
             runGit(['checkout', '-b', branchName]);
