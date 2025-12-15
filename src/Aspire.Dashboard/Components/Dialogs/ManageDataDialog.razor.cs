@@ -2,12 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.ManageData;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -52,6 +54,9 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
 
+    [Inject]
+    public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
+
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly Dictionary<string, ResourceDataRow> _resourceDataRows = new(StringComparers.ResourceName);
     private readonly HashSet<string> _expandedResourceNames = new(StringComparers.ResourceName);
@@ -63,6 +68,8 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     private Task? _resourceSubscriptionTask;
     private FluentDataGrid<ManageDataGridItem>? _dataGrid;
     private bool _isExporting;
+    private bool _isRemoving;
+    private string? _errorMessage;
     private bool _isImporting;
     private Subscription? _resourcesSubscription;
 
@@ -489,25 +496,49 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
 
     private async Task RemoveSelectedAsync()
     {
-        var selectedResources = GetSelectedResourcesAndDataTypes();
-
-        // Clear telemetry signals via repository
-        TelemetryRepository.ClearSelectedSignals(selectedResources);
-
-        // Handle console logs filtering separately (not stored in TelemetryRepository)
-        var consoleLogResourcesToFilter = selectedResources
-            .Where(kvp => kvp.Value.Contains(AspireDataType.ConsoleLogs))
-            .Select(kvp => kvp.Key)
-            .ToList();
-
-        if (consoleLogResourcesToFilter.Count > 0)
+        if (_isRemoving)
         {
-            var filterDate = TimeProvider.GetUtcNow().UtcDateTime;
-            var filters = new ConsoleLogsFilters
+            return;
+        }
+
+        _isRemoving = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var selectedResources = GetSelectedResourcesAndDataTypes();
+
+            // Clear telemetry signals via repository
+            TelemetryRepository.ClearSelectedSignals(selectedResources);
+
+            // Handle console logs filtering separately (not stored in TelemetryRepository)
+            var consoleLogResourcesToFilter = selectedResources
+                .Where(kvp => kvp.Value.Contains(AspireDataType.ConsoleLogs))
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            if (consoleLogResourcesToFilter.Count > 0)
             {
-                FilterResourceLogsDates = consoleLogResourcesToFilter.ToDictionary(r => r, _ => filterDate, StringComparers.ResourceName)
-            };
-            await ConsoleLogsManager.UpdateFiltersAsync(filters);
+                var filterDate = TimeProvider.GetUtcNow().UtcDateTime;
+                var filters = new ConsoleLogsFilters
+                {
+                    FilterResourceLogsDates = consoleLogResourcesToFilter
+                        .ToDictionary(r => r, _ => filterDate, StringComparers.ResourceName)
+                        .ToImmutableDictionary()
+                };
+                await ConsoleLogsManager.UpdateFiltersAsync(filters);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"{Loc[nameof(Resources.Dialogs.ManageDataRemoveErrorMessage)]}: {ex.Message}";
+            ErrorRecorder.RecordError("Failed to remove data", ex, writeToLogging: true);
+        }
+        finally
+        {
+            _isRemoving = false;
+            StateHasChanged();
         }
 
         await OnTelemetryChangedAsync();
@@ -549,6 +580,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         }
 
         _isExporting = true;
+        _errorMessage = null;
         StateHasChanged();
 
         try
@@ -559,6 +591,11 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
 
             using var streamRef = new DotNetStreamReference(memoryStream, leaveOpen: false);
             await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamRef);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"{Loc[nameof(Resources.Dialogs.ManageDataExportErrorMessage)]}: {ex.Message}";
+            ErrorRecorder.RecordError("Failed to export data", ex, writeToLogging: true);
         }
         finally
         {
