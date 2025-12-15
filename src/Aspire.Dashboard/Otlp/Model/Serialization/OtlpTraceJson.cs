@@ -14,7 +14,6 @@ internal sealed class OtlpTracesDataJson
     /// An array of ResourceSpans.
     /// </summary>
     [JsonPropertyName("resourceSpans")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpResourceSpansJson[]? ResourceSpans { get; set; }
 }
 
@@ -27,21 +26,18 @@ internal sealed class OtlpResourceSpansJson
     /// The resource for the spans in this message.
     /// </summary>
     [JsonPropertyName("resource")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpResourceJson? Resource { get; set; }
 
     /// <summary>
     /// A list of ScopeSpans that originate from a resource.
     /// </summary>
     [JsonPropertyName("scopeSpans")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpScopeSpansJson[]? ScopeSpans { get; set; }
 
     /// <summary>
     /// The Schema URL, if known.
     /// </summary>
     [JsonPropertyName("schemaUrl")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SchemaUrl { get; set; }
 }
 
@@ -54,21 +50,18 @@ internal sealed class OtlpScopeSpansJson
     /// The instrumentation scope information for the spans in this message.
     /// </summary>
     [JsonPropertyName("scope")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpInstrumentationScopeJson? Scope { get; set; }
 
     /// <summary>
     /// A list of Spans that originate from an instrumentation scope.
     /// </summary>
     [JsonPropertyName("spans")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpSpanJson[]? Spans { get; set; }
 
     /// <summary>
     /// The Schema URL, if known.
     /// </summary>
     [JsonPropertyName("schemaUrl")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SchemaUrl { get; set; }
 }
 
@@ -81,42 +74,36 @@ internal sealed class OtlpSpanJson
     /// A unique identifier for a trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("traceId")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TraceId { get; set; }
 
     /// <summary>
     /// A unique identifier for a span within a trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("spanId")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SpanId { get; set; }
 
     /// <summary>
     /// Trace state in w3c-trace-context format.
     /// </summary>
     [JsonPropertyName("traceState")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TraceState { get; set; }
 
     /// <summary>
     /// The span_id of this span's parent span. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("parentSpanId")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ParentSpanId { get; set; }
 
     /// <summary>
     /// Flags, a bit field (fixed32 per protobuf).
     /// </summary>
     [JsonPropertyName("flags")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public uint? Flags { get; set; }
 
     /// <summary>
     /// A description of the span's operation.
     /// </summary>
     [JsonPropertyName("name")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Name { get; set; }
 
     /// <summary>
@@ -124,14 +111,12 @@ internal sealed class OtlpSpanJson
     /// Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("kind")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? Kind { get; set; }
 
     /// <summary>
     /// The start time of the span. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("startTimeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? StartTimeUnixNano { get; set; }
 
@@ -139,7 +124,6 @@ internal sealed class OtlpSpanJson
     /// The end time of the span. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("endTimeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? EndTimeUnixNano { get; set; }
 
@@ -147,7 +131,6 @@ internal sealed class OtlpSpanJson
     /// A collection of key/value pairs.
     /// </summary>
     [JsonPropertyName("attributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Attributes { get; set; }
 
     /// <summary>
@@ -161,7 +144,6 @@ internal sealed class OtlpSpanJson
     /// A collection of Event items.
     /// </summary>
     [JsonPropertyName("events")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpSpanEventJson[]? Events { get; set; }
 
     /// <summary>
@@ -175,7 +157,6 @@ internal sealed class OtlpSpanJson
     /// A collection of Links.
     /// </summary>
     [JsonPropertyName("links")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpSpanLinkJson[]? Links { get; set; }
 
     /// <summary>
@@ -189,7 +170,6 @@ internal sealed class OtlpSpanJson
     /// An optional final status for this span.
     /// </summary>
     [JsonPropertyName("status")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpSpanStatusJson? Status { get; set; }
 }
 
@@ -226,7 +206,6 @@ internal sealed class OtlpSpanEventJson
     /// The time the event occurred. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("timeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? TimeUnixNano { get; set; }
 
@@ -234,14 +213,12 @@ internal sealed class OtlpSpanEventJson
     /// The name of the event.
     /// </summary>
     [JsonPropertyName("name")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Name { get; set; }
 
     /// <summary>
     /// A collection of attribute key/value pairs on the event.
     /// </summary>
     [JsonPropertyName("attributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Attributes { get; set; }
 
     /// <summary>
@@ -261,28 +238,24 @@ internal sealed class OtlpSpanLinkJson
     /// A unique identifier of a trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("traceId")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TraceId { get; set; }
 
     /// <summary>
     /// A unique identifier for the linked span. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("spanId")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SpanId { get; set; }
 
     /// <summary>
     /// The trace_state associated with the link.
     /// </summary>
     [JsonPropertyName("traceState")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TraceState { get; set; }
 
     /// <summary>
     /// A collection of attribute key/value pairs on the link.
     /// </summary>
     [JsonPropertyName("attributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Attributes { get; set; }
 
     /// <summary>
@@ -296,7 +269,6 @@ internal sealed class OtlpSpanLinkJson
     /// Flags, a bit field (fixed32 per protobuf).
     /// </summary>
     [JsonPropertyName("flags")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public uint? Flags { get; set; }
 }
 
@@ -309,14 +281,12 @@ internal sealed class OtlpSpanStatusJson
     /// A developer-facing human readable error message.
     /// </summary>
     [JsonPropertyName("message")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Message { get; set; }
 
     /// <summary>
     /// The status code. Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("code")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? Code { get; set; }
 }
 
@@ -344,7 +314,6 @@ internal sealed class OtlpExportTraceServiceRequestJson
     /// An array of ResourceSpans.
     /// </summary>
     [JsonPropertyName("resourceSpans")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpResourceSpansJson[]? ResourceSpans { get; set; }
 }
 
@@ -357,7 +326,6 @@ internal sealed class OtlpExportTraceServiceResponseJson
     /// The details of a partially successful export request.
     /// </summary>
     [JsonPropertyName("partialSuccess")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpExportTracePartialSuccessJson? PartialSuccess { get; set; }
 }
 
@@ -378,6 +346,5 @@ internal sealed class OtlpExportTracePartialSuccessJson
     /// A developer-facing human-readable error message.
     /// </summary>
     [JsonPropertyName("errorMessage")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ErrorMessage { get; set; }
 }

@@ -14,7 +14,6 @@ internal sealed class OtlpLogsDataJson
     /// An array of ResourceLogs.
     /// </summary>
     [JsonPropertyName("resourceLogs")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpResourceLogsJson[]? ResourceLogs { get; set; }
 }
 
@@ -27,21 +26,18 @@ internal sealed class OtlpResourceLogsJson
     /// The resource for the logs in this message.
     /// </summary>
     [JsonPropertyName("resource")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpResourceJson? Resource { get; set; }
 
     /// <summary>
     /// A list of ScopeLogs that originate from a resource.
     /// </summary>
     [JsonPropertyName("scopeLogs")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpScopeLogsJson[]? ScopeLogs { get; set; }
 
     /// <summary>
     /// The Schema URL, if known.
     /// </summary>
     [JsonPropertyName("schemaUrl")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SchemaUrl { get; set; }
 }
 
@@ -54,21 +50,18 @@ internal sealed class OtlpScopeLogsJson
     /// The instrumentation scope information for the logs in this message.
     /// </summary>
     [JsonPropertyName("scope")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpInstrumentationScopeJson? Scope { get; set; }
 
     /// <summary>
     /// A list of log records.
     /// </summary>
     [JsonPropertyName("logRecords")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpLogRecordJson[]? LogRecords { get; set; }
 
     /// <summary>
     /// The Schema URL, if known.
     /// </summary>
     [JsonPropertyName("schemaUrl")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SchemaUrl { get; set; }
 }
 
@@ -81,7 +74,6 @@ internal sealed class OtlpLogRecordJson
     /// Time when the event occurred. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("timeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? TimeUnixNano { get; set; }
 
@@ -89,7 +81,6 @@ internal sealed class OtlpLogRecordJson
     /// Time when the event was observed. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("observedTimeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? ObservedTimeUnixNano { get; set; }
 
@@ -97,28 +88,24 @@ internal sealed class OtlpLogRecordJson
     /// Numerical value of the severity. Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("severityNumber")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? SeverityNumber { get; set; }
 
     /// <summary>
     /// The severity text (also known as log level).
     /// </summary>
     [JsonPropertyName("severityText")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SeverityText { get; set; }
 
     /// <summary>
     /// A value containing the body of the log record.
     /// </summary>
     [JsonPropertyName("body")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpAnyValueJson? Body { get; set; }
 
     /// <summary>
     /// Additional attributes that describe the specific event occurrence.
     /// </summary>
     [JsonPropertyName("attributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Attributes { get; set; }
 
     /// <summary>
@@ -132,28 +119,24 @@ internal sealed class OtlpLogRecordJson
     /// Flags, a bit field (fixed32 per protobuf).
     /// </summary>
     [JsonPropertyName("flags")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public uint? Flags { get; set; }
 
     /// <summary>
     /// A unique identifier for a trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("traceId")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TraceId { get; set; }
 
     /// <summary>
     /// A unique identifier for a span within a trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("spanId")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SpanId { get; set; }
 
     /// <summary>
     /// A unique identifier of event category/type.
     /// </summary>
     [JsonPropertyName("eventName")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? EventName { get; set; }
 }
 
@@ -247,7 +230,6 @@ internal sealed class OtlpExportLogsServiceRequestJson
     /// An array of ResourceLogs.
     /// </summary>
     [JsonPropertyName("resourceLogs")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpResourceLogsJson[]? ResourceLogs { get; set; }
 }
 
@@ -260,7 +242,6 @@ internal sealed class OtlpExportLogsServiceResponseJson
     /// The details of a partially successful export request.
     /// </summary>
     [JsonPropertyName("partialSuccess")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpExportLogsPartialSuccessJson? PartialSuccess { get; set; }
 }
 
@@ -281,6 +262,5 @@ internal sealed class OtlpExportLogsPartialSuccessJson
     /// A developer-facing human-readable error message.
     /// </summary>
     [JsonPropertyName("errorMessage")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ErrorMessage { get; set; }
 }

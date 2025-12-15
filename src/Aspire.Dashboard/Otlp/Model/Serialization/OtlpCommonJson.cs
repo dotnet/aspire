@@ -15,21 +15,18 @@ internal sealed class OtlpAnyValueJson
     /// String value.
     /// </summary>
     [JsonPropertyName("stringValue")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? StringValue { get; set; }
 
     /// <summary>
     /// Boolean value.
     /// </summary>
     [JsonPropertyName("boolValue")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? BoolValue { get; set; }
 
     /// <summary>
     /// Integer value. Serialized as string per protojson spec for int64.
     /// </summary>
     [JsonPropertyName("intValue")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public long? IntValue { get; set; }
 
@@ -37,28 +34,24 @@ internal sealed class OtlpAnyValueJson
     /// Double value.
     /// </summary>
     [JsonPropertyName("doubleValue")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? DoubleValue { get; set; }
 
     /// <summary>
     /// Array value.
     /// </summary>
     [JsonPropertyName("arrayValue")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpArrayValueJson? ArrayValue { get; set; }
 
     /// <summary>
     /// Key-value list value.
     /// </summary>
     [JsonPropertyName("kvlistValue")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueListJson? KvlistValue { get; set; }
 
     /// <summary>
     /// Bytes value. Serialized as base64 per protojson spec.
     /// </summary>
     [JsonPropertyName("bytesValue")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? BytesValue { get; set; }
 }
 
@@ -71,7 +64,6 @@ internal sealed class OtlpArrayValueJson
     /// Array of values.
     /// </summary>
     [JsonPropertyName("values")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpAnyValueJson[]? Values { get; set; }
 }
 
@@ -84,7 +76,6 @@ internal sealed class OtlpKeyValueListJson
     /// Collection of key/value pairs.
     /// </summary>
     [JsonPropertyName("values")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Values { get; set; }
 }
 
@@ -97,14 +88,12 @@ internal sealed class OtlpKeyValueJson
     /// The key name of the pair.
     /// </summary>
     [JsonPropertyName("key")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Key { get; set; }
 
     /// <summary>
     /// The value of the pair.
     /// </summary>
     [JsonPropertyName("value")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpAnyValueJson? Value { get; set; }
 }
 
@@ -117,21 +106,18 @@ internal sealed class OtlpInstrumentationScopeJson
     /// A name denoting the instrumentation scope.
     /// </summary>
     [JsonPropertyName("name")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Name { get; set; }
 
     /// <summary>
     /// The version of the instrumentation scope.
     /// </summary>
     [JsonPropertyName("version")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Version { get; set; }
 
     /// <summary>
     /// Additional attributes that describe the scope.
     /// </summary>
     [JsonPropertyName("attributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Attributes { get; set; }
 
     /// <summary>
@@ -151,27 +137,23 @@ internal sealed class OtlpEntityRefJson
     /// The Schema URL, if known.
     /// </summary>
     [JsonPropertyName("schemaUrl")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SchemaUrl { get; set; }
 
     /// <summary>
     /// Defines the type of the entity.
     /// </summary>
     [JsonPropertyName("type")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Type { get; set; }
 
     /// <summary>
     /// Attribute keys that identify the entity.
     /// </summary>
     [JsonPropertyName("idKeys")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string[]? IdKeys { get; set; }
 
     /// <summary>
     /// Descriptive (non-identifying) attribute keys of the entity.
     /// </summary>
     [JsonPropertyName("descriptionKeys")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string[]? DescriptionKeys { get; set; }
 }

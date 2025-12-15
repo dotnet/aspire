@@ -14,7 +14,6 @@ internal sealed class OtlpResourceJson
     /// Set of attributes that describe the resource.
     /// </summary>
     [JsonPropertyName("attributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Attributes { get; set; }
 
     /// <summary>
@@ -28,6 +27,5 @@ internal sealed class OtlpResourceJson
     /// Set of entities that participate in this resource.
     /// </summary>
     [JsonPropertyName("entityRefs")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpEntityRefJson[]? EntityRefs { get; set; }
 }

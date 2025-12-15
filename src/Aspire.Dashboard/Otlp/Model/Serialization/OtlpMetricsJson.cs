@@ -14,7 +14,6 @@ internal sealed class OtlpMetricsDataJson
     /// An array of ResourceMetrics.
     /// </summary>
     [JsonPropertyName("resourceMetrics")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpResourceMetricsJson[]? ResourceMetrics { get; set; }
 }
 
@@ -27,21 +26,18 @@ internal sealed class OtlpResourceMetricsJson
     /// The resource for the metrics in this message.
     /// </summary>
     [JsonPropertyName("resource")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpResourceJson? Resource { get; set; }
 
     /// <summary>
     /// A list of metrics that originate from a resource.
     /// </summary>
     [JsonPropertyName("scopeMetrics")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpScopeMetricsJson[]? ScopeMetrics { get; set; }
 
     /// <summary>
     /// The Schema URL, if known.
     /// </summary>
     [JsonPropertyName("schemaUrl")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SchemaUrl { get; set; }
 }
 
@@ -54,21 +50,18 @@ internal sealed class OtlpScopeMetricsJson
     /// The instrumentation scope information for the metrics in this message.
     /// </summary>
     [JsonPropertyName("scope")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpInstrumentationScopeJson? Scope { get; set; }
 
     /// <summary>
     /// A list of metrics that originate from an instrumentation library.
     /// </summary>
     [JsonPropertyName("metrics")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpMetricJson[]? Metrics { get; set; }
 
     /// <summary>
     /// The Schema URL, if known.
     /// </summary>
     [JsonPropertyName("schemaUrl")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SchemaUrl { get; set; }
 }
 
@@ -81,63 +74,54 @@ internal sealed class OtlpMetricJson
     /// The name of the metric.
     /// </summary>
     [JsonPropertyName("name")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Name { get; set; }
 
     /// <summary>
     /// A description of the metric.
     /// </summary>
     [JsonPropertyName("description")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Description { get; set; }
 
     /// <summary>
     /// The unit in which the metric value is reported.
     /// </summary>
     [JsonPropertyName("unit")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Unit { get; set; }
 
     /// <summary>
     /// Gauge data.
     /// </summary>
     [JsonPropertyName("gauge")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpGaugeJson? Gauge { get; set; }
 
     /// <summary>
     /// Sum data.
     /// </summary>
     [JsonPropertyName("sum")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpSumJson? Sum { get; set; }
 
     /// <summary>
     /// Histogram data.
     /// </summary>
     [JsonPropertyName("histogram")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpHistogramJson? Histogram { get; set; }
 
     /// <summary>
     /// Exponential histogram data.
     /// </summary>
     [JsonPropertyName("exponentialHistogram")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpExponentialHistogramJson? ExponentialHistogram { get; set; }
 
     /// <summary>
     /// Summary data.
     /// </summary>
     [JsonPropertyName("summary")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpSummaryJson? Summary { get; set; }
 
     /// <summary>
     /// Additional metadata attributes that describe the metric.
     /// </summary>
     [JsonPropertyName("metadata")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Metadata { get; set; }
 }
 
@@ -150,7 +134,6 @@ internal sealed class OtlpGaugeJson
     /// The time series data points.
     /// </summary>
     [JsonPropertyName("dataPoints")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpNumberDataPointJson[]? DataPoints { get; set; }
 }
 
@@ -163,14 +146,12 @@ internal sealed class OtlpSumJson
     /// The time series data points.
     /// </summary>
     [JsonPropertyName("dataPoints")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpNumberDataPointJson[]? DataPoints { get; set; }
 
     /// <summary>
     /// Aggregation temporality. Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("aggregationTemporality")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? AggregationTemporality { get; set; }
 
     /// <summary>
@@ -190,14 +171,12 @@ internal sealed class OtlpHistogramJson
     /// The time series data points.
     /// </summary>
     [JsonPropertyName("dataPoints")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpHistogramDataPointJson[]? DataPoints { get; set; }
 
     /// <summary>
     /// Aggregation temporality. Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("aggregationTemporality")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? AggregationTemporality { get; set; }
 }
 
@@ -210,14 +189,12 @@ internal sealed class OtlpExponentialHistogramJson
     /// The time series data points.
     /// </summary>
     [JsonPropertyName("dataPoints")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpExponentialHistogramDataPointJson[]? DataPoints { get; set; }
 
     /// <summary>
     /// Aggregation temporality. Serialized as integer per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("aggregationTemporality")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? AggregationTemporality { get; set; }
 }
 
@@ -230,7 +207,6 @@ internal sealed class OtlpSummaryJson
     /// The time series data points.
     /// </summary>
     [JsonPropertyName("dataPoints")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpSummaryDataPointJson[]? DataPoints { get; set; }
 }
 
@@ -258,14 +234,12 @@ internal sealed class OtlpNumberDataPointJson
     /// The set of key/value pairs that uniquely identify the timeseries.
     /// </summary>
     [JsonPropertyName("attributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Attributes { get; set; }
 
     /// <summary>
     /// Start time of the aggregation. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("startTimeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? StartTimeUnixNano { get; set; }
 
@@ -273,7 +247,6 @@ internal sealed class OtlpNumberDataPointJson
     /// Time when the data point was recorded. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("timeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? TimeUnixNano { get; set; }
 
@@ -281,14 +254,12 @@ internal sealed class OtlpNumberDataPointJson
     /// Double value.
     /// </summary>
     [JsonPropertyName("asDouble")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? AsDouble { get; set; }
 
     /// <summary>
     /// Integer value. Serialized as string per protojson spec for sfixed64.
     /// </summary>
     [JsonPropertyName("asInt")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public long? AsInt { get; set; }
 
@@ -296,7 +267,6 @@ internal sealed class OtlpNumberDataPointJson
     /// List of exemplars collected from measurements.
     /// </summary>
     [JsonPropertyName("exemplars")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpExemplarJson[]? Exemplars { get; set; }
 
     /// <summary>
@@ -316,14 +286,12 @@ internal sealed class OtlpHistogramDataPointJson
     /// The set of key/value pairs that uniquely identify the timeseries.
     /// </summary>
     [JsonPropertyName("attributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Attributes { get; set; }
 
     /// <summary>
     /// Start time of the aggregation. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("startTimeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? StartTimeUnixNano { get; set; }
 
@@ -331,7 +299,6 @@ internal sealed class OtlpHistogramDataPointJson
     /// Time when the data point was recorded. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("timeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? TimeUnixNano { get; set; }
 
@@ -339,7 +306,6 @@ internal sealed class OtlpHistogramDataPointJson
     /// Count is the number of values in the population. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("count")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? Count { get; set; }
 
@@ -347,28 +313,24 @@ internal sealed class OtlpHistogramDataPointJson
     /// Sum of the values in the population.
     /// </summary>
     [JsonPropertyName("sum")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Sum { get; set; }
 
     /// <summary>
     /// Bucket counts for each bucket.
     /// </summary>
     [JsonPropertyName("bucketCounts")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string[]? BucketCounts { get; set; }
 
     /// <summary>
     /// Explicit bucket boundaries.
     /// </summary>
     [JsonPropertyName("explicitBounds")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double[]? ExplicitBounds { get; set; }
 
     /// <summary>
     /// List of exemplars collected from measurements.
     /// </summary>
     [JsonPropertyName("exemplars")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpExemplarJson[]? Exemplars { get; set; }
 
     /// <summary>
@@ -382,14 +344,12 @@ internal sealed class OtlpHistogramDataPointJson
     /// Minimum value over (start_time, end_time].
     /// </summary>
     [JsonPropertyName("min")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Min { get; set; }
 
     /// <summary>
     /// Maximum value over (start_time, end_time].
     /// </summary>
     [JsonPropertyName("max")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Max { get; set; }
 }
 
@@ -402,14 +362,12 @@ internal sealed class OtlpExponentialHistogramDataPointJson
     /// The set of key/value pairs that uniquely identify the timeseries.
     /// </summary>
     [JsonPropertyName("attributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Attributes { get; set; }
 
     /// <summary>
     /// Start time of the aggregation. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("startTimeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? StartTimeUnixNano { get; set; }
 
@@ -417,7 +375,6 @@ internal sealed class OtlpExponentialHistogramDataPointJson
     /// Time when the data point was recorded. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("timeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? TimeUnixNano { get; set; }
 
@@ -425,7 +382,6 @@ internal sealed class OtlpExponentialHistogramDataPointJson
     /// The number of values in the population. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("count")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? Count { get; set; }
 
@@ -433,7 +389,6 @@ internal sealed class OtlpExponentialHistogramDataPointJson
     /// Sum of the values in the population.
     /// </summary>
     [JsonPropertyName("sum")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Sum { get; set; }
 
     /// <summary>
@@ -447,7 +402,6 @@ internal sealed class OtlpExponentialHistogramDataPointJson
     /// The count of values that are either exactly zero or within the zero region. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("zeroCount")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? ZeroCount { get; set; }
 
@@ -455,14 +409,12 @@ internal sealed class OtlpExponentialHistogramDataPointJson
     /// Positive carries the positive range of exponential bucket counts.
     /// </summary>
     [JsonPropertyName("positive")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpExponentialHistogramBucketsJson? Positive { get; set; }
 
     /// <summary>
     /// Negative carries the negative range of exponential bucket counts.
     /// </summary>
     [JsonPropertyName("negative")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpExponentialHistogramBucketsJson? Negative { get; set; }
 
     /// <summary>
@@ -476,21 +428,18 @@ internal sealed class OtlpExponentialHistogramDataPointJson
     /// List of exemplars collected from measurements.
     /// </summary>
     [JsonPropertyName("exemplars")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpExemplarJson[]? Exemplars { get; set; }
 
     /// <summary>
     /// Minimum value over (start_time, end_time].
     /// </summary>
     [JsonPropertyName("min")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Min { get; set; }
 
     /// <summary>
     /// Maximum value over (start_time, end_time].
     /// </summary>
     [JsonPropertyName("max")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Max { get; set; }
 
     /// <summary>
@@ -517,7 +466,6 @@ internal sealed class OtlpExponentialHistogramBucketsJson
     /// An array of count values. Serialized as strings per protojson spec for uint64.
     /// </summary>
     [JsonPropertyName("bucketCounts")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string[]? BucketCounts { get; set; }
 }
 
@@ -530,14 +478,12 @@ internal sealed class OtlpSummaryDataPointJson
     /// The set of key/value pairs that uniquely identify the timeseries.
     /// </summary>
     [JsonPropertyName("attributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? Attributes { get; set; }
 
     /// <summary>
     /// Start time of the aggregation. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("startTimeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? StartTimeUnixNano { get; set; }
 
@@ -545,7 +491,6 @@ internal sealed class OtlpSummaryDataPointJson
     /// Time when the data point was recorded. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("timeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? TimeUnixNano { get; set; }
 
@@ -553,7 +498,6 @@ internal sealed class OtlpSummaryDataPointJson
     /// Count is the number of values in the population. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("count")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? Count { get; set; }
 
@@ -568,7 +512,6 @@ internal sealed class OtlpSummaryDataPointJson
     /// List of values at different quantiles.
     /// </summary>
     [JsonPropertyName("quantileValues")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpValueAtQuantileJson[]? QuantileValues { get; set; }
 
     /// <summary>
@@ -608,14 +551,12 @@ internal sealed class OtlpExemplarJson
     /// The set of key/value pairs that were filtered out by the aggregator.
     /// </summary>
     [JsonPropertyName("filteredAttributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpKeyValueJson[]? FilteredAttributes { get; set; }
 
     /// <summary>
     /// Time when this exemplar was recorded. Serialized as string per protojson spec for fixed64.
     /// </summary>
     [JsonPropertyName("timeUnixNano")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public ulong? TimeUnixNano { get; set; }
 
@@ -623,14 +564,12 @@ internal sealed class OtlpExemplarJson
     /// Double value.
     /// </summary>
     [JsonPropertyName("asDouble")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? AsDouble { get; set; }
 
     /// <summary>
     /// Integer value. Serialized as string per protojson spec for sfixed64.
     /// </summary>
     [JsonPropertyName("asInt")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
     public long? AsInt { get; set; }
 
@@ -638,14 +577,12 @@ internal sealed class OtlpExemplarJson
     /// Span ID of the exemplar trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("spanId")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SpanId { get; set; }
 
     /// <summary>
     /// Trace ID of the exemplar trace. Serialized as lowercase hex per OTLP/JSON spec.
     /// </summary>
     [JsonPropertyName("traceId")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TraceId { get; set; }
 }
 
@@ -658,7 +595,6 @@ internal sealed class OtlpExportMetricsServiceRequestJson
     /// An array of ResourceMetrics.
     /// </summary>
     [JsonPropertyName("resourceMetrics")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpResourceMetricsJson[]? ResourceMetrics { get; set; }
 }
 
@@ -671,7 +607,6 @@ internal sealed class OtlpExportMetricsServiceResponseJson
     /// The details of a partially successful export request.
     /// </summary>
     [JsonPropertyName("partialSuccess")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OtlpExportMetricsPartialSuccessJson? PartialSuccess { get; set; }
 }
 
@@ -692,6 +627,5 @@ internal sealed class OtlpExportMetricsPartialSuccessJson
     /// A developer-facing human-readable error message.
     /// </summary>
     [JsonPropertyName("errorMessage")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ErrorMessage { get; set; }
 }
