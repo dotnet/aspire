@@ -25,9 +25,9 @@ public sealed partial class RunningProcess : IRunningProcess
     private readonly StringBuilder? _stdoutCapture;
     private readonly StringBuilder? _stderrCapture;
     private readonly CancellationTokenSource _disposeCts;
-    private readonly Task? _stdoutCaptureTask;
-    private readonly Task? _stderrCaptureTask;
-
+    private Task? _stdoutDrainTask;
+    private Task? _stderrDrainTask;
+    private readonly TaskCompletionSource _drainStartedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private volatile ProcessExitReason _exitReason = ProcessExitReason.Exited;
     private bool _disposed;
 
@@ -53,9 +53,12 @@ public sealed partial class RunningProcess : IRunningProcess
             _stdoutCapture = new StringBuilder();
             _stderrCapture = new StringBuilder();
 
-            // Start background tasks to capture output
-            _stdoutCaptureTask = CaptureOutputAsync(_output, _stdoutCapture);
-            _stderrCaptureTask = CaptureOutputAsync(_error, _stderrCapture);
+            // Start background tasks to drain and capture output
+            _stdoutDrainTask = DrainOutputAsync(_output, _stdoutCapture);
+            _stderrDrainTask = DrainOutputAsync(_error, _stderrCapture);
+
+            // Signal that draining has started
+            _drainStartedTcs.TrySetResult();
         }
 
         SetupExitHandler();
@@ -70,7 +73,7 @@ public sealed partial class RunningProcess : IRunningProcess
     /// <inheritdoc />
     public PipeReader Error => _error;
 
-    private async Task CaptureOutputAsync(PipeReader reader, StringBuilder capture)
+    private async Task DrainOutputAsync(PipeReader reader, StringBuilder? capture = null)
     {
         try
         {
@@ -79,7 +82,7 @@ public sealed partial class RunningProcess : IRunningProcess
                 var result = await reader.ReadAsync(_disposeCts.Token).ConfigureAwait(false);
                 var buffer = result.Buffer;
 
-                if (buffer.Length > 0)
+                if (capture is not null && buffer.Length > 0)
                 {
                     foreach (var segment in buffer)
                     {
@@ -114,14 +117,17 @@ public sealed partial class RunningProcess : IRunningProcess
     {
         try
         {
-            // Wait for process to exit
-            await _process.WaitForExitAsync(_disposeCts.Token).ConfigureAwait(false);
+            // Wait for draining to start (either in constructor for capture, or in WaitAsync)
+            await _drainStartedTcs.Task.ConfigureAwait(false);
 
-            // Wait for capture tasks to complete if capturing
-            if (_stdoutCaptureTask is not null && _stderrCaptureTask is not null)
+            // Wait for output to be drained
+            if (_stdoutDrainTask is not null && _stderrDrainTask is not null)
             {
-                await Task.WhenAll(_stdoutCaptureTask, _stderrCaptureTask).ConfigureAwait(false);
+                await Task.WhenAll(_stdoutDrainTask, _stderrDrainTask).ConfigureAwait(false);
             }
+
+            // Wait for process to exit (should be quick since output is drained)
+            await _process.WaitForExitAsync(_disposeCts.Token).ConfigureAwait(false);
 
             // Create the result
             var result = new ProcessResult(
@@ -153,6 +159,17 @@ public sealed partial class RunningProcess : IRunningProcess
     public async Task<ProcessResult> WaitAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
+
+        // If draining hasn't started, start drain tasks to prevent deadlock
+        // (process may block if it outputs more than the OS pipe buffer and no one reads)
+        if (_stdoutDrainTask is null)
+        {
+            _stdoutDrainTask = DrainOutputAsync(_output);
+            _stderrDrainTask = DrainOutputAsync(_error);
+
+            // Signal that draining has started
+            _drainStartedTcs.TrySetResult();
+        }
 
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _disposeCts.Token);
 
@@ -317,6 +334,10 @@ public sealed partial class RunningProcess : IRunningProcess
         }
 
         _disposed = true;
+
+        // Signal drain started in case WaitAsync was never called
+        // (allows WaitForExitAndSetResultAsync to proceed and be cancelled)
+        _drainStartedTcs.TrySetResult();
 
         // Complete the input pipe to signal end of input
         await _input.CompleteAsync().ConfigureAwait(false);
