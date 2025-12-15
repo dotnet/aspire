@@ -6,6 +6,7 @@
 #pragma warning disable ASPIREPIPELINES002
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIRECOMPUTE003
 #pragma warning disable IDE0005
 
 using Aspire.Hosting.Backchannel;
@@ -2216,18 +2217,23 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         builder.Services.AddSingleton(testOutputHelper);
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
 
-        // Add a project that requires build and push
-        var project = builder.AddProject<DummyProject>("test-project", launchProfileName: null)
-            .ExcludeFromManifest(); // Exclude this resource from manifest
+        // Add a container registry so non-excluded projects can push
+        var registry = builder.AddContainerRegistry("test-registry", "registry.example.com");
 
-        // Note: No container registry is configured, which would normally cause an error
+        // Add a project that is NOT excluded - this should require the registry
+        var includedProject = builder.AddProject<DummyProject>("included-project", launchProfileName: null)
+            .WithContainerRegistry(registry);
+
+        // Add a project that IS excluded - this should be skipped entirely
+        var excludedProject = builder.AddProject<DummyProject>("excluded-project", launchProfileName: null)
+            .ExcludeFromManifest();
 
         using var app = builder.Build();
         var pipeline = new DistributedApplicationPipeline();
         var context = CreateDeployingContext(app);
 
-        // Act & Assert - Should not throw an exception because the resource is excluded from manifest
-        // Even though no registry is configured, the check should be skipped for excluded resources
+        // Act & Assert - Should not throw an exception
+        // The included project should use the registry, the excluded project should be skipped
         await pipeline.ExecuteAsync(context).DefaultTimeout();
     }
 
