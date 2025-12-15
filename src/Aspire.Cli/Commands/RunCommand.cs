@@ -542,7 +542,7 @@ internal sealed class RunCommand : BaseCommand
 
             if (appHostInfo is null)
             {
-                InteractionService.DisplayError(RunCommandStrings.RunningInstanceStopFailed);
+                logger?.LogDebug("Failed to stop running instance: AppHost information is null");
                 return false;
             }
 
@@ -562,7 +562,7 @@ internal sealed class RunCommand : BaseCommand
             }
             else
             {
-                InteractionService.DisplayError(RunCommandStrings.RunningInstanceStopFailed);
+                logger?.LogDebug("Failed to stop running instance: Process did not terminate within timeout");
             }
 
             return stopped;
@@ -570,8 +570,7 @@ internal sealed class RunCommand : BaseCommand
         catch (Exception ex)
         {
             var logger = _serviceProvider.GetService<ILogger<RunCommand>>();
-            logger?.LogWarning(ex, "Failed to stop running instance");
-            InteractionService.DisplayError(RunCommandStrings.RunningInstanceStopFailed);
+            logger?.LogDebug(ex, "Failed to stop running instance");
             return false;
         }
     }
