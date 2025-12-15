@@ -1,0 +1,85 @@
+name: Post-Release Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to set as baseline (e.g., 13.1.0)'
+        required: true
+        type: string
+      target_branch:
+        description: 'Target branch for the PR (usually main)'
+        required: true
+        type: string
+        default: 'main'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump_version:
+    name: Bump baseline version
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          ref: ${{ inputs.target_branch }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create branch for version bump
+        id: create_branch
+        run: |
+          BRANCH_NAME="automation/bump-baseline-version-${{ inputs.version }}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH_NAME"
+
+      - name: Update baseline version
+        shell: pwsh
+        run: |
+          ./eng/scripts/bump-baseline-version.ps1 -Version "${{ inputs.version }}"
+
+      - name: Commit changes
+        id: commit
+        run: |
+          git add eng/Versions.props
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            git commit -m "Update PackageValidationBaselineVersion to ${{ inputs.version }}"
+            git push origin "${{ steps.create_branch.outputs.branch_name }}"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create \
+            --base "${{ inputs.target_branch }}" \
+            --head "${{ steps.create_branch.outputs.branch_name }}" \
+            --title "Update PackageValidationBaselineVersion to ${{ inputs.version }}" \
+            --body "This PR updates the PackageValidationBaselineVersion to ${{ inputs.version }} following the release.
+
+          This is an automated PR created by the post-release-version-bump workflow.
+          
+          /cc @dotnet/aspire-contributors" \
+            --label "area-infrastructure"
+
+      - name: Summary
+        run: |
+          if [ "${{ steps.commit.outputs.has_changes }}" == "true" ]; then
+            echo "✅ Successfully created PR to update baseline version to ${{ inputs.version }}"
+          else
+            echo "ℹ️ No changes needed - baseline version is already up to date"
+          fi
