@@ -530,10 +530,10 @@ internal sealed class RunCommand : BaseCommand
 
     private async Task<bool> StopRunningInstanceAsync(string socketPath, CancellationToken cancellationToken)
     {
+        var logger = _serviceProvider.GetService<ILogger<RunCommand>>();
+        
         try
         {
-            var logger = _serviceProvider.GetService<ILogger<RunCommand>>();
-            
             // Connect to the auxiliary backchannel using the new encapsulated class
             using var backchannel = await AppHostAuxiliaryBackchannel.ConnectAsync(socketPath, logger, cancellationToken).ConfigureAwait(false);
 
@@ -569,7 +569,6 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (Exception ex)
         {
-            var logger = _serviceProvider.GetService<ILogger<RunCommand>>();
             logger?.LogDebug(ex, "Failed to stop running instance due to an exception. The instance may have already exited or the connection may have been lost.");
             return false;
         }
