@@ -1080,4 +1080,82 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.NotNull(capturedServices);
         Assert.Equal(app.Services, capturedServices);
     }
+
+    [Fact]
+    public async Task CanBuildImageFromDockerfileWithAdditionalArguments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a fake container runtime to capture additional arguments
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+
+        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath)
+            .WithContainerBuildOptions(ctx =>
+            {
+                ctx.AdditionalArguments.Add("--cache-from");
+                ctx.AdditionalArguments.Add("type=registry,ref=myregistry.io/cache");
+                ctx.AdditionalArguments.Add("--cache-to");
+                ctx.AdditionalArguments.Add("type=registry,ref=myregistry.io/cache,mode=max");
+            });
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
+        await imageBuilder.BuildImageAsync(container.Resource, cts.Token);
+
+        // Validate that BuildImageAsync succeeded by checking the log output
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Check for success logs
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource container"));
+
+        // Verify that the correct additional arguments were passed
+        Assert.NotNull(fakeContainerRuntime.CapturedAdditionalArguments);
+        Assert.Equal(4, fakeContainerRuntime.CapturedAdditionalArguments.Count);
+        Assert.Equal("--cache-from", fakeContainerRuntime.CapturedAdditionalArguments[0]);
+        Assert.Equal("type=registry,ref=myregistry.io/cache", fakeContainerRuntime.CapturedAdditionalArguments[1]);
+        Assert.Equal("--cache-to", fakeContainerRuntime.CapturedAdditionalArguments[2]);
+        Assert.Equal("type=registry,ref=myregistry.io/cache,mode=max", fakeContainerRuntime.CapturedAdditionalArguments[3]);
+    }
+
+    [Fact]
+    public async Task AdditionalArguments_EmptyList_NotPassedToRuntime()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a fake container runtime
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+
+        // Don't add any additional arguments
+        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath);
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
+        await imageBuilder.BuildImageAsync(container.Resource, cts.Token);
+
+        // Verify that no additional arguments were passed
+        Assert.Null(fakeContainerRuntime.CapturedAdditionalArguments);
+    }
 }

@@ -58,6 +58,15 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
         // Add stage if specified
         arguments += BuildStageString(stage);
 
+        // Add additional arguments if specified
+        if (options?.AdditionalArguments is { Count: > 0 })
+        {
+            foreach (var additionalArg in options.AdditionalArguments)
+            {
+                arguments += $" {additionalArg}";
+            }
+        }
+
         arguments += $" \"{contextPath}\"";
 
         // Prepare environment variables for build secrets

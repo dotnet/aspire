@@ -115,4 +115,19 @@ public sealed class ContainerBuildOptionsCallbackContext
     /// Gets or sets the local image tag for the built container.
     /// </summary>
     public string? LocalImageTag { get; set; }
+
+    /// <summary>
+    /// Gets the additional arguments to pass to the container build command.
+    /// </summary>
+    /// <remarks>
+    /// This list can be used to pass additional arguments that are not exposed by the existing properties.
+    /// For example, to configure BuildKit cache backends:
+    /// <code>
+    /// ctx.AdditionalArguments.Add("--cache-from");
+    /// ctx.AdditionalArguments.Add("type=registry,ref=myregistry.io/cache");
+    /// ctx.AdditionalArguments.Add("--cache-to");
+    /// ctx.AdditionalArguments.Add("type=registry,ref=myregistry.io/cache,mode=max");
+    /// </code>
+    /// </remarks>
+    public List<string> AdditionalArguments { get; } = [];
 }

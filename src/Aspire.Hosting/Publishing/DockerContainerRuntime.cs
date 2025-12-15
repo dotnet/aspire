@@ -90,6 +90,15 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
             // Add stage if specified
             arguments += BuildStageString(stage);
 
+            // Add additional arguments if specified
+            if (options?.AdditionalArguments is { Count: > 0 })
+            {
+                foreach (var additionalArg in options.AdditionalArguments)
+                {
+                    arguments += $" {additionalArg}";
+                }
+            }
+
             arguments += $" \"{contextPath}\"";
 
             var spec = new ProcessSpec("docker")

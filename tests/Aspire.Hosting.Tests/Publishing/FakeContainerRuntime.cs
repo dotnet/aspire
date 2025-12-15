@@ -27,6 +27,7 @@ public sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRu
     public Dictionary<string, string?>? CapturedBuildArguments { get; private set; }
     public Dictionary<string, string?>? CapturedBuildSecrets { get; private set; }
     public string? CapturedStage { get; private set; }
+    public List<string>? CapturedAdditionalArguments { get; private set; }
     public Func<string, string, ContainerImageBuildOptions?, Dictionary<string, string?>, Dictionary<string, string?>, string?, CancellationToken, Task>? BuildImageAsyncCallback { get; set; }
 
     public Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
@@ -74,6 +75,7 @@ public sealed class FakeContainerRuntime(bool shouldFail = false) : IContainerRu
         CapturedBuildArguments = buildArguments;
         CapturedBuildSecrets = buildSecrets;
         CapturedStage = stage;
+        CapturedAdditionalArguments = options?.AdditionalArguments;
         WasBuildImageCalled = true;
         BuildImageCalls.Add((contextPath, dockerfilePath, options));
 
