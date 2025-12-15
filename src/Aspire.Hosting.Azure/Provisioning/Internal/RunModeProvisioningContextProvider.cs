@@ -160,6 +160,11 @@ internal sealed class RunModeProvisioningContextProvider(
                 // Skip tenant prompting if subscription ID is already set
                 if (string.IsNullOrEmpty(_options.SubscriptionId))
                 {
+                    // Determine if tenant should depend on credential source
+                    var tenantDependsOn = (string.IsNullOrEmpty(_options.CredentialSource) || _options.CredentialSource == "Default")
+                        ? new[] { CredentialSourceName }
+                        : Array.Empty<string>();
+
                     inputs.Add(new InteractionInput
                     {
                         Name = TenantName,
@@ -172,13 +177,20 @@ internal sealed class RunModeProvisioningContextProvider(
                         {
                             LoadCallback = async (context) =>
                             {
+                                // If credential was just selected, update the option
+                                if (context.AllInputs.TryGetByName(CredentialSourceName, out var credentialInput))
+                                {
+                                    _options.CredentialSource = credentialInput.Value ?? "Default";
+                                }
+
                                 var (tenantOptions, fetchSucceeded) =
                                     await TryGetTenantsAsync(cancellationToken).ConfigureAwait(false);
 
                                 context.Input.Options = fetchSucceeded
                                     ? tenantOptions!
                                     : [];
-                            }
+                            },
+                            DependsOnInputs = tenantDependsOn
                         }
                     });
                 }
