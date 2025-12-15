@@ -5,7 +5,7 @@ PIPELINE DEPENDENCY GRAPH DIAGNOSTICS
 This diagnostic output shows the complete pipeline dependency graph structure.
 Use this to understand step relationships and troubleshoot execution issues.
 
-Total steps defined: 36
+Total steps defined: 37
 
 Analysis for full pipeline execution (showing all steps and their relationships)
 
@@ -37,19 +37,20 @@ Steps with no dependencies run first, followed by steps that depend on them.
  21. update-api-provisionable-resource
  22. provision-api-website
  23. print-api-summary
- 24. provision-api-roles-cache-kv
- 25. provision-api-roles-cosmos-kv
- 26. provision-api-roles-pg-kv
- 27. provision-azure-bicep-resources
- 28. print-dashboard-url-env
- 29. deploy
- 30. deploy-api
- 31. diagnostics
- 32. publish-prereq
- 33. publish-azure634f9
- 34. publish
- 35. publish-manifest
- 36. push
+ 24. deploy-api
+ 25. deploy-compute
+ 26. provision-api-roles-cache-kv
+ 27. provision-api-roles-cosmos-kv
+ 28. provision-api-roles-pg-kv
+ 29. provision-azure-bicep-resources
+ 30. print-dashboard-url-env
+ 31. deploy
+ 32. diagnostics
+ 33. publish-prereq
+ 34. publish-azure634f9
+ 35. publish
+ 36. publish-manifest
+ 37. push
 
 DETAILED STEP ANALYSIS
 ======================
@@ -82,13 +83,17 @@ Step: create-provisioning-context
 
 Step: deploy
     Description: Aggregation step for all deploy operations. All deploy steps should be required by this step.
-    Dependencies: ✓ build-api, ✓ create-provisioning-context, ✓ print-api-summary, ✓ print-dashboard-url-env, ✓ provision-azure-bicep-resources, ✓ validate-azure-login
+    Dependencies: ✓ build-api, ✓ create-provisioning-context, ✓ deploy-compute, ✓ print-api-summary, ✓ print-dashboard-url-env, ✓ provision-azure-bicep-resources, ✓ validate-azure-login
 
 Step: deploy-api
     Description: Aggregation step for deploying api to Azure App Service.
     Dependencies: ✓ print-api-summary
     Resource: api-website (AzureAppServiceWebSiteResource)
     Tags: deploy-compute
+
+Step: deploy-compute
+    Description: Aggregation step for all compute deployment operations. All compute deploy steps should be required by this step.
+    Dependencies: ✓ deploy-api
 
 Step: deploy-prereq
     Description: Prerequisite step that runs before any deploy operations. Initializes deployment environment and manages deployment state.
@@ -298,8 +303,8 @@ If targeting 'create-provisioning-context':
     [3] create-provisioning-context
 
 If targeting 'deploy':
-  Direct dependencies: build-api, create-provisioning-context, print-api-summary, print-dashboard-url-env, provision-azure-bicep-resources, validate-azure-login
-  Total steps: 28
+  Direct dependencies: build-api, create-provisioning-context, deploy-compute, print-api-summary, print-dashboard-url-env, provision-azure-bicep-resources, validate-azure-login
+  Total steps: 30
   Execution order:
     [0] process-parameters
     [1] build-prereq | deploy-prereq (parallel)
@@ -311,8 +316,9 @@ If targeting 'deploy':
     [7] push-api
     [8] provision-api-website
     [9] print-api-summary | provision-azure-bicep-resources (parallel)
-    [10] print-dashboard-url-env
-    [11] deploy
+    [10] deploy-api | print-dashboard-url-env (parallel)
+    [11] deploy-compute
+    [12] deploy
 
 If targeting 'deploy-api':
   Direct dependencies: print-api-summary
@@ -329,6 +335,23 @@ If targeting 'deploy-api':
     [8] provision-api-website
     [9] print-api-summary
     [10] deploy-api
+
+If targeting 'deploy-compute':
+  Direct dependencies: deploy-api
+  Total steps: 24
+  Execution order:
+    [0] process-parameters
+    [1] build-prereq | deploy-prereq (parallel)
+    [2] build-api | validate-azure-login (parallel)
+    [3] create-provisioning-context
+    [4] check-api-exists | provision-api-identity | provision-cache-kv | provision-cosmos-kv | provision-env-acr | provision-pg-kv (parallel)
+    [5] login-to-acr-env-acr | provision-cache | provision-cosmos | provision-env | provision-pg | update-api-provisionable-resource (parallel)
+    [6] push-prereq
+    [7] push-api
+    [8] provision-api-website
+    [9] print-api-summary
+    [10] deploy-api
+    [11] deploy-compute
 
 If targeting 'deploy-prereq':
   Direct dependencies: process-parameters

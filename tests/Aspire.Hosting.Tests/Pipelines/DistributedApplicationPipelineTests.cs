@@ -1424,7 +1424,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         await pipeline.ExecuteAsync(context).DefaultTimeout();
 
         Assert.True(callbackExecuted);
-        Assert.Equal(12, capturedSteps.Count); // Updated to account for all default steps including process-parameters, push, push-prereq
+        Assert.Equal(13, capturedSteps.Count); // Updated to account for all default steps including process-parameters, push, push-prereq
         Assert.Contains(capturedSteps, s => s.Name == "deploy");
         Assert.Contains(capturedSteps, s => s.Name == "process-parameters");
         Assert.Contains(capturedSteps, s => s.Name == "deploy-prereq");
@@ -1435,6 +1435,7 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         Assert.Contains(capturedSteps, s => s.Name == "publish");
         Assert.Contains(capturedSteps, s => s.Name == "publish-prereq");
         Assert.Contains(capturedSteps, s => s.Name == "diagnostics");
+        Assert.Contains(capturedSteps, s => s.Name == "deploy-compute");
         Assert.Contains(capturedSteps, s => s.Name == "step1");
         Assert.Contains(capturedSteps, s => s.Name == "step2");
     }
@@ -2034,19 +2035,19 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         builder.Services.AddSingleton(testOutputHelper);
 
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
-        
+
         // Add a parameter with a default value to trigger parameter processing
         builder.AddParameter("test-param", () => "default-value");
 
         var pipeline = new DistributedApplicationPipeline();
-        
+
         var executionTimes = new Dictionary<string, DateTime>();
         var lockObject = new object();
         PipelineStep? parameterPromptingStep = null;
         PipelineStep? deployPrereqStep = null;
         PipelineStep? buildPrereqStep = null;
         PipelineStep? publishPrereqStep = null;
-        
+
         // Capture steps and track execution order
         pipeline.AddPipelineConfiguration((configContext) =>
         {
@@ -2056,14 +2057,14 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
             publishPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.PublishPrereq);
             return Task.CompletedTask;
         });
-        
+
         // Add steps that depend on ProcessParameters and DeployPrereq to track their execution
         pipeline.AddStep("after-param-prompting", (context) =>
         {
             lock (lockObject) { executionTimes[WellKnownPipelineSteps.ProcessParameters] = DateTime.UtcNow; }
             return Task.CompletedTask;
         }, dependsOn: WellKnownPipelineSteps.ProcessParameters);
-        
+
         pipeline.AddStep("after-deploy-prereq", (context) =>
         {
             lock (lockObject) { executionTimes[WellKnownPipelineSteps.DeployPrereq] = DateTime.UtcNow; }
@@ -2080,18 +2081,18 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         Assert.NotNull(deployPrereqStep);
         Assert.NotNull(buildPrereqStep);
         Assert.NotNull(publishPrereqStep);
-        
+
         // Assert - Dependency relationships are configured correctly
         Assert.Contains(WellKnownPipelineSteps.DeployPrereq, parameterPromptingStep.RequiredBySteps);
         Assert.Contains(WellKnownPipelineSteps.BuildPrereq, parameterPromptingStep.RequiredBySteps);
         Assert.Contains(WellKnownPipelineSteps.PublishPrereq, parameterPromptingStep.RequiredBySteps);
-        
+
         // Assert - Execution order is correct (ProcessParameters before DeployPrereq)
         Assert.True(executionTimes.ContainsKey(WellKnownPipelineSteps.ProcessParameters));
         Assert.True(executionTimes.ContainsKey(WellKnownPipelineSteps.DeployPrereq));
-        Assert.True(executionTimes[WellKnownPipelineSteps.ProcessParameters] < executionTimes[WellKnownPipelineSteps.DeployPrereq], 
+        Assert.True(executionTimes[WellKnownPipelineSteps.ProcessParameters] < executionTimes[WellKnownPipelineSteps.DeployPrereq],
             "ProcessParameters should complete before DeployPrereq");
-        
+
         // Assert - Parameters are processed
         var paramResource = builder.Resources.OfType<ParameterResource>().FirstOrDefault(p => p.Name == "test-param");
         Assert.NotNull(paramResource);
