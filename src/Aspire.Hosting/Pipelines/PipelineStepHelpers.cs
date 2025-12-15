@@ -8,6 +8,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -19,12 +20,30 @@ internal static class PipelineStepHelpers
     /// <summary>
     /// Pushes a container image to a registry with proper logging and task reporting.
     /// If the registry is a local registry (empty endpoint), only tags the image without pushing.
+    /// If the image format is OCI (or other non-Docker format), this is a no-op since OCI images
+    /// are typically written to local file paths and don't require a push to a registry.
     /// </summary>
     /// <param name="resource">The resource whose image should be pushed.</param>
     /// <param name="context">The pipeline step context for logging and task reporting.</param>
     /// <returns>A task representing the async operation.</returns>
     public static async Task PushImageToRegistryAsync(IResource resource, PipelineStepContext context)
     {
+        // Check if the resource is configured to save images as archives
+        // rather than pushing to a registry. These don't require a push operation.
+        var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
+            context.Services,
+            context.Logger,
+            context.ExecutionContext,
+            context.CancellationToken).ConfigureAwait(false);
+
+        // Skip push operation if Destination is explicitly set to Archive
+        if (buildOptionsContext.Destination == ContainerImageDestination.Archive)
+        {
+            context.Logger.LogInformation("Skipping push for resource '{ResourceName}' - destination is {Destination}, not Registry", 
+                resource.Name, buildOptionsContext.Destination);
+            return;
+        }
+
         var registry = resource.GetContainerRegistry();
         var registryEndpoint = await registry.Endpoint.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
 
@@ -44,7 +63,7 @@ internal static class PipelineStepHelpers
     private static async Task TagImageForLocalRegistryAsync(IResource resource, PipelineStepContext context)
     {
         IValueProvider cir = new ContainerImageReference(resource);
-        var targetTag = await cir.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        var targetTag = await cir.GetValueAsync(new ValueProviderContext { ExecutionContext = context.ExecutionContext }, context.CancellationToken).ConfigureAwait(false);
 
         var tagTask = await context.ReportingStep.CreateTaskAsync(
             $"Tagging **{resource.Name}** for local use",
@@ -90,7 +109,7 @@ internal static class PipelineStepHelpers
             ?? throw new InvalidOperationException("Failed to retrieve container registry information.");
 
         IValueProvider cir = new ContainerImageReference(resource);
-        var targetTag = await cir.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        var targetTag = await cir.GetValueAsync(new ValueProviderContext { ExecutionContext = context.ExecutionContext }, context.CancellationToken).ConfigureAwait(false);
 
         var pushTask = await context.ReportingStep.CreateTaskAsync(
             $"Pushing **{resource.Name}** to **{registryName}**",

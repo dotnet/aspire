@@ -1160,6 +1160,21 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Gets the archive file path for a container image.
+    /// </summary>
+    /// <param name="outputPath">The output directory path.</param>
+    /// <param name="imageName">The image name.</param>
+    /// <param name="imageTag">The image tag (optional, defaults to "latest" if provided).</param>
+    /// <returns>The full path to the archive file with .tar extension.</returns>
+    internal static string GetContainerImageArchivePath(string outputPath, string imageName, string? imageTag = null)
+    {
+        var fileName = string.IsNullOrEmpty(imageTag)
+            ? $"{imageName}.tar"
+            : $"{imageName}-{imageTag}.tar";
+        return Path.Combine(outputPath, fileName);
+    }
+
+    /// <summary>
     /// Gets a logger for the specified resource using the provided service provider.
     /// </summary>
     /// <param name="resource">The resource to get the logger for.</param>

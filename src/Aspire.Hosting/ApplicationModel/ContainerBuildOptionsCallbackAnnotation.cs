@@ -87,6 +87,11 @@ public sealed class ContainerBuildOptionsCallbackContext
     public DistributedApplicationExecutionContext? ExecutionContext { get; }
 
     /// <summary>
+    /// Gets or sets the destination for the container image.
+    /// </summary>
+    public ContainerImageDestination? Destination { get; set; }
+
+    /// <summary>
     /// Gets or sets the output path for the container archive.
     /// </summary>
     public string? OutputPath { get; set; }
