@@ -236,6 +236,22 @@ internal sealed class ResourceContainerImageManager(
 
         var options = await ResolveContainerBuildOptionsAsync(resource, cancellationToken).ConfigureAwait(false);
 
+        // Check if this resource needs a container runtime
+        if (await ResourcesRequireContainerRuntimeAsync([resource], cancellationToken).ConfigureAwait(false))
+        {
+            logger.LogDebug("Checking {ContainerRuntimeName} health", ContainerRuntime.Name);
+
+            var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
+
+            if (!containerRuntimeHealthy)
+            {
+                logger.LogError("Container runtime is not running or is unhealthy. Cannot build container image.");
+                throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
+            }
+
+            logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
+        }
+
         if (resource is ProjectResource)
         {
             // If it is a project resource we need to build the container image
@@ -252,19 +268,6 @@ internal sealed class ResourceContainerImageManager(
             {
                 throw new InvalidOperationException("Resource image name could not be determined.");
             }
-
-            // Dockerfile builds always require a container runtime
-            logger.LogDebug("Checking {ContainerRuntimeName} health for Dockerfile build", ContainerRuntime.Name);
-
-            var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
-
-            if (!containerRuntimeHealthy)
-            {
-                logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images from Dockerfile.");
-                throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
-            }
-
-            logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
 
             // This is a container resource so we'll use the container runtime to build the image
             await BuildContainerImageFromDockerfileAsync(
@@ -522,21 +525,24 @@ internal sealed class ResourceContainerImageManager(
                 return true;
             }
 
-            // Check the container build options for each resource
-            var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
-                serviceProvider,
-                logger,
-                executionContext,
-                cancellationToken).ConfigureAwait(false);
-
-            // Skip resources that are explicitly configured to save as archives - they don't need Docker
-            if (buildOptionsContext.Destination == ContainerImageDestination.Archive)
-            {
-                continue;
-            }
-
             // Check if any resource uses Docker format or has no output path
             var options = await ResolveContainerBuildOptionsAsync(resource, cancellationToken).ConfigureAwait(false);
+
+            // Skip resources that are explicitly configured to save as archives - they don't need Docker
+            if (options.OutputPath is not null)
+            {
+                var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
+                    serviceProvider,
+                    logger,
+                    executionContext,
+                    cancellationToken).ConfigureAwait(false);
+
+                if (buildOptionsContext.Destination == ContainerImageDestination.Archive)
+                {
+                    continue;
+                }
+            }
+
             var usesDocker = options.ImageFormat == null || options.ImageFormat == ContainerImageFormat.Docker;
             var hasNoOutputPath = options.OutputPath == null;
 
