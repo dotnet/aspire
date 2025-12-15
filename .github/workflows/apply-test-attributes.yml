@@ -434,6 +434,7 @@ jobs:
           const { spawnSync } = require('child_process');
           const fs = require('fs');
           const path = require('path');
+          const os = require('os');
 
           const actionVerb = process.env.ACTION_VERB;
           const testNames = process.env.TEST_NAMES.split(' ');
@@ -462,7 +463,7 @@ jobs:
 
           // Helper to commit with a message (uses temp file for safety)
           function gitCommit(message) {
-            const msgFile = path.join(process.env.RUNNER_TEMP || '/tmp', 'commit-msg.txt');
+            const msgFile = path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'commit-msg.txt');
             fs.writeFileSync(msgFile, message);
             try {
               runGit(['commit', '-F', msgFile]);
