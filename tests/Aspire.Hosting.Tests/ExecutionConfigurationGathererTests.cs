@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
-public class ResourceExecutionConfigurationGathererTests
+public class ExecutionConfigurationGathererTests
 {
     #region ArgumentsExecutionConfigurationGatherer Tests
 
@@ -27,7 +27,7 @@ public class ResourceExecutionConfigurationGathererTests
 
         await builder.BuildAsync();
 
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new ArgumentsExecutionConfigurationGatherer();
 
         // Act
@@ -50,7 +50,7 @@ public class ResourceExecutionConfigurationGathererTests
 
         await builder.BuildAsync();
 
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new ArgumentsExecutionConfigurationGatherer();
 
         // Act
@@ -70,7 +70,7 @@ public class ResourceExecutionConfigurationGathererTests
 
         await builder.BuildAsync();
 
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new ArgumentsExecutionConfigurationGatherer();
 
         // Act
@@ -94,7 +94,7 @@ public class ResourceExecutionConfigurationGathererTests
 
         await builder.BuildAsync();
 
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new ArgumentsExecutionConfigurationGatherer();
 
         // Act
@@ -120,7 +120,7 @@ public class ResourceExecutionConfigurationGathererTests
 
         await builder.BuildAsync();
 
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
 
         // Act
@@ -143,7 +143,7 @@ public class ResourceExecutionConfigurationGathererTests
 
         await builder.BuildAsync();
 
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
 
         // Act
@@ -163,7 +163,7 @@ public class ResourceExecutionConfigurationGathererTests
 
         await builder.BuildAsync();
 
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
 
         // Act
@@ -187,7 +187,7 @@ public class ResourceExecutionConfigurationGathererTests
 
         await builder.BuildAsync();
 
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new EnvironmentVariablesExecutionConfigurationGatherer();
 
         // Act
@@ -217,7 +217,7 @@ public class ResourceExecutionConfigurationGathererTests
         await builder.BuildAsync();
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
@@ -245,7 +245,7 @@ public class ResourceExecutionConfigurationGathererTests
         await builder.BuildAsync();
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
@@ -275,7 +275,7 @@ public class ResourceExecutionConfigurationGathererTests
         await builder.BuildAsync();
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
@@ -303,7 +303,7 @@ public class ResourceExecutionConfigurationGathererTests
         await builder.BuildAsync();
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
@@ -325,7 +325,7 @@ public class ResourceExecutionConfigurationGathererTests
         await builder.BuildAsync();
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
@@ -351,7 +351,7 @@ public class ResourceExecutionConfigurationGathererTests
         await builder.BuildAsync();
 
         var configContextFactory = CreateCertificateTrustConfigurationContextFactory();
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new CertificateTrustExecutionConfigurationGatherer(configContextFactory);
 
         // Act
@@ -379,7 +379,7 @@ public class ResourceExecutionConfigurationGathererTests
         await builder.BuildAsync();
 
         var configContextFactory = CreateHttpsCertificateConfigurationContextFactory();
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new HttpsCertificateExecutionConfigurationGatherer(configContextFactory);
 
         // Act
@@ -412,7 +412,7 @@ public class ResourceExecutionConfigurationGathererTests
         await builder.BuildAsync();
 
         var configContextFactory = CreateHttpsCertificateConfigurationContextFactory();
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new HttpsCertificateExecutionConfigurationGatherer(configContextFactory);
 
         // Act
@@ -442,7 +442,7 @@ public class ResourceExecutionConfigurationGathererTests
         await builder.BuildAsync();
 
         var configContextFactory = CreateHttpsCertificateConfigurationContextFactory();
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new HttpsCertificateExecutionConfigurationGatherer(configContextFactory);
 
         // Act
@@ -462,7 +462,7 @@ public class ResourceExecutionConfigurationGathererTests
         await builder.BuildAsync();
 
         var configContextFactory = CreateHttpsCertificateConfigurationContextFactory();
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new HttpsCertificateExecutionConfigurationGatherer(configContextFactory);
 
         // Act
@@ -485,7 +485,7 @@ public class ResourceExecutionConfigurationGathererTests
         await builder.BuildAsync();
 
         var configContextFactory = CreateHttpsCertificateConfigurationContextFactory();
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
         var gatherer = new HttpsCertificateExecutionConfigurationGatherer(configContextFactory);
 
         // Act
@@ -527,7 +527,7 @@ public class ResourceExecutionConfigurationGathererTests
 
         var configContextFactory = CreateHttpsCertificateConfigurationContextFactory();
         var gatherer = new HttpsCertificateExecutionConfigurationGatherer(configContextFactory);
-        var context = new ResourceExecutionConfigurationGathererContext();
+        var context = new ExecutionConfigurationGathererContext();
 
         // Act
         await gatherer.GatherAsync(context, resource, NullLogger.Instance, builder.ExecutionContext);
