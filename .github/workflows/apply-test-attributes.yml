@@ -284,7 +284,14 @@ jobs:
               });
               pr = data;
             } catch (prError) {
-              const msg = `Failed to get PR #${targetPrNumber}: ${prError.message}. The PR may have been closed or deleted.`;
+              let msg;
+              if (prError.status === 404) {
+                msg = `PR #${targetPrNumber} was not found. It may have been deleted or the PR number is invalid.`;
+              } else if (prError.status === 403) {
+                msg = `Access denied when fetching PR #${targetPrNumber}. Check repository permissions.`;
+              } else {
+                msg = `Failed to get PR #${targetPrNumber}: ${prError.message} (status: ${prError.status || 'unknown'})`;
+              }
               core.setOutput('error_message', msg);
               core.setFailed(msg);
               return;
@@ -424,7 +431,7 @@ jobs:
         IS_NEW_PR: ${{ steps.determine-target.outputs.is_new_pr }}
       with:
         script: |
-          const { execSync, spawnSync } = require('child_process');
+          const { spawnSync } = require('child_process');
           const fs = require('fs');
           const path = require('path');
 
@@ -438,10 +445,6 @@ jobs:
           const isNewPr = process.env.IS_NEW_PR === 'true';
           const comment_user = context.payload.comment.user.login;
           const issue_number = context.issue.number;
-
-          // Configure git
-          execSync('git config user.name "github-actions"');
-          execSync('git config user.email "github-actions@github.com"');
 
           const testList = testNames.length === 1 ? testNames[0] : `${testNames.length} tests`;
           const commitMessage = `[automated] ${actionVerb} ${testList}`;
@@ -467,6 +470,10 @@ jobs:
               fs.unlinkSync(msgFile);
             }
           }
+
+          // Configure git
+          runGit(['config', 'user.name', 'github-actions']);
+          runGit(['config', 'user.email', 'github-actions@github.com']);
 
           let prUrl = '';
           let prNumber = null;
