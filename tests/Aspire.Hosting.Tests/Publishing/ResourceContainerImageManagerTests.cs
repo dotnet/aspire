@@ -1158,4 +1158,54 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         // Verify that no additional arguments were passed
         Assert.Null(fakeContainerRuntime.CapturedAdditionalArguments);
     }
+
+    [Fact]
+    public async Task CanBuildImageFromDockerfileWithBuildArgsAndAdditionalArguments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(output);
+        });
+
+        // Create a fake container runtime to capture both build arguments and additional arguments
+        var fakeContainerRuntime = new FakeContainerRuntime(shouldFail: false);
+        builder.Services.AddKeyedSingleton<IContainerRuntime>("docker", fakeContainerRuntime);
+
+        var (tempContextPath, tempDockerfilePath) = await DockerfileUtils.CreateTemporaryDockerfileAsync();
+
+        builder.Configuration["Parameters:buildarg"] = "test-value";
+        var buildArgParam = builder.AddParameter("buildarg");
+
+        var container = builder.AddDockerfile("container", tempContextPath, tempDockerfilePath)
+            .WithBuildArg("MY_ARG", buildArgParam)
+            .WithContainerBuildOptions(ctx =>
+            {
+                ctx.AdditionalArguments.Add("--cache-from");
+                ctx.AdditionalArguments.Add("type=local,src=/tmp/cache");
+            });
+
+        using var app = builder.Build();
+
+        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
+        var imageBuilder = app.Services.GetRequiredService<IResourceContainerImageManager>();
+        await imageBuilder.BuildImageAsync(container.Resource, cts.Token);
+
+        // Validate that BuildImageAsync succeeded
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+        Assert.Contains(logs, log => log.Message.Contains("Building container image for resource container"));
+
+        // Verify that both build arguments and additional arguments were passed
+        Assert.NotNull(fakeContainerRuntime.CapturedBuildArguments);
+        Assert.Single(fakeContainerRuntime.CapturedBuildArguments);
+        Assert.Equal("test-value", fakeContainerRuntime.CapturedBuildArguments["MY_ARG"]);
+
+        Assert.NotNull(fakeContainerRuntime.CapturedAdditionalArguments);
+        Assert.Equal(2, fakeContainerRuntime.CapturedAdditionalArguments.Count);
+        Assert.Equal("--cache-from", fakeContainerRuntime.CapturedAdditionalArguments[0]);
+        Assert.Equal("type=local,src=/tmp/cache", fakeContainerRuntime.CapturedAdditionalArguments[1]);
+    }
 }
