@@ -383,14 +383,12 @@ jobs:
         # Run the tool and capture output
         echo "Running: dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m $MODE -i \"$ISSUE_URL\" ${TEST_ARRAY[*]}"
 
-        set +e
         if [ "$ACTION" = "quarantine" ]; then
-          OUTPUT=$(dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m "$MODE" -i "$ISSUE_URL" "${TEST_ARRAY[@]}" 2>&1)
+          OUTPUT=$(dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m "$MODE" -i "$ISSUE_URL" "${TEST_ARRAY[@]}" 2>&1 || true)
         else
-          OUTPUT=$(dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m "$MODE" "${TEST_ARRAY[@]}" 2>&1)
+          OUTPUT=$(dotnet run --project ${{ github.workspace }}/tools/QuarantineTools/QuarantineTools.csproj -- $FLAG -m "$MODE" "${TEST_ARRAY[@]}" 2>&1 || true)
         fi
         EXIT_CODE=$?
-        set -e
 
         echo "$OUTPUT"
 
