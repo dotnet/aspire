@@ -176,12 +176,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         continue;
                     }
 
-                    // Skip resources that are excluded from publishing
-                    if (resource.IsExcludedFromPublish())
-                    {
-                        continue;
-                    }
-
                     // Check if the resource is configured to save images as archives
                     // rather than pushing to a registry. These don't require a registry.
                     var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
