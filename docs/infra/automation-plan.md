@@ -161,3 +161,85 @@ These tasks cannot be automated and remain manual:
 - Compliance sign-offs
 - Validation team communication
 - Feature coordination with area owners
+
+---
+
+## Implementation Status
+
+All phases have been implemented. The following files were created:
+
+**Workflows:**
+- `.github/workflows/release.yml` - ✅ Implemented
+- `.github/workflows/post-release-version-bump.yml` - ✅ Implemented
+- `.github/workflows/update-samples.yml` - ✅ Implemented
+- `.github/workflows/update-docker.yml` - ✅ Implemented
+- `.github/workflows/release-coordinator.yml` - ✅ Implemented
+
+**Scripts:**
+- `eng/scripts/bump-baseline-version.ps1` - ✅ Implemented
+- `eng/scripts/update-sample-versions.ps1` - ✅ Implemented
+
+**Templates:**
+- `.github/ISSUE_TEMPLATE/release-checklist.md` - ✅ Implemented
+
+**Modified:**
+- `eng/pipelines/azure-pipelines.yml` - ✅ VS Code extension publishing stage added
+
+### Prerequisites for Full Functionality
+
+1. **Azure DevOps Variable Group**:
+   - `VSCE_PAT` - Personal Access Token for VS Code Marketplace publishing
+
+2. **GitHub Repository Secrets**:
+   - `ASPIRE_BOT_APP_ID` - GitHub App ID for cross-repo updates
+   - `ASPIRE_BOT_PRIVATE_KEY` - GitHub App private key for cross-repo updates
+
+### Usage Instructions
+
+#### To Release a New Version:
+
+1. **Using Release Coordinator** (Recommended):
+   ```
+   1. Go to Actions → Release Coordinator → Run workflow
+   2. Enter version (e.g., 13.1.0 or 13.1.0-preview.1)
+   3. Select which tasks to execute:
+      - Create version tag (triggers release.yml)
+      - Update aspire-samples repository
+      - Update dotnet-docker repository
+      - Bump baseline version
+      - Create release checklist issue
+   4. Click "Run workflow"
+   5. Monitor progress and review created PRs
+   ```
+
+2. **Manual Tag-Based Release**:
+   ```bash
+   git tag v13.1.0
+   git push origin v13.1.0
+   # This automatically triggers release.yml workflow
+   ```
+
+#### To Update Cross-Repository Dependencies:
+
+Run individual workflows from the Actions tab:
+- **update-samples.yml** - Updates aspire-samples
+- **update-docker.yml** - Updates dotnet-docker dashboard image
+
+#### To Bump Baseline Version:
+
+Run the post-release-version-bump.yml workflow from the Actions tab with the version to set as baseline.
+
+### Testing Recommendations
+
+Before using in production:
+1. Test release.yml with a pre-release tag (e.g., `v13.1.0-test.1`)
+2. Test coordinator with a subset of tasks enabled
+3. Verify cross-repo PRs are created correctly
+4. Confirm VS Code extension publishing succeeds (requires proper credentials)
+
+### Notes
+
+- All workflows use workflow_dispatch for manual triggering (except release.yml which is tag-triggered)
+- Cross-repo updates require GitHub App credentials to create PRs in other repositories
+- VS Code extension publishing only runs on release branches in Azure Pipelines
+- The release workflow creates releases as **drafts** for manual review before publishing
