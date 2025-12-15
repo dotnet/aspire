@@ -892,11 +892,17 @@ public static class ResourceExtensions
     /// </summary>
     /// <remarks>
     /// Resources require an image build if they provide their own Dockerfile or are a project.
+    /// Resources that are excluded from publishing are not considered to require image building.
     /// </remarks>
     /// <param name="resource">The resource to evaluate for image build requirements.</param>
     /// <returns>True if the resource requires image building; otherwise, false.</returns>
     public static bool RequiresImageBuild(this IResource resource)
     {
+        if (resource.IsExcludedFromPublish())
+        {
+            return false;
+        }
+
         return resource is ProjectResource || resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _);
     }
 
@@ -906,6 +912,7 @@ public static class ResourceExtensions
     /// <remarks>
     /// Resources require an image build and a push to a container registry if they provide
     /// their own Dockerfile or are a project.
+    /// Resources that are excluded from publishing are not considered to require image building and pushing.
     /// </remarks>
     /// <param name="resource">The resource to evaluate for image push requirements.</param>
     /// <returns>True if the resource requires image building and pushing; otherwise, false.</returns>

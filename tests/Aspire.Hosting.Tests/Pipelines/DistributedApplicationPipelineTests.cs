@@ -2032,19 +2032,19 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         builder.Services.AddSingleton(testOutputHelper);
 
         builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
-        
+
         // Add a parameter with a default value to trigger parameter processing
         builder.AddParameter("test-param", () => "default-value");
 
         var pipeline = new DistributedApplicationPipeline();
-        
+
         var executionTimes = new Dictionary<string, DateTime>();
         var lockObject = new object();
         PipelineStep? parameterPromptingStep = null;
         PipelineStep? deployPrereqStep = null;
         PipelineStep? buildPrereqStep = null;
         PipelineStep? publishPrereqStep = null;
-        
+
         // Capture steps and track execution order
         pipeline.AddPipelineConfiguration((configContext) =>
         {
@@ -2054,14 +2054,14 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
             publishPrereqStep = configContext.Steps.FirstOrDefault(s => s.Name == WellKnownPipelineSteps.PublishPrereq);
             return Task.CompletedTask;
         });
-        
+
         // Add steps that depend on ProcessParameters and DeployPrereq to track their execution
         pipeline.AddStep("after-param-prompting", (context) =>
         {
             lock (lockObject) { executionTimes[WellKnownPipelineSteps.ProcessParameters] = DateTime.UtcNow; }
             return Task.CompletedTask;
         }, dependsOn: WellKnownPipelineSteps.ProcessParameters);
-        
+
         pipeline.AddStep("after-deploy-prereq", (context) =>
         {
             lock (lockObject) { executionTimes[WellKnownPipelineSteps.DeployPrereq] = DateTime.UtcNow; }
@@ -2078,23 +2078,56 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         Assert.NotNull(deployPrereqStep);
         Assert.NotNull(buildPrereqStep);
         Assert.NotNull(publishPrereqStep);
-        
+
         // Assert - Dependency relationships are configured correctly
         Assert.Contains(WellKnownPipelineSteps.DeployPrereq, parameterPromptingStep.RequiredBySteps);
         Assert.Contains(WellKnownPipelineSteps.BuildPrereq, parameterPromptingStep.RequiredBySteps);
         Assert.Contains(WellKnownPipelineSteps.PublishPrereq, parameterPromptingStep.RequiredBySteps);
-        
+
         // Assert - Execution order is correct (ProcessParameters before DeployPrereq)
         Assert.True(executionTimes.ContainsKey(WellKnownPipelineSteps.ProcessParameters));
         Assert.True(executionTimes.ContainsKey(WellKnownPipelineSteps.DeployPrereq));
-        Assert.True(executionTimes[WellKnownPipelineSteps.ProcessParameters] < executionTimes[WellKnownPipelineSteps.DeployPrereq], 
+        Assert.True(executionTimes[WellKnownPipelineSteps.ProcessParameters] < executionTimes[WellKnownPipelineSteps.DeployPrereq],
             "ProcessParameters should complete before DeployPrereq");
-        
+
         // Assert - Parameters are processed
         var paramResource = builder.Resources.OfType<ParameterResource>().FirstOrDefault(p => p.Name == "test-param");
         Assert.NotNull(paramResource);
         Assert.NotNull(paramResource.WaitForValueTcs);
         Assert.True(paramResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+    }
+
+    [Fact]
+    public async Task PushPrereq_SkipsExcludedFromManifestResources()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.PushPrereq).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+
+        // Add a container registry so non-excluded projects can push
+        var registry = builder.AddContainerRegistry("test-registry", "registry.example.com");
+
+        // Add a project that is NOT excluded - this should require the registry
+        var includedProject = builder.AddProject<DummyProject>("included-project", launchProfileName: null)
+            .WithContainerRegistry(registry);
+
+        // Add a project that IS excluded - this should be skipped entirely
+        var excludedProject = builder.AddProject<DummyProject>("excluded-project", launchProfileName: null)
+            .ExcludeFromManifest();
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(app);
+
+        // Act & Assert - Should not throw an exception
+        // The included project should use the registry, the excluded project should be skipped
+        await pipeline.ExecuteAsync(context).DefaultTimeout();
+    }
+
+    private sealed class DummyProject : IProjectMetadata
+    {
+        public string ProjectPath => "dummy.csproj";
     }
 
     private sealed class CustomResource(string name) : Resource(name)
