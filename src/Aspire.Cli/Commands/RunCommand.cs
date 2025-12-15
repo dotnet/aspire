@@ -542,7 +542,7 @@ internal sealed class RunCommand : BaseCommand
 
             if (appHostInfo is null)
             {
-                logger?.LogDebug("Failed to stop running instance: AppHost information is null");
+                logger?.LogDebug("Failed to stop running instance because appHostInfo was null. This may indicate the backchannel connection was established but no AppHost information was received.");
                 return false;
             }
 
@@ -562,7 +562,7 @@ internal sealed class RunCommand : BaseCommand
             }
             else
             {
-                logger?.LogDebug("Failed to stop running instance: Process did not terminate within timeout");
+                logger?.LogDebug("Failed to stop running instance because the process did not terminate within the {TimeoutMs}ms timeout period. The process may still be shutting down.", ProcessTerminationTimeoutMs);
             }
 
             return stopped;
@@ -570,7 +570,7 @@ internal sealed class RunCommand : BaseCommand
         catch (Exception ex)
         {
             var logger = _serviceProvider.GetService<ILogger<RunCommand>>();
-            logger?.LogDebug(ex, "Failed to stop running instance");
+            logger?.LogDebug(ex, "Failed to stop running instance due to an exception. The instance may have already exited or the connection may have been lost.");
             return false;
         }
     }
