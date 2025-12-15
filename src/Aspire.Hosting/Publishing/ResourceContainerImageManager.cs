@@ -172,6 +172,7 @@ internal sealed class ResourceContainerImageManager(
         public string? OutputPath { get; set; }
         public ContainerImageFormat? ImageFormat { get; set; }
         public ContainerTargetPlatform? TargetPlatform { get; set; }
+        public ContainerImageDestination? Destination { get; set; }
         public string LocalImageName { get; set; } = string.Empty;
         public string LocalImageTag { get; set; } = "latest";
     }
@@ -195,6 +196,7 @@ internal sealed class ResourceContainerImageManager(
         options.OutputPath = context.OutputPath;
         options.ImageFormat = context.ImageFormat;
         options.TargetPlatform = context.TargetPlatform;
+        options.Destination = context.Destination;
         options.LocalImageName = context.LocalImageName ?? options.LocalImageName;
         options.LocalImageTag = context.LocalImageTag ?? options.LocalImageTag;
 
@@ -529,18 +531,9 @@ internal sealed class ResourceContainerImageManager(
             var options = await ResolveContainerBuildOptionsAsync(resource, cancellationToken).ConfigureAwait(false);
 
             // Skip resources that are explicitly configured to save as archives - they don't need Docker
-            if (options.OutputPath is not null)
+            if (options.Destination == ContainerImageDestination.Archive)
             {
-                var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
-                    serviceProvider,
-                    logger,
-                    executionContext,
-                    cancellationToken).ConfigureAwait(false);
-
-                if (buildOptionsContext.Destination == ContainerImageDestination.Archive)
-                {
-                    continue;
-                }
+                continue;
             }
 
             var usesDocker = options.ImageFormat == null || options.ImageFormat == ContainerImageFormat.Docker;
