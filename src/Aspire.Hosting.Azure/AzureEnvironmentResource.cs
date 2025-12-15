@@ -122,6 +122,8 @@ public sealed class AzureEnvironmentResource : Resource
                 Action = ctx => DeprovisionAsync(ctx),
                 Tags = ["azure-deprovision"]
             };
+            // Deprovision step should depend on having the context created but is not required by any step
+            deprovisionStep.DependsOn(createContextStep);
 
             return [publishStep, validateStep, createContextStep, provisionStep, deprovisionStep];
         }));
@@ -223,22 +225,26 @@ public sealed class AzureEnvironmentResource : Resource
         // User confirmed, proceed with deletion
         try
         {
-            // Get the provisioning context
+            // Get the provisioning context with timeout
+            if (!ProvisioningContextTask.Task.IsCompleted)
+            {
+                await context.ReportingStep.CompleteAsync(
+                    "Cannot deprovision: provisioning context not available. The environment may not have been deployed yet.",
+                    CompletionState.CompletedWithError,
+                    context.CancellationToken).ConfigureAwait(false);
+                throw new InvalidOperationException("Provisioning context must be created before deprovisioning.");
+            }
+
             var provisioningContext = await ProvisioningContextTask.Task.ConfigureAwait(false);
             
             var resourceGroup = provisioningContext.ResourceGroup;
             
             context.Logger.LogInformation("Starting deletion of resource group '{ResourceGroupName}'...", resourceGroupName);
 
-            // Start the delete operation
+            // Delete the resource group and wait for completion
             var deleteOperation = await resourceGroup.DeleteAsync(
-                WaitUntil.Started,
+                WaitUntil.Completed,
                 context.CancellationToken).ConfigureAwait(false);
-
-            context.Logger.LogInformation("Resource group deletion initiated. Waiting for completion...");
-
-            // Wait for the operation to complete
-            await deleteOperation.WaitForCompletionResponseAsync(context.CancellationToken).ConfigureAwait(false);
 
             await context.ReportingStep.CompleteAsync(
                 $"Resource group '{resourceGroupName}' has been successfully deleted.",
