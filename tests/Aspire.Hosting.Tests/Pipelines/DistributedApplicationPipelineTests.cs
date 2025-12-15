@@ -2208,6 +2208,29 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         Assert.Contains("test-project", exception.Message);
     }
 
+    [Fact]
+    public async Task PushPrereq_SkipsExcludedFromManifestResources()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.PushPrereq).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+
+        // Add a project that requires build and push
+        var project = builder.AddProject<DummyProject>("test-project", launchProfileName: null)
+            .ExcludeFromManifest(); // Exclude this resource from manifest
+
+        // Note: No container registry is configured, which would normally cause an error
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(app);
+
+        // Act & Assert - Should not throw an exception because the resource is excluded from manifest
+        // Even though no registry is configured, the check should be skipped for excluded resources
+        await pipeline.ExecuteAsync(context).DefaultTimeout();
+    }
+
     private sealed class DummyProject : IProjectMetadata
     {
         public string ProjectPath => "dummy.csproj";
