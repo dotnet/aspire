@@ -253,6 +253,19 @@ internal sealed class ResourceContainerImageManager(
                 throw new InvalidOperationException("Resource image name could not be determined.");
             }
 
+            // Dockerfile builds always require a container runtime
+            logger.LogDebug("Checking {ContainerRuntimeName} health for Dockerfile build", ContainerRuntime.Name);
+
+            var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
+
+            if (!containerRuntimeHealthy)
+            {
+                logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images from Dockerfile.");
+                throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
+            }
+
+            logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
+
             // This is a container resource so we'll use the container runtime to build the image
             await BuildContainerImageFromDockerfileAsync(
                 resource,
@@ -500,18 +513,29 @@ internal sealed class ResourceContainerImageManager(
     // .NET Container builds that push OCI images to a local file path do not need a runtime
     private async Task<bool> ResourcesRequireContainerRuntimeAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
     {
-        var hasDockerfileResources = resources.Any(resource =>
-            resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
-            resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _));
-
-        if (hasDockerfileResources)
-        {
-            return true;
-        }
-
-        // Check if any resource uses Docker format or has no output path
         foreach (var resource in resources)
         {
+            // Check the container build options for each resource
+            var buildOptionsContext = await resource.ProcessContainerBuildOptionsCallbackAsync(
+                serviceProvider,
+                logger,
+                executionContext,
+                cancellationToken).ConfigureAwait(false);
+
+            // Skip resources that are configured to save as archives - they don't need Docker
+            if (buildOptionsContext.Destination == ContainerImageDestination.Archive)
+            {
+                continue;
+            }
+
+            // Dockerfile resources always need container runtime
+            if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
+                resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _))
+            {
+                return true;
+            }
+
+            // Check if any resource uses Docker format or has no output path
             var options = await ResolveContainerBuildOptionsAsync(resource, cancellationToken).ConfigureAwait(false);
             var usesDocker = options.ImageFormat == null || options.ImageFormat == ContainerImageFormat.Docker;
             var hasNoOutputPath = options.OutputPath == null;
