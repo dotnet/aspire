@@ -43,7 +43,7 @@ if (-not (Test-Path $SamplesPath)) {
 }
 
 # Find all .csproj files
-$projectFiles = Get-ChildItem -Path $SamplesPath -Filter "*.csproj" -Recurse
+$projectFiles = @(Get-ChildItem -Path $SamplesPath -Filter "*.csproj" -Recurse)
 
 if ($projectFiles.Count -eq 0) {
     Write-Warning "No .csproj files found in $SamplesPath"
