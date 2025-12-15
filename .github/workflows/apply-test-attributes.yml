@@ -395,7 +395,7 @@ jobs:
         echo "$OUTPUT"
 
         # Save output for failure comment (escape for GitHub Actions)
-        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+        EOF="EOF_$(date +%s%N)"
         echo "tool_output<<$EOF" >> $GITHUB_OUTPUT
         echo "$OUTPUT" >> $GITHUB_OUTPUT
         echo "$EOF" >> $GITHUB_OUTPUT
