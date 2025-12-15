@@ -171,7 +171,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private bool _noWrapLogs;
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
     private IDisposable? _consoleLogsFiltersChangedSubscription;
-    private ConsoleLogsFilters _consoleLogFilters = new();
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
@@ -190,7 +189,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         {
             lock (_updateLogsLock)
             {
-                _consoleLogFilters = ConsoleLogsManager.Filters;
                 _logEntries.Clear(keepActivePauseEntries: true);
             }
 
@@ -212,7 +210,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
 
         await ConsoleLogsManager.EnsureInitializedAsync();
-        _consoleLogFilters = ConsoleLogsManager.Filters;
 
         var loadingTcs = new TaskCompletionSource();
 
@@ -842,23 +839,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private DateTime? GetFilteredDateFromRemove()
     {
-        DateTime? timestampFilterDate;
-
-        if (PageViewModel.SelectedResource.Id is not null &&
-            _consoleLogFilters.FilterResourceLogsDates.TryGetValue(
-                PageViewModel.SelectedResource.Id.GetResourceKey().ToString(),
-                out var filterResourceLogsDate))
-        {
-            // There is a filter for this individual resource.
-            timestampFilterDate = filterResourceLogsDate;
-        }
-        else
-        {
-            // Fallback to the global filter (if any, it could be null).
-            timestampFilterDate = _consoleLogFilters.FilterAllLogsDate;
-        }
-
-        return timestampFilterDate;
+        var resourceKey = PageViewModel.SelectedResource.Id?.GetResourceKey().ToString();
+        return ConsoleLogsManager.GetFilterDate(resourceKey ?? string.Empty);
     }
 
     private async Task HandleSelectedOptionChangedAsync()
@@ -914,29 +896,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     {
         // Write all log entry content to a stream as UTF8 chars. Strip control sequences from log lines.
         var stream = new MemoryStream();
-        using (var writer = new StreamWriter(stream, leaveOpen: true))
+        lock (_updateLogsLock)
         {
-            lock (_updateLogsLock)
-            {
-                foreach (var entry in _logEntries.GetEntries())
-                {
-                    if (entry.Type is LogEntryType.Pause)
-                    {
-                        continue;
-                    }
-
-                    // It's ok to use sync stream methods here because we're writing to a MemoryStream.
-                    if (entry.RawContent is not null)
-                    {
-                        writer.WriteLine(AnsiParser.StripControlSequences(entry.RawContent));
-                    }
-                    else
-                    {
-                        writer.WriteLine();
-                    }
-                }
-                writer.Flush();
-            }
+            LogEntrySerializer.WriteLogEntriesToStream(_logEntries.GetEntries(), stream);
         }
         stream.Seek(0, SeekOrigin.Begin);
 
@@ -956,20 +918,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private async Task ClearConsoleLogs(ResourceKey? key)
     {
         var now = TimeProvider.GetUtcNow().UtcDateTime;
-        if (key is null)
-        {
-            _consoleLogFilters.FilterAllLogsDate = now;
-            _consoleLogFilters.FilterResourceLogsDates?.Clear();
-        }
-        else
-        {
-            _consoleLogFilters.FilterResourceLogsDates ??= [];
-            _consoleLogFilters.FilterResourceLogsDates[key.Value.ToString()] = now;
-        }
+        var newFilters = key is null
+            ? ConsoleLogsFilters.CreateClearAll(now)
+            : ConsoleLogsManager.Filters.WithResourceCleared(key.Value.ToString(), now);
 
         // Save filters to session storage so they're persisted when navigating to and from the console logs page.
         // This makes remove behavior persistent which matches removing telemetry.
-        await ConsoleLogsManager.UpdateFiltersAsync(_consoleLogFilters);
+        await ConsoleLogsManager.UpdateFiltersAsync(newFilters);
     }
 
     private void OnPausedChanged(bool isPaused)

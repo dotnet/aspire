@@ -637,6 +637,16 @@
         <target state="translated">모두 내보내기</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataExportErrorMessage">
+        <source>Failed to export data</source>
+        <target state="new">Failed to export data</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveErrorMessage">
+        <source>Failed to remove data</source>
+        <target state="new">Failed to remove data</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
         <source>Remove all</source>
         <target state="translated">모두 제거</target>

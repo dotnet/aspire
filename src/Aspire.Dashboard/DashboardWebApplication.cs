@@ -304,6 +304,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         // ShortcutManager is scoped because we want shortcuts to apply one browser window.
         builder.Services.AddScoped<ShortcutManager>();
         builder.Services.AddScoped<ConsoleLogsManager>();
+        builder.Services.AddScoped<ConsoleLogsFetcher>();
         builder.Services.AddScoped<TelemetryExportService>();
         builder.Services.AddSingleton<IInstrumentUnitResolver, DefaultInstrumentUnitResolver>();
 
