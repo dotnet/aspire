@@ -9,12 +9,12 @@
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
         <source>Which additional options do you want to enable?</source>
-        <target state="new">Which additional options do you want to enable?</target>
+        <target state="translated">어떤 추가 옵션을 사용하도록 설정하시겠습니까?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
         <source>Which agent environments do you want to configure?</source>
-        <target state="new">Which agent environments do you want to configure?</target>
+        <target state="translated">어떤 에이전트 환경을 구성하시겠습니까?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">
