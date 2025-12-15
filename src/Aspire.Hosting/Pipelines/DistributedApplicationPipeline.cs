@@ -12,6 +12,7 @@ using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -121,7 +122,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 context.Logger.LogInformation("Setting default deploy tag '{Tag}' for compute resource(s).", uniqueDeployTag);
 
                 // Resources that were built, will get this tag unless they have a custom ContainerImagePushOptionsCallbackAnnotation
-#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 foreach (var resource in context.Model.GetBuildResources())
                 {
                     if (resource.Annotations.OfType<ContainerImagePushOptionsCallbackAnnotation>().Any())
@@ -134,7 +134,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         context.Options.RemoteImageTag = uniqueDeployTag;
                     }));
                 }
-#pragma warning restore ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             }
         });
 
@@ -186,7 +185,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         context.CancellationToken).ConfigureAwait(false);
 
                     // Skip registry validation if Destination is explicitly set to Archive
-                    if (buildOptionsContext.Destination == Publishing.ContainerImageDestination.Archive)
+                    if (buildOptionsContext.Destination == ContainerImageDestination.Archive)
                     {
                         // Ensure OutputPath is set when Destination is Archive
                         if (string.IsNullOrEmpty(buildOptionsContext.OutputPath))
