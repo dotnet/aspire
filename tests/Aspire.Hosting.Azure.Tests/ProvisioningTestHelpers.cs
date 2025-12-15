@@ -397,6 +397,13 @@ internal sealed class TestResourceGroupResource : IResourceGroupResource
         }
         return new TestArmDeploymentCollection(_deploymentOutputs!);
     }
+
+    public Task<ArmOperation> DeleteAsync(WaitUntil waitUntil, CancellationToken cancellationToken = default)
+    {
+        // For testing, just return a completed operation
+        var operation = new TestArmOperation();
+        return Task.FromResult<ArmOperation>(operation);
+    }
 }
 
 /// <summary>
@@ -454,6 +461,20 @@ internal sealed class TestTenantResource : ITenantResource
 /// <summary>
 /// Test implementation of ArmOperation for testing.
 /// </summary>
+internal sealed class TestArmOperation : ArmOperation
+{
+    public override string Id { get; } = Guid.NewGuid().ToString();
+    public override bool HasCompleted { get; } = true;
+
+    public override Response GetRawResponse() => new MockResponse(200);
+    public override Response UpdateStatus(CancellationToken cancellationToken = default) => new MockResponse(200);
+    public override ValueTask<Response> UpdateStatusAsync(CancellationToken cancellationToken = default) => new ValueTask<Response>(new MockResponse(200));
+    public override ValueTask<Response> WaitForCompletionResponseAsync(CancellationToken cancellationToken = default) => new ValueTask<Response>(new MockResponse(200));
+    public override ValueTask<Response> WaitForCompletionResponseAsync(TimeSpan pollingInterval, CancellationToken cancellationToken = default) => new ValueTask<Response>(new MockResponse(200));
+    public override Response WaitForCompletionResponse(CancellationToken cancellationToken = default) => new MockResponse(200);
+    public override Response WaitForCompletionResponse(TimeSpan pollingInterval, CancellationToken cancellationToken = default) => new MockResponse(200);
+}
+
 internal sealed class TestArmOperation<T>(T value) : ArmOperation<T>
 {
     public override string Id { get; } = Guid.NewGuid().ToString();

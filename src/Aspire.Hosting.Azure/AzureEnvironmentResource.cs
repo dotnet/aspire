@@ -11,8 +11,10 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Pipelines;
+using Azure;
 using Azure.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
@@ -113,7 +115,15 @@ public sealed class AzureEnvironmentResource : Resource
 
             provisionStep.DependsOn(createContextStep);
 
-            return [publishStep, validateStep, createContextStep, provisionStep];
+            var deprovisionStep = new PipelineStep
+            {
+                Name = $"deprovision-{Name}",
+                Description = "Deprovisions the Azure environment by deleting the resource group.",
+                Action = ctx => DeprovisionAsync(ctx),
+                Tags = ["azure-deprovision"]
+            };
+
+            return [publishStep, validateStep, createContextStep, provisionStep, deprovisionStep];
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
@@ -156,6 +166,92 @@ public sealed class AzureEnvironmentResource : Resource
         {
             await context.ReportingStep.CompleteAsync(
                 "Azure CLI authentication failed. Please run `az login` to authenticate before deploying. Learn more at [Azure CLI documentation](https://learn.microsoft.com/cli/azure/authenticate-azure-cli).",
+                CompletionState.CompletedWithError,
+                context.CancellationToken).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private async Task DeprovisionAsync(PipelineStepContext context)
+    {
+        var interactionService = context.Services.GetService<IInteractionService>();
+        
+        // If interaction service is not available, fail immediately
+        if (interactionService == null || !interactionService.IsAvailable)
+        {
+            await context.ReportingStep.CompleteAsync(
+                "Cannot deprovision: interaction service not available for confirmation prompt.",
+                CompletionState.CompletedWithError,
+                context.CancellationToken).ConfigureAwait(false);
+            throw new InvalidOperationException("Interaction service is required for deprovisioning operations.");
+        }
+
+        // Get the resource group name from the parameter
+        var resourceGroupName = await ResourceGroupName.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        
+        if (string.IsNullOrWhiteSpace(resourceGroupName))
+        {
+            await context.ReportingStep.CompleteAsync(
+                "Cannot deprovision: resource group name is not available.",
+                CompletionState.CompletedWithError,
+                context.CancellationToken).ConfigureAwait(false);
+            throw new InvalidOperationException("Resource group name is required for deprovisioning.");
+        }
+
+        // Prompt for confirmation
+        var confirmationResult = await interactionService.PromptConfirmationAsync(
+            "Confirm Deprovision",
+            $"Are you sure you want to delete the entire resource group '{resourceGroupName}'? This action cannot be undone and will delete all resources in the group.",
+            new MessageBoxInteractionOptions
+            {
+                Intent = MessageIntent.Warning,
+                PrimaryButtonText = "Delete Resource Group",
+                SecondaryButtonText = "Cancel"
+            },
+            context.CancellationToken).ConfigureAwait(false);
+
+        // If user canceled or declined
+        if (confirmationResult.Canceled || !confirmationResult.Data)
+        {
+            await context.ReportingStep.CompleteAsync(
+                "Deprovision operation canceled by user.",
+                CompletionState.Completed,
+                context.CancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        // User confirmed, proceed with deletion
+        try
+        {
+            // Get the provisioning context
+            var provisioningContext = await ProvisioningContextTask.Task.ConfigureAwait(false);
+            
+            var resourceGroup = provisioningContext.ResourceGroup;
+            
+            context.Logger.LogInformation("Starting deletion of resource group '{ResourceGroupName}'...", resourceGroupName);
+
+            // Start the delete operation
+            var deleteOperation = await resourceGroup.DeleteAsync(
+                WaitUntil.Started,
+                context.CancellationToken).ConfigureAwait(false);
+
+            context.Logger.LogInformation("Resource group deletion initiated. Waiting for completion...");
+
+            // Wait for the operation to complete
+            await deleteOperation.WaitForCompletionResponseAsync(context.CancellationToken).ConfigureAwait(false);
+
+            await context.ReportingStep.CompleteAsync(
+                $"Resource group '{resourceGroupName}' has been successfully deleted.",
+                CompletionState.Completed,
+                context.CancellationToken).ConfigureAwait(false);
+
+            context.Logger.LogInformation("Resource group '{ResourceGroupName}' deleted successfully.", resourceGroupName);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            context.Logger.LogError(ex, "Failed to delete resource group '{ResourceGroupName}'.", resourceGroupName);
+            await context.ReportingStep.CompleteAsync(
+                $"Failed to delete resource group: {ex.Message}",
                 CompletionState.CompletedWithError,
                 context.CancellationToken).ConfigureAwait(false);
             throw;
