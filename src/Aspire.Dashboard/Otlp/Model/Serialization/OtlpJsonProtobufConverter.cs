@@ -855,17 +855,29 @@ internal static class OtlpJsonToProtobufConverter
         return kvList;
     }
 
-    private static ByteString HexToByteString(string hex)
+    /// <summary>
+    /// Converts a hexadecimal string to a ByteString.
+    /// </summary>
+    /// <param name="hex">The hexadecimal string to convert.</param>
+    /// <returns>A ByteString containing the decoded bytes.</returns>
+    /// <exception cref="ArgumentException">Thrown when the hex string has an odd length.</exception>
+    internal static ByteString HexToByteString(string hex)
     {
         if (string.IsNullOrEmpty(hex))
         {
             return ByteString.Empty;
         }
 
+        if (hex.Length % 2 != 0)
+        {
+            throw new ArgumentException("Hex string must have an even length.", nameof(hex));
+        }
+
+        var hexSpan = hex.AsSpan();
         var bytes = new byte[hex.Length / 2];
         for (var i = 0; i < bytes.Length; i++)
         {
-            bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+            bytes[i] = byte.Parse(hexSpan.Slice(i * 2, 2), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture);
         }
         return ByteString.CopyFrom(bytes);
     }
