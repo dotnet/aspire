@@ -119,7 +119,8 @@ internal sealed class OtlpLogRecordJson
     /// Flags, a bit field (fixed32 per protobuf).
     /// </summary>
     [JsonPropertyName("flags")]
-    public uint? Flags { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public uint Flags { get; set; }
 
     /// <summary>
     /// A unique identifier for a trace. Serialized as lowercase hex per OTLP/JSON spec.

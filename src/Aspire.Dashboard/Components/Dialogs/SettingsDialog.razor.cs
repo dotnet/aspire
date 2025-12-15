@@ -8,6 +8,7 @@ using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
@@ -16,6 +17,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     private string? _currentSetting;
     private List<CultureInfo> _languageOptions = null!;
     private CultureInfo? _selectedUiCulture;
+    private bool _isExporting;
 
     private IDisposable? _themeChangedSubscription;
 
@@ -36,6 +38,12 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     [Inject]
     public required DashboardTelemetryService TelemetryService { get; init; }
+
+    [Inject]
+    public required TelemetryExportService TelemetryExportService { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
     protected override void OnInitialized()
     {
@@ -98,6 +106,31 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         TelemetryRepository.ClearAllSignals();
 
         await ConsoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = TimeProvider.GetUtcNow().UtcDateTime });
+    }
+
+    private async Task ExportAllAsync()
+    {
+        if (_isExporting)
+        {
+            return;
+        }
+
+        _isExporting = true;
+        StateHasChanged();
+
+        try
+        {
+            using var memoryStream = await TelemetryExportService.ExportAllAsync(CancellationToken.None);
+            var fileName = $"aspire-telemetry-export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip";
+
+            using var streamRef = new DotNetStreamReference(memoryStream, leaveOpen: false);
+            await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamRef);
+        }
+        finally
+        {
+            _isExporting = false;
+            StateHasChanged();
+        }
     }
 
     public void Dispose()
