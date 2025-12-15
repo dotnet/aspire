@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using System.Text.Json;
 using Aspire.Dashboard.Model;
 using Xunit;
@@ -16,10 +17,8 @@ public sealed class ConsoleLogsFiltersTests
         var filters = new ConsoleLogsFilters
         {
             FilterAllLogsDate = new DateTime(2023, 1, 2, 3, 4, 5, DateTimeKind.Utc),
-            FilterResourceLogsDates =
-            {
-                ["test-abc"] = new DateTime(2023, 1, 2, 3, 4, 5, DateTimeKind.Utc)
-            }
+            FilterResourceLogsDates = ImmutableDictionary<string, DateTime>.Empty
+                .Add("test-abc", new DateTime(2023, 1, 2, 3, 4, 5, DateTimeKind.Utc))
         };
 
         // Act

@@ -1123,6 +1123,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed to export telemetry:.
+        /// </summary>
+        public static string SettingsExportErrorMessage {
+            get {
+                return ResourceManager.GetString("SettingsExportErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Format JSON.
         /// </summary>
         public static string TextVisualizerDialogJsonFormat {

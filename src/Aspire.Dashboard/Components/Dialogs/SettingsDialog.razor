@@ -49,6 +49,10 @@
                     @Loc[nameof(Dialogs.SettingsExportAllButtonText)]
                 </FluentButton>
             </div>
+            @if (!string.IsNullOrEmpty(_exportErrorMessage))
+            {
+                <p class="export-error-message">@Loc[nameof(Dialogs.SettingsExportErrorMessage)] @_exportErrorMessage</p>
+            }
         </div>
 
         @if (TelemetryService is { IsTelemetryInitialized: true, IsTelemetryEnabled: true })

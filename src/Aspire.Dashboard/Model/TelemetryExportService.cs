@@ -4,6 +4,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
+using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
@@ -16,17 +17,17 @@ namespace Aspire.Dashboard.Model;
 public sealed class TelemetryExportService
 {
     private readonly TelemetryRepository _telemetryRepository;
-    private readonly IDashboardClient _dashboardClient;
+    private readonly ConsoleLogsFetcher _consoleLogsFetcher;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TelemetryExportService"/> class.
     /// </summary>
     /// <param name="telemetryRepository">The telemetry repository.</param>
-    /// <param name="dashboardClient">The dashboard client.</param>
-    public TelemetryExportService(TelemetryRepository telemetryRepository, IDashboardClient dashboardClient)
+    /// <param name="consoleLogsFetcher">The console logs fetcher.</param>
+    public TelemetryExportService(TelemetryRepository telemetryRepository, ConsoleLogsFetcher consoleLogsFetcher)
     {
         _telemetryRepository = telemetryRepository;
-        _dashboardClient = dashboardClient;
+        _consoleLogsFetcher = consoleLogsFetcher;
     }
 
     /// <summary>
@@ -61,42 +62,14 @@ public sealed class TelemetryExportService
 
     private async Task ExportConsoleLogsAsync(ZipArchive archive, CancellationToken cancellationToken)
     {
-        if (!_dashboardClient.IsEnabled)
-        {
-            return;
-        }
-
-        var resources = _dashboardClient.GetResources();
-
-        // Fetch console logs for all resources in parallel
-        var logTasks = resources.Select(async resource =>
-        {
-            var logs = new StringBuilder();
-
-            await foreach (var logBatch in _dashboardClient.GetConsoleLogs(resource.Name, cancellationToken).ConfigureAwait(false))
-            {
-                foreach (var logLine in logBatch)
-                {
-                    logs.AppendLine(logLine.Content);
-                }
-            }
-
-            return (Resource: resource, Logs: logs);
-        });
-
-        var results = await Task.WhenAll(logTasks).ConfigureAwait(false);
+        var allLogEntries = await _consoleLogsFetcher.FetchAllLogEntriesAsync(cancellationToken).ConfigureAwait(false);
 
         // Write results to archive sequentially (ZipArchive is not thread-safe)
-        foreach (var (resource, logs) in results)
+        foreach (var (resourceName, logEntries) in allLogEntries)
         {
-            if (logs.Length > 0)
-            {
-                var resourceName = ResourceViewModel.GetResourceName(resource, resources);
-                var entry = archive.CreateEntry($"consolelogs/{SanitizeFileName(resourceName)}.txt");
-                using var entryStream = entry.Open();
-                using var writer = new StreamWriter(entryStream, Encoding.UTF8);
-                await writer.WriteAsync(logs.ToString()).ConfigureAwait(false);
-            }
+            var entry = archive.CreateEntry($"consolelogs/{SanitizeFileName(resourceName)}.txt");
+            using var entryStream = entry.Open();
+            LogEntrySerializer.WriteLogEntriesToStream(logEntries, entryStream);
         }
     }
 

@@ -1,9 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.IO.Compression;
+using System.Threading.Channels;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Tests.Shared;
+using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
@@ -451,5 +456,254 @@ public sealed class TelemetryExportServiceTests
         Assert.NotNull(meter2Scope);
         Assert.NotNull(meter2Scope.Metrics);
         Assert.Single(meter2Scope.Metrics);
+    }
+
+    [Fact]
+    public async Task ExportAllAsync_ExportsTelemetryAndConsoleLogsFromMultipleResources()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+
+        // Add logs for two resources
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "Service1", instanceId: "instance-1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("Logger1"),
+                        LogRecords = { CreateLogRecord(time: s_testTime, message: "Log from Service1") }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "Service2", instanceId: "instance-2"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("Logger2"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddSeconds(1), message: "Log from Service2") }
+                    }
+                }
+            }
+        });
+
+        // Add traces for two resources
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "Service1", instanceId: "instance-1"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope("Tracer1"),
+                        Spans = { CreateSpan(traceId: "trace123456789012", spanId: "span1111", startTime: s_testTime, endTime: s_testTime.AddSeconds(5)) }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "Service2", instanceId: "instance-2"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope("Tracer2"),
+                        Spans = { CreateSpan(traceId: "trace987654321098", spanId: "span2222", startTime: s_testTime, endTime: s_testTime.AddSeconds(3)) }
+                    }
+                }
+            }
+        });
+
+        // Setup console logs for two resources
+        var consoleLogsChannels = new Dictionary<string, Channel<IReadOnlyList<ResourceLogLine>>>();
+        var service1Channel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var service2Channel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        consoleLogsChannels["Service1"] = service1Channel;
+        consoleLogsChannels["Service2"] = service2Channel;
+
+        // Add console log entries
+        service1Channel.Writer.TryWrite([new ResourceLogLine(1, "2024-01-15T10:30:00Z Console log line 1 from Service1", IsErrorMessage: false)]);
+        service1Channel.Writer.TryWrite([new ResourceLogLine(2, "2024-01-15T10:30:01Z Console log line 2 from Service1", IsErrorMessage: false)]);
+        service1Channel.Writer.Complete();
+
+        service2Channel.Writer.TryWrite([new ResourceLogLine(1, "2024-01-15T10:30:02Z Console log from Service2", IsErrorMessage: false)]);
+        service2Channel.Writer.Complete();
+
+        var testResources = new List<ResourceViewModel>
+        {
+            ModelTestHelpers.CreateResource(resourceName: "Service1", state: KnownResourceState.Running),
+            ModelTestHelpers.CreateResource(resourceName: "Service2", state: KnownResourceState.Running)
+        };
+
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name => consoleLogsChannels.TryGetValue(name, out var channel) ? channel : Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>(),
+            initialResources: testResources);
+
+        var sessionStorage = new TestSessionStorage();
+        var consoleLogsManager = new ConsoleLogsManager(sessionStorage);
+        await consoleLogsManager.EnsureInitializedAsync();
+
+        var consoleLogsFetcher = new ConsoleLogsFetcher(dashboardClient, consoleLogsManager);
+        var service = new TelemetryExportService(repository, consoleLogsFetcher);
+
+        // Act
+        using var zipStream = await service.ExportAllAsync(CancellationToken.None);
+
+        // Assert
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+        var entryNames = archive.Entries.Select(e => e.FullName).Order().ToList();
+
+        // Verify exactly the expected entries are present
+        Assert.Collection(entryNames,
+            name => Assert.Equal("consolelogs/Service1.txt", name),
+            name => Assert.Equal("consolelogs/Service2.txt", name),
+            name => Assert.Equal("structuredlogs/Service1.json", name),
+            name => Assert.Equal("structuredlogs/Service2.json", name),
+            name => Assert.Equal("traces/Service1.json", name),
+            name => Assert.Equal("traces/Service2.json", name));
+
+        // Verify console log content
+        var service1ConsoleLogEntry = archive.GetEntry("consolelogs/Service1.txt")!;
+        using var service1Reader = new StreamReader(service1ConsoleLogEntry.Open());
+        var service1ConsoleContent = await service1Reader.ReadToEndAsync();
+        Assert.Contains("Console log line 1 from Service1", service1ConsoleContent);
+        Assert.Contains("Console log line 2 from Service1", service1ConsoleContent);
+
+        var service2ConsoleLogEntry = archive.GetEntry("consolelogs/Service2.txt")!;
+        using var service2Reader = new StreamReader(service2ConsoleLogEntry.Open());
+        var service2ConsoleContent = await service2Reader.ReadToEndAsync();
+        Assert.Contains("Console log from Service2", service2ConsoleContent);
+    }
+
+    [Fact]
+    public async Task ExportAllAsync_WhenDashboardClientDisabled_ExportsOnlyTelemetry()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+
+        // Add logs
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "Service1", instanceId: "instance-1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("Logger1"),
+                        LogRecords = { CreateLogRecord(time: s_testTime, message: "Structured log") }
+                    }
+                }
+            }
+        });
+
+        // Dashboard client is disabled (no console logs)
+        var dashboardClient = new TestDashboardClient(isEnabled: false);
+
+        var sessionStorage = new TestSessionStorage();
+        var consoleLogsManager = new ConsoleLogsManager(sessionStorage);
+        await consoleLogsManager.EnsureInitializedAsync();
+
+        var consoleLogsFetcher = new ConsoleLogsFetcher(dashboardClient, consoleLogsManager);
+        var service = new TelemetryExportService(repository, consoleLogsFetcher);
+
+        // Act
+        using var zipStream = await service.ExportAllAsync(CancellationToken.None);
+
+        // Assert
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+        var entryNames = archive.Entries.Select(e => e.FullName).Order().ToList();
+
+        // Verify only structured logs are exported (no console logs)
+        Assert.Collection(entryNames,
+            name => Assert.Equal("structuredlogs/Service1.json", name));
+    }
+
+    [Fact]
+    public async Task ExportAllAsync_SkipsEmptyResources()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+
+        // Add logs for only one resource
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "ServiceWithLogs", instanceId: "instance-1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("Logger1"),
+                        LogRecords = { CreateLogRecord(time: s_testTime, message: "Log message") }
+                    }
+                }
+            }
+        });
+
+        // Add traces for a different resource
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "ServiceWithTraces", instanceId: "instance-2"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope("Tracer1"),
+                        Spans = { CreateSpan(traceId: "trace123456789012", spanId: "span1111", startTime: s_testTime, endTime: s_testTime.AddSeconds(5)) }
+                    }
+                }
+            }
+        });
+
+        var dashboardClient = new TestDashboardClient(isEnabled: false);
+
+        var sessionStorage = new TestSessionStorage();
+        var consoleLogsManager = new ConsoleLogsManager(sessionStorage);
+        await consoleLogsManager.EnsureInitializedAsync();
+
+        var consoleLogsFetcher = new ConsoleLogsFetcher(dashboardClient, consoleLogsManager);
+        var service = new TelemetryExportService(repository, consoleLogsFetcher);
+
+        // Act
+        using var zipStream = await service.ExportAllAsync(CancellationToken.None);
+
+        // Assert
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+        var entryNames = archive.Entries.Select(e => e.FullName).Order().ToList();
+
+        // Verify each resource only has its own data type exported
+        Assert.Collection(entryNames,
+            name => Assert.Equal("structuredlogs/ServiceWithLogs.json", name),
+            name => Assert.Equal("traces/ServiceWithTraces.json", name));
+    }
+
+    private sealed class TestSessionStorage : ISessionStorage
+    {
+        public Task<StorageResult<T>> GetAsync<T>(string key)
+        {
+            return Task.FromResult<StorageResult<T>>(new StorageResult<T>(success: false, value: default));
+        }
+
+        public Task SetAsync<T>(string key, T value)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

@@ -1,0 +1,4 @@
+.export-error-message {
+    margin-top: calc(var(--design-unit) * 2px);
+    color: var(--error);
+}

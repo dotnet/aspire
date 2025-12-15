@@ -587,6 +587,11 @@
         <target state="new">Export all</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsExportErrorMessage">
+        <source>Failed to export telemetry:</source>
+        <target state="new">Failed to export telemetry:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
         <source>Remove all</source>
         <target state="translated">Supprimer tout</target>

@@ -14,10 +14,12 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class SettingsDialog : IDialogContentComponent, IDisposable
 {
+    private readonly CancellationTokenSource _cts = new();
     private string? _currentSetting;
     private List<CultureInfo> _languageOptions = null!;
     private CultureInfo? _selectedUiCulture;
     private bool _isExporting;
+    private string? _exportErrorMessage;
 
     private IDisposable? _themeChangedSubscription;
 
@@ -116,15 +118,20 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         }
 
         _isExporting = true;
+        _exportErrorMessage = null;
         StateHasChanged();
 
         try
         {
-            using var memoryStream = await TelemetryExportService.ExportAllAsync(CancellationToken.None);
+            using var memoryStream = await TelemetryExportService.ExportAllAsync(_cts.Token);
             var fileName = $"aspire-telemetry-export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip";
 
             using var streamRef = new DotNetStreamReference(memoryStream, leaveOpen: false);
             await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamRef);
+        }
+        catch (Exception ex)
+        {
+            _exportErrorMessage = ex.Message;
         }
         finally
         {
@@ -135,6 +142,8 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     public void Dispose()
     {
+        _cts.Cancel();
+        _cts.Dispose();
         _themeChangedSubscription?.Dispose();
     }
 }
