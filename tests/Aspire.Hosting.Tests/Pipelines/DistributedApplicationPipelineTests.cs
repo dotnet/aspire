@@ -2208,41 +2208,6 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         Assert.Contains("test-project", exception.Message);
     }
 
-    [Fact]
-    public async Task DeployComputeMetaStep_ExistsAndRequiredByDeploy()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Diagnostics).WithTestAndResourceLogging(testOutputHelper);
-        var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
-
-        builder.Services.AddSingleton<IPipelineActivityReporter>(mockActivityReporter);
-
-        using var app = builder.Build();
-        
-        // Act
-        await app.RunAsync();
-
-        // Assert - verify the diagnostics output shows the deploy-compute meta step exists
-        var logs = mockActivityReporter.LoggedMessages
-                        .Where(s => s.StepTitle == "diagnostics")
-                        .Select(s => s.Message)
-                        .ToList();
-
-        // The diagnostics step outputs a single large message
-        Assert.NotEmpty(logs);
-        var diagnosticsOutput = logs[0];
-
-        // Verify deploy-compute meta step exists in the diagnostics output
-        Assert.Contains("Step: deploy-compute", diagnosticsOutput);
-        
-        // Verify the deploy step exists
-        Assert.Contains("Step: deploy", diagnosticsOutput);
-        
-        // Verify the deploy step depends on deploy-compute by checking that the output contains
-        // both "Step: deploy" followed by "Dependencies:" containing "deploy-compute"
-        Assert.Contains("Dependencies: ✓ deploy-compute", diagnosticsOutput);
-    }
-
     private sealed class DummyProject : IProjectMetadata
     {
         public string ProjectPath => "dummy.csproj";
