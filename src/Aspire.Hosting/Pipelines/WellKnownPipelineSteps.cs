@@ -60,6 +60,12 @@ public static class WellKnownPipelineSteps
     public const string PushPrereq = "push-prereq";
 
     /// <summary>
+    /// The meta-step that coordinates all compute deployment operations.
+    /// All compute deploy steps should be required by this step.
+    /// </summary>
+    public const string DeployCompute = "deploy-compute";
+
+    /// <summary>
     /// The diagnostic step that dumps dependency graph information for troubleshooting.
     /// </summary>
     public const string Diagnostics = "diagnostics";

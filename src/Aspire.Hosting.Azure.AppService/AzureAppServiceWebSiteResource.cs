@@ -140,7 +140,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Name = $"deploy-{targetResource.Name}",
                 Description = $"Aggregation step for deploying {targetResource.Name} to Azure App Service.",
                 Action = _ => Task.CompletedTask,
-                Tags = [WellKnownPipelineTags.DeployCompute]
+                Tags = [WellKnownPipelineTags.DeployCompute],
+                RequiredBySteps = [WellKnownPipelineSteps.DeployCompute]
             };
 
             deployStep.DependsOn(printResourceSummary);

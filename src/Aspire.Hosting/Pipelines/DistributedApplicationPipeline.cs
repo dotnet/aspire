@@ -42,6 +42,16 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             Action = _ => Task.CompletedTask,
         });
 
+        // Add a meta-step for compute deployment operations
+        var deployComputeStep = new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.DeployCompute,
+            Description = "Aggregation step for all compute deployment operations. All compute deploy steps should be required by this step.",
+            Action = _ => Task.CompletedTask
+        };
+        deployComputeStep.RequiredBy(WellKnownPipelineSteps.Deploy);
+        _steps.Add(deployComputeStep);
+
         var parameterPromptingStep = new PipelineStep
         {
             Name = WellKnownPipelineSteps.ProcessParameters,

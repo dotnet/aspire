@@ -76,7 +76,8 @@ public class AzureContainerAppResource : AzureProvisioningResource
                 Name = $"deploy-{targetResource.Name}",
                 Description = $"Aggregation step for deploying {targetResource.Name} to Azure Container Apps.",
                 Action = _ => Task.CompletedTask,
-                Tags = [WellKnownPipelineTags.DeployCompute]
+                Tags = [WellKnownPipelineTags.DeployCompute],
+                RequiredBySteps = [WellKnownPipelineSteps.DeployCompute]
             };
 
             deployStep.DependsOn(printResourceSummary);
