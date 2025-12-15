@@ -159,22 +159,24 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private async Task OnAllFilterVisibilityCheckedChangedAsync()
     {
-        await ClearSelectedResourceAsync();
-        await _dataGrid.SafeRefreshDataAsync();
+        await VisibleResourcesChangedAsync();
         UpdateMenuButtons();
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     private async Task OnResourceFilterVisibilityChangedAsync(string resourceType, bool isVisible)
     {
-        await UpdateResourceGraphResourcesAsync();
-        await ClearSelectedResourceAsync();
-        await _dataGrid.SafeRefreshDataAsync();
+        await VisibleResourcesChangedAsync();
         UpdateMenuButtons();
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     private async Task HandleSearchFilterChangedAsync()
+    {
+        await VisibleResourcesChangedAsync();
+    }
+
+    private async Task VisibleResourcesChangedAsync()
     {
         await UpdateResourceGraphResourcesAsync();
         await ClearSelectedResourceAsync();
@@ -524,13 +526,15 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             _showHiddenResources,
             _resourceByName.Values,
             SessionStorage,
-            EventCallback.Factory.Create<bool>(this,
-            async value =>
-            {
-                _showHiddenResources = value;
-                UpdateMenuButtons();
-                await _dataGrid.SafeRefreshDataAsync();
-            }));
+            EventCallback.Factory.Create<bool>(
+                this,
+                async value =>
+                {
+                    _showHiddenResources = value;
+                    UpdateMenuButtons();
+
+                    await VisibleResourcesChangedAsync();
+                }));
     }
 
     private bool HasCollapsedResources()

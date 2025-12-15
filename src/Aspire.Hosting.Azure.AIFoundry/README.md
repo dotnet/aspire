@@ -98,11 +98,11 @@ The Azure AI Foundry deployment resource inherits all properties from its parent
 
 | Property Name | Description |
 |---------------|-------------|
-| `Model`       | The deployment name when targeting Azure or model identifier when running Foundry Local, e.g., `Phi-4`, `my-chat` |
+| `ModelName`   | The deployment name when targeting Azure or model identifier when running Foundry Local, e.g., `Phi-4`, `my-chat` |
 | `Format`      | The deployment format, .e.g., `OpenAI`, `Microsoft`, `xAi`, `Deepseek` |
 | `Version`     | The deployment version, e.g., `1`, `2025-08-07` |
 
-Note: The property named `Model` refers to the deployment name when targeting Azure AI Foundry, but to the model identifier when running Foundry Local.
+Note: The property named `ModelName` refers to the deployment name when targeting Azure AI Foundry, but to the model identifier when running Foundry Local.
 
 Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPERTY]`. For instance, the `Uri` property of a resource called `chat` becomes `CHAT_URI`.
 

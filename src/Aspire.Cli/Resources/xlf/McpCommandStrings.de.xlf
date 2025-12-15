@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
         <source>Pre-configure Playwright MCP server?</source>
-        <target state="new">Pre-configure Playwright MCP server?</target>
+        <target state="translated">Playwright MCP-Server vorkonfigurieren?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
         <source>Create agent environment specific instruction files?</source>
-        <target state="new">Create agent environment specific instruction files?</target>
+        <target state="translated">Agentenspezifische Anweisungsdateien erstellen?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">

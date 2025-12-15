@@ -36,7 +36,7 @@ public class AzureAIFoundryDeploymentConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("Model", property.Key);
+                Assert.Equal("ModelName", property.Key);
                 Assert.Equal(AIFoundryModel.Local.Phi4.Name, property.Value.ValueExpression);
             },
             property =>
@@ -69,7 +69,7 @@ public class AzureAIFoundryDeploymentConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("Model", property.Key);
+                Assert.Equal("ModelName", property.Key);
                 // Should be AIFoundryModel.Microsoft.Phi4.Format but assigned dynamically
                 Assert.Equal("chat", property.Value.ValueExpression);
             },
