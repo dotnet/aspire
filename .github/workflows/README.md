@@ -2,7 +2,7 @@
 
 ## Quarantine/Disable Test Workflow
 
-The `quarantine-test.yml` workflow allows repository maintainers to quarantine, unquarantine, disable, or enable tests directly from issue or PR comments.
+The `apply-test-attributes.yml` workflow allows repository maintainers to quarantine, unquarantine, disable, or enable tests directly from issue or PR comments.
 
 ### Commands
 
