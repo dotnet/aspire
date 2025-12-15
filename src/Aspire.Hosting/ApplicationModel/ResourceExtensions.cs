@@ -918,11 +918,6 @@ public static class ResourceExtensions
     /// <returns>True if the resource requires image building and pushing; otherwise, false.</returns>
     public static bool RequiresImageBuildAndPush(this IResource resource)
     {
-        if (resource.IsExcludedFromPublish())
-        {
-            return false;
-        }
-
         return resource.RequiresImageBuild() && !resource.IsBuildOnlyContainer();
     }
 
