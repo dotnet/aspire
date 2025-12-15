@@ -133,4 +133,49 @@ public class AzureContainerAppEnvironmentExtensionsTests
         Assert.Contains("not an Azure Container Registry", exception.Message);
         Assert.Contains("env", exception.Message);
     }
+
+    [Fact]
+    public async Task MultipleAzureContainerRegistries_WithoutExplicitRegistry_ThrowsException()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Add two Azure Container Registries
+        builder.AddAzureContainerRegistry("acr1");
+        builder.AddAzureContainerRegistry("acr2");
+
+        // Create Container App Environment without explicit registry
+        var environment = builder.AddAzureContainerAppEnvironment("app-host");
+
+        // Act & Assert - Building the app (which triggers infrastructure configuration) should throw
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(environment.Resource);
+        });
+
+        Assert.Contains("Azure Container App environment 'app-host' has multiple Azure Container Registries available", ex.Message);
+        Assert.Contains("acr1", ex.Message);
+        Assert.Contains("acr2", ex.Message);
+        Assert.Contains("WithContainerRegistry", ex.Message);
+    }
+
+    [Fact]
+    public async Task MultipleAzureContainerRegistries_WithExplicitRegistry_Succeeds()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Add two Azure Container Registries
+        var acr1 = builder.AddAzureContainerRegistry("acr1");
+        builder.AddAzureContainerRegistry("acr2");
+
+        // Act - Creating Container App Environment with explicit registry should succeed
+        var environment = builder.AddAzureContainerAppEnvironment("app-host")
+            .WithContainerRegistry(acr1);
+
+        // Assert - Should not throw when building
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(environment.Resource);
+        Assert.NotNull(manifest);
+        Assert.NotNull(bicep);
+    }
 }

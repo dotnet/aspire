@@ -48,7 +48,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
         var registryName = $"{name}-acr";
         var defaultRegistry = CreateDefaultAzureContainerRegistry(builder, registryName);
 
-        var resource = new AzureAppServiceEnvironmentResource(name, static infra =>
+        var resource = new AzureAppServiceEnvironmentResource(name, infra =>
         {
             var prefix = infra.AspireResource.Name;
             var resource = (AzureAppServiceEnvironmentResource)infra.AspireResource;
@@ -79,6 +79,16 @@ public static partial class AzureAppServiceEnvironmentExtensions
             }
             else if (resource.DefaultContainerRegistry is not null)
             {
+                // Check if there are multiple Azure Container Registries in the app model
+                var existingRegistries = builder.Resources.OfType<AzureContainerRegistryResource>().ToArray();
+                if (existingRegistries.Length > 1)
+                {
+                    var registryNames = string.Join(", ", existingRegistries.Select(r => r.Name));
+                    throw new InvalidOperationException(
+                        $"Azure App Service environment '{resource.Name}' has multiple Azure Container Registries available - '{registryNames}'. " +
+                        $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
+                }
+                
                 registry = resource.DefaultContainerRegistry;
             }
 

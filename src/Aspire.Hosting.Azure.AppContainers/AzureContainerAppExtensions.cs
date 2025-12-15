@@ -57,7 +57,7 @@ public static class AzureContainerAppExtensions
     {
         builder.AddAzureContainerAppsInfrastructureCore();
 
-        var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, static infra =>
+        var containerAppEnvResource = new AzureContainerAppEnvironmentResource(name, infra =>
         {
             var appEnvResource = (AzureContainerAppEnvironmentResource)infra.AspireResource;
 
@@ -97,6 +97,16 @@ public static class AzureContainerAppExtensions
             }
             else if (appEnvResource.DefaultContainerRegistry is not null)
             {
+                // Check if there are multiple Azure Container Registries in the app model
+                var existingRegistries = builder.Resources.OfType<AzureContainerRegistryResource>().ToArray();
+                if (existingRegistries.Length > 1)
+                {
+                    var registryNames = string.Join(", ", existingRegistries.Select(r => r.Name));
+                    throw new InvalidOperationException(
+                        $"Azure Container App environment '{appEnvResource.Name}' has multiple Azure Container Registries available - '{registryNames}'. " +
+                        $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
+                }
+                
                 registry = appEnvResource.DefaultContainerRegistry;
             }
 
