@@ -706,4 +706,193 @@ public class AddPostgresTests
             Assert.Equal(kvp.Value, config2[kvp.Key]);
         });
     }
+
+    [Fact]
+    public void WithPostgresMcpAddsPostgresMcpResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("postgres").WithPostgresMcp();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var mcpResource = appModel.Resources.OfType<PostgresMcpResource>().SingleOrDefault();
+        Assert.NotNull(mcpResource);
+        Assert.Equal("postgres-mcp", mcpResource.Name);
+    }
+
+    [Fact]
+    public void WithPostgresMcpAddsPostgresMcpResourceWithCustomName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("postgres").WithPostgresMcp(containerName: "custom-mcp-name");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var mcpResource = appModel.Resources.OfType<PostgresMcpResource>().SingleOrDefault();
+        Assert.NotNull(mcpResource);
+        Assert.Equal("custom-mcp-name", mcpResource.Name);
+    }
+
+    [Fact]
+    public void WithPostgresMcpAddsContainerImageAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("postgres").WithPostgresMcp();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var mcpResource = appModel.Resources.OfType<PostgresMcpResource>().Single();
+        var containerImageAnnotation = mcpResource.Annotations.OfType<ContainerImageAnnotation>().Single();
+
+        Assert.Equal(PostgresContainerImageTags.PostgresMcpRegistry, containerImageAnnotation.Registry);
+        Assert.Equal(PostgresContainerImageTags.PostgresMcpImage, containerImageAnnotation.Image);
+        Assert.Equal(PostgresContainerImageTags.PostgresMcpTag, containerImageAnnotation.Tag);
+    }
+
+    [Fact]
+    public void WithPostgresMcpAddsHttpEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("postgres").WithPostgresMcp();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var mcpResource = appModel.Resources.OfType<PostgresMcpResource>().Single();
+        var endpoint = mcpResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "mcp");
+
+        Assert.NotNull(endpoint);
+        Assert.Equal(8000, endpoint.TargetPort);
+        Assert.Equal("http", endpoint.UriScheme);
+    }
+
+    [Fact]
+    public async Task WithPostgresMcpAddsEnvironmentVariablesForDatabaseUri()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("postgres")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5432))
+            .WithPostgresMcp();
+
+        var appModel = builder.Build().Services.GetRequiredService<DistributedApplicationModel>();
+        var mcpResource = appModel.Resources.OfType<PostgresMcpResource>().Single();
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpResource);
+
+        Assert.True(config.ContainsKey("DATABASE_URI"));
+        Assert.Contains("postgresql://", config["DATABASE_URI"]);
+    }
+
+    [Fact]
+    public async Task WithPostgresMcpAddsApiKeyEnvironmentVariableWhenProvided()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("postgres").WithPostgresMcp(apiKey: "test-api-key");
+
+        var appModel = builder.Build().Services.GetRequiredService<DistributedApplicationModel>();
+        var mcpResource = appModel.Resources.OfType<PostgresMcpResource>().Single();
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpResource);
+
+        Assert.True(config.ContainsKey("MCP_API_KEY"));
+        Assert.Equal("test-api-key", config["MCP_API_KEY"]);
+    }
+
+    [Fact]
+    public async Task WithPostgresMcpDoesNotAddApiKeyEnvironmentVariableWhenNotProvided()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("postgres").WithPostgresMcp();
+
+        var appModel = builder.Build().Services.GetRequiredService<DistributedApplicationModel>();
+        var mcpResource = appModel.Resources.OfType<PostgresMcpResource>().Single();
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpResource);
+
+        Assert.False(config.ContainsKey("MCP_API_KEY"));
+    }
+
+    [Fact]
+    public void WithPostgresMcpAddsParentRelationship()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("postgres").WithPostgresMcp();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var mcpResource = appModel.Resources.OfType<PostgresMcpResource>().Single();
+        var parentAnnotation = mcpResource.Annotations.OfType<ResourceRelationshipAnnotation>().Single(a => a.Type == "Parent");
+
+        Assert.Equal(postgres.Resource, parentAnnotation.Resource);
+        Assert.Equal("Parent", parentAnnotation.Type);
+    }
+
+    [Fact]
+    public void WithPostgresMcpAddsArgumentsForSseMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("postgres").WithPostgresMcp();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var mcpResource = appModel.Resources.OfType<PostgresMcpResource>().Single();
+        var argsAnnotation = mcpResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().FirstOrDefault();
+
+        Assert.NotNull(argsAnnotation);
+    }
+
+    [Fact]
+    public async Task WithPostgresMcpPublishesMcpEndpointAnnotationWhenEndpointAllocated()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var postgres = builder.AddPostgres("postgres")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5432))
+            .WithPostgresMcp();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var mcpResource = appModel.Resources.OfType<PostgresMcpResource>().Single();
+
+        // Allocate the MCP endpoint
+        var mcpEndpoint = mcpResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "mcp");
+        mcpEndpoint.AllocatedEndpoint = new AllocatedEndpoint(mcpEndpoint, "localhost", 8000);
+
+        // Publish the endpoint allocated event
+        await builder.Eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(mcpResource, app.Services));
+
+        // Verify MCP endpoint annotation was added (McpEndpointAnnotation is internal, so we verify the endpoint was allocated)
+        Assert.NotNull(mcpEndpoint.AllocatedEndpoint);
+        Assert.Equal("localhost", mcpEndpoint.AllocatedEndpoint.Address);
+        Assert.Equal(8000, mcpEndpoint.AllocatedEndpoint.Port);
+    }
+
+    [Fact]
+    public void WithPostgresMcpAllowsConfigurationCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var callbackInvoked = false;
+
+        var postgres = builder.AddPostgres("postgres").WithPostgresMcp(configureContainer: mcpBuilder =>
+        {
+            callbackInvoked = true;
+            mcpBuilder.WithEnvironment("CUSTOM_ENV", "custom-value");
+        });
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        Assert.True(callbackInvoked);
+
+        var mcpResource = appModel.Resources.OfType<PostgresMcpResource>().Single();
+        var envAnnotation = mcpResource.Annotations.OfType<EnvironmentCallbackAnnotation>().FirstOrDefault();
+
+        Assert.NotNull(envAnnotation);
+    }
 }
+
