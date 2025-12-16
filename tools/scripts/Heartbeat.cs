@@ -498,7 +498,7 @@ string GetTopProcesses()
     else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
     {
         // Use top on macOS to find top processes
-        var (success, output) = RunCommand("ps", "aux --sort=-%cpu", timeoutMs: 5000);
+        var (success, output) = RunCommand("ps", "aux -r", timeoutMs: 5000);
         if (success)
         {
             var processLines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(1).Take(10);
