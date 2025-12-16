@@ -24,6 +24,7 @@ internal sealed class FileLoggerProvider : ILoggerProvider
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private bool _environmentWritten;
     private bool _disposed;
+    private Task? _pendingWriteTask;
 
     public FileLoggerProvider(CliExecutionContext executionContext, TimeProvider timeProvider)
     {
@@ -83,20 +84,27 @@ internal sealed class FileLoggerProvider : ILoggerProvider
         return new DirectoryInfo(diagnosticsPath);
     }
 
-    internal async Task WriteLogEntryAsync(LogLevel logLevel, string categoryName, string message, Exception? exception)
+    internal Task WriteLogEntryAsync(LogLevel logLevel, string categoryName, string message, Exception? exception)
     {
         if (_logWriter == null || _disposed)
         {
-            return;
+            return Task.CompletedTask;
         }
 
+        // Store the task so tests can wait for it
+        _pendingWriteTask = WriteLogEntryInternalAsync(logLevel, categoryName, message, exception);
+        return _pendingWriteTask;
+    }
+
+    private async Task WriteLogEntryInternalAsync(LogLevel logLevel, string categoryName, string message, Exception? exception)
+    {
         await _writeLock.WaitAsync();
         try
         {
             var timestamp = _timeProvider.GetUtcNow();
             var logEntry = $"[{timestamp:yyyy-MM-dd HH:mm:ss}] [{GetLogLevelString(logLevel)}] {categoryName}: {message}";
             
-            await _logWriter.WriteLineAsync(logEntry);
+            await _logWriter!.WriteLineAsync(logEntry);
 
             if (exception != null)
             {
@@ -122,6 +130,17 @@ internal sealed class FileLoggerProvider : ILoggerProvider
         }
     }
 
+    /// <summary>
+    /// Waits for any pending async write operations to complete. For use in tests.
+    /// </summary>
+    internal async Task FlushAsync()
+    {
+        if (_pendingWriteTask != null)
+        {
+            await _pendingWriteTask;
+        }
+    }
+
     internal string? GetDiagnosticsPath()
     {
         return _diagnosticsDirectory?.Exists == true ? _diagnosticsDirectory.FullName : null;
@@ -138,50 +157,42 @@ internal sealed class FileLoggerProvider : ILoggerProvider
         {
             var environmentFilePath = Path.Combine(_diagnosticsDirectory.FullName, "environment.json");
             
-            var sb = new StringBuilder();
-            sb.AppendLine("{");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"  \"cli\": {{");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"version\": \"{JsonEncodedText.Encode(PackageUpdateHelpers.GetCurrentAssemblyVersion() ?? "unknown")}\",");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"debugMode\": {(_executionContext.DebugMode ? "true" : "false")},");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"verboseMode\": {(_executionContext.VerboseMode ? "true" : "false")}");
-            sb.AppendLine("  },");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"  \"os\": {{");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"platform\": \"{JsonEncodedText.Encode(RuntimeInformation.OSDescription)}\",");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"architecture\": \"{RuntimeInformation.OSArchitecture}\",");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"version\": \"{JsonEncodedText.Encode(Environment.OSVersion.VersionString)}\",");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"is64Bit\": {(Environment.Is64BitOperatingSystem ? "true" : "false")}");
-            sb.AppendLine("  },");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"  \"dotnet\": {{");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"runtimeVersion\": \"{JsonEncodedText.Encode(RuntimeInformation.FrameworkDescription)}\",");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"processArchitecture\": \"{RuntimeInformation.ProcessArchitecture}\"");
-            sb.AppendLine("  },");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"  \"process\": {{");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"processId\": {Environment.ProcessId},");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"workingDirectory\": \"{JsonEncodedText.Encode(_executionContext.WorkingDirectory.FullName)}\",");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"userName\": \"{JsonEncodedText.Encode(Environment.UserName)}\",");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    \"machineName\": \"{JsonEncodedText.Encode(Environment.MachineName)}\"");
-            sb.AppendLine("  },");
-            
-            var dockerInfo = await GetDockerInfoStringAsync();
-            sb.AppendLine(CultureInfo.InvariantCulture, $"  \"docker\": {dockerInfo},");
-            
+            var dockerInfo = await GetDockerInfoAsync();
             var envVars = GetRelevantEnvironmentVariables();
-            sb.AppendLine("  \"environment\": {");
-            var first = true;
-            foreach (var kvp in envVars)
-            {
-                if (!first)
-                {
-                    sb.AppendLine(",");
-                }
-                sb.Append(CultureInfo.InvariantCulture, $"    \"{JsonEncodedText.Encode(kvp.Key)}\": \"{JsonEncodedText.Encode(kvp.Value ?? "")}\"");
-                first = false;
-            }
-            sb.AppendLine();
-            sb.AppendLine("  }");
-            sb.AppendLine("}");
 
-            await File.WriteAllTextAsync(environmentFilePath, sb.ToString());
+            var snapshot = new EnvironmentSnapshot
+            {
+                Cli = new CliInfo
+                {
+                    Version = PackageUpdateHelpers.GetCurrentAssemblyVersion() ?? "unknown",
+                    DebugMode = _executionContext.DebugMode,
+                    VerboseMode = _executionContext.VerboseMode
+                },
+                Os = new OsInfo
+                {
+                    Platform = RuntimeInformation.OSDescription,
+                    Architecture = RuntimeInformation.OSArchitecture.ToString(),
+                    Version = Environment.OSVersion.VersionString,
+                    Is64Bit = Environment.Is64BitOperatingSystem
+                },
+                DotNet = new DotNetInfo
+                {
+                    RuntimeVersion = RuntimeInformation.FrameworkDescription,
+                    ProcessArchitecture = RuntimeInformation.ProcessArchitecture.ToString()
+                },
+                Process = new ProcessInfo
+                {
+                    ProcessId = Environment.ProcessId,
+                    WorkingDirectory = _executionContext.WorkingDirectory.FullName,
+                    UserName = Environment.UserName,
+                    MachineName = Environment.MachineName
+                },
+                Docker = dockerInfo,
+                Environment = envVars
+            };
+
+            var json = JsonSerializer.Serialize(snapshot, JsonSourceGenerationContext.Default.EnvironmentSnapshot);
+            await File.WriteAllTextAsync(environmentFilePath, json);
         }
         catch
         {
@@ -269,7 +280,7 @@ internal sealed class FileLoggerProvider : ILoggerProvider
         return sb.ToString();
     }
 
-    private static async Task<string> GetDockerInfoStringAsync()
+    private static async Task<DockerInfo> GetDockerInfoAsync()
     {
         try
         {
@@ -286,7 +297,11 @@ internal sealed class FileLoggerProvider : ILoggerProvider
             using var process = Process.Start(startInfo);
             if (process == null)
             {
-                return """{ "available": false, "error": "Failed to start docker process" }""";
+                return new DockerInfo
+                {
+                    Available = false,
+                    Error = "Failed to start docker process"
+                };
             }
 
             var output = await process.StandardOutput.ReadToEndAsync();
@@ -301,24 +316,40 @@ internal sealed class FileLoggerProvider : ILoggerProvider
                                        client.TryGetProperty("Version", out var cv) ? cv.GetString() : "unknown";
                     var serverVersion = doc.RootElement.TryGetProperty("Server", out var server) && 
                                        server.TryGetProperty("Version", out var sv) ? sv.GetString() : "unknown";
-                    return $"{{ \"available\": true, \"clientVersion\": \"{JsonEncodedText.Encode(clientVersion ?? "unknown")}\", \"serverVersion\": \"{JsonEncodedText.Encode(serverVersion ?? "unknown")}\" }}";
+                    return new DockerInfo
+                    {
+                        Available = true,
+                        ClientVersion = clientVersion ?? "unknown",
+                        ServerVersion = serverVersion ?? "unknown"
+                    };
                 }
                 catch
                 {
-                    return """{ "available": true, "version": "unknown" }""";
+                    return new DockerInfo
+                    {
+                        Available = true,
+                        ClientVersion = "unknown"
+                    };
                 }
             }
 
-            return """{ "available": false, "error": "Docker command failed" }""";
+            return new DockerInfo
+            {
+                Available = false,
+                Error = "Docker command failed"
+            };
         }
         catch (Exception ex)
         {
-            var encodedMessage = JsonEncodedText.Encode(ex.Message);
-            return $"{{ \"available\": false, \"error\": \"{encodedMessage}\" }}";
+            return new DockerInfo
+            {
+                Available = false,
+                Error = ex.Message
+            };
         }
     }
 
-    private static Dictionary<string, string?> GetRelevantEnvironmentVariables()
+    private static Dictionary<string, string> GetRelevantEnvironmentVariables()
     {
         var relevantVars = new[]
         {
@@ -335,7 +366,7 @@ internal sealed class FileLoggerProvider : ILoggerProvider
             "NUGET_PACKAGES"
         };
 
-        var envVars = new Dictionary<string, string?>();
+        var envVars = new Dictionary<string, string>();
         foreach (var varName in relevantVars)
         {
             var value = Environment.GetEnvironmentVariable(varName);

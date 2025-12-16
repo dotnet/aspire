@@ -10,7 +10,7 @@ namespace Aspire.Cli.Tests.Diagnostics;
 public class FileLoggerProviderTests
 {
     [Fact]
-    public void FileLoggerProvider_CreatesDirectoryWithTimestamp()
+    public async Task FileLoggerProvider_CreatesDirectoryWithTimestamp()
     {
         // Arrange
         var tempDir = Path.Combine(Path.GetTempPath(), "aspire-test-" + Guid.NewGuid());
@@ -32,8 +32,8 @@ public class FileLoggerProviderTests
             // Log an error to trigger bundle creation
             logger.LogError(new InvalidOperationException("Test error"), "Test error occurred");
             
-            // Give async writes time to complete
-            Thread.Sleep(100);
+            // Wait for async writes to complete
+            await provider.FlushAsync();
             
             var bundlePath = provider.GetDiagnosticsPath();
 
@@ -58,7 +58,7 @@ public class FileLoggerProviderTests
     }
 
     [Fact]
-    public void FileLoggerProvider_ErrorFileContainsExceptionDetails()
+    public async Task FileLoggerProvider_ErrorFileContainsExceptionDetails()
     {
         // Arrange
         var tempDir = Path.Combine(Path.GetTempPath(), "aspire-test-" + Guid.NewGuid());
@@ -79,8 +79,8 @@ public class FileLoggerProviderTests
             
             logger.LogError(new InvalidOperationException("Test error message"), "Build failed");
             
-            // Give async writes time to complete
-            Thread.Sleep(100);
+            // Wait for async writes to complete
+            await provider.FlushAsync();
             
             var bundlePath = provider.GetDiagnosticsPath();
 
@@ -106,7 +106,7 @@ public class FileLoggerProviderTests
     }
 
     [Fact]
-    public void FileLoggerProvider_EnvironmentFileContainsSystemInfo()
+    public async Task FileLoggerProvider_EnvironmentFileContainsSystemInfo()
     {
         // Arrange
         var tempDir = Path.Combine(Path.GetTempPath(), "aspire-test-" + Guid.NewGuid());
@@ -127,8 +127,8 @@ public class FileLoggerProviderTests
             
             logger.LogError(new InvalidOperationException("Test"), "Test error");
             
-            // Give async writes time to complete
-            Thread.Sleep(100);
+            // Wait for async writes to complete
+            await provider.FlushAsync();
             
             var bundlePath = provider.GetDiagnosticsPath();
 
@@ -162,7 +162,7 @@ public class FileLoggerProviderTests
     }
 
     [Fact]
-    public void FileLoggerProvider_HandlesInnerExceptions()
+    public async Task FileLoggerProvider_HandlesInnerExceptions()
     {
         // Arrange
         var tempDir = Path.Combine(Path.GetTempPath(), "aspire-test-" + Guid.NewGuid());
@@ -186,8 +186,8 @@ public class FileLoggerProviderTests
             
             logger.LogError(outerException, "Command failed");
             
-            // Give async writes time to complete
-            Thread.Sleep(100);
+            // Wait for async writes to complete
+            await provider.FlushAsync();
             
             var bundlePath = provider.GetDiagnosticsPath();
 
