@@ -137,12 +137,6 @@
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true" />
 
-    <!-- Build the script to ensure it's compiled (required for dotnet to run it with arguments) -->
-    <Exec Command="dotnet build &quot;$(_ReplaceTextScriptPath)&quot; -o &quot;$(RepoRoot)artifacts/bin/replace-text/Debug&quot;"
-          WorkingDirectory="$(MSBuildThisFileDirectory)"
-          StandardOutputImportance="Low"
-          StandardErrorImportance="Normal" />
-
     <!-- Execute the script with the .rsp file, using double dash to pass arguments directly to the script -->
     <Exec Command="dotnet &quot;$(_ReplaceTextScriptPath)&quot; -- @&quot;$(_RspFilePath)&quot;"
           WorkingDirectory="$(MSBuildThisFileDirectory)"
