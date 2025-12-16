@@ -42,11 +42,7 @@ resource worker 'Microsoft.App/containerApps@2025-02-02-preview' = {
           image: worker_containerimage
           name: 'worker'
           env: [
-            {
-            }
-            {
-            }
-            {
+                                    {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }

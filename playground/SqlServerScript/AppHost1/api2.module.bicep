@@ -49,11 +49,7 @@ resource api2 'Microsoft.App/containerApps@2025-02-02-preview' = {
           image: api2_containerimage
           name: 'api2'
           env: [
-            {
-            }
-            {
-            }
-            {
+                                    {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }

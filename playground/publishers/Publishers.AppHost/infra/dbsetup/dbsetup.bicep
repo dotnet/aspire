@@ -45,11 +45,7 @@ resource dbsetup 'Microsoft.App/containerApps@2024-03-01' = {
           image: dbsetup_containerimage
           name: 'dbsetup'
           env: [
-            {
-            }
-            {
-            }
-            {
+                                    {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }

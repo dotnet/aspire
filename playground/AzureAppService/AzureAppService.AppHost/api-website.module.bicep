@@ -61,8 +61,6 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           value: api_containerport
         }
         {
-        }
-        {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
           value: 'in_memory'
         }

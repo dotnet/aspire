@@ -44,11 +44,7 @@ resource webapp 'Microsoft.Web/sites@2025-03-01' = {
           name: 'WEBSITES_PORT'
           value: '9000'
         }
-        {
-        }
-        {
-        }
-        {
+                        {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
           value: 'in_memory'
         }

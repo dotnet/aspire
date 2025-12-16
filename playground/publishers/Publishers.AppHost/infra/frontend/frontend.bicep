@@ -60,11 +60,7 @@ resource frontend 'Microsoft.App/containerApps@2024-03-01' = {
           image: frontend_containerimage
           name: 'frontend'
           env: [
-            {
-            }
-            {
-            }
-            {
+                                    {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }

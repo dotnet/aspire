@@ -32,11 +32,7 @@ resource job 'Microsoft.App/jobs@2025-01-01' = {
           image: job_containerimage
           name: 'job'
           env: [
-            {
-            }
-            {
-            }
-            {
+                                    {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }
