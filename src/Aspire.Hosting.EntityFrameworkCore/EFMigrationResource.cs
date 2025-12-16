@@ -67,4 +67,9 @@ public class EFMigrationResource(string name, ProjectResource projectResource, s
     /// When specified, this project's assembly will be used as the target for migration operations.
     /// </remarks>
     public ProjectResource? MigrationsProject { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether a migration was recently added that requires a project rebuild.
+    /// </summary>
+    internal bool RequiresRebuild { get; set; }
 }

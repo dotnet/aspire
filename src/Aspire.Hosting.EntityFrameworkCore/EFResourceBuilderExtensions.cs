@@ -274,7 +274,8 @@ public static class EFResourceBuilderExtensions
             {
                 Description = "Apply pending migrations to the database",
                 IconName = "ArrowSync",
-                IconVariant = IconVariant.Regular
+                IconVariant = IconVariant.Regular,
+                UpdateState = _ => migrationResource.RequiresRebuild ? ResourceCommandState.Disabled : ResourceCommandState.Enabled
             });
 
         projectBuilder.WithCommand(
@@ -317,7 +318,8 @@ public static class EFResourceBuilderExtensions
             {
                 Description = "Create a new migration. Note: The target project will need to be recompiled after adding a migration.",
                 IconName = "Add",
-                IconVariant = IconVariant.Regular
+                IconVariant = IconVariant.Regular,
+                UpdateState = _ => migrationResource.RequiresRebuild ? ResourceCommandState.Disabled : ResourceCommandState.Enabled
             });
 
         projectBuilder.WithCommand(
@@ -328,7 +330,8 @@ public static class EFResourceBuilderExtensions
             {
                 Description = "Remove the last migration. Note: The target project will need to be recompiled after removing a migration.",
                 IconName = "Subtract",
-                IconVariant = IconVariant.Regular
+                IconVariant = IconVariant.Regular,
+                UpdateState = _ => migrationResource.RequiresRebuild ? ResourceCommandState.Disabled : ResourceCommandState.Enabled
             });
 
         projectBuilder.WithCommand(
@@ -339,7 +342,8 @@ public static class EFResourceBuilderExtensions
             {
                 Description = "Show the current migration status of the database",
                 IconName = "Info",
-                IconVariant = IconVariant.Regular
+                IconVariant = IconVariant.Regular,
+                UpdateState = _ => migrationResource.RequiresRebuild ? ResourceCommandState.Disabled : ResourceCommandState.Enabled
             });
     }
 
@@ -443,19 +447,9 @@ public static class EFResourceBuilderExtensions
             {
                 logger.LogInformation("Migration '{MigrationName}' created successfully.", migrationName);
 
-                // Remove the "Update Database" command since it can't be used until the project is rebuilt
-                var contextShortName = GetShortTypeName(contextTypeName);
-                var contextNameSuffix = !string.IsNullOrEmpty(contextShortName) ? $"-{contextShortName}" : "";
-                var updateDatabaseCommandName = $"ef-database-update{contextNameSuffix}";
-                var updateDatabaseCommand = migrationResource.ProjectResource.Annotations
-                    .OfType<ResourceCommandAnnotation>()
-                    .FirstOrDefault(a => a.Name == updateDatabaseCommandName);
-
-                if (updateDatabaseCommand != null)
-                {
-                    migrationResource.ProjectResource.Annotations.Remove(updateDatabaseCommand);
-                    logger.LogDebug("Removed '{CommandName}' command as it cannot be used until the project is rebuilt.", updateDatabaseCommandName);
-                }
+                // Mark that a rebuild is required
+                migrationResource.RequiresRebuild = true;
+                logger.LogDebug("Marked migration resource as requiring rebuild. Some commands will be disabled until rebuild.");
 
                 if (interactionService != null && interactionService.IsAvailable)
                 {

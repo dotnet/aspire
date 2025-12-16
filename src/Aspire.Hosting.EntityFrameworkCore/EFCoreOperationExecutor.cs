@@ -725,13 +725,10 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
             var summary = new List<string>
             {
-                $"Current Applied Migration: {lastAppliedMigration ?? "None (database not created)"}",
-                "\t",
-                $"Latest Migration: {lastMigration ?? "None"}",
-                "\t",
-                $"Pending Migrations: {(pendingMigrations.Count > 0 ? string.Join(", ", pendingMigrations) : "None")}",
-                "\t",
-                $"Has Pending Model Changes: {(hasPendingModelChanges ? "Yes" : "No")}"
+                $"Current Applied Migration: {lastAppliedMigration ?? "None (database not created)"}.",
+                $"Latest Migration: {lastMigration ?? "None"}.",
+                $"Pending Migrations: {(pendingMigrations.Count > 0 ? string.Join(", ", pendingMigrations) : "None")}.",
+                $"Has Pending Model Changes: {(hasPendingModelChanges ? "Yes" : "No")}."
             };
 
             if (statusLines.Count > 0)
