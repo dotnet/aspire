@@ -823,6 +823,53 @@ public class LogTests
     }
 
     [Fact]
+    public void FilterLogs_With_EventName_Returns_CorrectLog()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(instanceId: "1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "test_message", severity: SeverityNumber.Error, eventName: "MyEventName"),
+                        }
+                    }
+                }
+            }
+        });
+
+        var resourceKey = repository.GetResources().First().ResourceKey;
+
+        // Assert
+        Assert.Empty(repository.GetLogs(new GetLogsContext
+        {
+            ResourceKey = resourceKey,
+            StartIndex = 0,
+            Count = 1,
+            Filters = [new FieldTelemetryFilter { Condition = FilterCondition.Contains, Field = KnownStructuredLogFields.EventNameField, Value = "does_not_contain" }]
+        }).Items);
+
+        Assert.Single(repository.GetLogs(new GetLogsContext
+        {
+            ResourceKey = resourceKey,
+            StartIndex = 0,
+            Count = 1,
+            Filters = [new FieldTelemetryFilter { Condition = FilterCondition.Contains, Field = KnownStructuredLogFields.EventNameField, Value = "MyEvent" }]
+        }).Items);
+    }
+
+    [Fact]
     public void AddLogs_MultipleResources_SameInstanceId_CreateMultipleResources()
     {
         // Arrange
