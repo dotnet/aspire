@@ -1,0 +1,22 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+namespace Aspire.Cli.Utils;
+
+/// <summary>
+/// Interface for a single environment check.
+/// </summary>
+internal interface IEnvironmentCheck
+{
+    /// <summary>
+    /// Gets the execution order for this check. Lower values execute first.
+    /// </summary>
+    int Order { get; }
+
+    /// <summary>
+    /// Executes the environment check.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that returns the check result.</returns>
+    Task<EnvironmentCheckResult> CheckAsync(CancellationToken cancellationToken = default);
+}
