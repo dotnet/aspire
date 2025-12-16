@@ -362,7 +362,7 @@ string GetDcpProcesses()
     {
         // Use PowerShell to find dcp processes on Windows (wmic is deprecated)
         // Use pipe delimiter to avoid issues with commas in process names
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process -Name 'dcp*' -ErrorAction SilentlyContinue | Select-Object -Property ProcessName, Id, @{Name='AvgCpuPct';Expression={$uptimeSec = (New-TimeSpan -Start $_.StartTime -End (Get-Date)).TotalSeconds; if ($uptimeSec -gt 0) { [math]::Round(($_.CPU / $uptimeSec) * 100, 1) } else { 0 } }}, WorkingSet64 | ForEach-Object { '{0}|{1}|{2}|{3}' -f $_.ProcessName, $_.Id, $_.CPU, $_.WorkingSet64 }\"", timeoutMs: 5000);
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process -Name 'dcp*' -ErrorAction SilentlyContinue | Select-Object -Property ProcessName, Id, @{Name='AvgCpuPct';Expression={$uptimeSec = (New-TimeSpan -Start $_.StartTime -End (Get-Date)).TotalSeconds; if ($uptimeSec -gt 0) { [math]::Round(($_.CPU / $uptimeSec) * 100, 1) } else { 0 } }}, WorkingSet64 | ForEach-Object { '{0}|{1}|{2}|{3}' -f $_.ProcessName, $_.Id, $_.AvgCpuPct, $_.WorkingSet64 }\"", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -497,7 +497,7 @@ string GetTopProcesses()
     }
     else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
     {
-        // Use top on macOS to find top processes
+        // Use ps on macOS to find top processes
         var (success, output) = RunCommand("ps", "aux -r", timeoutMs: 5000);
         if (success)
         {
@@ -507,17 +507,17 @@ string GetTopProcesses()
                 // ps aux format: USER PID %CPU %MEM VSZ RSS TTY STAT STARTED TIME COMMAND
                 var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length >= 11)
+                {
+                    if (int.TryParse(parts[1], out var pid) &&
+                        double.TryParse(parts[2], out var cpu) &&
+                        double.TryParse(parts[5], out var rssKb))
                     {
-                        if (int.TryParse(parts[1], out var pid) &&
-                            double.TryParse(parts[2], out var cpu) &&
-                            double.TryParse(parts[5], out var rssKb))
-                        {
-                            // Get command name (last part, may contain path)
-                            var command = parts[10];
-                            var name = Path.GetFileName(command);
-                            topProcesses.Add((name, pid, cpu, rssKb / 1024.0));
-                        }
+                        // Get command name (last part, may contain path)
+                        var command = parts[10];
+                        var name = Path.GetFileName(command);
+                        topProcesses.Add((name, pid, cpu, rssKb / 1024.0));
                     }
+                }
             }
         }
         else
