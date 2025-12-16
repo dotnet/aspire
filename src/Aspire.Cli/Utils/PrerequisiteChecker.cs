@@ -241,21 +241,20 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
     }
 
     /// <inheritdoc />
-    public async Task<PrerequisiteCheckResult> CheckWslEnvironmentAsync(CancellationToken cancellationToken = default)
+    public Task<PrerequisiteCheckResult> CheckWslEnvironmentAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask; // Async for future expansion
 
         // WSL detection
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             // Not running on Linux, so not WSL
-            return new PrerequisiteCheckResult
+            return Task.FromResult(new PrerequisiteCheckResult
             {
                 Category = "environment",
                 Name = "wsl",
                 Status = PrerequisiteCheckStatus.Pass,
                 Message = "Not running in WSL"
-            };
+            });
         }
 
         // Check for WSL-specific environment indicators
@@ -263,13 +262,13 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
 
         if (!isWsl)
         {
-            return new PrerequisiteCheckResult
+            return Task.FromResult(new PrerequisiteCheckResult
             {
                 Category = "environment",
                 Name = "wsl",
                 Status = PrerequisiteCheckStatus.Pass,
                 Message = "Not running in WSL"
-            };
+            });
         }
 
         // Detect WSL version
@@ -277,7 +276,7 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
 
         if (wslVersion == 1)
         {
-            return new PrerequisiteCheckResult
+            return Task.FromResult(new PrerequisiteCheckResult
             {
                 Category = "environment",
                 Name = "wsl",
@@ -285,11 +284,11 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
                 Message = "WSL1 detected - limited container support",
                 Fix = "Upgrade to WSL2 for best experience: wsl --set-version <distro> 2",
                 Link = "https://aka.ms/aspire-prerequisites#wsl-setup"
-            };
+            });
         }
 
         // WSL2 detected - provide guidance on potential networking issues
-        return new PrerequisiteCheckResult
+        return Task.FromResult(new PrerequisiteCheckResult
         {
             Category = "environment",
             Name = "wsl",
@@ -297,7 +296,7 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             Message = "WSL2 environment detected",
             Fix = "Network bridging may cause container connectivity issues. Ensure Docker Desktop WSL integration is enabled.",
             Link = "https://aka.ms/aspire-prerequisites#wsl-setup"
-        };
+        });
     }
 
     /// <inheritdoc />
@@ -358,9 +357,8 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
     }
 
     /// <inheritdoc />
-    public async Task<PrerequisiteCheckResult> CheckTerminalCapabilitiesAsync(CancellationToken cancellationToken = default)
+    public Task<PrerequisiteCheckResult> CheckTerminalCapabilitiesAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask; // Async for consistency
 
         var capabilities = new List<string>();
 
@@ -381,22 +379,22 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
 
         if (capabilities.Count == 0)
         {
-            return new PrerequisiteCheckResult
+            return Task.FromResult(new PrerequisiteCheckResult
             {
                 Category = "environment",
                 Name = "terminal",
                 Status = PrerequisiteCheckStatus.Warning,
                 Message = "Terminal has limited capabilities"
-            };
+            });
         }
 
-        return new PrerequisiteCheckResult
+        return Task.FromResult(new PrerequisiteCheckResult
         {
             Category = "environment",
             Name = "terminal",
             Status = PrerequisiteCheckStatus.Pass,
             Message = $"Terminal supports: {string.Join(", ", capabilities)}"
-        };
+        });
     }
 
     /// <inheritdoc />

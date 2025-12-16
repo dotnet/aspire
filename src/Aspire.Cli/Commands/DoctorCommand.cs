@@ -79,25 +79,33 @@ internal sealed class DoctorCommand : BaseCommand
         {
             var r = results[i];
             checksJson.AppendLine(CultureInfo.InvariantCulture, $"    {{");
-            checksJson.AppendLine(CultureInfo.InvariantCulture, $"      \"category\": \"{EscapeJson(r.Category)}\",");
-            checksJson.AppendLine(CultureInfo.InvariantCulture, $"      \"name\": \"{EscapeJson(r.Name)}\",");
-            checksJson.AppendLine(CultureInfo.InvariantCulture, $"      \"status\": \"{EscapeJson(r.Status.ToString().ToLowerInvariant())}\",");
-            checksJson.AppendLine(CultureInfo.InvariantCulture, $"      \"message\": \"{EscapeJson(r.Message)}\"");
+            checksJson.Append(CultureInfo.InvariantCulture, $"      \"category\": \"{EscapeJson(r.Category)}\",");
+            checksJson.AppendLine();
+            checksJson.Append(CultureInfo.InvariantCulture, $"      \"name\": \"{EscapeJson(r.Name)}\",");
+            checksJson.AppendLine();
+            checksJson.Append(CultureInfo.InvariantCulture, $"      \"status\": \"{EscapeJson(r.Status.ToString().ToLowerInvariant())}\",");
+            checksJson.AppendLine();
+            checksJson.Append(CultureInfo.InvariantCulture, $"      \"message\": \"{EscapeJson(r.Message)}\"");
             
             if (!string.IsNullOrEmpty(r.Fix))
             {
-                checksJson.AppendLine(CultureInfo.InvariantCulture, $"      ,\"fix\": \"{EscapeJson(r.Fix)}\"");
+                checksJson.AppendLine(",");
+                checksJson.Append(CultureInfo.InvariantCulture, $"      \"fix\": \"{EscapeJson(r.Fix)}\"");
             }
             
             if (!string.IsNullOrEmpty(r.Link))
             {
-                checksJson.AppendLine(CultureInfo.InvariantCulture, $"      ,\"link\": \"{EscapeJson(r.Link)}\"");
+                checksJson.AppendLine(",");
+                checksJson.Append(CultureInfo.InvariantCulture, $"      \"link\": \"{EscapeJson(r.Link)}\"");
             }
             
             if (!string.IsNullOrEmpty(r.Details))
             {
-                checksJson.AppendLine(CultureInfo.InvariantCulture, $"      ,\"details\": \"{EscapeJson(r.Details)}\"");
+                checksJson.AppendLine(",");
+                checksJson.Append(CultureInfo.InvariantCulture, $"      \"details\": \"{EscapeJson(r.Details)}\"");
             }
+            
+            checksJson.AppendLine();
 
             if (i < results.Count - 1)
             {
