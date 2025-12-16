@@ -97,6 +97,11 @@
         <target state="translated">資源</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="RunningInstanceStopFailed">
+        <source>Failed to stop running instance. The process may have already exited.</source>
+        <target state="translated">無法停止正在執行的執行個體。該程序可能已經結束。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="RunningInstanceStopped">
         <source>Running instance stopped successfully.</source>
         <target state="translated">執行中的執行個體已成功停止。</target>

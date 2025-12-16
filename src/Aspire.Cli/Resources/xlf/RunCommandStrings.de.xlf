@@ -97,6 +97,11 @@
         <target state="translated">Ressource</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="RunningInstanceStopFailed">
+        <source>Failed to stop running instance. The process may have already exited.</source>
+        <target state="translated">Fehler beim Beenden der ausgeführten Instanz. Der Prozess wurde möglicherweise bereits beendet.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="RunningInstanceStopped">
         <source>Running instance stopped successfully.</source>
         <target state="translated">Die ausgeführte Instanz wurde erfolgreich beendet.</target>

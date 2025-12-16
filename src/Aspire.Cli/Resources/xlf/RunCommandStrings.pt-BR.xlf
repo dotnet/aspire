@@ -97,6 +97,11 @@
         <target state="translated">Recurso</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="RunningInstanceStopFailed">
+        <source>Failed to stop running instance. The process may have already exited.</source>
+        <target state="translated">Falha ao interromper a instância em execução. O processo pode já ter sido encerrado.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="RunningInstanceStopped">
         <source>Running instance stopped successfully.</source>
         <target state="translated">A instância em execução foi interrompida com sucesso.</target>
