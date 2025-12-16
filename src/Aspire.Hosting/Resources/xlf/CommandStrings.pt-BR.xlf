@@ -12,6 +12,16 @@
         <target state="translated">Reiniciar</target>
         <note />
       </trans-unit>
+      <trans-unit id="SetParameterValueDescription">
+        <source>Set parameter value</source>
+        <target state="new">Set parameter value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetParameterValueName">
+        <source>Set parameter value</source>
+        <target state="new">Set parameter value</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartDescription">
         <source>Start resource</source>
         <target state="translated">Iniciar recurso</target>

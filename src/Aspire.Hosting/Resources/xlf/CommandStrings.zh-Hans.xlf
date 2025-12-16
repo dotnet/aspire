@@ -12,6 +12,16 @@
         <target state="translated">重启</target>
         <note />
       </trans-unit>
+      <trans-unit id="SetParameterValueDescription">
+        <source>Set parameter value</source>
+        <target state="new">Set parameter value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetParameterValueName">
+        <source>Set parameter value</source>
+        <target state="new">Set parameter value</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartDescription">
         <source>Start resource</source>
         <target state="translated">启动资源</target>

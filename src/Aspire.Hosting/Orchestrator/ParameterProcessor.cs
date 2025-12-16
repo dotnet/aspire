@@ -151,6 +151,13 @@ public sealed class ParameterProcessor(
 
     private async Task ProcessParameterAsync(ParameterResource parameterResource)
     {
+        // Add the "Set parameter value" command if the interaction service is available and the parameter
+        // reads from configuration (e.g., user secrets).
+        if (interactionService.IsAvailable && !parameterResource.Annotations.OfType<ResourceCommandAnnotation>().Any(a => a.Name == KnownResourceCommands.SetParameterValueCommand))
+        {
+            AddSetParameterValueCommand(parameterResource);
+        }
+
         try
         {
             var value = parameterResource.ValueInternal ?? "";
@@ -207,6 +214,88 @@ public sealed class ParameterProcessor(
                 };
             })
             .ConfigureAwait(false);
+        }
+    }
+
+    private void AddSetParameterValueCommand(ParameterResource parameterResource)
+    {
+        parameterResource.Annotations.Add(new ResourceCommandAnnotation(
+            name: KnownResourceCommands.SetParameterValueCommand,
+            displayName: CommandStrings.SetParameterValueName,
+            executeCommand: async context =>
+            {
+                await SetParameterValueAsync(parameterResource, context.CancellationToken).ConfigureAwait(false);
+                return CommandResults.Success();
+            },
+            updateState: _ => ResourceCommandState.Enabled,
+            displayDescription: CommandStrings.SetParameterValueDescription,
+            parameter: null,
+            confirmationMessage: null,
+            iconName: "Key",
+            iconVariant: IconVariant.Filled,
+            isHighlighted: true));
+    }
+
+    /// <summary>
+    /// Prompts the user to set a value for a single parameter.
+    /// </summary>
+    /// <param name="parameterResource">The parameter resource to set the value for.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task that completes when the user has set the value or cancelled.</returns>
+    public async Task SetParameterValueAsync(ParameterResource parameterResource, CancellationToken cancellationToken = default)
+    {
+        var input = parameterResource.CreateInput();
+
+        var result = await interactionService.PromptInputAsync(
+            InteractionStrings.ParametersInputsTitle,
+            InteractionStrings.ParametersInputsMessage,
+            input,
+            new InputsDialogInteractionOptions
+            {
+                PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
+                ShowDismiss = true,
+                EnableMessageMarkdown = true,
+            },
+            cancellationToken)
+            .ConfigureAwait(false);
+
+        if (result.Canceled || string.IsNullOrEmpty(result.Data?.Value))
+        {
+            return;
+        }
+
+        var inputValue = result.Data.Value;
+
+        // Update the parameter resource with the new value.
+        parameterResource.WaitForValueTcs?.TrySetResult(inputValue);
+
+        await notificationService.PublishUpdateAsync(parameterResource, s =>
+        {
+            return s with
+            {
+                Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, inputValue, parameterResource.Secret),
+                State = KnownResourceStates.Running
+            };
+        }).ConfigureAwait(false);
+
+        // Log that the parameter has been resolved
+        loggerService.GetLogger(parameterResource)
+            .LogInformation("Parameter resource {ResourceName} value has been updated via user interaction.", parameterResource.Name);
+
+        // Save to deployment state if in run mode
+        if (executionContext.IsRunMode)
+        {
+            try
+            {
+                var slot = await deploymentStateManager.AcquireSectionAsync(parameterResource.ConfigurationKey, cancellationToken).ConfigureAwait(false);
+                slot.SetValue(inputValue);
+                await deploymentStateManager.SaveSectionAsync(slot, cancellationToken).ConfigureAwait(false);
+                logger.LogInformation("Parameter value saved to deployment state for {ParameterName}.", parameterResource.Name);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to save parameter {ParameterName} to deployment state.", parameterResource.Name);
+            }
         }
     }
 

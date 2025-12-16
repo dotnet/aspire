@@ -113,5 +113,23 @@ namespace Aspire.Hosting.Resources {
                 return ResourceManager.GetString("StopName", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set parameter value.
+        /// </summary>
+        internal static string SetParameterValueDescription {
+            get {
+                return ResourceManager.GetString("SetParameterValueDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set parameter value.
+        /// </summary>
+        internal static string SetParameterValueName {
+            get {
+                return ResourceManager.GetString("SetParameterValueName", resourceCulture);
+            }
+        }
     }
 }

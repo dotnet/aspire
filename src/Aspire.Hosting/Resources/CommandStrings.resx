@@ -135,4 +135,10 @@
   <data name="StopName" xml:space="preserve">
     <value>Stop</value>
   </data>
+  <data name="SetParameterValueDescription" xml:space="preserve">
+    <value>Set parameter value</value>
+  </data>
+  <data name="SetParameterValueName" xml:space="preserve">
+    <value>Set parameter value</value>
+  </data>
 </root>
