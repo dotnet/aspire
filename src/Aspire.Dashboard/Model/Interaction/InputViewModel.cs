@@ -98,4 +98,7 @@ public sealed class InputViewModel
     }
 
     public bool InputDisabled => Input.Disabled || Input.Loading;
+
+    // Used to track secret text visibility state
+    public bool IsSecretTextVisible { get; set; }
 }

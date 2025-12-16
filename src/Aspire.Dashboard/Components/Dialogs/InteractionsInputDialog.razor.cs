@@ -5,6 +5,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Interaction;
 using Aspire.Dashboard.Model.Markdown;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Aspire.DashboardService.Proto.V1;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
@@ -37,7 +38,6 @@ public partial class InteractionsInputDialog : IAsyncDisposable
     private ValidationMessageStore _validationMessages = default!;
     private List<InputViewModel> _inputDialogInputViewModels = default!;
     private Dictionary<InputViewModel, FluentComponentBase?> _elementRefs = default!;
-    private Dictionary<InputViewModel, bool> _secretTextVisibility = default!;
     private MarkdownProcessor _markdownProcessor = default!;
     private IJSObjectReference? _jsModule;
 
@@ -50,8 +50,34 @@ public partial class InteractionsInputDialog : IAsyncDisposable
         _editContext.OnFieldChanged += (s, e) => InputValueChanged(e.FieldIdentifier);
 
         _elementRefs = new();
-        _secretTextVisibility = new();
         _markdownProcessor = InteractionMarkdownHelper.CreateProcessor(ControlsStringsLoc);
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_content != Content)
+        {
+            _content = Content;
+            _inputDialogInputViewModels = Content.Inputs.Select(input => new InputViewModel(input)).ToList();
+
+            // Initialize keys for @ref binding.
+            // Do this in case Blazor tries to get the element from the dictionary.
+            // If the input view model isn't in the dictionary then it will throw a KeyNotFoundException.
+            _elementRefs.Clear();
+            foreach (var inputVM in _inputDialogInputViewModels)
+            {
+                _elementRefs[inputVM] = null;
+            }
+
+            AddValidationErrorsFromModel();
+
+            Content.OnInteractionUpdated = async () =>
+            {
+                AddValidationErrorsFromModel();
+
+                await InvokeAsync(StateHasChanged);
+            };
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -80,33 +106,6 @@ public partial class InteractionsInputDialog : IAsyncDisposable
                     selectInput.FocusAsync();
                 }
             }
-        }
-    }
-
-    protected override void OnParametersSet()
-    {
-        if (_content != Content)
-        {
-            _content = Content;
-            _inputDialogInputViewModels = Content.Inputs.Select(input => new InputViewModel(input)).ToList();
-
-            // Initialize keys for @ref binding.
-            // Do this in case Blazor tries to get the element from the dictionary.
-            // If the input view model isn't in the dictionary then it will throw a KeyNotFoundException.
-            _elementRefs.Clear();
-            foreach (var inputVM in _inputDialogInputViewModels)
-            {
-                _elementRefs[inputVM] = null;
-            }
-
-            AddValidationErrorsFromModel();
-
-            Content.OnInteractionUpdated = async () =>
-            {
-                AddValidationErrorsFromModel();
-
-                await InvokeAsync(StateHasChanged);
-            };
         }
     }
 
@@ -201,12 +200,7 @@ public partial class InteractionsInputDialog : IAsyncDisposable
 
     private async Task ToggleSecretTextVisibilityAsync(InputViewModel inputModel)
     {
-        if (!_secretTextVisibility.TryGetValue(inputModel, out var currentValue))
-        {
-            currentValue = false;
-        }
-
-        _secretTextVisibility[inputModel] = !currentValue;
+        inputModel.IsSecretTextVisible = !inputModel.IsSecretTextVisible;
 
         if (_jsModule != null && _elementRefs.TryGetValue(inputModel, out var element) && element != null)
         {
@@ -214,23 +208,15 @@ public partial class InteractionsInputDialog : IAsyncDisposable
         }
     }
 
-    private bool IsSecretTextVisible(InputViewModel inputModel)
+    private static Icon GetSecretTextIcon(InputViewModel inputModel)
     {
-        return _secretTextVisibility.TryGetValue(inputModel, out var isVisible) && isVisible;
-    }
-
-    private Icon GetSecretTextIcon(InputViewModel inputModel)
-    {
-        return IsSecretTextVisible(inputModel) 
+        return inputModel.IsSecretTextVisible
             ? new Icons.Regular.Size16.EyeOff() 
             : new Icons.Regular.Size16.Eye();
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_jsModule != null)
-        {
-            await _jsModule.DisposeAsync();
-        }
+        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
     }
 }
