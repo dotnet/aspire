@@ -136,7 +136,7 @@
     <value>Stop</value>
   </data>
   <data name="SetParameterDescription" xml:space="preserve">
-    <value>Set parameter</value>
+    <value>Set parameter value</value>
   </data>
   <data name="SetParameterName" xml:space="preserve">
     <value>Set parameter</value>

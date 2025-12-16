@@ -25,6 +25,8 @@ public sealed class ParameterProcessor(
     DistributedApplicationExecutionContext executionContext,
     IDeploymentStateManager deploymentStateManager)
 {
+    private const string RememberParametersName = "RememberParameters";
+
     private readonly List<ParameterResource> _unresolvedParameters = [];
 
     /// <summary>
@@ -151,9 +153,9 @@ public sealed class ParameterProcessor(
 
     private async Task ProcessParameterAsync(ParameterResource parameterResource)
     {
-        // Add the "Set parameter" command if the interaction service is available and the parameter
-        // reads from configuration (e.g., user secrets).
-        if (interactionService.IsAvailable && !parameterResource.Annotations.OfType<ResourceCommandAnnotation>().Any(a => a.Name == KnownResourceCommands.SetParameterCommand))
+        // Add the "Set parameter" command if the app is running and the interaction service is available.
+        // This command allows the user to set the parameter value at runtime.
+        if (executionContext.IsRunMode && interactionService.IsAvailable && !parameterResource.Annotations.OfType<ResourceCommandAnnotation>().Any(a => a.Name == KnownResourceCommands.SetParameterCommand))
         {
             AddSetParameterCommand(parameterResource);
         }
@@ -262,27 +264,12 @@ public sealed class ParameterProcessor(
             // No existing value, leave input empty
         }
 
-        var inputs = new List<InteractionInput> { input };
-
-        // Add RememberParameters input in run mode
-        InteractionInput? saveParameterInput = null;
-        if (executionContext.IsRunMode)
-        {
-            saveParameterInput = new InteractionInput
-            {
-                Name = "RememberParameters",
-                InputType = InputType.Boolean,
-                Label = InteractionStrings.ParametersInputsRememberLabel,
-                // Default to true if value already exists (was read from user secrets)
-                Value = hasExistingValue ? "true" : null
-            };
-            inputs.Add(saveParameterInput);
-        }
+        var saveParameterInput = CreateSaveParameterInput(hasExistingValue);
 
         var result = await interactionService.PromptInputsAsync(
             InteractionStrings.SetParameterTitle,
             InteractionStrings.SetParameterMessage,
-            inputs,
+            [input, saveParameterInput],
             new InputsDialogInteractionOptions
             {
                 PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
@@ -302,6 +289,18 @@ public sealed class ParameterProcessor(
             bool.TryParse(saveParameterInput.Value, out var saveToDeploymentState) && saveToDeploymentState;
 
         await ApplyParameterValueAsync(parameterResource, inputValue, shouldSave, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static InteractionInput CreateSaveParameterInput(bool hasExistingValue)
+    {
+        return new InteractionInput
+        {
+            Name = RememberParametersName,
+            InputType = InputType.Boolean,
+            Label = InteractionStrings.ParametersInputsRememberLabel,
+            // Default to true if value already exists (was read from user secrets)
+            Value = hasExistingValue ? "true" : null
+        };
     }
 
     private async Task ApplyParameterValueAsync(ParameterResource parameterResource, string inputValue, bool saveToDeploymentState, CancellationToken cancellationToken = default)
@@ -350,109 +349,101 @@ public sealed class ParameterProcessor(
     {
         var stateModified = false;
 
+        // This method will continue in a loop until all unresolved parameters are resolved.
+        while (unresolvedParameters.Count > 0)
         {
+            var showNotification = executionContext.IsRunMode;
+            var showSaveToSecrets = executionContext.IsRunMode;
 
-            // This method will continue in a loop until all unresolved parameters are resolved.
-            while (unresolvedParameters.Count > 0)
+            var proceedToInputs = true;
+
+            if (showNotification)
             {
-                var showNotification = executionContext.IsRunMode;
-                var showSaveToSecrets = executionContext.IsRunMode;
+                // First we show a notification that there are unresolved parameters.
+                var result = await interactionService.PromptNotificationAsync(
+                    InteractionStrings.ParametersBarTitle,
+                    InteractionStrings.ParametersBarMessage,
+                     new NotificationInteractionOptions
+                     {
+                         Intent = MessageIntent.Warning,
+                         PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
+                     })
+                    .ConfigureAwait(false);
 
-                var proceedToInputs = true;
+                proceedToInputs = result.Data;
+            }
 
-                if (showNotification)
+            if (proceedToInputs)
+            {
+                // Now we build up a new form base on the unresolved parameters.
+                var resourceInputs = new List<(ParameterResource ParameterResource, InteractionInput Input)>();
+
+                foreach (var parameter in unresolvedParameters)
                 {
-                    // First we show a notification that there are unresolved parameters.
-                    var result = await interactionService.PromptNotificationAsync(
-                        InteractionStrings.ParametersBarTitle,
-                        InteractionStrings.ParametersBarMessage,
-                         new NotificationInteractionOptions
-                         {
-                             Intent = MessageIntent.Warning,
-                             PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
-                         })
-                        .ConfigureAwait(false);
-
-                    proceedToInputs = result.Data;
+                    // Create an input for each unresolved parameter.
+                    var input = parameter.CreateInput();
+                    resourceInputs.Add((parameter, input));
                 }
 
-                if (proceedToInputs)
+                var inputs = resourceInputs.Select(i => i.Input).ToList();
+                InteractionInput? saveParameters = null;
+
+                if (showSaveToSecrets)
                 {
-                    // Now we build up a new form base on the unresolved parameters.
-                    var resourceInputs = new List<(ParameterResource ParameterResource, InteractionInput Input)>();
+                    saveParameters = CreateSaveParameterInput(hasExistingValue: false);
+                    inputs.Add(saveParameters);
+                }
 
-                    foreach (var parameter in unresolvedParameters)
+                var message = executionContext.IsPublishMode
+                    ? InteractionStrings.ParametersInputsMessagePublishMode
+                    : InteractionStrings.ParametersInputsMessage;
+
+                var valuesPrompt = await interactionService.PromptInputsAsync(
+                    InteractionStrings.ParametersInputsTitle,
+                    message,
+                    [.. inputs],
+                    new InputsDialogInteractionOptions
                     {
-                        // Create an input for each unresolved parameter.
-                        var input = parameter.CreateInput();
-                        resourceInputs.Add((parameter, input));
-                    }
+                        PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
+                        ShowDismiss = true,
+                        EnableMessageMarkdown = true,
+                    })
+                    .ConfigureAwait(false);
 
-                    var inputs = resourceInputs.Select(i => i.Input).ToList();
-                    InteractionInput? saveParameters = null;
+                if (!valuesPrompt.Canceled)
+                {
+                    var shouldSave = saveParameters?.Value is not null &&
+                        bool.TryParse(saveParameters.Value, out var saveToDeploymentState) && saveToDeploymentState;
 
-                    if (showSaveToSecrets)
+                    // Iterate through the unresolved parameters and set their values based on user input.
+                    for (var i = resourceInputs.Count - 1; i >= 0; i--)
                     {
-                        saveParameters = new InteractionInput
+                        var (parameter, input) = (resourceInputs[i].ParameterResource, resourceInputs[i].Input);
+                        var inputValue = input.Value;
+
+                        if (string.IsNullOrEmpty(inputValue))
                         {
-                            Name = "RememberParameters",
-                            InputType = InputType.Boolean,
-                            Label = InteractionStrings.ParametersInputsRememberLabel
-                        };
-                        inputs.Add(saveParameters);
-                    }
-
-                    var message = executionContext.IsPublishMode
-                        ? InteractionStrings.ParametersInputsMessagePublishMode
-                        : InteractionStrings.ParametersInputsMessage;
-
-                    var valuesPrompt = await interactionService.PromptInputsAsync(
-                        InteractionStrings.ParametersInputsTitle,
-                        message,
-                        [.. inputs],
-                        new InputsDialogInteractionOptions
-                        {
-                            PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
-                            ShowDismiss = true,
-                            EnableMessageMarkdown = true,
-                        })
-                        .ConfigureAwait(false);
-
-                    if (!valuesPrompt.Canceled)
-                    {
-                        var shouldSave = saveParameters?.Value is not null &&
-                            bool.TryParse(saveParameters.Value, out var saveToDeploymentState) && saveToDeploymentState;
-
-                        // Iterate through the unresolved parameters and set their values based on user input.
-                        for (var i = resourceInputs.Count - 1; i >= 0; i--)
-                        {
-                            var (parameter, input) = (resourceInputs[i].ParameterResource, resourceInputs[i].Input);
-                            var inputValue = input.Value;
-
-                            if (string.IsNullOrEmpty(inputValue))
-                            {
-                                // If the input value is null, we skip this parameter.
-                                continue;
-                            }
-
-                            await ApplyParameterValueAsync(parameter, inputValue, shouldSave).ConfigureAwait(false);
-
-                            if (shouldSave)
-                            {
-                                stateModified = true;
-                            }
-
-                            // Remove the parameter from unresolved parameters list.
-                            unresolvedParameters.RemoveAt(i);
+                            // If the input value is null, we skip this parameter.
+                            continue;
                         }
+
+                        await ApplyParameterValueAsync(parameter, inputValue, shouldSave).ConfigureAwait(false);
+
+                        if (shouldSave)
+                        {
+                            stateModified = true;
+                        }
+
+                        // Remove the parameter from unresolved parameters list.
+                        unresolvedParameters.RemoveAt(i);
                     }
                 }
             }
+        }
 
-            if (stateModified)
-            {
-                logger.LogInformation("Parameter values saved to deployment state.");
-            }
+        if (stateModified)
+        {
+            logger.LogInformation("Parameter values saved to deployment state.");
         }
     }
 

@@ -231,9 +231,9 @@ public class ParameterProcessorTests
                 Assert.False(input.Required);
             });
 
-        inputsInteraction.Inputs[0].Value = "value1";
-        inputsInteraction.Inputs[1].Value = "value2";
-        inputsInteraction.Inputs[2].Value = "secretValue";
+        inputsInteraction.Inputs["param1"].Value = "value1";
+        inputsInteraction.Inputs["param2"].Value = "value2";
+        inputsInteraction.Inputs["secretParam"].Value = "secretValue";
 
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
@@ -381,7 +381,7 @@ public class ParameterProcessorTests
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        inputsInteraction.Inputs[0].Value = "testValue";
+        inputsInteraction.Inputs["testParam"].Value = "testValue";
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         // Wait for the handle task to complete
@@ -432,13 +432,13 @@ public class ParameterProcessorTests
         // Assert
         Assert.Equal(3, inputsInteraction.Inputs.Count); // 2 parameters + 1 save option
 
-        var param1Input = inputsInteraction.Inputs[0];
+        var param1Input = inputsInteraction.Inputs["param1"];
         Assert.Equal("param1", param1Input.Label);
         Assert.Equal("This is a test parameter", param1Input.Description);
         Assert.False(param1Input.EnableDescriptionMarkdown);
         Assert.Equal(InputType.Text, param1Input.InputType);
 
-        var param2Input = inputsInteraction.Inputs[1];
+        var param2Input = inputsInteraction.Inputs["param2"];
         Assert.Equal("param2", param2Input.Label);
         Assert.Equal("This parameter has **markdown** formatting", param2Input.Description);
         Assert.True(param2Input.EnableDescriptionMarkdown);
@@ -472,7 +472,7 @@ public class ParameterProcessorTests
         // Assert
         Assert.Equal(2, inputsInteraction.Inputs.Count); // 1 secret parameter + 1 save option
 
-        var secretInput = inputsInteraction.Inputs[0];
+        var secretInput = inputsInteraction.Inputs["secretParam"];
         Assert.Equal("secretParam", secretInput.Label);
         Assert.Equal("This is a secret parameter", secretInput.Description);
         Assert.False(secretInput.EnableDescriptionMarkdown);
@@ -828,15 +828,14 @@ public class ParameterProcessorTests
         Assert.Equal(InteractionStrings.SetParameterMessage, inputInteraction.Message);
         // Should have 2 inputs: parameter value input + RememberParameters checkbox (in run mode)
         Assert.Equal(2, inputInteraction.Inputs.Count);
-        Assert.Equal("testParam", inputInteraction.Inputs[0].Label);
+        Assert.Equal("testParam", inputInteraction.Inputs["testParam"].Label);
         // Existing value should be pre-populated
-        Assert.Equal("initialValue", inputInteraction.Inputs[0].Value);
+        Assert.Equal("initialValue", inputInteraction.Inputs["testParam"].Value);
         // RememberParameters should default to true since parameter has existing value
-        Assert.Equal("RememberParameters", inputInteraction.Inputs[1].Name);
-        Assert.Equal("true", inputInteraction.Inputs[1].Value);
+        Assert.Equal("true", inputInteraction.Inputs["RememberParameters"].Value);
 
         // Complete the interaction with a new value
-        inputInteraction.Inputs[0].Value = "newValue";
+        inputInteraction.Inputs["testParam"].Value = "newValue";
         inputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputInteraction.Inputs));
 
         // Wait for the set value task to complete
@@ -906,12 +905,12 @@ public class ParameterProcessorTests
 
         // Assert - Should use SecretText input type for secret parameters
         Assert.Equal(2, inputInteraction.Inputs.Count);
-        Assert.Equal(InputType.SecretText, inputInteraction.Inputs[0].InputType);
+        Assert.Equal(InputType.SecretText, inputInteraction.Inputs["secretParam"].InputType);
         // Existing value should be pre-populated for secrets too
-        Assert.Equal("secretValue", inputInteraction.Inputs[0].Value);
+        Assert.Equal("secretValue", inputInteraction.Inputs["secretParam"].Value);
 
         // Complete the interaction
-        inputInteraction.Inputs[0].Value = "newSecretValue";
+        inputInteraction.Inputs["secretParam"].Value = "newSecretValue";
         inputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputInteraction.Inputs));
 
         await setValueTask;
@@ -1044,8 +1043,8 @@ public class ParameterProcessorTests
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
 
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        inputsInteraction.Inputs[0].Value = "Server=localhost;Database=mydb";
-        inputsInteraction.Inputs[1].Value = "true";
+        inputsInteraction.Inputs["mydb"].Value = "Server=localhost;Database=mydb";
+        inputsInteraction.Inputs["RememberParameters"].Value = "true";
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         await handleTask;
@@ -1083,8 +1082,8 @@ public class ParameterProcessorTests
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
 
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        inputsInteraction.Inputs[0].Value = "myvalue";
-        inputsInteraction.Inputs[1].Value = "true";
+        inputsInteraction.Inputs["myparam"].Value = "myvalue";
+        inputsInteraction.Inputs["RememberParameters"].Value = "true";
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         await handleTask;
@@ -1125,8 +1124,8 @@ public class ParameterProcessorTests
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
 
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        inputsInteraction.Inputs[0].Value = "customvalue";
-        inputsInteraction.Inputs[1].Value = "true";
+        inputsInteraction.Inputs["customparam"].Value = "customvalue";
+        inputsInteraction.Inputs["RememberParameters"].Value = "true";
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         await handleTask;

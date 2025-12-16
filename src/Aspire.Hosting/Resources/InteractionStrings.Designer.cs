@@ -167,7 +167,7 @@ namespace Aspire.Hosting.Resources {
                 return ResourceManager.GetString("ParametersInputsMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Please provide values for the unresolved parameters..
         /// </summary>
@@ -214,6 +214,26 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+        ///
+        ///New parameter values may not be used until dependent resources are restarted..
+        /// </summary>
+        internal static string SetParameterMessage {
+            get {
+                return ResourceManager.GetString("SetParameterMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set parameter.
+        /// </summary>
+        internal static string SetParameterTitle {
+            get {
+                return ResourceManager.GetString("SetParameterTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Upgrade instructions.
         /// </summary>
         internal static string VersionCheckLinkText {
@@ -246,24 +266,6 @@ namespace Aspire.Hosting.Resources {
         internal static string VersionCheckTitle {
             get {
                 return ResourceManager.GetString("VersionCheckTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use..
-        /// </summary>
-        internal static string SetParameterMessage {
-            get {
-                return ResourceManager.GetString("SetParameterMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Set parameter.
-        /// </summary>
-        internal static string SetParameterTitle {
-            get {
-                return ResourceManager.GetString("SetParameterTitle", resourceCulture);
             }
         }
     }

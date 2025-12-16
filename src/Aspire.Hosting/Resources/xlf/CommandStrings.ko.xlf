@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SetParameterDescription">
-        <source>Set parameter</source>
-        <target state="new">Set parameter</target>
+        <source>Set parameter value</source>
+        <target state="new">Set parameter value</target>
         <note />
       </trans-unit>
       <trans-unit id="SetParameterName">

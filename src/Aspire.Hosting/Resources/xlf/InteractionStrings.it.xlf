@@ -108,8 +108,12 @@
         <note />
       </trans-unit>
       <trans-unit id="SetParameterMessage">
-        <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</source>
-        <target state="new">Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</target>
+        <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+
+New parameter values may not be used until dependent resources are restarted.</source>
+        <target state="new">Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+
+New parameter values may not be used until dependent resources are restarted.</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="SetParameterTitle">

@@ -185,7 +185,9 @@
     <value>Set parameter</value>
   </data>
   <data name="SetParameterMessage" xml:space="preserve">
-    <value>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</value>
+    <value>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+
+New parameter values may not be used until dependent resources are restarted.</value>
     <comment>Contains markdown</comment>
   </data>
 </root>
