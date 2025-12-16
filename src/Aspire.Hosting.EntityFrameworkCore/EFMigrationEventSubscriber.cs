@@ -59,14 +59,13 @@ internal sealed class EFMigrationEventSubscriber(
     private async Task ApplyMigrationsAsync(EFMigrationResource migrationResource, CancellationToken cancellationToken)
     {
         var resourceLogger = resourceLoggerService.GetLogger(migrationResource);
-        
+
         try
         {
             // Update state to Running
             await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
             {
-                State = new ResourceStateSnapshot("Running", KnownResourceStateStyles.Info),
-                IsHidden = false
+                State = new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Info)
             }).ConfigureAwait(false);
 
             resourceLogger.LogInformation("Starting database migration for '{ResourceName}'...", migrationResource.Name);
@@ -83,40 +82,40 @@ internal sealed class EFMigrationEventSubscriber(
             if (result.Success)
             {
                 resourceLogger.LogInformation("Database migration completed successfully for '{ResourceName}'.", migrationResource.Name);
-                
-                // Update state to Finished
+
+                // Update state to Active
                 await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
                 {
-                    State = new ResourceStateSnapshot("Finished", KnownResourceStateStyles.Success)
+                    State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
                 }).ConfigureAwait(false);
             }
             else
             {
                 resourceLogger.LogError("Database migration failed for '{ResourceName}': {Error}", migrationResource.Name, result.ErrorMessage);
-                
+
                 // Update state to FailedToStart
                 await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
                 {
-                    State = new ResourceStateSnapshot("FailedToStart", KnownResourceStateStyles.Error)
+                    State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
                 }).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
         {
             resourceLogger.LogWarning("Database migration was cancelled for '{ResourceName}'.", migrationResource.Name);
-            
+
             await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
             {
-                State = new ResourceStateSnapshot("Stopped", KnownResourceStateStyles.Info)
+                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Info)
             }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             resourceLogger.LogError(ex, "Database migration failed with exception for '{ResourceName}'.", migrationResource.Name);
-            
+
             await resourceNotificationService.PublishUpdateAsync(migrationResource, state => state with
             {
-                State = new ResourceStateSnapshot("FailedToStart", KnownResourceStateStyles.Error)
+                State = new ResourceStateSnapshot(KnownResourceStates.FailedToStart, KnownResourceStateStyles.Error)
             }).ConfigureAwait(false);
         }
     }

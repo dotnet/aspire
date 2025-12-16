@@ -56,14 +56,43 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         _contextTypeName = contextTypeName;
         _logger = logger;
         _cancellationToken = cancellationToken;
+
+        // Get build settings from the entry assembly (AppHost)
+        var entryAssembly = Assembly.GetEntryAssembly();
+        if (entryAssembly?.Location is { } appHostAssemblyPath && !string.IsNullOrEmpty(appHostAssemblyPath))
+        {
+            // Get configuration from assembly attribute
+            var configAttribute = entryAssembly.GetCustomAttribute<AssemblyConfigurationAttribute>();
+            if (configAttribute?.Configuration is { } configuration)
+            {
+                _configuration = configuration;
+            }
+
+            // Get target framework from assembly attribute
+            var frameworkAttribute = entryAssembly.GetCustomAttribute<System.Runtime.Versioning.TargetFrameworkAttribute>();
+            if (frameworkAttribute?.FrameworkName is { } frameworkName)
+            {
+                // FrameworkName is in format ".NETCoreApp,Version=v8.0" - extract the version part
+                const string versionPrefix = ".NETCoreApp,Version=v";
+                var versionIndex = frameworkName.IndexOf(versionPrefix, StringComparison.OrdinalIgnoreCase);
+                if (versionIndex >= 0)
+                {
+                    var version = frameworkName.Substring(versionIndex + versionPrefix.Length);
+                    _framework = $"net{version}";
+                }
+            }
+
+            // Parse configuration, framework and runtime from the assembly path (if not found from attributes)
+            ParseBuildSettingsFromPath(appHostAssemblyPath);
+        }
     }
 
     private async Task<EFOperationResult> EnsurePathsInitializedAsync()
     {
         if (_initialized)
         {
-            return _startupAssemblyPath != null 
-                ? new EFOperationResult { Success = true } 
+            return _startupAssemblyPath != null
+                ? new EFOperationResult { Success = true }
                 : new EFOperationResult { Success = false, ErrorMessage = "Could not find compiled assembly for project." };
         }
 
@@ -77,17 +106,15 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
         var startupProps = await GetProjectPropertiesAsync(startupProjectPath).ConfigureAwait(false);
         _startupAssemblyPath = startupProps.TargetPath;
-        
+
         if (_startupAssemblyPath == null || !File.Exists(_startupAssemblyPath))
         {
-            return new EFOperationResult 
-            { 
-                Success = false, 
-                ErrorMessage = $"Could not find compiled assembly for startup project. Ensure the project is built. Expected at: {_startupAssemblyPath ?? "(unknown)"}" 
+            return new EFOperationResult
+            {
+                Success = false,
+                ErrorMessage = $"Could not find compiled assembly for startup project. Ensure the project is built. Expected at: {_startupAssemblyPath ?? "(unknown)"}"
             };
         }
-
-        ParseBuildSettingsFromPath(_startupAssemblyPath);
 
         if (_targetProjectResource != null)
         {
@@ -98,21 +125,21 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             }
 
             var targetProps = await GetProjectPropertiesAsync(targetProjectPath).ConfigureAwait(false);
-            
+
             _projectDirectory = targetProps.ProjectDir ?? Path.GetDirectoryName(targetProjectPath)!;
             _targetAssemblyPath = targetProps.TargetPath;
             _rootNamespace = targetProps.RootNamespace;
             _nullable = string.Equals(targetProps.Nullable, "enable", StringComparison.OrdinalIgnoreCase);
-            
+
             // Look for design assembly in target project first, then startup project
             _designAssemblyPath = targetProps.DesignAssemblyPath ?? startupProps.DesignAssemblyPath;
 
             if (_targetAssemblyPath == null || !File.Exists(_targetAssemblyPath))
             {
-                return new EFOperationResult 
-                { 
-                    Success = false, 
-                    ErrorMessage = $"Could not find compiled assembly for target project. Ensure the project is built. Expected at: {_targetAssemblyPath ?? "(unknown)"}" 
+                return new EFOperationResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Could not find compiled assembly for target project. Ensure the project is built. Expected at: {_targetAssemblyPath ?? "(unknown)"}"
                 };
             }
         }
@@ -132,9 +159,9 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     }
 
     private record ProjectProperties(
-        string? TargetPath, 
-        string? RootNamespace, 
-        string? ProjectDir, 
+        string? TargetPath,
+        string? RootNamespace,
+        string? ProjectDir,
         string? OutputPath,
         string? DesignAssemblyPath,
         string? Nullable);
@@ -247,10 +274,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             throw new InvalidOperationException($"MSBuild failed with exit code {process.ExitCode}: {errorOutput}");
         }
 
-        var result = output.Trim();
-        _logger.LogDebug("MSBuild output:\n{Output}", result);
-        
-        return result;
+        return output.Trim();
     }
 
     /// <summary>
@@ -290,7 +314,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
     {
         // Split the path into segments
         var segments = assemblyPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        
+
         // Find the "bin" segment as an anchor point
         var binIndex = -1;
         for (var i = 0; i < segments.Length; i++)
@@ -312,11 +336,11 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         // If it's a configuration (Debug/Release), use standard layout
         // Otherwise, assume it's assembly name and configuration is next
         var firstSegment = segments[binIndex + 1];
-        var isStandardLayout = firstSegment.Equals("Debug", StringComparison.OrdinalIgnoreCase) || 
+        var isStandardLayout = firstSegment.Equals("Debug", StringComparison.OrdinalIgnoreCase) ||
                                firstSegment.Equals("Release", StringComparison.OrdinalIgnoreCase);
 
         int configIndex, frameworkIndex;
-        
+
         if (isStandardLayout)
         {
             // Pattern: bin/{Configuration}/{Framework}/{Runtime?}/{AssemblyName}.dll
@@ -328,7 +352,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             // Pattern: bin/{AssemblyName}/{Configuration}/{Framework}/{Runtime?}/{AssemblyName}.dll
             configIndex = binIndex + 2;
             frameworkIndex = binIndex + 3;
-            
+
             if (frameworkIndex >= segments.Length)
             {
                 _logger.LogDebug("Could not parse build settings from assembly path: {AssemblyPath}", assemblyPath);
@@ -337,10 +361,11 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
 
         // Parse configuration
-        if (configIndex < segments.Length)
+        if (_configuration == null
+            && configIndex < segments.Length)
         {
             var configCandidate = segments[configIndex];
-            if (configCandidate.Equals("Debug", StringComparison.OrdinalIgnoreCase) || 
+            if (configCandidate.Equals("Debug", StringComparison.OrdinalIgnoreCase) ||
                 configCandidate.Equals("Release", StringComparison.OrdinalIgnoreCase))
             {
                 _configuration = configCandidate;
@@ -348,7 +373,8 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         }
 
         // Parse framework (e.g., net8.0, net9.0)
-        if (frameworkIndex < segments.Length)
+        if (_framework == null
+            && frameworkIndex < segments.Length)
         {
             var frameworkCandidate = segments[frameworkIndex];
             if (frameworkCandidate.StartsWith("net", StringComparison.OrdinalIgnoreCase))
@@ -360,7 +386,8 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         // Parse runtime if present (e.g., win-x64, linux-arm64)
         // Runtime comes after framework and before the assembly name
         var runtimeIndex = frameworkIndex + 1;
-        if (runtimeIndex < segments.Length - 1) // Ensure it's not the last segment (assembly name)
+        if (_runtime == null
+            && runtimeIndex < segments.Length - 1)
         {
             var runtimeCandidate = segments[runtimeIndex];
             // Runtime identifiers typically contain a hyphen (win-x64, linux-arm64, osx-x64, etc.)
@@ -434,6 +461,9 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 alc.LoadFromAssemblyPath(_startupAssemblyPath!);
             }
 
+            // Enter the custom context so Assembly.Load() calls resolve to this context
+            using var contextScope = alc.EnterContextualReflection();
+
             // Create report handler
             var reportHandlerType = commandsAssembly.GetType(ReportHandlerTypeName, throwOnError: true, ignoreCase: false)!;
             var reportHandler = Activator.CreateInstance(
@@ -450,8 +480,8 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 reportHandler,
                 new Dictionary<string, object?>
                 {
-                    { "targetName", _targetAssemblyPath },
-                    { "startupTargetName", _startupAssemblyPath },
+                    { "targetName", Path.GetFileNameWithoutExtension(_targetAssemblyPath) },
+                    { "startupTargetName", Path.GetFileNameWithoutExtension(_startupAssemblyPath) },
                     { "projectDir", _projectDirectory },
                     { "rootNamespace", _rootNamespace },
                     { "language", "C#" },
@@ -463,33 +493,33 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
             var operationResult = operation(executor, commandsAssembly, resultHandlerType);
 
-            return new EFOperationResult 
-            { 
-                Success = true, 
-                Output = operationResult?.ToString() 
+            return new EFOperationResult
+            {
+                Success = true,
+                Output = operationResult?.ToString()
             };
         }
         catch (FileNotFoundException ex)
         {
             _logger.LogError(ex, "Microsoft.EntityFrameworkCore.Design assembly not found. Ensure the target project references Microsoft.EntityFrameworkCore.Design.");
-            return new EFOperationResult 
-            { 
-                Success = false, 
-                ErrorMessage = "Microsoft.EntityFrameworkCore.Design assembly not found. Ensure the target project references Microsoft.EntityFrameworkCore.Design." 
+            return new EFOperationResult
+            {
+                Success = false,
+                ErrorMessage = "Microsoft.EntityFrameworkCore.Design assembly not found. Ensure the target project references Microsoft.EntityFrameworkCore.Design."
             };
         }
         catch (Exception ex)
         {
             var errorMessage = GetInnerExceptionMessage(ex);
 
-            if (handleDatabaseNotFound && 
+            if (handleDatabaseNotFound &&
                 (errorMessage.Contains("does not exist", StringComparison.OrdinalIgnoreCase) ||
                  errorMessage.Contains("Cannot open database", StringComparison.OrdinalIgnoreCase)))
             {
-                return new EFOperationResult 
-                { 
-                    Success = true, 
-                    Output = "Database has not been created yet.\nRun 'Update Database' to create and apply migrations." 
+                return new EFOperationResult
+                {
+                    Success = true,
+                    Output = "Database has not been created yet.\nRun 'Update Database' to create and apply migrations."
                 };
             }
 
@@ -509,7 +539,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
         private readonly string _targetBasePath;
         private readonly string _startupBasePath;
 
-        public EFCoreDesignLoadContext(string targetBasePath, string startupBasePath, string targetAssemblyPath, string? startupAssemblyPath) 
+        public EFCoreDesignLoadContext(string targetBasePath, string startupBasePath, string targetAssemblyPath, string? startupAssemblyPath)
             : base(isCollectible: true)
         {
             _targetBasePath = targetBasePath;
@@ -563,8 +593,8 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 }
             }
 
-            // Return null to let the default context try to load it
-            return null;
+            // Let the default context try to load it
+            return base.Load(assemblyName);
         }
     }
 
@@ -680,7 +710,7 @@ internal sealed class EFCoreOperationExecutor : IDisposable
                 }
             }
 
-            bool hasPendingModelChanges = false;
+            var hasPendingModelChanges = false;
             try
             {
                 InvokeOperation(executor, commandsAssembly, resultHandlerType, "HasPendingModelChanges", new Dictionary<string, object?>
@@ -696,8 +726,11 @@ internal sealed class EFCoreOperationExecutor : IDisposable
             var summary = new List<string>
             {
                 $"Current Applied Migration: {lastAppliedMigration ?? "None (database not created)"}",
+                "\t",
                 $"Latest Migration: {lastMigration ?? "None"}",
+                "\t",
                 $"Pending Migrations: {(pendingMigrations.Count > 0 ? string.Join(", ", pendingMigrations) : "None")}",
+                "\t",
                 $"Has Pending Model Changes: {(hasPendingModelChanges ? "Yes" : "No")}"
             };
 
@@ -746,10 +779,10 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
         _ = outputPath; // Unused - included for API consistency
         _logger.LogWarning("Migration bundle generation is not yet implemented via reflection. Use 'dotnet ef migrations bundle' from the command line.");
-        return new EFOperationResult 
-        { 
-            Success = false, 
-            ErrorMessage = "Migration bundle generation requires the dotnet ef CLI. Use 'dotnet ef migrations bundle' from the command line." 
+        return new EFOperationResult
+        {
+            Success = false,
+            ErrorMessage = "Migration bundle generation requires the dotnet ef CLI. Use 'dotnet ef migrations bundle' from the command line."
         };
     }
 
@@ -760,26 +793,23 @@ internal sealed class EFCoreOperationExecutor : IDisposable
 
     private static TResult InvokeOperation<TResult>(object executor, Assembly commandsAssembly, Type resultHandlerType, string operationName, IDictionary arguments)
     {
-        return (TResult)InvokeOperationImpl(executor, commandsAssembly, resultHandlerType, operationName, arguments);
+        return (TResult)InvokeOperationImpl(executor, commandsAssembly, resultHandlerType, operationName, arguments)!;
     }
 
-    private static object InvokeOperationImpl(object executor, Assembly commandsAssembly, Type resultHandlerType, string operationName, IDictionary arguments)
+    private static object? InvokeOperationImpl(object executor, Assembly commandsAssembly, Type resultHandlerType, string operationName, IDictionary arguments)
     {
-        var resultHandler = Activator.CreateInstance(resultHandlerType)!;
+        dynamic resultHandler = Activator.CreateInstance(resultHandlerType)!;
 
         // Execute the operation by creating the nested operation type
         var operationType = commandsAssembly.GetType($"{ExecutorTypeName}+{operationName}", throwOnError: true, ignoreCase: true)!;
         Activator.CreateInstance(operationType, executor, resultHandler, arguments);
 
-        // Check for errors
-        var errorType = (string?)resultHandlerType.GetProperty("ErrorType")?.GetValue(resultHandler);
-        if (errorType != null)
+        if (resultHandler.ErrorType != null)
         {
-            var errorMessage = (string?)resultHandlerType.GetProperty("ErrorMessage")?.GetValue(resultHandler);
-            throw new InvalidOperationException(errorMessage ?? "Unknown error occurred.");
+            throw new InvalidOperationException(resultHandler.ErrorMessage);
         }
 
-        return resultHandlerType.GetProperty("Result")?.GetValue(resultHandler)!;
+        return resultHandler.Result;
     }
 
     private static string GetInnerExceptionMessage(Exception ex)

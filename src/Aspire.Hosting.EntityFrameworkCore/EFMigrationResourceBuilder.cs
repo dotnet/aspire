@@ -60,7 +60,7 @@ public sealed class EFMigrationResourceBuilder : IResourceBuilder<EFMigrationRes
         // Register a health check for this migration resource
         // This allows other resources to WaitFor the migration to complete
         var healthCheckKey = $"{Resource.Name}_migration_healthcheck";
-        
+
         ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
             healthCheckKey,
             sp => new EFMigrationHealthCheck(

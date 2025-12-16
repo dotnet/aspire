@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 /// Health check for EF migration resources that reports healthy only when migrations have completed.
 /// </summary>
 internal sealed class EFMigrationHealthCheck(
-    string resourceId, 
+    string resourceId,
     ResourceNotificationService resourceNotificationService) : IHealthCheck
 {
     public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
@@ -19,7 +19,7 @@ internal sealed class EFMigrationHealthCheck(
         if (resourceNotificationService.TryGetCurrentState(resourceId, out var resourceEvent) && resourceEvent != null)
         {
             var stateText = resourceEvent.Snapshot.State?.Text;
-            
+
             return stateText switch
             {
                 "Finished" => Task.FromResult(HealthCheckResult.Healthy("Migrations completed successfully.")),

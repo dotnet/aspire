@@ -11,7 +11,7 @@ namespace Aspire.Hosting;
 /// <param name="name">The name of the resource.</param>
 /// <param name="projectResource">The parent project resource that contains the DbContext.</param>
 /// <param name="contextTypeName">The fully qualified name of the DbContext type, or null to auto-detect.</param>
-public class EFMigrationResource(string name, ProjectResource projectResource, string? contextTypeName) 
+public class EFMigrationResource(string name, ProjectResource projectResource, string? contextTypeName)
     : Resource(name), IResourceWithWaitSupport
 {
     /// <summary>

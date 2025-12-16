@@ -159,8 +159,7 @@ public static class EFResourceBuilderExtensions
             {
                 ResourceType = "EFMigration",
                 Properties = [],
-                State = new ResourceStateSnapshot("Pending", KnownResourceStateStyles.Info),
-                IsHidden = true
+                State = new ResourceStateSnapshot(KnownResourceStates.Active, KnownResourceStateStyles.Info)
             })
             .WithIconName("Database")
             .WaitFor(builder)
@@ -267,8 +266,8 @@ public static class EFResourceBuilderExtensions
             name: $"ef-database-update{contextNameSuffix}",
             displayName: $"Update Database{contextDisplaySuffix}",
             executeCommand: context => ExecuteEFCommandAsync(
-                context, 
-                "Update Database", 
+                context,
+                "Update Database",
                 migrationResource,
                 executor => executor.UpdateDatabaseAsync()),
             commandOptions: new CommandOptions
@@ -282,8 +281,8 @@ public static class EFResourceBuilderExtensions
             name: $"ef-database-drop{contextNameSuffix}",
             displayName: $"Drop Database{contextDisplaySuffix}",
             executeCommand: context => ExecuteEFCommandAsync(
-                context, 
-                "Drop Database", 
+                context,
+                "Drop Database",
                 migrationResource,
                 executor => executor.DropDatabaseAsync()),
             commandOptions: new CommandOptions
@@ -298,8 +297,8 @@ public static class EFResourceBuilderExtensions
             name: $"ef-database-reset{contextNameSuffix}",
             displayName: $"Reset Database{contextDisplaySuffix}",
             executeCommand: context => ExecuteEFCommandAsync(
-                context, 
-                "Reset Database", 
+                context,
+                "Reset Database",
                 migrationResource,
                 executor => executor.ResetDatabaseAsync()),
             commandOptions: new CommandOptions
@@ -355,7 +354,7 @@ public static class EFResourceBuilderExtensions
 
         try
         {
-            logger.LogInformation("Executing EF Core {Operation} command for context {ContextType}...", 
+            logger.LogInformation("Executing EF Core {Operation} command for context {ContextType}...",
                 operationDisplayName, migrationResource.ContextTypeName ?? "(auto-detect)");
 
             using var executor = new EFCoreOperationExecutor(
@@ -416,7 +415,7 @@ public static class EFResourceBuilderExtensions
 
             if (inputResult.Canceled || string.IsNullOrWhiteSpace(inputResult.Data?.Value))
             {
-                logger.LogInformation("Add migration cancelled by user.");
+                logger.LogInformation("Add migration command was cancelled.");
                 return CommandResults.Canceled();
             }
 
@@ -425,7 +424,7 @@ public static class EFResourceBuilderExtensions
 
         try
         {
-            logger.LogInformation("Creating migration '{MigrationName}' for context {ContextType}...", 
+            logger.LogInformation("Creating migration '{MigrationName}' for context {ContextType}...",
                 migrationName, contextTypeName ?? "(auto-detect)");
 
             using var executor = new EFCoreOperationExecutor(
@@ -436,13 +435,27 @@ public static class EFResourceBuilderExtensions
                 context.CancellationToken);
 
             var result = await executor.AddMigrationAsync(
-                migrationName, 
+                migrationName,
                 migrationResource.MigrationOutputDirectory,
                 migrationResource.MigrationNamespace).ConfigureAwait(false);
 
             if (result.Success)
             {
                 logger.LogInformation("Migration '{MigrationName}' created successfully.", migrationName);
+
+                // Remove the "Update Database" command since it can't be used until the project is rebuilt
+                var contextShortName = GetShortTypeName(contextTypeName);
+                var contextNameSuffix = !string.IsNullOrEmpty(contextShortName) ? $"-{contextShortName}" : "";
+                var updateDatabaseCommandName = $"ef-database-update{contextNameSuffix}";
+                var updateDatabaseCommand = migrationResource.ProjectResource.Annotations
+                    .OfType<ResourceCommandAnnotation>()
+                    .FirstOrDefault(a => a.Name == updateDatabaseCommandName);
+
+                if (updateDatabaseCommand != null)
+                {
+                    migrationResource.ProjectResource.Annotations.Remove(updateDatabaseCommand);
+                    logger.LogDebug("Removed '{CommandName}' command as it cannot be used until the project is rebuilt.", updateDatabaseCommandName);
+                }
 
                 if (interactionService != null && interactionService.IsAvailable)
                 {
@@ -492,7 +505,7 @@ public static class EFResourceBuilderExtensions
 
         try
         {
-            logger.LogInformation("Removing last migration for context {ContextType}...", 
+            logger.LogInformation("Removing last migration for context {ContextType}...",
                 contextTypeName ?? "(auto-detect)");
 
             using var executor = new EFCoreOperationExecutor(
@@ -556,7 +569,7 @@ public static class EFResourceBuilderExtensions
 
         try
         {
-            logger.LogInformation("Getting database status for context {ContextType}...", 
+            logger.LogInformation("Getting database status for context {ContextType}...",
                 contextTypeName ?? "(auto-detect)");
 
             using var executor = new EFCoreOperationExecutor(
