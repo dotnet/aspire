@@ -333,6 +333,7 @@ public class DotNetTemplateFactoryTests
         var hivesDirectory = new DirectoryInfo("/tmp/hives");
         var cacheDirectory = new DirectoryInfo("/tmp/cache");
         var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
+        var configurationService = new FakeConfigurationService();
 
         return new DotNetTemplateFactory(
             interactionService,
@@ -341,7 +342,36 @@ public class DotNetTemplateFactoryTests
             packagingService,
             prompter,
             executionContext,
-            features);
+            features,
+            configurationService);
+    }
+
+    private sealed class FakeConfigurationService : IConfigurationService
+    {
+        public Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> DeleteConfigurationAsync(string key, bool isGlobal = false, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(false);
+        }
+
+        public Task<Dictionary<string, string>> GetAllConfigurationAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new Dictionary<string, string>());
+        }
+
+        public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<string?>(null);
+        }
+
+        public string GetSettingsFilePath(bool isGlobal)
+        {
+            return "/tmp/settings.json";
+        }
     }
 
     private sealed class TestFeatures : IFeatures

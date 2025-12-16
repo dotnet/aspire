@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="ChannelOptionDescription">
         <source>Channel to use for templates (stable, daily)</source>
-        <target state="new">Channel to use for templates (stable, daily)</target>
+        <target state="translated">템플릿에 사용할 채널(안정, 데일리)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChannelOptionDescriptionWithStaging">
         <source>Channel to use for templates (stable, staging, daily)</source>
-        <target state="new">Channel to use for templates (stable, staging, daily)</target>
+        <target state="translated">템플릿에 사용할 채널(안정, 스테이징, 데일리)</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">

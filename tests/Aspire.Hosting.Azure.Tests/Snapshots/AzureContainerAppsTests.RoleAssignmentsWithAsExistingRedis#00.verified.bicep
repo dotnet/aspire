@@ -15,6 +15,8 @@ param api_identity_outputs_id string
 
 param redis_outputs_connectionstring string
 
+param redis_outputs_hostname string
+
 param api_identity_outputs_clientid string
 
 resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
@@ -57,6 +59,18 @@ resource api 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'ConnectionStrings__redis'
               value: redis_outputs_connectionstring
+            }
+            {
+              name: 'REDIS_HOST'
+              value: redis_outputs_hostname
+            }
+            {
+              name: 'REDIS_PORT'
+              value: '10000'
+            }
+            {
+              name: 'REDIS_URI'
+              value: 'rediss://${redis_outputs_hostname}:10000'
             }
             {
               name: 'AZURE_CLIENT_ID'
