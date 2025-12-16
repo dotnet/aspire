@@ -14,7 +14,7 @@ internal sealed class DoctorTool(IEnvironmentChecker environmentChecker) : CliMc
 {
     public override string Name => "doctor";
 
-    public override string Description => "Check Aspire environment and environment setup. Validates .NET SDK version, container runtime availability, WSL environment, and terminal capabilities. Returns detailed information about each check including status (pass/warning/fail), messages, and fix suggestions. Use this to diagnose environment issues before running Aspire applications. This tool does not require a running AppHost.";
+    public override string Description => "Diagnose Aspire environment issues by performing comprehensive checks. Returns detailed information about each check including status (pass/warning/fail), messages, and actionable fix suggestions. Use this to identify and resolve environment problems before running Aspire applications. This tool does not require a running AppHost.";
 
     public override JsonElement GetInputSchema()
     {
