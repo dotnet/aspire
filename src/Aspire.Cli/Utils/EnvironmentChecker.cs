@@ -10,20 +10,20 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.Utils;
 
 /// <summary>
-/// Default implementation of <see cref="IPrerequisiteChecker"/> that checks Aspire prerequisites.
+/// Default implementation of <see cref="IEnvironmentChecker"/> that checks Aspire prerequisites.
 /// </summary>
-internal sealed class PrerequisiteChecker : IPrerequisiteChecker
+internal sealed class EnvironmentChecker : IEnvironmentChecker
 {
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IConfiguration _configuration;
-    private readonly ILogger<PrerequisiteChecker> _logger;
+    private readonly ILogger<EnvironmentChecker> _logger;
 
-    public PrerequisiteChecker(
+    public EnvironmentChecker(
         IDotNetSdkInstaller sdkInstaller,
         ICliHostEnvironment hostEnvironment,
         IConfiguration configuration,
-        ILogger<PrerequisiteChecker> logger)
+        ILogger<EnvironmentChecker> logger)
     {
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
@@ -37,7 +37,7 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
     }
 
     /// <inheritdoc />
-    public async Task<PrerequisiteCheckResult> CheckDotNetSdkAsync(CancellationToken cancellationToken = default)
+    public async Task<EnvironmentCheckResult> CheckDotNetSdkAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -46,11 +46,11 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             if (!success)
             {
                 var detectedVersion = highestVersion ?? "not found";
-                return new PrerequisiteCheckResult
+                return new EnvironmentCheckResult
                 {
                     Category = "sdk",
                     Name = "dotnet-sdk",
-                    Status = PrerequisiteCheckStatus.Fail,
+                    Status = EnvironmentCheckStatus.Fail,
                     Message = $".NET {minimumRequiredVersion} SDK not found (found: {detectedVersion})",
                     Fix = $"Download from: https://dotnet.microsoft.com/download/dotnet/{minimumRequiredVersion.Split('.')[0]}",
                     Link = $"https://dotnet.microsoft.com/download/dotnet/{minimumRequiredVersion.Split('.')[0]}"
@@ -58,22 +58,22 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             }
 
             var arch = GetCurrentArchitecture();
-            return new PrerequisiteCheckResult
+            return new EnvironmentCheckResult
             {
                 Category = "sdk",
                 Name = "dotnet-sdk",
-                Status = PrerequisiteCheckStatus.Pass,
+                Status = EnvironmentCheckStatus.Pass,
                 Message = $".NET {highestVersion ?? minimumRequiredVersion} installed ({arch})"
             };
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Error checking .NET SDK");
-            return new PrerequisiteCheckResult
+            return new EnvironmentCheckResult
             {
                 Category = "sdk",
                 Name = "dotnet-sdk",
-                Status = PrerequisiteCheckStatus.Fail,
+                Status = EnvironmentCheckStatus.Fail,
                 Message = "Failed to check .NET SDK",
                 Details = ex.Message
             };
@@ -81,30 +81,30 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
     }
 
     /// <inheritdoc />
-    public async Task<PrerequisiteCheckResult> CheckContainerRuntimeAsync(CancellationToken cancellationToken = default)
+    public async Task<EnvironmentCheckResult> CheckContainerRuntimeAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             // Try Docker first
             var dockerCheck = await CheckSpecificContainerRuntimeAsync("docker", cancellationToken);
-            if (dockerCheck.Status != PrerequisiteCheckStatus.Fail)
+            if (dockerCheck.Status != EnvironmentCheckStatus.Fail)
             {
                 return dockerCheck;
             }
 
             // Try Podman as fallback
             var podmanCheck = await CheckSpecificContainerRuntimeAsync("podman", cancellationToken);
-            if (podmanCheck.Status != PrerequisiteCheckStatus.Fail)
+            if (podmanCheck.Status != EnvironmentCheckStatus.Fail)
             {
                 return podmanCheck;
             }
 
             // Neither found
-            return new PrerequisiteCheckResult
+            return new EnvironmentCheckResult
             {
                 Category = "container",
                 Name = "container-runtime",
-                Status = PrerequisiteCheckStatus.Fail,
+                Status = EnvironmentCheckStatus.Fail,
                 Message = "No container runtime detected",
                 Fix = "Install Docker Desktop: https://www.docker.com/products/docker-desktop or Podman: https://podman.io/getting-started/installation",
                 Link = "https://aka.ms/dotnet/aspire/containers"
@@ -113,18 +113,18 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Error checking container runtime");
-            return new PrerequisiteCheckResult
+            return new EnvironmentCheckResult
             {
                 Category = "container",
                 Name = "container-runtime",
-                Status = PrerequisiteCheckStatus.Fail,
+                Status = EnvironmentCheckStatus.Fail,
                 Message = "Failed to check container runtime",
                 Details = ex.Message
             };
         }
     }
 
-    private async Task<PrerequisiteCheckResult> CheckSpecificContainerRuntimeAsync(string runtime, CancellationToken cancellationToken)
+    private async Task<EnvironmentCheckResult> CheckSpecificContainerRuntimeAsync(string runtime, CancellationToken cancellationToken)
     {
         try
         {
@@ -142,11 +142,11 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             using var versionProcess = Process.Start(versionProcessInfo);
             if (versionProcess is null)
             {
-                return new PrerequisiteCheckResult
+                return new EnvironmentCheckResult
                 {
                     Category = "container",
                     Name = "container-runtime",
-                    Status = PrerequisiteCheckStatus.Fail,
+                    Status = EnvironmentCheckStatus.Fail,
                     Message = $"{runtime} not found"
                 };
             }
@@ -155,11 +155,11 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
 
             if (versionProcess.ExitCode != 0)
             {
-                return new PrerequisiteCheckResult
+                return new EnvironmentCheckResult
                 {
                     Category = "container",
                     Name = "container-runtime",
-                    Status = PrerequisiteCheckStatus.Fail,
+                    Status = EnvironmentCheckStatus.Fail,
                     Message = $"{runtime} not found",
                     Fix = GetContainerRuntimeInstallationLink(runtime),
                     Link = "https://aka.ms/dotnet/aspire/containers"
@@ -180,11 +180,11 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             using var psProcess = Process.Start(psProcessInfo);
             if (psProcess is null)
             {
-                return new PrerequisiteCheckResult
+                return new EnvironmentCheckResult
                 {
                     Category = "container",
                     Name = "container-runtime",
-                    Status = PrerequisiteCheckStatus.Warning,
+                    Status = EnvironmentCheckStatus.Warning,
                     Message = $"{runtime} installed but daemon not reachable",
                     Fix = GetContainerRuntimeStartupAdvice(runtime),
                     Link = "https://aka.ms/dotnet/aspire/containers"
@@ -195,11 +195,11 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
 
             if (psProcess.ExitCode != 0)
             {
-                return new PrerequisiteCheckResult
+                return new EnvironmentCheckResult
                 {
                     Category = "container",
                     Name = "container-runtime",
-                    Status = PrerequisiteCheckStatus.Warning,
+                    Status = EnvironmentCheckStatus.Warning,
                     Message = $"{runtime} installed but daemon not running",
                     Fix = GetContainerRuntimeStartupAdvice(runtime),
                     Link = "https://aka.ms/dotnet/aspire/containers"
@@ -207,40 +207,40 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             }
 
             // Just return that the runtime is working - Docker Engine detection is handled separately
-            return new PrerequisiteCheckResult
+            return new EnvironmentCheckResult
             {
                 Category = "container",
                 Name = "container-runtime",
-                Status = PrerequisiteCheckStatus.Pass,
+                Status = EnvironmentCheckStatus.Pass,
                 Message = $"{runtime} detected and running"
             };
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Error checking {Runtime}", runtime);
-            return new PrerequisiteCheckResult
+            return new EnvironmentCheckResult
             {
                 Category = "container",
                 Name = "container-runtime",
-                Status = PrerequisiteCheckStatus.Fail,
+                Status = EnvironmentCheckStatus.Fail,
                 Message = $"Failed to check {runtime}"
             };
         }
     }
 
     /// <inheritdoc />
-    public Task<PrerequisiteCheckResult> CheckWslEnvironmentAsync(CancellationToken cancellationToken = default)
+    public Task<EnvironmentCheckResult> CheckWslEnvironmentAsync(CancellationToken cancellationToken = default)
     {
 
         // WSL detection
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             // Not running on Linux, so not WSL
-            return Task.FromResult(new PrerequisiteCheckResult
+            return Task.FromResult(new EnvironmentCheckResult
             {
                 Category = "environment",
                 Name = "wsl",
-                Status = PrerequisiteCheckStatus.Pass,
+                Status = EnvironmentCheckStatus.Pass,
                 Message = "Not running in WSL"
             });
         }
@@ -250,11 +250,11 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
 
         if (!isWsl)
         {
-            return Task.FromResult(new PrerequisiteCheckResult
+            return Task.FromResult(new EnvironmentCheckResult
             {
                 Category = "environment",
                 Name = "wsl",
-                Status = PrerequisiteCheckStatus.Pass,
+                Status = EnvironmentCheckStatus.Pass,
                 Message = "Not running in WSL"
             });
         }
@@ -264,11 +264,11 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
 
         if (wslVersion == 1)
         {
-            return Task.FromResult(new PrerequisiteCheckResult
+            return Task.FromResult(new EnvironmentCheckResult
             {
                 Category = "environment",
                 Name = "wsl",
-                Status = PrerequisiteCheckStatus.Warning,
+                Status = EnvironmentCheckStatus.Warning,
                 Message = "WSL1 detected - limited container support",
                 Fix = "Upgrade to WSL2 for best experience: wsl --set-version <distro> 2",
                 Link = "https://aka.ms/aspire-prerequisites#wsl-setup"
@@ -276,18 +276,18 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
         }
 
         // WSL2 detected - just informational, not a warning unless there are known issues
-        return Task.FromResult(new PrerequisiteCheckResult
+        return Task.FromResult(new EnvironmentCheckResult
         {
             Category = "environment",
             Name = "wsl",
-            Status = PrerequisiteCheckStatus.Pass,
+            Status = EnvironmentCheckStatus.Pass,
             Message = "WSL2 environment detected",
             Details = "If you experience container connectivity issues, ensure Docker Desktop WSL integration is enabled."
         });
     }
 
     /// <inheritdoc />
-    public async Task<PrerequisiteCheckResult> CheckDockerEngineAsync(CancellationToken cancellationToken = default)
+    public async Task<EnvironmentCheckResult> CheckDockerEngineAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -296,11 +296,11 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             if (!dockerAvailable)
             {
                 // No Docker installed, skip this check
-                return new PrerequisiteCheckResult
+                return new EnvironmentCheckResult
                 {
                     Category = "container",
                     Name = "docker-engine",
-                    Status = PrerequisiteCheckStatus.Pass,
+                    Status = EnvironmentCheckStatus.Pass,
                     Message = "Docker not detected (check skipped)"
                 };
             }
@@ -309,21 +309,21 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
 
             if (isDockerDesktop)
             {
-                return new PrerequisiteCheckResult
+                return new EnvironmentCheckResult
                 {
                     Category = "container",
                     Name = "docker-engine",
-                    Status = PrerequisiteCheckStatus.Pass,
+                    Status = EnvironmentCheckStatus.Pass,
                     Message = "Docker Desktop detected"
                 };
             }
 
             // Docker Engine detected - warn about tunnel requirement
-            return new PrerequisiteCheckResult
+            return new EnvironmentCheckResult
             {
                 Category = "container",
                 Name = "docker-engine",
-                Status = PrerequisiteCheckStatus.Warning,
+                Status = EnvironmentCheckStatus.Warning,
                 Message = "Docker Engine requires Aspire tunnel for container access",
                 Fix = "Run: aspire config set tunnel.enabled true",
                 Link = "https://aka.ms/aspire-prerequisites#docker-engine"
@@ -332,11 +332,11 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Error checking Docker Engine");
-            return new PrerequisiteCheckResult
+            return new EnvironmentCheckResult
             {
                 Category = "container",
                 Name = "docker-engine",
-                Status = PrerequisiteCheckStatus.Pass,
+                Status = EnvironmentCheckStatus.Pass,
                 Message = "Docker Engine check skipped",
                 Details = ex.Message
             };
@@ -344,7 +344,7 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
     }
 
     /// <inheritdoc />
-    public Task<PrerequisiteCheckResult> CheckTerminalCapabilitiesAsync(CancellationToken cancellationToken = default)
+    public Task<EnvironmentCheckResult> CheckTerminalCapabilitiesAsync(CancellationToken cancellationToken = default)
     {
 
         var capabilities = new List<string>();
@@ -366,28 +366,28 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
 
         if (capabilities.Count == 0)
         {
-            return Task.FromResult(new PrerequisiteCheckResult
+            return Task.FromResult(new EnvironmentCheckResult
             {
                 Category = "environment",
                 Name = "terminal",
-                Status = PrerequisiteCheckStatus.Warning,
+                Status = EnvironmentCheckStatus.Warning,
                 Message = "Terminal has limited capabilities"
             });
         }
 
-        return Task.FromResult(new PrerequisiteCheckResult
+        return Task.FromResult(new EnvironmentCheckResult
         {
             Category = "environment",
             Name = "terminal",
-            Status = PrerequisiteCheckStatus.Pass,
+            Status = EnvironmentCheckStatus.Pass,
             Message = $"Terminal supports: {string.Join(", ", capabilities)}"
         });
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<PrerequisiteCheckResult>> CheckAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<EnvironmentCheckResult>> CheckAllAsync(CancellationToken cancellationToken = default)
     {
-        var results = new List<PrerequisiteCheckResult>();
+        var results = new List<EnvironmentCheckResult>();
 
         // Check ordering: Fast first, expensive later
         // 1. Environment variable checks (instant)

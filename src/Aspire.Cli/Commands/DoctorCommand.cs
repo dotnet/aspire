@@ -13,11 +13,11 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class DoctorCommand : BaseCommand
 {
-    private readonly IPrerequisiteChecker _prerequisiteChecker;
+    private readonly IEnvironmentChecker _environmentChecker;
     private readonly IAnsiConsole _ansiConsole;
 
     public DoctorCommand(
-        IPrerequisiteChecker prerequisiteChecker,
+        IEnvironmentChecker environmentChecker,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
@@ -25,10 +25,10 @@ internal sealed class DoctorCommand : BaseCommand
         IAnsiConsole ansiConsole)
         : base("doctor", DoctorCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
-        ArgumentNullException.ThrowIfNull(prerequisiteChecker);
+        ArgumentNullException.ThrowIfNull(environmentChecker);
         ArgumentNullException.ThrowIfNull(ansiConsole);
 
-        _prerequisiteChecker = prerequisiteChecker;
+        _environmentChecker = environmentChecker;
         _ansiConsole = ansiConsole;
 
         var jsonOption = new Option<bool>("--json");
@@ -43,7 +43,7 @@ internal sealed class DoctorCommand : BaseCommand
         // Run all prerequisite checks
         var results = await InteractionService.ShowStatusAsync(
             DoctorCommandStrings.CheckingPrerequisites,
-            async () => await _prerequisiteChecker.CheckAllAsync(cancellationToken));
+            async () => await _environmentChecker.CheckAllAsync(cancellationToken));
 
         if (jsonOutput)
         {
@@ -55,15 +55,15 @@ internal sealed class DoctorCommand : BaseCommand
         }
 
         // Exit code: 0 if no failures (warnings are OK), 1 (InvalidCommand) if any failures
-        var hasFailures = results.Any(r => r.Status == PrerequisiteCheckStatus.Fail);
+        var hasFailures = results.Any(r => r.Status == EnvironmentCheckStatus.Fail);
         return hasFailures ? ExitCodeConstants.InvalidCommand : ExitCodeConstants.Success;
     }
 
-    private void OutputJson(IReadOnlyList<PrerequisiteCheckResult> results)
+    private void OutputJson(IReadOnlyList<EnvironmentCheckResult> results)
     {
-        var passed = results.Count(r => r.Status == PrerequisiteCheckStatus.Pass);
-        var warnings = results.Count(r => r.Status == PrerequisiteCheckStatus.Warning);
-        var failed = results.Count(r => r.Status == PrerequisiteCheckStatus.Fail);
+        var passed = results.Count(r => r.Status == EnvironmentCheckStatus.Pass);
+        var warnings = results.Count(r => r.Status == EnvironmentCheckStatus.Warning);
+        var failed = results.Count(r => r.Status == EnvironmentCheckStatus.Fail);
 
         var response = new DoctorCheckResponse
         {
@@ -80,7 +80,7 @@ internal sealed class DoctorCommand : BaseCommand
         _ansiConsole.WriteLine(json);
     }
 
-    private void OutputHumanReadable(IReadOnlyList<PrerequisiteCheckResult> results)
+    private void OutputHumanReadable(IReadOnlyList<EnvironmentCheckResult> results)
     {
         _ansiConsole.WriteLine();
         _ansiConsole.MarkupLine($"[bold]{DoctorCommandStrings.EnvironmentCheckHeader}[/]");
@@ -106,9 +106,9 @@ internal sealed class DoctorCommand : BaseCommand
         }
 
         // Output summary
-        var passed = results.Count(r => r.Status == PrerequisiteCheckStatus.Pass);
-        var warnings = results.Count(r => r.Status == PrerequisiteCheckStatus.Warning);
-        var failed = results.Count(r => r.Status == PrerequisiteCheckStatus.Fail);
+        var passed = results.Count(r => r.Status == EnvironmentCheckStatus.Pass);
+        var warnings = results.Count(r => r.Status == EnvironmentCheckStatus.Warning);
+        var failed = results.Count(r => r.Status == EnvironmentCheckStatus.Fail);
 
         _ansiConsole.MarkupLine($"[bold]{string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.SummaryFormat, passed, warnings, failed)}[/]");
 
@@ -119,7 +119,7 @@ internal sealed class DoctorCommand : BaseCommand
         }
     }
 
-    private void OutputCheckResult(PrerequisiteCheckResult result)
+    private void OutputCheckResult(EnvironmentCheckResult result)
     {
         var (icon, color) = GetStatusIconAndColor(result.Status);
         _ansiConsole.MarkupLine($"  [{color}]{icon}[/] {result.Message.EscapeMarkup()}");
@@ -141,13 +141,13 @@ internal sealed class DoctorCommand : BaseCommand
         }
     }
 
-    private static (string Icon, string Color) GetStatusIconAndColor(PrerequisiteCheckStatus status)
+    private static (string Icon, string Color) GetStatusIconAndColor(EnvironmentCheckStatus status)
     {
         return status switch
         {
-            PrerequisiteCheckStatus.Pass => ("✓", "green"),
-            PrerequisiteCheckStatus.Warning => ("⚠", "yellow"),
-            PrerequisiteCheckStatus.Fail => ("✗", "red"),
+            EnvironmentCheckStatus.Pass => ("✓", "green"),
+            EnvironmentCheckStatus.Warning => ("⚠", "yellow"),
+            EnvironmentCheckStatus.Fail => ("✗", "red"),
             _ => ("?", "grey")
         };
     }

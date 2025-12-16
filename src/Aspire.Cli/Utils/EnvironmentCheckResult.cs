@@ -9,7 +9,7 @@ namespace Aspire.Cli.Utils;
 /// <summary>
 /// Represents the result of a prerequisite check.
 /// </summary>
-internal sealed class PrerequisiteCheckResult
+internal sealed class EnvironmentCheckResult
 {
     /// <summary>
     /// Gets the category of the check (e.g., "sdk", "container", "environment").
@@ -28,7 +28,7 @@ internal sealed class PrerequisiteCheckResult
     /// </summary>
     [JsonPropertyName("status")]
     [JsonConverter(typeof(LowercaseEnumConverter))]
-    public PrerequisiteCheckStatus Status { get; init; }
+    public EnvironmentCheckStatus Status { get; init; }
 
     /// <summary>
     /// Gets the human-readable message describing the check result.
@@ -61,7 +61,7 @@ internal sealed class PrerequisiteCheckResult
 /// <summary>
 /// Represents the status of a prerequisite check.
 /// </summary>
-internal enum PrerequisiteCheckStatus
+internal enum EnvironmentCheckStatus
 {
     /// <summary>
     /// The check passed successfully.
@@ -82,21 +82,21 @@ internal enum PrerequisiteCheckStatus
 /// <summary>
 /// JSON converter that serializes enums as lowercase strings.
 /// </summary>
-internal sealed class LowercaseEnumConverter : JsonConverter<PrerequisiteCheckStatus>
+internal sealed class LowercaseEnumConverter : JsonConverter<EnvironmentCheckStatus>
 {
-    public override PrerequisiteCheckStatus Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override EnvironmentCheckStatus Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var value = reader.GetString();
         return value?.ToLowerInvariant() switch
         {
-            "pass" => PrerequisiteCheckStatus.Pass,
-            "warning" => PrerequisiteCheckStatus.Warning,
-            "fail" => PrerequisiteCheckStatus.Fail,
+            "pass" => EnvironmentCheckStatus.Pass,
+            "warning" => EnvironmentCheckStatus.Warning,
+            "fail" => EnvironmentCheckStatus.Fail,
             _ => throw new JsonException($"Unknown status value: {value}")
         };
     }
 
-    public override void Write(Utf8JsonWriter writer, PrerequisiteCheckStatus value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, EnvironmentCheckStatus value, JsonSerializerOptions options)
     {
         writer.WriteStringValue(value.ToString().ToLowerInvariant());
     }
@@ -111,7 +111,7 @@ internal sealed class DoctorCheckResponse
     /// Gets or sets the list of prerequisite check results.
     /// </summary>
     [JsonPropertyName("checks")]
-    public required List<PrerequisiteCheckResult> Checks { get; set; }
+    public required List<EnvironmentCheckResult> Checks { get; set; }
 
     /// <summary>
     /// Gets or sets the summary of check results.

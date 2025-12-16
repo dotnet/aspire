@@ -196,7 +196,7 @@ public class Program
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
 
         // Prerequisite checking services.
-        builder.Services.AddSingleton<IPrerequisiteChecker, PrerequisiteChecker>();
+        builder.Services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
 
         // Commands.
         builder.Services.AddTransient<NewCommand>();

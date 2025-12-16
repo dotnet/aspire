@@ -10,11 +10,11 @@ namespace Aspire.Cli.Mcp;
 /// <summary>
 /// MCP tool for checking Aspire prerequisites and environment setup.
 /// </summary>
-internal sealed class CheckPrerequisitesTool(IPrerequisiteChecker prerequisiteChecker) : CliMcpTool
+internal sealed class DoctorTool(IEnvironmentChecker environmentChecker) : CliMcpTool
 {
-    public override string Name => "check_prerequisites";
+    public override string Name => "doctor";
 
-    public override string Description => "Check Aspire prerequisites and environment setup. Validates .NET SDK version, container runtime availability, WSL environment, and terminal capabilities. Returns detailed information about each check including status (pass/warning/fail), messages, and fix suggestions. Use this to diagnose environment issues before running Aspire applications. This tool does not require a running AppHost.";
+    public override string Description => "Check Aspire environment and environment setup. Validates .NET SDK version, container runtime availability, WSL environment, and terminal capabilities. Returns detailed information about each check including status (pass/warning/fail), messages, and fix suggestions. Use this to diagnose environment issues before running Aspire applications. This tool does not require a running AppHost.";
 
     public override JsonElement GetInputSchema()
     {
@@ -23,7 +23,7 @@ internal sealed class CheckPrerequisitesTool(IPrerequisiteChecker prerequisiteCh
               "type": "object",
               "properties": {},
               "additionalProperties": false,
-              "description": "This tool takes no input parameters. It performs comprehensive prerequisite checks and returns detailed results for each check."
+              "description": "This tool takes no input parameters. It performs comprehensive environment checks and returns detailed results for each check."
             }
             """).RootElement;
     }
@@ -36,13 +36,13 @@ internal sealed class CheckPrerequisitesTool(IPrerequisiteChecker prerequisiteCh
 
         try
         {
-            // Run all prerequisite checks
-            var results = await prerequisiteChecker.CheckAllAsync(cancellationToken);
+            // Run all environment checks
+            var results = await environmentChecker.CheckAllAsync(cancellationToken);
 
             // Build response
-            var passed = results.Count(r => r.Status == PrerequisiteCheckStatus.Pass);
-            var warnings = results.Count(r => r.Status == PrerequisiteCheckStatus.Warning);
-            var failed = results.Count(r => r.Status == PrerequisiteCheckStatus.Fail);
+            var passed = results.Count(r => r.Status == EnvironmentCheckStatus.Pass);
+            var warnings = results.Count(r => r.Status == EnvironmentCheckStatus.Warning);
+            var failed = results.Count(r => r.Status == EnvironmentCheckStatus.Fail);
 
             var response = new DoctorCheckResponse
             {
@@ -67,7 +67,7 @@ internal sealed class CheckPrerequisitesTool(IPrerequisiteChecker prerequisiteCh
             return new CallToolResult
             {
                 IsError = true,
-                Content = [new TextContentBlock { Text = $"Failed to check prerequisites: {ex.Message}" }]
+                Content = [new TextContentBlock { Text = $"Failed to check environment: {ex.Message}" }]
             };
         }
     }

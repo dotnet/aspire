@@ -102,7 +102,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
         services.AddSingleton(options.AgentEnvironmentDetectorFactory);
         services.AddSingleton(options.GitRepositoryFactory);
-        services.AddSingleton<IPrerequisiteChecker, PrerequisiteChecker>();
+        services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();

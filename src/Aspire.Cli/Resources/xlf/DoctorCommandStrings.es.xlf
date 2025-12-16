@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="es" original="../DoctorCommandStrings.resx">
     <body>
       <trans-unit id="CheckingPrerequisites">
-        <source>Checking Aspire prerequisites...</source>
-        <target state="new">Checking Aspire prerequisites...</target>
+        <source>Checking Aspire environment...</source>
+        <target state="new">Checking Aspire environment...</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerCategoryHeader">
@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Check Aspire prerequisites and environment setup</source>
-        <target state="new">Check Aspire prerequisites and environment setup</target>
+        <source>Check Aspire environment setup</source>
+        <target state="new">Check Aspire environment setup</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailedPrerequisitesLink">
