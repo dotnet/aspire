@@ -616,12 +616,13 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             imageBuilder.BuildImagesAsync([container.Resource], cts.Token));
 
-        Assert.Equal("Container runtime is not running or is unhealthy.", exception.Message);
+        Assert.Contains("Container runtime", exception.Message);
+        Assert.Contains("is not running or is unhealthy", exception.Message);
 
         var collector = app.Services.GetFakeLogCollector();
         var logs = collector.GetSnapshot();
 
-        Assert.Contains(logs, log => log.Message.Contains("Container runtime is not running or is unhealthy. Cannot build container images."));
+        Assert.Contains(logs, log => log.Message.Contains("is not running or is unhealthy. Cannot build container images."));
     }
 
     [Fact]
@@ -1163,7 +1164,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => imageManager.BuildImagesAsync([servicea.Resource], cts.Token));
 
-        Assert.Contains("Container runtime is not running or is unhealthy", exception.Message);
+        Assert.Contains("is not running or is unhealthy", exception.Message);
 
         // Verify CheckIfRunningAsync was called in the upfront check
         Assert.Equal(1, fakeContainerRuntime.CheckIfRunningCallCount);
@@ -1196,7 +1197,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => imageManager.BuildImageAsync(container.Resource, cts.Token));
 
-        Assert.Contains("Container runtime is not running or is unhealthy", exception.Message);
+        Assert.Contains("is not running or is unhealthy", exception.Message);
 
         // Verify CheckIfRunningAsync was called in BuildImageAsync
         Assert.Equal(1, fakeContainerRuntime.CheckIfRunningCallCount);
@@ -1239,7 +1240,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => imageManager.BuildImagesAsync([servicea.Resource, serviceb.Resource], cts.Token));
 
-        Assert.Contains("Container runtime is not running or is unhealthy", exception.Message);
+        Assert.Contains("is not running or is unhealthy", exception.Message);
 
         // Verify CheckIfRunningAsync was called once for the entire batch
         Assert.Equal(1, fakeContainerRuntime.CheckIfRunningCallCount);
@@ -1272,7 +1273,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => imageManager.BuildImagesAsync([servicea.Resource], cts.Token));
 
-        Assert.Contains("Container runtime is not running or is unhealthy", exception.Message);
+        Assert.Contains("is not running or is unhealthy", exception.Message);
 
         // Verify CheckIfRunningAsync was called
         Assert.Equal(1, fakeContainerRuntime.CheckIfRunningCallCount);

@@ -216,8 +216,8 @@ internal sealed class ResourceContainerImageManager(
 
             if (!containerRuntimeHealthy)
             {
-                logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
-                throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
+                logger.LogError("Container runtime '{ContainerRuntimeName}' is not running or is unhealthy. Cannot build container images.", ContainerRuntime.Name);
+                throw new InvalidOperationException($"Container runtime '{ContainerRuntime.Name}' is not running or is unhealthy.");
             }
 
             logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
@@ -247,8 +247,8 @@ internal sealed class ResourceContainerImageManager(
 
             if (!containerRuntimeHealthy)
             {
-                logger.LogError("Container runtime is not running or is unhealthy. Cannot build container image.");
-                throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
+                logger.LogError("Container runtime '{ContainerRuntimeName}' is not running or is unhealthy. Cannot build container image.", ContainerRuntime.Name);
+                throw new InvalidOperationException($"Container runtime '{ContainerRuntime.Name}' is not running or is unhealthy.");
             }
 
             logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
