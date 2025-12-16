@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Diagnostics;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
@@ -53,8 +54,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
-        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        CliExecutionContext executionContext, 
+        ICliHostEnvironment hostEnvironment,
+        IDiagnosticsBundleWriter diagnosticsBundleWriter)
+        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, diagnosticsBundleWriter)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);

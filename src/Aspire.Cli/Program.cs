@@ -13,6 +13,7 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Diagnostics;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
@@ -62,6 +63,9 @@ public class Program
     {
         // Check for --non-interactive flag early
         var nonInteractive = args?.Any(a => a == "--non-interactive") ?? false;
+
+        // Check for --verbose flag early
+        var verbose = args?.Any(a => a == "--verbose") ?? false;
 
         // Check if running MCP start command - all logs should go to stderr to keep stdout clean for MCP protocol
         var isMcpStartCommand = args?.Length >= 2 && args[0] == "mcp" && args[1] == "start";
@@ -136,7 +140,7 @@ public class Program
         }
 
         // Shared services.
-        builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
+        builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode, verbose));
         builder.Services.AddSingleton(BuildAnsiConsole);
         builder.Services.AddSingleton<ICliHostEnvironment>(provider =>
         {
@@ -169,6 +173,7 @@ public class Program
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
+        builder.Services.AddSingleton<IDiagnosticsBundleWriter, DiagnosticsBundleWriter>();
         builder.Services.AddMemoryCache();
 
         // Git repository operations.
@@ -229,13 +234,15 @@ public class Program
         return new DirectoryInfo(sdksPath);
     }
 
-    private static CliExecutionContext BuildCliExecutionContext(bool debugMode)
+    private static CliExecutionContext BuildCliExecutionContext(bool debugMode, bool verbose)
     {
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
         var cacheDirectory = GetCacheDirectory();
         var sdksDirectory = GetSdksDirectory();
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, sdksDirectory, debugMode);
+        var context = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, sdksDirectory, debugMode);
+        context.VerboseMode = verbose;
+        return context;
     }
 
     private static DirectoryInfo GetCacheDirectory()
