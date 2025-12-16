@@ -500,9 +500,15 @@ save_global_settings() {
     
     say_verbose "Setting global config: $key = $value"
     
-    if ! "$cli_path" config set -g "$key" "$value" 2>/dev/null; then
-        say_warn "Failed to set global config via aspire CLI"
+    local output
+    output=$("$cli_path" config set -g "$key" "$value" 2>&1)
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        say_warn "Failed to set global config via aspire CLI: $output"
         return 1
+    fi
+    if [[ -n "$output" ]]; then
+        say_verbose "$output"
     fi
     
     say_verbose "Global config saved: $key = $value"

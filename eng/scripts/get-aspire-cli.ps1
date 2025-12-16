@@ -643,8 +643,11 @@ function Save-GlobalSettings {
         
         $output = & $CliPath config set -g $Key $Value 2>&1
         if ($LASTEXITCODE -ne 0) {
-            Write-Message "Failed to set global config via aspire CLI" -Level Warning
+            Write-Message "Failed to set global config via aspire CLI: $output" -Level Warning
             return
+        }
+        if ($output) {
+            Write-Message "$output" -Level Verbose
         }
         Write-Message "Global config saved: $Key = $Value" -Level Verbose
     }
