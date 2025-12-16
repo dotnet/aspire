@@ -51,14 +51,11 @@ public static class McpExtensions
         // Always register telemetry tools
         builder.WithTools<AspireTelemetryMcpTools>();
 
-        // Always register resource tools so they appear in the SDK's tool registry.
-        // The tools themselves will check if the dashboard client is enabled and return
-        // appropriate responses if the resource service is not configured.
-        builder.WithTools<AspireResourceMcpTools>();
-
-        // Only add filters if the resource service is configured
+        // Only register resource tools and add filters if the resource service is configured
         if (dashboardOptions.ResourceServiceClient.GetUri() is not null)
         {
+            builder.WithTools<AspireResourceMcpTools>();
+
             // Intercept ListTools and CallTool to proxy calls to resource MCP servers
             // This has two purposes:
             // 1. To add the proxied tools to the list of available tools
