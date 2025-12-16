@@ -29,10 +29,14 @@
 
 .interaction-input-dialog .interaction-input ::deep .input-line-container {
     display: flex;
-    column-gap: 4px;
+    column-gap: 12px;
     align-items: center;
 }
 
-.interaction-input-dialog .interaction-input ::deep .input-progress {
-    margin-left: 8px;
+.interaction-input-dialog .interaction-input ::deep .secret-text-toggle-button::part(control) {
+    background-color: transparent;
+}
+
+.interaction-input-dialog .interaction-input ::deep fluent-text-field::part(end) {
+    margin-inline-end: 0;
 }
