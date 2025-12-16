@@ -525,8 +525,11 @@ remove_global_settings() {
     
     say_verbose "Removing global config: $key"
     
-    if ! "$cli_path" config delete -g "$key" 2>/dev/null; then
-        say_warn "Failed to delete global config via aspire CLI"
+    local output
+    output=$("$cli_path" config delete -g "$key" 2>&1)
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        say_verbose "Failed to delete global config via aspire CLI: $output"
         return 1
     fi
     
