@@ -1,6 +1,0 @@
---files
-/tmp/test-replace/test1.txt
-/tmp/test-replace/test2.txt
---replacements
-!!VERSION!!
-4.0.0
