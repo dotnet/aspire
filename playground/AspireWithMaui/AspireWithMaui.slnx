@@ -194,6 +194,12 @@
     <Project Path="../AspireEventHub/EventHubsApi/EventHubsApi.csproj" />
     <Project Path="../AspireEventHub/EventHubsConsumer/EventHubsConsumer.csproj" />
   </Folder>
+  <Folder Name="/playground/FoundryAgentBasic/">
+    <Project Path="../FoundryAgentBasic/FoundryAgentBasic.AppHost/FoundryAgentBasic.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/playground/FoundryAgentEnterprise/">
+    <Project Path="../FoundryAgentEnterprise/FoundryAgentEnterprise.AppHost/FoundryAgentEnterprise.AppHost.csproj" />
+  </Folder>
   <Folder Name="/playground/GitHubModelsEndToEnd/">
     <Project Path="../GitHubModelsEndToEnd/GitHubModelsEndToEnd.AppHost/GitHubModelsEndToEnd.AppHost.csproj" />
     <Project Path="../GitHubModelsEndToEnd/GitHubModelsEndToEnd.WebStory/GitHubModelsEndToEnd.WebStory.csproj" />

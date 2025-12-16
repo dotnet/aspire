@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>ca78455c-cd68-43fd-aed3-af99bb533e79</UserSecretsId>
+    <NoWarn>$(NoWarn);ASPIRECOMPUTE001;ASPIREPIPELINES001;ASPIREAZURE001;ASPIREPIPELINES003</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CognitiveServices" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ContainerRegistry" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>
