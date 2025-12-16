@@ -97,11 +97,6 @@
         <target state="translated">Risorsa</target>
         <note>A column header (noun)</note>
       </trans-unit>
-      <trans-unit id="RunningInstanceStopFailed">
-        <source>Failed to stop running instance. The process may have already exited.</source>
-        <target state="translated">Non è possibile arrestare l'istanza in esecuzione. Il processo potrebbe essere già terminato.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="RunningInstanceStopped">
         <source>Running instance stopped successfully.</source>
         <target state="translated">L'istanza in esecuzione è stata interrotta correttamente.</target>
