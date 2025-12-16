@@ -195,6 +195,9 @@ public class Program
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
 
+        // Prerequisite checking services.
+        builder.Services.AddSingleton<IPrerequisiteChecker, PrerequisiteChecker>();
+
         // Commands.
         builder.Services.AddTransient<NewCommand>();
         builder.Services.AddTransient<InitCommand>();
@@ -203,6 +206,7 @@ public class Program
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();
         builder.Services.AddTransient<CacheCommand>();
+        builder.Services.AddTransient<DoctorCommand>();
         builder.Services.AddTransient<UpdateCommand>();
         builder.Services.AddTransient<DeployCommand>();
         builder.Services.AddTransient<DoCommand>();
