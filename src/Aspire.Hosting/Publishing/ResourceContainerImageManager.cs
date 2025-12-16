@@ -150,7 +150,6 @@ internal sealed class ResourceContainerImageManager(
         public string? OutputPath { get; set; }
         public ContainerImageFormat? ImageFormat { get; set; }
         public ContainerTargetPlatform? TargetPlatform { get; set; }
-        public ContainerImageDestination? Destination { get; set; }
         public string LocalImageName { get; set; } = string.Empty;
         public string LocalImageTag { get; set; } = "latest";
     }
@@ -174,7 +173,6 @@ internal sealed class ResourceContainerImageManager(
         options.OutputPath = context.OutputPath;
         options.ImageFormat = context.ImageFormat;
         options.TargetPlatform = context.TargetPlatform;
-        options.Destination = context.Destination;
         options.LocalImageName = context.LocalImageName ?? options.LocalImageName;
         options.LocalImageTag = context.LocalImageTag ?? options.LocalImageTag;
 
@@ -496,24 +494,19 @@ internal sealed class ResourceContainerImageManager(
     // .NET Container builds that push OCI images to a local file path do not need a runtime
     private async Task<bool> ResourcesRequireContainerRuntimeAsync(IEnumerable<IResource> resources, CancellationToken cancellationToken)
     {
+        var hasDockerfileResources = resources.Any(resource =>
+            resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
+            resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _));
+
+        if (hasDockerfileResources)
+        {
+            return true;
+        }
+
+        // Check if any resource uses Docker format or has no output path
         foreach (var resource in resources)
         {
-            // Dockerfile resources always need container runtime
-            if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out _) &&
-                resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _))
-            {
-                return true;
-            }
-
-            // Check if any resource uses Docker format or has no output path
             var options = await ResolveContainerBuildOptionsAsync(resource, cancellationToken).ConfigureAwait(false);
-
-            // Skip resources that are explicitly configured to save as archives - they don't need Docker
-            if (options.Destination == ContainerImageDestination.Archive)
-            {
-                continue;
-            }
-
             var usesDocker = options.ImageFormat == null || options.ImageFormat == ContainerImageFormat.Docker;
             var hasNoOutputPath = options.OutputPath == null;
 
