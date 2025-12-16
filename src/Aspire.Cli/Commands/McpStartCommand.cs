@@ -27,7 +27,7 @@ internal sealed class McpStartCommand : BaseCommand
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpStartCommand> _logger;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IPrerequisiteChecker prerequisiteChecker)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
@@ -45,7 +45,8 @@ internal sealed class McpStartCommand : BaseCommand
             ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
-            ["get_integration_docs"] = new GetIntegrationDocsTool()
+            ["get_integration_docs"] = new GetIntegrationDocsTool(),
+            ["check_prerequisites"] = new CheckPrerequisitesTool(prerequisiteChecker)
         };
     }
 
@@ -108,7 +109,7 @@ internal sealed class McpStartCommand : BaseCommand
         if (_tools.TryGetValue(toolName, out var tool))
         {
             // Handle tools that don't need an MCP connection to the AppHost
-            if (toolName is "select_apphost" or "list_apphosts" or "list_integrations" or "get_integration_docs")
+            if (toolName is "select_apphost" or "list_apphosts" or "list_integrations" or "get_integration_docs" or "check_prerequisites")
             {
                 return await tool.CallToolAsync(null!, request.Params?.Arguments, cancellationToken);
             }

@@ -206,25 +206,13 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
                 };
             }
 
-            // Detect Docker Desktop vs Docker Engine
-            var isDockerDesktop = false;
-            if (runtime.Equals("docker", StringComparison.OrdinalIgnoreCase))
-            {
-                isDockerDesktop = await IsDockerDesktopAsync(runtime, cancellationToken);
-            }
-
-            var runtimeDescription = runtime;
-            if (runtime.Equals("docker", StringComparison.OrdinalIgnoreCase))
-            {
-                runtimeDescription = isDockerDesktop ? "Docker Desktop" : "Docker Engine";
-            }
-
+            // Just return that the runtime is working - Docker Engine detection is handled separately
             return new PrerequisiteCheckResult
             {
                 Category = "container",
                 Name = "container-runtime",
                 Status = PrerequisiteCheckStatus.Pass,
-                Message = $"{runtimeDescription} detected and running"
+                Message = $"{runtime} detected and running"
             };
         }
         catch (Exception ex)
@@ -287,15 +275,14 @@ internal sealed class PrerequisiteChecker : IPrerequisiteChecker
             });
         }
 
-        // WSL2 detected - provide guidance on potential networking issues
+        // WSL2 detected - just informational, not a warning unless there are known issues
         return Task.FromResult(new PrerequisiteCheckResult
         {
             Category = "environment",
             Name = "wsl",
-            Status = PrerequisiteCheckStatus.Warning,
+            Status = PrerequisiteCheckStatus.Pass,
             Message = "WSL2 environment detected",
-            Fix = "Network bridging may cause container connectivity issues. Ensure Docker Desktop WSL integration is enabled.",
-            Link = "https://aka.ms/aspire-prerequisites#wsl-setup"
+            Details = "If you experience container connectivity issues, ensure Docker Desktop WSL integration is enabled."
         });
     }
 

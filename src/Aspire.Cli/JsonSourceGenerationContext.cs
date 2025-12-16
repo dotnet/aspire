@@ -4,6 +4,7 @@
 using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Mcp;
+using Aspire.Cli.Utils;
 
 namespace Aspire.Cli;
 
@@ -12,6 +13,9 @@ namespace Aspire.Cli;
 [JsonSerializable(typeof(JsonObject))]
 [JsonSerializable(typeof(ListIntegrationsResponse))]
 [JsonSerializable(typeof(Integration))]
+[JsonSerializable(typeof(DoctorCheckResponse))]
+[JsonSerializable(typeof(PrerequisiteCheckResult))]
+[JsonSerializable(typeof(DoctorCheckSummary))]
 internal partial class JsonSourceGenerationContext : JsonSerializerContext
 {
 }

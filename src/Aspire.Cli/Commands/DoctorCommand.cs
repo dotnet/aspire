@@ -34,16 +34,11 @@ internal sealed class DoctorCommand : BaseCommand
         var jsonOption = new Option<bool>("--json");
         jsonOption.Description = DoctorCommandStrings.JsonOptionDescription;
         Options.Add(jsonOption);
-
-        var fixOption = new Option<bool>("--fix");
-        fixOption.Description = DoctorCommandStrings.FixOptionDescription;
-        Options.Add(fixOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var jsonOutput = parseResult.GetValue<bool>("--json");
-        var fix = parseResult.GetValue<bool>("--fix");
 
         // Run all prerequisite checks
         var results = await InteractionService.ShowStatusAsync(
@@ -70,77 +65,19 @@ internal sealed class DoctorCommand : BaseCommand
         var warnings = results.Count(r => r.Status == PrerequisiteCheckStatus.Warning);
         var failed = results.Count(r => r.Status == PrerequisiteCheckStatus.Fail);
 
-        // Build JSON manually to avoid AOT warnings
-        var checksJson = new System.Text.StringBuilder();
-        checksJson.AppendLine(CultureInfo.InvariantCulture, $"{{");
-        checksJson.AppendLine(CultureInfo.InvariantCulture, $"  \"checks\": [");
-
-        for (int i = 0; i < results.Count; i++)
+        var response = new DoctorCheckResponse
         {
-            var r = results[i];
-            checksJson.AppendLine(CultureInfo.InvariantCulture, $"    {{");
-            checksJson.Append(CultureInfo.InvariantCulture, $"      \"category\": \"{EscapeJson(r.Category)}\",");
-            checksJson.AppendLine();
-            checksJson.Append(CultureInfo.InvariantCulture, $"      \"name\": \"{EscapeJson(r.Name)}\",");
-            checksJson.AppendLine();
-            checksJson.Append(CultureInfo.InvariantCulture, $"      \"status\": \"{EscapeJson(r.Status.ToString().ToLowerInvariant())}\",");
-            checksJson.AppendLine();
-            checksJson.Append(CultureInfo.InvariantCulture, $"      \"message\": \"{EscapeJson(r.Message)}\"");
-            
-            if (!string.IsNullOrEmpty(r.Fix))
+            Checks = results.ToList(),
+            Summary = new DoctorCheckSummary
             {
-                checksJson.AppendLine(",");
-                checksJson.Append(CultureInfo.InvariantCulture, $"      \"fix\": \"{EscapeJson(r.Fix)}\"");
+                Passed = passed,
+                Warnings = warnings,
+                Failed = failed
             }
-            
-            if (!string.IsNullOrEmpty(r.Link))
-            {
-                checksJson.AppendLine(",");
-                checksJson.Append(CultureInfo.InvariantCulture, $"      \"link\": \"{EscapeJson(r.Link)}\"");
-            }
-            
-            if (!string.IsNullOrEmpty(r.Details))
-            {
-                checksJson.AppendLine(",");
-                checksJson.Append(CultureInfo.InvariantCulture, $"      \"details\": \"{EscapeJson(r.Details)}\"");
-            }
-            
-            checksJson.AppendLine();
+        };
 
-            if (i < results.Count - 1)
-            {
-                checksJson.AppendLine(CultureInfo.InvariantCulture, $"    }},");
-            }
-            else
-            {
-                checksJson.AppendLine(CultureInfo.InvariantCulture, $"    }}");
-            }
-        }
-
-        checksJson.AppendLine(CultureInfo.InvariantCulture, $"  ],");
-        checksJson.AppendLine(CultureInfo.InvariantCulture, $"  \"summary\": {{");
-        checksJson.AppendLine(CultureInfo.InvariantCulture, $"    \"passed\": {passed},");
-        checksJson.AppendLine(CultureInfo.InvariantCulture, $"    \"warnings\": {warnings},");
-        checksJson.AppendLine(CultureInfo.InvariantCulture, $"    \"failed\": {failed}");
-        checksJson.AppendLine(CultureInfo.InvariantCulture, $"  }}");
-        checksJson.AppendLine(CultureInfo.InvariantCulture, $"}}");
-
-        _ansiConsole.WriteLine(checksJson.ToString());
-    }
-
-    private static string EscapeJson(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return value;
-        }
-
-        return value
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\"")
-            .Replace("\n", "\\n")
-            .Replace("\r", "\\r")
-            .Replace("\t", "\\t");
+        var json = System.Text.Json.JsonSerializer.Serialize(response, JsonSourceGenerationContext.Default.DoctorCheckResponse);
+        _ansiConsole.WriteLine(json);
     }
 
     private void OutputHumanReadable(IReadOnlyList<PrerequisiteCheckResult> results)

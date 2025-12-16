@@ -27,12 +27,13 @@ internal sealed class McpCommand : BaseCommand
         ILogger<McpStartCommand> logger,
         IAgentEnvironmentDetector agentEnvironmentDetector,
         IGitRepository gitRepository,
-        IPackagingService packagingService)
+        IPackagingService packagingService,
+        IPrerequisiteChecker prerequisiteChecker)
         : base("mcp", McpCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
 
-        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService);
+        var startCommand = new McpStartCommand(interactionService, features, updateNotifier, executionContext, auxiliaryBackchannelMonitor, loggerFactory, logger, packagingService, prerequisiteChecker);
         Subcommands.Add(startCommand);
 
         var initCommand = new McpInitCommand(interactionService, features, updateNotifier, executionContext, agentEnvironmentDetector, gitRepository);
