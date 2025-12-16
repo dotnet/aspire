@@ -47,7 +47,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
           image: api_containerimage
           name: 'api'
           env: [
-                                    {
+            {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }

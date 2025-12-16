@@ -40,7 +40,7 @@ resource myapp2 'Microsoft.App/containerApps@2025-02-02-preview' = {
           image: myapp2_containerimage
           name: 'myapp2'
           env: [
-                                    {
+            {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }

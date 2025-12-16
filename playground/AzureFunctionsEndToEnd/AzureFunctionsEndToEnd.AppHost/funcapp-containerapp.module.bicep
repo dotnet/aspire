@@ -61,7 +61,7 @@ resource funcapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
           image: funcapp_containerimage
           name: 'funcapp'
           env: [
-                                    {
+            {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }

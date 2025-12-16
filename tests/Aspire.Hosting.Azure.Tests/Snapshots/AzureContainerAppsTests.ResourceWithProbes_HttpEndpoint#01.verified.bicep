@@ -71,7 +71,7 @@ resource project1 'Microsoft.App/containerApps@2025-02-02-preview' = {
           image: project1_containerimage
           name: 'project1'
           env: [
-                                    {
+            {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
             }
