@@ -62,56 +62,56 @@ rootCommand.SetAction(result =>
             replacements.Add((find, replace));
         }
 
-    Console.WriteLine($"Paths: {paths.Length}");
-    foreach (var path in paths)
-    {
-        Console.WriteLine($"  '{path}'");
-    }
-    Console.WriteLine($"Replacements: {replacements.Count}");
-    foreach (var (find, replace) in replacements)
-    {
-        Console.WriteLine($"  '{find}' -> '{replace}'");
-    }
-    Console.WriteLine();
-
-    var filesToProcess = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-    var matcher = new Matcher();
-    var hasGlobPatterns = false;
-
-    foreach (var pathValue in paths)
-    {
-        if (File.Exists(pathValue))
+        Console.WriteLine($"Paths: {paths.Length}");
+        foreach (var path in paths)
         {
-            // If it's a direct file path add it as is
-            filesToProcess.Add(Path.GetFullPath(pathValue));
+            Console.WriteLine($"  '{path}'");
         }
-        else if (Directory.Exists(pathValue))
+        Console.WriteLine($"Replacements: {replacements.Count}");
+        foreach (var (find, replace) in replacements)
         {
-            // If it's a directory, include all files within it
-            matcher.AddInclude(Path.Combine(pathValue, "**/*"));
-            hasGlobPatterns = true;
+            Console.WriteLine($"  '{find}' -> '{replace}'");
         }
-        else if (pathValue.Contains('*') || pathValue.Contains('?'))
+        Console.WriteLine();
+
+        var filesToProcess = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var matcher = new Matcher();
+        var hasGlobPatterns = false;
+
+        foreach (var pathValue in paths)
         {
-            matcher.AddInclude(pathValue);
-            hasGlobPatterns = true;
+            if (File.Exists(pathValue))
+            {
+                // If it's a direct file path add it as is
+                filesToProcess.Add(Path.GetFullPath(pathValue));
+            }
+            else if (Directory.Exists(pathValue))
+            {
+                // If it's a directory, include all files within it
+                matcher.AddInclude(Path.Combine(pathValue, "**/*"));
+                hasGlobPatterns = true;
+            }
+            else if (pathValue.Contains('*') || pathValue.Contains('?'))
+            {
+                matcher.AddInclude(pathValue);
+                hasGlobPatterns = true;
+            }
         }
-    }
 
-    var currentDirectory = Directory.GetCurrentDirectory();
+        var currentDirectory = Directory.GetCurrentDirectory();
 
-    if (hasGlobPatterns)
-    {
-        // Collect files from glob matching
-        var directoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(currentDirectory));
-        var matchResult = matcher.Execute(directoryInfo);
-
-        foreach (var file in matchResult.Files)
+        if (hasGlobPatterns)
         {
-            filesToProcess.Add(Path.GetFullPath(Path.Combine(currentDirectory, file.Path)));
+            // Collect files from glob matching
+            var directoryInfo = new DirectoryInfoWrapper(new DirectoryInfo(currentDirectory));
+            var matchResult = matcher.Execute(directoryInfo);
+
+            foreach (var file in matchResult.Files)
+            {
+                filesToProcess.Add(Path.GetFullPath(Path.Combine(currentDirectory, file.Path)));
+            }
         }
-    }
 
         if (filesToProcess.Count == 0)
         {
