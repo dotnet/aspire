@@ -55,7 +55,14 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                         return;
                     }
 
-                    var websiteName = await GetAppServiceWebsiteNameAsync(ctx).ConfigureAwait(false);
+                    var websiteSuffix = await computeEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    var websiteName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
+
+                    if (websiteName.Length > MaxWebsiteNameLength)
+                    {
+                        websiteName = websiteName.Substring(0, MaxWebsiteNameLength);
+                    }
+
                     var exists = await CheckWebSiteExistsAsync(websiteName, ctx).ConfigureAwait(false);
                     
                     if (!exists)
@@ -113,11 +120,6 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 {
                     var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
 
-                    if (!computeEnv.EnableRegionalDnlHostName)
-                    {
-                        return;
-                    }
-
                     if (!computeEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
                     {
                         ctx.ReportingStep.Log(LogLevel.Information, $"No environment context annotation found on the target resource", false);
@@ -125,7 +127,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     }
 
                     var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
-                    var websiteName = await GetAppServiceWebsiteNameAsync(ctx, true).ConfigureAwait(false);
+                    var websiteName = await GetAppServiceWebsiteHostPrefixAsync(ctx, true).ConfigureAwait(false);
                     string websiteSlotName = string.Empty;
 
                     if (computeEnv.DeploymentSlotParameter is not null || computeEnv.DeploymentSlot is not null)
@@ -133,7 +135,21 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                         var deploymentSlotValue = computeEnv.DeploymentSlotParameter != null
                             ? await computeEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? string.Empty
                             : computeEnv.DeploymentSlot!;
-                        websiteSlotName = await GetAppServiceWebsiteNameAsync(ctx, true, deploymentSlotValue).ConfigureAwait(false);
+                        websiteSlotName = await GetAppServiceWebsiteHostPrefixAsync(ctx, true, deploymentSlotValue).ConfigureAwait(false);
+                    }
+
+                    if (!computeEnv.EnableRegionalDnlHostName)
+                    {
+                        string? websiteSlotHostName = null;
+                        if (!string.IsNullOrWhiteSpace(websiteSlotName))
+                        {
+                            websiteSlotHostName = $"{websiteSlotName}.azurewebsites.net";
+                        }
+
+                        context.SetWebsiteHostName($"{websiteName}.azurewebsites.net", websiteSlotHostName);
+
+                        targetResource.Annotations.Add(new AzureAppServiceWebsiteHostNameAnnotation($"{websiteName}.azurewebsites.net", websiteSlotHostName));
+                        return;
                     }
 
                     ctx.ReportingStep.Log(LogLevel.Information, $"Fetching host name for {websiteName}", false);
@@ -149,6 +165,13 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     if (hostName is not null)
                     {
                         context.SetWebsiteHostName(hostName, slotHostName);
+
+                        ctx.ReportingStep.Log(LogLevel.Information, $"Fetched host name {hostName} for {websiteName}", false);
+
+                        if (slotHostName is not null)
+                        {
+                            ctx.ReportingStep.Log(LogLevel.Information, $"Fetched slot host name {slotHostName} for {websiteSlotName}", false);
+                        }
 
                         targetResource.Annotations.Add(new AzureAppServiceWebsiteHostNameAnnotation(hostName, slotHostName));
                     }
@@ -265,11 +288,13 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         context.ReportingStep.Log(LogLevel.Information, $"Checking availability of site name: {websiteName}", false);
         var armContext = await GetArmContextAsync(context).ConfigureAwait(false);
 
+        var hostNamePrefix = websiteName.Substring(0, MaxWebsiteNameLengthWithDnl);
+
         // Prepare ARM endpoint and request
         var url = $"{AzureManagementEndpoint}/subscriptions/{armContext.SubscriptionId}/providers/Microsoft.Web/locations/{armContext.Location}/CheckNameAvailability?api-version=2025-03-01";
         var requestBody = new
         {
-            name = websiteName,
+            name = hostNamePrefix,
             type = resourceType,
             autoGeneratedDomainNameLabelScope = "TenantReuse"
         };
@@ -340,7 +365,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// <param name="enableRegionalDnl">Indicates whether to enable regional DNL for the website name.</param>
     /// <param name="deploymentSlot">The optional deployment slot name to append to the website name.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the website name.</returns>
-    private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context, bool enableRegionalDnl = false, string? deploymentSlot = null)
+    private async Task<string> GetAppServiceWebsiteHostPrefixAsync(PipelineStepContext context, bool enableRegionalDnl = false, string? deploymentSlot = null)
     {
         var computeEnv = (AzureAppServiceEnvironmentResource)TargetResource.GetDeploymentTargetAnnotation()!.ComputeEnvironment!;
         var websiteSuffix = await computeEnv.WebSiteSuffix.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
@@ -356,7 +381,24 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
         if (!string.IsNullOrWhiteSpace(deploymentSlot))
         {
-            websiteName = websiteName.Substring(0, MaxWebsiteHostNameLengthWithSlotAndDnl);
+           int maxDeploymentSlotLength = enableRegionalDnl
+                ? MaxDeploymentSlotNameLengthWithDnl
+                : MaxDeploymentSlotNameLength;
+
+            int websiteMaxLengthWithSlot = enableRegionalDnl
+                ? MaxWebsiteHostNameLengthWithSlotAndDnl
+                : MaxWebsiteNameLengthWithSlot;
+
+            if (websiteName.Length > websiteMaxLengthWithSlot)
+            {
+                websiteName = websiteName.Substring(0, websiteMaxLengthWithSlot);
+            }
+
+            if (deploymentSlot.Length > maxDeploymentSlotLength)
+            {
+                deploymentSlot = deploymentSlot.Substring(0, maxDeploymentSlotLength);
+            }
+
             websiteName = $"{websiteName}-{deploymentSlot}";
             context.Logger.LogInformation("Using deployment slot '{DeploymentSlot}' for website '{WebsiteName}'", deploymentSlot, websiteName);
         }
@@ -367,7 +409,9 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     private const string AzureManagementScope = "https://management.azure.com/.default";
     private const string AzureManagementEndpoint = "https://management.azure.com/";
     internal const int MaxWebsiteNameLength = 60;
-    internal const int MaxDeploymentSlotNameLength = 21;
     internal const int MaxWebsiteNameLengthWithDnl = 43;
+    internal const int MaxWebsiteNameLengthWithSlot = 41;
     internal const int MaxWebsiteHostNameLengthWithSlotAndDnl = 23;
+    internal const int MaxDeploymentSlotNameLength = 21;
+    internal const int MaxDeploymentSlotNameLengthWithDnl = 18;
 }
