@@ -641,9 +641,9 @@ function Save-GlobalSettings {
     if ($PSCmdlet.ShouldProcess("$Key = $Value", "Set global config via aspire CLI")) {
         Write-Message "Setting global config: $Key = $Value" -Level Verbose
         
-        $output = & $CliPath config set -g $Key $Value 2>&1
+        $null = & $CliPath config set -g $Key $Value 2>&1
         if ($LASTEXITCODE -ne 0) {
-            Write-Message "Failed to set global config via aspire CLI" -Level Warning
+            Write-Message "Failed to set global config via aspire CLI" -Level Verbose
             return
         }
         Write-Message "Global config saved: $Key = $Value" -Level Verbose
@@ -666,9 +666,9 @@ function Remove-GlobalSettings {
     if ($PSCmdlet.ShouldProcess($Key, "Remove global config via aspire CLI")) {
         Write-Message "Removing global config: $Key" -Level Verbose
         
-        $output = & $CliPath config delete -g $Key 2>&1
+        $null = & $CliPath config delete -g $Key 2>&1
         if ($LASTEXITCODE -ne 0) {
-            Write-Message "Failed to delete global config via aspire CLI" -Level Warning
+            Write-Message "Failed to delete global config via aspire CLI" -Level Verbose
             return
         }
         Write-Message "Global config removed: $Key" -Level Verbose
