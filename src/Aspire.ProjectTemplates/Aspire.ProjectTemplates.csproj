@@ -83,6 +83,9 @@
       <VersionMinor>$(_VersionBase.Split('.')[1])</VersionMinor>
       <VersionMajorMinor>$(VersionMajor).$(VersionMinor)</VersionMajorMinor>
       <_RspFilePath>$(IntermediateOutputPath)replace-text-args.rsp</_RspFilePath>
+      <_ReplaceTextScriptPath>$(RepoRoot)tools/scripts/replace-text.cs</_ReplaceTextScriptPath>
+      <_ReplaceTextExePath>$(RepoRoot)artifacts/bin/replace-text/Debug/replace-text</_ReplaceTextExePath>
+      <_ReplaceTextExePath Condition="'$(OS)' == 'Windows_NT'">$(_ReplaceTextExePath).exe</_ReplaceTextExePath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -136,8 +139,14 @@
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true" />
 
-    <!-- Execute the script with the .rsp file -->
-    <Exec Command="dotnet &quot;$(RepoRoot)tools/scripts/replace-text.cs&quot; @&quot;$(_RspFilePath)&quot;"
+    <!-- Build the script to an executable -->
+    <Exec Command="dotnet build &quot;$(_ReplaceTextScriptPath)&quot; -o &quot;$(RepoRoot)artifacts/bin/replace-text/Debug&quot;"
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          StandardOutputImportance="Low"
+          StandardErrorImportance="Normal" />
+
+    <!-- Execute the compiled script with the .rsp file -->
+    <Exec Command="&quot;$(_ReplaceTextExePath)&quot; @&quot;$(_RspFilePath)&quot;"
           WorkingDirectory="$(MSBuildThisFileDirectory)"
           StandardOutputImportance="Normal"
           StandardErrorImportance="Normal" />
