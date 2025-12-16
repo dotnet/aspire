@@ -10,7 +10,7 @@
 }
 
 <FluentInputLabel ForId="@ForId" Label="@InputViewModel.Input.Label" AriaLabel="@InputViewModel.Input.Description" Required="@InputViewModel.Input.Required" />
-<div class="input-choice-container">
+<div class="input-line-container">
     @ChildContent(new InteractionInputFieldContext { ViewModel = InputViewModel, DescriptionId = descriptionId })
     @if (InputViewModel.Input.Loading)
     {
