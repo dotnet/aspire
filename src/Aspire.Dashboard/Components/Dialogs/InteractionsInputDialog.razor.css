@@ -29,6 +29,10 @@
 
 .interaction-input-dialog .interaction-input ::deep .input-line-container {
     display: flex;
-    column-gap: 12px;
+    column-gap: 4px;
     align-items: center;
+}
+
+.interaction-input-dialog .interaction-input ::deep .input-progress {
+    margin-left: 8px;
 }
