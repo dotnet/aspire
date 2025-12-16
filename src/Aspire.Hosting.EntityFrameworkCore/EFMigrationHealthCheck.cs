@@ -22,7 +22,7 @@ internal sealed class EFMigrationHealthCheck(
 
             return stateText switch
             {
-                "Finished" => Task.FromResult(HealthCheckResult.Healthy("Migrations completed successfully.")),
+                "Active" => Task.FromResult(HealthCheckResult.Healthy("Migrations completed successfully.")),
                 "Running" => Task.FromResult(HealthCheckResult.Unhealthy("Migrations are currently running.")),
                 "FailedToStart" => Task.FromResult(HealthCheckResult.Unhealthy("Migrations failed.")),
                 "Stopped" => Task.FromResult(HealthCheckResult.Unhealthy("Migrations were stopped.")),
