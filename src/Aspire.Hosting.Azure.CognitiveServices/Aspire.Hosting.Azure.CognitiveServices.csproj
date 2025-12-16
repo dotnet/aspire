@@ -1,21 +1,41 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <RootNamespace>Aspire.Hosting.Azure</RootNamespace>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting azure openai ai cognitiveservices cognitive services cloud</PackageTags>
-    <Description>Azure OpenAI resource types for Aspire.</Description>
+    <Description>Azure Cognitive Services resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <NoWarn>$(NoWarn);ASPIRECOMPUTE001;ASPIREPIPELINES001;ASPIREAZURE001;ASPIREPIPELINES003</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
+    <Compile Include="$(SharedDir)AzureRoleAssignmentUtils.cs" LinkBase="Utils" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.ApplicationInsights\Aspire.Hosting.Azure.ApplicationInsights.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.ContainerRegistry\Aspire.Hosting.Azure.ContainerRegistry.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.CosmosDB\Aspire.Hosting.Azure.CosmosDB.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.OperationalInsights\Aspire.Hosting.Azure.OperationalInsights.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.Search\Aspire.Hosting.Azure.Search.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Python\Aspire.Hosting.Python.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.AI.Projects" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CognitiveServices" />
+    <PackageReference Include="Azure.Provisioning.ContainerRegistry" />
+    <PackageReference Include="Microsoft.Bcl.Memory" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.CognitiveServices.Tests" />
   </ItemGroup>
 
 </Project>
