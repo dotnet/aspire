@@ -5,7 +5,6 @@ using System.CommandLine;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.Diagnostics;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
@@ -14,6 +13,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
@@ -56,8 +56,9 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext, 
         ICliHostEnvironment hostEnvironment,
-        IDiagnosticsBundleWriter diagnosticsBundleWriter)
-        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, diagnosticsBundleWriter)
+        ILoggerFactory loggerFactory,
+        Diagnostics.FileLoggerProvider fileLoggerProvider)
+        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, loggerFactory, fileLoggerProvider)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);

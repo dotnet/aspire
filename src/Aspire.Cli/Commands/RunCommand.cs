@@ -7,7 +7,6 @@ using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.Diagnostics;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
@@ -58,8 +57,9 @@ internal sealed class RunCommand : BaseCommand
         ICliHostEnvironment hostEnvironment,
         ILogger<RunCommand> logger,
         TimeProvider? timeProvider,
-        IDiagnosticsBundleWriter diagnosticsBundleWriter)
-        : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService, diagnosticsBundleWriter)
+        ILoggerFactory loggerFactory,
+        Diagnostics.FileLoggerProvider fileLoggerProvider)
+        : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService, loggerFactory, fileLoggerProvider)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);

@@ -13,7 +13,6 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.Diagnostics;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
@@ -173,7 +172,11 @@ public class Program
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
-        builder.Services.AddSingleton<IDiagnosticsBundleWriter, DiagnosticsBundleWriter>();
+        
+        // Register FileLoggerProvider for diagnostics bundle writing
+        builder.Services.AddSingleton<Diagnostics.FileLoggerProvider>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider>(sp => sp.GetRequiredService<Diagnostics.FileLoggerProvider>()));
+        
         builder.Services.AddMemoryCache();
 
         // Git repository operations.
