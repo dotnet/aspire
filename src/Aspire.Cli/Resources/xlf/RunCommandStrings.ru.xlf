@@ -97,11 +97,6 @@
         <target state="translated">Ресурс</target>
         <note>A column header (noun)</note>
       </trans-unit>
-      <trans-unit id="RunningInstanceStopFailed">
-        <source>Failed to stop running instance. The process may have already exited.</source>
-        <target state="translated">Не удалось остановить запущенный экземпляр. Возможно, процесс уже завершен.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="RunningInstanceStopped">
         <source>Running instance stopped successfully.</source>
         <target state="translated">Запущенный экземпляр остановлен.</target>
