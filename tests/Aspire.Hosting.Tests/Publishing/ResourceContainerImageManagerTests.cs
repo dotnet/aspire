@@ -616,12 +616,13 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             imageBuilder.BuildImagesAsync([container.Resource], cts.Token));
 
-        Assert.Equal("Container runtime is not running or is unhealthy.", exception.Message);
+        Assert.Contains("Container runtime", exception.Message);
+        Assert.Contains("is not running or is unhealthy", exception.Message);
 
         var collector = app.Services.GetFakeLogCollector();
         var logs = collector.GetSnapshot();
 
-        Assert.Contains(logs, log => log.Message.Contains("Container runtime is not running or is unhealthy. Cannot build container images."));
+        Assert.Contains(logs, log => log.Message.Contains("is not running or is unhealthy. Cannot build container images."));
     }
 
     [Fact]

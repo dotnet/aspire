@@ -192,8 +192,8 @@ internal sealed class ResourceContainerImageManager(
 
             if (!containerRuntimeHealthy)
             {
-                logger.LogError("Container runtime is not running or is unhealthy. Cannot build container images.");
-                throw new InvalidOperationException("Container runtime is not running or is unhealthy.");
+                logger.LogError("Container runtime '{ContainerRuntimeName}' is not running or is unhealthy. Cannot build container images.", ContainerRuntime.Name);
+                throw new InvalidOperationException($"Container runtime '{ContainerRuntime.Name}' is not running or is unhealthy.");
             }
 
             logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
@@ -213,6 +213,22 @@ internal sealed class ResourceContainerImageManager(
         logger.LogInformation("Building container image for resource {ResourceName}", resource.Name);
 
         var options = await ResolveContainerBuildOptionsAsync(resource, cancellationToken).ConfigureAwait(false);
+
+        // Check if this resource needs a container runtime
+        if (await ResourcesRequireContainerRuntimeAsync([resource], cancellationToken).ConfigureAwait(false))
+        {
+            logger.LogDebug("Checking {ContainerRuntimeName} health", ContainerRuntime.Name);
+
+            var containerRuntimeHealthy = await ContainerRuntime.CheckIfRunningAsync(cancellationToken).ConfigureAwait(false);
+
+            if (!containerRuntimeHealthy)
+            {
+                logger.LogError("Container runtime '{ContainerRuntimeName}' is not running or is unhealthy. Cannot build container image.", ContainerRuntime.Name);
+                throw new InvalidOperationException($"Container runtime '{ContainerRuntime.Name}' is not running or is unhealthy.");
+            }
+
+            logger.LogDebug("{ContainerRuntimeName} is healthy", ContainerRuntime.Name);
+        }
 
         if (resource is ProjectResource)
         {
