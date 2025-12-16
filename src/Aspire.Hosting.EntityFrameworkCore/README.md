@@ -68,7 +68,7 @@ When `RunDatabaseUpdateOnStart()` is called, a health check is automatically reg
 
 - **Pending** - Initial state before migrations start
 - **Running** - Migrations are being applied
-- **Finished** - Migrations completed successfully
+- **Active** - Migrations completed successfully
 - **FailedToStart** - Migration failed
 
 ### Migration Configuration Options
