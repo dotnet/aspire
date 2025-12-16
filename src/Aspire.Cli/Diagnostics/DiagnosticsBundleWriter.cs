@@ -94,9 +94,9 @@ internal sealed class DiagnosticsBundleWriter : IDiagnosticsBundleWriter
         sb.AppendLine("Aspire CLI Failure Report");
         sb.AppendLine("=========================");
         sb.AppendLine();
-        sb.AppendLine($"Command: aspire {commandName}");
-        sb.AppendLine($"Exit Code: {exitCode}");
-        sb.AppendLine($"Timestamp: {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Command: aspire {commandName}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Exit Code: {exitCode}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Timestamp: {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
         sb.AppendLine();
 
         if (!string.IsNullOrEmpty(additionalContext))
@@ -129,12 +129,12 @@ internal sealed class DiagnosticsBundleWriter : IDiagnosticsBundleWriter
             if (depth > 0)
             {
                 sb.AppendLine();
-                sb.AppendLine($"Inner Exception ({depth}):");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"Inner Exception ({depth}):");
                 sb.AppendLine("-------------------");
             }
 
-            sb.AppendLine($"Type: {currentException.GetType().FullName}");
-            sb.AppendLine($"Message: {currentException.Message}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"Type: {currentException.GetType().FullName}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"Message: {currentException.Message}");
             
             if (!string.IsNullOrEmpty(currentException.StackTrace))
             {
@@ -144,11 +144,11 @@ internal sealed class DiagnosticsBundleWriter : IDiagnosticsBundleWriter
 
             if (currentException is AggregateException aggregateException)
             {
-                sb.AppendLine($"Inner Exceptions Count: {aggregateException.InnerExceptions.Count}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"Inner Exceptions Count: {aggregateException.InnerExceptions.Count}");
                 for (int i = 0; i < aggregateException.InnerExceptions.Count; i++)
                 {
                     sb.AppendLine();
-                    sb.AppendLine($"Aggregate Inner Exception [{i}]:");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"Aggregate Inner Exception [{i}]:");
                     sb.AppendLine(FormatException(aggregateException.InnerExceptions[i]));
                 }
                 break; // Don't continue with innerException for AggregateException
@@ -165,45 +165,53 @@ internal sealed class DiagnosticsBundleWriter : IDiagnosticsBundleWriter
     {
         var environmentFilePath = Path.Combine(bundleDirectory.FullName, "environment.json");
         
-        var environment = new
+        var sb = new StringBuilder();
+        sb.AppendLine("{");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"  \"cli\": {{");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"version\": \"{JsonEncodedText.Encode(PackageUpdateHelpers.GetCurrentAssemblyVersion() ?? "unknown")}\",");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"debugMode\": {(_executionContext.DebugMode ? "true" : "false")},");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"verboseMode\": {(_executionContext.VerboseMode ? "true" : "false")}");
+        sb.AppendLine("  },");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"  \"os\": {{");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"platform\": \"{JsonEncodedText.Encode(RuntimeInformation.OSDescription)}\",");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"architecture\": \"{RuntimeInformation.OSArchitecture}\",");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"version\": \"{JsonEncodedText.Encode(Environment.OSVersion.VersionString)}\",");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"is64Bit\": {(Environment.Is64BitOperatingSystem ? "true" : "false")}");
+        sb.AppendLine("  },");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"  \"dotnet\": {{");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"runtimeVersion\": \"{JsonEncodedText.Encode(RuntimeInformation.FrameworkDescription)}\",");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"processArchitecture\": \"{RuntimeInformation.ProcessArchitecture}\"");
+        sb.AppendLine("  },");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"  \"process\": {{");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"processId\": {Environment.ProcessId},");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"workingDirectory\": \"{JsonEncodedText.Encode(_executionContext.WorkingDirectory.FullName)}\",");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"userName\": \"{JsonEncodedText.Encode(Environment.UserName)}\",");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    \"machineName\": \"{JsonEncodedText.Encode(Environment.MachineName)}\"");
+        sb.AppendLine("  },");
+        
+        var dockerInfo = await GetDockerInfoStringAsync();
+        sb.AppendLine(CultureInfo.InvariantCulture, $"  \"docker\": {dockerInfo},");
+        
+        var envVars = GetRelevantEnvironmentVariables();
+        sb.AppendLine("  \"environment\": {");
+        var first = true;
+        foreach (var kvp in envVars)
         {
-            cli = new
+            if (!first)
             {
-                version = PackageUpdateHelpers.GetCurrentAssemblyVersion() ?? "unknown",
-                debugMode = _executionContext.DebugMode
-            },
-            os = new
-            {
-                platform = RuntimeInformation.OSDescription,
-                architecture = RuntimeInformation.OSArchitecture.ToString(),
-                version = Environment.OSVersion.VersionString,
-                is64Bit = Environment.Is64BitOperatingSystem
-            },
-            dotnet = new
-            {
-                runtimeVersion = RuntimeInformation.FrameworkDescription,
-                processArchitecture = RuntimeInformation.ProcessArchitecture.ToString()
-            },
-            process = new
-            {
-                processId = Environment.ProcessId,
-                workingDirectory = _executionContext.WorkingDirectory.FullName,
-                userName = Environment.UserName,
-                machineName = Environment.MachineName
-            },
-            docker = await GetDockerInfoAsync(),
-            environment = GetRelevantEnvironmentVariables()
-        };
+                sb.AppendLine(",");
+            }
+            sb.Append(CultureInfo.InvariantCulture, $"    \"{JsonEncodedText.Encode(kvp.Key)}\": \"{JsonEncodedText.Encode(kvp.Value ?? "")}\"");
+            first = false;
+        }
+        sb.AppendLine();
+        sb.AppendLine("  }");
+        sb.AppendLine("}");
 
-        var json = JsonSerializer.Serialize(environment, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
-
-        await File.WriteAllTextAsync(environmentFilePath, json);
+        await File.WriteAllTextAsync(environmentFilePath, sb.ToString());
     }
 
-    private static async Task<object> GetDockerInfoAsync()
+    private static async Task<string> GetDockerInfoStringAsync()
     {
         try
         {
@@ -220,7 +228,7 @@ internal sealed class DiagnosticsBundleWriter : IDiagnosticsBundleWriter
             using var process = Process.Start(startInfo);
             if (process == null)
             {
-                return new { available = false, error = "Failed to start docker process" };
+                return """{ "available": false, "error": "Failed to start docker process" }""";
             }
 
             var output = await process.StandardOutput.ReadToEndAsync();
@@ -230,25 +238,25 @@ internal sealed class DiagnosticsBundleWriter : IDiagnosticsBundleWriter
             {
                 try
                 {
-                    var dockerInfo = JsonSerializer.Deserialize<JsonElement>(output);
-                    return new
-                    {
-                        available = true,
-                        client = dockerInfo.TryGetProperty("Client", out var client) ? client.GetProperty("Version").GetString() : "unknown",
-                        server = dockerInfo.TryGetProperty("Server", out var server) ? server.GetProperty("Version").GetString() : "unknown"
-                    };
+                    using var doc = JsonDocument.Parse(output);
+                    var clientVersion = doc.RootElement.TryGetProperty("Client", out var client) && 
+                                       client.TryGetProperty("Version", out var cv) ? cv.GetString() : "unknown";
+                    var serverVersion = doc.RootElement.TryGetProperty("Server", out var server) && 
+                                       server.TryGetProperty("Version", out var sv) ? sv.GetString() : "unknown";
+                    return $"{{ \"available\": true, \"clientVersion\": \"{JsonEncodedText.Encode(clientVersion ?? "unknown")}\", \"serverVersion\": \"{JsonEncodedText.Encode(serverVersion ?? "unknown")}\" }}";
                 }
                 catch
                 {
-                    return new { available = true, version = "unknown" };
+                    return """{ "available": true, "version": "unknown" }""";
                 }
             }
 
-            return new { available = false, error = "Docker command failed" };
+            return """{ "available": false, "error": "Docker command failed" }""";
         }
         catch (Exception ex)
         {
-            return new { available = false, error = ex.Message };
+            var encodedMessage = JsonEncodedText.Encode(ex.Message);
+            return $"{{ \"available\": false, \"error\": \"{encodedMessage}\" }}";
         }
     }
 
@@ -290,9 +298,9 @@ internal sealed class DiagnosticsBundleWriter : IDiagnosticsBundleWriter
         var logFilePath = Path.Combine(bundleDirectory.FullName, "aspire.log");
         var sb = new StringBuilder();
 
-        sb.AppendLine($"[{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss}] Command started: aspire {commandName}");
-        sb.AppendLine($"[{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss}] Command failed with exception: {exception.GetType().Name}");
-        sb.AppendLine($"[{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss}] Message: {exception.Message}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss}] Command started: aspire {commandName}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss}] Command failed with exception: {exception.GetType().Name}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss}] Message: {exception.Message}");
         sb.AppendLine();
         sb.AppendLine("Note: Full session logging will be available in future versions.");
 
