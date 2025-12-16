@@ -61,12 +61,6 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           value: api_containerport
         }
         {
-          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
-          value: 'true'
-        }
-        {
-          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
-          value: 'true'
         }
         {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'

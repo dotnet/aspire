@@ -62,12 +62,8 @@ resource funcapp 'Microsoft.App/containerApps@2025-02-02-preview' = {
           name: 'funcapp'
           env: [
             {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
-              value: 'true'
             }
             {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
-              value: 'true'
             }
             {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'

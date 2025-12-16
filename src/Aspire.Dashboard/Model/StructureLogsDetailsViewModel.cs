@@ -12,10 +12,16 @@ public sealed class StructureLogsDetailsViewModel
 
     public static string GetEventName(OtlpLogEntry logEntry, IStringLocalizer<Dashboard.Resources.StructuredLogs> loc)
     {
-        var eventName = OtlpHelpers.GetValue(logEntry.Attributes, "event.name")
-                ?? OtlpHelpers.GetValue(logEntry.Attributes, "logrecord.event.name")
-                ?? loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)];
+        if (!string.IsNullOrEmpty(logEntry.EventName))
+        {
+            return logEntry.EventName;
+        }
 
-        return eventName;
+        if (OtlpHelpers.GetValue(logEntry.Attributes, "event.name") is { Length: > 0 } eventName)
+        {
+            return eventName;
+        }
+
+        return loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)];
     }
 }

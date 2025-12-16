@@ -45,12 +45,8 @@ resource webapp 'Microsoft.Web/sites@2025-03-01' = {
           value: '9000'
         }
         {
-          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
-          value: 'true'
         }
         {
-          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
-          value: 'true'
         }
         {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
