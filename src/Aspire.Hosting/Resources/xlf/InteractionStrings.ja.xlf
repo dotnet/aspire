@@ -107,6 +107,16 @@
         <target state="translated">今すぐ更新</target>
         <note />
       </trans-unit>
+      <trans-unit id="SetParameterMessage">
+        <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</source>
+        <target state="new">Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</target>
+        <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="SetParameterTitle">
+        <source>Set parameter</source>
+        <target state="new">Set parameter</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

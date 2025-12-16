@@ -28,5 +28,5 @@ public static class KnownResourceCommands
     /// <summary>
     /// The command name for setting a parameter value.
     /// </summary>
-    public static readonly string SetParameterValueCommand = "parameter-set-value";
+    public static readonly string SetParameterCommand = "parameter-set";
 }

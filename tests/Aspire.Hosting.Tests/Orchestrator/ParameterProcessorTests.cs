@@ -759,7 +759,7 @@ public class ParameterProcessorTests
     }
 
     [Fact]
-    public async Task ProcessParameterAsync_WithInteractionServiceAvailable_AddsSetParameterValueCommand()
+    public async Task ProcessParameterAsync_WithInteractionServiceAvailable_AddsSetParameterCommand()
     {
         // Arrange
         var testInteractionService = new TestInteractionService { IsAvailable = true };
@@ -771,17 +771,17 @@ public class ParameterProcessorTests
 
         // Assert - Command should be added when interaction service is available
         var setValueCommand = parameter.Annotations.OfType<ResourceCommandAnnotation>()
-            .SingleOrDefault(a => a.Name == KnownResourceCommands.SetParameterValueCommand);
+            .SingleOrDefault(a => a.Name == KnownResourceCommands.SetParameterCommand);
         Assert.NotNull(setValueCommand);
-        Assert.Equal(CommandStrings.SetParameterValueName, setValueCommand.DisplayName);
-        Assert.Equal(CommandStrings.SetParameterValueDescription, setValueCommand.DisplayDescription);
+        Assert.Equal(CommandStrings.SetParameterName, setValueCommand.DisplayName);
+        Assert.Equal(CommandStrings.SetParameterDescription, setValueCommand.DisplayDescription);
         Assert.Equal("Key", setValueCommand.IconName);
         Assert.Equal(IconVariant.Filled, setValueCommand.IconVariant);
         Assert.True(setValueCommand.IsHighlighted);
     }
 
     [Fact]
-    public async Task ProcessParameterAsync_WithInteractionServiceNotAvailable_DoesNotAddSetParameterValueCommand()
+    public async Task ProcessParameterAsync_WithInteractionServiceNotAvailable_DoesNotAddSetParameterCommand()
     {
         // Arrange
         var testInteractionService = new TestInteractionService { IsAvailable = false };
@@ -793,12 +793,12 @@ public class ParameterProcessorTests
 
         // Assert - Command should not be added when interaction service is not available
         var setValueCommand = parameter.Annotations.OfType<ResourceCommandAnnotation>()
-            .SingleOrDefault(a => a.Name == KnownResourceCommands.SetParameterValueCommand);
+            .SingleOrDefault(a => a.Name == KnownResourceCommands.SetParameterCommand);
         Assert.Null(setValueCommand);
     }
 
     [Fact]
-    public async Task SetParameterValueAsync_WithUserInput_UpdatesParameterValue()
+    public async Task SetParameterAsync_WithUserInput_UpdatesParameterValue()
     {
         // Arrange
         var testInteractionService = new TestInteractionService { IsAvailable = true };
@@ -816,21 +816,28 @@ public class ParameterProcessorTests
 
         var updates = notificationService.WatchAsync().GetAsyncEnumerator();
 
-        // Act - Start the SetParameterValueAsync task
+        // Act - Start the SetParameterAsync task
         var setValueTask = Task.Run(async () =>
         {
-            await parameterProcessor.SetParameterValueAsync(parameter);
+            await parameterProcessor.SetParameterAsync(parameter);
         });
 
         // Wait for the input dialog to be presented
         var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal(InteractionStrings.ParametersInputsTitle, inputInteraction.Title);
-        Assert.Single(inputInteraction.Inputs);
+        Assert.Equal(InteractionStrings.SetParameterTitle, inputInteraction.Title);
+        Assert.Equal(InteractionStrings.SetParameterMessage, inputInteraction.Message);
+        // Should have 2 inputs: parameter value input + RememberParameters checkbox (in run mode)
+        Assert.Equal(2, inputInteraction.Inputs.Count);
         Assert.Equal("testParam", inputInteraction.Inputs[0].Label);
+        // Existing value should be pre-populated
+        Assert.Equal("initialValue", inputInteraction.Inputs[0].Value);
+        // RememberParameters should default to true since parameter has existing value
+        Assert.Equal("RememberParameters", inputInteraction.Inputs[1].Name);
+        Assert.Equal("true", inputInteraction.Inputs[1].Value);
 
         // Complete the interaction with a new value
         inputInteraction.Inputs[0].Value = "newValue";
-        inputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputInteraction.Inputs[0]));
+        inputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputInteraction.Inputs));
 
         // Wait for the set value task to complete
         await setValueTask;
@@ -841,7 +848,7 @@ public class ParameterProcessorTests
     }
 
     [Fact]
-    public async Task SetParameterValueAsync_WhenUserCancels_ParameterValueUnchanged()
+    public async Task SetParameterAsync_WhenUserCancels_ParameterValueUnchanged()
     {
         // Arrange
         var testInteractionService = new TestInteractionService { IsAvailable = true };
@@ -855,17 +862,17 @@ public class ParameterProcessorTests
         var originalTcs = parameter.WaitForValueTcs;
         parameter.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        // Act - Start the SetParameterValueAsync task
+        // Act - Start the SetParameterAsync task
         var setValueTask = Task.Run(async () =>
         {
-            await parameterProcessor.SetParameterValueAsync(parameter);
+            await parameterProcessor.SetParameterAsync(parameter);
         });
 
         // Wait for the input dialog to be presented
         var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
 
         // Cancel the interaction
-        inputInteraction.CompletionTcs.SetResult(InteractionResult.Cancel<InteractionInput>());
+        inputInteraction.CompletionTcs.SetResult(InteractionResult.Cancel<InteractionInputCollection>());
 
         // Wait for the set value task to complete
         await setValueTask;
@@ -875,7 +882,7 @@ public class ParameterProcessorTests
     }
 
     [Fact]
-    public async Task SetParameterValueAsync_WithSecretParameter_UsesSecretTextInput()
+    public async Task SetParameterAsync_WithSecretParameter_UsesSecretTextInput()
     {
         // Arrange
         var testInteractionService = new TestInteractionService { IsAvailable = true };
@@ -888,22 +895,24 @@ public class ParameterProcessorTests
         // Reset WaitForValueTcs to track updates
         parameter.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        // Act - Start the SetParameterValueAsync task
+        // Act - Start the SetParameterAsync task
         var setValueTask = Task.Run(async () =>
         {
-            await parameterProcessor.SetParameterValueAsync(parameter);
+            await parameterProcessor.SetParameterAsync(parameter);
         });
 
         // Wait for the input dialog to be presented
         var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
 
         // Assert - Should use SecretText input type for secret parameters
-        Assert.Single(inputInteraction.Inputs);
+        Assert.Equal(2, inputInteraction.Inputs.Count);
         Assert.Equal(InputType.SecretText, inputInteraction.Inputs[0].InputType);
+        // Existing value should be pre-populated for secrets too
+        Assert.Equal("secretValue", inputInteraction.Inputs[0].Value);
 
         // Complete the interaction
         inputInteraction.Inputs[0].Value = "newSecretValue";
-        inputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputInteraction.Inputs[0]));
+        inputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputInteraction.Inputs));
 
         await setValueTask;
 

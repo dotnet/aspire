@@ -181,4 +181,11 @@
   <data name="ContainerRuntimeNotInstalledMessage" xml:space="preserve">
     <value>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</value>
   </data>
+  <data name="SetParameterTitle" xml:space="preserve">
+    <value>Set parameter</value>
+  </data>
+  <data name="SetParameterMessage" xml:space="preserve">
+    <value>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</value>
+    <comment>Contains markdown</comment>
+  </data>
 </root>

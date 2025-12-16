@@ -12,14 +12,14 @@
         <target state="translated">Redémarrer</target>
         <note />
       </trans-unit>
-      <trans-unit id="SetParameterValueDescription">
-        <source>Set parameter value</source>
-        <target state="new">Set parameter value</target>
+      <trans-unit id="SetParameterDescription">
+        <source>Set parameter</source>
+        <target state="new">Set parameter</target>
         <note />
       </trans-unit>
-      <trans-unit id="SetParameterValueName">
-        <source>Set parameter value</source>
-        <target state="new">Set parameter value</target>
+      <trans-unit id="SetParameterName">
+        <source>Set parameter</source>
+        <target state="new">Set parameter</target>
         <note />
       </trans-unit>
       <trans-unit id="StartDescription">

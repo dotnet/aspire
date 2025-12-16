@@ -248,5 +248,23 @@ namespace Aspire.Hosting.Resources {
                 return ResourceManager.GetString("VersionCheckTitle", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use..
+        /// </summary>
+        internal static string SetParameterMessage {
+            get {
+                return ResourceManager.GetString("SetParameterMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set parameter.
+        /// </summary>
+        internal static string SetParameterTitle {
+            get {
+                return ResourceManager.GetString("SetParameterTitle", resourceCulture);
+            }
+        }
     }
 }

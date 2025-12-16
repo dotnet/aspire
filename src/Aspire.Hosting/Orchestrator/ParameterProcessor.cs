@@ -151,11 +151,11 @@ public sealed class ParameterProcessor(
 
     private async Task ProcessParameterAsync(ParameterResource parameterResource)
     {
-        // Add the "Set parameter value" command if the interaction service is available and the parameter
+        // Add the "Set parameter" command if the interaction service is available and the parameter
         // reads from configuration (e.g., user secrets).
-        if (interactionService.IsAvailable && !parameterResource.Annotations.OfType<ResourceCommandAnnotation>().Any(a => a.Name == KnownResourceCommands.SetParameterValueCommand))
+        if (interactionService.IsAvailable && !parameterResource.Annotations.OfType<ResourceCommandAnnotation>().Any(a => a.Name == KnownResourceCommands.SetParameterCommand))
         {
-            AddSetParameterValueCommand(parameterResource);
+            AddSetParameterCommand(parameterResource);
         }
 
         try
@@ -217,18 +217,18 @@ public sealed class ParameterProcessor(
         }
     }
 
-    private void AddSetParameterValueCommand(ParameterResource parameterResource)
+    private void AddSetParameterCommand(ParameterResource parameterResource)
     {
         parameterResource.Annotations.Add(new ResourceCommandAnnotation(
-            name: KnownResourceCommands.SetParameterValueCommand,
-            displayName: CommandStrings.SetParameterValueName,
+            name: KnownResourceCommands.SetParameterCommand,
+            displayName: CommandStrings.SetParameterName,
             executeCommand: async context =>
             {
-                await SetParameterValueAsync(parameterResource, context.CancellationToken).ConfigureAwait(false);
+                await SetParameterAsync(parameterResource, context.CancellationToken).ConfigureAwait(false);
                 return CommandResults.Success();
             },
             updateState: _ => ResourceCommandState.Enabled,
-            displayDescription: CommandStrings.SetParameterValueDescription,
+            displayDescription: CommandStrings.SetParameterDescription,
             parameter: null,
             confirmationMessage: null,
             iconName: "Key",
@@ -242,14 +242,47 @@ public sealed class ParameterProcessor(
     /// <param name="parameterResource">The parameter resource to set the value for.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that completes when the user has set the value or cancelled.</returns>
-    public async Task SetParameterValueAsync(ParameterResource parameterResource, CancellationToken cancellationToken = default)
+    public async Task SetParameterAsync(ParameterResource parameterResource, CancellationToken cancellationToken = default)
     {
         var input = parameterResource.CreateInput();
 
-        var result = await interactionService.PromptInputAsync(
-            InteractionStrings.ParametersInputsTitle,
-            InteractionStrings.ParametersInputsMessage,
-            input,
+        // Pre-populate input with existing value if the parameter has one
+        var hasExistingValue = false;
+        try
+        {
+            var existingValue = parameterResource.ValueInternal;
+            if (!string.IsNullOrEmpty(existingValue))
+            {
+                input.Value = existingValue;
+                hasExistingValue = true;
+            }
+        }
+        catch (MissingParameterValueException)
+        {
+            // No existing value, leave input empty
+        }
+
+        var inputs = new List<InteractionInput> { input };
+
+        // Add RememberParameters input in run mode
+        InteractionInput? saveParameterInput = null;
+        if (executionContext.IsRunMode)
+        {
+            saveParameterInput = new InteractionInput
+            {
+                Name = "RememberParameters",
+                InputType = InputType.Boolean,
+                Label = InteractionStrings.ParametersInputsRememberLabel,
+                // Default to true if value already exists (was read from user secrets)
+                Value = hasExistingValue ? "true" : null
+            };
+            inputs.Add(saveParameterInput);
+        }
+
+        var result = await interactionService.PromptInputsAsync(
+            InteractionStrings.SetParameterTitle,
+            InteractionStrings.SetParameterMessage,
+            inputs,
             new InputsDialogInteractionOptions
             {
                 PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
@@ -259,13 +292,20 @@ public sealed class ParameterProcessor(
             cancellationToken)
             .ConfigureAwait(false);
 
-        if (result.Canceled || string.IsNullOrEmpty(result.Data?.Value))
+        if (result.Canceled || string.IsNullOrEmpty(input.Value))
         {
             return;
         }
 
-        var inputValue = result.Data.Value;
+        var inputValue = input.Value;
+        var shouldSave = saveParameterInput?.Value is not null &&
+            bool.TryParse(saveParameterInput.Value, out var saveToDeploymentState) && saveToDeploymentState;
 
+        await ApplyParameterValueAsync(parameterResource, inputValue, shouldSave, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ApplyParameterValueAsync(ParameterResource parameterResource, string inputValue, bool saveToDeploymentState, CancellationToken cancellationToken = default)
+    {
         // Update the parameter resource with the new value.
         parameterResource.WaitForValueTcs?.TrySetResult(inputValue);
 
@@ -280,10 +320,10 @@ public sealed class ParameterProcessor(
 
         // Log that the parameter has been resolved
         loggerService.GetLogger(parameterResource)
-            .LogInformation("Parameter resource {ResourceName} value has been updated via user interaction.", parameterResource.Name);
+            .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameterResource.Name);
 
-        // Save to deployment state if in run mode
-        if (executionContext.IsRunMode)
+        // Save to deployment state if requested and in run mode
+        if (executionContext.IsRunMode && saveToDeploymentState)
         {
             try
             {
@@ -380,6 +420,9 @@ public sealed class ParameterProcessor(
 
                     if (!valuesPrompt.Canceled)
                     {
+                        var shouldSave = saveParameters?.Value is not null &&
+                            bool.TryParse(saveParameters.Value, out var saveToDeploymentState) && saveToDeploymentState;
+
                         // Iterate through the unresolved parameters and set their values based on user input.
                         for (var i = resourceInputs.Count - 1; i >= 0; i--)
                         {
@@ -392,40 +435,11 @@ public sealed class ParameterProcessor(
                                 continue;
                             }
 
-                            parameter.WaitForValueTcs?.TrySetResult(inputValue);
+                            await ApplyParameterValueAsync(parameter, inputValue, shouldSave).ConfigureAwait(false);
 
-                            // Update the parameter resource state to active with the provided value.
-                            await notificationService.PublishUpdateAsync(parameter, s =>
+                            if (shouldSave)
                             {
-                                return s with
-                                {
-                                    Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, inputValue, parameter.Secret),
-                                    State = KnownResourceStates.Running
-                                };
-                            })
-                            .ConfigureAwait(false);
-
-                            // Log that the parameter has been resolved
-                            loggerService.GetLogger(parameter)
-                                .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameter.Name);
-
-                            if (executionContext.IsRunMode && showSaveToSecrets && saveParameters?.Value is not null)
-                            {
-                                var shouldSave = bool.TryParse(saveParameters.Value, out var saveToDeploymentState) && saveToDeploymentState;
-                                if (shouldSave)
-                                {
-                                    try
-                                    {
-                                        var slot = await deploymentStateManager.AcquireSectionAsync(parameter.ConfigurationKey).ConfigureAwait(false);
-                                        slot.SetValue(inputValue);
-                                        await deploymentStateManager.SaveSectionAsync(slot).ConfigureAwait(false);
-                                        stateModified = true;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        logger.LogWarning(ex, "Failed to save parameter {ParameterName} to deployment state.", parameter.Name);
-                                    }
-                                }
+                                stateModified = true;
                             }
 
                             // Remove the parameter from unresolved parameters list.
