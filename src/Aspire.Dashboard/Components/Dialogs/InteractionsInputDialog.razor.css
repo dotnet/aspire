@@ -32,3 +32,18 @@
     column-gap: 12px;
     align-items: center;
 }
+
+.interaction-input-dialog .interaction-input ::deep .secret-text-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.interaction-input-dialog .interaction-input ::deep .secret-text-container fluent-text-field {
+    flex: 1;
+}
+
+.interaction-input-dialog .interaction-input ::deep .secret-text-toggle-button {
+    flex-shrink: 0;
+}

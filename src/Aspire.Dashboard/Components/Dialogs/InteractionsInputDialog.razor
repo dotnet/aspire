@@ -4,6 +4,7 @@
 @using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.DashboardService.Proto.V1
 @using Dialogs = Aspire.Dashboard.Resources.Dialogs
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @implements IDialogContentComponent<InteractionsInputsDialogViewModel>
 
 <FluentDialogHeader ShowDismiss="@Dialog.Instance.Parameters.ShowDismiss">
@@ -57,16 +58,25 @@
                                 * AutoComplete value of one-time-code on password input prevents the browser asking to save the value.
                                 * Immediate value of true on text input ensures the value is set to the server token with every key press in textbox.
                                 *@
-                                <FluentTextField @ref="@_elementRefs[input.ViewModel]"
-                                                 @bind-Value="input.ViewModel.Value"
-                                                 Placeholder="@input.ViewModel.Input.Placeholder"
-                                                 Required="input.ViewModel.Input.Required"
-                                                 TextFieldType="TextFieldType.Password"
-                                                 AutoComplete="one-time-code"
-                                                 Immediate="true"
-                                                 Disabled="input.ViewModel.InputDisabled"
-                                                 aria-describedby="@input.DescriptionId"
-                                                 Maxlength="@InteractionHelpers.GetMaxLength(input.ViewModel.Input.MaxLength)" />
+                                <div class="secret-text-container">
+                                    <FluentTextField @ref="@_elementRefs[input.ViewModel]"
+                                                     @bind-Value="input.ViewModel.Value"
+                                                     Placeholder="@input.ViewModel.Input.Placeholder"
+                                                     Required="input.ViewModel.Input.Required"
+                                                     TextFieldType="TextFieldType.Password"
+                                                     AutoComplete="one-time-code"
+                                                     Immediate="true"
+                                                     Disabled="input.ViewModel.InputDisabled"
+                                                     aria-describedby="@input.DescriptionId"
+                                                     Maxlength="@InteractionHelpers.GetMaxLength(input.ViewModel.Input.MaxLength)" />
+                                    <FluentButton IconOnly="true"
+                                                  Appearance="Appearance.Stealth"
+                                                  Title="@(IsSecretTextVisible(input.ViewModel) ? ControlsStringsLoc[nameof(ControlsStrings.GridValueMaskHideValue)] : ControlsStringsLoc[nameof(ControlsStrings.GridValueMaskShowValue)])"
+                                                  OnClick="@(() => ToggleSecretTextVisibilityAsync(input.ViewModel))"
+                                                  class="secret-text-toggle-button">
+                                        <FluentIcon Value="@GetSecretTextIcon(input.ViewModel)" />
+                                    </FluentButton>
+                                </div>
                             </InteractionInputField>
                             break;
                         case InputType.Choice:
