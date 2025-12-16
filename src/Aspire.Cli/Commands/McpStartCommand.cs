@@ -162,7 +162,10 @@ internal sealed class McpStartCommand : BaseCommand
             tools.AddRange(appHostTools);
         }
 
-        _logger.LogDebug("Returning {ToolCount} tools: {ToolNames}", tools.Count, string.Join(", ", tools.Select(t => t.Name)));
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Returning {ToolCount} tools: {ToolNames}", tools.Count, string.Join(", ", tools.Select(t => t.Name)));
+        }
 
         return new ListToolsResult
         {
@@ -175,7 +178,18 @@ internal sealed class McpStartCommand : BaseCommand
     /// </summary>
     private async ValueTask<IList<Tool>?> GetAppHostToolsAsync(CancellationToken cancellationToken)
     {
-        var connection = TryGetSelectedConnection();
+        AppHostAuxiliaryBackchannel? connection;
+
+        try
+        {
+            connection = GetSelectedConnection();
+        }
+        catch (McpProtocolException ex)
+        {
+            _logger.LogWarning(ex, "Failed to get selected AppHost connection");
+            return null;
+        }
+
         if (connection is null || connection.McpInfo is null)
         {
             return null;
@@ -197,7 +211,11 @@ internal sealed class McpStartCommand : BaseCommand
             // Subscribe to tool list changes from the AppHost
             await SubscribeToToolListChangesAsync(connection, cancellationToken);
 
-            _logger.LogDebug("Fetched {ToolCount} tools from AppHost: {ToolNames}", tools.Count, string.Join(", ", tools.Select(t => t.Name)));
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Fetched {ToolCount} tools from AppHost: {ToolNames}", tools.Count, string.Join(", ", tools.Select(t => t.Name)));
+            }
+
             return tools;
         }
         catch (Exception ex)
@@ -210,7 +228,7 @@ internal sealed class McpStartCommand : BaseCommand
     /// <summary>
     /// Subscribes to tool list changes from the AppHost and forwards them to clients.
     /// </summary>
-    private async Task SubscribeToToolListChangesAsync(AppHostConnection connection, CancellationToken cancellationToken)
+    private async Task SubscribeToToolListChangesAsync(AppHostAuxiliaryBackchannel connection, CancellationToken cancellationToken)
     {
         // Dispose previous resources if any
         if (_toolListChangedHandler is not null)
@@ -272,7 +290,7 @@ internal sealed class McpStartCommand : BaseCommand
     /// <summary>
     /// Creates an MCP client to communicate with the AppHost's dashboard MCP server.
     /// </summary>
-    private async Task<McpClient> CreateMcpClientAsync(AppHostConnection connection, CancellationToken cancellationToken)
+    private async Task<McpClient> CreateMcpClientAsync(AppHostAuxiliaryBackchannel connection, CancellationToken cancellationToken)
     {
         var transportOptions = new HttpClientTransportOptions
         {
@@ -388,54 +406,6 @@ internal sealed class McpStartCommand : BaseCommand
             _logger.LogError(ex, "Error occurred while calling tool {ToolName}", toolName);
             throw;
         }
-    }
-
-    /// <summary>
-    /// Tries to get the appropriate AppHost connection without throwing exceptions.
-    /// Returns null if no suitable connection is found.
-    /// </summary>
-    private AppHostConnection? TryGetSelectedConnection()
-    {
-        var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
-
-        if (connections.Count == 0)
-        {
-            return null;
-        }
-
-        // Check if a specific AppHost was selected
-        var selectedPath = _auxiliaryBackchannelMonitor.SelectedAppHostPath;
-        if (!string.IsNullOrEmpty(selectedPath))
-        {
-            var selectedConnection = connections.FirstOrDefault(c =>
-                c.AppHostInfo?.AppHostPath is not null &&
-                string.Equals(c.AppHostInfo.AppHostPath, selectedPath, StringComparison.OrdinalIgnoreCase));
-
-            if (selectedConnection is not null)
-            {
-                return selectedConnection;
-            }
-
-            // Clear the selection since the AppHost is no longer available
-            _auxiliaryBackchannelMonitor.SelectedAppHostPath = null;
-        }
-
-        // Get in-scope connections first
-        var inScopeConnections = connections.Where(c => c.IsInScope).ToList();
-
-        if (inScopeConnections.Count == 1)
-        {
-            return inScopeConnections[0];
-        }
-
-        // If no in-scope connections but exactly one total connection, use it
-        if (inScopeConnections.Count == 0 && connections.Count == 1)
-        {
-            return connections[0];
-        }
-
-        // Multiple or no usable connections - return null
-        return null;
     }
 
     /// <summary>
