@@ -200,10 +200,10 @@ internal sealed class DoctorCommand : BaseCommand
     {
         return status switch
         {
-            PrerequisiteCheckStatus.Pass => ("[check]", "green"),
-            PrerequisiteCheckStatus.Warning => ("[warn]", "yellow"),
-            PrerequisiteCheckStatus.Fail => ("[fail]", "red"),
-            _ => ("[ ? ]", "grey")
+            PrerequisiteCheckStatus.Pass => ("✓", "green"),
+            PrerequisiteCheckStatus.Warning => ("⚠", "yellow"),
+            PrerequisiteCheckStatus.Fail => ("✗", "red"),
+            _ => ("?", "grey")
         };
     }
 
