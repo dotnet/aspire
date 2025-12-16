@@ -231,18 +231,6 @@ public static class RunningProcessExtensions
 
 ---
 
-## API Layers
-
-```
-+---------------------------------------------+
-|  WithStdin(Stdin.FromText/Stream/etc)      |  <- Auto-write + complete
-+---------------------------------------------+
-|  WithStdin() + WriteLineAsync/etc          |  <- Interactive via extensions
-+---------------------------------------------+
-|  PipeWriter Input, PipeReader Output/Error |  <- Primitives
-+---------------------------------------------+
-```
-
 **Defaults**
 
 * `Start(...)`: `CaptureOutput = false` (stream-first, avoid buffering giant output)
