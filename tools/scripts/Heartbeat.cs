@@ -356,13 +356,13 @@ string GetDockerStats()
 
 string GetDcpProcesses()
 {
-    var dcpProcesses = new List<(string Name, int Pid, double CpuMb, double MemMb)>();
+    var dcpProcesses = new List<(string Name, int Pid, double Cpu, double MemMb)>();
 
     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
     {
         // Use PowerShell to find dcp processes on Windows (wmic is deprecated)
         // Use pipe delimiter to avoid issues with commas in process names
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process -Name 'dcp*' -ErrorAction SilentlyContinue | ForEach-Object { '{0}|{1}|{2}' -f $_.ProcessName, $_.Id, $_.WorkingSet64 }\"", timeoutMs: 5000);
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process -Name 'dcp*' -ErrorAction SilentlyContinue | Select-Object -Property ProcessName, Id, @{Name='AvgCpuPct';Expression={$uptimeSec = (New-TimeSpan -Start $_.StartTime -End (Get-Date)).TotalSeconds; if ($uptimeSec -gt 0) { [math]::Round(($_.CPU / $uptimeSec) * 100, 1) } else { 0 } }}, WorkingSet64 | ForEach-Object { '{0}|{1}|{2}|{3}' -f $_.ProcessName, $_.Id, $_.CPU, $_.WorkingSet64 }\"", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -372,10 +372,11 @@ string GetDcpProcesses()
 
                 if (parts.Length >= 3 &&
                     int.TryParse(parts[1], out var pid) &&
-                    long.TryParse(parts[2], out var workingSet))
+                    double.TryParse(parts[2], out var cpu) &&
+                    long.TryParse(parts[3], out var workingSet))
                 {
                     var name = parts[0];
-                    dcpProcesses.Add((name, pid, 0, workingSet / 1024.0 / 1024.0));
+                    dcpProcesses.Add((name, pid, cpu, workingSet / 1024.0 / 1024.0));
                 }
             }
         }
@@ -426,10 +427,11 @@ string GetDcpProcesses()
         return "none";
     }
 
+    var totalCpu = dcpProcesses.Sum(p => p.Cpu);
     var totalMem = dcpProcesses.Sum(p => p.MemMb);
-    var processInfo = string.Join(", ", dcpProcesses.Select(p => $"{p.Name}({p.Pid}):{p.MemMb:F0}MB"));
+    var processInfo = string.Join(", ", dcpProcesses.Select(p => $"{p.Name}({p.Pid}):{p.Cpu:F1}%/{p.MemMb:F0}MB"));
 
-    return $"{dcpProcesses.Count} procs ({totalMem:F0}MB) [{processInfo}]";
+    return $"{dcpProcesses.Count} procs ({totalCpu:F1}%/{totalMem:F0}MB) [{processInfo}]";
 }
 
 string GetTopProcesses()
@@ -440,7 +442,7 @@ string GetTopProcesses()
     {
         // Use PowerShell to find top processes on Windows (wmic is deprecated)
         // Use pipe delimiter to avoid issues with commas in process names
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process | Sort-Object -Property CPU -Descending | Select-Object -First 10 | ForEach-Object { '{0}|{1}|{2}' -f $_.ProcessName, $_.Id, $_.WorkingSet64 }\"", timeoutMs: 5000);
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process | Select-Object -Property ProcessName, Id, @{Name='AvgCpuPct';Expression={$uptimeSec = (New-TimeSpan -Start $_.StartTime -End (Get-Date)).TotalSeconds; if ($uptimeSec -gt 0) { [math]::Round(($_.CPU / $uptimeSec) * 100, 1) } else { 0 } }}, WorkingSet64 | Sort-Object AvgCpuPct -Descending | Select-Object -First 10 | ForEach-Object { '{0}|{1}|{2}|{3}' -f $_.ProcessName, $_.Id, $_.AvgCpuPct, $_.WorkingSet64 }\"", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -450,10 +452,11 @@ string GetTopProcesses()
 
                 if (parts.Length >= 3 &&
                     int.TryParse(parts[1], out var pid) &&
-                    long.TryParse(parts[2], out var workingSet))
+                    double.TryParse(parts[2], out var cpu) &&
+                    long.TryParse(parts[3], out var workingSet))
                 {
                     var name = parts[0];
-                    topProcesses.Add((name, pid, 0, workingSet / 1024.0 / 1024.0));
+                    topProcesses.Add((name, pid, cpu, workingSet / 1024.0 / 1024.0));
                 }
             }
         }
