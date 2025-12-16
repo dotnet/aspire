@@ -196,7 +196,6 @@ public class Program
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
 
         // Environment checking services.
-        builder.Services.AddSingleton<IEnvironmentCheck, TerminalCapabilitiesCheck>();
         builder.Services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
         builder.Services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
         builder.Services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
