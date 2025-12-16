@@ -28,37 +28,39 @@ var rootCommand = new RootCommand
 
 rootCommand.SetAction(result =>
 {
-    var paths = result.GetValue<string[]>(filesOption) ?? Array.Empty<string>();
-    var replacementArgs = result.GetValue<string[]>(replacementsOption) ?? Array.Empty<string>();
-
-    // Validate and parse replacements
-    if (replacementArgs.Length == 0)
+    try
     {
-        Console.Error.WriteLine("Error: No replacements provided. Use --replacements to specify find/replace pairs.");
-        Environment.Exit(1);
-    }
+        var paths = result.GetValue<string[]>(filesOption) ?? Array.Empty<string>();
+        var replacementArgs = result.GetValue<string[]>(replacementsOption) ?? Array.Empty<string>();
 
-    if (replacementArgs.Length % 2 != 0)
-    {
-        Console.Error.WriteLine($"Error: Replacement arguments must be provided in pairs (find, replace).");
-        Console.Error.WriteLine($"       Received {replacementArgs.Length} arguments after --replacements.");
-        Environment.Exit(1);
-    }
-
-    var replacements = new List<(string Find, string Replace)>();
-    for (var i = 0; i < replacementArgs.Length; i += 2)
-    {
-        var find = replacementArgs[i];
-        var replace = replacementArgs[i + 1];
-
-        if (string.IsNullOrEmpty(find))
+        // Validate and parse replacements
+        if (replacementArgs.Length == 0)
         {
-            Console.Error.WriteLine($"Error: Find text at position {i + 1} in --replacements cannot be empty.");
-            Environment.Exit(1);
+            Console.Error.WriteLine("Error: No replacements provided. Use --replacements to specify find/replace pairs.");
+            return 1;
         }
 
-        replacements.Add((find, replace));
-    }
+        if (replacementArgs.Length % 2 != 0)
+        {
+            Console.Error.WriteLine($"Error: Replacement arguments must be provided in pairs (find, replace).");
+            Console.Error.WriteLine($"       Received {replacementArgs.Length} arguments after --replacements.");
+            return 1;
+        }
+
+        var replacements = new List<(string Find, string Replace)>();
+        for (var i = 0; i < replacementArgs.Length; i += 2)
+        {
+            var find = replacementArgs[i];
+            var replace = replacementArgs[i + 1];
+
+            if (string.IsNullOrEmpty(find))
+            {
+                Console.Error.WriteLine($"Error: Find text at position {i + 1} in --replacements cannot be empty.");
+                return 1;
+            }
+
+            replacements.Add((find, replace));
+        }
 
     Console.WriteLine($"Paths: {paths.Length}");
     foreach (var path in paths)
@@ -111,62 +113,70 @@ rootCommand.SetAction(result =>
         }
     }
 
-    if (filesToProcess.Count == 0)
-    {
-        Console.WriteLine("No files matched the provided paths.");
-        Environment.Exit(0);
-    }
-
-    Console.WriteLine($"Found {filesToProcess.Count} file(s) matching the provided paths.");
-    Console.WriteLine();
-
-    var processedCount = 0;
-    var modifiedCount = 0;
-    var errorCount = 0;
-    var errors = new ConcurrentBag<(string File, string Error)>();
-
-    Parallel.ForEach(filesToProcess, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, filePath =>
-    {
-        try
+        if (filesToProcess.Count == 0)
         {
-            var content = File.ReadAllText(filePath);
-            var originalContent = content;
-
-            foreach (var (find, replace) in replacements)
-            {
-                content = content.Replace(find, replace, StringComparison.Ordinal);
-            }
-
-            if (!string.Equals(content, originalContent, StringComparison.Ordinal))
-            {
-                File.WriteAllText(filePath, content);
-                Interlocked.Increment(ref modifiedCount);
-                Console.WriteLine($"Modified: {Path.GetRelativePath(currentDirectory, filePath)}");
-            }
-
-            Interlocked.Increment(ref processedCount);
+            Console.WriteLine("No files matched the provided paths.");
+            return 0;
         }
-        catch (Exception ex)
-        {
-            Interlocked.Increment(ref errorCount);
-            errors.Add((filePath, ex.Message));
-        }
-    });
 
-    Console.WriteLine();
-    Console.WriteLine($"Processed: {processedCount} file(s)");
-    Console.WriteLine($"Modified:  {modifiedCount} file(s)");
-
-    if (errorCount > 0)
-    {
-        Console.WriteLine($"Errors:    {errorCount} file(s)");
+        Console.WriteLine($"Found {filesToProcess.Count} file(s) matching the provided paths.");
         Console.WriteLine();
-        Console.Error.WriteLine("Errors encountered:");
-        foreach (var (file, error) in errors)
+
+        var processedCount = 0;
+        var modifiedCount = 0;
+        var errorCount = 0;
+        var errors = new ConcurrentBag<(string File, string Error)>();
+
+        Parallel.ForEach(filesToProcess, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, filePath =>
         {
-            Console.Error.WriteLine($"  {Path.GetRelativePath(currentDirectory, file)}: {error}");
+            try
+            {
+                var content = File.ReadAllText(filePath);
+                var originalContent = content;
+
+                foreach (var (find, replace) in replacements)
+                {
+                    content = content.Replace(find, replace, StringComparison.Ordinal);
+                }
+
+                if (!string.Equals(content, originalContent, StringComparison.Ordinal))
+                {
+                    File.WriteAllText(filePath, content);
+                    Interlocked.Increment(ref modifiedCount);
+                    Console.WriteLine($"Modified: {Path.GetRelativePath(currentDirectory, filePath)}");
+                }
+
+                Interlocked.Increment(ref processedCount);
+            }
+            catch (Exception ex)
+            {
+                Interlocked.Increment(ref errorCount);
+                errors.Add((filePath, ex.Message));
+            }
+        });
+
+        Console.WriteLine();
+        Console.WriteLine($"Processed: {processedCount} file(s)");
+        Console.WriteLine($"Modified:  {modifiedCount} file(s)");
+
+        if (errorCount > 0)
+        {
+            Console.WriteLine($"Errors:    {errorCount} file(s)");
+            Console.WriteLine();
+            Console.Error.WriteLine("Errors encountered:");
+            foreach (var (file, error) in errors)
+            {
+                Console.Error.WriteLine($"  {Path.GetRelativePath(currentDirectory, file)}: {error}");
+            }
+            return 1;
         }
-        Environment.Exit(1);
+
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Unexpected error: {ex.Message}");
+        return 1;
     }
 });
 
