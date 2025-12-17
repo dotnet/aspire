@@ -35,8 +35,8 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
     public async Task Run_Echo_ReturnsOutput()
     {
         var result = OperatingSystem.IsWindows()
-            ? await _shell.RunAsync("cmd", ["/c", "echo", "hello"])
-            : await _shell.RunAsync("echo", ["hello"]);
+            ? await _shell.Command("cmd", ["/c", "echo", "hello"]).RunAsync()
+            : await _shell.Command("echo", ["hello"]).RunAsync();
 
         Assert.True(result.Success);
         Assert.Equal(0, result.ExitCode);
@@ -46,7 +46,7 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task Run_DotnetVersion_Succeeds()
     {
-        var result = await _shell.RunAsync("dotnet", ["--version"]);
+        var result = await _shell.Command("dotnet", ["--version"]).RunAsync();
 
         Assert.True(result.Success);
         Assert.Equal(0, result.ExitCode);
@@ -57,7 +57,7 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
     public async Task Run_NonExistentCommand_Fails()
     {
         await Assert.ThrowsAsync<FileNotFoundException>(
-            () => _shell.RunAsync("this-command-does-not-exist-12345"));
+            () => _shell.Command("this-command-does-not-exist-12345").RunAsync());
     }
 
     [Fact]
@@ -67,8 +67,8 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
         var shellWithCd = _shell.Cd(tempDir.Path);
 
         var result = OperatingSystem.IsWindows()
-            ? await shellWithCd.RunAsync("cmd", ["/c", "cd"])
-            : await shellWithCd.RunAsync("pwd");
+            ? await shellWithCd.Command("cmd", ["/c", "cd"]).RunAsync()
+            : await shellWithCd.Command("pwd").RunAsync();
 
         Assert.True(result.Success);
         Assert.Contains(tempDir.Path, result.Stdout);
@@ -80,47 +80,41 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
         var shellWithEnv = _shell.Env("MY_TEST_VAR", "test_value_12345");
 
         var result = OperatingSystem.IsWindows()
-            ? await shellWithEnv.RunAsync("cmd", ["/c", "echo", "%MY_TEST_VAR%"])
-            : await shellWithEnv.RunAsync("sh", ["-c", "echo $MY_TEST_VAR"]);
+            ? await shellWithEnv.Command("cmd", ["/c", "echo", "%MY_TEST_VAR%"]).RunAsync()
+            : await shellWithEnv.Command("sh", ["-c", "echo $MY_TEST_VAR"]).RunAsync();
 
         Assert.True(result.Success);
         Assert.Contains("test_value_12345", result.Stdout);
     }
 
     [Fact]
-    public async Task Command_WithStdin_PassesInput()
+    public async Task RunAsync_WithStdin_PassesInput()
     {
-        var stdin = Stdin.FromText("hello from stdin");
+        var stdin = ProcessInput.FromText("hello from stdin");
 
         var result = OperatingSystem.IsWindows()
-            ? await _shell.Command("findstr", ["."])
-                .WithStdin(stdin)
-                .RunAsync()
-            : await _shell.Command("cat")
-                .WithStdin(stdin)
-                .RunAsync();
+            ? await _shell.Command("findstr", ["."]).RunAsync(stdin: stdin)
+            : await _shell.Command("cat").RunAsync(stdin: stdin);
 
         Assert.True(result.Success);
         Assert.Contains("hello from stdin", result.Stdout);
     }
 
     [Fact]
-    public async Task Command_WithCaptureOutputFalse_DoesNotCaptureOutput()
+    public async Task RunAsync_WithCaptureFalse_DoesNotCaptureOutput()
     {
-        var result = await _shell.Command("dotnet", ["--version"])
-            .WithCaptureOutput(false)
-            .RunAsync();
+        var result = await _shell.Command("dotnet", ["--version"]).RunAsync(capture: false);
 
         Assert.True(result.Success);
         Assert.True(string.IsNullOrEmpty(result.Stdout));
     }
 
     [Fact]
-    public async Task Start_ReadLines_ReturnsAllLines()
+    public async Task StartReading_ReadLines_ReturnsAllLines()
     {
         await using var process = OperatingSystem.IsWindows()
-            ? _shell.Start("cmd", ["/c", "echo line1 & echo line2"])
-            : _shell.Start("sh", ["-c", "echo line1; echo line2"]);
+            ? _shell.Command("cmd", ["/c", "echo line1 & echo line2"]).StartReading()
+            : _shell.Command("sh", ["-c", "echo line1; echo line2"]).StartReading();
 
         var lines = new List<string>();
         await foreach (var line in process.ReadLinesAsync())
@@ -135,11 +129,11 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task Start_ReadLines_StdoutHasIsStdErrFalse()
+    public async Task StartReading_ReadLines_StdoutHasIsStdErrFalse()
     {
         await using var process = OperatingSystem.IsWindows()
-            ? _shell.Start("cmd", ["/c", "echo hello"])
-            : _shell.Start("echo", ["hello"]);
+            ? _shell.Command("cmd", ["/c", "echo hello"]).StartReading()
+            : _shell.Command("echo", ["hello"]).StartReading();
 
         var lines = new List<OutputLine>();
         await foreach (var line in process.ReadLinesAsync())
@@ -152,11 +146,11 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task Start_ReadLines_StderrHasIsStdErrTrue()
+    public async Task StartReading_ReadLines_StderrHasIsStdErrTrue()
     {
         await using var process = OperatingSystem.IsWindows()
-            ? _shell.Start("cmd", ["/c", "echo error 1>&2"])
-            : _shell.Start("sh", ["-c", "echo error >&2"]);
+            ? _shell.Command("cmd", ["/c", "echo error 1>&2"]).StartReading()
+            : _shell.Command("sh", ["-c", "echo error >&2"]).StartReading();
 
         var lines = new List<OutputLine>();
         await foreach (var line in process.ReadLinesAsync())
@@ -169,11 +163,11 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task Start_ReadLines_CanDistinguishStdoutAndStderr()
+    public async Task StartReading_ReadLines_CanDistinguishStdoutAndStderr()
     {
         await using var process = OperatingSystem.IsWindows()
-            ? _shell.Start("cmd", ["/c", "echo stdout & echo stderr 1>&2"])
-            : _shell.Start("sh", ["-c", "echo stdout; echo stderr >&2"]);
+            ? _shell.Command("cmd", ["/c", "echo stdout & echo stderr 1>&2"]).StartReading()
+            : _shell.Command("sh", ["-c", "echo stdout; echo stderr >&2"]).StartReading();
 
         var stdoutLines = new List<string>();
         var stderrLines = new List<string>();
@@ -199,8 +193,8 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
     public async Task Run_CommandThatExitsNonZero_ReturnsFailure()
     {
         var result = OperatingSystem.IsWindows()
-            ? await _shell.RunAsync("cmd", ["/c", "exit 42"])
-            : await _shell.RunAsync("sh", ["-c", "exit 42"]);
+            ? await _shell.Command("cmd", ["/c", "exit 42"]).RunAsync()
+            : await _shell.Command("sh", ["-c", "exit 42"]).RunAsync();
 
         Assert.False(result.Success);
         Assert.Equal(42, result.ExitCode);
@@ -210,8 +204,8 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
     public async Task Run_CommandWithStderr_CapturesStderr()
     {
         var result = OperatingSystem.IsWindows()
-            ? await _shell.RunAsync("cmd", ["/c", "echo error message 1>&2"])
-            : await _shell.RunAsync("sh", ["-c", "echo 'error message' >&2"]);
+            ? await _shell.Command("cmd", ["/c", "echo error message 1>&2"]).RunAsync()
+            : await _shell.Command("sh", ["-c", "echo 'error message' >&2"]).RunAsync();
 
         Assert.True(result.Success);
         Assert.Contains("error", result.Stderr?.ToLowerInvariant() ?? "");
@@ -224,7 +218,7 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
         cts.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => _shell.RunAsync("dotnet", ["--version"], cts.Token));
+            () => _shell.Command("dotnet", ["--version"]).RunAsync(ct: cts.Token));
     }
 
     [Fact]
@@ -236,9 +230,9 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
         var shell2 = shell1.Cd(tempDir.Path);
         var shell3 = shell2.Env("VAR", "value");
 
-        var result1 = await shell1.RunAsync("dotnet", ["--version"]);
-        var result2 = await shell2.RunAsync("dotnet", ["--version"]);
-        var result3 = await shell3.RunAsync("dotnet", ["--version"]);
+        var result1 = await shell1.Command("dotnet", ["--version"]).RunAsync();
+        var result2 = await shell2.Command("dotnet", ["--version"]).RunAsync();
+        var result3 = await shell3.Command("dotnet", ["--version"]).RunAsync();
 
         Assert.True(result1.Success);
         Assert.True(result2.Success);
@@ -248,7 +242,7 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task ProcessResult_EnsureSuccess_DoesNotThrowOnSuccess()
     {
-        var result = await _shell.RunAsync("dotnet", ["--version"]);
+        var result = await _shell.Command("dotnet", ["--version"]).RunAsync();
 
         result.EnsureSuccess();
     }
@@ -257,22 +251,22 @@ public class VirtualShellIntegrationTests(ITestOutputHelper testOutputHelper)
     public async Task ProcessResult_EnsureSuccess_ThrowsOnFailure()
     {
         var result = OperatingSystem.IsWindows()
-            ? await _shell.RunAsync("cmd", ["/c", "exit 1"])
-            : await _shell.RunAsync("sh", ["-c", "exit 1"]);
+            ? await _shell.Command("cmd", ["/c", "exit 1"]).RunAsync()
+            : await _shell.Command("sh", ["-c", "exit 1"]).RunAsync();
 
         Assert.Throws<InvalidOperationException>(() => result.EnsureSuccess());
     }
 
     [Fact]
     [RequiresUnixSystem("SIGTERM is not supported on Windows")]
-    public async Task Start_Signal_SendsTermToProcess()
+    public async Task StartReading_Signal_SendsTermToProcess()
     {
         // Start a process that:
         // 1. Sets up a SIGTERM trap that prints confirmation
         // 2. Prints "READY" so we know the trap is set up
         // 3. Loops with short sleeps so the trap handler runs promptly
-        await using var process = _shell.Start("sh", ["-c",
-            "trap 'echo SIGTERM_RECEIVED; exit 0' TERM; echo READY; while true; do sleep 0.1; done"]);
+        await using var process = _shell.Command("sh", ["-c",
+            "trap 'echo SIGTERM_RECEIVED; exit 0' TERM; echo READY; while true; do sleep 0.1; done"]).StartReading();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 

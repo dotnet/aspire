@@ -4,7 +4,6 @@
 #pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
 
 using System.Diagnostics;
-using System.IO.Pipelines;
 
 namespace Aspire.Hosting.Execution;
 
@@ -18,31 +17,83 @@ internal sealed class ProcessRunner : IProcessRunner
     public async Task<ProcessResult> RunAsync(
         string exePath,
         IReadOnlyList<string> args,
-        ExecSpec spec,
         ShellState state,
+        ProcessInput? stdin,
+        bool capture,
         CancellationToken ct)
     {
-        var streamRun = Start(exePath, args, spec, state);
-        await using (streamRun.ConfigureAwait(false))
+        var stdout = capture ? ProcessOutput.Capture : ProcessOutput.Null;
+        var stderr = capture ? ProcessOutput.Capture : ProcessOutput.Null;
+
+        var process = Start(exePath, args, state, stdin, stdout, stderr);
+        await using (process.ConfigureAwait(false))
         {
-            return await streamRun.WaitAsync(ct).ConfigureAwait(false);
+            return await process.WaitAsync(ct).ConfigureAwait(false);
         }
     }
 
     /// <inheritdoc />
-    public RunningProcess Start(
+    public ProcessLines StartReading(
         string exePath,
         IReadOnlyList<string> args,
-        ExecSpec spec,
+        ShellState state,
+        ProcessInput? stdin)
+    {
+        var systemProcess = CreateAndStartProcess(exePath, args, state);
+        var processLines = new ProcessLines(systemProcess);
+
+        // Handle stdin asynchronously if provided
+        if (stdin is not null)
+        {
+            _ = WriteStdinAsync(processLines, stdin, CancellationToken.None);
+        }
+
+        return processLines;
+    }
+
+    /// <inheritdoc />
+    public ProcessPipes StartProcess(
+        string exePath,
+        IReadOnlyList<string> args,
+        ShellState state)
+    {
+        var process = CreateAndStartProcess(exePath, args, state);
+        return new ProcessPipes(process);
+    }
+
+    /// <inheritdoc />
+    public ProcessHandle Start(
+        string exePath,
+        IReadOnlyList<string> args,
+        ShellState state,
+        ProcessInput? stdin,
+        ProcessOutput stdout,
+        ProcessOutput stderr)
+    {
+        var systemProcess = CreateAndStartProcess(exePath, args, state);
+        var processHandle = new ProcessHandle(systemProcess, stdout, stderr);
+
+        // Handle stdin asynchronously if provided
+        if (stdin is not null)
+        {
+            _ = WriteStdinAsync(processHandle, stdin, CancellationToken.None);
+        }
+
+        return processHandle;
+    }
+
+    private static System.Diagnostics.Process CreateAndStartProcess(
+        string exePath,
+        IReadOnlyList<string> args,
         ShellState state)
     {
         var startInfo = new ProcessStartInfo
         {
             FileName = exePath,
-            WorkingDirectory = spec.WorkingDirectory ?? state.WorkingDirectory ?? string.Empty,
+            WorkingDirectory = state.WorkingDirectory ?? string.Empty,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            RedirectStandardInput = true, // Always redirect stdin for symmetry with output
+            RedirectStandardInput = true,
             UseShellExecute = false,
             CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden,
@@ -58,11 +109,10 @@ internal sealed class ProcessRunner : IProcessRunner
             startInfo.ArgumentList.Add(arg);
         }
 
-        // Setup environment
-        // First, apply shell state environment
+        // Setup environment from shell state
         foreach (var (key, value) in state.Environment)
         {
-            if (value == null)
+            if (value is null)
             {
                 startInfo.Environment.Remove(key);
             }
@@ -72,91 +122,39 @@ internal sealed class ProcessRunner : IProcessRunner
             }
         }
 
-        // Then, apply per-call environment overrides
-        foreach (var (key, value) in spec.Environment)
-        {
-            if (value == null)
-            {
-                startInfo.Environment.Remove(key);
-            }
-            else
-            {
-                startInfo.Environment[key] = value;
-            }
-        }
-
-        var process = new Process { StartInfo = startInfo };
+        var process = new System.Diagnostics.Process { StartInfo = startInfo };
         process.Start();
 
-        var runningProcess = new RunningProcess(
-            process,
-            spec,
-            captureOutput: spec.CaptureOutput);
-
-        // Handle stdin asynchronously by writing to the Input pipe
-        if (spec.Stdin != null)
-        {
-            _ = WriteStdinAsync(runningProcess.Input, spec.Stdin, CancellationToken.None);
-        }
-
-        return runningProcess;
+        return process;
     }
 
-    private static async Task WriteStdinAsync(PipeWriter writer, Stdin stdin, CancellationToken ct)
+    private static async Task WriteStdinAsync(ProcessLines processLines, ProcessInput stdin, CancellationToken ct)
     {
-        // IsPipe means the user will write to Input manually - don't write or complete
-        if (stdin.IsPipe)
-        {
-            return;
-        }
-
         try
         {
-            switch (stdin)
-            {
-                case Stdin.TextStdin textStdin:
-                    var bytes = textStdin.Encoding.GetBytes(textStdin.Text);
-                    await writer.WriteAsync(bytes, ct).ConfigureAwait(false);
-                    break;
-
-                case Stdin.BytesStdin bytesStdin:
-                    await writer.WriteAsync(bytesStdin.Bytes, ct).ConfigureAwait(false);
-                    break;
-
-                case Stdin.StreamStdin streamStdin:
-                    try
-                    {
-                        await streamStdin.Stream.CopyToAsync(writer, ct).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        if (!streamStdin.LeaveOpen)
-                        {
-                            await streamStdin.Stream.DisposeAsync().ConfigureAwait(false);
-                        }
-                    }
-                    break;
-
-                case Stdin.FileStdin fileStdin:
-                    var fileStream = File.OpenRead(fileStdin.Path);
-                    await using (fileStream.ConfigureAwait(false))
-                    {
-                        await fileStream.CopyToAsync(writer, ct).ConfigureAwait(false);
-                    }
-                    break;
-
-                case Stdin.WriterStdin writerStdin:
-                    // For writer stdin, create a stream adapter over the pipe
-                    var pipeStream = writer.AsStream(leaveOpen: true);
-                    await writerStdin.WriteAsync(pipeStream, ct).ConfigureAwait(false);
-                    await pipeStream.FlushAsync(ct).ConfigureAwait(false);
-                    break;
-            }
+            await stdin.WriteAsync(processLines.Input, ct).ConfigureAwait(false);
         }
         finally
         {
-            // Complete the pipe to signal end of input
-            await writer.CompleteAsync().ConfigureAwait(false);
+            if (stdin.AutoComplete)
+            {
+                await processLines.Input.CompleteAsync().ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static async Task WriteStdinAsync(ProcessHandle processHandle, ProcessInput stdin, CancellationToken ct)
+    {
+        try
+        {
+            await stdin.WriteAsync(processHandle.Input, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (stdin.AutoComplete)
+            {
+                await processHandle.Input.CompleteAsync().ConfigureAwait(false);
+            }
         }
     }
 }

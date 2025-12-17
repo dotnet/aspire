@@ -72,7 +72,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                     : null;
 
                 var effectiveCt = linkedCts?.Token ?? cancellationToken;
-                var result = await _shell.RunAsync(dcpPath, args, effectiveCt).ConfigureAwait(false);
+                var result = await _shell.Command(dcpPath, args).RunAsync(ct: effectiveCt).ConfigureAwait(false);
 
                 if (result.ExitCode != 0)
                 {

@@ -101,9 +101,7 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
                 .ToDictionary(s => s.Key.ToUpperInvariant(), s => (string?)s.Value);
             var shell = Shell.Env(envVars);
 
-            // The arguments string contains pre-formatted arguments, so use the command line parsing overload
-            var commandLine = $"docker {arguments}";
-            var result = await shell.RunAsync(commandLine, ct: cancellationToken).ConfigureAwait(false);
+            var result = await shell.Command($"docker {arguments}").RunAsync(ct: cancellationToken).ConfigureAwait(false);
 
             result.LogOutput(Logger, "docker buildx");
 

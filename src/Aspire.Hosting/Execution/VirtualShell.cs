@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
+
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
 using Microsoft.Extensions.Logging;
@@ -31,6 +34,14 @@ public sealed class VirtualShell : IVirtualShell
     private readonly VirtualShellActivitySource _activitySource;
     private readonly Histogram<double> _durationHistogram;
     private readonly Counter<long> _commandCounter;
+
+    // Internal accessors for Command class
+    internal ShellState State => _state;
+    internal string? CurrentTag => _tag;
+    internal IProcessRunner Runner => _runner;
+    internal bool LoggingEnabled => _loggingEnabled;
+    internal ILogger Logger => _logger;
+    internal VirtualShellActivitySource ActivitySource => _activitySource;
 
     /// <summary>
     /// Creates a new VirtualShell instance with the required dependencies.
@@ -322,53 +333,44 @@ public sealed class VirtualShell : IVirtualShell
         return redacted;
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // Command creation
+    // ═══════════════════════════════════════════════════════════════════
+
     /// <inheritdoc />
     public ICommand Command(string commandLine)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(commandLine);
         var (fileName, args) = _parser.Parse(commandLine);
-        return Command(fileName, args);
+        var exePath = _resolver.ResolveOrThrow(fileName, _state);
+        return new Command(this, fileName, args, exePath);
     }
 
     /// <inheritdoc />
-    public ICommand Command(string fileName, IReadOnlyList<string> args)
+    public ICommand Command(string fileName, IReadOnlyList<string>? args)
     {
-        return new Command(
-            _state,
-            _resolver,
-            _runner,
-            fileName,
-            args,
-            _tag,
-            _secretValues,
-            _secretEnvKeys,
-            _loggingEnabled,
-            _logger,
-            _activitySource,
-            _durationHistogram,
-            _commandCounter);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        args ??= Array.Empty<string>();
+        var exePath = _resolver.ResolveOrThrow(fileName, _state);
+        return new Command(this, fileName, args, exePath);
     }
 
-    /// <inheritdoc />
-    public Task<ProcessResult> RunAsync(string commandLine, CancellationToken ct = default)
+    internal void RecordMetrics(string fileName, ProcessResult result, double durationMs)
     {
-        return Command(commandLine).RunAsync(ct);
+        var tags = new TagList
+        {
+            { "command", fileName },
+            { "exit_code", result.ExitCode },
+            { "success", result.Success }
+        };
+
+        if (_tag is not null)
+        {
+            tags.Add("tag", _tag);
+        }
+
+        _durationHistogram.Record(durationMs, tags);
+        _commandCounter.Add(1, tags);
     }
 
-    /// <inheritdoc />
-    public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> args, CancellationToken ct = default)
-    {
-        return Command(fileName, args).RunAsync(ct);
-    }
-
-    /// <inheritdoc />
-    public IRunningProcess Start(string commandLine)
-    {
-        return Command(commandLine).WithCaptureOutput(false).Start();
-    }
-
-    /// <inheritdoc />
-    public IRunningProcess Start(string fileName, IReadOnlyList<string> args)
-    {
-        return Command(fileName, args).WithCaptureOutput(false).Start();
-    }
 }

@@ -6,42 +6,51 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.Execution;
 
 /// <summary>
-/// Represents a command that can be configured fluently and executed.
+/// Represents a prepared command ready for execution.
+/// Created via <see cref="IVirtualShell.Command(string)"/> or <see cref="IVirtualShell.Command(string, IReadOnlyList{string}?)"/>.
 /// </summary>
 [Experimental("ASPIREHOSTINGVIRTUALSHELL001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public interface ICommand
 {
     /// <summary>
-    /// Configures stdin for the command.
+    /// Gets the file name (executable) for the command.
     /// </summary>
-    /// <param name="stdin">The stdin source.</param>
-    /// <returns>This command for chaining.</returns>
-    ICommand WithStdin(Stdin stdin);
+    string FileName { get; }
 
     /// <summary>
-    /// Enables stdin for manual writing via <see cref="IRunningProcess.Input"/>.
-    /// Call <see cref="System.IO.Pipelines.PipeWriter.CompleteAsync"/> on the Input when done writing.
+    /// Gets the arguments for the command.
     /// </summary>
-    /// <returns>This command for chaining.</returns>
-    ICommand WithStdin();
+    IReadOnlyList<string> Arguments { get; }
 
     /// <summary>
-    /// Configures whether to capture stdout and stderr.
+    /// Runs the command to completion and returns the result.
     /// </summary>
-    /// <param name="capture">True to capture output, false otherwise.</param>
-    /// <returns>This command for chaining.</returns>
-    ICommand WithCaptureOutput(bool capture);
-
-    /// <summary>
-    /// Runs the command and waits for it to complete.
-    /// </summary>
+    /// <param name="stdin">Optional input to write to stdin.</param>
+    /// <param name="capture">Whether to capture stdout/stderr in the result. Default is true.</param>
     /// <param name="ct">A cancellation token.</param>
-    /// <returns>The result of the command execution.</returns>
-    Task<ProcessResult> RunAsync(CancellationToken ct = default);
+    /// <returns>The process result containing exit code and optionally captured output.</returns>
+    Task<ProcessResult> RunAsync(ProcessInput? stdin = null, bool capture = true, CancellationToken ct = default);
 
     /// <summary>
-    /// Starts the command and returns a handle for streaming, stdin, and control.
+    /// Starts the command and returns a handle for reading output lines as they arrive.
     /// </summary>
-    /// <returns>A handle for streaming output and controlling the process.</returns>
-    IRunningProcess Start();
+    /// <param name="stdin">Optional input to write to stdin.</param>
+    /// <returns>A process handle with line-based output streaming.</returns>
+    IProcessLines StartReading(ProcessInput? stdin = null);
+
+    /// <summary>
+    /// Starts the command and returns a handle with direct pipe access.
+    /// The caller is responsible for reading from Output/Error pipes to prevent deadlock.
+    /// </summary>
+    /// <returns>A process handle with pipe access.</returns>
+    IProcessPipes StartProcess();
+
+    /// <summary>
+    /// Starts the command with custom output handling via <see cref="ProcessOutput"/>.
+    /// </summary>
+    /// <param name="stdin">Optional input to write to stdin.</param>
+    /// <param name="stdout">Custom handler for stdout. Defaults to <see cref="ProcessOutput.Null"/>.</param>
+    /// <param name="stderr">Custom handler for stderr. Defaults to <see cref="ProcessOutput.Null"/>.</param>
+    /// <returns>A process handle for waiting and control.</returns>
+    IProcessHandle Start(ProcessInput? stdin = null, ProcessOutput? stdout = null, ProcessOutput? stderr = null);
 }

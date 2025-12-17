@@ -37,7 +37,8 @@ internal sealed class DotnetSdkService : IDotnetSdkService
             var result = await _shell
                 .Cd(workingDirectory ?? Environment.CurrentDirectory)
                 .Env(s_dotnetCliEnvVars)
-                .RunAsync("dotnet", ["--version"])
+                .Command("dotnet", ["--version"])
+                .RunAsync()
                 .ConfigureAwait(false);
 
             if (!result.Success)

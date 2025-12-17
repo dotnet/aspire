@@ -34,7 +34,8 @@ internal sealed class PackageFetcher : IPackageFetcher
 
         var result = await _shell
             .Cd(appHostDirectory)
-            .RunAsync("dotnet", args, ct: cancellationToken).ConfigureAwait(false);
+            .Command("dotnet", args)
+            .RunAsync(ct: cancellationToken).ConfigureAwait(false);
 
         result.LogOutput(_logger, "dotnet");
 

@@ -4,150 +4,413 @@
 
 ## Overview
 
-VirtualShell is a cross-platform process execution abstraction for .NET that provides a consistent, testable, and secure way to run external commands. It was built to address several pain points with traditional process execution:
+VirtualShell is a cross-platform process execution abstraction for .NET. It solves three fundamental problems with process I/O:
 
-**The Problem**
+### Problem 1: Deadlocks with Buffering
 
-Running external processes in .NET typically involves `System.Diagnostics.Process`, which has several challenges:
-- Platform-specific behavior (Windows vs Unix shell semantics)
-- Inconsistent argument quoting and escaping rules
-- Shell injection vulnerabilities when building command strings
-- Difficult to mock and test
-- No built-in support for secrets redaction in logs
-- Complex streaming patterns with stdout/stderr
-
-**The Solution**
-
-VirtualShell provides:
-- **No shell execution**: Commands are parsed and executed directly, never through `cmd.exe` or `bash`. This eliminates shell injection attacks and ensures consistent behavior across platforms.
-- **Immutable shell state**: Environment variables, working directory, and PATH modifications return new shell instances, making it safe to share and fork configurations.
-- **Modern I/O**: Built on `System.IO.Pipelines` for efficient streaming of process output without allocating strings for every line.
-- **First-class testing**: `FakeVirtualShell` captures all commands for assertion without executing anything, enabling fast unit tests.
-- **Secrets management**: Values can be marked as secrets and are automatically redacted in logs, traces, and error messages.
-- **Observability**: Built-in OpenTelemetry-compatible logging, tracing, and metrics.
-
-**Usage in Aspire**
-
-VirtualShell is the standard way to execute external processes throughout Aspire's codebase, replacing direct `Process` usage with a consistent, testable abstraction.
-
-**Mental Model**
-
-Think of `IVirtualShell` like a terminal session. When you open a terminal, it has a working directory, environment variables, and a PATH. Commands you run inherit these settings. VirtualShell works the same way:
+When a process writes more output than the OS pipe buffer can hold (~64KB), it blocks waiting for someone to read. If your code is waiting for the process to exit before reading, you have a deadlock:
 
 ```csharp
-// Configure the "shell session"
-var buildShell = sh
-    .Cd("/projects/myapp")
-    .Env("NODE_ENV", "production")
-    .PrependPath("/opt/tools/bin");
-
-// All commands inherit these settings
-await buildShell.RunAsync("npm install");
-await buildShell.RunAsync("npm run build");
-await buildShell.RunAsync("npm test");
+// DEADLOCK: Process blocks writing to full stdout buffer,
+// we block waiting for exit that never comes
+process.WaitForExit();
+var output = process.StandardOutput.ReadToEnd();
 ```
 
-The key difference from a real shell: **state is immutable**. Each `Cd()`, `Env()`, or `PrependPath()` call returns a *new* shell instance, leaving the original unchanged. This makes it safe to fork configurations:
+VirtualShell's high-level modes (`RunAsync`, `StartReading`, `Start`) handle this automatically—output is always drained concurrently with process execution. The low-level `StartProcess` mode gives you raw pipes, where you take responsibility for reading.
+
+### Problem 2: Efficiency with Raw I/O
+
+Sometimes you need raw access to process streams without the overhead of string allocations. Traditional APIs force you to read everything as strings, even for binary protocols or when you're just forwarding output elsewhere.
+
+VirtualShell provides direct `System.IO.Pipelines` access when you need it:
 
 ```csharp
-var baseShell = sh.Env("CI", "true");
-
-// Fork into specialized configurations
-var debugShell = baseShell.Env("DEBUG", "1");
-var releaseShell = baseShell.Env("CONFIGURATION", "Release");
-
-// Each shell has its own isolated state
-await debugShell.RunAsync("dotnet build");
-await releaseShell.RunAsync("dotnet build");
+await using var pipes = sh.Command("binary-tool").StartProcess();
+// Zero-copy access to raw bytes
+var result = await pipes.Output.ReadAsync();
+ProcessBytes(result.Buffer);
+pipes.Output.AdvanceTo(result.Buffer.End);
 ```
 
-This immutable design eliminates shared mutable state bugs and makes shell configurations composable and reusable.
+### Problem 3: Controlling Buffered vs Streaming Output
 
-## Goals
+Different scenarios need different output handling:
+- **Buffered**: Run a command, get stdout/stderr as strings
+- **Streaming**: Process lines as they arrive (for logs, progress, etc.)
+- **Discarded**: Run for side effects, ignore output entirely
+- **Custom**: Route output to your own handler (logger, file, etc.)
 
-* **Portable semantics** across Windows/macOS/Linux
-* **No shell execution** (never `cmd.exe`, `bash`, etc.)
-* **Direct process exec** with canonical parsing + PATH resolution
-* **Modern streaming** using `System.IO.Pipelines` primitives
-* **DI + mocking** friendly
+VirtualShell provides distinct execution modes for each scenario instead of one-size-fits-all.
 
 ---
 
-## Types
+## Quick Start
+
+### The Simplest Case
+
+Run a command, get the result:
+
+```csharp
+var result = await shell.RunAsync("dotnet", ["--version"]);
+Console.WriteLine(result.Stdout);  // "9.0.100"
+```
+
+### Check Success
+
+```csharp
+var result = await shell.RunAsync("dotnet", ["build"]);
+if (!result.Success)
+{
+    Console.Error.WriteLine($"Build failed: {result.Stderr}");
+}
+```
+
+### Parse a Command Line
+
+```csharp
+var result = await shell.RunAsync("dotnet build --configuration Release");
+```
+
+### Set Environment and Working Directory
+
+```csharp
+var buildShell = shell
+    .Cd("/path/to/project")
+    .Env("CONFIGURATION", "Release");
+
+await buildShell.RunAsync("dotnet", ["build"]);
+```
+
+---
+
+## Execution Modes
+
+VirtualShell provides four execution modes, from simplest to most control:
+
+### Mode 1: Buffered (`RunAsync`)
+
+The most common case—run to completion, get output as strings:
+
+```csharp
+var result = await shell.RunAsync("dotnet", ["build"]);
+Console.WriteLine(result.Stdout);
+Console.WriteLine(result.Stderr);
+```
+
+Output is captured by default. For commands with large output you don't need:
+
+```csharp
+// Output is drained but not stored (faster, less memory)
+var result = await shell.Command("verbose-tool").RunAsync(capture: false);
+// result.Stdout is null
+```
+
+With stdin:
+
+```csharp
+var result = await shell.Command("grep", ["pattern"])
+    .RunAsync(stdin: ProcessInput.FromText("search this text"));
+```
+
+### Mode 2: Line Streaming (`StartReading`)
+
+Process output lines as they arrive—useful for logs, progress, or long-running processes:
+
+```csharp
+await using var lines = shell.Command("docker", ["build", "."]).StartReading();
+await foreach (var line in lines.ReadLinesAsync())
+{
+    if (line.IsStdErr)
+        Console.Error.WriteLine($"[ERR] {line.Text}");
+    else
+        Console.WriteLine(line.Text);
+}
+var result = await lines.WaitAsync();
+```
+
+Stdout and stderr are merged into a single stream with `IsStdErr` to distinguish them.
+
+### Mode 3: Raw Pipes (`StartProcess`)
+
+Full control over stdin/stdout/stderr as `System.IO.Pipelines`:
+
+```csharp
+await using var pipes = shell.Command("python", ["-i"]).StartProcess();
+
+// Write to stdin
+await pipes.WriteLineAsync("print('hello')");
+await pipes.Input.CompleteAsync();  // Signal EOF
+
+// Read raw bytes from stdout
+while (true)
+{
+    var result = await pipes.Output.ReadAsync();
+    if (result.IsCompleted) break;
+    ProcessBytes(result.Buffer);
+    pipes.Output.AdvanceTo(result.Buffer.End);
+}
+```
+
+**⚠️ Deadlock warning**: Unlike the other modes, `StartProcess` does **not** drain pipes automatically. You must read from `Output` and `Error` to prevent the process from blocking when its output buffer fills. This mode trades safety for control—use it when you need raw byte access or interactive I/O.
+
+### Mode 4: Custom Output (`Start`)
+
+Plug in your own output handlers:
+
+```csharp
+await using var proc = shell.Command("build-tool")
+    .Start(stdout: new LoggerProcessOutput(logger, LogLevel.Info),
+           stderr: new LoggerProcessOutput(logger, LogLevel.Error));
+await proc.WaitAsync();
+```
+
+---
+
+## The Command Builder
+
+For modes beyond simple `RunAsync`, use the `Command()` builder:
+
+```csharp
+// Create a command (doesn't execute yet)
+var cmd = shell.Command("dotnet", ["build"]);
+
+// Execute it different ways:
+await cmd.RunAsync();                    // Mode 1: Buffered
+await using var lines = cmd.StartReading();  // Mode 2: Line streaming
+await using var pipes = cmd.StartProcess();  // Mode 3: Raw pipes
+await using var proc = cmd.Start(...);       // Mode 4: Custom output
+```
+
+Command line parsing is also available:
+
+```csharp
+var cmd = shell.Command("docker build -t myapp:latest .");
+```
+
+---
+
+## Shell Configuration
+
+Shell state is **immutable**. Each configuration method returns a new shell:
+
+```csharp
+var baseShell = shell.Env("CI", "true");
+
+// Fork into different configurations
+var debugShell = baseShell.Env("DEBUG", "1");
+var releaseShell = baseShell.Env("CONFIGURATION", "Release");
+
+// Original unchanged, each fork has its own state
+await debugShell.RunAsync("dotnet", ["build"]);
+await releaseShell.RunAsync("dotnet", ["build"]);
+```
+
+### Available Configuration
+
+```csharp
+shell
+    .Cd("/working/directory")           // Set working directory
+    .Env("KEY", "value")                // Set environment variable
+    .Env("KEY", null)                   // Remove environment variable
+    .PrependPath("/custom/bin")         // Add to front of PATH
+    .AppendPath("/custom/bin")          // Add to end of PATH
+    .DefineSecret("name", "value")      // Define named secret (redacted in logs)
+    .SecretEnv("KEY", "secret")         // Set env var marked as secret
+    .Tag("build")                       // Diagnostic label for traces/metrics
+    .WithLogging();                     // Enable structured logging
+```
+
+---
+
+## Process Lifecycle
+
+### Waiting vs Disposing
+
+| Method | Kills Process? | Purpose |
+|--------|----------------|---------|
+| `WaitAsync(ct)` | No | Wait for natural exit |
+| `DisposeAsync()` | Yes (if running) | Clean up resources |
+
+```csharp
+await using var lines = shell.Command("server").StartReading();
+
+// WaitAsync does NOT kill - just waits
+await lines.WaitAsync();  // Waits forever if server runs forever
+
+// DisposeAsync DOES kill (graceful then force after 5s)
+// Called automatically by await using
+```
+
+### Signals
+
+```csharp
+await using var server = shell.Command("web-server").StartReading();
+
+// Request graceful shutdown
+server.Signal(ProcessSignal.Interrupt);
+
+// Wait with timeout
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+try
+{
+    await server.WaitAsync(cts.Token);
+}
+catch (OperationCanceledException)
+{
+    // Didn't exit gracefully, DisposeAsync will force-kill
+}
+```
+
+### Cancellation
+
+```csharp
+using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+var result = await shell.RunAsync("long-task", ct: cts.Token);
+// Process is killed if timeout fires
+```
+
+---
+
+## Input and Output Types
+
+### ProcessInput
+
+Sources for stdin:
+
+```csharp
+ProcessInput.Null                           // No input (default)
+ProcessInput.FromText("hello\n")            // String
+ProcessInput.FromBytes(data)                // ReadOnlyMemory<byte>
+ProcessInput.FromStream(stream)             // Stream
+ProcessInput.FromFile("/path/to/file")      // File
+ProcessInput.FromWriter(async (s, ct) => {  // Custom async writer
+    await s.WriteAsync(data, ct);
+})
+```
+
+### ProcessOutput
+
+Destinations for stdout/stderr (Mode 4):
+
+```csharp
+ProcessOutput.Null      // Drain and discard
+ProcessOutput.Capture   // Capture to ProcessResult.Stdout/Stderr
+// Or create custom handlers by subclassing ProcessOutput
+```
+
+---
+
+## Secrets
+
+Values marked as secrets are automatically redacted in logs and traces:
+
+```csharp
+var shell = baseShell
+    .DefineSecret("db-password", config["Database:Password"])
+    .SecretEnv("API_KEY", config["Api:Key"]);
+
+// Secret values appear as [REDACTED] in logs
+await shell.Command("tool", ["--password", shell.Secret("db-password")]).RunAsync();
+```
+
+---
+
+## Testing with FakeVirtualShell
+
+`FakeVirtualShell` captures commands without executing them:
+
+```csharp
+var shell = new FakeVirtualShell()
+    .WithResponse("dotnet", new ProcessResult(0, "Build succeeded", "", ProcessExitReason.Exited));
+
+await shell.RunAsync("dotnet", ["build"]);
+
+var cmd = Assert.Single(shell.ExecutedCommands);
+Assert.Equal("dotnet", cmd.FileName);
+Assert.Equal(["build"], cmd.Arguments);
+```
+
+---
+
+## Types Reference
 
 ### IVirtualShell
-
-The primary entry point for creating and executing commands.
 
 ```csharp
 public interface IVirtualShell
 {
-    // Fork shell state (immutable)
+    // Configuration (returns new shell)
     IVirtualShell Cd(string workingDirectory);
     IVirtualShell Env(string key, string? value);
     IVirtualShell Env(IReadOnlyDictionary<string, string?> vars);
     IVirtualShell PrependPath(string path);
     IVirtualShell AppendPath(string path);
-
-    // Secrets (values redacted in logs/traces)
     IVirtualShell DefineSecret(string name, string value);
-    string Secret(string name);
     IVirtualShell SecretEnv(string key, string value);
+    IVirtualShell Tag(string category);
+    IVirtualShell WithLogging();
+    string Secret(string name);
 
-    // Diagnostics
-    IVirtualShell Tag(string category); // optional diagnostic label (deploy/build/etc.)
-    IVirtualShell WithLogging(); // enable structured logging for commands
-
-    // Command builder (fluent API for per-command configuration)
+    // Command creation
     ICommand Command(string commandLine);
-    ICommand Command(string fileName, IReadOnlyList<string> args);
+    ICommand Command(string fileName, IReadOnlyList<string>? args);
+}
+```
 
-    // Shortcuts for simple cases (delegate to Command().RunAsync())
-    Task<ProcessResult> RunAsync(string commandLine, CancellationToken ct = default);
-    Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> args, CancellationToken ct = default);
+### VirtualShellExtensions
 
-    // Advanced handle shortcuts (stdin writing, signals, ensure success after streaming)
-    IRunningProcess Start(string commandLine);
-    IRunningProcess Start(string fileName, IReadOnlyList<string> args);
+```csharp
+public static class VirtualShellExtensions
+{
+    // One-shot execution shortcuts
+    public static Task<ProcessResult> RunAsync(this IVirtualShell shell,
+        string commandLine, CancellationToken ct = default);
+    public static Task<ProcessResult> RunAsync(this IVirtualShell shell,
+        string fileName, IReadOnlyList<string>? args, CancellationToken ct = default);
 }
 ```
 
 ### ICommand
 
-Fluent builder for per-command configuration. Created via `IVirtualShell.Command()`.
-
 ```csharp
 public interface ICommand
 {
-    // Fluent configuration
-    ICommand WithStdin(Stdin stdin);  // Write content from source, then close stdin
-    ICommand WithStdin();             // Enable interactive stdin via Input pipe
-    ICommand WithCaptureOutput(bool capture);
+    string FileName { get; }
+    IReadOnlyList<string> Arguments { get; }
 
-    // Execution methods
-    Task<ProcessResult> RunAsync(CancellationToken ct = default);
-    IRunningProcess Start();
+    Task<ProcessResult> RunAsync(ProcessInput? stdin = null,
+        bool capture = true, CancellationToken ct = default);
+    IProcessLines StartReading(ProcessInput? stdin = null);
+    IProcessPipes StartProcess();
+    IProcessHandle Start(ProcessInput? stdin = null,
+        ProcessOutput? stdout = null, ProcessOutput? stderr = null);
 }
 ```
 
-### IRunningProcess
-
-Provides advanced control over a running process using `System.IO.Pipelines` primitives.
+### Process Interfaces
 
 ```csharp
-public interface IRunningProcess : IAsyncDisposable
+// Base interface
+public interface IProcessHandle : IAsyncDisposable
 {
-    // I/O Primitives
-    PipeWriter Input { get; }   // Write to stdin
-    PipeReader Output { get; }  // Read from stdout
-    PipeReader Error { get; }   // Read from stderr
-
-    // Lifecycle
     Task<ProcessResult> WaitAsync(CancellationToken ct = default);
-
-    // Control
     void Signal(ProcessSignal signal);
     void Kill(bool entireProcessTree = true);
+}
+
+// Line streaming (Mode 2)
+public interface IProcessLines : IProcessHandle
+{
+    IAsyncEnumerable<OutputLine> ReadLinesAsync(CancellationToken ct = default);
+}
+
+// Raw pipes (Mode 3)
+public interface IProcessPipes : IProcessHandle
+{
+    PipeWriter Input { get; }
+    PipeReader Output { get; }
+    PipeReader Error { get; }
 }
 ```
 
@@ -156,216 +419,35 @@ public interface IRunningProcess : IAsyncDisposable
 ```csharp
 public sealed record ProcessResult(
     int ExitCode,
-    string? Stdout,   // null if not captured
-    string? Stderr,   // null if not captured
-    ProcessExitReason Reason = ProcessExitReason.Exited
-)
+    string? Stdout,
+    string? Stderr,
+    ProcessExitReason Reason = ProcessExitReason.Exited)
 {
     public bool Success => Reason == ProcessExitReason.Exited && ExitCode == 0;
 }
 ```
 
-### ProcessExitReason
+### Enums
 
 ```csharp
-public enum ProcessExitReason
-{
-    Exited,
-    Killed,
-    Signaled
-}
-```
-
-### ProcessSignal
-
-```csharp
-public enum ProcessSignal
-{
-    Interrupt,   // portable intent; mapped per OS best-effort
-    Terminate,
-    Kill
-}
+public enum ProcessExitReason { Exited, Killed, Signaled }
+public enum ProcessSignal { Interrupt, Terminate, Kill }
 ```
 
 ### OutputLine
 
 ```csharp
-public readonly record struct OutputLine(
-    bool IsStdErr,
-    string Text
-);
+public readonly record struct OutputLine(bool IsStdErr, string Text);
 ```
-
-### Stdin
-
-```csharp
-public abstract record Stdin
-{
-    public static Stdin FromText(string text, Encoding? encoding = null);
-    public static Stdin FromBytes(ReadOnlyMemory<byte> bytes);
-    public static Stdin FromStream(Stream stream, bool leaveOpen = false);
-    public static Stdin FromFile(string path);
-    public static Stdin FromWriter(Func<Stream, CancellationToken, Task> writeAsync);
-}
-```
-
-### RunningProcessExtensions
-
-Convenience extension methods built on the primitives:
-
-```csharp
-public static class RunningProcessExtensions
-{
-    // Output - merges stdout and stderr lines as they arrive
-    IAsyncEnumerable<OutputLine> ReadLinesAsync(this IRunningProcess process, CancellationToken ct = default);
-
-    // Input
-    Task WriteAsync(this IRunningProcess process, ReadOnlyMemory<byte> data, CancellationToken ct = default);
-    Task WriteAsync(this IRunningProcess process, ReadOnlyMemory<char> text, CancellationToken ct = default);
-    Task WriteLineAsync(this IRunningProcess process, string line, CancellationToken ct = default);
-
-    // Convenience
-    Task EnsureSuccessAsync(this IRunningProcess process, CancellationToken ct = default);
-}
-```
-
----
-
-**Defaults**
-
-* `Start(...)`: `CaptureOutput = false` (stream-first, avoid buffering giant output)
-* `RunAsync(...)`: `CaptureOutput = true` (so `Stdout/Stderr` are available)
-
-**Design notes**:
-- `IVirtualShell.RunAsync()` is a shortcut for `Command().RunAsync()`
-- `IVirtualShell.Start()` is a shortcut for `Command().WithCaptureOutput(false).Start()`
-- `WithStdin(Stdin source)` writes the content and closes stdin when done
-- `WithStdin()` (parameterless) enables interactive stdin via `IRunningProcess.Input`
-- For timeouts, use `CancellationTokenSource` with timeout
-
----
-
-## Execution Models
-
-### RunAsync - Fire and wait
-
-```csharp
-var result = await sh.RunAsync("dotnet build");
-```
-
-- Starts the process, waits for exit, returns `ProcessResult`
-- Process is automatically cleaned up when done
-- If cancellation token fires, process is killed and `OperationCanceledException` is thrown
-
-### Start - Manual control
-
-```csharp
-await using var process = sh.Start("dotnet build");
-// ... use process (stream output, send signals, etc.) ...
-var result = await process.WaitAsync();
-// process is cleaned up automatically when scope exits
-```
-
-- Returns `IRunningProcess` immediately (process is running)
-- Caller controls the process lifetime
-- Use `await using` to ensure cleanup on scope exit
-
----
-
-## Process Lifecycle
-
-| Method | Behavior |
-|--------|----------|
-| `WaitAsync(ct)` | Waits for process to exit. Does **not** kill the process. If cancelled, throws `OperationCanceledException` but process continues running. |
-| `DisposeAsync()` | Sends interrupt signal, waits up to 5 seconds for graceful shutdown, then force-kills if still running. Always cleans up. |
-| `Kill()` | Immediately kills the process (and optionally its tree). |
-| `Signal(signal)` | Sends a signal to the process (interrupt, terminate, kill). |
-
-### Key differences: WaitAsync vs DisposeAsync
-
-| Aspect | `WaitAsync(ct)` | `DisposeAsync()` |
-|--------|-----------------|------------------|
-| Purpose | Wait for process to exit | Clean up resources |
-| Kills process? | **No** | **Yes** (if still running) |
-| On cancellation | Throws, process continues | N/A |
-| Returns | `ProcessResult` | void |
-| Required? | Optional | Yes (for cleanup) |
-
-### The golden rule
-
-> **Always dispose `IRunningProcess`** unless you intentionally want the process to outlive your code.
-
----
-
-## Signal Handling
-
-The `Signal()` method provides portable intent, but actual behavior varies by platform and .NET version:
-
-| Platform | .NET Version | `Interrupt` | `Terminate` | `Kill` |
-|----------|--------------|-------------|-------------|--------|
-| Windows  | .NET 10+     | CTRL+C (`GenerateConsoleCtrlEvent`) | CTRL+BREAK | `Process.Kill()` |
-| Windows  | .NET 8/9     | `CloseMainWindow()` -> Kill | Kill | `Process.Kill()` |
-| Unix     | Any          | SIGINT (2) | SIGTERM (15) | SIGKILL (9) |
-
-**Implementation notes**:
-
-* On Windows with .NET 10+, processes are started with `CreateNewProcessGroup = true`, enabling proper CTRL+C/CTRL+BREAK signals via `GenerateConsoleCtrlEvent`.
-* On older .NET versions on Windows, graceful signal support is limited.
-* On Unix, signals are sent via the `kill` syscall and work for all process types.
-
----
-
-## Thread Safety
-
-**I/O Pipes**:
-* `Input`, `Output`, and `Error` are standard `System.IO.Pipelines` types
-* Multiple consumers can read from `Output`/`Error` concurrently (but coordination is caller's responsibility)
-* `Input` writes should be serialized by the caller or use the extension methods
-
-**Input.CompleteAsync()**:
-* Signals end of stdin to the process
-* After calling, further writes will fail
-* Required for processes that wait for EOF on stdin
-
-**Disposed state**:
-* All methods throw `ObjectDisposedException` after `DisposeAsync()` is called
-
----
-
-## Secrets
-
-VirtualShell supports marking values as secrets so they are automatically redacted in logs and traces.
-
-```csharp
-// Define named secrets at shell level
-var shell = sh
-    .DefineSecret("db-password", config["Database:Password"])
-    .DefineSecret("api-key", config["Api:Key"]);
-
-// Use Secret() to get the value for use in arguments
-await shell.RunAsync("tool", ["--password", shell.Secret("db-password")]);
-
-// SecretEnv sets an env var and marks its value for redaction
-var buildShell = sh
-    .SecretEnv("NPM_TOKEN", config["Npm:Token"])
-    .SecretEnv("DOCKER_PASSWORD", config["Docker:Password"]);
-```
-
-**Redaction behavior**:
-- Secret values are automatically replaced with `[REDACTED]` in logs, traces, and error messages
-- The shell tracks secret values and redacts any argument or env value that matches
 
 ---
 
 ## Diagnostics
 
-### Logging
-
-Logging is **opt-in** via `WithLogging()`:
+### Logging (opt-in)
 
 ```csharp
-var sh = shell.WithLogging();
-await sh.RunAsync("docker build .");
+var shell = baseShell.WithLogging();
 ```
 
 | Event | Level |
@@ -373,212 +455,28 @@ await sh.RunAsync("docker build .");
 | Command start | Debug |
 | Command success | Information |
 | Command failure | Warning |
-| Exception | Error |
 
-### Tracing (ActivitySource)
+### Tracing
 
-Each command creates an Activity with:
+ActivitySource: `Aspire.VirtualShell`
 
-- **Name**: The executable name (e.g., "docker", "dotnet")
-- **Tags**: `virtualshell.command`, `virtualshell.working_dir`, `virtualshell.tag`, `virtualshell.exit_code`
-- **Status**: `Ok` for success, `Error` for failures
+Tags: `virtualshell.command`, `virtualshell.working_dir`, `virtualshell.tag`, `virtualshell.exit_code`
 
-ActivitySource name: `Aspire.VirtualShell`
+### Metrics
 
-### Metrics (Meter)
+Meter: `Aspire.VirtualShell`
 
-| Metric | Type | Tags |
-|--------|------|------|
-| `virtualshell.command.duration` | Histogram (ms) | command, tag, exit_code, success |
-| `virtualshell.command.count` | Counter | command, tag, exit_code, success |
+| Metric | Type |
+|--------|------|
+| `virtualshell.command.duration` | Histogram (ms) |
+| `virtualshell.command.count` | Counter |
 
-Meter name: `Aspire.VirtualShell`
+---
 
-### Dependency injection
+## Dependency Injection
 
 ```csharp
 services.AddVirtualShell();
 ```
 
----
-
-## Internal Seams
-
-These are part of the virtual shell definition and are mockable, but not required in app-facing API.
-
-### ICommandLineParser
-
-```csharp
-public interface ICommandLineParser
-{
-    (string FileName, IReadOnlyList<string> Args) Parse(string commandLine);
-}
-```
-
-**Spec**: One canonical grammar across OSes. Reject shell operators (`|`, `>`, `<`, `&&`, `||`, `;`, `$()`, globbing, etc.).
-
-### IExecutableResolver
-
-```csharp
-public interface IExecutableResolver
-{
-    string ResolveOrThrow(string fileName, ShellState state);
-}
-```
-
-### IProcessRunner
-
-```csharp
-internal interface IProcessRunner
-{
-    Task<ProcessResult> RunAsync(string exePath, IReadOnlyList<string> args, ExecSpec spec, ShellState state, CancellationToken ct);
-    IRunningProcess Start(string exePath, IReadOnlyList<string> args, ExecSpec spec, ShellState state);
-}
-```
-
----
-
-## Examples
-
-### One-shot execution
-
-```csharp
-var result = await sh.RunAsync("dotnet build");
-if (!result.Success)
-    Console.WriteLine($"Failed: {result.Stderr}");
-```
-
-### Capture stdout
-
-```csharp
-var result = await sh.RunAsync("dotnet --version");
-var version = result.Stdout?.Trim();
-```
-
-### Stream output
-
-```csharp
-await using var run = sh.Start("docker build -t myimg:dev .");
-await foreach (var line in run.ReadLinesAsync(ct))
-    Console.WriteLine(line.Text);
-await run.EnsureSuccessAsync(ct);
-```
-
-### Stdin from text
-
-```csharp
-await sh.Command("docker", ["login", "ghcr.io", "--username", user, "--password-stdin"])
-    .WithStdin(Stdin.FromText(password + "\n"))
-    .RunAsync();
-```
-
-### Interactive stdin
-
-```csharp
-await using var proc = sh
-    .Command("node")
-    .WithStdin()
-    .Start();
-
-await proc.WriteLineAsync("console.log('Hello');");
-await proc.Input.CompleteAsync();
-
-await foreach (var line in proc.ReadLinesAsync())
-    Console.WriteLine(line.Text);
-```
-
-### Low-level pipe access
-
-```csharp
-await using var proc = sh
-    .Command("binary-tool")
-    .WithStdin()
-    .Start();
-
-await proc.Input.WriteAsync(binaryData.AsMemory());
-await proc.Input.CompleteAsync();
-
-while (true)
-{
-    var result = await proc.Output.ReadAsync();
-    if (result.IsCompleted) break;
-    ProcessBytes(result.Buffer);
-    proc.Output.AdvanceTo(result.Buffer.End);
-}
-```
-
-### Timeout
-
-```csharp
-using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-try
-{
-    await sh.RunAsync("long-task", cts.Token);
-}
-catch (OperationCanceledException)
-{
-    // Process was killed due to timeout
-}
-```
-
-### Graceful shutdown
-
-```csharp
-await using var server = sh.Start("web-server");
-
-server.Signal(ProcessSignal.Interrupt);
-using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-try
-{
-    await server.WaitAsync(cts.Token);
-}
-catch (OperationCanceledException)
-{
-    // Didn't exit gracefully, will be force-killed by DisposeAsync
-}
-```
-
-### Environment and PATH
-
-```csharp
-var buildShell = sh
-    .Cd("/path/to/project")
-    .Env("DOTNET_CLI_TELEMETRY_OPTOUT", "1")
-    .PrependPath("/opt/mytool/bin");
-
-await buildShell.RunAsync("dotnet build");
-```
-
-### Reusable shell configurations
-
-```csharp
-IVirtualShell CreateDockerShell(IVirtualShell baseShell)
-{
-    return baseShell
-        .Env("DOCKER_BUILDKIT", "1")
-        .Tag("docker")
-        .WithLogging();
-}
-
-var dockerShell = CreateDockerShell(sh);
-await dockerShell.RunAsync("docker build -t myapp .");
-```
-
-### Exit reason handling
-
-```csharp
-var result = await sh.RunAsync("task", ct);
-
-switch (result.Reason)
-{
-    case ProcessExitReason.Exited:
-        Console.WriteLine($"Completed with code {result.ExitCode}");
-        break;
-    case ProcessExitReason.Killed:
-        Console.WriteLine("Process was killed");
-        break;
-    case ProcessExitReason.Signaled:
-        Console.WriteLine("Process was signaled");
-        break;
-}
-```
+Registers `IVirtualShell` as a singleton with logging, tracing, and metrics wired up.

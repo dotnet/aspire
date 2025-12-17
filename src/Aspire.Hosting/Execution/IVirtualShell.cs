@@ -89,49 +89,52 @@ public interface IVirtualShell
     IVirtualShell WithLogging();
 
     /// <summary>
-    /// Creates a command builder for fluent configuration.
+    /// Creates a command from a command line string.
+    /// The string is parsed to extract the executable and arguments.
     /// </summary>
-    /// <param name="commandLine">The command line to execute.</param>
-    /// <returns>A command builder for fluent configuration.</returns>
+    /// <param name="commandLine">The command line to parse (e.g., "dotnet build --configuration Release").</param>
+    /// <returns>A command ready for execution.</returns>
     ICommand Command(string commandLine);
 
     /// <summary>
-    /// Creates a command builder with explicit arguments for fluent configuration.
+    /// Creates a command with an explicit executable and arguments.
     /// </summary>
     /// <param name="fileName">The executable name or path.</param>
     /// <param name="args">The arguments to pass to the executable.</param>
-    /// <returns>A command builder for fluent configuration.</returns>
-    ICommand Command(string fileName, IReadOnlyList<string> args);
+    /// <returns>A command ready for execution.</returns>
+    ICommand Command(string fileName, IReadOnlyList<string>? args);
+}
+
+/// <summary>
+/// Extension methods for <see cref="IVirtualShell"/> providing convenient one-shot execution shortcuts.
+/// </summary>
+[Experimental("ASPIREHOSTINGVIRTUALSHELL001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+public static class VirtualShellExtensions
+{
+    /// <summary>
+    /// Runs a command to completion and returns the result.
+    /// This is a shortcut for <c>Command(commandLine).RunAsync(ct: ct)</c>.
+    /// </summary>
+    /// <param name="shell">The shell instance.</param>
+    /// <param name="commandLine">The command line to parse and execute.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The process result with exit code and captured output.</returns>
+    public static Task<ProcessResult> RunAsync(this IVirtualShell shell, string commandLine, CancellationToken ct = default)
+    {
+        return shell.Command(commandLine).RunAsync(ct: ct);
+    }
 
     /// <summary>
-    /// Executes a command asynchronously and waits for it to complete.
+    /// Runs a command to completion and returns the result.
+    /// This is a shortcut for <c>Command(fileName, args).RunAsync(ct: ct)</c>.
     /// </summary>
-    /// <param name="commandLine">The command line to execute.</param>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns>The result of the command execution.</returns>
-    Task<ProcessResult> RunAsync(string commandLine, CancellationToken ct = default);
-
-    /// <summary>
-    /// Executes a command with explicit arguments asynchronously and waits for it to complete.
-    /// </summary>
+    /// <param name="shell">The shell instance.</param>
     /// <param name="fileName">The executable name or path.</param>
     /// <param name="args">The arguments to pass to the executable.</param>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns>The result of the command execution.</returns>
-    Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> args, CancellationToken ct = default);
-
-    /// <summary>
-    /// Starts a command and returns a handle for streaming, stdin, and control.
-    /// </summary>
-    /// <param name="commandLine">The command line to execute.</param>
-    /// <returns>A handle for streaming output and controlling the process.</returns>
-    IRunningProcess Start(string commandLine);
-
-    /// <summary>
-    /// Starts a command with explicit arguments and returns a handle.
-    /// </summary>
-    /// <param name="fileName">The executable name or path.</param>
-    /// <param name="args">The arguments to pass to the executable.</param>
-    /// <returns>A handle for streaming output and controlling the process.</returns>
-    IRunningProcess Start(string fileName, IReadOnlyList<string> args);
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The process result with exit code and captured output.</returns>
+    public static Task<ProcessResult> RunAsync(this IVirtualShell shell, string fileName, IReadOnlyList<string>? args, CancellationToken ct = default)
+    {
+        return shell.Command(fileName, args).RunAsync(ct: ct);
+    }
 }

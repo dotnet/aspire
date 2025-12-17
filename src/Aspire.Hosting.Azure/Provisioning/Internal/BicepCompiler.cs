@@ -48,7 +48,7 @@ internal sealed class BicepCliCompiler : IBicepCompiler
 
         _logger.LogDebug("Running {CommandPath} with arguments: {Arguments}", command, string.Join(" ", args));
 
-        var result = await _shell.RunAsync(command, args, ct: cancellationToken).ConfigureAwait(false);
+        var result = await _shell.Command(command, args).RunAsync(ct: cancellationToken).ConfigureAwait(false);
 
         result.LogOutput(_logger, command);
 

@@ -362,9 +362,7 @@ internal sealed class ResourceContainerImageManager(
 
         logger.LogDebug("Starting .NET CLI with arguments: {Arguments}", arguments);
 
-        // The arguments string contains pre-formatted arguments, so use the command line parsing overload
-        var commandLine = $"dotnet {arguments}";
-        var result = await shell.RunAsync(commandLine, ct: cancellationToken).ConfigureAwait(false);
+        var result = await shell.Command($"dotnet {arguments}").RunAsync(ct: cancellationToken).ConfigureAwait(false);
 
         result.LogOutput(logger, $"dotnet publish {projectMetadata.ProjectPath}");
 

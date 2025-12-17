@@ -101,10 +101,8 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         _logger.LogDebug("Running {RuntimeName} with arguments: {Arguments}", RuntimeExecutable, string.Join(" ", args));
         _logger.LogDebug("Password length being passed to stdin: {PasswordLength}", password?.Length ?? 0);
 
-        var result = await _shell
-            .Command(RuntimeExecutable, args)
-            .WithStdin(Stdin.FromText(password + "\n"))
-            .RunAsync(cancellationToken).ConfigureAwait(false);
+        var result = await _shell.Command(RuntimeExecutable, args)
+            .RunAsync(stdin: ProcessInput.FromText(password + "\n"), ct: cancellationToken).ConfigureAwait(false);
 
         result.LogOutput(_logger, RuntimeExecutable);
 
@@ -136,9 +134,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     {
         _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, arguments);
 
-        // The arguments string contains pre-formatted arguments, so use the command line parsing overload
-        var commandLine = $"{RuntimeExecutable} {arguments}";
-        var result = await _shell.RunAsync(commandLine, ct: cancellationToken).ConfigureAwait(false);
+        var result = await _shell.Command($"{RuntimeExecutable} {arguments}").RunAsync(ct: cancellationToken).ConfigureAwait(false);
 
         result.LogOutput(_logger, RuntimeExecutable);
 
@@ -177,9 +173,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             ? _shell.Env(environmentVariables.ToDictionary(kvp => kvp.Key, kvp => (string?)kvp.Value))
             : _shell;
 
-        // The arguments string contains pre-formatted arguments, so use the command line parsing overload
-        var commandLine = $"{RuntimeExecutable} {arguments}";
-        var result = await shell.RunAsync(commandLine, ct: cancellationToken).ConfigureAwait(false);
+        var result = await shell.Command($"{RuntimeExecutable} {arguments}").RunAsync(ct: cancellationToken).ConfigureAwait(false);
 
         result.LogOutput(_logger, RuntimeExecutable);
 

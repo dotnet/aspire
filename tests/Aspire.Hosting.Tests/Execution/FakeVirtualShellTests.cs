@@ -19,19 +19,7 @@ public class FakeVirtualShellTests
     {
         var shell = new FakeVirtualShell();
 
-        await shell.RunAsync("dotnet", ["build"]);
-
-        var command = Assert.Single(shell.ExecutedCommands);
-        Assert.Equal("dotnet", command.FileName);
-        Assert.Equal(["build"], command.Arguments);
-    }
-
-    [Fact]
-    public async Task Run_CommandLine_ParsesCommand()
-    {
-        var shell = new FakeVirtualShell();
-
-        await shell.RunAsync("dotnet build");
+        await shell.Command("dotnet", ["build"]).RunAsync();
 
         var command = Assert.Single(shell.ExecutedCommands);
         Assert.Equal("dotnet", command.FileName);
@@ -43,7 +31,7 @@ public class FakeVirtualShellTests
     {
         var shell = new FakeVirtualShell();
 
-        var result = await shell.RunAsync("any-command");
+        var result = await shell.Command("any-command").RunAsync();
 
         Assert.True(result.Success);
         Assert.Equal(0, result.ExitCode);
@@ -55,7 +43,7 @@ public class FakeVirtualShellTests
         var shell = new FakeVirtualShell()
             .WithDefaultResult(new ProcessResult(42, "output", "error", ProcessExitReason.Exited));
 
-        var result = await shell.RunAsync("any-command");
+        var result = await shell.Command("any-command").RunAsync();
 
         Assert.False(result.Success);
         Assert.Equal(42, result.ExitCode);
@@ -70,8 +58,8 @@ public class FakeVirtualShellTests
             .WithResponse("dotnet", new ProcessResult(0, "Build succeeded", "", ProcessExitReason.Exited))
             .WithResponse("npm", new ProcessResult(1, "", "npm ERR!", ProcessExitReason.Exited));
 
-        var dotnetResult = await shell.RunAsync("dotnet", ["build"]);
-        var npmResult = await shell.RunAsync("npm", ["install"]);
+        var dotnetResult = await shell.Command("dotnet", ["build"]).RunAsync();
+        var npmResult = await shell.Command("npm", ["install"]).RunAsync();
 
         Assert.True(dotnetResult.Success);
         Assert.Equal("Build succeeded", dotnetResult.Stdout);
@@ -90,7 +78,7 @@ public class FakeVirtualShellTests
                 return new ProcessResult(0, text, "", ProcessExitReason.Exited);
             });
 
-        var result = await shell.RunAsync("echo", ["hello", "world"]);
+        var result = await shell.Command("echo", ["hello", "world"]).RunAsync();
 
         Assert.Equal("hello world", result.Stdout);
     }
@@ -105,7 +93,7 @@ public class FakeVirtualShellTests
         var shell = new FakeVirtualShell();
         var shellWithCd = shell.Cd("/app") as FakeVirtualShell;
 
-        await shellWithCd!.RunAsync("ls");
+        await shellWithCd!.Command("ls").RunAsync();
 
         var command = shellWithCd.ExecutedCommands.Single();
         Assert.Equal("/app", command.WorkingDirectory);
@@ -129,7 +117,7 @@ public class FakeVirtualShellTests
             .Cd("/first")
             .Cd("/second") as FakeVirtualShell;
 
-        await shell!.RunAsync("pwd");
+        await shell!.Command("pwd").RunAsync();
 
         var command = shell.ExecutedCommands.Single();
         Assert.Equal("/second", command.WorkingDirectory);
@@ -145,7 +133,7 @@ public class FakeVirtualShellTests
         var shell = new FakeVirtualShell()
             .Env("NODE_ENV", "production") as FakeVirtualShell;
 
-        await shell!.RunAsync("node", ["app.js"]);
+        await shell!.Command("node", ["app.js"]).RunAsync();
 
         var command = shell.ExecutedCommands.Single();
         Assert.Equal("production", command.Environment["NODE_ENV"]);
@@ -158,7 +146,7 @@ public class FakeVirtualShellTests
             .Env("VAR", "value")
             .Env("VAR", null) as FakeVirtualShell;
 
-        await shell!.RunAsync("test");
+        await shell!.Command("test").RunAsync();
 
         var command = shell.ExecutedCommands.Single();
         Assert.False(command.Environment.ContainsKey("VAR"));
@@ -174,7 +162,7 @@ public class FakeVirtualShellTests
                 ["VAR2"] = "value2"
             }) as FakeVirtualShell;
 
-        await shell!.RunAsync("test");
+        await shell!.Command("test").RunAsync();
 
         var command = shell.ExecutedCommands.Single();
         Assert.Equal("value1", command.Environment["VAR1"]);
@@ -201,7 +189,7 @@ public class FakeVirtualShellTests
         var shell = new FakeVirtualShell()
             .PrependPath("/custom/bin") as FakeVirtualShell;
 
-        await shell!.RunAsync("test");
+        await shell!.Command("test").RunAsync();
 
         var command = shell.ExecutedCommands.Single();
         Assert.StartsWith("/custom/bin", command.Environment["PATH"]);
@@ -213,7 +201,7 @@ public class FakeVirtualShellTests
         var shell = new FakeVirtualShell()
             .AppendPath("/custom/bin") as FakeVirtualShell;
 
-        await shell!.RunAsync("test");
+        await shell!.Command("test").RunAsync();
 
         var command = shell.ExecutedCommands.Single();
         Assert.EndsWith("/custom/bin", command.Environment["PATH"]);
@@ -248,7 +236,7 @@ public class FakeVirtualShellTests
         var shell = new FakeVirtualShell()
             .SecretEnv("API_KEY", "secret123") as FakeVirtualShell;
 
-        await shell!.RunAsync("test");
+        await shell!.Command("test").RunAsync();
 
         var command = shell.ExecutedCommands.Single();
         Assert.Equal("secret123", command.Environment["API_KEY"]);
@@ -279,46 +267,43 @@ public class FakeVirtualShellTests
 
     #endregion
 
-    #region Command Builder
+    #region RunAsync Parameters
 
     [Fact]
-    public async Task Command_WithStdin_PassesStdin()
+    public async Task RunAsync_WithStdin_PassesStdin()
     {
         var shell = new FakeVirtualShell();
-        var stdin = Stdin.FromText("input data");
+        var stdin = ProcessInput.FromText("input data");
 
-        await shell.Command("cat")
-            .WithStdin(stdin)
-            .RunAsync();
+        await shell.Command("cat").RunAsync(stdin: stdin);
 
         var command = shell.ExecutedCommands.Single();
         Assert.NotNull(command.Stdin);
     }
 
     [Fact]
-    public async Task Command_WithCaptureOutputFalse_SetsFlag()
+    public async Task RunAsync_WithCaptureFalse_SetsOutputToNull()
     {
         var shell = new FakeVirtualShell();
 
-        await shell.Command("echo", ["test"])
-            .WithCaptureOutput(false)
-            .RunAsync();
+        await shell.Command("echo", ["test"]).RunAsync(capture: false);
 
         var command = shell.ExecutedCommands.Single();
-        Assert.False(command.CaptureOutput);
+        Assert.Equal(ProcessOutput.Null, command.Stdout);
+        Assert.Equal(ProcessOutput.Null, command.Stderr);
     }
 
     #endregion
 
-    #region Start (Streaming)
+    #region StartReading (Streaming)
 
     [Fact]
-    public async Task Start_ReturnsRunningProcess()
+    public async Task StartReading_ReturnsProcessLines()
     {
         var shell = new FakeVirtualShell()
             .WithResponse("echo", new ProcessResult(0, "line1\nline2", "", ProcessExitReason.Exited));
 
-        await using var process = shell.Start("echo", ["hello"]);
+        await using var process = shell.Command("echo", ["hello"]).StartReading();
         var lines = new List<string>();
 
         await foreach (var line in process.ReadLinesAsync())
@@ -330,24 +315,24 @@ public class FakeVirtualShellTests
     }
 
     [Fact]
-    public async Task Start_WaitAsync_ReturnsResult()
+    public async Task StartReading_WaitAsync_ReturnsResult()
     {
         var shell = new FakeVirtualShell()
             .WithResponse("test", new ProcessResult(42, "", "", ProcessExitReason.Exited));
 
-        await using var process = shell.Start("test");
+        await using var process = shell.Command("test").StartReading();
         var result = await process.WaitAsync();
 
         Assert.Equal(42, result.ExitCode);
     }
 
     [Fact]
-    public async Task Start_EnsureSuccessAsync_ThrowsOnFailure()
+    public async Task StartReading_EnsureSuccessAsync_ThrowsOnFailure()
     {
         var shell = new FakeVirtualShell()
             .WithResponse("fail", new ProcessResult(1, "", "error message", ProcessExitReason.Exited));
 
-        await using var process = shell.Start("fail");
+        await using var process = shell.Command("fail").StartReading();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => process.EnsureSuccessAsync());
     }
@@ -386,8 +371,8 @@ public class FakeVirtualShellTests
         var shell = new FakeVirtualShell();
         var shell2 = shell.Cd("/app") as FakeVirtualShell;
 
-        await shell.RunAsync("cmd1");
-        await shell2!.RunAsync("cmd2");
+        await shell.Command("cmd1").RunAsync();
+        await shell2!.Command("cmd2").RunAsync();
 
         // Both instances share the same command queue
         Assert.Equal(2, shell.ExecutedCommands.Count);
@@ -403,8 +388,8 @@ public class FakeVirtualShellTests
     {
         var shell = new FakeVirtualShell();
 
-        await shell.RunAsync("cmd1");
-        await shell.RunAsync("cmd2");
+        await shell.Command("cmd1").RunAsync();
+        await shell.Command("cmd2").RunAsync();
         Assert.Equal(2, shell.ExecutedCommands.Count);
 
         shell.ClearCommands();

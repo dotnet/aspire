@@ -241,7 +241,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             logger.LogDebug("Getting ContainerWorkingDirectory for project {ProjectPath}", projectPath);
 
             var args = new[] { "msbuild", "-getProperty:ContainerWorkingDirectory", projectPath };
-            var result = await shell.RunAsync("dotnet", args, ct: cancellationToken).ConfigureAwait(false);
+            var result = await shell.Command("dotnet", args).RunAsync(ct: cancellationToken).ConfigureAwait(false);
 
             if (!string.IsNullOrEmpty(result.Stderr))
             {

@@ -1,9 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
+
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 
 namespace Aspire.Hosting.Execution;
@@ -16,7 +19,6 @@ namespace Aspire.Hosting.Execution;
 public sealed class FakeVirtualShell : IVirtualShell
 {
     internal readonly ConcurrentQueue<CapturedCommand> _executedCommands = new();
-    internal readonly ConcurrentQueue<FakeCommand> _createdCommands = new();
     internal readonly ConcurrentDictionary<string, ProcessResult> _responses = new(StringComparer.OrdinalIgnoreCase);
     internal readonly ConcurrentDictionary<string, Func<CapturedCommand, ProcessResult>> _responseHandlers = new(StringComparer.OrdinalIgnoreCase);
     internal ProcessResult _defaultResult = new(0, "", "", ProcessExitReason.Exited);
@@ -28,14 +30,9 @@ public sealed class FakeVirtualShell : IVirtualShell
     internal string? _tag;
 
     /// <summary>
-    /// Gets all commands that have been executed (after calling RunAsync or Start).
+    /// Gets all commands that have been executed.
     /// </summary>
     public IReadOnlyList<CapturedCommand> ExecutedCommands => _executedCommands.ToArray();
-
-    /// <summary>
-    /// Gets all commands that have been created (via Command method), including their current configuration.
-    /// </summary>
-    public IReadOnlyList<FakeCommand> CreatedCommands => _createdCommands.ToArray();
 
     /// <summary>
     /// Gets the current working directory.
@@ -93,7 +90,6 @@ public sealed class FakeVirtualShell : IVirtualShell
     private FakeVirtualShell(FakeVirtualShell parent)
     {
         _executedCommands = parent._executedCommands;
-        _createdCommands = parent._createdCommands;
         _responses = parent._responses;
         _responseHandlers = parent._responseHandlers;
         _defaultResult = parent._defaultResult;
@@ -154,7 +150,6 @@ public sealed class FakeVirtualShell : IVirtualShell
     public void ClearCommands()
     {
         while (_executedCommands.TryDequeue(out _)) { }
-        while (_createdCommands.TryDequeue(out _)) { }
     }
 
     /// <inheritdoc />
@@ -271,45 +266,146 @@ public sealed class FakeVirtualShell : IVirtualShell
         return new FakeVirtualShell(this);
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // Command creation
+    // ═══════════════════════════════════════════════════════════════════
+
     /// <inheritdoc />
     public ICommand Command(string commandLine)
     {
+        // Simple parsing: split on first space
         var parts = commandLine.Split(' ', 2);
         var fileName = parts[0];
-        var args = parts.Length > 1 ? [parts[1]] : Array.Empty<string>();
-        return Command(fileName, args);
+        var args = parts.Length > 1 ? ParseArgs(parts[1]) : Array.Empty<string>();
+        return new FakeCommand(this, fileName, args);
     }
 
     /// <inheritdoc />
-    public ICommand Command(string fileName, IReadOnlyList<string> args)
+    public ICommand Command(string fileName, IReadOnlyList<string>? args)
     {
-        var command = new FakeCommand(this, fileName, args);
-        _createdCommands.Enqueue(command);
-        return command;
+        return new FakeCommand(this, fileName, args ?? Array.Empty<string>());
+    }
+
+    private static string[] ParseArgs(string argString)
+    {
+        // Simple space-splitting for fake - real implementation uses proper parser
+        var result = new List<string>();
+        var current = new System.Text.StringBuilder();
+        var inQuotes = false;
+
+        foreach (var c in argString)
+        {
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+            }
+            else if (c == ' ' && !inQuotes)
+            {
+                if (current.Length > 0)
+                {
+                    result.Add(current.ToString());
+                    current.Clear();
+                }
+            }
+            else
+            {
+                current.Append(c);
+            }
+        }
+
+        if (current.Length > 0)
+        {
+            result.Add(current.ToString());
+        }
+
+        return result.ToArray();
+    }
+
+    internal CapturedCommand CreateCapturedCommand(string fileName, IReadOnlyList<string> args, ProcessInput? stdin, ProcessOutput stdout, ProcessOutput stderr)
+    {
+        return new CapturedCommand(
+            fileName,
+            args.ToArray(),
+            _workingDirectory,
+            new Dictionary<string, string?>(_environment),
+            stdin ?? ProcessInput.Null,
+            stdout,
+            stderr);
+    }
+
+    internal ProcessResult GetResult(CapturedCommand command)
+    {
+        // Check for response handler first
+        if (_responseHandlers.TryGetValue(command.FileName, out var handler))
+        {
+            return handler(command);
+        }
+
+        // Check for static response
+        if (_responses.TryGetValue(command.FileName, out var result))
+        {
+            return result;
+        }
+
+        return _defaultResult;
+    }
+}
+
+/// <summary>
+/// A fake implementation of <see cref="ICommand"/> for testing purposes.
+/// </summary>
+[Experimental("ASPIREHOSTINGVIRTUALSHELL001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+public sealed class FakeCommand : ICommand
+{
+    private readonly FakeVirtualShell _shell;
+
+    internal FakeCommand(FakeVirtualShell shell, string fileName, IReadOnlyList<string> args)
+    {
+        _shell = shell;
+        FileName = fileName;
+        Arguments = args;
     }
 
     /// <inheritdoc />
-    public Task<ProcessResult> RunAsync(string commandLine, CancellationToken ct = default)
+    public string FileName { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> Arguments { get; }
+
+    /// <inheritdoc />
+    public Task<ProcessResult> RunAsync(ProcessInput? stdin = null, bool capture = true, CancellationToken ct = default)
     {
-        return Command(commandLine).RunAsync(ct);
+        var captured = _shell.CreateCapturedCommand(FileName, Arguments, stdin, capture ? ProcessOutput.Capture : ProcessOutput.Null, capture ? ProcessOutput.Capture : ProcessOutput.Null);
+        _shell._executedCommands.Enqueue(captured);
+        var result = _shell.GetResult(captured);
+        return Task.FromResult(result);
     }
 
     /// <inheritdoc />
-    public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> args, CancellationToken ct = default)
+    public IProcessLines StartReading(ProcessInput? stdin = null)
     {
-        return Command(fileName, args).RunAsync(ct);
+        var captured = _shell.CreateCapturedCommand(FileName, Arguments, stdin, ProcessOutput.Null, ProcessOutput.Null);
+        _shell._executedCommands.Enqueue(captured);
+        var result = _shell.GetResult(captured);
+        return new FakeProcessLines(result);
     }
 
     /// <inheritdoc />
-    public IRunningProcess Start(string commandLine)
+    public IProcessPipes StartProcess()
     {
-        return Command(commandLine).WithCaptureOutput(false).Start();
+        var captured = _shell.CreateCapturedCommand(FileName, Arguments, null, ProcessOutput.Null, ProcessOutput.Null);
+        _shell._executedCommands.Enqueue(captured);
+        var result = _shell.GetResult(captured);
+        return new FakeProcessPipes(result);
     }
 
     /// <inheritdoc />
-    public IRunningProcess Start(string fileName, IReadOnlyList<string> args)
+    public IProcessHandle Start(ProcessInput? stdin = null, ProcessOutput? stdout = null, ProcessOutput? stderr = null)
     {
-        return Command(fileName, args).WithCaptureOutput(false).Start();
+        var captured = _shell.CreateCapturedCommand(FileName, Arguments, stdin, stdout ?? ProcessOutput.Null, stderr ?? ProcessOutput.Null);
+        _shell._executedCommands.Enqueue(captured);
+        var result = _shell.GetResult(captured);
+        return new FakeProcess(result);
     }
 }
 
@@ -320,16 +416,18 @@ public sealed class FakeVirtualShell : IVirtualShell
 /// <param name="Arguments">The arguments passed to the command.</param>
 /// <param name="WorkingDirectory">The working directory at time of execution.</param>
 /// <param name="Environment">The environment variables at time of execution.</param>
-/// <param name="Stdin">The stdin source, if configured.</param>
-/// <param name="CaptureOutput">Whether output capture was enabled.</param>
+/// <param name="Stdin">The stdin source.</param>
+/// <param name="Stdout">The stdout destination.</param>
+/// <param name="Stderr">The stderr destination.</param>
 [Experimental("ASPIREHOSTINGVIRTUALSHELL001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public sealed record CapturedCommand(
     string FileName,
     string[] Arguments,
     string? WorkingDirectory,
     IReadOnlyDictionary<string, string?> Environment,
-    Stdin? Stdin,
-    bool CaptureOutput)
+    ProcessInput Stdin,
+    ProcessOutput Stdout,
+    ProcessOutput Stderr)
 {
     /// <summary>
     /// Gets the command line as a single string.
@@ -338,148 +436,140 @@ public sealed record CapturedCommand(
 }
 
 /// <summary>
-/// A fake implementation of <see cref="ICommand"/> for testing purposes.
+/// A fake implementation of <see cref="IProcessHandle"/> for testing purposes.
 /// </summary>
 [Experimental("ASPIREHOSTINGVIRTUALSHELL001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-public sealed class FakeCommand : ICommand
+public sealed class FakeProcess : IProcessHandle
 {
-    private readonly FakeVirtualShell _shell;
-    private readonly string _fileName;
-    private readonly IReadOnlyList<string> _args;
-
-    private Stdin? _stdin;
-    private bool _captureOutput = true;
-
-    internal FakeCommand(FakeVirtualShell shell, string fileName, IReadOnlyList<string> args)
-    {
-        _shell = shell;
-        _fileName = fileName;
-        _args = args;
-    }
+    private readonly ProcessResult _result;
+    private bool _disposed;
 
     /// <summary>
-    /// Gets the current command state as a JSON object for test assertions.
+    /// Creates a new instance of <see cref="FakeProcess"/> with the specified result.
     /// </summary>
-    /// <returns>A JSON object containing the command state.</returns>
-    public JsonObject GetStateAsJson()
+    /// <param name="result">The result to return when the process completes.</param>
+    public FakeProcess(ProcessResult result)
     {
-        var json = new JsonObject
-        {
-            ["fileName"] = _fileName
-        };
-
-        if (_args.Count > 0)
-        {
-            var argsArray = new JsonArray();
-            foreach (var arg in _args)
-            {
-                argsArray.Add(arg);
-            }
-            json["args"] = argsArray;
-        }
-
-        if (_shell._workingDirectory is not null)
-        {
-            json["workingDirectory"] = _shell._workingDirectory;
-        }
-
-        if (_shell._environment.Count > 0)
-        {
-            var envObj = new JsonObject();
-            foreach (var kvp in _shell._environment.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-            {
-                envObj[kvp.Key] = kvp.Value;
-            }
-            json["environment"] = envObj;
-        }
-
-        if (_stdin is not null)
-        {
-            json["stdin"] = _stdin.ToString();
-        }
-
-        if (!_captureOutput)
-        {
-            json["captureOutput"] = false;
-        }
-
-        if (_shell._tag is not null)
-        {
-            json["tag"] = _shell._tag;
-        }
-
-        return json;
+        _result = result;
     }
 
     /// <inheritdoc />
-    public ICommand WithStdin(Stdin stdin)
+    public Task<ProcessResult> WaitAsync(CancellationToken ct = default)
     {
-        _stdin = stdin;
-        return this;
+        ThrowIfDisposed();
+        return Task.FromResult(_result);
+    }
+
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
     /// <inheritdoc />
-    public ICommand WithStdin() => WithStdin(Stdin.CreatePipe());
-
-    /// <inheritdoc />
-    public ICommand WithCaptureOutput(bool capture)
+    public void Signal(ProcessSignal signal)
     {
-        _captureOutput = capture;
-        return this;
+        ThrowIfDisposed();
+        // No-op for fake
     }
 
     /// <inheritdoc />
-    public Task<ProcessResult> RunAsync(CancellationToken ct = default)
+    public void Kill(bool entireProcessTree = true)
     {
-        var captured = CreateCapturedCommand();
-        _shell._executedCommands.Enqueue(captured);
-        var result = GetResult(captured);
-        return Task.FromResult(result);
+        ThrowIfDisposed();
+        // No-op for fake
     }
 
     /// <inheritdoc />
-    public IRunningProcess Start()
+    public ValueTask DisposeAsync()
     {
-        var captured = CreateCapturedCommand();
-        _shell._executedCommands.Enqueue(captured);
-        var result = GetResult(captured);
-        return new FakeRunningProcess(result);
-    }
-
-    private CapturedCommand CreateCapturedCommand()
-    {
-        return new CapturedCommand(
-            _fileName,
-            _args.ToArray(),
-            _shell._workingDirectory,
-            new Dictionary<string, string?>(_shell._environment),
-            _stdin,
-            _captureOutput);
-    }
-
-    private ProcessResult GetResult(CapturedCommand command)
-    {
-        // Check for response handler first
-        if (_shell._responseHandlers.TryGetValue(command.FileName, out var handler))
-        {
-            return handler(command);
-        }
-
-        // Check for static response
-        if (_shell._responses.TryGetValue(command.FileName, out var result))
-        {
-            return result;
-        }
-
-        return _shell._defaultResult;
+        _disposed = true;
+        return ValueTask.CompletedTask;
     }
 }
 
 /// <summary>
-/// A fake implementation of <see cref="IRunningProcess"/> for testing purposes.
+/// A fake implementation of <see cref="IProcessLines"/> for testing purposes.
 /// </summary>
 [Experimental("ASPIREHOSTINGVIRTUALSHELL001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-public sealed class FakeRunningProcess : IRunningProcess
+public sealed class FakeProcessLines : IProcessLines
+{
+    private readonly ProcessResult _result;
+    private bool _disposed;
+
+    /// <summary>
+    /// Creates a new instance of <see cref="FakeProcessLines"/> with the specified result.
+    /// </summary>
+    /// <param name="result">The result to return when the process completes.</param>
+    public FakeProcessLines(ProcessResult result)
+    {
+        _result = result;
+    }
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<OutputLine> ReadLinesAsync([EnumeratorCancellation] CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+
+        // Parse stdout lines
+        if (!string.IsNullOrEmpty(_result.Stdout))
+        {
+            foreach (var line in _result.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                yield return new OutputLine(false, line.TrimEnd('\r'));
+            }
+        }
+
+        // Parse stderr lines
+        if (!string.IsNullOrEmpty(_result.Stderr))
+        {
+            foreach (var line in _result.Stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                yield return new OutputLine(true, line.TrimEnd('\r'));
+            }
+        }
+
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task<ProcessResult> WaitAsync(CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        return Task.FromResult(_result);
+    }
+
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+
+    /// <inheritdoc />
+    public void Signal(ProcessSignal signal)
+    {
+        ThrowIfDisposed();
+        // No-op for fake
+    }
+
+    /// <inheritdoc />
+    public void Kill(bool entireProcessTree = true)
+    {
+        ThrowIfDisposed();
+        // No-op for fake
+    }
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        return ValueTask.CompletedTask;
+    }
+}
+
+/// <summary>
+/// A fake implementation of <see cref="IProcessPipes"/> for testing purposes.
+/// </summary>
+[Experimental("ASPIREHOSTINGVIRTUALSHELL001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+public sealed class FakeProcessPipes : IProcessPipes
 {
     private readonly ProcessResult _result;
     private readonly Pipe _inputPipe;
@@ -489,10 +579,10 @@ public sealed class FakeRunningProcess : IRunningProcess
     private bool _disposed;
 
     /// <summary>
-    /// Creates a new instance of <see cref="FakeRunningProcess"/> with the specified result.
+    /// Creates a new instance of <see cref="FakeProcessPipes"/> with the specified result.
     /// </summary>
     /// <param name="result">The result to return when the process completes.</param>
-    public FakeRunningProcess(ProcessResult result)
+    public FakeProcessPipes(ProcessResult result)
     {
         _result = result;
         _inputPipe = new Pipe();

@@ -3,44 +3,37 @@
 
 #pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
 
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Aspire.Hosting.Execution;
 
 /// <summary>
-/// Provides advanced control over a running process, including streaming I/O
-/// and sending signals.
+/// Provides control over a running process with custom output handling via ProcessOutput.
+/// Implements <see cref="IProcessHandle"/>.
 /// </summary>
-internal sealed partial class RunningProcess : IRunningProcess
+internal sealed partial class ProcessHandle : IProcessHandle
 {
-    private readonly Process _process;
+    private readonly System.Diagnostics.Process _process;
     private readonly PipeWriter _input;
     private readonly PipeReader _output;
     private readonly PipeReader _error;
     private readonly TaskCompletionSource<ProcessResult> _resultTcs;
-    private readonly ExecSpec _spec;
-    private readonly StringBuilder? _stdoutCapture;
-    private readonly StringBuilder? _stderrCapture;
+    private readonly ProcessOutput _stdoutOutput;
+    private readonly ProcessOutput _stderrOutput;
     private readonly CancellationTokenSource _disposeCts;
-    private Task? _stdoutDrainTask;
-    private Task? _stderrDrainTask;
-    private readonly TaskCompletionSource _drainStartedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly Task<string?>? _stdoutDrainTask;
+    private readonly Task<string?>? _stderrDrainTask;
     private volatile ProcessExitReason _exitReason = ProcessExitReason.Exited;
     private bool _disposed;
 
-    internal RunningProcess(
-        Process process,
-        ExecSpec spec,
-        bool captureOutput)
+    internal ProcessHandle(System.Diagnostics.Process process, ProcessOutput stdout, ProcessOutput stderr)
     {
         _process = process;
-        _spec = spec;
+        _stdoutOutput = stdout;
+        _stderrOutput = stderr;
 
         // Wrap process streams with Pipelines
-        // Note: leaveOpen: false for stdin so completing the writer closes stdin
         _input = PipeWriter.Create(_process.StandardInput.BaseStream, new StreamPipeWriterOptions(leaveOpen: false));
         _output = PipeReader.Create(_process.StandardOutput.BaseStream, new StreamPipeReaderOptions(leaveOpen: true));
         _error = PipeReader.Create(_process.StandardError.BaseStream, new StreamPipeReaderOptions(leaveOpen: true));
@@ -48,65 +41,14 @@ internal sealed partial class RunningProcess : IRunningProcess
         _resultTcs = new TaskCompletionSource<ProcessResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         _disposeCts = new CancellationTokenSource();
 
-        if (captureOutput)
-        {
-            _stdoutCapture = new StringBuilder();
-            _stderrCapture = new StringBuilder();
-
-            // Start background tasks to drain and capture output
-            _stdoutDrainTask = DrainOutputAsync(_output, _stdoutCapture);
-            _stderrDrainTask = DrainOutputAsync(_error, _stderrCapture);
-
-            // Signal that draining has started
-            _drainStartedTcs.TrySetResult();
-        }
+        // Start draining immediately using polymorphism
+        _stdoutDrainTask = _stdoutOutput.DrainAsync(_output, _disposeCts.Token);
+        _stderrDrainTask = _stderrOutput.DrainAsync(_error, _disposeCts.Token);
 
         SetupExitHandler();
     }
 
-    /// <inheritdoc />
-    public PipeWriter Input => _input;
-
-    /// <inheritdoc />
-    public PipeReader Output => _output;
-
-    /// <inheritdoc />
-    public PipeReader Error => _error;
-
-    private async Task DrainOutputAsync(PipeReader reader, StringBuilder? capture = null)
-    {
-        try
-        {
-            while (true)
-            {
-                var result = await reader.ReadAsync(_disposeCts.Token).ConfigureAwait(false);
-                var buffer = result.Buffer;
-
-                if (capture is not null && buffer.Length > 0)
-                {
-                    foreach (var segment in buffer)
-                    {
-                        capture.Append(Encoding.UTF8.GetString(segment.Span));
-                    }
-                }
-
-                reader.AdvanceTo(buffer.End);
-
-                if (result.IsCompleted)
-                {
-                    break;
-                }
-            }
-        }
-        catch (OperationCanceledException) when (_disposeCts.IsCancellationRequested)
-        {
-            // Process is being disposed
-        }
-        catch
-        {
-            // Stream may have been closed
-        }
-    }
+    internal PipeWriter Input => _input;
 
     private void SetupExitHandler()
     {
@@ -117,23 +59,25 @@ internal sealed partial class RunningProcess : IRunningProcess
     {
         try
         {
-            // Wait for draining to start (either in constructor for capture, or in WaitAsync)
-            await _drainStartedTcs.Task.ConfigureAwait(false);
-
             // Wait for output to be drained
+            string? stdout = null;
+            string? stderr = null;
+
             if (_stdoutDrainTask is not null && _stderrDrainTask is not null)
             {
-                await Task.WhenAll(_stdoutDrainTask, _stderrDrainTask).ConfigureAwait(false);
+                var results = await Task.WhenAll(_stdoutDrainTask, _stderrDrainTask).ConfigureAwait(false);
+                stdout = results[0];
+                stderr = results[1];
             }
 
-            // Wait for process to exit (should be quick since output is drained)
+            // Wait for process to exit
             await _process.WaitForExitAsync(_disposeCts.Token).ConfigureAwait(false);
 
             // Create the result
             var result = new ProcessResult(
                 _process.ExitCode,
-                _stdoutCapture?.ToString().TrimEnd(),
-                _stderrCapture?.ToString().TrimEnd(),
+                stdout,
+                stderr,
                 _exitReason);
 
             _resultTcs.TrySetResult(result);
@@ -143,8 +87,8 @@ internal sealed partial class RunningProcess : IRunningProcess
             // Process is being disposed, complete with what we have
             var result = new ProcessResult(
                 _process.HasExited ? _process.ExitCode : -1,
-                _stdoutCapture?.ToString().TrimEnd(),
-                _stderrCapture?.ToString().TrimEnd(),
+                null,
+                null,
                 ProcessExitReason.Killed);
 
             _resultTcs.TrySetResult(result);
@@ -159,17 +103,6 @@ internal sealed partial class RunningProcess : IRunningProcess
     public async Task<ProcessResult> WaitAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
-
-        // If draining hasn't started, start drain tasks to prevent deadlock
-        // (process may block if it outputs more than the OS pipe buffer and no one reads)
-        if (_stdoutDrainTask is null)
-        {
-            _stdoutDrainTask = DrainOutputAsync(_output);
-            _stderrDrainTask = DrainOutputAsync(_error);
-
-            // Signal that draining has started
-            _drainStartedTcs.TrySetResult();
-        }
 
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _disposeCts.Token);
 
@@ -242,11 +175,8 @@ internal sealed partial class RunningProcess : IRunningProcess
         if (OperatingSystem.IsWindows())
         {
 #if NET10_0_OR_GREATER
-            // On Windows with .NET 10+, send CTRL+C via GenerateConsoleCtrlEvent
-            // Process must be started with CreateNewProcessGroup = true
             SendWindowsCtrlEvent(CtrlEvent.CtrlC);
 #else
-            // On older .NET, try to close the main window first
             if (!_process.CloseMainWindow())
             {
                 KillCore();
@@ -255,7 +185,6 @@ internal sealed partial class RunningProcess : IRunningProcess
         }
         else
         {
-            // On Unix, send SIGINT
             SendUnixSignal(2); // SIGINT
         }
     }
@@ -265,16 +194,13 @@ internal sealed partial class RunningProcess : IRunningProcess
         if (OperatingSystem.IsWindows())
         {
 #if NET10_0_OR_GREATER
-            // On Windows with .NET 10+, send CTRL+BREAK (similar to SIGTERM)
             SendWindowsCtrlEvent(CtrlEvent.CtrlBreak);
 #else
-            // On older .NET, just kill the process
             KillCore();
 #endif
         }
         else
         {
-            // On Unix, send SIGTERM
             SendUnixSignal(15); // SIGTERM
         }
     }
@@ -284,16 +210,13 @@ internal sealed partial class RunningProcess : IRunningProcess
     {
         try
         {
-            // When CreateNewProcessGroup is true, the process group ID equals the process ID
             if (!GenerateConsoleCtrlEvent((uint)ctrlEvent, (uint)_process.Id))
             {
-                // If signal fails, fall back to kill
                 KillCore();
             }
         }
         catch
         {
-            // If signal fails, fall back to kill
             KillCore();
         }
     }
@@ -317,7 +240,6 @@ internal sealed partial class RunningProcess : IRunningProcess
         }
         catch
         {
-            // If signal fails, fall back to kill
             KillCore();
         }
     }
@@ -335,10 +257,6 @@ internal sealed partial class RunningProcess : IRunningProcess
 
         _disposed = true;
 
-        // Signal drain started in case WaitAsync was never called
-        // (allows WaitForExitAndSetResultAsync to proceed and be cancelled)
-        _drainStartedTcs.TrySetResult();
-
         // Complete the input pipe to signal end of input
         await _input.CompleteAsync().ConfigureAwait(false);
 
@@ -347,7 +265,6 @@ internal sealed partial class RunningProcess : IRunningProcess
 
         if (!_process.HasExited)
         {
-            // Give the process a chance to exit gracefully
             SignalCore(ProcessSignal.Interrupt);
 
             try
@@ -357,12 +274,10 @@ internal sealed partial class RunningProcess : IRunningProcess
             }
             catch (OperationCanceledException)
             {
-                // Timeout - force kill
                 KillCore();
             }
         }
 
-        // Complete output pipe readers
         await _output.CompleteAsync().ConfigureAwait(false);
         await _error.CompleteAsync().ConfigureAwait(false);
 

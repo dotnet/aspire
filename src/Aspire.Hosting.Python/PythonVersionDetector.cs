@@ -72,7 +72,7 @@ internal static partial class PythonVersionDetector
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             var result = await shell
                 .Command(pythonExecutable, ["--version"])
-                .RunAsync(cts.Token)
+                .RunAsync(ct: cts.Token)
                 .ConfigureAwait(false);
 
             if (!result.Success)
