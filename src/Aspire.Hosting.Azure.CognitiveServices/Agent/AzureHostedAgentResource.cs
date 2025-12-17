@@ -9,8 +9,6 @@ using Azure.AI.Projects.OpenAI;
 using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-
 namespace Aspire.Hosting.Azure.CognitiveServices;
 
 /// <summary>
@@ -65,7 +63,7 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
                 {
                     var version = await DeployAsync(ctx, project).ConfigureAwait(false);
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{Name}** as Hosted Agent (version {version})", enableMarkdown: true);
-                    // TODO: set the value on the agent resource
+                    Version.Set(version.Version);
                 },
                 Tags = [WellKnownPipelineTags.DeployCompute],
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy],
@@ -93,62 +91,10 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     /// </summary>
     public Action<HostedAgentConfiguration>? Configure { get; set; }
 
-    private decimal _cpu = 1.0m;
-
-    /// <summary>
-    /// CPU allocation for each hosted agent instance.
-    /// </summary>
-    public decimal Cpu
-    {
-        get => _cpu;
-        set
-        {
-            if (value < 0.25m || value > 3.5m)
-            {
-                throw new ArgumentOutOfRangeException(nameof(Cpu), "CPU must be between 0.25 and 3.5 cores.");
-            }
-            if (value % 0.25m != 0)
-            {
-                throw new ArgumentException("CPU must be in increments of 0.25 cores.", nameof(Cpu));
-            }
-            _cpu = value;
-        }
-    }
-
-    /// <summary>
-    /// Memory allocation for each hosted agent instance, in GiB.
-    /// Must be 2x the CPU allocation.
-    /// </summary>
-    public decimal Memory
-    {
-        get => _cpu * 2;
-        set
-        {
-            if (value < 0.5m || value > 7m)
-            {
-                throw new ArgumentOutOfRangeException(nameof(Memory), "Memory must be between 0.5 and 7 GiB.");
-            }
-            if (value % 0.5m != 0)
-            {
-                throw new ArgumentException("Memory must be in increments of 0.5 GiB.", nameof(Memory));
-            }
-            _cpu = value / 2;
-        }
-    }
-
-    /// <summary>
-    /// The description of the hosted agent.
-    /// </summary>
-    public string Description { get; set; } = "Azure Hosted Agent Resource";
-    /// <summary>
-    /// Additional metadata to associate with the hosted agent.
-    /// </summary>
-    public IDictionary<IValueProvider, IValueProvider> Metadata { get; set; } = new Dictionary<IValueProvider, IValueProvider>();
-
     /// <summary>
     /// Once deployed, the version that is assigned to this hosted agent.
     /// </summary>
-    public ReferenceExpression Version { get; } = ReferenceExpression.Create($"latest");
+    public StaticValueProvider<string> Version { get; } = new();
 
     /// <summary>
     /// The fully qualified image name for the hosted agent.
@@ -163,43 +109,19 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     /// <summary>
     /// Convert all dynamic values into concrete values for deployment.
     /// </summary>
-    public async Task<HostedAgentConfiguration> ToHostedAgentConfigurationAsync(DistributedApplicationExecutionContext context, ILogger logger, CancellationToken cancellationToken)
+    public async Task<HostedAgentConfiguration> ToHostedAgentConfigurationAsync(PipelineStepContext context)
     {
-        if (!Target.TryGetContainerImageName(out var imageName))
+        var imageName = await ((IValueProvider)Image).GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrEmpty(imageName))
         {
-            throw new InvalidOperationException($"Resource '{Target.Name}' does not have a container image name.");
+            throw new InvalidOperationException($"Container image for hosted agent '{Name}' could not be resolved.");
         }
-        var def = new HostedAgentConfiguration(imageName);
-        if (Target.TryGetEnvironmentVariables(out var envVars))
+
+        var def = new HostedAgentConfiguration(imageName)
         {
-            void callback(string key, object? rawVal, string? stringValue, Exception? exc)
-            {
-                if (exc is not null)
-                {
-                    throw new InvalidOperationException($"Error resolving environment variable '{key}' for hosted agent '{Name}': {exc.Message}", exc);
-                }
-                if (stringValue is not null)
-                {
-                    def.EnvironmentVariables[key] = stringValue;
-                }
-                else
-                {
-                    logger.LogWarning("Environment variable '{Key}' for hosted agent '{Name}' resolved to null and will be skipped.", key, Name);
-                }
-            }
-            await Target.ProcessEnvironmentVariableValuesAsync(context, callback, logger, cancellationToken).ConfigureAwait(false);
-        }
-        def.Description = Description;
-        foreach (var (key, value) in Metadata)
-        {
-            var keyResolved = await key.GetValueAsync(cancellationToken).ConfigureAwait(false);
-            var valueResolved = await value.GetValueAsync(cancellationToken).ConfigureAwait(false);
-            if (keyResolved is null || valueResolved is null)
-            {
-                continue;
-            }
-            def.Metadata[keyResolved] = valueResolved;
-        }
+            // ProcessEnvironmentVariableValuesAsync does not resolve values properly in the deploy context
+            EnvironmentVariables = await GetResolvedEnvironmentVariablesAsync(context.ExecutionContext, Target, context.Logger, context.CancellationToken).ConfigureAwait(false),
+        };
         if (Configure is not null)
         {
             Configure(def);
@@ -212,28 +134,11 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     /// </summary>
     public async Task PublishAsync(ManifestPublishingContext ctx)
     {
-        var def = await ToHostedAgentConfigurationAsync(ctx.ExecutionContext, NullLogger.Instance, ctx.CancellationToken).ConfigureAwait(false);
         Console.WriteLine($"Writing agent manifest for path {ctx.ManifestPath}");
-        ctx.Writer.WriteString("type", "azurefoundry.hostedagent.v0");
+        ctx.Writer.WriteString("type", "azure.ai.agent.v0");
         ctx.Writer.WriteStartObject("definition");
-        ctx.Writer.WriteString("description", def.Description);
-        ctx.Writer.WriteString("image", def.Image);
-        ctx.Writer.WriteString("cpu", def.CpuString);
-        ctx.Writer.WriteString("memory", def.MemoryString);
-        ctx.Writer.WriteStartObject("environmentVariables");
-        foreach (var envVar in def.EnvironmentVariables)
-        {
-            ctx.Writer.WritePropertyName(envVar.Key);
-            ctx.Writer.WriteString(envVar.Key, envVar.Value);
-        }
-        ctx.Writer.WriteEndObject(); // environmentVariables
-        ctx.Writer.WriteStartObject("metadata");
-        foreach (var property in def.Metadata)
-        {
-            ctx.Writer.WritePropertyName(property.Key);
-            ctx.Writer.WriteString(property.Key, property.Value);
-        }
-        ctx.Writer.WriteEndObject(); // metadata
+        ctx.Writer.WriteString("kind", "hosted");
+        ctx.Writer.WriteString("target", Target.Name);
         ctx.Writer.WriteEndObject(); // definition
         ctx.TryAddDependentResources(Target);
     }
@@ -250,7 +155,7 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
         {
             throw new InvalidOperationException($"Project '{project.Name}' does not have a valid connection string.");
         }
-        var def = await ToHostedAgentConfigurationAsync(context.ExecutionContext, context.Logger, context.CancellationToken).ConfigureAwait(false);
+        var def = await ToHostedAgentConfigurationAsync(context).ConfigureAwait(false);
         var projectClient = new AIProjectClient(new Uri(projectEndpoint), new DefaultAzureCredential());
         var result = await projectClient.Agents.CreateAgentVersionAsync(
             Name,
@@ -258,5 +163,105 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
             context.CancellationToken
         ).ConfigureAwait(false);
         return result.Value;
+    }
+
+    internal static async Task<Dictionary<string, string>> GetResolvedEnvironmentVariablesAsync(
+        DistributedApplicationExecutionContext context,
+        IResource resource,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        var collectedEnvVars = new Dictionary<string, object>();
+        if (resource.TryGetEnvironmentVariables(out var callbacks))
+        {
+            var envContext = new EnvironmentCallbackContext(context, resource, collectedEnvVars, cancellationToken)
+            {
+                Logger = logger
+            };
+
+            foreach (var callback in callbacks)
+            {
+                await callback.Callback(envContext).ConfigureAwait(false);
+            }
+        }
+        var resolvedEnvVars = new Dictionary<string, string>();
+        foreach (var (key, value) in collectedEnvVars)
+        {
+            switch (value)
+            {
+                case null:
+                    resolvedEnvVars[key] = string.Empty;
+                    break;
+                case string s:
+                    resolvedEnvVars[key] = s;
+                    break;
+                case IValueProvider provider:
+                    resolvedEnvVars[key] = await provider.GetValueAsync(cancellationToken).ConfigureAwait(false) ?? string.Empty;
+                    break;
+                case IFormattable f:
+                    resolvedEnvVars[key] = f.ToString(null, System.Globalization.CultureInfo.InvariantCulture);
+                    break;
+                default:
+                    logger.LogWarning("Environment variable '{Key}' for resource '{Name}' has unknown value of type '{type}' and will be skipped.", key, resource.Name, value.GetType().FullName);
+                    break;
+            }
+        }
+        return resolvedEnvVars;
+    }
+}
+
+/// <summary>
+/// A static value provider that returns a fixed value once it's been set.
+/// </summary>
+
+public class StaticValueProvider<T> : IValueProvider, IManifestExpressionProvider
+{
+    private T? _value;
+    private bool _isSet;
+
+    /// <inheritdoc/>
+    public string ValueExpression => "{value}";
+
+    /// <summary>
+    /// Sets the value of the provider.
+    /// </summary>
+    public void Set(T value)
+    {
+        if (_isSet)
+        {
+            throw new InvalidOperationException($"Value has already been set.");
+        }
+        _value = value;
+        _isSet = true;
+    }
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="StaticValueProvider{T}"/> class.
+    /// </summary>
+    public StaticValueProvider()
+    {
+        _isSet = false;
+    }
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="StaticValueProvider{T}"/> class.
+    /// </summary>
+    public StaticValueProvider(T value)
+    {
+        _value = value;
+        _isSet = true;
+    }
+
+    /// <inheritdoc/>
+    public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isSet == false)
+        {
+            throw new InvalidOperationException("Value for provider has not been set.");
+        }
+        else
+        {
+            return ValueTask.FromResult(_value?.ToString());
+        }
     }
 }

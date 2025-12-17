@@ -199,6 +199,7 @@
   </Folder>
   <Folder Name="/playground/FoundryAgentEnterprise/">
     <Project Path="playground/FoundryAgentEnterprise/FoundryAgentEnterprise.AppHost/FoundryAgentEnterprise.AppHost.csproj" />
+  </Folder>
   <Folder Name="/playground/GitHubModelsEndToEnd/">
     <Project Path="playground/GitHubModelsEndToEnd/GitHubModelsEndToEnd.AppHost/GitHubModelsEndToEnd.AppHost.csproj" />
     <Project Path="playground/GitHubModelsEndToEnd/GitHubModelsEndToEnd.WebStory/GitHubModelsEndToEnd.WebStory.csproj" />

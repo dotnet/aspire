@@ -83,10 +83,8 @@ public static class AzureCognitiveServicesAccountBuilderExtensions
         }
 
         var resource = new AzureCognitiveServicesAccountResource(name, configureInfrastructure);
-        return builder.AddResource(resource);
-        // TODO: Restore once role assignment issues are resolved
-        // return builder.AddResource(resource)
-        //     .WithDefaultRoleAssignments(CognitiveServicesBuiltInRole.GetBuiltInRoleName, CognitiveServicesBuiltInRole.CognitiveServicesContributor)
-        //     .WithDefaultRoleAssignments(CognitiveServicesBuiltInRole.GetBuiltInRoleName, CognitiveServicesBuiltInRole.CognitiveServicesUser);
+        return builder.AddResource(resource)
+            .WithDefaultRoleAssignments(CognitiveServicesBuiltInRole.GetBuiltInRoleName, CognitiveServicesBuiltInRole.CognitiveServicesContributor)
+            .WithDefaultRoleAssignments(CognitiveServicesBuiltInRole.GetBuiltInRoleName, CognitiveServicesBuiltInRole.CognitiveServicesUser);
     }
 }

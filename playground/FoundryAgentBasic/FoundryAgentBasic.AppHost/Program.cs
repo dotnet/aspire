@@ -1,11 +1,13 @@
-﻿
-var builder = DistributedApplication.CreateBuilder(args);
-var suffix = "5kaobtwfx0k";
-var registry = builder.AddAzureContainerRegistry($"myregistry{suffix}"); //.RunAsExisting($"myregistry{suffix}", null).PublishAsExisting($"myregistry{suffix}", null);
-var account = builder.AddAzureCognitiveServicesAccount($"cogsvc-account-{suffix}").RunAsExisting($"cogsvc-account-{suffix}", null).PublishAsExisting($"cogsvc-account-{suffix}", null);
+﻿using Microsoft.Extensions.Configuration;
 
-var deployment = account.AddDeployment("my-gpt-5", "OpenAI", "gpt-4.1-mini", "2025-04-14").RunAsExisting("my-gpt-5", null).PublishAsExisting("my-gpt-5", null);
-var project = account.AddProject($"proj-{suffix}").RunAsExisting($"proj-{suffix}", null).PublishAsExisting($"proj-{suffix}", null);
+var builder = DistributedApplication.CreateBuilder(args);
+
+var suffix = builder.Configuration.GetSection("App").GetValue("suffix", "basic");
+var registry = builder.AddAzureContainerRegistry($"myregistry{suffix}");
+var account = builder.AddAzureCognitiveServicesAccount($"cogsvc-account-{suffix}");
+
+var deployment = account.AddDeployment("my-gpt-5", "OpenAI", "gpt-4.1-mini", "2025-04-14");
+var project = account.AddProject($"proj-{suffix}");
 var app = builder.AddPythonApp($"app-{suffix}", "../app", "main.py")
     .WithUv()
     .WithHttpEndpoint(port: 9999, name: "api")
@@ -16,15 +18,6 @@ var app = builder.AddPythonApp($"app-{suffix}", "../app", "main.py")
     .PublishAsHostedAgent(project, (opts) =>
     {
         opts.Description = "Foundry Agent Basic Example";
-        opts.Metadata["managed-by"] = "aspire-foundry";
-        opts.Cpu = 2m;
-        opts.Memory = 4m;
     });
-/*
-var frontend = builder.AddViteApp("frontend", "./frontend")
-    .WithReference(app)
-    .WaitFor(app);
 
-app.PublishWithContainerFiles(frontend, "./static");
-*/
 builder.Build().Run();
