@@ -7,18 +7,13 @@ using Spectre.Console;
 namespace Aspire.Cli.Diagnostics;
 
 /// <summary>
-/// Helper for displaying errors with appropriate detail based on verbose mode.
+/// Switches between clean and verbose error display based on context.
 /// </summary>
 internal static class ErrorDisplayHelper
 {
     /// <summary>
-    /// Displays an exception with appropriate detail based on verbose mode.
+    /// Displays an exception with verbose details if enabled in context.
     /// </summary>
-    /// <param name="interactionService">The interaction service to use for display.</param>
-    /// <param name="exception">The exception to display.</param>
-    /// <param name="exitCode">The exit code that will be returned.</param>
-    /// <param name="context">The CLI execution context.</param>
-    /// <param name="bundlePath">Optional path to the diagnostics bundle.</param>
     public static void DisplayException(
         IInteractionService interactionService,
         Exception exception,

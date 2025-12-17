@@ -60,7 +60,7 @@ internal abstract class BaseCommand : Command
     protected abstract Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Handles an exception by logging it (which triggers diagnostics bundle creation) and displaying appropriate error.
+    /// Logs an exception and displays it to the user.
     /// </summary>
     protected Task<int> HandleExceptionAsync(Exception ex, int exitCode, string? additionalContext = null)
     {

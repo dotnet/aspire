@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.Diagnostics;
 
 /// <summary>
-/// Logger provider that writes diagnostic information to files in ~/.aspire/cli/diagnostics/{timestamp}/
+/// Writes all logs continuously to aspire.log, and automatically creates error.txt and environment.json when Error/Critical logs are encountered.
 /// </summary>
 internal sealed class FileLoggerProvider : ILoggerProvider
 {
@@ -24,7 +24,6 @@ internal sealed class FileLoggerProvider : ILoggerProvider
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private bool _environmentWritten;
     private bool _disposed;
-    private Task? _pendingWriteTask;
 
     public FileLoggerProvider(CliExecutionContext executionContext, TimeProvider timeProvider)
     {
@@ -84,27 +83,20 @@ internal sealed class FileLoggerProvider : ILoggerProvider
         return new DirectoryInfo(diagnosticsPath);
     }
 
-    internal Task WriteLogEntryAsync(LogLevel logLevel, string categoryName, string message, Exception? exception)
+    internal async Task WriteLogEntryAsync(LogLevel logLevel, string categoryName, string message, Exception? exception)
     {
         if (_logWriter == null || _disposed)
         {
-            return Task.CompletedTask;
+            return;
         }
 
-        // Store the task so tests can wait for it
-        _pendingWriteTask = WriteLogEntryInternalAsync(logLevel, categoryName, message, exception);
-        return _pendingWriteTask;
-    }
-
-    private async Task WriteLogEntryInternalAsync(LogLevel logLevel, string categoryName, string message, Exception? exception)
-    {
         await _writeLock.WaitAsync();
         try
         {
             var timestamp = _timeProvider.GetUtcNow();
             var logEntry = $"[{timestamp:yyyy-MM-dd HH:mm:ss}] [{GetLogLevelString(logLevel)}] {categoryName}: {message}";
             
-            await _logWriter!.WriteLineAsync(logEntry);
+            await _logWriter.WriteLineAsync(logEntry);
 
             if (exception != null)
             {
@@ -135,9 +127,15 @@ internal sealed class FileLoggerProvider : ILoggerProvider
     /// </summary>
     internal async Task FlushAsync()
     {
-        if (_pendingWriteTask != null)
+        // Acquire and release the write lock to ensure all pending writes have completed
+        await _writeLock.WaitAsync();
+        try
         {
-            await _pendingWriteTask;
+            // All writes are now complete
+        }
+        finally
+        {
+            _writeLock.Release();
         }
     }
 
@@ -217,7 +215,7 @@ internal sealed class FileLoggerProvider : ILoggerProvider
             sb.AppendLine();
             sb.AppendLine(CultureInfo.InvariantCulture, $"Command: aspire {_executionContext.Command?.Name ?? "unknown"}");
             sb.AppendLine(CultureInfo.InvariantCulture, $"Category: {categoryName}");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"Timestamp: {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"Timestamp: {_timeProvider.GetUtcNow():yyyy-MM-dd HH:mm:ss} UTC");
             sb.AppendLine();
 
             sb.AppendLine("Error Summary:");
@@ -387,7 +385,7 @@ internal sealed class FileLoggerProvider : ILoggerProvider
         LogLevel.Warning => "warn",
         LogLevel.Error => "fail",
         LogLevel.Critical => "crit",
-        _ => logLevel.ToString().ToLower()
+        _ => logLevel.ToString().ToLowerInvariant()
     };
 
     private sealed class FileLogger : ILogger

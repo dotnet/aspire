@@ -4,7 +4,7 @@
 namespace Aspire.Cli.Diagnostics;
 
 /// <summary>
-/// Provides troubleshooting links for different error scenarios.
+/// Maps exit codes to troubleshooting documentation URLs.
 /// </summary>
 internal static class TroubleshootingLinks
 {

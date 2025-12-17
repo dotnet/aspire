@@ -15,8 +15,7 @@ internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, Direct
     public bool DebugMode { get; } = debugMode;
 
     /// <summary>
-    /// Gets or sets whether verbose mode is enabled (full stack traces and detailed diagnostics).
-    /// This is set based on the --verbose flag.
+    /// Gets or sets whether verbose mode is enabled. When true, full stack traces and detailed diagnostics are displayed.
     /// </summary>
     public bool VerboseMode { get; set; }
 

@@ -5,6 +5,9 @@ using System.Text.Json.Serialization;
 
 namespace Aspire.Cli.Diagnostics;
 
+/// <summary>
+/// Contains diagnostic information about the CLI environment.
+/// </summary>
 internal sealed class EnvironmentSnapshot
 {
     [JsonPropertyName("cli")]
@@ -26,6 +29,9 @@ internal sealed class EnvironmentSnapshot
     public required Dictionary<string, string> Environment { get; init; }
 }
 
+/// <summary>
+/// CLI version and mode information.
+/// </summary>
 internal sealed class CliInfo
 {
     [JsonPropertyName("version")]
@@ -38,6 +44,9 @@ internal sealed class CliInfo
     public required bool VerboseMode { get; init; }
 }
 
+/// <summary>
+/// Operating system information.
+/// </summary>
 internal sealed class OsInfo
 {
     [JsonPropertyName("platform")]
@@ -53,6 +62,9 @@ internal sealed class OsInfo
     public required bool Is64Bit { get; init; }
 }
 
+/// <summary>
+/// .NET runtime information.
+/// </summary>
 internal sealed class DotNetInfo
 {
     [JsonPropertyName("runtimeVersion")]
@@ -62,6 +74,9 @@ internal sealed class DotNetInfo
     public required string ProcessArchitecture { get; init; }
 }
 
+/// <summary>
+/// CLI process information.
+/// </summary>
 internal sealed class ProcessInfo
 {
     [JsonPropertyName("processId")]
@@ -77,6 +92,9 @@ internal sealed class ProcessInfo
     public required string MachineName { get; init; }
 }
 
+/// <summary>
+/// Docker availability and version information.
+/// </summary>
 internal sealed class DockerInfo
 {
     [JsonPropertyName("available")]
