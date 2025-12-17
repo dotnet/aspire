@@ -40,6 +40,19 @@ public class RealGitHubPRFixture : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
+        // Check if GH_TOKEN is available
+        var ghToken = Environment.GetEnvironmentVariable("GH_TOKEN");
+        if (string.IsNullOrWhiteSpace(ghToken))
+        {
+            _testOutput.WriteLine("GH_TOKEN environment variable not set. Integration tests will be skipped.");
+            _testOutput.WriteLine("To run integration tests, set GH_TOKEN to a valid GitHub token.");
+            // Don't throw - let individual tests handle the missing fixture data
+            PRNumber = 0;
+            RunId = 0;
+            CommitSHA = string.Empty;
+            return;
+        }
+
         // Query recent merged PRs using gh CLI
         var cmd = new ToolCommand("gh", _testOutput)
             .WithTimeout(TimeSpan.FromMinutes(2));

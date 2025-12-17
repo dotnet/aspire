@@ -28,6 +28,13 @@ public class PRScriptIntegrationTests : IClassFixture<RealGitHubPRFixture>
     [Fact]
     public async Task ShellScript_WithRealPR_DryRun_Succeeds()
     {
+        // Skip if GH_TOKEN is not available
+        if (_prFixture.PRNumber == 0)
+        {
+            _testOutput.WriteLine("Skipping: GH_TOKEN not available or no suitable PR found");
+            return;
+        }
+
         using var env = new TestEnvironment();
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.sh", env, _testOutput, forceShowBuildOutput: true);
         
@@ -44,6 +51,13 @@ public class PRScriptIntegrationTests : IClassFixture<RealGitHubPRFixture>
     [Fact]
     public async Task PowerShellScript_WithRealPR_WhatIf_Succeeds()
     {
+        // Skip if GH_TOKEN is not available
+        if (_prFixture.PRNumber == 0)
+        {
+            _testOutput.WriteLine("Skipping: GH_TOKEN not available or no suitable PR found");
+            return;
+        }
+
         using var env = new TestEnvironment();
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput, forceShowBuildOutput: true);
         
@@ -60,6 +74,13 @@ public class PRScriptIntegrationTests : IClassFixture<RealGitHubPRFixture>
     [Fact]
     public async Task ShellScript_WithRealPR_DiscoverRunId_DryRun_Succeeds()
     {
+        // Skip if GH_TOKEN is not available
+        if (_prFixture.PRNumber == 0)
+        {
+            _testOutput.WriteLine("Skipping: GH_TOKEN not available or no suitable PR found");
+            return;
+        }
+
         using var env = new TestEnvironment();
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.sh", env, _testOutput, forceShowBuildOutput: true);
         
@@ -76,6 +97,13 @@ public class PRScriptIntegrationTests : IClassFixture<RealGitHubPRFixture>
     [Fact]
     public async Task PowerShellScript_WithRealPR_DiscoverRunId_WhatIf_Succeeds()
     {
+        // Skip if GH_TOKEN is not available
+        if (_prFixture.PRNumber == 0)
+        {
+            _testOutput.WriteLine("Skipping: GH_TOKEN not available or no suitable PR found");
+            return;
+        }
+
         using var env = new TestEnvironment();
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput, forceShowBuildOutput: true);
         
