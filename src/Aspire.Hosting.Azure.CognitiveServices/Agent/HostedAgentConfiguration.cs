@@ -42,11 +42,10 @@ public class HostedAgentConfiguration(string image)
     /// The protocols that the agent supports for ingress communication of the containers.
     /// </summary>
     public IList<ProtocolVersionRecord> ContainerProtocolVersions { get; init; } = [
-        new ProtocolVersionRecord(AgentCommunicationMethod.ActivityProtocol, "v1"),
         new ProtocolVersionRecord(AgentCommunicationMethod.Responses, "v1")
     ];
 
-    private decimal _cpu = 1.0m;
+    private decimal _cpu = 2.0m;
 
     /// <summary>
     /// CPU allocation for each hosted agent instance, in vCPU cores.
@@ -80,7 +79,7 @@ public class HostedAgentConfiguration(string image)
         {
             if (value < 1m || value > 7m || value % 0.5m != 0)
             {
-                throw new ArgumentException("Memory must be between 1 and 7 in increments of 0.5 GiB.", nameof(Memory));
+                throw new ArgumentException("Memory must be between 1 and 7 in increments of 0.5 Gi.", nameof(Memory));
             }
             _cpu = value / 2;
         }
@@ -108,9 +107,9 @@ public class HostedAgentConfiguration(string image)
     {
         var def = new ImageBasedHostedAgentDefinition(
             ContainerProtocolVersions,
-            Image,
-            CpuString,
-            MemoryString
+            cpu: CpuString,
+            memory: MemoryString,
+            image: Image
         );
         if (ContentFilterConfiguration is not null)
         {
