@@ -144,8 +144,8 @@ public class AzureAppServiceEnvironmentResource :
             var printSummarySteps = context.GetSteps(this, "print-summary");
             var fetchDashboardHostNameSteps = context.GetSteps(this, "fetch-dashboard-hostname");
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            fetchDashboardHostNameSteps.DependsOn(provisionSteps);
-            printSummarySteps.DependsOn(fetchDashboardHostNameSteps);
+            provisionSteps.DependsOn(fetchDashboardHostNameSteps);
+            printSummarySteps.DependsOn(provisionSteps);
         }));
     }
 
