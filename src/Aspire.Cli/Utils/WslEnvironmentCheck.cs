@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace Aspire.Cli.Utils;
 
@@ -103,9 +104,15 @@ internal sealed class WslEnvironmentCheck : IEnvironmentCheck
                 {
                     // Try to determine version based on kernel version
                     // WSL2 uses kernel 4.x or higher, WSL1 uses much older version strings
-                    if (version.Contains("4.") || version.Contains("5.") || version.Contains("6."))
+                    // Use regex to match actual kernel version numbers (e.g., "Linux version 4.19" or "Linux version 5.10")
+                    var kernelVersionMatch = Regex.Match(version, @"Linux\s+version\s+(\d+)\.", RegexOptions.IgnoreCase);
+                    if (kernelVersionMatch.Success && int.TryParse(kernelVersionMatch.Groups[1].Value, out int majorVersion))
                     {
-                        return 2;
+                        // WSL2 uses kernel 4.x or higher
+                        if (majorVersion >= 4)
+                        {
+                            return 2;
+                        }
                     }
                     return 1;
                 }
