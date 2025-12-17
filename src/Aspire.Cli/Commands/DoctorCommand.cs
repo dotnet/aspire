@@ -122,7 +122,8 @@ internal sealed class DoctorCommand : BaseCommand
     private void OutputCheckResult(EnvironmentCheckResult result)
     {
         var (icon, color) = GetStatusIconAndColor(result.Status);
-        _ansiConsole.MarkupLine($"  [{color}]{icon}[/] {result.Message.EscapeMarkup()}");
+        // Use 2 spaces after icon for consistent alignment (warning triangle is wider than checkmark)
+        _ansiConsole.MarkupLine($"  [{color}]{icon}[/]  {result.Message.EscapeMarkup()}");
 
         // Show fix suggestion if available
         if (!string.IsNullOrEmpty(result.Fix))
@@ -130,14 +131,14 @@ internal sealed class DoctorCommand : BaseCommand
             var fixLines = result.Fix.Split('\n', StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in fixLines)
             {
-                _ansiConsole.MarkupLine($"       [dim]{line.Trim().EscapeMarkup()}[/]");
+                _ansiConsole.MarkupLine($"        [dim]{line.Trim().EscapeMarkup()}[/]");
             }
         }
 
         // Show documentation link if available
         if (!string.IsNullOrEmpty(result.Link))
         {
-            _ansiConsole.MarkupLine($"       [dim]See: {result.Link.EscapeMarkup()}[/]");
+            _ansiConsole.MarkupLine($"        [dim]See: {result.Link.EscapeMarkup()}[/]");
         }
     }
 

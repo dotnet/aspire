@@ -74,8 +74,8 @@ internal sealed class DockerEngineCheck(ILogger<DockerEngineCheck> logger) : IEn
                 Category = "container",
                 Name = "docker-engine",
                 Status = EnvironmentCheckStatus.Warning,
-                Message = "Docker Engine requires Aspire tunnel for container access",
-                Fix = "Run: aspire config set tunnel.enabled true",
+                Message = "Docker Engine requires Aspire's container tunnel to allow containers to reach applications running on the host",
+                Fix = "Set environment variable: ASPIRE_ENABLE_CONTAINER_TUNNEL=true",
                 Link = "https://aka.ms/aspire-prerequisites#docker-engine"
             };
         }
