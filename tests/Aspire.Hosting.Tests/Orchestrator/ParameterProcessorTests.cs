@@ -969,6 +969,76 @@ public class ParameterProcessorTests
         Assert.True(notificationCancellationToken.IsCancellationRequested);
     }
 
+    [Fact]
+    public async Task SetParameterAsync_CalledTwice_SecondInteractionShowsPreviousValueAndSaveChecked()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService { IsAvailable = true };
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var capturingStateManager = new CapturingMockDeploymentStateManager();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService,
+            deploymentStateManager: capturingStateManager);
+
+        var parameter = CreateParameterWithMissingValue("testParam");
+
+        // Initialize the parameter - this starts HandleUnresolvedParametersAsync in background
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
+
+        // Wait for the notification to appear from the background task
+        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+        Assert.Equal(InteractionStrings.ParametersBarTitle, notificationInteraction.Title);
+
+        // First SetParameterAsync call - set and save a value
+        var firstSetValueTask = Task.Run(async () =>
+        {
+            await parameterProcessor.SetParameterAsync(parameter);
+        });
+
+        // Wait for the first input dialog
+        var firstInputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+        Assert.Equal(InteractionStrings.SetParameterTitle, firstInputInteraction.Title);
+
+        // First time: no saved state, so RememberParameters should be null/unchecked
+        Assert.Null(firstInputInteraction.Inputs["RememberParameters"].Value);
+
+        // Set the value and enable save
+        firstInputInteraction.Inputs["testParam"].Value = "firstValue";
+        firstInputInteraction.Inputs["RememberParameters"].Value = "true";
+        firstInputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(firstInputInteraction.Inputs));
+
+        await firstSetValueTask.DefaultTimeout();
+
+        // Verify first value was set
+        Assert.Equal("firstValue", await parameter.GetValueAsync(CancellationToken.None).DefaultTimeout());
+
+        // Second SetParameterAsync call - should show previously set value
+        var secondSetValueTask = Task.Run(async () =>
+        {
+            await parameterProcessor.SetParameterAsync(parameter);
+        });
+
+        // Wait for the second input dialog
+        var secondInputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+        Assert.Equal(InteractionStrings.SetParameterTitle, secondInputInteraction.Title);
+
+        // Assert - Second interaction should have the previously set value pre-populated
+        Assert.Equal("firstValue", secondInputInteraction.Inputs["testParam"].Value);
+
+        // Assert - RememberParameters should be checked (true) since parameter has saved state
+        Assert.Equal("true", secondInputInteraction.Inputs["RememberParameters"].Value);
+
+        // Complete the second interaction with a new value
+        secondInputInteraction.Inputs["testParam"].Value = "secondValue";
+        secondInputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(secondInputInteraction.Inputs));
+
+        await secondSetValueTask.DefaultTimeout();
+
+        // Verify second value was set
+        Assert.Equal("secondValue", await parameter.GetValueAsync(CancellationToken.None).DefaultTimeout());
+    }
+
     private static ParameterProcessor CreateParameterProcessor(
         ResourceNotificationService? notificationService = null,
         ResourceLoggerService? loggerService = null,

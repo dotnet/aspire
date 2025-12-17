@@ -115,7 +115,6 @@ public sealed class ParameterProcessor(
 
             await ProcessResourceDependenciesAsync(resource, executionContext, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
         }
-
     }
 
     private async Task ProcessResourceDependenciesAsync(IResource resource, DistributedApplicationExecutionContext executionContext, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
@@ -250,14 +249,12 @@ public sealed class ParameterProcessor(
         var input = parameterResource.CreateInput();
 
         // Pre-populate input with existing value if the parameter has one
-        var hasExistingValue = false;
         try
         {
             var existingValue = parameterResource.ValueInternal;
             if (!string.IsNullOrEmpty(existingValue))
             {
                 input.Value = existingValue;
-                hasExistingValue = true;
             }
         }
         catch (MissingParameterValueException)
@@ -265,7 +262,9 @@ public sealed class ParameterProcessor(
             // No existing value, leave input empty
         }
 
-        var saveParameterInput = CreateSaveParameterInput(hasExistingValue);
+        var parameterSection = await deploymentStateManager.AcquireSectionAsync(parameterResource.ConfigurationKey, cancellationToken).ConfigureAwait(false);
+        var hasSavedState = parameterSection.Data.Count > 0;
+        var saveParameterInput = CreateSaveParameterInput(hasSavedState);
 
         var result = await interactionService.PromptInputsAsync(
             InteractionStrings.SetParameterTitle,
@@ -277,8 +276,7 @@ public sealed class ParameterProcessor(
                 ShowDismiss = true,
                 EnableMessageMarkdown = true,
             },
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
         if (result.Canceled || string.IsNullOrEmpty(input.Value))
         {
@@ -310,6 +308,12 @@ public sealed class ParameterProcessor(
     private async Task ApplyParameterValueAsync(ParameterResource parameterResource, string inputValue, bool saveToDeploymentState, CancellationToken cancellationToken = default)
     {
         // Update the parameter resource with the new value.
+        // The parameter could already have a value set so recreate TCS in that situation.
+        if (parameterResource.WaitForValueTcs?.Task.IsCompleted ?? false)
+        {
+            parameterResource.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
         parameterResource.WaitForValueTcs?.TrySetResult(inputValue);
 
         await notificationService.PublishUpdateAsync(parameterResource, s =>
