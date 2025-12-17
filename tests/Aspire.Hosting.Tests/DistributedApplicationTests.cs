@@ -1857,7 +1857,7 @@ public class DistributedApplicationTests
         {
             using var logStream = await kubernetes.GetLogStreamAsync(worker, Logs.StreamTypeStdOut, logCts.Token, follow: true, timestamps: true);
             Assert.NotNull(logStream);
-            await ensureLogLines(logStream, logCts.Token, minimumLines);
+            await EnsureLogLines(logStream, logCts.Token, minimumLines);
         }
 
         // Now we know the worker produced at least "minimumLines" lines
@@ -1873,7 +1873,7 @@ public class DistributedApplicationTests
             Assert.NotNull(logStream);
 
             long expectedLineNumber = 1 + skip; // Line numbers are 1-based
-            await ensureLogLines(logStream, logCts.Token, limit, (long n) => expectedLineNumber++ == n);
+            await EnsureLogLines(logStream, logCts.Token, limit, (long n) => expectedLineNumber++ == n);
         }
 
         using (var logCts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource(TestConstants.DefaultOrchestratorTestTimeout))
@@ -1887,13 +1887,13 @@ public class DistributedApplicationTests
 
             // Since we have at least "minimumLines" lines, the last two should have numbers that start at at least minimumLines - (tail size).
             long minimumLineNumber = minimumLines - tail;
-            await ensureLogLines(logStream, logCts.Token, tail, (long n) => n >= minimumLineNumber++);
+            await EnsureLogLines(logStream, logCts.Token, tail, (long n) => n >= minimumLineNumber++);
         }
 
         await app.StopAsync(token).DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
-     private static async Task ensureLogLines(Stream stream, CancellationToken ct, long nlines, Func<long, bool>? validateLineNumber = default)
+    private static async Task EnsureLogLines(Stream stream, CancellationToken ct, long nlines, Func<long, bool>? validateLineNumber = default)
     {
         using var reader = new StreamReader(stream);
 
