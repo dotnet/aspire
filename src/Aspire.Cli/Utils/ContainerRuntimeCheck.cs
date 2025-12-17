@@ -18,13 +18,13 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
         try
         {
             // Try Docker first, then Podman
-            var dockerCheck = await CheckSpecificContainerRuntimeAsync("docker", cancellationToken);
+            var dockerCheck = await CheckSpecificContainerRuntimeAsync("Docker", cancellationToken);
             if (dockerCheck.Status == EnvironmentCheckStatus.Pass)
             {
                 return dockerCheck;
             }
 
-            var podmanCheck = await CheckSpecificContainerRuntimeAsync("podman", cancellationToken);
+            var podmanCheck = await CheckSpecificContainerRuntimeAsync("Podman", cancellationToken);
             if (podmanCheck.Status == EnvironmentCheckStatus.Pass)
             {
                 return podmanCheck;
@@ -71,10 +71,11 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
     {
         try
         {
-            // Check if runtime is installed
+            // Check if runtime is installed (use lowercase for process name)
+            var runtimeLower = runtime.ToLowerInvariant();
             var versionProcessInfo = new ProcessStartInfo
             {
-                FileName = runtime,
+                FileName = runtimeLower,
                 Arguments = "--version",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -112,7 +113,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
             // Runtime is installed, check if it's running
             var psProcessInfo = new ProcessStartInfo
             {
-                FileName = runtime,
+                FileName = runtimeLower,
                 Arguments = "ps",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -173,20 +174,20 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
 
     private static string GetContainerRuntimeInstallationLink(string runtime)
     {
-        return runtime.ToLowerInvariant() switch
+        return runtime switch
         {
-            "docker" => "Install Docker Desktop from: https://www.docker.com/products/docker-desktop",
-            "podman" => "Install Podman from: https://podman.io/getting-started/installation",
+            "Docker" => "Install Docker Desktop from: https://www.docker.com/products/docker-desktop",
+            "Podman" => "Install Podman from: https://podman.io/getting-started/installation",
             _ => $"Install {runtime}"
         };
     }
 
     private static string GetContainerRuntimeStartupAdvice(string runtime)
     {
-        return runtime.ToLowerInvariant() switch
+        return runtime switch
         {
-            "docker" => "Start Docker Desktop or Docker daemon",
-            "podman" => "Start Podman service: sudo systemctl start podman",
+            "Docker" => "Start Docker Desktop or Docker daemon",
+            "Podman" => "Start Podman service: sudo systemctl start podman",
             _ => $"Start {runtime} daemon"
         };
     }

@@ -68,7 +68,20 @@ internal sealed class DockerEngineCheck(ILogger<DockerEngineCheck> logger) : IEn
                 };
             }
 
-            // Docker Engine detected - warn about tunnel requirement
+            // Docker Engine detected - check if tunnel is already enabled
+            var tunnelEnabled = Environment.GetEnvironmentVariable("ASPIRE_ENABLE_CONTAINER_TUNNEL");
+            if (string.Equals(tunnelEnabled, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                return new EnvironmentCheckResult
+                {
+                    Category = "container",
+                    Name = "docker-engine",
+                    Status = EnvironmentCheckStatus.Pass,
+                    Message = "Docker Engine with container tunnel enabled"
+                };
+            }
+
+            // Warn about tunnel requirement
             return new EnvironmentCheckResult
             {
                 Category = "container",
