@@ -56,17 +56,22 @@ public class AzureAppServiceEnvironmentResource :
                 Action = async ctx =>
                 {
                     ctx.ReportingStep.Log(LogLevel.Information, $"Fetching website suffix", false);
-                    var websiteSuffix = await WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
-                    var websiteName = $"{EnvironmentPrefix.ToLowerInvariant()}-{AzureAppServiceEnvironmentUtility.ResourceName}-{websiteSuffix?.ToLowerInvariant()}";
+                    var websiteNameSuffix = await WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    var websiteName = $"{EnvironmentPrefix.ToLowerInvariant()}-{AzureAppServiceEnvironmentUtility.ResourceName}-{websiteNameSuffix?.ToLowerInvariant()}";
+                    int maxLength = EnableRegionalDnlHostName
+                        ? AzureAppServiceWebSiteResource.MaxWebsiteNameLengthWithDnl
+                        : AzureAppServiceWebSiteResource.MaxWebsiteNameLength;
+
+                    if (websiteName.Length > maxLength)
+                    {
+                        websiteName = websiteName.Substring(0, maxLength);
+                    }
 
                     ctx.ReportingStep.Log(LogLevel.Information, $"Fetching host name for dashboard website: {websiteName}", false);
 
                     var hostName = await AzureAppServiceWebSiteResource.GetDnlHostNameAsync(websiteName, "Site", ctx).ConfigureAwait(false);
 
-                    if (hostName is not null)
-                    {
-                        AzureAppServiceEnvironmentUtility.SetDashboardHostName(hostName);
-                    }
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Fetched host name for dashboard website: {hostName}", false);
                 },
                 Tags = ["fetch-dashboard-hostname"],
                 DependsOnSteps = new List<string> { "create-provisioning-context" },
@@ -143,9 +148,9 @@ public class AzureAppServiceEnvironmentResource :
 
             // Make print-summary step depend on provisioning of this environment
             var printSummarySteps = context.GetSteps(this, "print-summary");
-            // var fetchDashboardHostNameSteps = context.GetSteps(this, "fetch-dashboard-hostname");
+            var fetchDashboardHostNameSteps = context.GetSteps(this, "fetch-dashboard-hostname");
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            // provisionSteps.DependsOn(fetchDashboardHostNameSteps);
+            fetchDashboardHostNameSteps.DependsOn(provisionSteps);
             printSummarySteps.DependsOn(provisionSteps);
         }));
     }
