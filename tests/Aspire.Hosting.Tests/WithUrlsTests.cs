@@ -844,7 +844,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var project = builder.AddProject<ProjectB>("project")
+        var project = builder.AddProject<ProjectB>("project", launchProfileName: "http")
             // Update the URL from the launch profile
             .WithUrlForEndpoint("http", url =>
             {
