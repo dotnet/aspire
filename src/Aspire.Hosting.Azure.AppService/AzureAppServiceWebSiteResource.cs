@@ -240,7 +240,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             // Ensure website existence check and resource update steps run before provision
             var checkWebsiteExistsSteps = context.GetSteps(this, "check-website-exists");
             var updateWebsiteResourceSteps = context.GetSteps(this, "update-website-provisionable-resource");
+            var fetchWebsiteHostNameSteps = context.GetSteps(this, "fetch-website-hostname");
+            provisionSteps.DependsOn(fetchWebsiteHostNameSteps);
             updateWebsiteResourceSteps.DependsOn(checkWebsiteExistsSteps);
+            updateWebsiteResourceSteps.DependsOn(fetchWebsiteHostNameSteps);
             provisionSteps.DependsOn(updateWebsiteResourceSteps);
 
             // Ensure summary step runs after provision

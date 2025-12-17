@@ -67,7 +67,7 @@ public class AzureAppServiceEnvironmentResource :
                         AzureAppServiceEnvironmentUtility.SetDashboardHostName(hostName);
                     }
                 },
-                Tags = ["fetch-website-hostname"],
+                Tags = ["fetch-dashboard-hostname"],
                 DependsOnSteps = new List<string> { "create-provisioning-context" },
             };
 
