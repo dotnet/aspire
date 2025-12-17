@@ -544,9 +544,14 @@ public static class PythonAppResourceBuilderExtensions
     private static void GenerateUvDockerfile(DockerfileBuilderCallbackContext context, PythonAppResource resource,
         string pythonVersion, EntrypointType entrypointType, string entrypoint)
     {
-        // Check if uv.lock exists in the working directory
+        // Check which dependency files exist in the working directory
         var uvLockPath = Path.Combine(resource.WorkingDirectory, "uv.lock");
+        var pyprojectTomlPath = Path.Combine(resource.WorkingDirectory, "pyproject.toml");
+        var requirementsTxtPath = Path.Combine(resource.WorkingDirectory, "requirements.txt");
+        
         var hasUvLock = File.Exists(uvLockPath);
+        var hasPyprojectToml = File.Exists(pyprojectTomlPath);
+        var hasRequirementsTxt = File.Exists(requirementsTxtPath);
 
         // Get custom base images from annotation, if present
         context.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out var baseImageAnnotation);
@@ -581,9 +586,9 @@ public static class PythonAppResourceBuilderExtensions
                     "uv sync --locked --no-dev",
                     "type=cache,target=/root/.cache/uv");
         }
-        else
+        else if (hasPyprojectToml)
         {
-            // If uv.lock doesn't exist, copy pyproject.toml and generate lock file
+            // If uv.lock doesn't exist but pyproject.toml does, copy pyproject.toml and generate lock file
             builderStage
                 .Comment("Copy pyproject.toml to install dependencies")
                 .Copy("pyproject.toml", "/app/")
@@ -599,6 +604,32 @@ public static class PythonAppResourceBuilderExtensions
                 .RunWithMounts(
                     "uv sync --no-dev",
                     "type=cache,target=/root/.cache/uv");
+        }
+        else if (hasRequirementsTxt)
+        {
+            // If only requirements.txt exists, use uv pip install
+            builderStage
+                .Comment("Copy requirements.txt to install dependencies")
+                .Copy("requirements.txt", "/app/")
+                .EmptyLine()
+                .Comment("Create virtual environment and install dependencies")
+                .Comment("Uses BuildKit cache mount to speed up repeated builds")
+                .RunWithMounts(
+                    "uv venv && uv pip install -r requirements.txt",
+                    "type=cache,target=/root/.cache/uv")
+                .EmptyLine()
+                .Comment("Copy the rest of the application source")
+                .Copy(".", "/app");
+        }
+        else
+        {
+            // No dependency files found - just copy the application
+            builderStage
+                .Comment("No dependency files found, creating empty virtual environment")
+                .Run("uv venv")
+                .EmptyLine()
+                .Comment("Copy the application source")
+                .Copy(".", "/app");
         }
 
         var logger = context.Services.GetService<ILogger<PythonAppResource>>();
@@ -1211,30 +1242,48 @@ public static class PythonAppResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="install">When true (default), automatically runs uv sync before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
-    /// <param name="args">Optional custom arguments to pass to the uv command. If not provided, defaults to ["sync"].</param>
+    /// <param name="install">When true (default), automatically runs the appropriate uv command before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
+    /// <param name="args">Optional custom arguments to pass to the uv command. If not provided, defaults are chosen based on which dependency files exist in the project.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
     /// <remarks>
     /// <para>
-    /// This method creates a child resource that runs <c>uv sync</c> in the working directory of the Python application.
+    /// This method creates a child resource that runs the appropriate UV command in the working directory of the Python application.
     /// The Python application will wait for this resource to complete successfully before starting.
     /// </para>
     /// <para>
     /// UV (https://github.com/astral-sh/uv) is a modern Python package manager written in Rust that can manage virtual environments
-    /// and dependencies with significantly faster performance than traditional tools. The <c>uv sync</c> command ensures that the virtual
-    /// environment exists, Python is installed if needed, and all dependencies specified in pyproject.toml are installed and synchronized.
+    /// and dependencies with significantly faster performance than traditional tools.
+    /// </para>
+    /// <para>
+    /// The method automatically detects which dependency files exist in your project:
+    /// <list type="bullet">
+    /// <item>If <c>pyproject.toml</c> exists, it uses <c>uv sync</c> to install dependencies from the project definition.</item>
+    /// <item>If only <c>requirements.txt</c> exists (no <c>pyproject.toml</c>), it uses <c>uv pip install -r requirements.txt</c>.</item>
+    /// </list>
     /// </para>
     /// <para>
     /// Calling this method will replace any previously configured package manager (such as pip).
     /// </para>
     /// </remarks>
     /// <example>
-    /// Add a Python app with automatic UV environment setup:
+    /// Add a Python app with automatic UV environment setup (pyproject.toml):
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var python = builder.AddPythonScript("api", "../python-api", "main.py")
-    ///     .WithUv()  // Automatically runs 'uv sync' before starting the app
+    ///     .WithUv()  // Automatically runs 'uv sync' if pyproject.toml exists
+    ///     .WithHttpEndpoint(port: 5000);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Add a Python app with requirements.txt:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var python = builder.AddPythonScript("api", "../python-api", "main.py")
+    ///     .WithUv()  // Automatically runs 'uv pip install -r requirements.txt' if only requirements.txt exists
     ///     .WithHttpEndpoint(port: 5000);
     ///
     /// builder.Build().Run();
@@ -1261,8 +1310,24 @@ public static class PythonAppResourceBuilderExtensions
         // Register UV validation service
         builder.ApplicationBuilder.Services.TryAddSingleton<UvInstallationManager>();
 
-        // Default args: sync only (uv will auto-detect Python and dependencies from pyproject.toml)
-        args ??= ["sync"];
+        // Determine default args based on which dependency files exist
+        if (args is null)
+        {
+            var workingDirectory = builder.Resource.WorkingDirectory;
+            var hasPyprojectToml = File.Exists(Path.Combine(workingDirectory, "pyproject.toml"));
+            var hasRequirementsTxt = File.Exists(Path.Combine(workingDirectory, "requirements.txt"));
+
+            if (!hasPyprojectToml && hasRequirementsTxt)
+            {
+                // Use uv pip install for requirements.txt only projects
+                args = ["pip", "install", "-r", "requirements.txt"];
+            }
+            else
+            {
+                // Default to uv sync (works with pyproject.toml)
+                args = ["sync"];
+            }
+        }
 
         builder
             .WithAnnotation(new PythonPackageManagerAnnotation("uv"), ResourceAnnotationMutationBehavior.Replace)
