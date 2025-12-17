@@ -27,7 +27,14 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{dbsetup.bindings.http.targetPort}",
-        "ConnectionStrings__db": "{db.connectionString}"
+        "ConnectionStrings__db": "{db.connectionString}",
+        "DB_HOST": "{pg.outputs.hostName}",
+        "DB_PORT": "5432",
+        "DB_URI": "postgresql://{pg-username.value}:{pg-password.value}@{pg.outputs.hostName}/db",
+        "DB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{pg.outputs.hostName}/db?sslmode=require\u0026authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin",
+        "DB_USERNAME": "{pg-username.value}",
+        "DB_PASSWORD": "{pg-password.value}",
+        "DB_DATABASENAME": "db"
       },
       "bindings": {
         "http": {
@@ -49,7 +56,14 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
-        "ConnectionStrings__db": "{db.connectionString}"
+        "ConnectionStrings__db": "{db.connectionString}",
+        "DB_HOST": "{pg.outputs.hostName}",
+        "DB_PORT": "5432",
+        "DB_URI": "postgresql://{pg-username.value}:{pg-password.value}@{pg.outputs.hostName}/db",
+        "DB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{pg.outputs.hostName}/db?sslmode=require\u0026authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin",
+        "DB_USERNAME": "{pg-username.value}",
+        "DB_PASSWORD": "{pg-password.value}",
+        "DB_DATABASENAME": "db"
       },
       "bindings": {
         "http": {
@@ -116,6 +130,11 @@
         }
       }
     },
+    "pg-username-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{pg-username.value}",
+      "filter": "uri"
+    },
     "pg-password": {
       "type": "parameter.v0",
       "value": "{pg-password.inputs.value}",
@@ -130,6 +149,11 @@
           }
         }
       }
+    },
+    "pg-password-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{pg-password.value}",
+      "filter": "uri"
     }
   }
 }

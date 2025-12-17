@@ -51,6 +51,14 @@ resource worker 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: '${kusto_outputs_clusteruri};Initial Catalog=testdb'
             }
             {
+              name: 'TESTDB_URI'
+              value: kusto_outputs_clusteruri
+            }
+            {
+              name: 'TESTDB_DATABASENAME'
+              value: 'testdb'
+            }
+            {
               name: 'AZURE_CLIENT_ID'
               value: worker_identity_outputs_clientid
             }
