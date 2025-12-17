@@ -13,7 +13,7 @@ internal sealed class DotNetSdkCheck(IDotNetSdkInstaller sdkInstaller, ILogger<D
 {
     public int Order => 30; // File system check - slightly more expensive
 
-    public async Task<EnvironmentCheckResult> CheckAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<EnvironmentCheckResult>> CheckAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -21,40 +21,47 @@ internal sealed class DotNetSdkCheck(IDotNetSdkInstaller sdkInstaller, ILogger<D
 
             if (!success)
             {
-                return new EnvironmentCheckResult
+                // Parse major version from string like "10.0.100" -> 10
+                var majorVersion = 10;
+                if (Version.TryParse(minimumRequiredVersion, out var parsedVersion))
+                {
+                    majorVersion = parsedVersion.Major;
+                }
+
+                return [new EnvironmentCheckResult
                 {
                     Category = "sdk",
                     Name = "dotnet-sdk",
                     Status = EnvironmentCheckStatus.Fail,
-                    Message = highestVersion is null 
-                        ? ".NET SDK not found" 
+                    Message = highestVersion is null
+                        ? ".NET SDK not found"
                         : $".NET {highestVersion} found but {minimumRequiredVersion} or higher required",
-                    Fix = $"Download .NET SDK from: https://dotnet.microsoft.com/download/dotnet/10.0",
-                    Link = "https://dotnet.microsoft.com/download/dotnet/10.0"
-                };
+                    Fix = $"Download .NET SDK from: https://dotnet.microsoft.com/download/dotnet/{majorVersion}.0",
+                    Link = $"https://dotnet.microsoft.com/download/dotnet/{majorVersion}.0"
+                }];
             }
 
             var architecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
 
-            return new EnvironmentCheckResult
+            return [new EnvironmentCheckResult
             {
                 Category = "sdk",
                 Name = "dotnet-sdk",
                 Status = EnvironmentCheckStatus.Pass,
                 Message = $".NET {highestVersion} installed ({architecture})"
-            };
+            }];
         }
         catch (Exception ex)
         {
             logger.LogDebug(ex, "Error checking .NET SDK");
-            return new EnvironmentCheckResult
+            return [new EnvironmentCheckResult
             {
                 Category = "sdk",
                 Name = "dotnet-sdk",
                 Status = EnvironmentCheckStatus.Fail,
                 Message = "Error checking .NET SDK",
                 Details = ex.Message
-            };
+            }];
         }
     }
 }

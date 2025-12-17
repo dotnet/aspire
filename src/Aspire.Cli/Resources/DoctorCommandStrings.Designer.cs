@@ -78,15 +78,6 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Attempt to automatically fix issues where possible.
-        /// </summary>
-        public static string FixOptionDescription {
-            get {
-                return ResourceManager.GetString("FixOptionDescription", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Aspire Environment Check.
         /// </summary>
         public static string EnvironmentCheckHeader {

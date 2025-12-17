@@ -17,6 +17,6 @@ internal interface IEnvironmentCheck
     /// Executes the environment check.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A task that returns the check result.</returns>
-    Task<EnvironmentCheckResult> CheckAsync(CancellationToken cancellationToken = default);
+    /// <returns>A task that returns the check results. May return an empty list if the check should be skipped.</returns>
+    Task<IReadOnlyList<EnvironmentCheckResult>> CheckAsync(CancellationToken cancellationToken = default);
 }

@@ -11,9 +11,11 @@ namespace Aspire.Cli.Utils;
 /// </summary>
 internal sealed class DockerEngineCheck(ILogger<DockerEngineCheck> logger) : IEnvironmentCheck
 {
+    private static readonly TimeSpan s_processTimeout = TimeSpan.FromSeconds(10);
+
     public int Order => 50; // Process check - more expensive, runs after container runtime check
 
-    public async Task<EnvironmentCheckResult> CheckAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<EnvironmentCheckResult>> CheckAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -31,58 +33,57 @@ internal sealed class DockerEngineCheck(ILogger<DockerEngineCheck> logger) : IEn
             using var process = Process.Start(processInfo);
             if (process is null)
             {
-                // Docker not available, skip this check
-                return new EnvironmentCheckResult
-                {
-                    Category = "container",
-                    Name = "docker-engine",
-                    Status = EnvironmentCheckStatus.Pass,
-                    Message = "Docker not detected (check skipped)"
-                };
+                // Docker not available, skip this check (ContainerRuntimeCheck handles this case)
+                return [];
             }
 
-            await process.WaitForExitAsync(cancellationToken);
-            
+            using var versionTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            versionTimeoutCts.CancelAfter(s_processTimeout);
+
+            try
+            {
+                await process.WaitForExitAsync(versionTimeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                process.Kill();
+                return []; // Timeout, skip this check
+            }
+
             if (process.ExitCode != 0)
             {
-                // Docker not available, skip this check
-                return new EnvironmentCheckResult
-                {
-                    Category = "container",
-                    Name = "docker-engine",
-                    Status = EnvironmentCheckStatus.Pass,
-                    Message = "Docker not detected (check skipped)"
-                };
+                // Docker not available, skip this check (ContainerRuntimeCheck handles this case)
+                return [];
             }
 
             var isDockerDesktop = await IsDockerDesktopAsync(cancellationToken);
 
             if (isDockerDesktop)
             {
-                return new EnvironmentCheckResult
+                return [new EnvironmentCheckResult
                 {
                     Category = "container",
                     Name = "docker-engine",
                     Status = EnvironmentCheckStatus.Pass,
                     Message = "Docker Desktop detected"
-                };
+                }];
             }
 
             // Docker Engine detected - check if tunnel is already enabled
             var tunnelEnabled = Environment.GetEnvironmentVariable("ASPIRE_ENABLE_CONTAINER_TUNNEL");
             if (string.Equals(tunnelEnabled, "true", StringComparison.OrdinalIgnoreCase))
             {
-                return new EnvironmentCheckResult
+                return [new EnvironmentCheckResult
                 {
                     Category = "container",
                     Name = "docker-engine",
                     Status = EnvironmentCheckStatus.Pass,
                     Message = "Docker Engine with container tunnel enabled"
-                };
+                }];
             }
 
             // Warn about tunnel requirement
-            return new EnvironmentCheckResult
+            return [new EnvironmentCheckResult
             {
                 Category = "container",
                 Name = "docker-engine",
@@ -90,19 +91,13 @@ internal sealed class DockerEngineCheck(ILogger<DockerEngineCheck> logger) : IEn
                 Message = "Docker Engine requires Aspire's container tunnel to allow containers to reach applications running on the host",
                 Fix = "Set environment variable: ASPIRE_ENABLE_CONTAINER_TUNNEL=true",
                 Link = "https://aka.ms/aspire-prerequisites#docker-engine"
-            };
+            }];
         }
         catch (Exception ex)
         {
             logger.LogDebug(ex, "Error checking Docker Engine");
-            return new EnvironmentCheckResult
-            {
-                Category = "container",
-                Name = "docker-engine",
-                Status = EnvironmentCheckStatus.Pass,
-                Message = "Docker Engine check skipped",
-                Details = ex.Message
-            };
+            // Skip this check on error (ContainerRuntimeCheck handles container availability)
+            return [];
         }
     }
 
@@ -127,11 +122,22 @@ internal sealed class DockerEngineCheck(ILogger<DockerEngineCheck> logger) : IEn
                 return false;
             }
 
-            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(s_processTimeout);
 
-            // Docker Desktop context usually contains "desktop" in the name or endpoint
-            return output.Contains("desktop", StringComparison.OrdinalIgnoreCase);
+            try
+            {
+                var output = await process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
+                await process.WaitForExitAsync(timeoutCts.Token);
+
+                // Docker Desktop context usually contains "desktop" in the name or endpoint
+                return output.Contains("desktop", StringComparison.OrdinalIgnoreCase);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                process.Kill();
+                return false; // Timeout, assume not Docker Desktop
+            }
         }
         catch
         {

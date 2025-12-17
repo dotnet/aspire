@@ -13,19 +13,13 @@ internal sealed class WslEnvironmentCheck : IEnvironmentCheck
 {
     public int Order => 20; // Fast check - file system reads
 
-    public Task<EnvironmentCheckResult> CheckAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<EnvironmentCheckResult>> CheckAsync(CancellationToken cancellationToken = default)
     {
-        // WSL detection
+        // WSL detection only relevant on Linux
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            // Not running on Linux, so not WSL
-            return Task.FromResult(new EnvironmentCheckResult
-            {
-                Category = "environment",
-                Name = "wsl",
-                Status = EnvironmentCheckStatus.Pass,
-                Message = "Not running in WSL"
-            });
+            // Not running on Linux, nothing to check
+            return Task.FromResult<IReadOnlyList<EnvironmentCheckResult>>([]);
         }
 
         // Check for WSL-specific environment indicators
@@ -33,13 +27,8 @@ internal sealed class WslEnvironmentCheck : IEnvironmentCheck
 
         if (!isWsl)
         {
-            return Task.FromResult(new EnvironmentCheckResult
-            {
-                Category = "environment",
-                Name = "wsl",
-                Status = EnvironmentCheckStatus.Pass,
-                Message = "Not running in WSL"
-            });
+            // Running on native Linux, nothing to check
+            return Task.FromResult<IReadOnlyList<EnvironmentCheckResult>>([]);
         }
 
         // Detect WSL version
@@ -47,7 +36,7 @@ internal sealed class WslEnvironmentCheck : IEnvironmentCheck
 
         if (wslVersion == 1)
         {
-            return Task.FromResult(new EnvironmentCheckResult
+            return Task.FromResult<IReadOnlyList<EnvironmentCheckResult>>([new EnvironmentCheckResult
             {
                 Category = "environment",
                 Name = "wsl",
@@ -55,18 +44,18 @@ internal sealed class WslEnvironmentCheck : IEnvironmentCheck
                 Message = "WSL1 detected - limited container support",
                 Fix = "Upgrade to WSL2 for best experience: wsl --set-version <distro> 2",
                 Link = "https://aka.ms/aspire-prerequisites#wsl-setup"
-            });
+            }]);
         }
 
         // WSL2 detected - just informational, not a warning unless there are known issues
-        return Task.FromResult(new EnvironmentCheckResult
+        return Task.FromResult<IReadOnlyList<EnvironmentCheckResult>>([new EnvironmentCheckResult
         {
             Category = "environment",
             Name = "wsl",
             Status = EnvironmentCheckStatus.Pass,
             Message = "WSL2 environment detected",
             Details = "If you experience container connectivity issues, ensure Docker Desktop WSL integration is enabled."
-        });
+        }]);
     }
 
     private static bool IsRunningInWsl()

@@ -11,9 +11,11 @@ namespace Aspire.Cli.Utils;
 /// </summary>
 internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logger) : IEnvironmentCheck
 {
+    private static readonly TimeSpan s_processTimeout = TimeSpan.FromSeconds(10);
+
     public int Order => 40; // Process check - more expensive
 
-    public async Task<EnvironmentCheckResult> CheckAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<EnvironmentCheckResult>> CheckAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -21,29 +23,29 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
             var dockerCheck = await CheckSpecificContainerRuntimeAsync("Docker", cancellationToken);
             if (dockerCheck.Status == EnvironmentCheckStatus.Pass)
             {
-                return dockerCheck;
+                return [dockerCheck];
             }
 
             var podmanCheck = await CheckSpecificContainerRuntimeAsync("Podman", cancellationToken);
             if (podmanCheck.Status == EnvironmentCheckStatus.Pass)
             {
-                return podmanCheck;
+                return [podmanCheck];
             }
 
             // If Docker is installed but not running, prefer showing that error
             if (dockerCheck.Status == EnvironmentCheckStatus.Warning)
             {
-                return dockerCheck;
+                return [dockerCheck];
             }
 
             // If Podman is installed but not running, show that
             if (podmanCheck.Status == EnvironmentCheckStatus.Warning)
             {
-                return podmanCheck;
+                return [podmanCheck];
             }
 
             // Neither found
-            return new EnvironmentCheckResult
+            return [new EnvironmentCheckResult
             {
                 Category = "container",
                 Name = "container-runtime",
@@ -51,19 +53,19 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
                 Message = "No container runtime detected",
                 Fix = "Install Docker Desktop: https://www.docker.com/products/docker-desktop or Podman: https://podman.io/getting-started/installation",
                 Link = "https://aka.ms/dotnet/aspire/containers"
-            };
+            }];
         }
         catch (Exception ex)
         {
             logger.LogDebug(ex, "Error checking container runtime");
-            return new EnvironmentCheckResult
+            return [new EnvironmentCheckResult
             {
                 Category = "container",
                 Name = "container-runtime",
                 Status = EnvironmentCheckStatus.Fail,
                 Message = "Failed to check container runtime",
                 Details = ex.Message
-            };
+            }];
         }
     }
 
@@ -95,7 +97,26 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
                 };
             }
 
-            await versionProcess.WaitForExitAsync(cancellationToken);
+            using var versionTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            versionTimeoutCts.CancelAfter(s_processTimeout);
+
+            try
+            {
+                await versionProcess.WaitForExitAsync(versionTimeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                versionProcess.Kill();
+                return new EnvironmentCheckResult
+                {
+                    Category = "container",
+                    Name = "container-runtime",
+                    Status = EnvironmentCheckStatus.Warning,
+                    Message = $"{runtime} check timed out",
+                    Fix = GetContainerRuntimeStartupAdvice(runtime),
+                    Link = "https://aka.ms/dotnet/aspire/containers"
+                };
+            }
 
             if (versionProcess.ExitCode != 0)
             {
@@ -135,7 +156,26 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
                 };
             }
 
-            await psProcess.WaitForExitAsync(cancellationToken);
+            using var psTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            psTimeoutCts.CancelAfter(s_processTimeout);
+
+            try
+            {
+                await psProcess.WaitForExitAsync(psTimeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                psProcess.Kill();
+                return new EnvironmentCheckResult
+                {
+                    Category = "container",
+                    Name = "container-runtime",
+                    Status = EnvironmentCheckStatus.Warning,
+                    Message = $"{runtime} daemon not responding",
+                    Fix = GetContainerRuntimeStartupAdvice(runtime),
+                    Link = "https://aka.ms/dotnet/aspire/containers"
+                };
+            }
 
             if (psProcess.ExitCode != 0)
             {

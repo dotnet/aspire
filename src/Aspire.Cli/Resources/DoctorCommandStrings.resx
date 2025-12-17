@@ -64,9 +64,6 @@
   <data name="JsonOptionDescription" xml:space="preserve">
     <value>Output results as JSON for tooling integration</value>
   </data>
-  <data name="FixOptionDescription" xml:space="preserve">
-    <value>Attempt to automatically fix issues where possible</value>
-  </data>
   <data name="EnvironmentCheckHeader" xml:space="preserve">
     <value>Aspire Environment Check</value>
   </data>

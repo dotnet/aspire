@@ -32,11 +32,6 @@
         <target state="new">Aspire Environment Check</target>
         <note />
       </trans-unit>
-      <trans-unit id="FixOptionDescription">
-        <source>Attempt to automatically fix issues where possible</source>
-        <target state="new">Attempt to automatically fix issues where possible</target>
-        <note />
-      </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output results as JSON for tooling integration</source>
         <target state="new">Output results as JSON for tooling integration</target>
