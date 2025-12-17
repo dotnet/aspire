@@ -11,8 +11,12 @@ namespace Aspire.Cli.Scripts.Tests;
 /// These tests require gh CLI and query actual PR artifacts.
 /// Note: These tests use --dry-run to avoid actual downloads while still
 /// validating the complete workflow including PR discovery and artifact queries.
+/// 
+/// These tests are marked with Trait("Category", "integration") and are excluded from
+/// default test runs. Run them on-demand with: --filter-trait "Category=integration"
 /// </summary>
 [RequiresGHCli]
+[Trait("Category", "integration")]
 public class PRScriptIntegrationTests : IClassFixture<RealGitHubPRFixture>
 {
     private readonly RealGitHubPRFixture _prFixture;

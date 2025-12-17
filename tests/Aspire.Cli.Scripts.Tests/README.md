@@ -34,9 +34,11 @@ This test suite is designed with **zero risk** to user environments:
 - Verify URLs, paths, and commands in output
 - Check for key steps like downloading and installing
 
-### Integration Tests
-- Real PR builds from GitHub (requires gh CLI)
+### Integration Tests (On-Demand)
+- Real PR builds from GitHub (requires gh CLI and GH_TOKEN)
 - End-to-end workflow validation
+- **Marked with `[Trait("Category", "integration")]`**
+- **Excluded from default test runs**
 
 ## Running Tests
 
@@ -44,8 +46,15 @@ This test suite is designed with **zero risk** to user environments:
 # Build the test project
 dotnet build tests/Aspire.Cli.Scripts.Tests/
 
-# Run all tests
-dotnet test tests/Aspire.Cli.Scripts.Tests/
+# Run unit tests only (default - excludes integration tests)
+dotnet test tests/Aspire.Cli.Scripts.Tests/ -- \
+  --filter-not-trait "Category=integration" \
+  --filter-not-trait "quarantined=true" \
+  --filter-not-trait "outerloop=true"
+
+# Run integration tests only (on-demand, requires GH_TOKEN)
+export GH_TOKEN=<your-github-token>
+dotnet test tests/Aspire.Cli.Scripts.Tests/ -- --filter-trait "Category=integration"
 
 # Run specific test class
 dotnet test tests/Aspire.Cli.Scripts.Tests/ -- --filter-class "*.ReleaseScriptShellTests"
@@ -56,9 +65,15 @@ dotnet test tests/Aspire.Cli.Scripts.Tests/ -v n
 
 ## Requirements
 
+### Unit Tests (Run by Default)
 - **For shell script tests**: bash (automatically skipped on Windows)
 - **For PowerShell tests**: pwsh (PowerShell 7+)
-- **For PR integration tests**: gh CLI (GitHub CLI) authenticated with GitHub
+- **Mock gh CLI**: Automatically created by tests (no authentication needed)
+
+### Integration Tests (On-Demand Only)
+- **gh CLI**: GitHub CLI must be installed and available in PATH
+- **GH_TOKEN**: Environment variable with valid GitHub token
+- **Note**: These tests are excluded from default runs and must be explicitly enabled
 
 ## Architecture
 
@@ -73,11 +88,13 @@ dotnet test tests/Aspire.Cli.Scripts.Tests/ -v n
 
 Tests are organized by script type and shell:
 
-- `ReleaseScriptShellTests` - bash release script tests (bash required)
-- `ReleaseScriptPowerShellTests` - PowerShell release script tests (pwsh required)
-- `PRScriptShellTests` - bash PR parameter tests (bash and gh required)
-- `PRScriptPowerShellTests` - PowerShell PR parameter tests (pwsh and gh required)
-- `PRScriptIntegrationTests` - Integration tests with real PRs (gh required)
+- `ReleaseScriptShellTests` - bash release script tests (16 tests, bash required)
+- `ReleaseScriptPowerShellTests` - PowerShell release script tests (6 tests, pwsh required)
+- `PRScriptShellTests` - bash PR parameter tests (13 tests, bash + mock gh)
+- `PRScriptPowerShellTests` - PowerShell PR parameter tests (11 tests, pwsh + mock gh)
+- `PRScriptIntegrationTests` - Integration tests with real PRs (4 tests, gh + GH_TOKEN, **on-demand only**)
+
+**Total: 50 tests (46 unit tests + 4 integration tests)**
 
 ## Safety Verification
 
