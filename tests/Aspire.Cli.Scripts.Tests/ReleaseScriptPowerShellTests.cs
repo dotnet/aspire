@@ -8,8 +8,7 @@ namespace Aspire.Cli.Scripts.Tests;
 
 /// <summary>
 /// Tests for the PowerShell release script (get-aspire-cli.ps1).
-/// These tests validate parameter handling, platform detection, and dry-run behavior
-/// without making any modifications to the user environment.
+/// These tests validate parameter handling using -WhatIf for dry-run.
 /// </summary>
 [RequiresTools(["pwsh"])]
 public class ReleaseScriptPowerShellTests
@@ -51,33 +50,16 @@ public class ReleaseScriptPowerShellTests
     }
 
     [Fact]
-    public async Task MissingVersion_ShowsError()
+    public async Task WhatIf_ShowsActions()
     {
         using var env = new TestEnvironment();
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli.ps1", env, _testOutput);
-        // Try to install with an invalid version format
-        var result = await cmd.ExecuteAsync("-Version", "invalid.version");
+        var result = await cmd.ExecuteAsync("-Quality", "release", "-WhatIf");
 
-        // The script will attempt to download and fail, or show validation error
-        // Either is acceptable - we're just testing parameter handling
-        // We don't assert exit code because it may vary
+        result.EnsureSuccessful();
+        // WhatIf should show what would be done
+        Assert.True(result.Output.Length > 0, "Output should not be empty");
     }
-
-    [Fact]
-    public async Task CustomInstallPath_IsRecognized()
-    {
-        using var env = new TestEnvironment();
-        var customPath = Path.Combine(env.TempDirectory, "custom-bin");
-        var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli.ps1", env, _testOutput);
-        // This will fail because we're not doing actual downloads, but parameter should be recognized
-        var result = await cmd.ExecuteAsync("-InstallPath", customPath, "-Quality", "release");
-        
-        // We're just testing that the parameter is accepted, not that installation succeeds
-        // The script may fail later when trying to download, but shouldn't fail on parameter parsing
-    }
-
-    // Note: PowerShell scripts don't have -DryRun or -Verbose parameters
-    // These tests verify that parameters are recognized by the script
 
     [Fact]
     public async Task QualityParameter_IsRecognized()

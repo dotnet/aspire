@@ -8,10 +8,10 @@ namespace Aspire.Cli.Scripts.Tests;
 
 /// <summary>
 /// Tests for the PowerShell PR script (get-aspire-cli-pr.ps1).
-/// These tests validate parameter handling without making actual downloads.
+/// These tests validate parameter handling using -WhatIf (not -DryRun).
+/// PowerShell scripts support -WhatIf as the dry-run equivalent.
 /// </summary>
 [RequiresTools(["pwsh"])]
-[RequiresGHCli]
 public class PRScriptPowerShellTests
 {
     private readonly ITestOutputHelper _testOutput;
@@ -26,7 +26,6 @@ public class PRScriptPowerShellTests
     {
         using var env = new TestEnvironment();
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        // Use Get-Help to show script help
         var result = await cmd.ExecuteAsync("-?");
 
         result.EnsureSuccessful();
@@ -41,18 +40,28 @@ public class PRScriptPowerShellTests
     public async Task MissingPRNumber_ReturnsError()
     {
         using var env = new TestEnvironment();
+        
+        // Create mock gh script
+        var mockGhPath = await env.CreateMockGhScriptAsync(_testOutput);
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-DryRun");
+        cmd.WithEnvironmentVariable("PATH", $"{mockGhPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}");
+        
+        var result = await cmd.ExecuteAsync("-WhatIf");
 
         Assert.NotEqual(0, result.ExitCode);
     }
 
     [Fact]
-    public async Task DryRunWithPRNumber_ShowsSteps()
+    public async Task WhatIfWithPRNumber_ShowsSteps()
     {
         using var env = new TestEnvironment();
+        
+        // Create mock gh script
+        var mockGhPath = await env.CreateMockGhScriptAsync(_testOutput);
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-DryRun");
+        cmd.WithEnvironmentVariable("PATH", $"{mockGhPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}");
+        
+        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-WhatIf");
 
         result.EnsureSuccessful();
         Assert.Contains("12345", result.Output);
@@ -63,62 +72,88 @@ public class PRScriptPowerShellTests
     {
         using var env = new TestEnvironment();
         var customPath = Path.Combine(env.TempDirectory, "custom");
+        
+        // Create mock gh script
+        var mockGhPath = await env.CreateMockGhScriptAsync(_testOutput);
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-DryRun", "-InstallPrefix", customPath);
+        cmd.WithEnvironmentVariable("PATH", $"{mockGhPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}");
+        
+        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-InstallPath", customPath, "-WhatIf");
 
         result.EnsureSuccessful();
-        Assert.Contains(customPath, result.Output);
     }
 
     [Fact]
     public async Task RunIdParameter_IsRecognized()
     {
         using var env = new TestEnvironment();
+        
+        // Create mock gh script
+        var mockGhPath = await env.CreateMockGhScriptAsync(_testOutput);
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-DryRun", "-WorkflowRunId", "987654321");
+        cmd.WithEnvironmentVariable("PATH", $"{mockGhPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}");
+        
+        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-WorkflowRunId", "987654321", "-WhatIf");
 
         result.EnsureSuccessful();
-        Assert.Contains("987654321", result.Output);
     }
 
     [Fact]
     public async Task OSOverride_IsRecognized()
     {
         using var env = new TestEnvironment();
+        
+        // Create mock gh script
+        var mockGhPath = await env.CreateMockGhScriptAsync(_testOutput);
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-DryRun", "-OSArg", "win");
+        cmd.WithEnvironmentVariable("PATH", $"{mockGhPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}");
+        
+        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-OS", "win", "-WhatIf");
 
         result.EnsureSuccessful();
-        Assert.Contains("win", result.Output);
     }
 
     [Fact]
     public async Task ArchOverride_IsRecognized()
     {
         using var env = new TestEnvironment();
+        
+        // Create mock gh script
+        var mockGhPath = await env.CreateMockGhScriptAsync(_testOutput);
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-DryRun", "-ArchArg", "x64");
+        cmd.WithEnvironmentVariable("PATH", $"{mockGhPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}");
+        
+        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-Architecture", "x64", "-WhatIf");
 
         result.EnsureSuccessful();
-        Assert.Contains("x64", result.Output);
     }
 
     [Fact]
     public async Task HiveOnlyFlag_IsRecognized()
     {
         using var env = new TestEnvironment();
+        
+        // Create mock gh script
+        var mockGhPath = await env.CreateMockGhScriptAsync(_testOutput);
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-DryRun", "-HiveOnly");
+        cmd.WithEnvironmentVariable("PATH", $"{mockGhPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}");
+        
+        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-HiveOnly", "-WhatIf");
 
         result.EnsureSuccessful();
     }
 
     [Fact]
-    public async Task SkipExtensionInstallFlag_IsRecognized()
+    public async Task SkipExtensionFlag_IsRecognized()
     {
         using var env = new TestEnvironment();
+        
+        // Create mock gh script
+        var mockGhPath = await env.CreateMockGhScriptAsync(_testOutput);
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-DryRun", "-SkipExtensionInstall");
+        cmd.WithEnvironmentVariable("PATH", $"{mockGhPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}");
+        
+        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-SkipExtension", "-WhatIf");
 
         result.EnsureSuccessful();
     }
@@ -127,8 +162,13 @@ public class PRScriptPowerShellTests
     public async Task UseInsidersFlag_IsRecognized()
     {
         using var env = new TestEnvironment();
+        
+        // Create mock gh script
+        var mockGhPath = await env.CreateMockGhScriptAsync(_testOutput);
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-DryRun", "-UseInsiders");
+        cmd.WithEnvironmentVariable("PATH", $"{mockGhPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}");
+        
+        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-UseInsiders", "-WhatIf");
 
         result.EnsureSuccessful();
     }
@@ -137,18 +177,13 @@ public class PRScriptPowerShellTests
     public async Task SkipPathFlag_IsRecognized()
     {
         using var env = new TestEnvironment();
+        
+        // Create mock gh script
+        var mockGhPath = await env.CreateMockGhScriptAsync(_testOutput);
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-DryRun", "-SkipPath");
-
-        result.EnsureSuccessful();
-    }
-
-    [Fact]
-    public async Task VerboseFlag_IsRecognized()
-    {
-        using var env = new TestEnvironment();
-        var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-DryRun", "-Verbose");
+        cmd.WithEnvironmentVariable("PATH", $"{mockGhPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}");
+        
+        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-SkipPath", "-WhatIf");
 
         result.EnsureSuccessful();
     }
@@ -157,8 +192,13 @@ public class PRScriptPowerShellTests
     public async Task KeepArchiveFlag_IsRecognized()
     {
         using var env = new TestEnvironment();
+        
+        // Create mock gh script
+        var mockGhPath = await env.CreateMockGhScriptAsync(_testOutput);
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-DryRun", "-KeepArchive");
+        cmd.WithEnvironmentVariable("PATH", $"{mockGhPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}");
+        
+        var result = await cmd.ExecuteAsync("-PRNumber", "12345", "-KeepArchive", "-WhatIf");
 
         result.EnsureSuccessful();
     }

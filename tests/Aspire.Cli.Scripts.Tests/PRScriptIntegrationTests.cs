@@ -42,14 +42,14 @@ public class PRScriptIntegrationTests : IClassFixture<RealGitHubPRFixture>
 
     [RequiresTools(["pwsh"])]
     [Fact]
-    public async Task PowerShellScript_WithRealPR_DryRun_Succeeds()
+    public async Task PowerShellScript_WithRealPR_WhatIf_Succeeds()
     {
         using var env = new TestEnvironment();
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput, forceShowBuildOutput: true);
         
         var result = await cmd.ExecuteAsync(
             "-PRNumber", _prFixture.PRNumber.ToString(),
-            "-DryRun",
+            "-WhatIf",
             "-WorkflowRunId", _prFixture.RunId.ToString());
 
         result.EnsureSuccessful();
@@ -74,7 +74,7 @@ public class PRScriptIntegrationTests : IClassFixture<RealGitHubPRFixture>
 
     [RequiresTools(["pwsh"])]
     [Fact]
-    public async Task PowerShellScript_WithRealPR_DiscoverRunId_DryRun_Succeeds()
+    public async Task PowerShellScript_WithRealPR_DiscoverRunId_WhatIf_Succeeds()
     {
         using var env = new TestEnvironment();
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput, forceShowBuildOutput: true);
@@ -82,7 +82,7 @@ public class PRScriptIntegrationTests : IClassFixture<RealGitHubPRFixture>
         // Test automatic run ID discovery by only passing PR number
         var result = await cmd.ExecuteAsync(
             "-PRNumber", _prFixture.PRNumber.ToString(),
-            "-DryRun");
+            "-WhatIf");
 
         result.EnsureSuccessful();
         Assert.Contains(_prFixture.PRNumber.ToString(), result.Output);
