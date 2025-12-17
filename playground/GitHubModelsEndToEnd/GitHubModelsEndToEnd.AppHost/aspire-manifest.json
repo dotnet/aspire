@@ -1,10 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
+    "env-acr": {
+      "type": "azure.bicep.v0",
+      "path": "env-acr.module.bicep"
+    },
     "env": {
       "type": "azure.bicep.v0",
       "path": "env.module.bicep",
       "params": {
+        "env_acr_outputs_name": "{env-acr.outputs.name}",
         "userPrincipalId": ""
       }
     },
@@ -45,7 +50,7 @@
         "ConnectionStrings__chat": "{chat.connectionString}",
         "CHAT_URI": "https://models.github.ai/inference",
         "CHAT_KEY": "{chat-gh-apikey.value}",
-        "CHAT_MODEL": "openai/gpt-4o-mini"
+        "CHAT_MODELNAME": "openai/gpt-4o-mini"
       },
       "bindings": {
         "http": {
