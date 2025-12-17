@@ -556,19 +556,18 @@ public class DistributedApplication : IHost, IAsyncDisposable
     internal class DistributedApplicationDebuggerProxy(DistributedApplication app)
     {
         public IHost Host => app._host;
-        public DistributedApplicationModel? Model => app._model;
 
-        public List<ResourceState> ResourceStates
+        public List<ResourceState> Resources
         {
             get
             {
-                if (Model == null)
+                if (app._model == null)
                 {
                     return [];
                 }
 
-                var results = new List<ResourceState>(Model.Resources.Count);
-                foreach (var resource in Model.Resources)
+                var results = new List<ResourceState>(app._model.Resources.Count);
+                foreach (var resource in app._model.Resources)
                 {
                     //TODO: This probably doesn't handle replicas properly...
                     if (app.ResourceNotifications.TryGetCurrentState(resource.Name, out var resourceEvent) && resourceEvent != null)

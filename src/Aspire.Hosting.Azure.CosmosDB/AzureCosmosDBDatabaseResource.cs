@@ -14,7 +14,7 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Database = {DatabaseName}", Name = "{Name}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, Database = {DatabaseName,nq}")]
 public class AzureCosmosDBDatabaseResource(string name, string databaseName, AzureCosmosDBResource parent)
     : Resource(name), IResourceWithParent<AzureCosmosDBResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {

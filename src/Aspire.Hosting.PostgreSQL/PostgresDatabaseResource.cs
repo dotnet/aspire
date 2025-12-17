@@ -14,7 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
 /// <param name="postgresParentResource">The PostgreSQL parent resource associated with this database.</param>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Database = {DatabaseName}", Name = "{Name}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, Database = {DatabaseName,nq}")]
 public class PostgresDatabaseResource(string name, string databaseName, PostgresServerResource postgresParentResource)
     : Resource(name), IResourceWithParent<PostgresServerResource>, IResourceWithConnectionString
 {

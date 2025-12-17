@@ -15,7 +15,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="queueName">The name of the queue.</param>
 /// <param name="parent">The <see cref="AzureQueueStorageResource"/> that the resource is stored in.</param>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Queue = {QueueName}", Name = "{Name}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, Queue = {QueueName,nq}")]
 public class AzureQueueStorageQueueResource(string name, string queueName, AzureQueueStorageResource parent) : Resource(name),
     IResourceWithConnectionString,
     IResourceWithParent<AzureQueueStorageResource>

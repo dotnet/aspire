@@ -21,7 +21,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a specified .NET project.
 /// </summary>
-[DebuggerDisplay("{DebuggerToString(),nq}", Name = "{Name}")]
+[DebuggerDisplay("{DebuggerToString(),nq}")]
 public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery, IResourceWithWaitSupport, IResourceWithProbes,
     IComputeResource, IContainerFilesDestinationResource
 {
@@ -295,6 +295,6 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             path = metadata.ProjectPath;
         }
 
-        return $@"Type = {GetType().Name}, Path = {path}";
+        return $@"Type = {GetType().Name}, Name = {Name}, Path = {path}";
     }
 }

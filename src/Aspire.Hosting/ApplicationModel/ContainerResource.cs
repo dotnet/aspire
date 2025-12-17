@@ -13,7 +13,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="entrypoint">An optional container entrypoint.</param>
-[DebuggerDisplay("{GetDebuggerString(),nq}", Name = "{Name}")]
+[DebuggerDisplay("{GetDebuggerString(),nq}")]
 public class ContainerResource(string name, string? entrypoint = null)
     : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport, IResourceWithProbes,
     IComputeResource
@@ -37,6 +37,6 @@ public class ContainerResource(string name, string? entrypoint = null)
             imageName = "<unknown>";
         }
 
-        return $@"Type = {GetType().Name}, Image = {imageName}";
+        return $@"Type = {GetType().Name}, Name = {Name}, Image = {imageName}";
     }
 }

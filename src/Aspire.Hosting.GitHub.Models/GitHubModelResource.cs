@@ -9,7 +9,7 @@ namespace Aspire.Hosting.GitHub.Models;
 /// <summary>
 /// Represents a GitHub Model resource.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Model = {Model}", Name = "{Name}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, Model = {Model,nq}")]
 public class GitHubModelResource : Resource, IResourceWithConnectionString
 {
     internal ParameterResource DefaultKeyParameter { get; set; }

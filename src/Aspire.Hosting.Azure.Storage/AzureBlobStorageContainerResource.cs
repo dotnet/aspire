@@ -15,7 +15,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="blobContainerName">The name of the blob container.</param>
 /// <param name="parent">The <see cref="AzureBlobStorageResource"/> that the resource is stored in.</param>
-[DebuggerDisplay("Type = {GetType().Name,nq}, BlobContainer = {BlobContainerName}", Name = "{Name}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, BlobContainer = {BlobContainerName,nq}")]
 public class AzureBlobStorageContainerResource(string name, string blobContainerName, AzureBlobStorageResource parent) : Resource(name),
     IResourceWithConnectionString,
     IResourceWithParent<AzureBlobStorageResource>

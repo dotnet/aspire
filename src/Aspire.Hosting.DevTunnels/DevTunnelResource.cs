@@ -14,7 +14,7 @@ namespace Aspire.Hosting.DevTunnels;
 /// <param name="command"></param>
 /// <param name="workingDirectory"></param>
 /// <param name="options"></param>
-[DebuggerDisplay("Type = {GetType().Name,nq}, TunnelId = {TunnelId}", Name = "{Name}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, TunnelId = {TunnelId,nq}")]
 public sealed class DevTunnelResource(string name, string tunnelId, string command, string workingDirectory, DevTunnelOptions? options = null)
     : ExecutableResource(name, command, workingDirectory)
 {
