@@ -47,7 +47,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     public BicepValue<string> GetSlotHostName(BicepValue<string> deploymentSlot)
     {
         return BicepFunction.Take(
-        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}-{BicepFunction.ToLower(deploymentSlot)}"), 60);
+            BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}-{BicepFunction.ToLower(deploymentSlot)}"), 60);
     }
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
@@ -488,18 +488,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 site.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
                 site.Identity.UserAssignedIdentities[cid] = new UserAssignedIdentityDetails();
 
-                site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-                {
-                    Name = "AZURE_CLIENT_ID",
-                    Value = appIdentityResource.ClientId.AsProvisioningParameter(infra)
-                });
-
-                // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
-                site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-                {
-                    Name = "AZURE_TOKEN_CREDENTIALS",
-                    Value = "ManagedIdentityCredential"
-                });
+                UpdateIdentityAppSettings(site.SiteConfig.AppSettings, appIdentityResource.ClientId.AsProvisioningParameter(infra));
             }
             else if (webSite is WebSiteSlot slot)
             {
@@ -507,17 +496,8 @@ internal sealed class AzureAppServiceWebsiteContext(
                 slot.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
                 slot.Identity.ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned;
                 slot.Identity.UserAssignedIdentities[cid] = new UserAssignedIdentityDetails();
-                slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-                {
-                    Name = "AZURE_CLIENT_ID",
-                    Value = appIdentityResource.ClientId.AsProvisioningParameter(infra)
-                });
-                // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
-                slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-                {
-                    Name = "AZURE_TOKEN_CREDENTIALS",
-                    Value = "ManagedIdentityCredential"
-                });
+
+                UpdateIdentityAppSettings(slot.SiteConfig.AppSettings, appIdentityResource.ClientId.AsProvisioningParameter(infra));
             }
         }
 
@@ -556,17 +536,21 @@ internal sealed class AzureAppServiceWebsiteContext(
 #pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         RoleAssignment? webSiteRa = null;
-        if (environmentContext.Environment.EnableDashboard)
-        {
-            webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter, deploymentSlot);
-        }
 
         if (webSite is WebSite webSiteObject)
         {
+            if (environmentContext.Environment.EnableDashboard)
+            {
+                webSiteRa = AddDashboardPermissionAndSettings(webSiteObject.Id, webSiteObject.BicepIdentifier, webSiteObject.SiteConfig.AppSettings, acrClientIdParameter, deploymentSlot);
+            }
             infra.Add(webSiteObject);
         }
         else if (webSite is WebSiteSlot slot)
         {
+            if (environmentContext.Environment.EnableDashboard)
+            {
+                webSiteRa = AddDashboardPermissionAndSettings(slot.Id, slot.BicepIdentifier, slot.SiteConfig.AppSettings, acrClientIdParameter, deploymentSlot);
+            }
             infra.Add(slot);
         }
 
@@ -577,7 +561,14 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if (environmentContext.Environment.EnableApplicationInsights)
         {
-            EnableApplicationInsightsForWebSite(webSite);
+            if (webSite is WebSite site)
+            {
+                EnableApplicationInsightsForWebSite(site.SiteConfig.AppSettings);
+            }
+            else if (webSite is WebSiteSlot slot)
+            {
+                EnableApplicationInsightsForWebSite(slot.SiteConfig.AppSettings);
+            }
         }
 
         return webSite;
@@ -732,7 +723,12 @@ internal sealed class AzureAppServiceWebsiteContext(
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
     }
 
-    private RoleAssignment AddDashboardPermissionAndSettings(object webSite, ProvisioningParameter acrClientIdParameter, BicepValue<string>? deploymentSlot = null)
+    private RoleAssignment AddDashboardPermissionAndSettings(
+        BicepValue<ResourceIdentifier> id,
+        String bicepIdentifier,
+        BicepList<AppServiceNameValuePair> appSettings,
+        ProvisioningParameter acrClientIdParameter,
+        BicepValue<string>? deploymentSlot = null)
     {
         bool isSlot = deploymentSlot is not null;
         var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(Infra);
@@ -749,96 +745,61 @@ internal sealed class AzureAppServiceWebsiteContext(
             ? Infrastructure.NormalizeBicepIdentifier($"{Infra.AspireResource.Name}_slot_ra")
             : Infrastructure.NormalizeBicepIdentifier($"{Infra.AspireResource.Name}_ra");
 
-        RoleAssignment? roleAssignment = null;
+        appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = otelServiceName });
+        appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
+        appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
+        appSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
+        appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
+        appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
 
-        if (webSite is WebSite site)
+        var websiteRaName = BicepFunction.CreateGuid(id, contributorId, websiteRaId);
+        RoleAssignment roleAssignment = new RoleAssignment(raResourceName)
         {
-            // Add the appsettings specific to sending telemetry data to dashboard
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = otelServiceName });
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
+            Name = websiteRaName,
+            Scope = new IdentifierExpression(bicepIdentifier),
+            PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
+            PrincipalId = contributorPrincipalId,
+            RoleDefinitionId = websiteRaId,
+        };
 
-            var websiteRaName = BicepFunction.CreateGuid(site.Id, contributorId, websiteRaId);
-            roleAssignment = new RoleAssignment(raResourceName)
-            {
-                Name = websiteRaName,
-                Scope = new IdentifierExpression(site.BicepIdentifier),
-                PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
-                PrincipalId = contributorPrincipalId,
-                RoleDefinitionId = websiteRaId,
-            };
-        }
-        else if (webSite is WebSiteSlot slot)
-        {
-            // Add the appsettings specific to sending telemetry data to dashboard
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = otelServiceName });
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
-
-            var websiteRaName = BicepFunction.CreateGuid(slot.Id, contributorId, websiteRaId);
-            roleAssignment = new RoleAssignment(raResourceName)
-            {
-                Name = websiteRaName,
-                Scope = new IdentifierExpression(slot.BicepIdentifier),
-                PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
-                PrincipalId = contributorPrincipalId,
-                RoleDefinitionId = websiteRaId,
-            };
-        }
-
-        return roleAssignment!;
+        return roleAssignment;
     }
 
-    private void EnableApplicationInsightsForWebSite(object webSite)
+    private void EnableApplicationInsightsForWebSite(BicepList<AppServiceNameValuePair> appSettings)
     {
         var appInsightsInstrumentationKey = environmentContext.Environment.AzureAppInsightsInstrumentationKeyReference.AsProvisioningParameter(Infra);
         var appInsightsConnectionString = environmentContext.Environment.AzureAppInsightsConnectionStringReference.AsProvisioningParameter(Infra);
 
-        if (webSite is WebSite site)
+        appSettings.Add(new AppServiceNameValuePair
         {
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-            {
-                Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
-                Value = appInsightsInstrumentationKey
-            });
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-            {
-                Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                Value = appInsightsConnectionString
-            });
-            site.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-            {
-                Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
-                Value = "~3"
-            });
-        }
-        else if (webSite is WebSiteSlot slot)
+            Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
+            Value = appInsightsInstrumentationKey
+        });
+        appSettings.Add(new AppServiceNameValuePair
         {
-            // Website configuration for Application Insights
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-            {
-                Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
-                Value = appInsightsInstrumentationKey
-            });
+            Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
+            Value = appInsightsConnectionString
+        });
+        appSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
+            Value = "~3"
+        });                                              
+    }
 
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-            {
-                Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                Value = appInsightsConnectionString
-            });
-
-            slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
-            {
-                Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
-                Value = "~3"
-            });
-        }                                                  
+    private static void UpdateIdentityAppSettings(BicepList<AppServiceNameValuePair> appSettings, ProvisioningParameter clientId)
+    {
+        appSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "AZURE_CLIENT_ID",
+            Value = clientId
+        });
+        // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
+        appSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "AZURE_TOKEN_CREDENTIALS",
+            Value = "ManagedIdentityCredential"
+        });
     }
 
     /// <summary>
