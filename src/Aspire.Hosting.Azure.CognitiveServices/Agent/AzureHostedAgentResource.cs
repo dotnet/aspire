@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.CognitiveServices;
@@ -11,6 +12,7 @@ using Azure.AI.Projects.OpenAI;
 using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// An Azure AI Foundry hosted agent resource.
@@ -26,7 +28,6 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
         Target = target;
         Configure = configure;
         Annotations.Add(new ManifestPublishingCallbackAnnotation(PublishAsync));
-
         // Set up steps for deploying this particular hosted agent
         Annotations.Add(new PipelineStepAnnotation(async (ctx) =>
         {
@@ -37,7 +38,6 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
                 ?? throw new InvalidOperationException($"Compute environment for resource '{Target.Name}' must be an AzureCognitiveServicesProjectResource to deploy as hosted agent.");
             if (Target.RequiresImageBuildAndPush())
             {
-                // Create push step for this deployment target
                 pushStep = new PipelineStep
                 {
                     Name = $"push-{Target.Name}",
@@ -61,50 +61,31 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
             // Create a step to deploy container as agent
             var agentDeployStep = new PipelineStep
             {
-                Name = $"deploy-agent-{Name}",
+                Name = $"deploy-{Name}",
                 Action = async (ctx) =>
                 {
-                    var version = await DeployAsync(project).ConfigureAwait(false);
+                    var version = await DeployAsync(ctx, project).ConfigureAwait(false);
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{Name}** as Hosted Agent (version {version})", enableMarkdown: true);
                     // TODO: set the value on the agent resource
                 },
                 Tags = [WellKnownPipelineTags.DeployCompute],
                 RequiredBySteps = [WellKnownPipelineSteps.Deploy],
                 Resource = this,
-                DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName]
+                DependsOnSteps = [WellKnownPipelineSteps.DeployPrereq, AzureEnvironmentResource.ProvisionInfrastructureStepName]
             };
             steps.Add(agentDeployStep);
             if (pushStep is not null)
             {
                 agentDeployStep.DependsOn(pushStep);
             }
-            var deployDoneStep = new PipelineStep
-            {
-                Name = $"deploy-{Name}",
-                Action = _ => Task.CompletedTask,
-                Tags = [WellKnownPipelineTags.DeployCompute],
-                RequiredBySteps = [WellKnownPipelineSteps.Deploy],
-                Resource = this,
-            };
-            steps.Add(deployDoneStep);
-            deployDoneStep.DependsOn(agentDeployStep);
             return steps;
         }));
 
-        // Wire up inter-resource pipeline steps
-        Annotations.Add(new PipelineConfigurationAnnotation((context) =>
+        // Wire up pipeline steps we introduced above
+        Annotations.Add(new PipelineConfigurationAnnotation(async (context) =>
         {
-            // Expand all pipeline steps for the target
-            if (!Target.TryGetAnnotationsOfType<PipelineConfigurationAnnotation>(out var pipelineConfigurations))
-            {
-                return;
-            }
-            foreach (var pipelineConfiguration in pipelineConfigurations)
-            {
-                pipelineConfiguration.Callback(context);
-            }
-            // Ensure sequencing of container image build and push
-            context.GetSteps(this, WellKnownPipelineTags.PushContainerImage).DependsOn(context.GetSteps(Target, WellKnownPipelineTags.BuildCompute));
+            // BuildCompute = build Docker images, so do that before pushing
+            context.GetSteps(Target, WellKnownPipelineTags.BuildCompute).RequiredBy(context.GetSteps(Target, WellKnownPipelineTags.PushContainerImage));
         }));
     }
 
@@ -116,11 +97,43 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     /// <summary>
     /// CPU allocation for each hosted agent instance.
     /// </summary>
-    public string Cpu { get; set; } = "1";
+    public decimal Cpu
+    {
+        get;
+        set
+        {
+            if (value < 0.25m || value > 3.5m)
+            {
+                throw new ArgumentOutOfRangeException(nameof(Cpu), "CPU must be between 0.25 and 3.5 cores.");
+            }
+            if (value % 0.25m != 0)
+            {
+                throw new ArgumentException("CPU must be in increments of 0.25 cores.", nameof(Cpu));
+            }
+            field = value;
+        }
+    } = 1;
+
     /// <summary>
-    /// Memory allocation for each hosted agent instance.
+    /// Memory allocation for each hosted agent instance, in GiB
     /// </summary>
-    public string Memory { get; set; } = "2GB";
+    public decimal Memory
+    {
+        get;
+        set
+        {
+            if (value < 0.5m || value > 7m)
+            {
+                throw new ArgumentOutOfRangeException(nameof(Memory), "Memory must be between 0.5 and 7 GiB.");
+            }
+            if (value % 0.5m != 0)
+            {
+                throw new ArgumentException("Memory must be in increments of 0.5 GiB.", nameof(Memory));
+            }
+            field = value;
+        }
+    } = 2;
+
     /// <summary>
     /// The description of the hosted agent.
     /// </summary>
@@ -148,7 +161,7 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     /// <summary>
     /// Convert all dynamic values into concrete values for deployment.
     /// </summary>
-    public async Task<AgentVersionCreationOptions> ToAgentVersionCreationOptionsAsync(CancellationToken cancellationToken = default)
+    public async Task<AgentVersionCreationOptions> ToAgentVersionCreationOptionsAsync(DistributedApplicationExecutionContext context, ILogger logger, CancellationToken cancellationToken)
     {
         if (!Target.TryGetContainerImageName(out var imageName))
         {
@@ -157,22 +170,28 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
         var def = new HostedAgentConfiguration(
             new ImageBasedHostedAgentDefinition(
                 [new ProtocolVersionRecord(AgentCommunicationMethod.Responses, "v1"), new ProtocolVersionRecord(AgentCommunicationMethod.ActivityProtocol, "v2")],
-                Cpu, Memory,
+                "1", "2Gi",
                 image: await ((IValueProvider)Image).GetValueAsync(cancellationToken).ConfigureAwait(false)
             )
         );
-        var envVars = await this.GetEnvironmentVariableValuesAsync().ConfigureAwait(false);
-        foreach (var (key, value) in envVars)
+        if (Target.TryGetEnvironmentVariables(out var envVars))
         {
-            def.Definition.EnvironmentVariables[key] = value;
-        }
-        if (Target is IResourceWithEnvironment targetEnv)
-        {
-            var targetEnvVars = await targetEnv.GetEnvironmentVariableValuesAsync().ConfigureAwait(false);
-            foreach (var (key, value) in targetEnvVars)
+            void callback(string key, object? rawVal, string? stringValue, Exception? exc)
             {
-                def.Definition.EnvironmentVariables[key] = value;
+                if (exc is not null)
+                {
+                    throw new InvalidOperationException($"Error resolving environment variable '{key}' for hosted agent '{Name}': {exc.Message}", exc);
+                }
+                if (stringValue is not null)
+                {
+                    def.Definition.EnvironmentVariables[key] = stringValue;
+                }
+                else
+                {
+                    logger.LogWarning("Environment variable '{Key}' for hosted agent '{Name}' resolved to null and will be skipped.", key, Name);
+                }
             }
+            await Target.ProcessEnvironmentVariableValuesAsync(context, callback, logger, cancellationToken).ConfigureAwait(false);
         }
         def.Description = Description;
         foreach (var (key, value) in Metadata)
@@ -207,13 +226,15 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     /// </summary>
     public async Task PublishAsync(ManifestPublishingContext ctx)
     {
+        var opts = await ToAgentVersionCreationOptionsAsync(ctx.ExecutionContext, NullLogger.Instance, ctx.CancellationToken).ConfigureAwait(false);
         Console.WriteLine($"Writing agent manifest for path {ctx.ManifestPath}");
         ctx.Writer.WriteString("type", "azurefoundry.hostedagent.v0");
-        ctx.Writer.WriteString("image", Image.ValueExpression);
-        ctx.Writer.WriteStartObject("params");
-        ctx.Writer.WriteString("cpu", Cpu);
-        ctx.Writer.WriteString("memory", Memory);
         ctx.Writer.WriteString("description", Description);
+        ctx.Writer.WriteString("image", Image.ValueExpression);
+        ctx.Writer.WriteStartObject("definition");
+        ctx.Writer.WriteString("cpu", opts.Definition.Cpu);
+        ctx.Writer.WriteString("memory", opts.Definition.Memory);
+        ctx.Writer.WriteEndObject();
         ctx.Writer.WriteStartObject("metadata");
         foreach (var property in Metadata)
         {
@@ -234,21 +255,21 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     /// <summary>
     /// Deploys the specified agent to the given Azure Cognitive Services project.
     /// </summary>
-    public async Task<AgentVersion> DeployAsync(AzureCognitiveServicesProjectResource project, CancellationToken cancellationToken = default)
+    public async Task<AgentVersion> DeployAsync(PipelineStepContext context, AzureCognitiveServicesProjectResource project)
     {
         ArgumentNullException.ThrowIfNull(project);
 
-        var projectEndpoint = await project.ConnectionString.GetValueAsync(cancellationToken).ConfigureAwait(false);
+        var projectEndpoint = await project.ConnectionString.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
         if (string.IsNullOrEmpty(projectEndpoint))
         {
             throw new InvalidOperationException($"Project '{project.Name}' does not have a valid connection string.");
         }
-        var options = await ToAgentVersionCreationOptionsAsync(cancellationToken).ConfigureAwait(false);
+        var options = await ToAgentVersionCreationOptionsAsync(context).ConfigureAwait(false);
         var projectClient = new AIProjectClient(new Uri(projectEndpoint), new DefaultAzureCredential());
         var result = await projectClient.Agents.CreateAgentVersionAsync(
             Name,
             options,
-            cancellationToken
+            context.CancellationToken
         ).ConfigureAwait(false);
         return result.Value;
     }
