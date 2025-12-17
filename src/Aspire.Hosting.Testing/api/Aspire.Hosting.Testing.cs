@@ -81,11 +81,15 @@ namespace Aspire.Hosting.Testing
 
         DistributedApplicationExecutionContext ExecutionContext { get; }
 
+        IFileSystemService FileSystemService { get; }
+
         Pipelines.IDistributedApplicationPipeline Pipeline { get; }
 
         ApplicationModel.IResourceCollection Resources { get; }
 
         Microsoft.Extensions.DependencyInjection.IServiceCollection Services { get; }
+
+        IUserSecretsManager UserSecretsManager { get; }
 
         ApplicationModel.IResourceBuilder<T> AddResource<T>(T resource)
             where T : ApplicationModel.IResource;
