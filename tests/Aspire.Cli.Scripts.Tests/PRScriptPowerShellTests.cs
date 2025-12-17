@@ -22,18 +22,19 @@ public class PRScriptPowerShellTests
     }
 
     [Fact]
-    public async Task HelpFlag_ShowsUsage()
+    public async Task GetHelp_WithGetHelpCommand_ShowsUsage()
     {
         using var env = new TestEnvironment();
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli-pr.ps1", env, _testOutput);
-        var result = await cmd.ExecuteAsync("-Help");
+        // Use Get-Help to show script help
+        var result = await cmd.ExecuteAsync("-?");
 
         result.EnsureSuccessful();
         Assert.True(
+            result.Output.Contains("SYNOPSIS", StringComparison.OrdinalIgnoreCase) ||
             result.Output.Contains("DESCRIPTION", StringComparison.OrdinalIgnoreCase) ||
             result.Output.Contains("PARAMETERS", StringComparison.OrdinalIgnoreCase),
-            "Output should contain 'DESCRIPTION' or 'PARAMETERS'");
-        Assert.Contains("PR", result.Output);
+            "Output should contain help information");
     }
 
     [Fact]

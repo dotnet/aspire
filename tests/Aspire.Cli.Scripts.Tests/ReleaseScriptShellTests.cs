@@ -158,21 +158,37 @@ public class ReleaseScriptShellTests
     }
 
     [Fact]
-    public async Task InstallExtensionFlag_IsRecognized()
+    public async Task InstallExtensionFlag_RequiresDevQuality()
     {
         using var env = new TestEnvironment();
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli.sh", env, _testOutput);
+        // Extension installation is only supported with --quality dev
         var result = await cmd.ExecuteAsync("--dry-run", "--quality", "release", "--install-extension");
+
+        // Should fail with error message about quality requirement
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.True(
+            result.Output.Contains("only supported with --quality dev", StringComparison.OrdinalIgnoreCase) ||
+            result.Output.Contains("extension", StringComparison.OrdinalIgnoreCase),
+            "Output should mention extension quality requirement");
+    }
+
+    [Fact]
+    public async Task InstallExtensionWithDevQuality_IsRecognized()
+    {
+        using var env = new TestEnvironment();
+        var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli.sh", env, _testOutput);
+        var result = await cmd.ExecuteAsync("--dry-run", "--quality", "dev", "--install-extension");
 
         result.EnsureSuccessful();
     }
 
     [Fact]
-    public async Task UseInsidersFlag_IsRecognized()
+    public async Task UseInsidersFlag_WithExtension_IsRecognized()
     {
         using var env = new TestEnvironment();
         var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli.sh", env, _testOutput);
-        var result = await cmd.ExecuteAsync("--dry-run", "--quality", "release", "--install-extension", "--use-insiders");
+        var result = await cmd.ExecuteAsync("--dry-run", "--quality", "dev", "--install-extension", "--use-insiders");
 
         result.EnsureSuccessful();
     }
