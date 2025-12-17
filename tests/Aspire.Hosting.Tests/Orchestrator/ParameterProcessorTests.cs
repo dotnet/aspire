@@ -8,6 +8,7 @@ using Aspire.Hosting.Pipelines.Internal;
 using Aspire.Hosting.Resources;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -189,7 +190,7 @@ public class ParameterProcessorTests
         var updates = notificationService.WatchAsync().GetAsyncEnumerator();
 
         // Act - Start handling unresolved parameters
-        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
         // Assert - Wait for the first interaction (message bar)
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -275,7 +276,7 @@ public class ParameterProcessorTests
         parameterWithMissingValue.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Act - Start handling unresolved parameters
-        _ = parameterProcessor.HandleUnresolvedParametersAsync([parameterWithMissingValue]);
+        _ = parameterProcessor.HandleUnresolvedParametersAsync([parameterWithMissingValue], CancellationToken.None);
 
         // Wait for the message bar interaction
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -373,7 +374,7 @@ public class ParameterProcessorTests
         var logsTask = ConsoleLoggingTestHelpers.WatchForLogsAsync(loggerService, 1, parameter);
 
         // Act - Start handling unresolved parameters
-        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync([parameter]);
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync([parameter], CancellationToken.None);
 
         // Wait for the message bar interaction
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -420,7 +421,7 @@ public class ParameterProcessorTests
         }
 
         // Act
-        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
         // Wait for the message bar interaction and complete it
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -460,7 +461,7 @@ public class ParameterProcessorTests
         secretParam.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Act
-        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
         // Wait for the message bar interaction and complete it
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -919,6 +920,55 @@ public class ParameterProcessorTests
         Assert.Equal("newSecretValue", await parameter.WaitForValueTcs!.Task);
     }
 
+    [Fact]
+    public async Task SetParameterAsync_ResolvingLastParameter_CancelsPromptNotification()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService { IsAvailable = true };
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService);
+
+        var parameter = CreateParameterWithMissingValue("testParam");
+
+        // Use InitializeParametersAsync to properly set up the internal state
+        // This will trigger HandleUnresolvedParametersAsync in a background task
+        // with the internal _allParametersResolvedCts.Token
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
+
+        // Wait for the notification to appear from the background task
+        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
+        Assert.Equal(InteractionStrings.ParametersBarTitle, notificationInteraction.Title);
+
+        // Capture the cancellation token passed to the notification
+        var notificationCancellationToken = notificationInteraction.CancellationToken;
+        Assert.False(notificationCancellationToken.IsCancellationRequested);
+
+        // Now use SetParameterAsync to resolve the parameter (which is the last unresolved parameter)
+        var setValueTask = Task.Run(async () =>
+        {
+            await parameterProcessor.SetParameterAsync(parameter);
+        });
+
+        // Wait for the SetParameterAsync input dialog to appear
+        var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
+        Assert.Equal(InteractionStrings.SetParameterTitle, inputInteraction.Title);
+
+        // Complete the SetParameterAsync interaction with a value
+        inputInteraction.Inputs["testParam"].Value = "resolvedValue";
+        inputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputInteraction.Inputs));
+
+        await setValueTask.DefaultTimeout();
+
+        // The parameter should be resolved with the correct value
+        Assert.Equal("resolvedValue", await parameter.GetValueAsync(CancellationToken.None).DefaultTimeout());
+
+        // Assert - The notification's cancellation token should now be canceled
+        // because the last parameter was resolved via SetParameterAsync
+        Assert.True(notificationCancellationToken.IsCancellationRequested);
+    }
+
     private static ParameterProcessor CreateParameterProcessor(
         ResourceNotificationService? notificationService = null,
         ResourceLoggerService? loggerService = null,
@@ -1037,7 +1087,7 @@ public class ParameterProcessorTests
 
         List<ParameterResource> parameters = [connectionStringParam];
 
-        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
@@ -1076,7 +1126,7 @@ public class ParameterProcessorTests
 
         List<ParameterResource> parameters = [regularParam];
 
-        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
@@ -1118,7 +1168,7 @@ public class ParameterProcessorTests
 
         List<ParameterResource> parameters = [customParam];
 
-        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+        var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));

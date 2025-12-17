@@ -28,6 +28,7 @@ public sealed class ParameterProcessor(
     private const string RememberParametersName = "RememberParameters";
 
     private readonly List<ParameterResource> _unresolvedParameters = [];
+    private readonly CancellationTokenSource _allParametersResolvedCts = new();
 
     /// <summary>
     /// Initializes parameter resources and handles unresolved parameters if interaction service is available.
@@ -289,6 +290,9 @@ public sealed class ParameterProcessor(
             bool.TryParse(saveParameterInput.Value, out var saveToDeploymentState) && saveToDeploymentState;
 
         await ApplyParameterValueAsync(parameterResource, inputValue, shouldSave, cancellationToken).ConfigureAwait(false);
+
+        // Remove the parameter from unresolved parameters list.
+        OnParameterResolved(_unresolvedParameters, parameterResource);
     }
 
     private static InteractionInput CreateSaveParameterInput(bool hasExistingValue)
@@ -338,14 +342,13 @@ public sealed class ParameterProcessor(
         }
     }
 
-    // Internal for testing purposes.
     private async Task HandleUnresolvedParametersAsync()
     {
-        await HandleUnresolvedParametersAsync(_unresolvedParameters).ConfigureAwait(false);
+        await HandleUnresolvedParametersAsync(_unresolvedParameters, _allParametersResolvedCts.Token).ConfigureAwait(false);
     }
 
     // Internal for testing purposes - allows passing specific parameters to test.
-    internal async Task HandleUnresolvedParametersAsync(IList<ParameterResource> unresolvedParameters)
+    internal async Task HandleUnresolvedParametersAsync(IList<ParameterResource> unresolvedParameters, CancellationToken cancellationToken)
     {
         var stateModified = false;
 
@@ -363,12 +366,12 @@ public sealed class ParameterProcessor(
                 var result = await interactionService.PromptNotificationAsync(
                     InteractionStrings.ParametersBarTitle,
                     InteractionStrings.ParametersBarMessage,
-                     new NotificationInteractionOptions
-                     {
-                         Intent = MessageIntent.Warning,
-                         PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
-                     })
-                    .ConfigureAwait(false);
+                    new NotificationInteractionOptions
+                    {
+                        Intent = MessageIntent.Warning,
+                        PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
+                    },
+                    cancellationToken).ConfigureAwait(false);
 
                 proceedToInputs = result.Data;
             }
@@ -407,8 +410,8 @@ public sealed class ParameterProcessor(
                         PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
                         ShowDismiss = true,
                         EnableMessageMarkdown = true,
-                    })
-                    .ConfigureAwait(false);
+                    },
+                    cancellationToken).ConfigureAwait(false);
 
                 if (!valuesPrompt.Canceled)
                 {
@@ -427,7 +430,7 @@ public sealed class ParameterProcessor(
                             continue;
                         }
 
-                        await ApplyParameterValueAsync(parameter, inputValue, shouldSave).ConfigureAwait(false);
+                        await ApplyParameterValueAsync(parameter, inputValue, shouldSave, cancellationToken).ConfigureAwait(false);
 
                         if (shouldSave)
                         {
@@ -435,7 +438,7 @@ public sealed class ParameterProcessor(
                         }
 
                         // Remove the parameter from unresolved parameters list.
-                        unresolvedParameters.RemoveAt(i);
+                        OnParameterResolved(unresolvedParameters, parameter);
                     }
                 }
             }
@@ -444,6 +447,16 @@ public sealed class ParameterProcessor(
         if (stateModified)
         {
             logger.LogInformation("Parameter values saved to deployment state.");
+        }
+    }
+
+    private void OnParameterResolved(IList<ParameterResource> unresolvedParameters, ParameterResource parameter)
+    {
+        unresolvedParameters.Remove(parameter);
+
+        if (unresolvedParameters.Count == 0)
+        {
+            _allParametersResolvedCts.Cancel();
         }
     }
 
