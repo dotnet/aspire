@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Execution;
 /// <summary>
 /// Represents a command that can be configured fluently and executed.
 /// </summary>
-public sealed class Command : ICommand
+internal sealed class Command : ICommand
 {
     private readonly ShellState _shellState;
     private readonly IExecutableResolver _resolver;

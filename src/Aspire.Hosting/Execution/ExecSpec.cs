@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Execution;
 /// <summary>
 /// Specifies options for executing a CLI command.
 /// </summary>
-public sealed class ExecSpec
+internal sealed class ExecSpec
 {
     /// <summary>
     /// Gets or sets the working directory for the process.
@@ -31,14 +31,4 @@ public sealed class ExecSpec
     /// Gets or sets the stdin source for the process.
     /// </summary>
     public Stdin? Stdin { get; set; }
-
-    /// <summary>
-    /// Gets or sets the stdout target for the process.
-    /// </summary>
-    public StdoutTarget? Stdout { get; set; }
-
-    /// <summary>
-    /// Gets or sets the stderr target for the process.
-    /// </summary>
-    public StderrTarget? Stderr { get; set; }
 }

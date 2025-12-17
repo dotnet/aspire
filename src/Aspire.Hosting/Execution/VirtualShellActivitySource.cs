@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting.Execution;
 
@@ -9,6 +10,7 @@ namespace Aspire.Hosting.Execution;
 /// Wrapper around <see cref="ActivitySource"/> for VirtualShell tracing.
 /// Enables dependency injection of the activity source.
 /// </summary>
+[Experimental("ASPIREHOSTINGVIRTUALSHELL001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public sealed class VirtualShellActivitySource : IDisposable
 {
     private readonly ActivitySource _activitySource = new("Aspire.VirtualShell");

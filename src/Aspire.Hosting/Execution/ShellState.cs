@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Execution;
 /// </summary>
 /// <param name="WorkingDirectory">The current working directory.</param>
 /// <param name="Environment">The environment variables.</param>
-public sealed record ShellState(
+internal sealed record ShellState(
     string? WorkingDirectory,
     ImmutableDictionary<string, string?> Environment)
 {

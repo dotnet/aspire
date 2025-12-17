@@ -14,7 +14,7 @@ namespace Aspire.Hosting.Execution;
 /// Provides advanced control over a running process, including streaming I/O
 /// and sending signals.
 /// </summary>
-public sealed partial class RunningProcess : IRunningProcess
+internal sealed partial class RunningProcess : IRunningProcess
 {
     private readonly Process _process;
     private readonly PipeWriter _input;
