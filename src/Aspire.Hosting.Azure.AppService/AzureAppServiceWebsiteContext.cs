@@ -751,7 +751,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     private BicepValue<string> GetEndpointValue(EndpointMapping mapping, EndpointProperty property, BicepValue<string>? referencedHost = null)
     {
-        BicepValue<string> hostName = referencedHost ?? BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net");
+        BicepValue<string> hostName = referencedHost ?? BicepFunction.Interpolate($"{mapping.Host}.{AzureAppServiceWebSiteResource.AzureAppServiceDnsSuffixPublicCloud}");
         return property switch
         {
             EndpointProperty.Url => BicepFunction.Interpolate($"{mapping.Scheme}://{hostName}"),

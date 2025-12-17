@@ -144,12 +144,12 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                         string? websiteSlotHostName = null;
                         if (!string.IsNullOrWhiteSpace(websiteSlotName))
                         {
-                            websiteSlotHostName = $"{websiteSlotName}.azurewebsites.net";
+                            websiteSlotHostName = $"{websiteSlotName}.{AzureAppServiceDnsSuffixPublicCloud}";
                         }
 
-                        context.SetWebsiteHostName($"{websiteName}.azurewebsites.net", websiteSlotHostName);
+                        context.SetWebsiteHostName($"{websiteName}.{AzureAppServiceDnsSuffixPublicCloud}", websiteSlotHostName);
 
-                        targetResource.Annotations.Add(new AzureAppServiceWebsiteHostNameAnnotation($"{websiteName}.azurewebsites.net", websiteSlotHostName));
+                        targetResource.Annotations.Add(new AzureAppServiceWebsiteHostNameAnnotation($"{websiteName}.{AzureAppServiceDnsSuffixPublicCloud}", websiteSlotHostName));
                         return;
                     }
 
@@ -268,7 +268,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var armContext = await GetArmContextAsync(context).ConfigureAwait(false);
         context.ReportingStep.Log(LogLevel.Information, $"Check if website {websiteName} exists", false);
         // Prepare ARM endpoint and request
-        var url = $"{AzureManagementEndpoint}/subscriptions/{armContext.SubscriptionId}/resourceGroups/{armContext.ResourceGroupName}/providers/Microsoft.Web/sites/{websiteName}?api-version=2025-03-01";
+        var url = $"{AzureManagementEndpointPublicCloud}/subscriptions/{armContext.SubscriptionId}/resourceGroups/{armContext.ResourceGroupName}/providers/Microsoft.Web/sites/{websiteName}?api-version=2025-03-01";
 
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", armContext.AccessToken);
@@ -292,7 +292,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var armContext = await GetArmContextAsync(context).ConfigureAwait(false);
 
         // Prepare ARM endpoint and request
-        var url = $"{AzureManagementEndpoint}/subscriptions/{armContext.SubscriptionId}/providers/Microsoft.Web/locations/{armContext.Location}/CheckNameAvailability?api-version=2025-03-01";
+        var url = $"{AzureManagementEndpointPublicCloud}/subscriptions/{armContext.SubscriptionId}/providers/Microsoft.Web/locations/{armContext.Location}/CheckNameAvailability?api-version=2025-03-01";
         var requestBody = new
         {
             name = websiteName,
@@ -349,7 +349,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var location = provisioningContext.Location.Name
             ?? throw new InvalidOperationException("Location is required.");
 
-        var tokenRequest = new TokenRequestContext([AzureManagementScope]);
+        var tokenRequest = new TokenRequestContext([AzureManagementScopePublicCloud]);
         var token = await tokenCredentialProvider.TokenCredential
             .GetTokenAsync(tokenRequest, context.CancellationToken)
             .ConfigureAwait(false);
@@ -407,8 +407,11 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         return websiteName;
     }
 
-    private const string AzureManagementScope = "https://management.azure.com/.default";
-    private const string AzureManagementEndpoint = "https://management.azure.com/";
+    // <TODO> Fix for other clouds </TODO>
+    private const string AzureManagementEndpointPublicCloud = "https://management.azure.com/";
+    private const string AzureManagementScopePublicCloud = $"{AzureManagementEndpointPublicCloud}/.default";
+    internal const string AzureAppServiceDnsSuffixPublicCloud = "azurewebsites.net";
+
     internal const int MaxWebsiteNameLength = 60;
     internal const int MaxWebsiteNameLengthWithDnl = 43;
     internal const int MaxWebsiteNameLengthWithSlot = 41;

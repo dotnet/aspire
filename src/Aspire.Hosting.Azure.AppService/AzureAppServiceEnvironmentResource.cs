@@ -67,8 +67,6 @@ public class AzureAppServiceEnvironmentResource :
                         websiteName = websiteName.Substring(0, maxLength);
                     }
 
-                    ctx.ReportingStep.Log(LogLevel.Information, $"Fetching host name for dashboard website: {websiteName}", false);
-
                     var hostName = await AzureAppServiceWebSiteResource.GetDnlHostNameAsync(websiteName, "Site", ctx).ConfigureAwait(false);
 
                     ctx.ReportingStep.Log(LogLevel.Information, $"Fetched host name for dashboard website: {hostName}", false);
@@ -150,7 +148,7 @@ public class AzureAppServiceEnvironmentResource :
             var printSummarySteps = context.GetSteps(this, "print-summary");
             var fetchDashboardHostNameSteps = context.GetSteps(this, "fetch-dashboard-hostname");
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            fetchDashboardHostNameSteps.DependsOn(provisionSteps);
+            provisionSteps.DependsOn(fetchDashboardHostNameSteps);
             printSummarySteps.DependsOn(provisionSteps);
         }));
     }
