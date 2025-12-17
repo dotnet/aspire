@@ -1289,7 +1289,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             // The working directory is always relative to the app host project directory (if it exists).
             exe.Spec.WorkingDirectory = executable.WorkingDirectory;
-            exe.Spec.ExecutionType = ExecutionType.Process;
             exe.Annotate(CustomResource.OtelServiceNameAnnotation, executable.Name);
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
@@ -1302,6 +1301,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 && supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.LaunchConfigurationType))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
+                exe.Spec.FallbackExecutionTypes = [ ExecutionType.Process ];
                 supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug);
             }
             else
@@ -1335,16 +1335,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             for (var i = 0; i < replicas; i++)
             {
                 var exeInstance = GetDcpInstance(project, instanceIndex: i);
-                var exeSpec = Executable.Create(exeInstance.Name, "dotnet");
-                exeSpec.Spec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
+                var exe = Executable.Create(exeInstance.Name, "dotnet");
+                exe.Spec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
-                exeSpec.Annotate(CustomResource.OtelServiceNameAnnotation, project.Name);
-                exeSpec.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
-                exeSpec.Annotate(CustomResource.ResourceNameAnnotation, project.Name);
-                exeSpec.Annotate(CustomResource.ResourceReplicaCount, replicas.ToString(CultureInfo.InvariantCulture));
-                exeSpec.Annotate(CustomResource.ResourceReplicaIndex, i.ToString(CultureInfo.InvariantCulture));
+                exe.Annotate(CustomResource.OtelServiceNameAnnotation, project.Name);
+                exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
+                exe.Annotate(CustomResource.ResourceNameAnnotation, project.Name);
+                exe.Annotate(CustomResource.ResourceReplicaCount, replicas.ToString(CultureInfo.InvariantCulture));
+                exe.Annotate(CustomResource.ResourceReplicaIndex, i.ToString(CultureInfo.InvariantCulture));
 
-                SetInitialResourceState(project, exeSpec);
+                SetInitialResourceState(project, exe);
 
                 var projectLaunchConfiguration = new ProjectLaunchConfiguration();
                 projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
@@ -1355,9 +1355,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 var supportedLaunchConfigurations = ExtensionUtils.GetSupportedLaunchConfigurations(_configuration);
                 if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && (supportedLaunchConfigurations is null || supportedLaunchConfigurations.Contains("project")))
                 {
-                    exeSpec.Spec.ExecutionType = ExecutionType.IDE;
-                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
+                    exe.Spec.ExecutionType = ExecutionType.IDE;
+                    exe.Spec.FallbackExecutionTypes = [ ExecutionType.Process ];
 
+                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
                     // Use the effective launch profile which has fallback logic
                     if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
                     {
@@ -1366,7 +1367,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
                 else
                 {
-                    exeSpec.Spec.ExecutionType = ExecutionType.Process;
+                    exe.Spec.ExecutionType = ExecutionType.Process;
 
                     // `dotnet watch` does not work with file-based apps yet, so we have to use `dotnet run` in that case
                     if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
@@ -1408,11 +1409,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
 
                 // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
-                exeSpec.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
-                exeSpec.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
+                exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
+                exe.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
 
-                var exeAppResource = new RenderedModelResource(project, exeSpec);
-                AddServicesProducedInfo(project, exeSpec, exeAppResource);
+                var exeAppResource = new RenderedModelResource(project, exe);
+                AddServicesProducedInfo(project, exe, exeAppResource);
                 _appResources.Add(exeAppResource);
             }
         }
