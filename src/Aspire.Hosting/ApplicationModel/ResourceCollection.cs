@@ -33,10 +33,13 @@ internal sealed class ResourceCollection : IResourceCollection
     private sealed class ApplicationResourceCollectionDebugView(ResourceCollection collection)
     {
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public DebugView[] Items => collection.Select(x => new DebugView(x)).ToArray();
+        public DebugView[] Items => [.. collection.Select(x => new DebugView { Resource = x })];
 
         [DebuggerDisplay("{Resource}", Name = "{Resource.Name}")]
-        public record struct DebugView(IResource Resource);
+        public struct DebugView()
+        {
+            public required IResource Resource { get; init; }
+        };
     }
 }
 

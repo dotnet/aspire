@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an abstract resource that can be used by an application, that implements <see cref="IResource"/>.
 /// </summary>
-[DebuggerDisplay("{DebuggerToString(),nq}", Name = "{Name}")]
+[DebuggerDisplay("{DebuggerToString(),nq}")]
 public abstract class Resource : IResource
 {
     /// <summary>
