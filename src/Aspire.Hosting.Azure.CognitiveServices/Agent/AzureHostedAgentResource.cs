@@ -1,10 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.CognitiveServices;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Azure.AI.Projects;
@@ -13,6 +10,8 @@ using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
+namespace Aspire.Hosting.Azure.CognitiveServices;
 
 /// <summary>
 /// An Azure AI Foundry hosted agent resource.
@@ -94,12 +93,14 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     /// </summary>
     public Action<HostedAgentConfiguration>? Configure { get; set; }
 
+    private decimal _cpu = 1.0m;
+
     /// <summary>
     /// CPU allocation for each hosted agent instance.
     /// </summary>
     public decimal Cpu
     {
-        get;
+        get => _cpu;
         set
         {
             if (value < 0.25m || value > 3.5m)
@@ -110,16 +111,17 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
             {
                 throw new ArgumentException("CPU must be in increments of 0.25 cores.", nameof(Cpu));
             }
-            field = value;
+            _cpu = value;
         }
-    } = 1;
+    }
 
     /// <summary>
-    /// Memory allocation for each hosted agent instance, in GiB
+    /// Memory allocation for each hosted agent instance, in GiB.
+    /// Must be 2x the CPU allocation.
     /// </summary>
     public decimal Memory
     {
-        get;
+        get => _cpu * 2;
         set
         {
             if (value < 0.5m || value > 7m)
@@ -130,9 +132,9 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
             {
                 throw new ArgumentException("Memory must be in increments of 0.5 GiB.", nameof(Memory));
             }
-            field = value;
+            _cpu = value / 2;
         }
-    } = 2;
+    }
 
     /// <summary>
     /// The description of the hosted agent.
@@ -161,19 +163,13 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     /// <summary>
     /// Convert all dynamic values into concrete values for deployment.
     /// </summary>
-    public async Task<AgentVersionCreationOptions> ToAgentVersionCreationOptionsAsync(DistributedApplicationExecutionContext context, ILogger logger, CancellationToken cancellationToken)
+    public async Task<HostedAgentConfiguration> ToHostedAgentConfigurationAsync(DistributedApplicationExecutionContext context, ILogger logger, CancellationToken cancellationToken)
     {
         if (!Target.TryGetContainerImageName(out var imageName))
         {
             throw new InvalidOperationException($"Resource '{Target.Name}' does not have a container image name.");
         }
-        var def = new HostedAgentConfiguration(
-            new ImageBasedHostedAgentDefinition(
-                [new ProtocolVersionRecord(AgentCommunicationMethod.Responses, "v1"), new ProtocolVersionRecord(AgentCommunicationMethod.ActivityProtocol, "v2")],
-                "1", "2Gi",
-                image: await ((IValueProvider)Image).GetValueAsync(cancellationToken).ConfigureAwait(false)
-            )
-        );
+        var def = new HostedAgentConfiguration(imageName);
         if (Target.TryGetEnvironmentVariables(out var envVars))
         {
             void callback(string key, object? rawVal, string? stringValue, Exception? exc)
@@ -184,7 +180,7 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
                 }
                 if (stringValue is not null)
                 {
-                    def.Definition.EnvironmentVariables[key] = stringValue;
+                    def.EnvironmentVariables[key] = stringValue;
                 }
                 else
                 {
@@ -204,21 +200,11 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
             }
             def.Metadata[keyResolved] = valueResolved;
         }
-
         if (Configure is not null)
         {
             Configure(def);
         }
-
-        var options = new AgentVersionCreationOptions(def.Definition)
-        {
-            Description = def.Description,
-        };
-        foreach (var (key, value) in def.Metadata)
-        {
-            options.Metadata[key] = value;
-        }
-        return options;
+        return def;
     }
 
     /// <summary>
@@ -226,29 +212,29 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     /// </summary>
     public async Task PublishAsync(ManifestPublishingContext ctx)
     {
-        var opts = await ToAgentVersionCreationOptionsAsync(ctx.ExecutionContext, NullLogger.Instance, ctx.CancellationToken).ConfigureAwait(false);
+        var def = await ToHostedAgentConfigurationAsync(ctx.ExecutionContext, NullLogger.Instance, ctx.CancellationToken).ConfigureAwait(false);
         Console.WriteLine($"Writing agent manifest for path {ctx.ManifestPath}");
         ctx.Writer.WriteString("type", "azurefoundry.hostedagent.v0");
-        ctx.Writer.WriteString("description", Description);
-        ctx.Writer.WriteString("image", Image.ValueExpression);
         ctx.Writer.WriteStartObject("definition");
-        ctx.Writer.WriteString("cpu", opts.Definition.Cpu);
-        ctx.Writer.WriteString("memory", opts.Definition.Memory);
-        ctx.Writer.WriteEndObject();
-        ctx.Writer.WriteStartObject("metadata");
-        foreach (var property in Metadata)
+        ctx.Writer.WriteString("description", def.Description);
+        ctx.Writer.WriteString("image", def.Image);
+        ctx.Writer.WriteString("cpu", def.CpuString);
+        ctx.Writer.WriteString("memory", def.MemoryString);
+        ctx.Writer.WriteStartObject("environmentVariables");
+        foreach (var envVar in def.EnvironmentVariables)
         {
-            var key = await property.Key.GetValueAsync().ConfigureAwait(false);
-            var value = await property.Value.GetValueAsync().ConfigureAwait(false);
-            if (key is null || value is null)
-            {
-                continue;
-            }
-            ctx.Writer.WritePropertyName(key);
-            ctx.Writer.WriteString(key, value);
+            ctx.Writer.WritePropertyName(envVar.Key);
+            ctx.Writer.WriteString(envVar.Key, envVar.Value);
         }
-        ctx.Writer.WriteEndObject();
-        ctx.Writer.WriteEndObject();
+        ctx.Writer.WriteEndObject(); // environmentVariables
+        ctx.Writer.WriteStartObject("metadata");
+        foreach (var property in def.Metadata)
+        {
+            ctx.Writer.WritePropertyName(property.Key);
+            ctx.Writer.WriteString(property.Key, property.Value);
+        }
+        ctx.Writer.WriteEndObject(); // metadata
+        ctx.Writer.WriteEndObject(); // definition
         ctx.TryAddDependentResources(Target);
     }
 
@@ -264,11 +250,11 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
         {
             throw new InvalidOperationException($"Project '{project.Name}' does not have a valid connection string.");
         }
-        var options = await ToAgentVersionCreationOptionsAsync(context).ConfigureAwait(false);
+        var def = await ToHostedAgentConfigurationAsync(context.ExecutionContext, context.Logger, context.CancellationToken).ConfigureAwait(false);
         var projectClient = new AIProjectClient(new Uri(projectEndpoint), new DefaultAzureCredential());
         var result = await projectClient.Agents.CreateAgentVersionAsync(
             Name,
-            options,
+            def.ToAgentVersionCreationOptions(),
             context.CancellationToken
         ).ConfigureAwait(false);
         return result.Value;
