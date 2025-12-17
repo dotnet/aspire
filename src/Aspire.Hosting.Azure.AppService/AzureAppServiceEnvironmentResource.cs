@@ -143,9 +143,9 @@ public class AzureAppServiceEnvironmentResource :
 
             // Make print-summary step depend on provisioning of this environment
             var printSummarySteps = context.GetSteps(this, "print-summary");
-            var fetchDashboardHostNameSteps = context.GetSteps(this, "fetch-dashboard-hostname");
+            // var fetchDashboardHostNameSteps = context.GetSteps(this, "fetch-dashboard-hostname");
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            provisionSteps.DependsOn(fetchDashboardHostNameSteps);
+            // provisionSteps.DependsOn(fetchDashboardHostNameSteps);
             printSummarySteps.DependsOn(provisionSteps);
         }));
     }

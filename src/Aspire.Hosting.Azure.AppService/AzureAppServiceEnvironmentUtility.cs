@@ -46,7 +46,7 @@ internal static class AzureAppServiceEnvironmentUtility
         BicepValue<ResourceIdentifier> appServicePlanId,
         bool enableRegionalDnl)
     {
-        infra.Add(s_dashboardHostNameParameter);
+        //infra.Add(s_dashboardHostNameParameter);
 
         // This ACR identity is used by the dashboard to authorize the telemetry data
         // coming from the dotnet web apps. This identity is being assigned to every web app
