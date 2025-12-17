@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRELIFECYCLE001
+
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
@@ -497,6 +499,26 @@ public class DistributedApplication : IHost, IAsyncDisposable
             foreach (var lifecycleHook in lifecycleHooks)
             {
                 await lifecycleHook.BeforeStartAsync(appModel, cancellationToken).ConfigureAwait(false);
+            }
+
+            foreach (var resource in appModel.Resources)
+            {
+                if (resource.TryGetAnnotationsOfType<FinalizeResourceConfigurationCallbackAnnotation>(out var finalizeAnnotations))
+                {
+                    var context = new FinalizeResourceConfigurationCallbackAnnotationContext
+                    {
+                        Resource = resource,
+                        ExecutionContext = execContext,
+                        CancellationToken = cancellationToken,
+                    };
+
+                    // Execute in reverse order; take as a list to avoid mutating the collection during enumeration
+                    var callbacks = finalizeAnnotations.Reverse().ToList();
+                    foreach (var callback in callbacks)
+                    {
+                        await callback.Callback(context).ConfigureAwait(false);
+                    }
+                }
             }
         }
         finally
