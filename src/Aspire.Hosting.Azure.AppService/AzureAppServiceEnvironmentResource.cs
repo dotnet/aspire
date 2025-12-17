@@ -55,6 +55,7 @@ public class AzureAppServiceEnvironmentResource :
                 Name = $"fetch-dashboard-hostname",
                 Action = async ctx =>
                 {
+                    ctx.ReportingStep.Log(LogLevel.Information, $"Fetching website suffix", false);
                     var websiteSuffix = await WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
                     var websiteName = $"{EnvironmentPrefix.ToLowerInvariant()}-{AzureAppServiceEnvironmentUtility.ResourceName}-{websiteSuffix?.ToLowerInvariant()}";
 

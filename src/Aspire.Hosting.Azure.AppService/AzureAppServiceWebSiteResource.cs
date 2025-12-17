@@ -56,6 +56,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                     }
 
                     var websiteSuffix = await computeEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    ctx.ReportingStep.Log(LogLevel.Information, $"{websiteSuffix} website suffix retrieved from environment", false);
                     var websiteName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
 
                     if (websiteName.Length > MaxWebsiteNameLength)
@@ -241,8 +242,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             var checkWebsiteExistsSteps = context.GetSteps(this, "check-website-exists");
             var updateWebsiteResourceSteps = context.GetSteps(this, "update-website-provisionable-resource");
             var fetchWebsiteHostNameSteps = context.GetSteps(this, "fetch-website-hostname");
-            provisionSteps.DependsOn(fetchWebsiteHostNameSteps);
-            updateWebsiteResourceSteps.DependsOn(checkWebsiteExistsSteps);
+            fetchWebsiteHostNameSteps.DependsOn(checkWebsiteExistsSteps);
             updateWebsiteResourceSteps.DependsOn(fetchWebsiteHostNameSteps);
             provisionSteps.DependsOn(updateWebsiteResourceSteps);
 
