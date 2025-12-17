@@ -9,7 +9,6 @@ using System.Text;
 using System.Text.Json;
 using Aspire.Dashboard.Authentication;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -200,36 +199,7 @@ public static class OtlpHttpEndpointsBuilder
             }
         }).ConfigureAwait(false);
 
-        // Route to the appropriate JSON type based on TMessage
-        if (typeof(TMessage) == typeof(ExportTraceServiceRequest))
-        {
-            var jsonObj = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.OtlpExportTraceServiceRequestJson);
-            if (jsonObj is null)
-            {
-                return default;
-            }
-            return (TMessage)(object)OtlpJsonToProtobufConverter.ToProtobuf(jsonObj);
-        }
-        else if (typeof(TMessage) == typeof(ExportLogsServiceRequest))
-        {
-            var jsonObj = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.OtlpExportLogsServiceRequestJson);
-            if (jsonObj is null)
-            {
-                return default;
-            }
-            return (TMessage)(object)OtlpJsonToProtobufConverter.ToProtobuf(jsonObj);
-        }
-        else if (typeof(TMessage) == typeof(ExportMetricsServiceRequest))
-        {
-            var jsonObj = JsonSerializer.Deserialize(json, OtlpJsonSerializerContext.Default.OtlpExportMetricsServiceRequestJson);
-            if (jsonObj is null)
-            {
-                return default;
-            }
-            return (TMessage)(object)OtlpJsonToProtobufConverter.ToProtobuf(jsonObj);
-        }
-
-        throw new NotSupportedException($"JSON deserialization for type {typeof(TMessage).Name} is not supported.");
+        return OtlpJsonConverters.DeserializeJson<TMessage>(json);
     }
 
     private sealed class OtlpResult<T> : IResult where T : IMessage
@@ -260,34 +230,13 @@ public static class OtlpHttpEndpointsBuilder
                     break;
                 case KnownContentType.Json:
                     httpContext.Response.ContentType = JsonContentType;
-                    var jsonResponse = ConvertToJson(_message);
+                    var jsonResponse = OtlpJsonConverters.SerializeJson(_message);
                     await httpContext.Response.WriteAsync(jsonResponse, Encoding.UTF8).ConfigureAwait(false);
                     break;
                 default:
                     await WriteUnsupportedContentTypeResponse(httpContext, logger).ConfigureAwait(false);
                     break;
             }
-        }
-
-        private static string ConvertToJson(T message)
-        {
-            if (message is ExportTraceServiceResponse traceResponse)
-            {
-                var json = OtlpProtobufToJsonConverter.ToJson(traceResponse);
-                return JsonSerializer.Serialize(json, OtlpJsonSerializerContext.Default.OtlpExportTraceServiceResponseJson);
-            }
-            else if (message is ExportLogsServiceResponse logsResponse)
-            {
-                var json = OtlpProtobufToJsonConverter.ToJson(logsResponse);
-                return JsonSerializer.Serialize(json, OtlpJsonSerializerContext.Default.OtlpExportLogsServiceResponseJson);
-            }
-            else if (message is ExportMetricsServiceResponse metricsResponse)
-            {
-                var json = OtlpProtobufToJsonConverter.ToJson(metricsResponse);
-                return JsonSerializer.Serialize(json, OtlpJsonSerializerContext.Default.OtlpExportMetricsServiceResponseJson);
-            }
-
-            throw new NotSupportedException($"JSON serialization for type {typeof(T).Name} is not supported.");
         }
     }
 
