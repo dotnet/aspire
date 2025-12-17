@@ -49,21 +49,11 @@ public class AzureCognitiveServicesProjectResource :
                 Action = context => AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, context),
                 Tags = [LogInToAcrStepTag],
                 Resource = this,
-                DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName]
+                DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
+                RequiredBySteps = [WellKnownPipelineSteps.Deploy]
             };
-
-            // Add print-dashboard-url step
-            // var printDashboardUrlStep = new PipelineStep
-            // {
-            //     Name = $"print-dashboard-url-{name}",
-            //     Action = ctx => PrintDashboardUrlAsync(ctx),
-            //     Tags = ["print-summary"],
-            //     DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
-            //     RequiredBySteps = [WellKnownPipelineSteps.Deploy]
-            // };
-
             steps.Add(loginStep);
-            // steps.Add(printDashboardUrlStep);
+
             return steps;
         }));
 
@@ -71,6 +61,7 @@ public class AzureCognitiveServicesProjectResource :
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
         {
             var loginStep = context.GetSteps(this, LogInToAcrStepTag);
+
             foreach (var resource in context.Model.GetComputeResources())
             {
                 var deploymentTarget = resource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
@@ -78,17 +69,8 @@ public class AzureCognitiveServicesProjectResource :
                 {
                     continue;
                 }
-                if (!deploymentTarget.TryGetAnnotationsOfType<PipelineConfigurationAnnotation>(out var pipelineConfigurations))
-                {
-                    continue;
-                }
-                // Expand all pipeline steps for the resource
-                foreach (var pipelineConfiguration in pipelineConfigurations)
-                {
-                    pipelineConfiguration.Callback(context);
-                }
-                context.GetSteps(deploymentTarget, WellKnownPipelineTags.PushContainerImage)
-                    // Ensure push steps happens after login to registry
+                context.GetSteps(resource, WellKnownPipelineTags.PushContainerImage)
+                    // Ensure image push steps happens after login to registry
                     .DependsOn(loginStep);
             }
         }));
