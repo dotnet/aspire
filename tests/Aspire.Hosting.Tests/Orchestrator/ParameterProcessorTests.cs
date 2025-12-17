@@ -815,8 +815,6 @@ public class ParameterProcessorTests
         // Reset WaitForValueTcs to track updates
         parameter.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var updates = notificationService.WatchAsync().GetAsyncEnumerator();
-
         // Act - Start the SetParameterAsync task
         var setValueTask = Task.Run(async () =>
         {
@@ -832,8 +830,8 @@ public class ParameterProcessorTests
         Assert.Equal("testParam", inputInteraction.Inputs["testParam"].Label);
         // Existing value should be pre-populated
         Assert.Equal("initialValue", inputInteraction.Inputs["testParam"].Value);
-        // RememberParameters should default to true since parameter has existing value
-        Assert.Equal("true", inputInteraction.Inputs["RememberParameters"].Value);
+        // RememberParameters shouldn't be true because the existing value isn't saved to sate.
+        Assert.Null(inputInteraction.Inputs["RememberParameters"].Value);
 
         // Complete the interaction with a new value
         inputInteraction.Inputs["testParam"].Value = "newValue";
@@ -843,8 +841,7 @@ public class ParameterProcessorTests
         await setValueTask;
 
         // Assert - Parameter value should be updated
-        Assert.True(parameter.WaitForValueTcs!.Task.IsCompletedSuccessfully);
-        Assert.Equal("newValue", await parameter.WaitForValueTcs.Task);
+        Assert.Equal("newValue", await parameter.GetValueAsync(CancellationToken.None));
     }
 
     [Fact]
