@@ -1317,6 +1317,8 @@ public static class PythonAppResourceBuilderExtensions
             var hasPyprojectToml = File.Exists(Path.Combine(workingDirectory, "pyproject.toml"));
             var hasRequirementsTxt = File.Exists(Path.Combine(workingDirectory, "requirements.txt"));
 
+            // If both pyproject.toml and requirements.txt exist, prefer pyproject.toml
+            // as it's the modern standard and uv sync will handle dependencies correctly
             if (!hasPyprojectToml && hasRequirementsTxt)
             {
                 // Use uv pip install for requirements.txt only projects
