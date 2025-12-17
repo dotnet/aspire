@@ -41,6 +41,14 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel AI21Jamba15Mini;
         }
 
+        public static partial class Anthropic
+        {
+            public static readonly AIFoundryModel ClaudeHaiku45;
+            public static readonly AIFoundryModel ClaudeOpus41;
+            public static readonly AIFoundryModel ClaudeOpus45;
+            public static readonly AIFoundryModel ClaudeSonnet45;
+        }
+
         public static partial class BlackForestLabs
         {
             public static readonly AIFoundryModel Flux11Pro;
@@ -56,6 +64,8 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel CohereCommandRPlus082024;
             public static readonly AIFoundryModel CohereEmbedV3English;
             public static readonly AIFoundryModel CohereEmbedV3Multilingual;
+            public static readonly AIFoundryModel CohereRerankV40Fast;
+            public static readonly AIFoundryModel CohereRerankV40Pro;
             public static readonly AIFoundryModel EmbedV40;
         }
 
@@ -76,6 +86,7 @@ namespace Aspire.Hosting.Azure
         public static partial class Local
         {
             public static readonly AIFoundryModel DeepseekR114b;
+            public static readonly AIFoundryModel DeepseekR115b;
             public static readonly AIFoundryModel DeepseekR17b;
             public static readonly AIFoundryModel GptOss20b;
             public static readonly AIFoundryModel Mistral7bV02;
@@ -88,6 +99,8 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel Qwen2505b;
             public static readonly AIFoundryModel Qwen2514b;
             public static readonly AIFoundryModel Qwen2515b;
+            [System.Obsolete("This test variant is no longer available. Use Qwen2515b instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly AIFoundryModel Qwen2515bInstructTestVitisNpu;
             public static readonly AIFoundryModel Qwen257b;
             public static readonly AIFoundryModel Qwen25Coder05b;
@@ -115,9 +128,23 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel AzureAIContentSafety;
             public static readonly AIFoundryModel AzureAIContentUnderstanding;
             public static readonly AIFoundryModel AzureAIDocumentIntelligence;
+            [System.Obsolete("Azure AI Language has been replaced with more granular services. Use AzureLanguageLanguageDetection, AzureLanguageTextPiiRedaction, or other specific services instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly AIFoundryModel AzureAILanguage;
+            [System.Obsolete("Azure AI Translator has been replaced with more granular services. Use AzureTranslatorTextTranslation or AzureTranslatorDocumentTranslation instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly AIFoundryModel AzureAITranslator;
             public static readonly AIFoundryModel AzureAIVision;
+            public static readonly AIFoundryModel AzureLanguageLanguageDetection;
+            public static readonly AIFoundryModel AzureLanguageTextPiiRedaction;
+            public static readonly AIFoundryModel AzureSpeechSpeechToText;
+            public static readonly AIFoundryModel AzureSpeechTextToSpeech;
+            public static readonly AIFoundryModel AzureSpeechTextToSpeechAvatar;
+            public static readonly AIFoundryModel AzureSpeechVoiceLive;
+            public static readonly AIFoundryModel AzureTranslatorDocumentTranslation;
+            public static readonly AIFoundryModel AzureTranslatorTextTranslation;
+            [System.Obsolete("Use AzureLanguageLanguageDetection instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly AIFoundryModel LanguageDetection;
             public static readonly AIFoundryModel MaiDSR1;
             public static readonly AIFoundryModel ModelRouter;
@@ -135,6 +162,8 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel Phi4MiniReasoning;
             public static readonly AIFoundryModel Phi4MultimodalInstruct;
             public static readonly AIFoundryModel Phi4Reasoning;
+            [System.Obsolete("Use AzureLanguageTextPiiRedaction instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly AIFoundryModel TextPii;
         }
 
@@ -145,6 +174,7 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel MistralDocumentAi2505;
             public static readonly AIFoundryModel MistralLarge2407;
             public static readonly AIFoundryModel MistralLarge2411;
+            public static readonly AIFoundryModel MistralLarge3;
             public static readonly AIFoundryModel MistralMedium2505;
             public static readonly AIFoundryModel MistralNemo;
             public static readonly AIFoundryModel MistralSmall;
@@ -177,6 +207,13 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel Gpt4oTranscribe;
             public static readonly AIFoundryModel Gpt4oTranscribeDiarize;
             public static readonly AIFoundryModel Gpt5;
+            public static readonly AIFoundryModel Gpt51;
+            public static readonly AIFoundryModel Gpt51Chat;
+            public static readonly AIFoundryModel Gpt51Codex;
+            public static readonly AIFoundryModel Gpt51CodexMax;
+            public static readonly AIFoundryModel Gpt51CodexMini;
+            public static readonly AIFoundryModel Gpt52;
+            public static readonly AIFoundryModel Gpt52Chat;
             public static readonly AIFoundryModel Gpt5Chat;
             public static readonly AIFoundryModel Gpt5Codex;
             public static readonly AIFoundryModel Gpt5Mini;
@@ -187,6 +224,7 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel GptImage1;
             public static readonly AIFoundryModel GptImage1Mini;
             public static readonly AIFoundryModel GptOss120b;
+            public static readonly AIFoundryModel GptOss20b;
             public static readonly AIFoundryModel GptRealtime;
             public static readonly AIFoundryModel GptRealtimeMini;
             public static readonly AIFoundryModel O1;
@@ -243,6 +281,8 @@ namespace Aspire.Hosting.Azure
         public int SkuCapacity { get { throw null; } set { } }
 
         public string SkuName { get { throw null; } set { } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
     public partial class AzureAIFoundryResource : AzureProvisioningResource, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
@@ -263,6 +303,10 @@ namespace Aspire.Hosting.Azure
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }
