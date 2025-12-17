@@ -9,12 +9,12 @@
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
         <source>Which additional options do you want to enable?</source>
-        <target state="new">Which additional options do you want to enable?</target>
+        <target state="translated">您想啟用哪些額外選項?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
         <source>Which agent environments do you want to configure?</source>
-        <target state="new">Which agent environments do you want to configure?</target>
+        <target state="translated">您想設定哪些代理程式環境?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
         <source>Pre-configure Playwright MCP server?</source>
-        <target state="new">Pre-configure Playwright MCP server?</target>
+        <target state="translated">預先設定 Playwright MCP 伺服器?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
         <source>Create agent environment specific instruction files?</source>
-        <target state="new">Create agent environment specific instruction files?</target>
+        <target state="translated">建立代理程式環境特定指示檔案?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">
