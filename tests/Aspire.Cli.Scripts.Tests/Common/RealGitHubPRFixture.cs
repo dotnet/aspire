@@ -69,7 +69,7 @@ public sealed class RealGitHubPRFixture : IDisposable
             $"Required artifacts: {RequiredArtifactPrefix}*, {RequiredBuiltNugets}");
     }
 
-    private bool TryGetWorkflowRunWithArtifacts(int prNumber, out long workflowRunId)
+    private static bool TryGetWorkflowRunWithArtifacts(int prNumber, out long workflowRunId)
     {
         workflowRunId = 0;
 

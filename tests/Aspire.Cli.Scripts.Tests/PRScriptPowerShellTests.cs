@@ -18,7 +18,7 @@ public class PRScriptPowerShellTests(ITestOutputHelper testOutput)
 {
     private readonly ITestOutputHelper _testOutput = testOutput;
 
-    private string GetScriptPath()
+    private static string GetScriptPath()
     {
         var repoRoot = TestUtils.FindRepoRoot()?.FullName
             ?? throw new InvalidOperationException("Could not find repository root");

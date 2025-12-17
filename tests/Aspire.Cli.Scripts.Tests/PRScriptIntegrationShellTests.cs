@@ -3,7 +3,6 @@
 
 using Aspire.Cli.Scripts.Tests.Common;
 using Aspire.Templates.Tests;
-using Microsoft.DotNet.XUnitExtensions;
 using Xunit;
 
 namespace Aspire.Cli.Scripts.Tests;
@@ -20,7 +19,7 @@ public class PRScriptIntegrationShellTests(RealGitHubPRFixture fixture, ITestOut
     private readonly RealGitHubPRFixture _fixture = fixture;
     private readonly ITestOutputHelper _testOutput = testOutput;
 
-    private string GetScriptPath()
+    private static string GetScriptPath()
     {
         var repoRoot = TestUtils.FindRepoRoot()?.FullName
             ?? throw new InvalidOperationException("Could not find repository root");

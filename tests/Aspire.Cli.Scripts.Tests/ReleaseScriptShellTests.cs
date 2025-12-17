@@ -3,7 +3,6 @@
 
 using Aspire.Cli.Scripts.Tests.Common;
 using Aspire.Templates.Tests;
-using Microsoft.DotNet.XUnitExtensions;
 using Xunit;
 
 namespace Aspire.Cli.Scripts.Tests;
