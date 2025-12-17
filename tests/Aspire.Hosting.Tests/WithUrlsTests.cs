@@ -794,17 +794,13 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(true, true)]
-    public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl(bool useLaunchSettings, bool useHttps)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl(bool useHttps)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var project = useLaunchSettings
-            ? builder.AddProject<ProjectB>("project")
-            : builder.AddProject<ProjectA>("project");
+        var project = builder.AddProject<ProjectA>("project");
 
         if (useHttps)
         {
@@ -813,16 +809,6 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         else
         {
             project.WithHttpEndpoint(name: "test");
-        }
-
-        if (useLaunchSettings)
-        {
-            // Update the URL from the launch profile
-            project.WithUrlForEndpoint("http", url =>
-            {
-                url.Url = "/test-sub-path";
-                url.DisplayText = "Test Link";
-            });
         }
 
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -849,15 +835,53 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         Assert.EndsWith("/test-sub-path", endpointUrl.Url);
         Assert.Equal("Test Link", endpointUrl.DisplayText);
 
-        if (useLaunchSettings)
-        {
-            var launchProfileUrl = project.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "http");
+        await app.StopAsync().DefaultTimeout();
+    }
 
-            Assert.NotNull(launchProfileUrl);
-            Assert.StartsWith("http://localhost", launchProfileUrl.Url);
-            Assert.EndsWith("/test-sub-path", launchProfileUrl.Url);
-            Assert.Equal("Test Link", launchProfileUrl.DisplayText);
-        }
+    [Fact]
+    public async Task WithUrlForEndpointSupportsMultipleRelativeUrlsOnLaunchProfileEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var project = builder.AddProject<ProjectB>("project")
+            // Update the URL from the launch profile
+            .WithUrlForEndpoint("http", url =>
+            {
+                url.Url = "/test-sub-path";
+                url.DisplayText = "Test Link";
+            })
+            // Add another relative URL
+            .WithUrlForEndpoint("http", _ => new()
+            {
+                Url = "/test-another-sub-path",
+                DisplayText = "Another Test Link"
+            })
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
+
+        await using var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task.DefaultTimeout();
+
+        var launchProfileUrls = project.Resource.Annotations.OfType<ResourceUrlAnnotation>().Where(u => u.Endpoint?.EndpointName == "http");
+        Assert.Collection(launchProfileUrls,
+            url =>
+            {
+                Assert.StartsWith("http://localhost", url.Url);
+                Assert.EndsWith("/test-sub-path", url.Url);
+                Assert.Equal("Test Link", url.DisplayText);
+            },
+            url =>
+            {
+                Assert.StartsWith("http://localhost", url.Url);
+                Assert.EndsWith("/test-another-sub-path", url.Url);
+                Assert.Equal("Another Test Link", url.DisplayText);
+            }
+        );
 
         await app.StopAsync().DefaultTimeout();
     }

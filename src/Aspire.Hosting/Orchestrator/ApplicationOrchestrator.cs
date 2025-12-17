@@ -358,15 +358,14 @@ internal sealed class ApplicationOrchestrator
 
                 if (primaryPath.StartsWith('/') && primaryPath.Length > 1)
                 {
-                    // The primary launch profile endpoint has a path, apply that path to all other launch profile endpoint URLs.
+                    // The primary launch profile endpoint has a path, apply that path to all other non-relative launch profile endpoint URLs.
                     foreach (var url in urls)
                     {
-                        if (url.Endpoint?.EndpointAnnotation == primaryLaunchProfileEndpoint && !string.Equals(url.Url, primaryUrl.Url, StringComparisons.Url))
+                        if (url.Endpoint?.EndpointAnnotation == primaryLaunchProfileEndpoint
+                            && !string.Equals(url.Url, primaryUrl.Url, StringComparisons.Url)
+                            && Uri.TryCreate(url.Url, UriKind.Absolute, out var _))
                         {
-                            var uriBuilder = new UriBuilder(url.Url)
-                            {
-                                Path = primaryPath
-                            };
+                            var uriBuilder = new UriBuilder(url.Url) { Path = primaryPath };
                             url.Url = uriBuilder.Uri.ToString();
                         }
                     }
