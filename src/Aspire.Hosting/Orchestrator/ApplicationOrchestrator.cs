@@ -372,7 +372,15 @@ internal sealed class ApplicationOrchestrator
                         logger.LogTrace("Invoking URL callback '{CallbackIndex}' for resource '{ResourceName}'.", index, resource.Name);
                     }
                     await callback.Callback(urlsCallbackContext).ConfigureAwait(false);
+                    if (logger.IsEnabled(LogLevel.Trace))
+                    {
+                        logger.LogTrace("{UrlCount} URLs after callback '{CallbackIndex}' for resource '{ResourceName}'.", urlsCallbackContext.Urls.Count, index, resource.Name);
+                    }
                     index++;
+                }
+                if (logger.IsEnabled(LogLevel.Trace))
+                {
+                    logger.LogTrace("{UrlCount} URLs after calling '{CallbackIndex}' callback(s) for resource '{ResourceName}'.", urls.Count, index, resource.Name);
                 }
             }
 
@@ -380,10 +388,6 @@ internal sealed class ApplicationOrchestrator
             // This needs to happen after running URL callbacks as the application of the launch profile launchUrl happens in a callback.
             if (primaryLaunchProfileEndpoint is not null)
             {
-                if (logger.IsEnabled(LogLevel.Trace))
-                {
-                    logger.LogTrace("Applying path from primary launch profile endpoint '{EndpointName}' to other launch profile endpoints for resource '{ResourceName}'.", primaryLaunchProfileEndpoint.Name, resource.Name);
-                }
                 // Matches URL lookup logic in ProjectResourceBuilderExtensions.WithProjectDefaults
                 var primaryUrl = urls.FirstOrDefault(u => string.Equals(u.Endpoint?.EndpointName, primaryLaunchProfileEndpoint.Name, StringComparisons.EndpointAnnotationName));
                 if (primaryUrl is not null)
@@ -394,6 +398,10 @@ internal sealed class ApplicationOrchestrator
                     if (primaryPath.StartsWith('/') && primaryPath.Length > 1)
                     {
                         // The primary launch profile endpoint has a path, apply that path to all other non-relative launch profile endpoint URLs.
+                        if (logger.IsEnabled(LogLevel.Trace))
+                        {
+                            logger.LogTrace("Applying path '{Path}' from URL '{Url}' for primary launch profile endpoint '{EndpointName}' to other launch profile endpoints for resource '{ResourceName}'.", primaryPath, primaryUrl.Url, primaryLaunchProfileEndpoint.Name, resource.Name);
+                        }
                         foreach (var url in urls)
                         {
                             if (url.Endpoint?.EndpointAnnotation == primaryLaunchProfileEndpoint
@@ -402,10 +410,14 @@ internal sealed class ApplicationOrchestrator
                             {
                                 if (logger.IsEnabled(LogLevel.Trace))
                                 {
-                                    logger.LogTrace("Applying path '{Path}' to launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", primaryPath, url.Endpoint.EndpointName, resource.Name);
+                                    logger.LogTrace("Updating URL '{Url}' to URI '{Uri}' with path '{Path}' launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", url.Url, primaryPath, uri, url.Endpoint.EndpointName, resource.Name);
                                 }
                                 var uriBuilder = new UriBuilder(uri) { Path = primaryPath };
                                 url.Url = uriBuilder.Uri.ToString();
+                                if (logger.IsEnabled(LogLevel.Trace))
+                                {
+                                    logger.LogTrace("Updated URL to '{Url}' for launch profile endpoint '{EndpointName}' on resource '{ResourceName}'.", url.Url, url.Endpoint.EndpointName, resource.Name);
+                                }
                             }
                         }
                     }
@@ -413,7 +425,7 @@ internal sealed class ApplicationOrchestrator
                     {
                         if (logger.IsEnabled(LogLevel.Trace))
                         {
-                            logger.LogTrace("Primary launch profile endpoint '{EndpointName}' for resource '{ResourceName}' does not have a path to apply to other launch profile endpoints.", primaryLaunchProfileEndpoint.Name, resource.Name);
+                            logger.LogTrace("URL '{Url}' for primary launch profile endpoint '{EndpointName}' for resource '{ResourceName}' does not have a path to apply to other launch profile endpoints.", primaryUrl.Url, primaryLaunchProfileEndpoint.Name, resource.Name);
                         }
                     }
                 }
@@ -452,10 +464,14 @@ internal sealed class ApplicationOrchestrator
             {
                 resource.Annotations.Add(url);
                 count++;
+                if (logger.IsEnabled(LogLevel.Trace))
+                {
+                    logger.LogTrace("Added URL annotation '{Url}' to resource '{ResourceName}'.", url.Url, resource.Name);
+                }
             }
             if (logger.IsEnabled(LogLevel.Trace))
             {
-                logger.LogTrace("Added total of {UrlCount} URLs to resource '{ResourceName}'.", count, resource.Name);
+                logger.LogTrace("Added total of {UrlCount} URLs to resource '{ResourceName}'", count, resource.Name);
             }
         }
         catch (Exception ex)
