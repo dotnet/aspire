@@ -501,8 +501,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         {
             context.Logger.LogWarning(
                 "No steps were found to execute for the '{StepName}' operation. " +
-                "This usually means no resources or environments are configured for deployment. " +
-                "Please ensure your application has deployment targets configured.",
+                "This usually means no resources or environments are configured for this operation. " +
+                "Please ensure your application has the necessary configuration to support this step.",
                 targetedStepName);
         }
     }
