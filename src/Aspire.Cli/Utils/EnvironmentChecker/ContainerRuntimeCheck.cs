@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Utils.EnvironmentChecker;
@@ -9,9 +10,19 @@ namespace Aspire.Cli.Utils.EnvironmentChecker;
 /// <summary>
 /// Checks if a container runtime (Docker or Podman) is available and running.
 /// </summary>
-internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logger) : IEnvironmentCheck
+internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logger) : IEnvironmentCheck
 {
     private static readonly TimeSpan s_processTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// The minimum Docker version required for Aspire.
+    /// </summary>
+    public const string MinimumDockerVersion = "20.10.0";
+
+    /// <summary>
+    /// The minimum Podman version required for Aspire.
+    /// </summary>
+    public const string MinimumPodmanVersion = "4.0.0";
 
     public int Order => 40; // Process check - more expensive
 
@@ -100,8 +111,10 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
             using var versionTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             versionTimeoutCts.CancelAfter(s_processTimeout);
 
+            string versionOutput;
             try
             {
+                versionOutput = await versionProcess.StandardOutput.ReadToEndAsync(versionTimeoutCts.Token);
                 await versionProcess.WaitForExitAsync(versionTimeoutCts.Token);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -129,6 +142,28 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
                     Fix = GetContainerRuntimeInstallationLink(runtime),
                     Link = "https://aka.ms/dotnet/aspire/containers"
                 };
+            }
+
+            // Parse the version from the output
+            var detectedVersion = ParseVersionFromOutput(versionOutput);
+            var minimumVersion = GetMinimumVersion(runtime);
+
+            // Check if version meets minimum requirement
+            if (detectedVersion is not null && minimumVersion is not null)
+            {
+                if (detectedVersion < minimumVersion)
+                {
+                    var minVersionString = runtime == "Docker" ? MinimumDockerVersion : MinimumPodmanVersion;
+                    return new EnvironmentCheckResult
+                    {
+                        Category = "container",
+                        Name = "container-runtime",
+                        Status = EnvironmentCheckStatus.Warning,
+                        Message = $"{runtime} version {detectedVersion} is below the minimum required version {minVersionString}",
+                        Fix = GetContainerRuntimeUpgradeAdvice(runtime),
+                        Link = "https://aka.ms/dotnet/aspire/containers"
+                    };
+                }
             }
 
             // Runtime is installed, check if it's running
@@ -190,13 +225,14 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
                 };
             }
 
-            // Just return that the runtime is working - Docker Engine detection is handled separately
+            // Return pass with version info if available
+            var versionSuffix = detectedVersion is not null ? $" (version {detectedVersion})" : string.Empty;
             return new EnvironmentCheckResult
             {
                 Category = "container",
                 Name = "container-runtime",
                 Status = EnvironmentCheckStatus.Pass,
-                Message = $"{runtime} detected and running"
+                Message = $"{runtime} detected and running{versionSuffix}"
             };
         }
         catch (Exception ex)
@@ -211,6 +247,61 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
             };
         }
     }
+
+    /// <summary>
+    /// Parses a version number from container runtime --version output.
+    /// Handles formats like "Docker version 20.10.17, build 100c701" and "podman version 4.3.1".
+    /// </summary>
+    internal static Version? ParseVersionFromOutput(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return null;
+        }
+
+        // Match version patterns like "20.10.17", "4.3.1", "27.5.1" etc.
+        // The pattern looks for "version" followed by a version number
+        var match = VersionRegex().Match(output);
+        if (match.Success && Version.TryParse(match.Groups[1].Value, out var version))
+        {
+            return version;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Gets the minimum required version for the specified container runtime.
+    /// </summary>
+    private static Version? GetMinimumVersion(string runtime)
+    {
+        var versionString = runtime switch
+        {
+            "Docker" => MinimumDockerVersion,
+            "Podman" => MinimumPodmanVersion,
+            _ => null
+        };
+
+        if (versionString is not null && Version.TryParse(versionString, out var version))
+        {
+            return version;
+        }
+
+        return null;
+    }
+
+    private static string GetContainerRuntimeUpgradeAdvice(string runtime)
+    {
+        return runtime switch
+        {
+            "Docker" => $"Upgrade Docker to version {MinimumDockerVersion} or later from: https://www.docker.com/products/docker-desktop",
+            "Podman" => $"Upgrade Podman to version {MinimumPodmanVersion} or later from: https://podman.io/getting-started/installation",
+            _ => $"Upgrade {runtime} to a newer version"
+        };
+    }
+
+    [GeneratedRegex(@"version\s+(\d+\.\d+(?:\.\d+)?)", RegexOptions.IgnoreCase)]
+    private static partial Regex VersionRegex();
 
     private static string GetContainerRuntimeInstallationLink(string runtime)
     {
