@@ -557,7 +557,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     {
         public readonly IHost Host => app._host;
 
-        public List<ResourceState> Resources
+        public List<ResourceStateDebugView> Resources
         {
             get
             {
@@ -566,7 +566,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
                     return [];
                 }
 
-                var results = new List<ResourceState>(app._model.Resources.Count);
+                var results = new List<ResourceStateDebugView>(app._model.Resources.Count);
                 foreach (var resource in app._model.Resources)
                 {
                     resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var dcpInstancesAnnotation);
@@ -575,13 +575,13 @@ public class DistributedApplication : IHost, IAsyncDisposable
                         foreach(var instance in dcpInstancesAnnotation.Instances)
                         {
                             app.ResourceNotifications.TryGetCurrentState(instance.Name, out var resourceEvent);
-                            results.Add(new() { ResourceId = instance.Name, Resource = resource, Snapshot = resourceEvent?.Snapshot });
+                            results.Add(new() { Resource = resource, Snapshot = resourceEvent?.Snapshot });
                         }
                     }
                     else
                     {
                         app.ResourceNotifications.TryGetCurrentState(resource.Name, out var resourceEvent);
-                        results.Add(new() { ResourceId = resource.Name, Resource = resource, Snapshot = resourceEvent?.Snapshot });
+                        results.Add(new() { Resource = resource, Snapshot = resourceEvent?.Snapshot });
                     }
                 }
 
@@ -589,12 +589,9 @@ public class DistributedApplication : IHost, IAsyncDisposable
             }
         }
 
-        [DebuggerDisplay("{Snapshot}", Name = "{ResourceId}", Type = "{Resource.GetType().FullName,nq}")]
-        internal class ResourceState
+        [DebuggerDisplay("{Resource}", Name = "{Resource.Name}", Type = "{Resource.GetType().FullName,nq}")]
+        internal class ResourceStateDebugView
         {
-            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            public required string ResourceId { get; init; }
-
             public required IResource Resource { get; init; }
 
             public required CustomResourceSnapshot? Snapshot { get; init; }

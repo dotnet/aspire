@@ -17,7 +17,7 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, ConsumerGroup = {ConsumerGroupName,nq}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, ConsumerGroup = {ConsumerGroupName}")]
 public class AzureEventHubConsumerGroupResource(string name, string consumerGroupName, AzureEventHubResource parent)
     : Resource(name), IResourceWithParent<AzureEventHubResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
