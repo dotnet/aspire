@@ -2271,9 +2271,9 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
         var pipeline = new DistributedApplicationPipeline();
 
         // Add a step that is required by deploy (simulating a deployment step)
-        pipeline.AddStep("actual-deploy-step", async (context) =>
+        pipeline.AddStep("actual-deploy-step", (context) =>
         {
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }, requiredBy: WellKnownPipelineSteps.Deploy);
 
         // Build the application and get the context
