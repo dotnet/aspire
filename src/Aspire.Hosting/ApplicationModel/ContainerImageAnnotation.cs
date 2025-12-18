@@ -58,4 +58,13 @@ public sealed class ContainerImageAnnotation : IResourceAnnotation
             _tag = null;
         }
     }
+
+    /// <summary>
+    /// Gets or sets the target platform for the container image (e.g., "linux/amd64", "linux/arm64").
+    /// </summary>
+    /// <remarks>
+    /// When set, the container runtime will pull and run the image for the specified platform.
+    /// This is useful for multi-architecture images where you want to explicitly select a specific platform variant.
+    /// </remarks>
+    public string? Platform { get; set; }
 }

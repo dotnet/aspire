@@ -1950,6 +1950,17 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
 
+            // If a platform is specified in the container image annotation, add --platform to the run args.
+            if (modelContainerResource.TryGetContainerImageName(out var imageName) &&
+                modelContainerResource.TryGetLastAnnotation<ContainerImageAnnotation>(out var imageAnnotation) &&
+                !string.IsNullOrEmpty(imageAnnotation.Platform))
+            {
+                // Insert at the beginning so it takes effect before any user-specified args
+                spec.RunArgs ??= [];
+                spec.RunArgs.Insert(0, imageAnnotation.Platform);
+                spec.RunArgs.Insert(0, "--platform");
+            }
+
             var certificatesDestination = ContainerCertificatePathsAnnotation.DefaultCustomCertificatesDestination;
             var bundlePaths = ContainerCertificatePathsAnnotation.DefaultCertificateBundlePaths.ToList();
             var certificateDirsPaths = ContainerCertificatePathsAnnotation.DefaultCertificateDirectoriesPaths.ToList();

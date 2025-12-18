@@ -37,4 +37,33 @@ public class ContainerImageAnnotationTests
         Assert.Null(annotation.Tag);
     }
 
+    [Fact]
+    public void PlatformCanBeSetIndependently()
+    {
+        var annotation = new ContainerImageAnnotation()
+        {
+            Image = "grafana/grafana",
+            Tag = "latest",
+            Platform = "linux/amd64"
+        };
+
+        Assert.Equal("latest", annotation.Tag);
+        Assert.Equal("linux/amd64", annotation.Platform);
+    }
+
+    [Fact]
+    public void PlatformDoesNotAffectTagOrSha()
+    {
+        var annotation = new ContainerImageAnnotation()
+        {
+            Image = "grafana/grafana",
+            SHA256 = "pretendthisisasha",
+            Platform = "linux/arm64"
+        };
+
+        Assert.Equal("pretendthisisasha", annotation.SHA256);
+        Assert.Null(annotation.Tag);
+        Assert.Equal("linux/arm64", annotation.Platform);
+    }
+
 }

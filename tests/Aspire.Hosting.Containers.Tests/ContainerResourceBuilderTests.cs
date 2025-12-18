@@ -214,6 +214,48 @@ public class ContainerResourceBuilderTests
         Assert.Equal(ImagePullPolicy.Always, annotation.ImagePullPolicy);
     }
 
+    [Fact]
+    public void WithImagePlatformMutatesImagePlatform()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddContainer("redis", "redis").WithImagePlatform("linux/amd64");
+        Assert.Equal("linux/amd64", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Platform);
+    }
+
+    [Fact]
+    public void WithImagePlatformMutatesImagePlatformOfLastAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("app", "some-image");
+        container.Resource.Annotations.Add(new ContainerImageAnnotation { Image = "another-image" });
+
+        container.WithImagePlatform("linux/arm64");
+        Assert.Equal("linux/arm64", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Last().Platform);
+    }
+
+    [Fact]
+    public void WithImagePlatformThrowsIfNoImageAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddResource(new TestContainerResource("testcontainer"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => container.WithImagePlatform("linux/amd64"));
+        Assert.Equal("The resource 'testcontainer' does not have a container image specified. Use WithImage to specify the container image and tag.", exception.Message);
+    }
+
+    [Fact]
+    public void WithImagePlatformCanBeCalledMultipleTimes()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("redis", "redis")
+            .WithImagePlatform("linux/amd64")
+            .WithImagePlatform("linux/arm64");
+
+        var annotation = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        Assert.Equal("linux/arm64", annotation.Platform);
+    }
+
     private static void AssertImageComponents<T>(IResourceBuilder<T> builder, string? expectedRegistry, string expectedImage, string? expectedTag, string? expectedSha256)
         where T: IResource
     {

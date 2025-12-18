@@ -410,6 +410,45 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Allows setting the target platform for the container image.
+    /// </summary>
+    /// <typeparam name="T">Type of container resource.</typeparam>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="platform">The target platform string (e.g., "linux/amd64", "linux/arm64").</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// When pulling multi-architecture images, use this method to explicitly select a specific platform variant.
+    /// This is useful when running containers on systems with different architectures or when working with
+    /// cross-platform development scenarios.
+    /// </para>
+    /// <example>
+    /// Specifies a container should use the linux/amd64 platform:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddContainer("mycontainer", "myimage", "latest")
+    ///        .WithImagePlatform("linux/amd64");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithImagePlatform<T>(this IResourceBuilder<T> builder, string platform) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(platform);
+
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
+        {
+            existingImageAnnotation.Platform = platform;
+            return builder;
+        }
+
+        return ThrowResourceIsNotContainer(builder);
+    }
+
+    /// <summary>
     /// Adds a callback to be executed with a list of arguments to add to the container runtime run command when a container resource is started.
     /// </summary>
     /// <remarks>
