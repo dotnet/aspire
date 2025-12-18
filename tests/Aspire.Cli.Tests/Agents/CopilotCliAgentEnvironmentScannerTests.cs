@@ -199,7 +199,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
-            debugMode: false,
+            logLevel: Microsoft.Extensions.Logging.LogLevel.Information,
             environmentVariables: new Dictionary<string, string?>(),
             homeDirectory: workingDirectory);
     }
@@ -216,7 +216,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
-            debugMode: false,
+            logLevel: Microsoft.Extensions.Logging.LogLevel.Information,
             environmentVariables: environmentVariables,
             homeDirectory: workingDirectory);
     }

@@ -64,8 +64,8 @@ public class Program
         // Check for --non-interactive flag early
         var nonInteractive = args?.Any(a => a == "--non-interactive") ?? false;
 
-        // Check for --verbose flag early
-        var verbose = args?.Any(a => a == "--verbose") ?? false;
+        // Parse log level from command line arguments
+        var logLevel = ParseLogLevel(args);
 
         // Check if running MCP start command - all logs should go to stderr to keep stdout clean for MCP protocol
         var isMcpStartCommand = args?.Length >= 2 && args[0] == "mcp" && args[1] == "start";
@@ -112,11 +112,9 @@ public class Program
         }
 #endif
 
-        var debugMode = args?.Any(a => a == "--debug" || a == "-d") ?? false;
-
-        if (debugMode && !isMcpStartCommand)
+        if (logLevel <= LogLevel.Debug && !isMcpStartCommand)
         {
-            builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
+            builder.Logging.AddFilter("Aspire.Cli", logLevel);
             builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle
             // Use custom Spectre Console logger for clean debug output instead of built-in console logger
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, SpectreConsoleLoggerProvider>());
@@ -126,9 +124,9 @@ public class Program
         // This keeps stdout clean for MCP protocol JSON-RPC messages
         if (isMcpStartCommand)
         {
-            if (debugMode)
+            if (logLevel <= LogLevel.Debug)
             {
-                builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
+                builder.Logging.AddFilter("Aspire.Cli", logLevel);
                 builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle                
             }
 
@@ -140,7 +138,7 @@ public class Program
         }
 
         // Shared services.
-        builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode, verbose));
+        builder.Services.AddSingleton(_ => BuildCliExecutionContext(logLevel));
         builder.Services.AddSingleton(BuildAnsiConsole);
         builder.Services.AddSingleton<ICliHostEnvironment>(provider =>
         {
@@ -176,7 +174,7 @@ public class Program
         
         // Register FileLoggerProvider for diagnostics bundle writing
         builder.Services.AddSingleton<Diagnostics.FileLoggerProvider>();
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider>(sp => sp.GetRequiredService<Diagnostics.FileLoggerProvider>()));
+        builder.Services.AddSingleton<ILoggerProvider>(sp => sp.GetRequiredService<Diagnostics.FileLoggerProvider>());
         
         builder.Services.AddMemoryCache();
 
@@ -247,15 +245,43 @@ public class Program
         return new DirectoryInfo(sdksPath);
     }
 
-    private static CliExecutionContext BuildCliExecutionContext(bool debugMode, bool verbose)
+    private static CliExecutionContext BuildCliExecutionContext(LogLevel logLevel)
     {
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
         var cacheDirectory = GetCacheDirectory();
         var sdksDirectory = GetSdksDirectory();
-        var context = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, sdksDirectory, debugMode);
-        context.VerboseMode = verbose;
-        return context;
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, sdksDirectory, logLevel);
+    }
+
+    private static LogLevel ParseLogLevel(string[]? args)
+    {
+        if (args == null || args.Length == 0)
+        {
+            return LogLevel.Information;
+        }
+
+        // Check for --log-level or -l flag
+        for (int i = 0; i < args.Length - 1; i++)
+        {
+            if (args[i] == "--log-level" || args[i] == "-l")
+            {
+                var levelString = args[i + 1];
+                if (Enum.TryParse<LogLevel>(levelString, ignoreCase: true, out var level))
+                {
+                    return level;
+                }
+            }
+        }
+
+        // Backward compatibility: Check for --debug or -d flag
+        if (args.Any(a => a == "--debug" || a == "-d"))
+        {
+            return LogLevel.Debug;
+        }
+
+        // Default to Information
+        return LogLevel.Information;
     }
 
     private static DirectoryInfo GetCacheDirectory()

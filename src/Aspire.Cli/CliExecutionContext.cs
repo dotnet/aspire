@@ -2,22 +2,32 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli;
 
-internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, DirectoryInfo hivesDirectory, DirectoryInfo cacheDirectory, DirectoryInfo sdksDirectory, bool debugMode = false, IReadOnlyDictionary<string, string?>? environmentVariables = null, DirectoryInfo? homeDirectory = null)
+internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, DirectoryInfo hivesDirectory, DirectoryInfo cacheDirectory, DirectoryInfo sdksDirectory, LogLevel logLevel = LogLevel.Information, IReadOnlyDictionary<string, string?>? environmentVariables = null, DirectoryInfo? homeDirectory = null)
 {
     public DirectoryInfo WorkingDirectory { get; } = workingDirectory;
     public DirectoryInfo HivesDirectory { get; } = hivesDirectory;
     public DirectoryInfo CacheDirectory { get; } = cacheDirectory;
     public DirectoryInfo SdksDirectory { get; } = sdksDirectory;
     public DirectoryInfo HomeDirectory { get; } = homeDirectory ?? new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-    public bool DebugMode { get; } = debugMode;
+    
+    /// <summary>
+    /// Gets the log level for the CLI execution context.
+    /// </summary>
+    public LogLevel LogLevel { get; } = logLevel;
+    
+    /// <summary>
+    /// Gets whether debug mode is enabled (LogLevel is Debug or Trace).
+    /// </summary>
+    public bool DebugMode => LogLevel <= LogLevel.Debug;
 
     /// <summary>
-    /// Gets or sets whether verbose mode is enabled. When true, full stack traces and detailed diagnostics are displayed.
+    /// Gets whether verbose mode is enabled. When true, full stack traces and detailed diagnostics are displayed.
     /// </summary>
-    public bool VerboseMode { get; set; }
+    public bool VerboseMode => LogLevel <= LogLevel.Debug;
 
     /// <summary>
     /// Gets the environment variables for the CLI execution context.
