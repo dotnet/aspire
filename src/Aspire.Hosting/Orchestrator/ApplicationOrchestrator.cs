@@ -406,13 +406,13 @@ internal sealed class ApplicationOrchestrator
                         {
                             if (url.Endpoint?.EndpointAnnotation == primaryLaunchProfileEndpoint
                                 && !string.Equals(url.Url, primaryUrl.Url, StringComparisons.Url)
-                                && Uri.TryCreate(url.Url, UriKind.Absolute, out var uri))
+                                && Uri.IsWellFormedUriString(url.Url, UriKind.Absolute))
                             {
                                 if (logger.IsEnabled(LogLevel.Trace))
                                 {
-                                    logger.LogTrace("Updating URL '{Url}' to URI '{Uri}' with path '{Path}' launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", url.Url, uri, primaryPath, url.Endpoint.EndpointName, resource.Name);
+                                    logger.LogTrace("Updating URL '{Url}' with path '{Path}' for launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", url.Url, primaryPath, url.Endpoint.EndpointName, resource.Name);
                                 }
-                                var uriBuilder = new UriBuilder(uri) { Path = primaryPath };
+                                var uriBuilder = new UriBuilder(url.Url) { Path = primaryPath };
                                 url.Url = uriBuilder.Uri.ToString();
                                 if (logger.IsEnabled(LogLevel.Trace))
                                 {
