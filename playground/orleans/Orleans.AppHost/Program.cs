@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using Microsoft.Extensions.Hosting;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
@@ -39,7 +36,5 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 
 using var app = builder.Build();
 
-await app.StartAsync();
-await Task.Delay(TimeSpan.FromSeconds(4));
-Debugger.Break();
-await app.WaitForShutdownAsync();
+await app.RunAsync();
+

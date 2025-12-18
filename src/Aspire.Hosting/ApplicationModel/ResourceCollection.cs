@@ -38,6 +38,7 @@ internal sealed class ResourceCollection : IResourceCollection
         [DebuggerDisplay("{Resource}", Name = "{Resource.Name}")]
         public struct DebugView()
         {
+            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
             public required IResource Resource { get; init; }
         };
     }
