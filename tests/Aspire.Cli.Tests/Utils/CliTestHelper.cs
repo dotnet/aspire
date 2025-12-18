@@ -23,6 +23,7 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Utils.EnvironmentChecker;
 using Microsoft.Extensions.Logging.Abstractions;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Caching;
@@ -106,6 +107,12 @@ internal static class CliTestHelper
         services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
         services.AddSingleton(options.AgentEnvironmentDetectorFactory);
         services.AddSingleton(options.GitRepositoryFactory);
+        services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
+        services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
+        services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
+        services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
+        services.AddSingleton<IEnvironmentCheck, DockerEngineCheck>();
+        services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<InitCommand>();
@@ -117,6 +124,7 @@ internal static class CliTestHelper
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
         services.AddTransient<CacheCommand>();
+        services.AddTransient<DoctorCommand>();
         services.AddTransient<UpdateCommand>();
         services.AddTransient<McpCommand>();
         services.AddTransient<ExtensionInternalCommand>();

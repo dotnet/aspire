@@ -28,6 +28,8 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<TResource> WithRunScript<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, string scriptName, string[]? args = null)
             where TResource : JavaScript.JavaScriptAppResource { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<JavaScript.ViteAppResource> WithViteConfig(this ApplicationModel.IResourceBuilder<JavaScript.ViteAppResource> builder, string configPath) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<TResource> WithYarn<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null)
             where TResource : JavaScript.JavaScriptAppResource { throw null; }
     }
@@ -81,6 +83,9 @@ namespace Aspire.Hosting.JavaScript
         public string? CommandSeparator { get { throw null; } init { } }
 
         public string ExecutableName { get { throw null; } }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public System.Action<ApplicationModel.Docker.DockerfileStage>? InitializeDockerBuildStage { get { throw null; } init { } }
 
         public System.Collections.Generic.List<CopyFilePattern> PackageFilesPatterns { get { throw null; } }
 

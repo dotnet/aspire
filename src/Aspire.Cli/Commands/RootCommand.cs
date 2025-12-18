@@ -29,6 +29,7 @@ internal sealed class RootCommand : BaseRootCommand
         DoCommand doCommand,
         ConfigCommand configCommand,
         CacheCommand cacheCommand,
+        DoctorCommand doctorCommand,
         ExecCommand execCommand,
         UpdateCommand updateCommand,
         McpCommand mcpCommand,
@@ -44,6 +45,7 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(publishCommand);
         ArgumentNullException.ThrowIfNull(configCommand);
         ArgumentNullException.ThrowIfNull(cacheCommand);
+        ArgumentNullException.ThrowIfNull(doctorCommand);
         ArgumentNullException.ThrowIfNull(deployCommand);
         ArgumentNullException.ThrowIfNull(doCommand);
         ArgumentNullException.ThrowIfNull(updateCommand);
@@ -112,6 +114,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
         Subcommands.Add(cacheCommand);
+        Subcommands.Add(doctorCommand);
         Subcommands.Add(deployCommand);
         Subcommands.Add(doCommand);
         Subcommands.Add(updateCommand);

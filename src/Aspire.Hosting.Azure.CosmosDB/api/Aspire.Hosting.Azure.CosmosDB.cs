@@ -12,6 +12,8 @@ namespace Aspire.Hosting
     {
         public AzureCosmosDBResource(string name, System.Action<Azure.AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
+        public ApplicationModel.ReferenceExpression? AccountKey { get { throw null; } }
+
         [System.Obsolete("BicepSecretOutputReference is no longer supported. Use ConnectionStringOutput instead.")]
         public Azure.BicepSecretOutputReference ConnectionString { get { throw null; } }
 
@@ -23,12 +25,17 @@ namespace Aspire.Hosting
 
         public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
+        [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "PrimaryAccessKeySecretOutput")]
         public bool UseAccessKeyAuthentication { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
 
         public override void AddRoleAssignments(Azure.IAddRoleAssignmentsContext roleAssignmentContext) { }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
 
         void Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
@@ -88,6 +95,8 @@ namespace Aspire.Hosting.Azure
 
         public System.Collections.Generic.IReadOnlyList<string> PartitionKeyPaths { get { throw null; } set { } }
 
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
+
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
 
@@ -100,6 +109,8 @@ namespace Aspire.Hosting.Azure
         public string DatabaseName { get { throw null; } set { } }
 
         public AzureCosmosDBResource Parent { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
 
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
