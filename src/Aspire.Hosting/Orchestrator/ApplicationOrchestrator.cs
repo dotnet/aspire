@@ -410,7 +410,7 @@ internal sealed class ApplicationOrchestrator
                             {
                                 if (logger.IsEnabled(LogLevel.Trace))
                                 {
-                                    logger.LogTrace("Updating URL '{Url}' to URI '{Uri}' with path '{Path}' launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", url.Url, primaryPath, uri, url.Endpoint.EndpointName, resource.Name);
+                                    logger.LogTrace("Updating URL '{Url}' to URI '{Uri}' with path '{Path}' launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", url.Url, uri, primaryPath, url.Endpoint.EndpointName, resource.Name);
                                 }
                                 var uriBuilder = new UriBuilder(uri) { Path = primaryPath };
                                 url.Url = uriBuilder.Uri.ToString();
