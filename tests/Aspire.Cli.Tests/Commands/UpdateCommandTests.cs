@@ -933,6 +933,141 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         // Assert - Command should parse successfully without errors
         Assert.Empty(result.Errors);
     }
+
+    [Fact]
+    public async Task UpdateCommand_SelfUpdate_WithStableChannel_DeletesGlobalChannelSetting()
+    {
+        // This test verifies that when updating to the stable channel, the global channel
+        // setting is deleted rather than set to "stable", matching the behavior of the
+        // installation scripts (eng/scripts/get-aspire-cli.sh and get-aspire-cli.ps1)
+        
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        string? deletedKey = null;
+        bool? deletedIsGlobal = null;
+
+        var trackingConfigService = new TrackingConfigurationService
+        {
+            OnDeleteConfiguration = (key, isGlobal) =>
+            {
+                deletedKey = key;
+                deletedIsGlobal = isGlobal;
+            }
+        };
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ConfigurationServiceFactory = _ => trackingConfigService;
+
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot)
+            {
+                DownloadLatestCliAsyncCallback = (channel, ct) =>
+                {
+                    var archivePath = CreateTestCliArchive(workspace);
+                    return Task.FromResult(archivePath);
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --self --channel stable");
+
+        await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal("channel", deletedKey);
+        Assert.True(deletedIsGlobal);
+    }
+
+    [Fact]
+    public async Task UpdateCommand_SelfUpdate_WithNonStableChannel_SetsGlobalChannelSetting()
+    {
+        // This test verifies that when updating to non-stable channels (daily, staging),
+        // the global channel setting is set to the channel name
+        
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        string? setKey = null;
+        string? setValue = null;
+        bool? setIsGlobal = null;
+
+        var trackingConfigService = new TrackingConfigurationService
+        {
+            OnSetConfiguration = (key, value, isGlobal) =>
+            {
+                setKey = key;
+                setValue = value;
+                setIsGlobal = isGlobal;
+            }
+        };
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ConfigurationServiceFactory = _ => trackingConfigService;
+
+            options.CliDownloaderFactory = _ => new TestCliDownloader(workspace.WorkspaceRoot)
+            {
+                DownloadLatestCliAsyncCallback = (channel, ct) =>
+                {
+                    var archivePath = CreateTestCliArchive(workspace);
+                    return Task.FromResult(archivePath);
+                }
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("update --self --channel daily");
+
+        await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal("channel", setKey);
+        Assert.Equal("daily", setValue);
+        Assert.True(setIsGlobal);
+    }
+
+    // Helper method to create a valid CLI archive for testing
+    private static string CreateTestCliArchive(TemporaryWorkspace workspace)
+    {
+        var exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "aspire.exe" : "aspire";
+        var tempDir = workspace.CreateDirectory("cli-temp");
+        var exePath = Path.Combine(tempDir.FullName, exeName);
+        
+        // Create a minimal executable that outputs a version
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // Create a batch file
+            File.WriteAllText(exePath, "@echo off\r\necho 1.0.0-test");
+        }
+        else
+        {
+            // Create a shell script
+            File.WriteAllText(exePath, "#!/bin/bash\necho 1.0.0-test");
+            // Make it executable on Unix
+            if (File.Exists(exePath))
+            {
+                var mode = File.GetUnixFileMode(exePath);
+                mode |= UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
+                File.SetUnixFileMode(exePath, mode);
+            }
+        }
+
+        // Create a proper tar.gz archive using System.Formats.Tar
+        var archivePath = Path.Combine(workspace.WorkspaceRoot.FullName, "test-cli.tar.gz");
+        using (var fileStream = File.Create(archivePath))
+        using (var gzipStream = new System.IO.Compression.GZipStream(fileStream, System.IO.Compression.CompressionMode.Compress))
+        {
+            System.Formats.Tar.TarFile.CreateFromDirectory(tempDir.FullName, gzipStream, includeBaseDirectory: false);
+        }
+        
+        return archivePath;
+    }
 }
 
 // Helper class to track DisplayCancellationMessage calls
