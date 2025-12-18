@@ -116,7 +116,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             var dashboardGetHostNameStep = new PipelineStep
             {
-                Name = $"fetch-dashboard-hostname",
+                Name = $"fetch-dashboard-hostname-for-{targetResource.Name}",
                 Action = async ctx =>
                 {
                     var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
