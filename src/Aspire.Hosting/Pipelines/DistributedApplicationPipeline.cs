@@ -382,6 +382,9 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         var (stepsToExecute, stepsByName) = FilterStepsForExecution(allSteps, context);
 
+        // Check if the targeted step is a meta-step with no child steps
+        CheckForEmptyMetaStep(stepsToExecute, context);
+
         // Build dependency graph and execute with readiness-based scheduler
         await ExecuteStepsAsTaskDag(stepsToExecute, stepsByName, context).ConfigureAwait(false);
     }
@@ -441,6 +444,67 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
         return (stepsToExecute, filteredStepsByName);
+    }
+
+    /// <summary>
+    /// Checks if the targeted step is a meta-step with no child steps and logs a warning if so.
+    /// </summary>
+    private static void CheckForEmptyMetaStep(
+        List<PipelineStep> stepsToExecute,
+        PipelineContext context)
+    {
+        // Get the targeted step name from the pipeline options
+        var pipelineOptions = context.Services.GetService<Microsoft.Extensions.Options.IOptions<PipelineOptions>>();
+        var targetedStepName = pipelineOptions?.Value.Step;
+
+        // If no specific step was targeted, don't check (full pipeline execution)
+        if (string.IsNullOrWhiteSpace(targetedStepName))
+        {
+            return;
+        }
+
+        // Define the meta-steps (aggregation steps that coordinate other steps)
+        var metaSteps = new HashSet<string>(StringComparer.Ordinal)
+        {
+            WellKnownPipelineSteps.Deploy,
+            WellKnownPipelineSteps.Publish,
+            WellKnownPipelineSteps.Build,
+            WellKnownPipelineSteps.Push
+        };
+
+        // Check if the targeted step is a meta-step
+        if (!metaSteps.Contains(targetedStepName))
+        {
+            return;
+        }
+
+        // Check if only the meta-step itself (and possibly prerequisite steps) will run
+        // A meta-step is considered "empty" if no child steps are present beyond the meta-step
+        // and its prerequisite steps
+        var prerequisiteSteps = new HashSet<string>(StringComparer.Ordinal)
+        {
+            WellKnownPipelineSteps.DeployPrereq,
+            WellKnownPipelineSteps.PublishPrereq,
+            WellKnownPipelineSteps.BuildPrereq,
+            WellKnownPipelineSteps.PushPrereq,
+            WellKnownPipelineSteps.ProcessParameters
+        };
+
+        // Find steps that are not the meta-step itself and not prerequisite steps
+        var childSteps = stepsToExecute.Where(s =>
+            s.Name != targetedStepName &&
+            !prerequisiteSteps.Contains(s.Name))
+            .ToList();
+
+        // If no child steps are found, log a warning
+        if (childSteps.Count == 0)
+        {
+            context.Logger.LogWarning(
+                "No steps were found to execute for the '{StepName}' operation. " +
+                "This usually means no resources or environments are configured for deployment. " +
+                "Please ensure your application has deployment targets configured.",
+                targetedStepName);
+        }
     }
 
     private static List<PipelineStep> ComputeTransitiveDependencies(
