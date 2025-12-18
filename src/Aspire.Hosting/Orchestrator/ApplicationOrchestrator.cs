@@ -27,6 +27,7 @@ internal sealed class ApplicationOrchestrator
 #pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be supported until fully removed.
     private readonly ResourceNotificationService _notificationService;
     private readonly ResourceLoggerService _loggerService;
+    private readonly ILogger _logger;
     private readonly IDistributedApplicationEventing _eventing;
     private readonly IServiceProvider _serviceProvider;
     private readonly Uri? _dashboardUri;
@@ -46,7 +47,8 @@ internal sealed class ApplicationOrchestrator
                                    IServiceProvider serviceProvider,
                                    DistributedApplicationExecutionContext executionContext,
                                    ParameterProcessor parameterProcessor,
-                                   IOptions<DashboardOptions> dashboardOptions)
+                                   IOptions<DashboardOptions> dashboardOptions,
+                                   ILogger<ApplicationOrchestrator> logger)
     {
         _dcpExecutor = dcpExecutor;
         _model = model;
@@ -54,6 +56,7 @@ internal sealed class ApplicationOrchestrator
         _lifecycleHooks = lifecycleHooks.ToArray();
         _notificationService = notificationService;
         _loggerService = loggerService;
+        _logger = logger;
         _eventing = eventing;
         _serviceProvider = serviceProvider;
         _executionContext = executionContext;
@@ -215,7 +218,6 @@ internal sealed class ApplicationOrchestrator
         var urls = new List<ResourceUrlAnnotation>();
         EndpointAnnotation? primaryLaunchProfileEndpoint = null;
 
-        var logger = _loggerService.GetLogger(resource);
         try
         {
             // Project endpoints to URLs
@@ -229,9 +231,9 @@ internal sealed class ApplicationOrchestrator
                     {
                         if (endpoint.FromLaunchProfile && primaryLaunchProfileEndpoint is null)
                         {
-                            if (logger.IsEnabled(LogLevel.Trace))
+                            if (_logger.IsEnabled(LogLevel.Trace))
                             {
-                                logger.LogTrace("Setting primary launch profile endpoint to '{EndpointName}' for resource '{ResourceName}'.", endpoint.Name, resource.Name);
+                                _logger.LogTrace("Setting primary launch profile endpoint to '{EndpointName}' for resource '{ResourceName}'.", endpoint.Name, resource.Name);
                             }
                             primaryLaunchProfileEndpoint = endpoint;
                         }
@@ -321,16 +323,16 @@ internal sealed class ApplicationOrchestrator
                         }
 
                         urls.Add(url);
-                        if (logger.IsEnabled(LogLevel.Trace))
+                        if (_logger.IsEnabled(LogLevel.Trace))
                         {
-                            logger.LogTrace("Added URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", url.Url, endpoint.Name, resource.Name);
+                            _logger.LogTrace("Added URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", url.Url, endpoint.Name, resource.Name);
                         }
                         if (additionalUrl is not null)
                         {
                             urls.Add(additionalUrl);
-                            if (logger.IsEnabled(LogLevel.Trace))
+                            if (_logger.IsEnabled(LogLevel.Trace))
                             {
-                                logger.LogTrace("Added additional URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", additionalUrl.Url, endpoint.Name, resource.Name);
+                                _logger.LogTrace("Added additional URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", additionalUrl.Url, endpoint.Name, resource.Name);
                             }
                         }
                     }
@@ -343,9 +345,9 @@ internal sealed class ApplicationOrchestrator
                 foreach (var staticUrl in staticUrls)
                 {
                     urls.Add(staticUrl);
-                    if (logger.IsEnabled(LogLevel.Trace))
+                    if (_logger.IsEnabled(LogLevel.Trace))
                     {
-                        logger.LogTrace("Added static URL '{Url}' for resource '{ResourceName}'.", staticUrl.Url, resource.Name);
+                        _logger.LogTrace("Added static URL '{Url}' for resource '{ResourceName}'.", staticUrl.Url, resource.Name);
                     }
 
                     // Remove it from the resource here, we'll add it back later to avoid duplicates.
@@ -356,9 +358,9 @@ internal sealed class ApplicationOrchestrator
             // Run the URL callbacks
             if (resource.TryGetAnnotationsOfType<ResourceUrlsCallbackAnnotation>(out var callbacks))
             {
-                if (logger.IsEnabled(LogLevel.Trace))
+                if (_logger.IsEnabled(LogLevel.Trace))
                 {
-                    logger.LogTrace("Running {CallbackCount} URL callbacks for resource '{ResourceName}'.", callbacks.Count(), resource.Name);
+                    _logger.LogTrace("Running {CallbackCount} URL callbacks for resource '{ResourceName}'.", callbacks.Count(), resource.Name);
                 }
                 var urlsCallbackContext = new ResourceUrlsCallbackContext(_executionContext, resource, urls, cancellationToken)
                 {
@@ -367,20 +369,20 @@ internal sealed class ApplicationOrchestrator
                 var index = 0;
                 foreach (var callback in callbacks)
                 {
-                    if (logger.IsEnabled(LogLevel.Trace))
+                    if (_logger.IsEnabled(LogLevel.Trace))
                     {
-                        logger.LogTrace("Invoking URL callback '{CallbackIndex}' for resource '{ResourceName}'.", index, resource.Name);
+                        _logger.LogTrace("Invoking URL callback '{CallbackIndex}' for resource '{ResourceName}'.", index, resource.Name);
                     }
                     await callback.Callback(urlsCallbackContext).ConfigureAwait(false);
-                    if (logger.IsEnabled(LogLevel.Trace))
+                    if (_logger.IsEnabled(LogLevel.Trace))
                     {
-                        logger.LogTrace("{UrlCount} URLs after callback '{CallbackIndex}' for resource '{ResourceName}'.", urlsCallbackContext.Urls.Count, index, resource.Name);
+                        _logger.LogTrace("{UrlCount} URLs after callback '{CallbackIndex}' for resource '{ResourceName}'.", urlsCallbackContext.Urls.Count, index, resource.Name);
                     }
                     index++;
                 }
-                if (logger.IsEnabled(LogLevel.Trace))
+                if (_logger.IsEnabled(LogLevel.Trace))
                 {
-                    logger.LogTrace("{UrlCount} URLs after calling '{CallbackIndex}' callback(s) for resource '{ResourceName}'.", urls.Count, index, resource.Name);
+                    _logger.LogTrace("{UrlCount} URLs after calling '{CallbackIndex}' callback(s) for resource '{ResourceName}'.", urls.Count, index, resource.Name);
                 }
             }
 
@@ -398,9 +400,9 @@ internal sealed class ApplicationOrchestrator
                     if (primaryPath.StartsWith('/') && primaryPath.Length > 1)
                     {
                         // The primary launch profile endpoint has a path, apply that path to all other non-relative launch profile endpoint URLs.
-                        if (logger.IsEnabled(LogLevel.Trace))
+                        if (_logger.IsEnabled(LogLevel.Trace))
                         {
-                            logger.LogTrace("Applying path '{Path}' from URL '{Url}' for primary launch profile endpoint '{EndpointName}' to other launch profile endpoints for resource '{ResourceName}'.", primaryPath, primaryUrl.Url, primaryLaunchProfileEndpoint.Name, resource.Name);
+                            _logger.LogTrace("Applying path '{Path}' from URL '{Url}' for primary launch profile endpoint '{EndpointName}' to other launch profile endpoints for resource '{ResourceName}'.", primaryPath, primaryUrl.Url, primaryLaunchProfileEndpoint.Name, resource.Name);
                         }
                         foreach (var url in urls)
                         {
@@ -408,40 +410,40 @@ internal sealed class ApplicationOrchestrator
                                 && !string.Equals(url.Url, primaryUrl.Url, StringComparisons.Url)
                                 && Uri.IsWellFormedUriString(url.Url, UriKind.Absolute))
                             {
-                                if (logger.IsEnabled(LogLevel.Trace))
+                                if (_logger.IsEnabled(LogLevel.Trace))
                                 {
-                                    logger.LogTrace("Updating URL '{Url}' with path '{Path}' for launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", url.Url, primaryPath, url.Endpoint.EndpointName, resource.Name);
+                                    _logger.LogTrace("Updating URL '{Url}' with path '{Path}' for launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", url.Url, primaryPath, url.Endpoint.EndpointName, resource.Name);
                                 }
                                 var uriBuilder = new UriBuilder(url.Url) { Path = primaryPath };
                                 url.Url = uriBuilder.Uri.ToString();
-                                if (logger.IsEnabled(LogLevel.Trace))
+                                if (_logger.IsEnabled(LogLevel.Trace))
                                 {
-                                    logger.LogTrace("Updated URL to '{Url}' for launch profile endpoint '{EndpointName}' on resource '{ResourceName}'.", url.Url, url.Endpoint.EndpointName, resource.Name);
+                                    _logger.LogTrace("Updated URL to '{Url}' for launch profile endpoint '{EndpointName}' on resource '{ResourceName}'.", url.Url, url.Endpoint.EndpointName, resource.Name);
                                 }
                             }
                         }
                     }
                     else
                     {
-                        if (logger.IsEnabled(LogLevel.Trace))
+                        if (_logger.IsEnabled(LogLevel.Trace))
                         {
-                            logger.LogTrace("URL '{Url}' for primary launch profile endpoint '{EndpointName}' for resource '{ResourceName}' does not have a path to apply to other launch profile endpoints.", primaryUrl.Url, primaryLaunchProfileEndpoint.Name, resource.Name);
+                            _logger.LogTrace("URL '{Url}' for primary launch profile endpoint '{EndpointName}' for resource '{ResourceName}' does not have a path to apply to other launch profile endpoints.", primaryUrl.Url, primaryLaunchProfileEndpoint.Name, resource.Name);
                         }
                     }
                 }
                 else
                 {
-                    if (logger.IsEnabled(LogLevel.Trace))
+                    if (_logger.IsEnabled(LogLevel.Trace))
                     {
-                        logger.LogTrace("Could not find URL for primary launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", primaryLaunchProfileEndpoint.Name, resource.Name);
+                        _logger.LogTrace("Could not find URL for primary launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", primaryLaunchProfileEndpoint.Name, resource.Name);
                     }
                 }
             }
 
             // Convert relative endpoint URLs to absolute URLs
-            if (logger.IsEnabled(LogLevel.Trace))
+            if (_logger.IsEnabled(LogLevel.Trace))
             {
-                logger.LogTrace("Converting relative endpoint URLs to absolute URLs for resource '{ResourceName}'.", resource.Name);
+                _logger.LogTrace("Converting relative endpoint URLs to absolute URLs for resource '{ResourceName}'.", resource.Name);
             }
             foreach (var url in urls)
             {
@@ -450,9 +452,9 @@ internal sealed class ApplicationOrchestrator
                     if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                     {
                         url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
-                        if (logger.IsEnabled(LogLevel.Trace))
+                        if (_logger.IsEnabled(LogLevel.Trace))
                         {
-                            logger.LogTrace("Converted relative URL to absolute URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", url.Url, endpoint.EndpointName, resource.Name);
+                            _logger.LogTrace("Converted relative URL to absolute URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", url.Url, endpoint.EndpointName, resource.Name);
                         }
                     }
                 }
@@ -464,19 +466,20 @@ internal sealed class ApplicationOrchestrator
             {
                 resource.Annotations.Add(url);
                 count++;
-                if (logger.IsEnabled(LogLevel.Trace))
+                if (_logger.IsEnabled(LogLevel.Trace))
                 {
-                    logger.LogTrace("Added URL annotation '{Url}' to resource '{ResourceName}'.", url.Url, resource.Name);
+                    _logger.LogTrace("Added URL annotation '{Url}' to resource '{ResourceName}'.", url.Url, resource.Name);
                 }
             }
-            if (logger.IsEnabled(LogLevel.Trace))
+            if (_logger.IsEnabled(LogLevel.Trace))
             {
-                logger.LogTrace("Added total of {UrlCount} URLs to resource '{ResourceName}'", count, resource.Name);
+                _logger.LogTrace("Added total of {UrlCount} URLs to resource '{ResourceName}'", count, resource.Name);
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred while processing URLs for resource '{ResourceName}': {Message}", resource.Name, ex.Message);
+            var resourceLogger = _loggerService.GetLogger(resource);
+            resourceLogger.LogError(ex, "An error occurred while processing URLs for resource '{ResourceName}': {Message}", resource.Name, ex.Message);
         }
     }
 
