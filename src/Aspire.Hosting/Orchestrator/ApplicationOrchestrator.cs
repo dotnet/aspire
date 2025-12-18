@@ -362,7 +362,7 @@ internal sealed class ApplicationOrchestrator
                 }
                 var urlsCallbackContext = new ResourceUrlsCallbackContext(_executionContext, resource, urls, cancellationToken)
                 {
-                    Logger = _loggerService.GetLogger(resource.Name)
+                    Logger = _loggerService.GetLogger(resource)
                 };
                 var index = 0;
                 foreach (var callback in callbacks)
