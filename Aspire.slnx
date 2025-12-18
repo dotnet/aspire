@@ -51,15 +51,17 @@
     <Project Path="src/Aspire.Hosting.Docker/Aspire.Hosting.Docker.csproj" />
     <Project Path="src/Aspire.Hosting.Garnet/Aspire.Hosting.Garnet.csproj" />
     <Project Path="src/Aspire.Hosting.GitHub.Models/Aspire.Hosting.GitHub.Models.csproj" />
+    <Project Path="src/Aspire.Hosting.JavaScript/Aspire.Hosting.JavaScript.csproj" />
     <Project Path="src/Aspire.Hosting.Kafka/Aspire.Hosting.Kafka.csproj" />
     <Project Path="src/Aspire.Hosting.Keycloak/Aspire.Hosting.Keycloak.csproj" />
     <Project Path="src/Aspire.Hosting.Kubernetes/Aspire.Hosting.Kubernetes.csproj" />
     <Project Path="src/Aspire.Hosting.Maui/Aspire.Hosting.Maui.csproj" />
+    <Project Path="src/Aspire.Hosting.Mcp/Aspire.Hosting.Mcp.csproj" />
+    <Project Path="src/Aspire.Hosting.Mcp.Bridge/Aspire.Hosting.Mcp.Bridge.csproj" />
     <Project Path="src/Aspire.Hosting.Milvus/Aspire.Hosting.Milvus.csproj" />
     <Project Path="src/Aspire.Hosting.MongoDB/Aspire.Hosting.MongoDB.csproj" />
     <Project Path="src/Aspire.Hosting.MySql/Aspire.Hosting.MySql.csproj" />
     <Project Path="src/Aspire.Hosting.Nats/Aspire.Hosting.Nats.csproj" />
-    <Project Path="src/Aspire.Hosting.JavaScript/Aspire.Hosting.JavaScript.csproj" />
     <Project Path="src/Aspire.Hosting.OpenAI/Aspire.Hosting.OpenAI.csproj" />
     <Project Path="src/Aspire.Hosting.Oracle/Aspire.Hosting.Oracle.csproj" />
     <Project Path="src/Aspire.Hosting.Orleans/Aspire.Hosting.Orleans.csproj" />
@@ -214,6 +216,9 @@
     <Project Path="playground/keycloak/Keycloak.ApiService/Keycloak.ApiService.csproj" />
     <Project Path="playground/keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" />
     <Project Path="playground/keycloak/Keycloak.Web/Keycloak.Web.csproj" />
+  </Folder>
+  <Folder Name="/playground/McpBridge/">
+    <Project Path="playground/McpBridge/McpBridge.AppHost/McpBridge.AppHost.csproj" />
   </Folder>
   <Folder Name="/playground/milvus/">
     <Project Path="playground/milvus/MilvusPlayground.ApiService/MilvusPlayground.ApiService.csproj" />
@@ -418,6 +423,7 @@
     <Project Path="tests/Aspire.Hosting.Docker.Tests/Aspire.Hosting.Docker.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Garnet.Tests/Aspire.Hosting.Garnet.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.GitHub.Models.Tests/Aspire.Hosting.GitHub.Models.Tests.csproj" />
+    <Project Path="tests/Aspire.Hosting.JavaScript.Tests/Aspire.Hosting.JavaScript.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Kafka.Tests/Aspire.Hosting.Kafka.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Keycloak.Tests/Aspire.Hosting.Keycloak.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Kubernetes.Tests/Aspire.Hosting.Kubernetes.Tests.csproj" />
@@ -425,7 +431,6 @@
     <Project Path="tests/Aspire.Hosting.MongoDB.Tests/Aspire.Hosting.MongoDB.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.MySql.Tests/Aspire.Hosting.MySql.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Nats.Tests/Aspire.Hosting.Nats.Tests.csproj" />
-    <Project Path="tests/Aspire.Hosting.JavaScript.Tests/Aspire.Hosting.JavaScript.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.OpenAI.Tests/Aspire.Hosting.OpenAI.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Oracle.Tests/Aspire.Hosting.Oracle.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.PostgreSQL.Tests/Aspire.Hosting.PostgreSQL.Tests.csproj" />

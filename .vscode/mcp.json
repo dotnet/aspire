@@ -2,8 +2,8 @@
 	"servers": {
 		"aspire": {
 			"type": "stdio",
-			"command": "aspire",
-			"args": ["mcp", "start"]
+			"command": "dotnet",
+			"args": ["run", "--project", "d:/aspire/src/Aspire.Cli/Aspire.Cli.csproj", "--", "mcp", "start"]
 		}
 	},
 	"inputs": []

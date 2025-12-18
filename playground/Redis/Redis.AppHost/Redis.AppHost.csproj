@@ -18,6 +18,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Garnet" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Valkey" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Mcp" />
     <ProjectReference Include="..\Redis.ApiService\Redis.ApiService.csproj" />
   </ItemGroup>
 

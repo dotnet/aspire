@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650">
+  <defs>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90D9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#357ABD;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7C3AED;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#EF4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#DC2626;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="900" height="650" fill="#f8fafc"/>
+  
+  <!-- Title -->
+  <text x="450" y="35" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="bold" fill="#1e293b" text-anchor="middle">Aspire MCP Bridge Architecture</text>
+  
+  <!-- AI Host (VS Code / Copilot) -->
+  <g filter="url(#shadow)">
+    <rect x="50" y="70" width="200" height="90" rx="10" fill="url(#blueGrad)"/>
+    <text x="150" y="105" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">AI Host</text>
+    <text x="150" y="125" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">(VS Code / Copilot)</text>
+    <text x="150" y="145" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#e0e7ff" text-anchor="middle">MCP Client</text>
+  </g>
+  
+  <!-- Arrow 1: AI Host to Aspire CLI -->
+  <line x1="250" y1="115" x2="320" y2="115" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="285" y="105" font-family="Segoe UI, Arial, sans-serif" font-size="9" fill="#64748b" text-anchor="middle">stdio</text>
+  
+  <!-- Aspire CLI -->
+  <g filter="url(#shadow)">
+    <rect x="330" y="70" width="200" height="90" rx="10" fill="url(#purpleGrad)"/>
+    <text x="430" y="105" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Aspire CLI</text>
+    <text x="430" y="125" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">aspire mcp start</text>
+    <text x="430" y="145" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#e9d5ff" text-anchor="middle">MCP Server ↔ Client</text>
+  </g>
+  
+  <!-- Arrow 2: Aspire CLI to Dashboard -->
+  <line x1="430" y1="160" x2="430" y2="220" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="480" y="195" font-family="Segoe UI, Arial, sans-serif" font-size="9" fill="#64748b" text-anchor="middle">Streamable HTTP</text>
+  
+  <!-- Dashboard -->
+  <g filter="url(#shadow)">
+    <rect x="280" y="230" width="300" height="130" rx="10" fill="url(#greenGrad)"/>
+    <text x="430" y="260" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Aspire Dashboard</text>
+    <text x="430" y="280" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="white" text-anchor="middle">https://localhost:18056/mcp</text>
+    
+    <!-- Inner box for ResourceMcpProxyService -->
+    <rect x="300" y="295" width="260" height="50" rx="5" fill="rgba(255,255,255,0.2)"/>
+    <text x="430" y="315" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="white" text-anchor="middle">ResourceMcpProxyService</text>
+    <text x="430" y="332" font-family="Segoe UI, Arial, sans-serif" font-size="9" fill="#d1fae5" text-anchor="middle">Discovers &amp; aggregates MCP endpoints</text>
+  </g>
+  
+  <!-- Arrow 3: Dashboard to MCP Bridge -->
+  <line x1="430" y1="360" x2="430" y2="410" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="490" y="390" font-family="Segoe UI, Arial, sans-serif" font-size="9" fill="#64748b" text-anchor="middle">Streamable HTTP</text>
+  
+  <!-- MCP Bridge -->
+  <g filter="url(#shadow)">
+    <rect x="280" y="420" width="300" height="100" rx="10" fill="url(#orangeGrad)"/>
+    <text x="430" y="455" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">MCP Bridge</text>
+    <text x="430" y="475" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="white" text-anchor="middle">Aspire.Hosting.Mcp.Bridge</text>
+    <text x="430" y="495" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#fef3c7" text-anchor="middle">http://localhost:50160/mcp</text>
+    <text x="430" y="510" font-family="Segoe UI, Arial, sans-serif" font-size="9" fill="#fef3c7" text-anchor="middle">HTTP → stdio proxy (AOT compiled)</text>
+  </g>
+  
+  <!-- Arrow 4: MCP Bridge to Stdio MCP -->
+  <line x1="430" y1="520" x2="430" y2="570" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="465" y="550" font-family="Segoe UI, Arial, sans-serif" font-size="9" fill="#64748b" text-anchor="middle">stdio</text>
+  
+  <!-- Stdio MCP Server -->
+  <g filter="url(#shadow)">
+    <rect x="280" y="580" width="300" height="60" rx="10" fill="#475569"/>
+    <text x="430" y="610" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Stdio MCP Server</text>
+    <text x="430" y="628" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#cbd5e1" text-anchor="middle">uvx mcp-server-redis</text>
+  </g>
+  
+  <!-- Redis -->
+  <g filter="url(#shadow)">
+    <rect x="650" y="555" width="200" height="85" rx="10" fill="url(#redGrad)"/>
+    <text x="750" y="590" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Redis</text>
+    <text x="750" y="610" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="white" text-anchor="middle">tcp://localhost:49999</text>
+    <text x="750" y="628" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#fecaca" text-anchor="middle">Container</text>
+  </g>
+  
+  <!-- Arrow 5: Stdio MCP to Redis -->
+  <line x1="580" y1="610" x2="640" y2="600" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="610" y="590" font-family="Segoe UI, Arial, sans-serif" font-size="9" fill="#64748b" text-anchor="middle">TCP</text>
+  
+  <!-- AppHost (on the side) -->
+  <g filter="url(#shadow)">
+    <rect x="650" y="280" width="200" height="100" rx="10" fill="#6366f1"/>
+    <text x="750" y="315" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">AppHost</text>
+    <text x="750" y="335" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="white" text-anchor="middle">Redis.AppHost</text>
+    <text x="750" y="355" font-family="Segoe UI, Arial, sans-serif" font-size="9" fill="#c7d2fe" text-anchor="middle">Orchestrates all resources</text>
+    <text x="750" y="370" font-family="Segoe UI, Arial, sans-serif" font-size="9" fill="#c7d2fe" text-anchor="middle">Registers MCP endpoints</text>
+  </g>
+  
+  <!-- Dashed lines from AppHost -->
+  <line x1="650" y1="330" x2="590" y2="310" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <line x1="650" y1="350" x2="590" y2="470" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <line x1="750" y1="380" x2="750" y2="545" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5,3"/>
+  
+  <!-- Legend -->
+  <rect x="50" y="550" width="180" height="90" rx="5" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="140" y="570" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="bold" fill="#1e293b" text-anchor="middle">Legend</text>
+  <line x1="70" y1="585" x2="100" y2="585" stroke="#64748b" stroke-width="2"/>
+  <text x="110" y="589" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#64748b">MCP Protocol</text>
+  <line x1="70" y1="605" x2="100" y2="605" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="110" y="609" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#64748b">Orchestration</text>
+  <rect x="70" y="620" width="30" height="12" rx="2" fill="url(#orangeGrad)"/>
+  <text x="110" y="630" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#64748b">New Component</text>
+  
+  <!-- Arrowhead marker -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+</svg>

@@ -1,0 +1,22 @@
+<!-- Licensed to the .NET Foundation under one or more agreements. -->
+<!-- The .NET Foundation licenses this file to you under the MIT license. -->
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;linux-musl-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
+    <TargetFramework>net10.0</TargetFramework>
+    <Description>HTTP-to-stdio bridge for Model Context Protocol (MCP) servers</Description>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <!-- Only use AOT for Release builds - Debug builds use framework-dependent for faster builds -->
+    <PublishAot Condition="'$(Configuration)' == 'Release'">true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Suppress SYSLIB0020 from ModelContextProtocol package dependencies -->
+    <NoWarn>$(NoWarn);SYSLIB0020</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" />
+  </ItemGroup>
+
+</Project>

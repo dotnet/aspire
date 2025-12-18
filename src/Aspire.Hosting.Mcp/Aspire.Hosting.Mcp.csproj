@@ -1,0 +1,98 @@
+<!-- Licensed to the .NET Foundation under one or more agreements. -->
+<!-- The .NET Foundation licenses this file to you under the MIT license. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <Description>Aspire hosting integration for Model Context Protocol (MCP) servers with stdio bridge support</Description>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire mcp hosting</PackageTags>
+    <PackageIconFullPath>$(SharedDir)Maui_265x.png</PackageIconFullPath>
+    <NoWarn>$(NoWarn);ASPIRE001</NoWarn>
+    <!-- Disable package validation for new package that doesn't have a baseline -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+  <!-- Include the bridge executables for all platforms in the package -->
+  <PropertyGroup>
+    <BeforePack>$(BeforePack);PublishBridgeForAllPlatforms</BeforePack>
+  </PropertyGroup>
+  
+  <Target Name="PublishBridgeForAllPlatforms">
+    <PropertyGroup>
+      <_BridgeProject>..\Aspire.Hosting.Mcp.Bridge\Aspire.Hosting.Mcp.Bridge.csproj</_BridgeProject>
+      <_BridgePublishDir>$(IntermediateOutputPath)bridge-publish\</_BridgePublishDir>
+    </PropertyGroup>
+    
+    <ItemGroup>
+      <_BridgeRuntimes Include="win-x64" />
+      <_BridgeRuntimes Include="win-arm64" />
+      <_BridgeRuntimes Include="linux-x64" />
+      <_BridgeRuntimes Include="linux-arm64" />
+      <_BridgeRuntimes Include="osx-x64" />
+      <_BridgeRuntimes Include="osx-arm64" />
+    </ItemGroup>
+    
+    <!-- Restore for each runtime -->
+    <MSBuild Projects="$(_BridgeProject)"
+             Targets="Restore"
+             Properties="RuntimeIdentifier=%(_BridgeRuntimes.Identity);Configuration=$(Configuration)" />
+    
+    <!-- Publish for each runtime -->
+    <MSBuild Projects="$(_BridgeProject)"
+             Targets="Publish"
+             Properties="RuntimeIdentifier=%(_BridgeRuntimes.Identity);PublishDir=$(_BridgePublishDir)%(_BridgeRuntimes.Identity)\;SelfContained=true;Configuration=$(Configuration)" />
+    
+    <!-- Include all published executables in the package -->
+    <ItemGroup>
+      <None Include="$(_BridgePublishDir)**\*" Pack="True" PackagePath="tools/bridge" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Copy bridge to output directory for local development (current platform only) -->
+  <Target Name="CopyBridgeToOutput" AfterTargets="Build">
+    <PropertyGroup>
+      <_CurrentRid Condition="$([System.OperatingSystem]::IsWindows()) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'X64'">win-x64</_CurrentRid>
+      <_CurrentRid Condition="$([System.OperatingSystem]::IsWindows()) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'Arm64'">win-arm64</_CurrentRid>
+      <_CurrentRid Condition="$([System.OperatingSystem]::IsLinux()) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'X64'">linux-x64</_CurrentRid>
+      <_CurrentRid Condition="$([System.OperatingSystem]::IsLinux()) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'Arm64'">linux-arm64</_CurrentRid>
+      <_CurrentRid Condition="$([System.OperatingSystem]::IsMacOS()) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'X64'">osx-x64</_CurrentRid>
+      <_CurrentRid Condition="$([System.OperatingSystem]::IsMacOS()) and $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'Arm64'">osx-arm64</_CurrentRid>
+      <_BridgeProject>..\Aspire.Hosting.Mcp.Bridge\Aspire.Hosting.Mcp.Bridge.csproj</_BridgeProject>
+      <_LocalBridgePublishDir>$(IntermediateOutputPath)bridge-local\</_LocalBridgePublishDir>
+      <!-- Use self-contained only for Release (AOT) builds -->
+      <_BridgeSelfContained Condition="'$(Configuration)' == 'Release'">true</_BridgeSelfContained>
+      <_BridgeSelfContained Condition="'$(Configuration)' != 'Release'">false</_BridgeSelfContained>
+    </PropertyGroup>
+    
+    <!-- Restore for current runtime -->
+    <MSBuild Projects="$(_BridgeProject)"
+             Targets="Restore"
+             Properties="RuntimeIdentifier=$(_CurrentRid);Configuration=$(Configuration)" />
+    
+    <MSBuild Projects="$(_BridgeProject)"
+             Targets="Publish"
+             Properties="RuntimeIdentifier=$(_CurrentRid);PublishDir=$(_LocalBridgePublishDir);SelfContained=$(_BridgeSelfContained);Configuration=$(Configuration)" />
+    
+    <ItemGroup>
+      <_BridgeFiles Include="$(_LocalBridgePublishDir)**\*" />
+    </ItemGroup>
+    
+    <Copy SourceFiles="@(_BridgeFiles)" 
+          DestinationFolder="$(OutputPath)tools\bridge\$(_CurrentRid)\%(RecursiveDir)"
+          SkipUnchangedFiles="true" />
+    
+    <!-- Mark bridge files as content to copy to output for consuming projects -->
+    <ItemGroup>
+      <Content Include="$(OutputPath)tools\bridge\**\*" CopyToOutputDirectory="PreserveNewest" Link="tools\bridge\%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+  </Target>
+
+</Project>
