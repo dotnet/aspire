@@ -215,7 +215,7 @@ internal sealed class ApplicationOrchestrator
         var urls = new List<ResourceUrlAnnotation>();
         EndpointAnnotation? primaryLaunchProfileEndpoint = null;
 
-        var logger = _loggerService.GetLogger(resource.Name);
+        var logger = _loggerService.GetLogger(resource);
         try
         {
             // Project endpoints to URLs
@@ -229,6 +229,10 @@ internal sealed class ApplicationOrchestrator
                     {
                         if (endpoint.FromLaunchProfile && primaryLaunchProfileEndpoint is null)
                         {
+                            if (logger.IsEnabled(LogLevel.Trace))
+                            {
+                                logger.LogTrace("Setting primary launch profile endpoint to '{EndpointName}' for resource '{ResourceName}'.", endpoint.Name, resource.Name);
+                            }
                             primaryLaunchProfileEndpoint = endpoint;
                         }
 
@@ -275,12 +279,13 @@ internal sealed class ApplicationOrchestrator
                             (additionalUrl, url) = (url, additionalUrl);
                         }
                         else if ((string.Equals(endpoint.UriScheme, "http", StringComparison.OrdinalIgnoreCase) || string.Equals(endpoint.UriScheme, "https", StringComparison.OrdinalIgnoreCase))
-                                && additionalUrl is null && EndpointHostHelpers.IsDevLocalhostTld(_dashboardUri))
+                                 && additionalUrl is null && EndpointHostHelpers.IsDevLocalhostTld(_dashboardUri))
                         {
                             // For HTTP endpoints, if the endpoint target host has not already resulted in an additional URL and the dashboard URL is using a *.dev.localhost address,
                             // we want to assign a *.dev.localhost address to every HTTP resource endpoint based on the dashboard URL.
                             // This allows users to access their services from the dashboard using a consistent pattern.
                             var subdomainSuffix = _dashboardUri.Host[.._dashboardUri.Host.IndexOf(".dev.localhost", StringComparison.OrdinalIgnoreCase)];
+
                             // Strip any "apphost" suffix that might be present on the dashboard name.
                             subdomainSuffix = TrimSuffix(subdomainSuffix, "apphost");
 
@@ -316,9 +321,17 @@ internal sealed class ApplicationOrchestrator
                         }
 
                         urls.Add(url);
+                        if (logger.IsEnabled(LogLevel.Trace))
+                        {
+                            logger.LogTrace("Added URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", url.Url, endpoint.Name, resource.Name);
+                        }
                         if (additionalUrl is not null)
                         {
                             urls.Add(additionalUrl);
+                            if (logger.IsEnabled(LogLevel.Trace))
+                            {
+                                logger.LogTrace("Added additional URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", additionalUrl.Url, endpoint.Name, resource.Name);
+                            }
                         }
                     }
                 }
@@ -330,6 +343,10 @@ internal sealed class ApplicationOrchestrator
                 foreach (var staticUrl in staticUrls)
                 {
                     urls.Add(staticUrl);
+                    if (logger.IsEnabled(LogLevel.Trace))
+                    {
+                        logger.LogTrace("Added static URL '{Url}' for resource '{ResourceName}'.", staticUrl.Url, resource.Name);
+                    }
 
                     // Remove it from the resource here, we'll add it back later to avoid duplicates.
                     resource.Annotations.Remove(staticUrl);
@@ -339,13 +356,23 @@ internal sealed class ApplicationOrchestrator
             // Run the URL callbacks
             if (resource.TryGetAnnotationsOfType<ResourceUrlsCallbackAnnotation>(out var callbacks))
             {
+                if (logger.IsEnabled(LogLevel.Trace))
+                {
+                    logger.LogTrace("Running {CallbackCount} URL callbacks for resource '{ResourceName}'.", callbacks.Count(), resource.Name);
+                }
                 var urlsCallbackContext = new ResourceUrlsCallbackContext(_executionContext, resource, urls, cancellationToken)
                 {
                     Logger = _loggerService.GetLogger(resource.Name)
                 };
+                var index = 0;
                 foreach (var callback in callbacks)
                 {
+                    if (logger.IsEnabled(LogLevel.Trace))
+                    {
+                        logger.LogTrace("Invoking URL callback '{CallbackIndex}' for resource '{ResourceName}'.", index, resource.Name);
+                    }
                     await callback.Callback(urlsCallbackContext).ConfigureAwait(false);
+                    index++;
                 }
             }
 
@@ -353,6 +380,10 @@ internal sealed class ApplicationOrchestrator
             // This needs to happen after running URL callbacks as the application of the launch profile launchUrl happens in a callback.
             if (primaryLaunchProfileEndpoint is not null)
             {
+                if (logger.IsEnabled(LogLevel.Trace))
+                {
+                    logger.LogTrace("Applying path from primary launch profile endpoint '{EndpointName}' to other launch profile endpoints for resource '{ResourceName}'.", primaryLaunchProfileEndpoint.Name, resource.Name);
+                }
                 // Matches URL lookup logic in ProjectResourceBuilderExtensions.WithProjectDefaults
                 var primaryUrl = urls.FirstOrDefault(u => string.Equals(u.Endpoint?.EndpointName, primaryLaunchProfileEndpoint.Name, StringComparisons.EndpointAnnotationName));
                 if (primaryUrl is not null)
@@ -369,15 +400,37 @@ internal sealed class ApplicationOrchestrator
                                 && !string.Equals(url.Url, primaryUrl.Url, StringComparisons.Url)
                                 && Uri.TryCreate(url.Url, UriKind.Absolute, out var uri))
                             {
+                                if (logger.IsEnabled(LogLevel.Trace))
+                                {
+                                    logger.LogTrace("Applying path '{Path}' to launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", primaryPath, url.Endpoint.EndpointName, resource.Name);
+                                }
                                 var uriBuilder = new UriBuilder(uri) { Path = primaryPath };
                                 url.Url = uriBuilder.Uri.ToString();
                             }
                         }
                     }
+                    else
+                    {
+                        if (logger.IsEnabled(LogLevel.Trace))
+                        {
+                            logger.LogTrace("Primary launch profile endpoint '{EndpointName}' for resource '{ResourceName}' does not have a path to apply to other launch profile endpoints.", primaryLaunchProfileEndpoint.Name, resource.Name);
+                        }
+                    }
+                }
+                else
+                {
+                    if (logger.IsEnabled(LogLevel.Trace))
+                    {
+                        logger.LogTrace("Could not find URL for primary launch profile endpoint '{EndpointName}' for resource '{ResourceName}'.", primaryLaunchProfileEndpoint.Name, resource.Name);
+                    }
                 }
             }
 
             // Convert relative endpoint URLs to absolute URLs
+            if (logger.IsEnabled(LogLevel.Trace))
+            {
+                logger.LogTrace("Converting relative endpoint URLs to absolute URLs for resource '{ResourceName}'.", resource.Name);
+            }
             foreach (var url in urls)
             {
                 if (url.Endpoint is { } endpoint)
@@ -385,14 +438,24 @@ internal sealed class ApplicationOrchestrator
                     if (url.Url.StartsWith('/') && endpoint.AllocatedEndpoint is { } allocatedEndpoint)
                     {
                         url.Url = allocatedEndpoint.UriString.TrimEnd('/') + url.Url;
+                        if (logger.IsEnabled(LogLevel.Trace))
+                        {
+                            logger.LogTrace("Converted relative URL to absolute URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", url.Url, endpoint.EndpointName, resource.Name);
+                        }
                     }
                 }
             }
 
             // Add URLs
+            var count = 0;
             foreach (var url in urls)
             {
                 resource.Annotations.Add(url);
+                count++;
+            }
+            if (logger.IsEnabled(LogLevel.Trace))
+            {
+                logger.LogTrace("Added total of {UrlCount} URLs to resource '{ResourceName}'.", count, resource.Name);
             }
         }
         catch (Exception ex)
