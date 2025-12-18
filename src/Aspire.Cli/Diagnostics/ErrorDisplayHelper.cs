@@ -37,15 +37,15 @@ internal static class ErrorDisplayHelper
             interactionService.DisplayError(cleanMessage.EscapeMarkup());
         }
 
-        // Always show troubleshooting link
-        var troubleshootingLink = TroubleshootingLinks.GetLinkForExitCode(exitCode);
-        interactionService.DisplaySubtleMessage($"For troubleshooting, see: {troubleshootingLink}", escapeMarkup: false);
-
-        // Show where details were saved if bundle was written
+        // Always show log file path (matches aspire run style)
         if (!string.IsNullOrEmpty(bundlePath))
         {
-            interactionService.DisplaySubtleMessage($"Details saved to: {bundlePath}", escapeMarkup: false);
+            interactionService.DisplaySubtleMessage($"\n        Logs:  {bundlePath}/aspire.log", escapeMarkup: false);
         }
+
+        // Always show troubleshooting link
+        var troubleshootingLink = TroubleshootingLinks.GetLinkForExitCode(exitCode);
+        interactionService.DisplaySubtleMessage($"\nFor troubleshooting, see: {troubleshootingLink}", escapeMarkup: false);
     }
 
     private static void DisplayVerboseException(IInteractionService interactionService, Exception exception)
