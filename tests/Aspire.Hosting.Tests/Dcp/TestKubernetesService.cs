@@ -177,6 +177,12 @@ internal sealed class TestKubernetesService : IKubernetesService
         return Task.FromResult(_startStream(obj, logStreamType));
     }
 
+    public Task WriteStdinAsync<T>(T obj, string input, CancellationToken cancellationToken = default) where T : CustomResource, IKubernetesStaticMetadata
+    {
+        // Test implementation - no-op
+        return Task.CompletedTask;
+    }
+
     public Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default) where T : CustomResource, IKubernetesStaticMetadata
     {
         // Not a complete implementation, but Aspire is using patching only to stop resources,

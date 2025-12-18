@@ -3,6 +3,7 @@
 
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
 using k8s.Autorest;
@@ -82,6 +83,73 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
             Body = await httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)
         };
         return result;
+    }
+
+    /// <summary>
+    /// Asynchronously writes data to a sub-resource of a Kubernetes resource.
+    /// </summary>
+    /// <param name="group">The API group of the Kubernetes resource.</param>
+    /// <param name="version">The API version of the Kubernetes resource.</param>
+    /// <param name="plural">The plural name (API kind) of the Kubernetes resource, e.g. "executables".</param>
+    /// <param name="name">The name of the Kubernetes resource to use for sub-resource write operation.</param>
+    /// <param name="subResource">The sub-resource to write to.</param>
+    /// <param name="content">The content to write to the sub-resource.</param>
+    /// <param name="namespaceParameter">The namespace of the Kubernetes resource.
+    /// If null or empty, the resource is assumed to be non-namespaced.</param>
+    /// <param name="queryParams">Optional query parameters to append to the request URL.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    public async Task WriteSubResourceAsync(
+        string group,
+        string version,
+        string plural,
+        string name,
+        string subResource,
+        string content,
+        string? namespaceParameter,
+        IReadOnlyCollection<(string name, string value)>? queryParams = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(group, nameof(group));
+        ArgumentException.ThrowIfNullOrWhiteSpace(version, nameof(version));
+        ArgumentException.ThrowIfNullOrWhiteSpace(plural, nameof(plural));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(subResource, nameof(subResource));
+        ArgumentNullException.ThrowIfNull(content, nameof(content));
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(HttpClientTimeout);
+        cancellationToken = cts.Token;
+
+        string url;
+        if (string.IsNullOrEmpty(namespaceParameter))
+        {
+            url = $"apis/{group}/{version}/{plural}/{name}/{subResource}";
+        }
+        else
+        {
+            url = $"apis/{group}/{version}/namespaces/{namespaceParameter}/{plural}/{name}/{subResource}";
+        }
+
+        var q = new QueryBuilder();
+        if (queryParams != null)
+        {
+            foreach (var (param, paramVal) in queryParams)
+            {
+                q.Append(param, paramVal);
+            }
+        }
+        url += q.ToString();
+
+        var httpRequest = new HttpRequestMessage
+        {
+            Method = HttpMethod.Post,
+            RequestUri = new Uri(this.BaseUri, url),
+            Content = new StringContent(content, Encoding.UTF8)
+        };
+        httpRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("text/plain");
+
+        _ = await SendRequestRaw(content, httpRequest, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

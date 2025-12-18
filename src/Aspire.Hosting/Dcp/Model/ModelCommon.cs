@@ -464,6 +464,7 @@ internal static class Logs
     public const string StreamTypeStartupStdErr = "startup_stderr";
     public const string StreamTypeStdOut = "stdout";
     public const string StreamTypeStdErr = "stderr";
+    public const string StreamTypeStdIn = "stdin";
     public const string StreamTypeSystem = "system";
     public const string SubResourceName = "log";
 }

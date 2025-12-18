@@ -358,6 +358,30 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         }
     }
 
+    public override async Task<SendResourceConsoleInputResponse> SendResourceConsoleInput(SendResourceConsoleInputRequest request, ServerCallContext context)
+    {
+        var (success, errorMessage) = await serviceData.SendConsoleInputAsync(request.ResourceName, request.Input, context.CancellationToken).ConfigureAwait(false);
+
+        if (success)
+        {
+            return new SendResourceConsoleInputResponse
+            {
+                Kind = SendResourceConsoleInputResponseKind.Succeeded
+            };
+        }
+
+        // Check if the error indicates the resource was not found
+        var kind = errorMessage?.Contains("not found", StringComparison.OrdinalIgnoreCase) == true
+            ? SendResourceConsoleInputResponseKind.ResourceNotFound
+            : SendResourceConsoleInputResponseKind.Failed;
+
+        return new SendResourceConsoleInputResponse
+        {
+            Kind = kind,
+            ErrorMessage = errorMessage ?? string.Empty
+        };
+    }
+
     public override async Task<ResourceCommandResponse> ExecuteResourceCommand(ResourceCommandRequest request, ServerCallContext context)
     {
         var (result, errorMessage) = await serviceData.ExecuteCommandAsync(request.ResourceName, request.CommandName, context.CancellationToken).ConfigureAwait(false);

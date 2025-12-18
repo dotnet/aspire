@@ -11,6 +11,8 @@ internal sealed class TestDcpExecutor : IDcpExecutor
 
     public Task RunApplicationAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
+    public Task SendResourceInputAsync(string resourceName, string input, CancellationToken cancellationToken) => Task.CompletedTask;
+
     public Task StartResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken) => Task.CompletedTask;
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

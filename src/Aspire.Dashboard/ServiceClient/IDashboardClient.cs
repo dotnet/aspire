@@ -70,8 +70,24 @@ public interface IDashboardClient : IAsyncDisposable
 
     IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Sends input to the specified resource's console (stdin).
+    /// </summary>
+    /// <param name="resourceName">The name of the resource to send input to.</param>
+    /// <param name="input">The input data to send.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A result indicating whether the input was sent successfully.</returns>
+    Task<SendConsoleInputResult> SendConsoleInputAsync(string resourceName, string input, CancellationToken cancellationToken);
+
     Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// Represents the result of sending console input to a resource.
+/// </summary>
+public sealed record SendConsoleInputResult(
+    bool Success,
+    string? ErrorMessage);
 
 public sealed record ResourceViewModelSubscription(
     ImmutableArray<ResourceViewModel> InitialState,

@@ -137,6 +137,11 @@ public class TestDashboardClient : IDashboardClient
         await _sendInteractionUpdateChannel.Writer.WriteAsync(request, cancellationToken);
     }
 
+    public Task<SendConsoleInputResult> SendConsoleInputAsync(string resourceName, string input, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new SendConsoleInputResult(false, "Not implemented in test client."));
+    }
+
     public ResourceViewModel? GetResource(string resourceName) => null;
 
     public IReadOnlyList<ResourceViewModel> GetResources() => _initialResources?.ToList() ?? [];

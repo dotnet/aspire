@@ -719,6 +719,41 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
+    public async Task<SendConsoleInputResult> SendConsoleInputAsync(string resourceName, string input, CancellationToken cancellationToken)
+    {
+        EnsureInitialized();
+
+        var request = new SendResourceConsoleInputRequest()
+        {
+            ResourceName = resourceName,
+            Input = input
+        };
+
+        try
+        {
+            using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+
+            var response = await _client!.SendResourceConsoleInputAsync(request, headers: _headers, cancellationToken: combinedTokens.Token);
+
+            return response.Kind switch
+            {
+                SendResourceConsoleInputResponseKind.Succeeded => new SendConsoleInputResult(true, null),
+                SendResourceConsoleInputResponseKind.ResourceNotFound => new SendConsoleInputResult(false, $"Resource '{resourceName}' not found."),
+                _ => new SendConsoleInputResult(false, response.ErrorMessage ?? "Unknown error")
+            };
+        }
+        catch (RpcException ex)
+        {
+            _logger.LogError(ex, "Error sending console input to resource \"{ResourceName}\": {StatusCode}", resourceName, ex.StatusCode);
+
+            var errorMessage = ex.StatusCode == StatusCode.Unimplemented
+                ? "Console input not supported"
+                : "Unknown error. See logs for details";
+
+            return new SendConsoleInputResult(false, errorMessage);
+        }
+    }
+
     private static ResourceLogLine[] CreateLogLines(IList<ConsoleLogLine> logLines)
     {
         var resourceLogLines = new ResourceLogLine[logLines.Count];

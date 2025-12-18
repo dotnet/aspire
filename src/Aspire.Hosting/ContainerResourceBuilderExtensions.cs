@@ -507,6 +507,88 @@ public static class ContainerResourceBuilderExtensions
 
         return builder.WithAnnotation(new ContainerImagePullPolicyAnnotation { ImagePullPolicy = pullPolicy }, ResourceAnnotationMutationBehavior.Replace);
     }
+
+    /// <summary>
+    /// Enables stdin support for the container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="enabled">Whether stdin support is enabled. Defaults to <c>true</c>.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// When stdin support is enabled, the container is started with the -i flag, which keeps stdin open.
+    /// This allows the container process to read from stdin, enabling scenarios where two containers
+    /// or an application and a container communicate via standard input/output streams.
+    /// </para>
+    /// <para>
+    /// When stdin is enabled, a "Send Input" command is added to the resource that allows users to send
+    /// text input to the container's stdin stream from the dashboard.
+    /// </para>
+    /// </remarks>
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    public static IResourceBuilder<T> WithStdin<T>(this IResourceBuilder<T> builder, bool enabled = true) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.WithAnnotation(new ContainerStdinAnnotation { Enabled = enabled }, ResourceAnnotationMutationBehavior.Replace);
+
+        if (enabled)
+        {
+            builder.WithCommand(
+                name: "send-stdin-input",
+                displayName: "Send Input",
+                executeCommand: async context =>
+                {
+                    var interactionService = context.ServiceProvider.GetService<IInteractionService>();
+                    if (interactionService is null || !interactionService.IsAvailable)
+                    {
+                        return CommandResults.Failure("Interaction service is not available.");
+                    }
+
+                    var inputResult = await interactionService.PromptInputAsync(
+                        title: "Send Input to Container",
+                        message: $"Enter text to send to the stdin of '{context.ResourceName}':",
+                        inputLabel: "Input",
+                        placeHolder: "Type your input here...",
+                        cancellationToken: context.CancellationToken).ConfigureAwait(false);
+
+                    if (inputResult.Canceled)
+                    {
+                        return CommandResults.Canceled();
+                    }
+
+                    var consoleInputService = context.ServiceProvider.GetService<Dashboard.IResourceConsoleInputService>();
+                    if (consoleInputService is null)
+                    {
+                        return CommandResults.Failure("Console input service is not available.");
+                    }
+
+                    try
+                    {
+                        // Append newline to simulate pressing Enter
+                        await consoleInputService.SendInputAsync(context.ResourceName, inputResult.Data!.Value + "\n", context.CancellationToken).ConfigureAwait(false);
+                        return CommandResults.Success();
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        return CommandResults.Failure(ex.Message);
+                    }
+                },
+                commandOptions: new CommandOptions
+                {
+                    UpdateState = context => context.ResourceSnapshot.State?.Text == KnownResourceStates.Running
+                        ? ResourceCommandState.Enabled
+                        : ResourceCommandState.Disabled,
+                    Description = "Send text input to the container's stdin stream.",
+                    IconName = "TextEditStyle"
+                });
+        }
+
+        return builder;
+    }
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
     private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource
     {
         throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");

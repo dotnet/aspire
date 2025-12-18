@@ -29,7 +29,8 @@ internal enum DcpApiOperationType
     Get = 6,
     Patch = 7,
     ServerStop = 8,
-    ResourceCleanup = 9
+    ResourceCleanup = 9,
+    WriteLogSubresource = 10
 }
 
 internal interface IKubernetesService
@@ -72,6 +73,19 @@ internal interface IKubernetesService
         long? tail = null,
         long? skip = null
     ) where T : CustomResource, IKubernetesStaticMetadata;
+
+    /// <summary>
+    /// Writes input to the stdin stream of a resource.
+    /// </summary>
+    /// <param name="obj">The resource to write to.</param>
+    /// <param name="input">The input data to write to stdin.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task WriteStdinAsync<T>(
+        T obj,
+        string input,
+        CancellationToken cancellationToken = default
+    ) where T : CustomResource, IKubernetesStaticMetadata;
+
     Task StopServerAsync(string resourceCleanup = ResourceCleanup.Full, CancellationToken cancellation = default);
     Task CleanupResourcesAsync(CancellationToken cancellationToken = default);
 }
@@ -354,6 +368,42 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
                 ).ConfigureAwait(false);
 
                 return response.Body;
+            },
+            RetryOnConnectivityAndConflictErrors,
+            cancellationToken
+        );
+    }
+
+    public Task WriteStdinAsync<T>(
+        T obj,
+        string input,
+        CancellationToken cancellationToken = default) where T : CustomResource, IKubernetesStaticMetadata
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var resourceType = GetResourceFor<T>();
+
+        List<(string name, string value)> queryParams = [
+            (name: "source", value: Logs.StreamTypeStdIn),
+        ];
+
+        return ExecuteWithRetry(
+            DcpApiOperationType.WriteLogSubresource,
+            T.ObjectKind,
+            async (kubernetes) =>
+            {
+                await kubernetes.WriteSubResourceAsync(
+                    GroupVersion.Group,
+                    GroupVersion.Version,
+                    resourceType,
+                    obj.Metadata.Name,
+                    Logs.SubResourceName,
+                    input,
+                    obj.Metadata.Namespace(),
+                    queryParams,
+                    cancellationToken
+                ).ConfigureAwait(false);
+
+                return (object?)null;
             },
             RetryOnConnectivityAndConflictErrors,
             cancellationToken

@@ -40,7 +40,7 @@ using Polly;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, IAsyncDisposable
+internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, Dashboard.IResourceConsoleInputService, IAsyncDisposable
 {
     internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -1808,6 +1808,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 };
             }
 
+            // Enable stdin support if the container has the ContainerStdinAnnotation
+            if (container.TryGetLastAnnotation<ContainerStdinAnnotation>(out var stdinAnnotation) && stdinAnnotation.Enabled)
+            {
+                ctr.Spec.Stdin = true;
+            }
+
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
@@ -2400,6 +2406,37 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         return matchingResource;
     }
+
+    public async Task SendResourceInputAsync(string resourceName, string input, CancellationToken cancellationToken)
+    {
+        var matchingResource = _appResources
+            .OfType<RenderedModelResource>()
+            .Where(r => r.DcpResource is not Service)
+            .SingleOrDefault(r => string.Equals(r.DcpResource.Metadata.Name, resourceName, StringComparisons.ResourceName));
+
+        if (matchingResource is null)
+        {
+            throw new InvalidOperationException($"Resource '{resourceName}' not found.");
+        }
+
+        var dcpResource = matchingResource.DcpResource;
+
+        switch (dcpResource)
+        {
+            case Container container:
+                await _kubernetesService.WriteStdinAsync(container, input, cancellationToken).ConfigureAwait(false);
+                break;
+            case Executable executable:
+                await _kubernetesService.WriteStdinAsync(executable, input, cancellationToken).ConfigureAwait(false);
+                break;
+            default:
+                throw new InvalidOperationException($"Resource type '{dcpResource.Kind}' does not support stdin input.");
+        }
+    }
+
+    // Explicit interface implementation for IResourceConsoleInputService
+    Task Dashboard.IResourceConsoleInputService.SendInputAsync(string resourceName, string input, CancellationToken cancellationToken)
+        => SendResourceInputAsync(resourceName, input, cancellationToken);
 
     public async Task StartResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken)
     {

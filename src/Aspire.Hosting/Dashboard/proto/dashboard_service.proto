@@ -323,6 +323,29 @@ message WatchResourceConsoleLogsUpdate {
     repeated ConsoleLogLine log_lines = 1;
 }
 
+// A request to send console input (stdin) to a resource.
+message SendResourceConsoleInputRequest {
+    // Specifies the resource to send input to.
+    string resource_name = 1;
+    // The input data to send to the resource's stdin.
+    string input = 2;
+}
+
+// A response from the server after processing a console input request.
+message SendResourceConsoleInputResponse {
+    // Indicates whether the input was successfully sent.
+    SendResourceConsoleInputResponseKind kind = 1;
+    // An optional error message if the input could not be sent.
+    optional string error_message = 2;
+}
+
+enum SendResourceConsoleInputResponseKind {
+    SEND_RESOURCE_CONSOLE_INPUT_RESPONSE_KIND_UNDEFINED = 0;
+    SEND_RESOURCE_CONSOLE_INPUT_RESPONSE_KIND_SUCCEEDED = 1;
+    SEND_RESOURCE_CONSOLE_INPUT_RESPONSE_KIND_FAILED = 2;
+    SEND_RESOURCE_CONSOLE_INPUT_RESPONSE_KIND_RESOURCE_NOT_FOUND = 3;
+}
+
 // A message sent to the server to update interaction state. Has multiple types of payload.
 message WatchInteractionsRequestUpdate {
     // The interaction id.
@@ -419,6 +442,7 @@ service DashboardService {
     rpc GetApplicationInformation(ApplicationInformationRequest) returns (ApplicationInformationResponse);
     rpc WatchResources(WatchResourcesRequest) returns (stream WatchResourcesUpdate);
     rpc WatchResourceConsoleLogs(WatchResourceConsoleLogsRequest) returns (stream WatchResourceConsoleLogsUpdate);
+    rpc SendResourceConsoleInput(SendResourceConsoleInputRequest) returns (SendResourceConsoleInputResponse);
     rpc ExecuteResourceCommand(ResourceCommandRequest) returns (ResourceCommandResponse);
     rpc WatchInteractions(stream WatchInteractionsRequestUpdate) returns (stream WatchInteractionsResponseUpdate);
 }

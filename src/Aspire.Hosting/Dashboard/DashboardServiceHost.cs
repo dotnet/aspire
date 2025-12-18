@@ -57,7 +57,8 @@ internal sealed class DashboardServiceHost : IHostedService
         ResourceNotificationService resourceNotificationService,
         ResourceLoggerService resourceLoggerService,
         ResourceCommandService resourceCommandService,
-        InteractionService interactionService)
+        InteractionService interactionService,
+        IResourceConsoleInputService? consoleInputService = null)
     {
         _logger = loggerFactory.CreateLogger<DashboardServiceHost>();
 
@@ -116,6 +117,10 @@ internal sealed class DashboardServiceHost : IHostedService
             builder.Services.AddSingleton(resourceNotificationService);
             builder.Services.AddSingleton(resourceLoggerService);
             builder.Services.AddSingleton(interactionService);
+            if (consoleInputService is not null)
+            {
+                builder.Services.AddSingleton(consoleInputService);
+            }
 
             builder.WebHost.ConfigureKestrel(ConfigureKestrel);
 

@@ -95,6 +95,13 @@ internal sealed class ContainerSpec
     // List of public PEM certificates to be trusted by the container
     [JsonPropertyName("pemCertificates")]
     public ContainerPemCertificates? PemCertificates { get; set; }
+
+    /// <summary>
+    /// Keep stdin open on the container. When set to true, the container is created with -i flag,
+    /// allowing the container process to read from stdin.
+    /// </summary>
+    [JsonPropertyName("stdin")]
+    public bool? Stdin { get; set; }
 }
 
 internal sealed class BuildContext

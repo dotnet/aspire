@@ -21,18 +21,21 @@ internal sealed class DashboardServiceData : IDisposable
     private readonly ResourceCommandService _resourceCommandService;
     private readonly InteractionService _interactionService;
     private readonly ResourceLoggerService _resourceLoggerService;
+    private readonly IResourceConsoleInputService? _consoleInputService;
 
     public DashboardServiceData(
         ResourceNotificationService resourceNotificationService,
         ResourceLoggerService resourceLoggerService,
         ILogger<DashboardServiceData> logger,
         ResourceCommandService resourceCommandService,
-        InteractionService interactionService)
+        InteractionService interactionService,
+        IResourceConsoleInputService? consoleInputService = null)
     {
         _resourceLoggerService = resourceLoggerService;
         _resourcePublisher = new ResourcePublisher(_cts.Token);
         _resourceCommandService = resourceCommandService;
         _interactionService = interactionService;
+        _consoleInputService = consoleInputService;
         var cancellationToken = _cts.Token;
 
         Task.Run(async () =>
@@ -153,6 +156,28 @@ internal sealed class DashboardServiceData : IDisposable
             {
                 yield return item;
             }
+        }
+    }
+
+    internal async Task<(bool success, string? errorMessage)> SendConsoleInputAsync(string resourceName, string input, CancellationToken cancellationToken)
+    {
+        if (_consoleInputService is null)
+        {
+            return (false, "Console input is not supported in this environment.");
+        }
+
+        try
+        {
+            await _consoleInputService.SendInputAsync(resourceName, input, cancellationToken).ConfigureAwait(false);
+            return (true, null);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return (false, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Failed to send console input: {ex.Message}");
         }
     }
 
