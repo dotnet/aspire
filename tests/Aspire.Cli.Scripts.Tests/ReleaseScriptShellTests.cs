@@ -203,4 +203,34 @@ public class ReleaseScriptShellTests
         result.EnsureSuccessful();
         Assert.Contains("9.5.0-preview.1.25366.3", result.Output);
     }
+
+    [Fact]
+    public async Task MultipleFlags_WorkTogether()
+    {
+        using var env = new TestEnvironment();
+        var customPath = Path.Combine(env.TempDirectory, "custom");
+        var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli.sh", env, _testOutput);
+        
+        var result = await cmd.ExecuteAsync(
+            "--dry-run",
+            "--quality", "dev",
+            "--install-path", customPath,
+            "--skip-path",
+            "--keep-archive",
+            "--verbose");
+
+        result.EnsureSuccessful();
+    }
+
+    [Fact]
+    public async Task DefaultInstallPath_MentionsAspireDirectory()
+    {
+        using var env = new TestEnvironment();
+        var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli.sh", env, _testOutput);
+        var result = await cmd.ExecuteAsync("--dry-run", "--quality", "release");
+
+        result.EnsureSuccessful();
+        // Should mention the default .aspire path
+        Assert.Contains(".aspire", result.Output);
+    }
 }

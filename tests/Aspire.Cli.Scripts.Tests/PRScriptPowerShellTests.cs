@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestUtilities;
+using Microsoft.DotNet.XUnitExtensions;
 using Xunit;
 
 namespace Aspire.Cli.Scripts.Tests;
@@ -10,8 +11,12 @@ namespace Aspire.Cli.Scripts.Tests;
 /// Tests for the PowerShell PR script (get-aspire-cli-pr.ps1).
 /// These tests validate parameter handling using -WhatIf (not -DryRun).
 /// PowerShell scripts support -WhatIf as the dry-run equivalent.
+/// 
+/// Note: These tests use mock gh CLI and are currently skipped on Windows
+/// due to PowerShell -WhatIf interaction with mock scripts.
 /// </summary>
 [RequiresTools(["pwsh"])]
+[SkipOnPlatform(TestPlatforms.Windows, "PowerShell -WhatIf with mock gh scripts has issues on Windows")]
 public class PRScriptPowerShellTests
 {
     private readonly ITestOutputHelper _testOutput;

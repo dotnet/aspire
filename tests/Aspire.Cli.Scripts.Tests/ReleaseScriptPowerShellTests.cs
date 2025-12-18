@@ -92,4 +92,31 @@ public class ReleaseScriptPowerShellTests
         Assert.Contains("SkipPath", result.Output);
         Assert.Contains("KeepArchive", result.Output);
     }
+
+    [Fact]
+    public async Task VersionParameter_IsRecognized()
+    {
+        using var env = new TestEnvironment();
+        var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli.ps1", env, _testOutput);
+        var result = await cmd.ExecuteAsync("-Version", "9.5.0-preview.1.25366.3", "-WhatIf");
+
+        result.EnsureSuccessful();
+    }
+
+    [Fact]
+    public async Task MultipleParameters_WorkTogether()
+    {
+        using var env = new TestEnvironment();
+        var customPath = Path.Combine(env.TempDirectory, "custom");
+        var cmd = new ScriptToolCommand("eng/scripts/get-aspire-cli.ps1", env, _testOutput);
+        
+        var result = await cmd.ExecuteAsync(
+            "-Quality", "dev",
+            "-InstallPath", customPath,
+            "-SkipPath",
+            "-KeepArchive",
+            "-WhatIf");
+
+        result.EnsureSuccessful();
+    }
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestUtilities;
+using Microsoft.DotNet.XUnitExtensions;
 using Xunit;
 
 namespace Aspire.Cli.Scripts.Tests;
@@ -14,9 +15,12 @@ namespace Aspire.Cli.Scripts.Tests;
 /// 
 /// These tests are marked with Trait("Category", "integration") and are excluded from
 /// default test runs. Run them on-demand with: --filter-trait "Category=integration"
+/// 
+/// These tests are disabled in CI (ActiveIssue) and only run on-demand locally.
 /// </summary>
 [RequiresGHCli]
 [Trait("Category", "integration")]
+[ActiveIssue("https://github.com/dotnet/aspire/issues/12000", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
 public class PRScriptIntegrationTests : IClassFixture<RealGitHubPRFixture>
 {
     private readonly RealGitHubPRFixture _prFixture;
