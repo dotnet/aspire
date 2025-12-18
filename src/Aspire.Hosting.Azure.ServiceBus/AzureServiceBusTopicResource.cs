@@ -18,7 +18,7 @@ namespace Aspire.Hosting.Azure;
 /// <remarks>
 /// Use <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}(ApplicationModel.IResourceBuilder{T}, Action{AzureResourceInfrastructure})"/> to configure specific <see cref="Azure.Provisioning"/> properties.
 /// </remarks>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, Topic = {TopicName,nq}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Topic = {TopicName}")]
 public class AzureServiceBusTopicResource(string name, string topicName, AzureServiceBusResource parent)
     : Resource(name), IResourceWithParent<AzureServiceBusResource>, IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {

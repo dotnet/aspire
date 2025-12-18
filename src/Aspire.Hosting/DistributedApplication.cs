@@ -555,7 +555,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
     internal struct DistributedApplicationDebuggerProxy(DistributedApplication app)
     {
-        public IHost Host => app._host;
+        public readonly IHost Host => app._host;
 
         public List<ResourceState> Resources
         {
@@ -575,21 +575,14 @@ public class DistributedApplication : IHost, IAsyncDisposable
                         foreach(var instance in dcpInstancesAnnotation.Instances)
                         {
                             app.ResourceNotifications.TryGetCurrentState(instance.Name, out var resourceEvent);
-                            results.Add(new() { ResourceId = instance.Name, Resource = resource, Snapshot = GetSnapshot(resourceEvent) });
+                            results.Add(new() { ResourceId = instance.Name, Resource = resource, Snapshot = resourceEvent?.Snapshot });
                         }
                     }
                     else
                     {
                         app.ResourceNotifications.TryGetCurrentState(resource.Name, out var resourceEvent);
-                        results.Add(new() { ResourceId = resource.Name, Resource = resource, Snapshot = GetSnapshot(resourceEvent)});
+                        results.Add(new() { ResourceId = resource.Name, Resource = resource, Snapshot = resourceEvent?.Snapshot });
                     }
-
-                    CustomResourceSnapshot GetSnapshot(ResourceEvent? evt) => evt?.Snapshot
-                        ?? new CustomResourceSnapshot
-                        {
-                            ResourceType = resource.GetType().Name,
-                            Properties = []
-                        };
                 }
 
                 return results;
@@ -604,8 +597,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
             public required IResource Resource { get; init; }
 
-            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-            public required CustomResourceSnapshot Snapshot { get; init; }
+            public required CustomResourceSnapshot? Snapshot { get; init; }
         }
     }
 }

@@ -13,7 +13,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="entrypoint">An optional container entrypoint.</param>
-[DebuggerDisplay("{GetDebuggerString(),nq}")]
+[DebuggerDisplay("{DebuggerToString(),nq}")]
 public class ContainerResource(string name, string? entrypoint = null)
     : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport, IResourceWithProbes,
     IComputeResource
@@ -30,13 +30,13 @@ public class ContainerResource(string name, string? entrypoint = null)
     [Experimental("ASPIRECONTAINERSHELLEXECUTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public bool? ShellExecution { get; set; }
 
-    private string GetDebuggerString()
+    private string DebuggerToString()
     {
         if (!this.TryGetContainerImageName(out var imageName))
         {
             imageName = "<unknown>";
         }
 
-        return $@"Type = {GetType().Name}, Name = {Name}, Image = {imageName}";
+        return $@"Type = {GetType().Name}, Name = ""{Name}"", Image = ""{imageName}""";
     }
 }

@@ -14,7 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
 /// <param name="parent">The parent SQL Server server resource.</param>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, Database = {DatabaseName,nq}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
 public class SqlServerDatabaseResource(string name, string databaseName, SqlServerServerResource parent)
     : Resource(name), IResourceWithParent<SqlServerServerResource>, IResourceWithConnectionString
 {

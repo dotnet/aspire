@@ -9,7 +9,7 @@ namespace Aspire.Hosting.OpenAI;
 /// <summary>
 /// Represents an OpenAI Model resource.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, Model = {Model,nq}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Model = {Model}")]
 public class OpenAIModelResource : Resource, IResourceWithParent<OpenAIResource>, IResourceWithConnectionString
 {
     /// <summary>

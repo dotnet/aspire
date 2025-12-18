@@ -18,7 +18,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <para/> 
 /// To run an executable file that's in the current directory, specify the full path or use the relative path <c>./</c> to represent the current directory.
 /// </remarks>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, Command = {Command,nq}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Command = {Command}")]
 public class ExecutableResource : Resource, IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport, IResourceWithProbes,
     IComputeResource
 {

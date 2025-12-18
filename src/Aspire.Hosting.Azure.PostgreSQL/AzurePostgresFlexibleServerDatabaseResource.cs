@@ -14,7 +14,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
 /// <param name="postgresParentResource">The Azure PostgreSQL parent resource associated with this database.</param>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, Database = {DatabaseName,nq}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
 public class AzurePostgresFlexibleServerDatabaseResource(string name, string databaseName, AzurePostgresFlexibleServerResource postgresParentResource)
     : Resource(name), IResourceWithParent<AzurePostgresFlexibleServerResource>, IResourceWithConnectionString
 {

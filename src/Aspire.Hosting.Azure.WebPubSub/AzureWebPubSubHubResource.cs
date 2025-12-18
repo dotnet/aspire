@@ -11,7 +11,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="webpubsub">The <see cref="AzureWebPubSubResource"/> that the resource belongs to.</param>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, Hub = {HubName,nq}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Hub = {HubName}")]
 public class AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpubsub) : Resource(name),
     IResourceWithParent<AzureWebPubSubResource>, IResourceWithConnectionString
 {

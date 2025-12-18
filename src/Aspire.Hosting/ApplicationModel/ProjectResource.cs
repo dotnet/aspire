@@ -295,6 +295,6 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             path = metadata.ProjectPath;
         }
 
-        return $@"Type = {GetType().Name}, Name = {Name}, Path = {path}";
+        return $@"Type = {GetType().Name}, Name = ""{Name}"", Path = ""{path}""";
     }
 }

@@ -13,7 +13,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
 /// <param name="parent">The MongoDB server resource associated with this database.</param>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name,nq}, Database = {DatabaseName,nq}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
 public class MongoDBDatabaseResource(string name, string databaseName, MongoDBServerResource parent)
     : Resource(name), IResourceWithParent<MongoDBServerResource>, IResourceWithConnectionString
 {
