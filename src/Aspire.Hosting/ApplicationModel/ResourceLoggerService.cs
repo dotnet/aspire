@@ -221,15 +221,19 @@ public class ResourceLoggerService
     public async IAsyncEnumerable<LogSubscriber> WatchAnySubscribersAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var channel = Channel.CreateUnbounded<LogSubscriber>();
+        var subscribedStates = new List<(ResourceLoggerState State, Action<bool> Handler)>();
 
         void OnLoggerAdded((string Name, ResourceLoggerState State) loggerItem)
         {
             var (name, state) = loggerItem;
 
-            state.OnSubscribersChanged += (hasSubscribers) =>
+            Action<bool> handler = (hasSubscribers) =>
             {
                 channel.Writer.TryWrite(new(name, hasSubscribers));
             };
+
+            state.OnSubscribersChanged += handler;
+            subscribedStates.Add((state, handler));
         }
 
         LoggerAdded += OnLoggerAdded;
@@ -244,6 +248,13 @@ public class ResourceLoggerService
         finally
         {
             LoggerAdded -= OnLoggerAdded;
+
+            // Unsubscribe from all OnSubscribersChanged events
+            foreach (var (state, handler) in subscribedStates)
+            {
+                state.OnSubscribersChanged -= handler;
+            }
+
             channel.Writer.Complete();
         }
     }
