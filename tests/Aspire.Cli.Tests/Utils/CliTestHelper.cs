@@ -71,7 +71,7 @@ internal static class CliTestHelper
 
         // Register FileLoggerProvider for diagnostics (needed by commands)
         services.AddSingleton<Aspire.Cli.Diagnostics.FileLoggerProvider>();
-        services.AddSingleton<ILoggerProvider>(sp => sp.GetRequiredService<Aspire.Cli.Diagnostics.FileLoggerProvider>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, Aspire.Cli.Diagnostics.FileLoggerProvider>(sp => sp.GetRequiredService<Aspire.Cli.Diagnostics.FileLoggerProvider>()));
 
         services.AddMemoryCache();
 

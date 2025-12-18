@@ -174,7 +174,7 @@ public class Program
         
         // Register FileLoggerProvider for diagnostics bundle writing
         builder.Services.AddSingleton<Diagnostics.FileLoggerProvider>();
-        builder.Services.AddSingleton<ILoggerProvider>(sp => sp.GetRequiredService<Diagnostics.FileLoggerProvider>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, Diagnostics.FileLoggerProvider>(sp => sp.GetRequiredService<Diagnostics.FileLoggerProvider>()));
         
         builder.Services.AddMemoryCache();
 
