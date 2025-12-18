@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Cli.Utils;
+namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
 /// Checks if Docker Engine (vs Docker Desktop) is installed and provides tunnel guidance.

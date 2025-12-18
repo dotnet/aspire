@@ -4,7 +4,7 @@
 using Aspire.Cli.DotNet;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Cli.Utils;
+namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
 /// Checks if the .NET SDK is installed and meets the minimum version requirement.

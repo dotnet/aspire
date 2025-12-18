@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
-using Aspire.Cli.Utils;
+using Aspire.Cli.Utils.EnvironmentChecker;
 using ModelContextProtocol.Protocol;
 
 namespace Aspire.Cli.Mcp;
@@ -30,7 +30,7 @@ internal sealed class DoctorTool(IEnvironmentChecker environmentChecker) : CliMc
 
     public override async ValueTask<CallToolResult> CallToolAsync(ModelContextProtocol.Client.McpClient mcpClient, IReadOnlyDictionary<string, JsonElement>? arguments, CancellationToken cancellationToken)
     {
-        // This tool does not use the MCP client as it operates locally
+        // This tool does not use the MCP client or arguments
         _ = mcpClient;
         _ = arguments;
 
@@ -55,7 +55,7 @@ internal sealed class DoctorTool(IEnvironmentChecker environmentChecker) : CliMc
                 }
             };
 
-            var jsonContent = System.Text.Json.JsonSerializer.Serialize(response, JsonSourceGenerationContext.Default.DoctorCheckResponse);
+            var jsonContent = JsonSerializer.Serialize(response, JsonSourceGenerationContext.Default.DoctorCheckResponse);
 
             return new CallToolResult
             {

@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Cli.Utils;
+namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
 /// Orchestrates environment checks using injected IEnvironmentCheck instances.

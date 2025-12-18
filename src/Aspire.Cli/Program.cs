@@ -21,6 +21,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Cli.Caching;
 using Aspire.Hosting;
 using Aspire.Shared;

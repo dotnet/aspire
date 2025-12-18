@@ -4,7 +4,7 @@
 using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Mcp;
-using Aspire.Cli.Utils;
+using Aspire.Cli.Utils.EnvironmentChecker;
 
 namespace Aspire.Cli;
 

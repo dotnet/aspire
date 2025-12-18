@@ -4,7 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Aspire.Cli.Utils;
+namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
 /// Represents the result of a prerequisite check.

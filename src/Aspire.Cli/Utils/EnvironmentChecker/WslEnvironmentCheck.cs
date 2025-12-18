@@ -4,7 +4,7 @@
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
-namespace Aspire.Cli.Utils;
+namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
 /// Checks if running in WSL environment and detects potential issues.
