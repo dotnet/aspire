@@ -1907,7 +1907,7 @@ public class DistributedApplicationTests
             Assert.NotNull(parts);
             if (validateLineNumber is not null)
             {
-                Assert.True(parts.Length >= 3, """A line should have line number, timestamp, and "the rest"""");
+                Assert.True(parts.Length >= 3, """A line should have line number, timestamp, and "the rest" """);
                 Assert.True(Int64.TryParse(parts[0], out var ln), $"Line should start with a line number, but instead it started with '{parts[0]}'");
                 Assert.True(validateLineNumber(ln), $"Line number {ln} is invalid in log line '{line}'");
                 Assert.True(DateTimeOffset.TryParse(parts[1], out var _), $"Line should have a valid timestamp, but instead we found '{parts[1]}'");
