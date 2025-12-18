@@ -12,7 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an expression that might be made up of multiple resource properties. For example,
 /// a connection string might be made up of a host, port, and password from different endpoints.
 /// </summary>
-[DebuggerDisplay("{ValueExpression}, ValueProviders = {ValueProviders.Count}")]
+[DebuggerDisplay("Expression = {ValueExpression}, Providers = {ValueProviders.Count}")]
 public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
