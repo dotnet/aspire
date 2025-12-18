@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
@@ -84,12 +85,12 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
     {
         try
         {
-            // Check if runtime is installed (use lowercase for process name)
+            // Check if runtime is installed and get version using JSON format (use lowercase for process name)
             var runtimeLower = runtime.ToLowerInvariant();
             var versionProcessInfo = new ProcessStartInfo
             {
                 FileName = runtimeLower,
-                Arguments = "--version",
+                Arguments = "version -f json",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -131,6 +132,8 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
                 };
             }
 
+            // Note: docker/podman version -f json may return exit code 0 even if daemon is not running
+            // (it still outputs client version). We check daemon status separately with 'ps' command.
             if (versionProcess.ExitCode != 0)
             {
                 return new EnvironmentCheckResult
@@ -144,8 +147,8 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
                 };
             }
 
-            // Parse the version from the output
-            var detectedVersion = ParseVersionFromOutput(versionOutput);
+            // Parse the version from JSON output, falling back to text parsing if needed
+            var detectedVersion = ParseVersionFromJsonOutput(versionOutput) ?? ParseVersionFromOutput(versionOutput);
             var minimumVersion = GetMinimumVersion(runtime);
 
             // Check if version meets minimum requirement
@@ -153,7 +156,7 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
             {
                 if (detectedVersion < minimumVersion)
                 {
-                    var minVersionString = runtime == "Docker" ? MinimumDockerVersion : MinimumPodmanVersion;
+                    var minVersionString = GetMinimumVersionString(runtime);
                     return new EnvironmentCheckResult
                     {
                         Category = "container",
@@ -249,6 +252,46 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
     }
 
     /// <summary>
+    /// Parses a version number from container runtime 'version -f json' output.
+    /// Handles JSON formats from both Docker and Podman.
+    /// </summary>
+    /// <remarks>
+    /// Docker JSON format: {"Client":{"Version":"28.0.4",...},"Server":{...}}
+    /// Podman JSON format: {"Client":{"Version":"4.9.3",...}}
+    /// </remarks>
+    internal static Version? ParseVersionFromJsonOutput(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(output);
+            var root = document.RootElement;
+
+            // Try to get Client.Version (works for both Docker and Podman)
+            if (root.TryGetProperty("Client", out var client) &&
+                client.TryGetProperty("Version", out var versionElement))
+            {
+                var versionString = versionElement.GetString();
+                if (!string.IsNullOrEmpty(versionString) && Version.TryParse(versionString, out var version))
+                {
+                    return version;
+                }
+            }
+
+            return null;
+        }
+        catch (JsonException)
+        {
+            // JSON parsing failed, return null to allow fallback to text parsing
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Parses a version number from container runtime --version output.
     /// Handles formats like "Docker version 20.10.17, build 100c701" and "podman version 4.3.1".
     /// </summary>
@@ -275,12 +318,7 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
     /// </summary>
     private static Version? GetMinimumVersion(string runtime)
     {
-        var versionString = runtime switch
-        {
-            "Docker" => MinimumDockerVersion,
-            "Podman" => MinimumPodmanVersion,
-            _ => null
-        };
+        var versionString = GetMinimumVersionString(runtime);
 
         if (versionString is not null && Version.TryParse(versionString, out var version))
         {
@@ -288,6 +326,19 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Gets the minimum required version string for the specified container runtime.
+    /// </summary>
+    private static string? GetMinimumVersionString(string runtime)
+    {
+        return runtime switch
+        {
+            "Docker" => MinimumDockerVersion,
+            "Podman" => MinimumPodmanVersion,
+            _ => null
+        };
     }
 
     private static string GetContainerRuntimeUpgradeAdvice(string runtime)
