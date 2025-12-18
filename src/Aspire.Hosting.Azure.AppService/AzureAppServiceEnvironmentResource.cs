@@ -5,13 +5,11 @@
 #pragma warning disable ASPIREAZURE001
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.AppService;
 using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
@@ -49,33 +47,6 @@ public class AzureAppServiceEnvironmentResource :
             };
 
             steps.Add(printDashboardUrlStep);
-
-            var dashboardGetHostNameStep = new PipelineStep
-            {
-                Name = $"fetch-dashboard-hostname",
-                Action = async ctx =>
-                {
-                    ctx.ReportingStep.Log(LogLevel.Information, $"Fetching website suffix", false);
-                    var websiteNameSuffix = await WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
-                    var websiteName = $"{EnvironmentPrefix.ToLowerInvariant()}-{AzureAppServiceEnvironmentUtility.ResourceName}-{websiteNameSuffix?.ToLowerInvariant()}";
-                    int maxLength = EnableRegionalDnlHostName
-                        ? AzureAppServiceWebSiteResource.MaxWebsiteNameLengthWithDnl
-                        : AzureAppServiceWebSiteResource.MaxWebsiteNameLength;
-
-                    if (websiteName.Length > maxLength)
-                    {
-                        websiteName = websiteName.Substring(0, maxLength);
-                    }
-
-                    var hostName = await AzureAppServiceWebSiteResource.GetDnlHostNameAsync(websiteName, "Site", ctx).ConfigureAwait(false);
-
-                    ctx.ReportingStep.Log(LogLevel.Information, $"Fetched host name for dashboard website: {hostName}", false);
-                },
-                Tags = ["fetch-dashboard-hostname"],
-                DependsOnSteps = new List<string> { "create-provisioning-context" },
-            };
-
-            steps.Add(dashboardGetHostNameStep);
 
             // Expand deployment target steps for all compute resources
             // This ensures the push/provision steps from deployment targets are included in the pipeline
@@ -146,16 +117,14 @@ public class AzureAppServiceEnvironmentResource :
 
             // Make print-summary step depend on provisioning of this environment
             var printSummarySteps = context.GetSteps(this, "print-summary");
-            var fetchDashboardHostNameSteps = context.GetSteps(this, "fetch-dashboard-hostname");
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            provisionSteps.DependsOn(fetchDashboardHostNameSteps);
             printSummarySteps.DependsOn(provisionSteps);
         }));
     }
 
     private async Task PrintDashboardUrlAsync(PipelineStepContext context)
     {
-        var dashboardUri = await DashboardUriReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        var dashboardUri = await DashboardNameReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
 
         await context.ReportingStep.CompleteAsync(
             $"Dashboard available at [{dashboardUri}]({dashboardUri})",
@@ -230,9 +199,9 @@ public class AzureAppServiceEnvironmentResource :
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
-    /// Gets the URI of the App Service Environment dashboard.
+    /// Gets the name of the App Service Environment dashboard.
     /// </summary>
-    public BicepOutputReference DashboardUriReference => new("AZURE_APP_SERVICE_DASHBOARD_URI", this);
+    public BicepOutputReference DashboardNameReference => new("AZURE_APP_SERVICE_DASHBOARD_NAME_PREFIX", this);
 
     /// <summary>
     /// Gets the Application Insights Instrumentation Key.

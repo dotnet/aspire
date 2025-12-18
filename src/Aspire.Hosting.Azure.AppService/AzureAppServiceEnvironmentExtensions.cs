@@ -153,9 +153,9 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 // Add aspire dashboard website
                 var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id, resource.EnableRegionalDnlHostName);
 
-                infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
+                infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_NAME_PREFIX", typeof(string))
                 {
-                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardWebSiteName(prefix, resource.EnableRegionalDnlHostName)}")
+                    Value = BicepFunction.Interpolate($"{AzureAppServiceEnvironmentUtility.GetDashboardWebSiteName(prefix, resource.EnableRegionalDnlHostName)}")
                 });
             }
 
