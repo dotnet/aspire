@@ -22,7 +22,7 @@ public class AddViteAppWithPnpmTests
 
         // Verify the JavaScriptApp resource exists with pnpm command
         var nodeResource = Assert.Single(appModel.Resources.OfType<JavaScriptAppResource>());
-        
+
         Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManager));
         Assert.Equal("pnpm", packageManager.ExecutableName);
         Assert.Equal("run", packageManager.ScriptCommand);
@@ -96,12 +96,12 @@ public class AddViteAppWithPnpmTests
         var context = new CommandLineArgsCallbackContext(args, nodeResource);
         commandLineArgsAnnotation.Callback(context);
 
-        // Should be: ["run", "dev", "--", "--port", "{port}"]
-        // yarn strips the -- separator before passing to the script, just like npm
+        // Should be: ["run", "dev", "--port", "{port}"]
+        // NOT: ["run", "dev", "--", "--port", "{port}"]
+        // yarn does not strip the -- separator, so we don't include it
         Assert.Collection(args,
             arg => Assert.Equal("run", arg),
             arg => Assert.Equal("dev", arg),
-            arg => Assert.Equal("--", arg),
             arg => Assert.Equal("--port", arg),
             arg => { }); // port value is dynamic
     }
