@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Mcp\Aspire.Hosting.Mcp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

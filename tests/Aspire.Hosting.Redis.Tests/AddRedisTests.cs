@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Mcp;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
@@ -855,7 +856,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public void WithRedisMcpAddsRedisMcpResource()
+    public void WithRedisMcpAddsMcpBridgeResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis").WithRedisMcp();
@@ -863,27 +864,27 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().SingleOrDefault();
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().SingleOrDefault();
         Assert.NotNull(mcpResource);
         Assert.Equal("redis-mcp", mcpResource.Name);
     }
 
     [Fact]
-    public void WithRedisMcpAddsRedisMcpResourceWithCustomName()
+    public void WithRedisMcpAddsMcpBridgeResourceWithCustomName()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var redis = builder.AddRedis("redis").WithRedisMcp(containerName: "custom-mcp-name");
+        var redis = builder.AddRedis("redis").WithRedisMcp(resourceName: "custom-mcp-name");
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().SingleOrDefault();
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().SingleOrDefault();
         Assert.NotNull(mcpResource);
         Assert.Equal("custom-mcp-name", mcpResource.Name);
     }
 
     [Fact]
-    public void WithRedisMcpAddsContainerImageAnnotation()
+    public void WithRedisMcpConfiguresMcpServerCommand()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis").WithRedisMcp();
@@ -891,12 +892,27 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
-        var containerImageAnnotation = mcpResource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().Single();
 
-        Assert.Equal(RedisContainerImageTags.RedisMcpRegistry, containerImageAnnotation.Registry);
-        Assert.Equal(RedisContainerImageTags.RedisMcpImage, containerImageAnnotation.Image);
-        Assert.Equal(RedisContainerImageTags.RedisMcpTag, containerImageAnnotation.Tag);
+        Assert.Equal("uvx", mcpResource.McpServerCommand);
+        Assert.NotNull(mcpResource.McpServerArguments);
+        Assert.Contains("--from", mcpResource.McpServerArguments);
+        Assert.Contains("redis-mcp-server@latest", mcpResource.McpServerArguments);
+        Assert.Contains("redis-mcp-server", mcpResource.McpServerArguments);
+    }
+
+    [Fact]
+    public void WithRedisMcpAddsMcpNamespace()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddRedis("redis").WithRedisMcp();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().Single();
+
+        Assert.Equal("redis", mcpResource.McpNamespace);
     }
 
     [Fact]
@@ -908,16 +924,15 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
-        var endpoint = mcpResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "mcp");
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().Single();
+        var endpoint = mcpResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "http");
 
         Assert.NotNull(endpoint);
-        Assert.Equal(4000, endpoint.TargetPort);
         Assert.Equal("http", endpoint.UriScheme);
     }
 
     [Fact]
-    public async Task WithRedisMcpAddsEnvironmentVariablesForRedisConnection()
+    public async Task WithRedisMcpAddsEnvironmentVariablesForMcpServer()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis")
@@ -925,61 +940,31 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
             .WithRedisMcp();
 
         var appModel = builder.Build().Services.GetRequiredService<DistributedApplicationModel>();
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().Single();
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpResource);
 
-        Assert.True(config.ContainsKey("REDIS_URL"));
-        Assert.True(config.ContainsKey("REDIS_HOST"));
-        Assert.True(config.ContainsKey("REDIS_PORT"));
-        Assert.True(config.ContainsKey("REDIS_USERNAME"));
-        Assert.True(config.ContainsKey("REDIS_SSL"));
+        Assert.True(config.ContainsKey("MCP_SERVER_COMMAND"));
+        Assert.Equal("uvx", config["MCP_SERVER_COMMAND"]);
+        Assert.True(config.ContainsKey("MCP_SERVER_ARGS"));
+        Assert.Contains("redis-mcp-server", config["MCP_SERVER_ARGS"]);
     }
 
     [Fact]
-    public async Task WithRedisMcpAddsPasswordEnvironmentVariableWhenPasswordIsSet()
+    public async Task WithRedisMcpAddsRedisUrlArgument()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var password = builder.AddParameter("pass", "test-password");
-        var redis = builder.AddRedis("redis", password: password)
+        var redis = builder.AddRedis("redis")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6379))
             .WithRedisMcp();
 
         var appModel = builder.Build().Services.GetRequiredService<DistributedApplicationModel>();
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().Single();
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpResource);
 
-        Assert.True(config.ContainsKey("REDIS_PWD"));
-    }
-
-    [Fact]
-    public async Task WithRedisMcpAddsApiKeyEnvironmentVariableWhenProvided()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var redis = builder.AddRedis("redis").WithRedisMcp(apiKey: "test-api-key");
-
-        var appModel = builder.Build().Services.GetRequiredService<DistributedApplicationModel>();
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
-
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpResource);
-
-        Assert.True(config.ContainsKey("MCP_API_KEY"));
-        Assert.Equal("test-api-key", config["MCP_API_KEY"]);
-    }
-
-    [Fact]
-    public async Task WithRedisMcpDoesNotAddApiKeyEnvironmentVariableWhenNotProvided()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var redis = builder.AddRedis("redis").WithRedisMcp();
-
-        var appModel = builder.Build().Services.GetRequiredService<DistributedApplicationModel>();
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
-
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpResource);
-
-        Assert.False(config.ContainsKey("MCP_API_KEY"));
+        Assert.True(config.ContainsKey("MCP_PROC_ARG_URL"));
+        Assert.Contains("redis://", config["MCP_PROC_ARG_URL"]);
     }
 
     [Fact]
@@ -991,7 +976,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().Single();
         var parentAnnotation = mcpResource.Annotations.OfType<ResourceRelationshipAnnotation>().Single(a => a.Type == "Parent");
 
         Assert.Equal(redis.Resource, parentAnnotation.Resource);
@@ -999,7 +984,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public void WithRedisMcpOverridesEntrypointAndArgs()
+    public void WithRedisMcpAddsWaitForRelationship()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis").WithRedisMcp();
@@ -1007,13 +992,51 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
-        
-        // Verify entrypoint is set (WithEntrypoint sets the Entrypoint property on the resource)
-        Assert.NotNull(mcpResource.Entrypoint);
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().Single();
+        var waitForAnnotation = mcpResource.Annotations.OfType<WaitAnnotation>().SingleOrDefault();
 
-        var argsAnnotation = mcpResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().FirstOrDefault();
-        Assert.NotNull(argsAnnotation);
+        Assert.NotNull(waitForAnnotation);
+        Assert.Equal(redis.Resource, waitForAnnotation.Resource);
+    }
+
+    [Fact]
+    public void WithRedisMcpAllowsConfigurationCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var callbackInvoked = false;
+
+        var redis = builder.AddRedis("redis").WithRedisMcp(configureResource: mcpBuilder =>
+        {
+            callbackInvoked = true;
+            mcpBuilder.WithEnvironment("CUSTOM_ENV", "custom-value");
+        });
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        Assert.True(callbackInvoked);
+
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().Single();
+        var envAnnotation = mcpResource.Annotations.OfType<EnvironmentCallbackAnnotation>().FirstOrDefault();
+
+        Assert.NotNull(envAnnotation);
+    }
+
+    [Fact]
+    public void WithRedisMcpIsExecutableResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddRedis("redis").WithRedisMcp();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().Single();
+
+        // McpBridgeResource inherits from ExecutableResource
+        Assert.IsAssignableFrom<ExecutableResource>(mcpResource);
+        Assert.NotNull(mcpResource.Command);
+        Assert.NotNull(mcpResource.WorkingDirectory);
     }
 
     [Fact]
@@ -1027,89 +1050,19 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
+        var mcpResource = appModel.Resources.OfType<McpBridgeResource>().Single();
 
-        // Allocate the MCP endpoint
-        var mcpEndpoint = mcpResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "mcp");
-        mcpEndpoint.AllocatedEndpoint = new AllocatedEndpoint(mcpEndpoint, "localhost", 4000);
+        // Allocate the HTTP endpoint
+        var httpEndpoint = mcpResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "http");
+        httpEndpoint.AllocatedEndpoint = new AllocatedEndpoint(httpEndpoint, "localhost", 4000);
 
         // Publish the endpoint allocated event
         await builder.Eventing.PublishAsync(new ResourceEndpointsAllocatedEvent(mcpResource, app.Services));
 
         // Verify MCP endpoint annotation was added (McpEndpointAnnotation is internal, so we verify the endpoint was allocated)
-        Assert.NotNull(mcpEndpoint.AllocatedEndpoint);
-        Assert.Equal("localhost", mcpEndpoint.AllocatedEndpoint.Address);
-        Assert.Equal(4000, mcpEndpoint.AllocatedEndpoint.Port);
-    }
-
-    [Fact]
-    public void WithRedisMcpAllowsConfigurationCallback()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var callbackInvoked = false;
-
-        var redis = builder.AddRedis("redis").WithRedisMcp(configureContainer: mcpBuilder =>
-        {
-            callbackInvoked = true;
-            mcpBuilder.WithEnvironment("CUSTOM_ENV", "custom-value");
-        });
-
-        using var app = builder.Build();
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        Assert.True(callbackInvoked);
-
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
-        var envAnnotation = mcpResource.Annotations.OfType<EnvironmentCallbackAnnotation>().FirstOrDefault();
-
-        Assert.NotNull(envAnnotation);
-    }
-
-    [Fact]
-    public async Task WithRedisMcpSetsSslEnvironmentVariableCorrectlyForTlsEnabled()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var redis = builder.AddRedis("redis")
-            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6379))
-            .WithHttpsDeveloperCertificate()
-            .WithRedisMcp();
-
-        using var app = builder.Build();
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        // Simulate the BeforeStartEvent to enable TLS
-        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
-        await builder.Eventing.PublishAsync(beforeStartEvent);
-
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
-
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpResource);
-
-        Assert.True(config.ContainsKey("REDIS_SSL"));
-        Assert.Equal("true", config["REDIS_SSL"]);
-    }
-
-    [Fact]
-    public async Task WithRedisMcpSetsSslEnvironmentVariableCorrectlyForTlsDisabled()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var redis = builder.AddRedis("redis")
-            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6379))
-            .WithRedisMcp();
-
-        using var app = builder.Build();
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        // Simulate the BeforeStartEvent (without TLS, it should remain false)
-        var beforeStartEvent = new BeforeStartEvent(app.Services, appModel);
-        await builder.Eventing.PublishAsync(beforeStartEvent);
-
-        var mcpResource = appModel.Resources.OfType<RedisMcpResource>().Single();
-
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpResource);
-
-        Assert.True(config.ContainsKey("REDIS_SSL"));
-        Assert.Equal("false", config["REDIS_SSL"]);
+        Assert.NotNull(httpEndpoint.AllocatedEndpoint);
+        Assert.Equal("localhost", httpEndpoint.AllocatedEndpoint.Address);
+        Assert.Equal(4000, httpEndpoint.AllocatedEndpoint.Port);
     }
 }
 

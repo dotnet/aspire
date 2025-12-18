@@ -42,12 +42,14 @@ Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPE
 
 ## MCP (Model Context Protocol) Support
 
-The Redis hosting integration provides support for adding an MCP sidecar container that enables AI agents to interact with Redis data. This is enabled by calling `WithRedisMcp()` on the Redis resource.
+The Redis hosting integration provides support for adding an MCP server that enables AI agents to interact with Redis data. This is enabled by calling `WithRedisMcp()` on the Redis resource.
 
 ```csharp
 var redis = builder.AddRedis("redis")
                    .WithRedisMcp();
 ```
+
+The MCP server runs as a stdio-based process using the `redis-mcp-server` package via `uvx`. It is exposed via an HTTP endpoint that the Aspire Dashboard can connect to.
 
 The Redis MCP server provides the following tools:
 

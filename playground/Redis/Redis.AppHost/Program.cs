@@ -3,18 +3,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 var redis = builder.AddRedis("redis");
 redis.WithDataVolume()
     .WithRedisCommander(c => c.WithHostPort(33803).WithParentRelationship(redis))
-    .WithRedisInsight(c => c.WithHostPort(41567).WithParentRelationship(redis));
-
-// Add stdio-based Redis MCP server using the MCP bridge
-// The connection URL will be injected via command-line argument
-// Use factory overload so UriExpression is evaluated after BeforeStartEvent (when TlsEnabled is set)
-var redisMcp = builder.AddMcpBridge(
-    "redis-mcp",
-    "uvx",
-    ["--from", "redis-mcp-server@latest", "redis-mcp-server"])
-    .WithMcpNamespace("redis")
-    .WithServerArgument("--url", () => redis.Resource.UriExpression)
-    .WaitFor(redis);
+    .WithRedisInsight(c => c.WithHostPort(41567).WithParentRelationship(redis))
+    .WithRedisMcp();
 
 var garnet = builder.AddGarnet("garnet")
     .WithDataVolume();
