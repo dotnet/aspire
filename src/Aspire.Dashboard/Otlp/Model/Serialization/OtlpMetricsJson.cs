@@ -211,21 +211,6 @@ internal sealed class OtlpSummaryJson
 }
 
 /// <summary>
-/// AggregationTemporality constants for OTLP/JSON. Use integer values per OTLP spec.
-/// </summary>
-internal static class OtlpAggregationTemporality
-{
-    /// <summary>Unspecified aggregation temporality.</summary>
-    public const int Unspecified = 0;
-
-    /// <summary>Delta aggregation temporality.</summary>
-    public const int Delta = 1;
-
-    /// <summary>Cumulative aggregation temporality.</summary>
-    public const int Cumulative = 2;
-}
-
-/// <summary>
 /// Represents a single data point in a timeseries with scalar value.
 /// </summary>
 internal sealed class OtlpNumberDataPointJson

@@ -174,30 +174,6 @@ internal sealed class OtlpSpanJson
 }
 
 /// <summary>
-/// SpanKind constants for OTLP/JSON. Use integer values per OTLP spec.
-/// </summary>
-internal static class OtlpSpanKind
-{
-    /// <summary>Unspecified span kind.</summary>
-    public const int Unspecified = 0;
-
-    /// <summary>Internal operation within an application.</summary>
-    public const int Internal = 1;
-
-    /// <summary>Server-side handling of an RPC or remote request.</summary>
-    public const int Server = 2;
-
-    /// <summary>Request to some remote service.</summary>
-    public const int Client = 3;
-
-    /// <summary>Producer sending a message to a broker.</summary>
-    public const int Producer = 4;
-
-    /// <summary>Consumer receiving a message from a broker.</summary>
-    public const int Consumer = 5;
-}
-
-/// <summary>
 /// Represents a time-stamped annotation of the span.
 /// </summary>
 internal sealed class OtlpSpanEventJson
@@ -288,21 +264,6 @@ internal sealed class OtlpSpanStatusJson
     /// </summary>
     [JsonPropertyName("code")]
     public int? Code { get; set; }
-}
-
-/// <summary>
-/// StatusCode constants for OTLP/JSON. Use integer values per OTLP spec.
-/// </summary>
-internal static class OtlpStatusCode
-{
-    /// <summary>The default status.</summary>
-    public const int Unset = 0;
-
-    /// <summary>The span has been validated to have completed successfully.</summary>
-    public const int Ok = 1;
-
-    /// <summary>The span contains an error.</summary>
-    public const int Error = 2;
 }
 
 /// <summary>
