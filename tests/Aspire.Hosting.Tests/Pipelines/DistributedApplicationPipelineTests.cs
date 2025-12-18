@@ -6,6 +6,7 @@
 #pragma warning disable ASPIREPIPELINES002
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIRECOMPUTE003
 #pragma warning disable IDE0005
 
 using Aspire.Hosting.Backchannel;
@@ -2206,6 +2207,34 @@ public class DistributedApplicationPipelineTests(ITestOutputHelper testOutputHel
 
         Assert.Contains("Destination set to Archive but OutputPath is not configured", exception.Message);
         Assert.Contains("test-project", exception.Message);
+    }
+
+    [Fact]
+    public async Task PushPrereq_SkipsExcludedFromManifestResources()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.PushPrereq).WithTestAndResourceLogging(testOutputHelper);
+        builder.Services.AddSingleton(testOutputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter, TestPipelineActivityReporter>();
+
+        // Add a container registry so non-excluded projects can push
+        var registry = builder.AddContainerRegistry("test-registry", "registry.example.com");
+
+        // Add a project that is NOT excluded - this should require the registry
+        var includedProject = builder.AddProject<DummyProject>("included-project", launchProfileName: null)
+            .WithContainerRegistry(registry);
+
+        // Add a project that IS excluded - this should be skipped entirely
+        var excludedProject = builder.AddProject<DummyProject>("excluded-project", launchProfileName: null)
+            .ExcludeFromManifest();
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(app);
+
+        // Act & Assert - Should not throw an exception
+        // The included project should use the registry, the excluded project should be skipped
+        await pipeline.ExecuteAsync(context).DefaultTimeout();
     }
 
     private sealed class DummyProject : IProjectMetadata

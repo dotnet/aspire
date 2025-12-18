@@ -9,12 +9,12 @@
       </trans-unit>
       <trans-unit id="InitCommand_AdditionalOptionsSelectPrompt">
         <source>Which additional options do you want to enable?</source>
-        <target state="new">Which additional options do you want to enable?</target>
+        <target state="translated">Quelles options supplémentaires souhaitez-vous activer ?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AgentConfigurationSelectPrompt">
         <source>Which agent environments do you want to configure?</source>
-        <target state="new">Which agent environments do you want to configure?</target>
+        <target state="translated">Quels environnements d’agent souhaitez-vous configurer ?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationComplete">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurePlaywrightPrompt">
         <source>Pre-configure Playwright MCP server?</source>
-        <target state="new">Pre-configure Playwright MCP server?</target>
+        <target state="translated">Préconfigurer le serveur de MCP Playwright ?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_CreateAgentInstructionsPrompt">
         <source>Create agent environment specific instruction files?</source>
-        <target state="new">Create agent environment specific instruction files?</target>
+        <target state="translated">Créer des fichiers d’instructions spécifiques à l’environnement de l’agent ?</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_Description">

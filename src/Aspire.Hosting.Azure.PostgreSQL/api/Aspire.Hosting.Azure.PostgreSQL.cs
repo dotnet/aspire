@@ -40,7 +40,16 @@ namespace Aspire.Hosting.Azure
 
         public string DatabaseName { get { throw null; } }
 
+        [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "InnerResource")]
+        public bool IsContainer { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression JdbcConnectionString { get { throw null; } }
+
         public AzurePostgresFlexibleServerResource Parent { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
     public partial class AzurePostgresFlexibleServerResource : AzureProvisioningResource, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
@@ -53,11 +62,22 @@ namespace Aspire.Hosting.Azure
 
         public System.Collections.Generic.IReadOnlyDictionary<string, string> Databases { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression Host { get { throw null; } }
+
         public ApplicationModel.ReferenceExpression HostName { get { throw null; } }
+
+        [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "InnerResource")]
+        public bool IsContainer { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression JdbcConnectionString { get { throw null; } }
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
         public ApplicationModel.ReferenceExpression? Password { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression Port { get { throw null; } }
+
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
 
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         public bool UsePasswordAuthentication { get { throw null; } }
@@ -67,6 +87,8 @@ namespace Aspire.Hosting.Azure
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
 
         public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext) { }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
     [System.Obsolete("This class is obsolete and will be removed in a future version. Use AddAzurePostgresFlexibleServer instead to add an Azure Postgres Flexible Server resource.")]

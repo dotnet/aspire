@@ -21,6 +21,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Cli.Caching;
 using Aspire.Hosting;
 using Aspire.Shared;
@@ -195,6 +196,14 @@ public class Program
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
 
+        // Environment checking services.
+        builder.Services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
+        builder.Services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
+        builder.Services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
+        builder.Services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
+        builder.Services.AddSingleton<IEnvironmentCheck, DockerEngineCheck>();
+        builder.Services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
+
         // Commands.
         builder.Services.AddTransient<NewCommand>();
         builder.Services.AddTransient<InitCommand>();
@@ -203,6 +212,7 @@ public class Program
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();
         builder.Services.AddTransient<CacheCommand>();
+        builder.Services.AddTransient<DoctorCommand>();
         builder.Services.AddTransient<UpdateCommand>();
         builder.Services.AddTransient<DeployCommand>();
         builder.Services.AddTransient<DoCommand>();

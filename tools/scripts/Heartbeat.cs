@@ -97,6 +97,17 @@ try
             parts.Add("DCP: N/A");
         }
 
+        // Top processes
+        try
+        {
+            var topInfo = GetTopProcesses();
+            parts.Add($"Top: {topInfo}");
+        }
+        catch
+        {
+            parts.Add("Top: N/A");
+        }
+
         Console.WriteLine(string.Join(" | ", parts));
         Console.Out.Flush(); // Ensure output appears immediately in CI logs
 
@@ -260,8 +271,8 @@ string GetMemoryUsage()
         if (success)
         {
             var parts = output.Trim().Split(',');
-            if (parts.Length == 2 && 
-                long.TryParse(parts[0].Trim(), out var freeKb) && 
+            if (parts.Length == 2 &&
+                long.TryParse(parts[0].Trim(), out var freeKb) &&
                 long.TryParse(parts[1].Trim(), out var totalKb))
             {
                 var usedKb = totalKb - freeKb;
@@ -345,28 +356,33 @@ string GetDockerStats()
 
 string GetDcpProcesses()
 {
-    var dcpProcesses = new List<(string Name, int Pid, double CpuMb, double MemMb)>();
+    var dcpProcesses = new List<(string Name, int Pid, double Cpu, double MemMb)>();
 
     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
     {
         // Use PowerShell to find dcp processes on Windows (wmic is deprecated)
         // Use pipe delimiter to avoid issues with commas in process names
-        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process -Name 'dcp*' -ErrorAction SilentlyContinue | ForEach-Object { '{0}|{1}|{2}' -f $_.ProcessName, $_.Id, $_.WorkingSet64 }\"", timeoutMs: 5000);
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process -Name 'dcp*' -ErrorAction SilentlyContinue | Select-Object -Property ProcessName, Id, @{Name='AvgCpuPct';Expression={$uptimeSec = (New-TimeSpan -Start $_.StartTime -End (Get-Date)).TotalSeconds; if ($uptimeSec -gt 0) { [math]::Round(($_.CPU / $uptimeSec) * 100, 1) } else { 0 } }}, WorkingSet64 | ForEach-Object { '{0}|{1}|{2}|{3}' -f $_.ProcessName, $_.Id, $_.AvgCpuPct, $_.WorkingSet64 }\"", timeoutMs: 5000);
         if (success)
         {
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
             {
                 var parts = line.Split('|', StringSplitOptions.TrimEntries);
-                
+
                 if (parts.Length >= 3 &&
-                    int.TryParse(parts[1], out var pid) && 
-                    long.TryParse(parts[2], out var workingSet))
+                    int.TryParse(parts[1], out var pid) &&
+                    double.TryParse(parts[2], out var cpu) &&
+                    long.TryParse(parts[3], out var workingSet))
                 {
                     var name = parts[0];
-                    dcpProcesses.Add((name, pid, 0, workingSet / 1024.0 / 1024.0));
+                    dcpProcesses.Add((name, pid, cpu, workingSet / 1024.0 / 1024.0));
                 }
             }
+        }
+        else
+        {
+            return "unavailable";
         }
     }
     else
@@ -400,6 +416,10 @@ string GetDcpProcesses()
                 }
             }
         }
+        else
+        {
+            return "unavailable";
+        }
     }
 
     if (dcpProcesses.Count == 0)
@@ -407,10 +427,111 @@ string GetDcpProcesses()
         return "none";
     }
 
+    var totalCpu = dcpProcesses.Sum(p => p.Cpu);
     var totalMem = dcpProcesses.Sum(p => p.MemMb);
-    var processInfo = string.Join(", ", dcpProcesses.Select(p => $"{p.Name}({p.Pid}):{p.MemMb:F0}MB"));
+    var processInfo = string.Join(", ", dcpProcesses.Select(p => $"{p.Name}({p.Pid}):{p.Cpu:F1}%/{p.MemMb:F0}MB"));
 
-    return $"{dcpProcesses.Count} procs ({totalMem:F0}MB) [{processInfo}]";
+    return $"{dcpProcesses.Count} procs ({totalCpu:F1}%/{totalMem:F0}MB) [{processInfo}]";
+}
+
+string GetTopProcesses()
+{
+    var topProcesses = new List<(string Name, int Pid, double Cpu, double MemMb)>();
+
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    {
+        // Use PowerShell to find top processes on Windows (wmic is deprecated)
+        // Use pipe delimiter to avoid issues with commas in process names
+        var (success, output) = RunCommand("powershell", "-NoProfile -NonInteractive -Command \"Get-Process | Select-Object -Property ProcessName, Id, @{Name='AvgCpuPct';Expression={$uptimeSec = (New-TimeSpan -Start $_.StartTime -End (Get-Date)).TotalSeconds; if ($uptimeSec -gt 0) { [math]::Round(($_.CPU / $uptimeSec) * 100, 1) } else { 0 } }}, WorkingSet64 | Sort-Object AvgCpuPct -Descending | Select-Object -First 10 | ForEach-Object { '{0}|{1}|{2}|{3}' -f $_.ProcessName, $_.Id, $_.AvgCpuPct, $_.WorkingSet64 }\"", timeoutMs: 5000);
+        if (success)
+        {
+            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                var parts = line.Split('|', StringSplitOptions.TrimEntries);
+
+                if (parts.Length >= 3 &&
+                    int.TryParse(parts[1], out var pid) &&
+                    double.TryParse(parts[2], out var cpu) &&
+                    long.TryParse(parts[3], out var workingSet))
+                {
+                    var name = parts[0];
+                    topProcesses.Add((name, pid, cpu, workingSet / 1024.0 / 1024.0));
+                }
+            }
+        }
+        else
+        {
+            return "unavailable";
+        }
+    }
+    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+    {
+        // Use ps on Linux/macOS to find top processes
+        var (success, output) = RunCommand("ps", "aux --sort=-%cpu", timeoutMs: 5000);
+        if (success)
+        {
+            var processLines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(1).Take(10);
+            foreach (var line in processLines)
+            {
+                // ps aux format: USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND
+                var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 11)
+                {
+                    if (int.TryParse(parts[1], out var pid) &&
+                        double.TryParse(parts[2], out var cpu) &&
+                        double.TryParse(parts[5], out var rssKb))
+                    {
+                        // Get command name (last part, may contain path)
+                        var command = parts[10];
+                        var name = Path.GetFileName(command);
+                        topProcesses.Add((name, pid, cpu, rssKb / 1024.0));
+                    }
+                }
+            }
+        }
+        else
+        {
+            return "unavailable";
+        }
+    }
+    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    {
+        // Use ps on macOS to find top processes
+        var (success, output) = RunCommand("ps", "aux -r", timeoutMs: 5000);
+        if (success)
+        {
+            var processLines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(1).Take(10);
+            foreach (var line in processLines)
+            {
+                // ps aux format: USER PID %CPU %MEM VSZ RSS TTY STAT STARTED TIME COMMAND
+                var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 11)
+                {
+                    if (int.TryParse(parts[1], out var pid) &&
+                        double.TryParse(parts[2], out var cpu) &&
+                        double.TryParse(parts[5], out var rssKb))
+                    {
+                        // Get command name (last part, may contain path)
+                        var command = parts[10];
+                        var name = Path.GetFileName(command);
+                        topProcesses.Add((name, pid, cpu, rssKb / 1024.0));
+                    }
+                }
+            }
+        }
+        else
+        {
+            return "unavailable";
+        }
+    }
+
+    if (topProcesses.Count == 0)
+    {
+        return "none";
+    }
+
+    return string.Join(", ", topProcesses.Select(p => $"{p.Name} (PID: {p.Pid}, CPU: {p.Cpu:F1}%, Mem: {p.MemMb:F1} MB)"));
 }
 
 (bool Success, string Output) RunCommand(string fileName, string arguments, int timeoutMs = 3000)

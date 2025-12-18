@@ -47,11 +47,6 @@ public static class DistributedApplicationModelExtensions
     {
         foreach (var r in model.Resources)
         {
-            if (r.IsExcludedFromPublish())
-            {
-                continue;
-            }
-
             if (r.RequiresImageBuild())
             {
                 yield return r;
@@ -69,11 +64,6 @@ public static class DistributedApplicationModelExtensions
     {
         foreach (var r in model.Resources)
         {
-            if (r.IsExcludedFromPublish())
-            {
-                continue;
-            }
-
             if (r.RequiresImageBuildAndPush())
             {
                 yield return r;
