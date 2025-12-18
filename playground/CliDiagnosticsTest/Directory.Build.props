@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <UsingMicrosoftNETSdk>true</UsingMicrosoftNETSdk>
+    <SkipArcadeBuildProps>true</SkipArcadeBuildProps>
+    <SkipArcadeImports>true</SkipArcadeImports>
+  </PropertyGroup>
+  
+  <!-- Override any parent Directory.Build.props -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="false" />
+</Project>
