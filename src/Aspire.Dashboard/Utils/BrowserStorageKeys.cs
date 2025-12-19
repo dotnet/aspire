@@ -31,9 +31,12 @@ internal static class BrowserStorageKeys
 
         var builder = new StringBuilder(applicationName.Length);
 
-        foreach (var character in applicationName)
+        foreach (var c in applicationName)
         {
-            builder.Append(char.IsLetterOrDigit(character) ? character : '_');
+            if (char.IsLetterOrDigit(c))
+            {
+                builder.Append(c);
+            }
         }
 
         return $"Aspire_Resources_CollapsedResourceNames_{builder.ToString()}";
