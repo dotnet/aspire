@@ -132,10 +132,53 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
                 };
             }
 
-            // Note: docker/podman version -f json may return exit code 0 even if daemon is not running
-            // (it still outputs client version). We check daemon status separately with 'ps' command.
+            // Parse the version from JSON output first, even if the command failed
+            // (docker version -f json outputs client info even when daemon is not running)
+            var versionInfo = ParseVersionFromJsonOutput(versionOutput);
+            var clientVersion = versionInfo.ClientVersion;
+            var serverVersion = versionInfo.ServerVersion;
+            var context = versionInfo.Context;
+
+            // Determine if this is Docker Desktop based on context
+            var isDockerDesktop = runtime == "Docker" &&
+                context is not null &&
+                context.Contains("desktop", StringComparison.OrdinalIgnoreCase);
+
+            // Note: docker/podman version -f json returns exit code != 0 when daemon is not running,
+            // but still outputs client version info including the context
             if (versionProcess.ExitCode != 0)
             {
+                // If we got client info from JSON, CLI is installed but daemon isn't running
+                if (clientVersion is not null || isDockerDesktop)
+                {
+                    var runtimeDescription = isDockerDesktop ? "Docker Desktop" : runtime;
+                    return new EnvironmentCheckResult
+                    {
+                        Category = "container",
+                        Name = "container-runtime",
+                        Status = EnvironmentCheckStatus.Warning,
+                        Message = $"{runtimeDescription} is installed but not running",
+                        Fix = GetContainerRuntimeStartupAdvice(runtime, isDockerDesktop),
+                        Link = "https://aka.ms/dotnet/aspire/containers"
+                    };
+                }
+
+                // Couldn't get client info, check if CLI is installed separately
+                var isCliInstalled = await IsCliInstalledAsync(runtimeLower, cancellationToken);
+                if (isCliInstalled)
+                {
+                    // CLI is installed but daemon isn't running
+                    return new EnvironmentCheckResult
+                    {
+                        Category = "container",
+                        Name = "container-runtime",
+                        Status = EnvironmentCheckStatus.Warning,
+                        Message = $"{runtime} is installed but the daemon is not running",
+                        Fix = GetContainerRuntimeStartupAdvice(runtime),
+                        Link = "https://aka.ms/dotnet/aspire/containers"
+                    };
+                }
+
                 return new EnvironmentCheckResult
                 {
                     Category = "container",
@@ -147,11 +190,6 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
                 };
             }
 
-            // Parse the version from JSON output, getting both client and server versions
-            var versionInfo = ParseVersionFromJsonOutput(versionOutput);
-            var clientVersion = versionInfo.ClientVersion;
-            var serverVersion = versionInfo.ServerVersion;
-            
             // Fall back to text parsing if JSON parsing failed
             if (clientVersion is null)
             {
@@ -244,25 +282,54 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
 
             if (psProcess.ExitCode != 0)
             {
+                var runtimeDescription = isDockerDesktop ? "Docker Desktop" : runtime;
                 return new EnvironmentCheckResult
                 {
                     Category = "container",
                     Name = "container-runtime",
                     Status = EnvironmentCheckStatus.Warning,
-                    Message = $"{runtime} installed but daemon not running",
-                    Fix = GetContainerRuntimeStartupAdvice(runtime),
+                    Message = $"{runtimeDescription} is installed but not running",
+                    Fix = GetContainerRuntimeStartupAdvice(runtime, isDockerDesktop),
                     Link = "https://aka.ms/dotnet/aspire/containers"
                 };
             }
 
             // Return pass with version info if available
             var versionSuffix = clientVersion is not null ? $" (version {clientVersion})" : string.Empty;
+            var runtimeName = isDockerDesktop ? "Docker Desktop" : runtime;
+
+            // For Docker Engine (not Desktop), check tunnel configuration
+            if (runtime == "Docker" && !isDockerDesktop)
+            {
+                var tunnelEnabled = Environment.GetEnvironmentVariable("ASPIRE_ENABLE_CONTAINER_TUNNEL");
+                if (!string.Equals(tunnelEnabled, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new EnvironmentCheckResult
+                    {
+                        Category = "container",
+                        Name = "container-runtime",
+                        Status = EnvironmentCheckStatus.Warning,
+                        Message = $"Docker Engine detected{versionSuffix}. Aspire's container tunnel is required to allow containers to reach applications running on the host",
+                        Fix = "Set environment variable: ASPIRE_ENABLE_CONTAINER_TUNNEL=true",
+                        Link = "https://aka.ms/aspire-prerequisites#docker-engine"
+                    };
+                }
+
+                return new EnvironmentCheckResult
+                {
+                    Category = "container",
+                    Name = "container-runtime",
+                    Status = EnvironmentCheckStatus.Pass,
+                    Message = $"Docker Engine detected and running{versionSuffix} with container tunnel enabled"
+                };
+            }
+
             return new EnvironmentCheckResult
             {
                 Category = "container",
                 Name = "container-runtime",
                 Status = EnvironmentCheckStatus.Pass,
-                Message = $"{runtime} detected and running{versionSuffix}"
+                Message = $"{runtimeName} detected and running{versionSuffix}"
             };
         }
         catch (Exception ex)
@@ -281,11 +348,11 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
     /// <summary>
     /// Parses client and server versions from container runtime 'version -f json' output.
     /// </summary>
-    internal static (Version? ClientVersion, Version? ServerVersion) ParseVersionFromJsonOutput(string output)
+    internal static (Version? ClientVersion, Version? ServerVersion, string? Context) ParseVersionFromJsonOutput(string output)
     {
         if (string.IsNullOrWhiteSpace(output))
         {
-            return (null, null);
+            return (null, null, null);
         }
 
         try
@@ -295,15 +362,23 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
 
             Version? clientVersion = null;
             Version? serverVersion = null;
+            string? context = null;
 
-            // Try to get Client.Version
-            if (root.TryGetProperty("Client", out var client) &&
-                client.TryGetProperty("Version", out var clientVersionElement))
+            // Try to get Client.Version and Client.Context
+            if (root.TryGetProperty("Client", out var client))
             {
-                var versionString = clientVersionElement.GetString();
-                if (!string.IsNullOrEmpty(versionString))
+                if (client.TryGetProperty("Version", out var clientVersionElement))
                 {
-                    Version.TryParse(versionString, out clientVersion);
+                    var versionString = clientVersionElement.GetString();
+                    if (!string.IsNullOrEmpty(versionString))
+                    {
+                        Version.TryParse(versionString, out clientVersion);
+                    }
+                }
+
+                if (client.TryGetProperty("Context", out var contextElement))
+                {
+                    context = contextElement.GetString();
                 }
             }
 
@@ -319,12 +394,12 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
                 }
             }
 
-            return (clientVersion, serverVersion);
+            return (clientVersion, serverVersion, context);
         }
         catch (JsonException)
         {
             // JSON parsing failed, return null to allow fallback to text parsing
-            return (null, null);
+            return (null, null, null);
         }
     }
 
@@ -400,13 +475,58 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
         };
     }
 
-    private static string GetContainerRuntimeStartupAdvice(string runtime)
+    private static string GetContainerRuntimeStartupAdvice(string runtime, bool isDockerDesktop = false)
     {
         return runtime switch
         {
-            "Docker" => "Start Docker Desktop or Docker daemon",
+            "Docker" when isDockerDesktop => "Start Docker Desktop",
+            "Docker" => "Start Docker daemon",
             "Podman" => "Start Podman service: sudo systemctl start podman",
             _ => $"Start {runtime} daemon"
         };
+    }
+
+    /// <summary>
+    /// Checks if the container runtime CLI is installed by running --version (which doesn't require daemon).
+    /// </summary>
+    private async Task<bool> IsCliInstalledAsync(string runtimeLower, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var processInfo = new ProcessStartInfo
+            {
+                FileName = runtimeLower,
+                Arguments = "--version",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(processInfo);
+            if (process is null)
+            {
+                return false;
+            }
+
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(s_processTimeout);
+
+            try
+            {
+                await process.WaitForExitAsync(timeoutCts.Token);
+                return process.ExitCode == 0;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                process.Kill();
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Error checking if {Runtime} CLI is installed", runtimeLower);
+            return false;
+        }
     }
 }
