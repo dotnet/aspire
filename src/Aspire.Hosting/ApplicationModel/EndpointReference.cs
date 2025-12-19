@@ -251,7 +251,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 /// </summary>
 /// <param name="endpointReference">The endpoint reference.</param>
 /// <param name="property">The property of the endpoint.</param>
-[DebuggerDisplay("Expression = {ValueExpression}, Property = {Property}, Endpoint = {Endpoint.EndpointName}")]
+[DebuggerDisplay("EndpointExpression = {ValueExpression}, Property = {Property}, Endpoint = {Endpoint.EndpointName}")]
 public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
