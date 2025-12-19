@@ -16,12 +16,12 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
     private static readonly TimeSpan s_processTimeout = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    /// The minimum Docker version required for Aspire.
+    /// Minimum Docker version required for Aspire.
     /// </summary>
     public const string MinimumDockerVersion = "28.0.0";
 
     /// <summary>
-    /// The minimum Podman version required for Aspire.
+    /// Minimum Podman version required for Aspire.
     /// </summary>
     public const string MinimumPodmanVersion = "5.0.0";
 
@@ -147,14 +147,23 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
                 };
             }
 
-            // Parse the version from JSON output, falling back to text parsing if needed
-            var detectedVersion = ParseVersionFromJsonOutput(versionOutput) ?? ParseVersionFromOutput(versionOutput);
+            // Parse the version from JSON output, getting both client and server versions
+            var versionInfo = ParseVersionFromJsonOutput(versionOutput);
+            var clientVersion = versionInfo.ClientVersion;
+            var serverVersion = versionInfo.ServerVersion;
+            
+            // Fall back to text parsing if JSON parsing failed
+            if (clientVersion is null)
+            {
+                clientVersion = ParseVersionFromOutput(versionOutput);
+            }
+            
             var minimumVersion = GetMinimumVersion(runtime);
 
-            // Check if version meets minimum requirement
-            if (detectedVersion is not null && minimumVersion is not null)
+            // Check if client version meets minimum requirement
+            if (clientVersion is not null && minimumVersion is not null)
             {
-                if (detectedVersion < minimumVersion)
+                if (clientVersion < minimumVersion)
                 {
                     var minVersionString = GetMinimumVersionString(runtime);
                     return new EnvironmentCheckResult
@@ -162,7 +171,25 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
                         Category = "container",
                         Name = "container-runtime",
                         Status = EnvironmentCheckStatus.Warning,
-                        Message = $"{runtime} version {detectedVersion} is below the minimum required version {minVersionString}",
+                        Message = $"{runtime} client version {clientVersion} is below the minimum required version {minVersionString}",
+                        Fix = GetContainerRuntimeUpgradeAdvice(runtime),
+                        Link = "https://aka.ms/dotnet/aspire/containers"
+                    };
+                }
+            }
+
+            // For Docker, also check server version if available
+            if (runtime == "Docker" && serverVersion is not null && minimumVersion is not null)
+            {
+                if (serverVersion < minimumVersion)
+                {
+                    var minVersionString = GetMinimumVersionString(runtime);
+                    return new EnvironmentCheckResult
+                    {
+                        Category = "container",
+                        Name = "container-runtime",
+                        Status = EnvironmentCheckStatus.Warning,
+                        Message = $"{runtime} server version {serverVersion} is below the minimum required version {minVersionString}",
                         Fix = GetContainerRuntimeUpgradeAdvice(runtime),
                         Link = "https://aka.ms/dotnet/aspire/containers"
                     };
@@ -229,7 +256,7 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
             }
 
             // Return pass with version info if available
-            var versionSuffix = detectedVersion is not null ? $" (version {detectedVersion})" : string.Empty;
+            var versionSuffix = clientVersion is not null ? $" (version {clientVersion})" : string.Empty;
             return new EnvironmentCheckResult
             {
                 Category = "container",
@@ -252,18 +279,13 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
     }
 
     /// <summary>
-    /// Parses a version number from container runtime 'version -f json' output.
-    /// Handles JSON formats from both Docker and Podman.
+    /// Parses client and server versions from container runtime 'version -f json' output.
     /// </summary>
-    /// <remarks>
-    /// Docker JSON format: {"Client":{"Version":"28.0.4",...},"Server":{...}}
-    /// Podman JSON format: {"Client":{"Version":"4.9.3",...}}
-    /// </remarks>
-    internal static Version? ParseVersionFromJsonOutput(string output)
+    internal static (Version? ClientVersion, Version? ServerVersion) ParseVersionFromJsonOutput(string output)
     {
         if (string.IsNullOrWhiteSpace(output))
         {
-            return null;
+            return (null, null);
         }
 
         try
@@ -271,29 +293,43 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
             using var document = JsonDocument.Parse(output);
             var root = document.RootElement;
 
-            // Try to get Client.Version (works for both Docker and Podman)
+            Version? clientVersion = null;
+            Version? serverVersion = null;
+
+            // Try to get Client.Version
             if (root.TryGetProperty("Client", out var client) &&
-                client.TryGetProperty("Version", out var versionElement))
+                client.TryGetProperty("Version", out var clientVersionElement))
             {
-                var versionString = versionElement.GetString();
-                if (!string.IsNullOrEmpty(versionString) && Version.TryParse(versionString, out var version))
+                var versionString = clientVersionElement.GetString();
+                if (!string.IsNullOrEmpty(versionString))
                 {
-                    return version;
+                    Version.TryParse(versionString, out clientVersion);
                 }
             }
 
-            return null;
+            // Try to get Server.Version (Docker specific, may be null if daemon not running)
+            if (root.TryGetProperty("Server", out var server) &&
+                server.ValueKind != JsonValueKind.Null &&
+                server.TryGetProperty("Version", out var serverVersionElement))
+            {
+                var versionString = serverVersionElement.GetString();
+                if (!string.IsNullOrEmpty(versionString))
+                {
+                    Version.TryParse(versionString, out serverVersion);
+                }
+            }
+
+            return (clientVersion, serverVersion);
         }
         catch (JsonException)
         {
             // JSON parsing failed, return null to allow fallback to text parsing
-            return null;
+            return (null, null);
         }
     }
 
     /// <summary>
-    /// Parses a version number from container runtime --version output.
-    /// Handles formats like "Docker version 20.10.17, build 100c701" and "podman version 4.3.1".
+    /// Parses a version number from container runtime output as a fallback when JSON parsing fails.
     /// </summary>
     internal static Version? ParseVersionFromOutput(string output)
     {

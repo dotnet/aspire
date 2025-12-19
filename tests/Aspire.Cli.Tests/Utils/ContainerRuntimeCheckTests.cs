@@ -10,50 +10,83 @@ public class ContainerRuntimeCheckTests
     #region ParseVersionFromJsonOutput Tests
 
     [Fact]
-    public void ParseVersionFromJsonOutput_WithDockerJsonOutput_ReturnsVersion()
+    public void ParseVersionFromJsonOutput_WithDockerJsonOutput_ReturnsBothVersions()
     {
-        // Real Docker version -f json output
+        // Real Docker version -f json output with both client and server
         var input = """{"Client":{"Platform":{"Name":"Docker Engine - Community"},"Version":"28.0.4","ApiVersion":"1.48","DefaultAPIVersion":"1.48","GitCommit":"b8034c0","GoVersion":"go1.23.7","Os":"linux","Arch":"amd64","BuildTime":"Tue Mar 25 15:07:16 2025","Context":"default"},"Server":{"Platform":{"Name":"Docker Engine - Community"},"Components":[{"Name":"Engine","Version":"28.0.4"}],"Version":"28.0.4","ApiVersion":"1.48"}}""";
 
-        var result = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
 
-        Assert.NotNull(result);
-        Assert.Equal(new Version(28, 0, 4), result);
+        Assert.NotNull(clientVersion);
+        Assert.Equal(new Version(28, 0, 4), clientVersion);
+        Assert.NotNull(serverVersion);
+        Assert.Equal(new Version(28, 0, 4), serverVersion);
     }
 
     [Fact]
-    public void ParseVersionFromJsonOutput_WithPodmanJsonOutput_ReturnsVersion()
+    public void ParseVersionFromJsonOutput_WithDockerDesktopMacJsonOutput_ReturnsBothVersions()
     {
-        // Real Podman version -f json output
+        // Docker Desktop on macOS JSON output
+        var input = """{"Client":{"Version":"28.5.1","ApiVersion":"1.51","DefaultAPIVersion":"1.51","GitCommit":"e180ab8","GoVersion":"go1.24.8","Os":"darwin","Arch":"arm64","BuildTime":"Wed Oct  8 12:16:17 2025","Context":"desktop-linux"},"Server":{"Platform":{"Name":"Docker Desktop 4.49.0 (208700)"},"Components":[{"Name":"Engine","Version":"28.5.1"}],"Version":"28.5.1","ApiVersion":"1.51","MinAPIVersion":"1.24","GitCommit":"f8215cc","GoVersion":"go1.24.8","Os":"linux","Arch":"arm64","KernelVersion":"6.10.14-linuxkit","BuildTime":"2025-10-08T12:18:25.000000000+00:00"}}""";
+
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
+
+        Assert.NotNull(clientVersion);
+        Assert.Equal(new Version(28, 5, 1), clientVersion);
+        Assert.NotNull(serverVersion);
+        Assert.Equal(new Version(28, 5, 1), serverVersion);
+    }
+
+    [Fact]
+    public void ParseVersionFromJsonOutput_WithDockerEngineJsonOutput_ReturnsBothVersions()
+    {
+        // Docker Engine (Linux) JSON output
+        var input = """{"Client":{"Platform":{"Name":"Docker Engine - Community"},"Version":"29.1.3","ApiVersion":"1.52","DefaultAPIVersion":"1.52","GitCommit":"f52814d","GoVersion":"go1.25.5","Os":"linux","Arch":"amd64","BuildTime":"Fri Dec 12 14:49:37 2025","Context":"default"},"Server":{"Platform":{"Name":"Docker Engine - Community"},"Version":"29.1.3","ApiVersion":"1.52","MinAPIVersion":"1.44","Os":"linux","Arch":"amd64","Components":[{"Name":"Engine","Version":"29.1.3"}],"GitCommit":"fbf3ed2","GoVersion":"go1.25.5","KernelVersion":"5.15.0-113-generic","BuildTime":"2025-12-12T14:49:37.000000000+00:00"}}""";
+
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
+
+        Assert.NotNull(clientVersion);
+        Assert.Equal(new Version(29, 1, 3), clientVersion);
+        Assert.NotNull(serverVersion);
+        Assert.Equal(new Version(29, 1, 3), serverVersion);
+    }
+
+    [Fact]
+    public void ParseVersionFromJsonOutput_WithPodmanJsonOutput_ReturnsClientVersionOnly()
+    {
+        // Real Podman version -f json output (no Server section)
         var input = """{"Client":{"APIVersion":"4.9.3","Version":"4.9.3","GoVersion":"go1.22.2","GitCommit":"","BuiltTime":"Thu Jan  1 00:00:00 1970","Built":0,"OsArch":"linux/amd64","Os":"linux"}}""";
 
-        var result = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
 
-        Assert.NotNull(result);
-        Assert.Equal(new Version(4, 9, 3), result);
+        Assert.NotNull(clientVersion);
+        Assert.Equal(new Version(4, 9, 3), clientVersion);
+        Assert.Null(serverVersion);
     }
 
     [Fact]
-    public void ParseVersionFromJsonOutput_WithDockerDesktopWindowsJsonOutput_ReturnsVersion()
+    public void ParseVersionFromJsonOutput_WithDockerDesktopWindowsJsonOutput_ServerNull_ReturnsClientOnly()
     {
         // Docker Desktop on Windows may have Server:null if daemon is not running
         var input = """{"Client":{"Version":"29.1.3","ApiVersion":"1.52","DefaultAPIVersion":"1.52","GitCommit":"f52814d","GoVersion":"go1.25.5","Os":"windows","Arch":"amd64","BuildTime":"Fri Dec 12 14:51:52 2025","Context":"desktop-linux"},"Server":null}""";
 
-        var result = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
 
-        Assert.NotNull(result);
-        Assert.Equal(new Version(29, 1, 3), result);
+        Assert.NotNull(clientVersion);
+        Assert.Equal(new Version(29, 1, 3), clientVersion);
+        Assert.Null(serverVersion);
     }
 
     [Fact]
-    public void ParseVersionFromJsonOutput_WithOldDockerVersion_ReturnsVersion()
+    public void ParseVersionFromJsonOutput_WithOldDockerVersion_ReturnsClientVersion()
     {
         var input = """{"Client":{"Version":"19.03.15","ApiVersion":"1.40"},"Server":null}""";
 
-        var result = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
 
-        Assert.NotNull(result);
-        Assert.Equal(new Version(19, 3, 15), result);
+        Assert.NotNull(clientVersion);
+        Assert.Equal(new Version(19, 3, 15), clientVersion);
+        Assert.Null(serverVersion);
     }
 
     [Fact]
@@ -61,10 +94,11 @@ public class ContainerRuntimeCheckTests
     {
         var input = """{"Client":{"Version":"20.10","ApiVersion":"1.41"}}""";
 
-        var result = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
 
-        Assert.NotNull(result);
-        Assert.Equal(new Version(20, 10), result);
+        Assert.NotNull(clientVersion);
+        Assert.Equal(new Version(20, 10), clientVersion);
+        Assert.Null(serverVersion);
     }
 
     [Theory]
@@ -74,12 +108,25 @@ public class ContainerRuntimeCheckTests
     [InlineData("not json")]
     [InlineData("{}")]
     [InlineData("""{"Client":{}}""")]
-    [InlineData("""{"Server":{"Version":"1.0.0"}}""")]
-    public void ParseVersionFromJsonOutput_WithInvalidInput_ReturnsNull(string? input)
+    public void ParseVersionFromJsonOutput_WithInvalidInput_ReturnsNullVersions(string? input)
     {
-        var result = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input!);
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input!);
 
-        Assert.Null(result);
+        Assert.Null(clientVersion);
+        Assert.Null(serverVersion);
+    }
+
+    [Fact]
+    public void ParseVersionFromJsonOutput_WithOnlyServerVersion_ReturnsServerVersionOnly()
+    {
+        // Edge case: only server version present (unusual but possible)
+        var input = """{"Server":{"Version":"1.0.0"}}""";
+
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
+
+        Assert.Null(clientVersion);
+        Assert.NotNull(serverVersion);
+        Assert.Equal(new Version(1, 0, 0), serverVersion);
     }
 
     [Fact]
@@ -87,9 +134,10 @@ public class ContainerRuntimeCheckTests
     {
         var input = """{"Client":{"Version":"not-a-version"}}""";
 
-        var result = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
 
-        Assert.Null(result);
+        Assert.Null(clientVersion);
+        Assert.Null(serverVersion);
     }
 
     [Fact]
@@ -97,9 +145,24 @@ public class ContainerRuntimeCheckTests
     {
         var input = "{\"Client\":{\"Version\":\"28.0.4\""; // Missing closing braces
 
-        var result = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
 
-        Assert.Null(result);
+        Assert.Null(clientVersion);
+        Assert.Null(serverVersion);
+    }
+
+    [Fact]
+    public void ParseVersionFromJsonOutput_WithMismatchedClientServerVersions_ReturnsBothVersions()
+    {
+        // Hypothetical case where client and server versions differ
+        var input = """{"Client":{"Version":"28.0.4"},"Server":{"Version":"27.5.1"}}""";
+
+        var (clientVersion, serverVersion) = ContainerRuntimeCheck.ParseVersionFromJsonOutput(input);
+
+        Assert.NotNull(clientVersion);
+        Assert.Equal(new Version(28, 0, 4), clientVersion);
+        Assert.NotNull(serverVersion);
+        Assert.Equal(new Version(27, 5, 1), serverVersion);
     }
 
     #endregion
