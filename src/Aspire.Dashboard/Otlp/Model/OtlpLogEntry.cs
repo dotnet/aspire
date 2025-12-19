@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Aspire.Dashboard.Model.Otlp;
 using OpenTelemetry.Proto.Logs.V1;
+using SeverityNumberProto = OpenTelemetry.Proto.Logs.V1.SeverityNumber;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
@@ -92,32 +93,32 @@ public class OtlpLogEntry
         return OtlpHelpers.UnixNanoSecondsToDateTime(resolvedTimeUnixNano);
     }
 
-    private static LogLevel MapSeverity(OpenTelemetry.Proto.Logs.V1.SeverityNumber severityNumber) => severityNumber switch
+    private static LogLevel MapSeverity(SeverityNumberProto severityNumber) => severityNumber switch
     {
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Trace => LogLevel.Trace,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Trace2 => LogLevel.Trace,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Trace3 => LogLevel.Trace,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Trace4 => LogLevel.Trace,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Debug => LogLevel.Debug,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Debug2 => LogLevel.Debug,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Debug3 => LogLevel.Debug,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Debug4 => LogLevel.Debug,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Info => LogLevel.Information,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Info2 => LogLevel.Information,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Info3 => LogLevel.Information,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Info4 => LogLevel.Information,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Warn => LogLevel.Warning,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Warn2 => LogLevel.Warning,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Warn3 => LogLevel.Warning,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Warn4 => LogLevel.Warning,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Error => LogLevel.Error,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Error2 => LogLevel.Error,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Error3 => LogLevel.Error,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Error4 => LogLevel.Error,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Fatal => LogLevel.Critical,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Fatal2 => LogLevel.Critical,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Fatal3 => LogLevel.Critical,
-        OpenTelemetry.Proto.Logs.V1.SeverityNumber.Fatal4 => LogLevel.Critical,
+        SeverityNumberProto.Trace => LogLevel.Trace,
+        SeverityNumberProto.Trace2 => LogLevel.Trace,
+        SeverityNumberProto.Trace3 => LogLevel.Trace,
+        SeverityNumberProto.Trace4 => LogLevel.Trace,
+        SeverityNumberProto.Debug => LogLevel.Debug,
+        SeverityNumberProto.Debug2 => LogLevel.Debug,
+        SeverityNumberProto.Debug3 => LogLevel.Debug,
+        SeverityNumberProto.Debug4 => LogLevel.Debug,
+        SeverityNumberProto.Info => LogLevel.Information,
+        SeverityNumberProto.Info2 => LogLevel.Information,
+        SeverityNumberProto.Info3 => LogLevel.Information,
+        SeverityNumberProto.Info4 => LogLevel.Information,
+        SeverityNumberProto.Warn => LogLevel.Warning,
+        SeverityNumberProto.Warn2 => LogLevel.Warning,
+        SeverityNumberProto.Warn3 => LogLevel.Warning,
+        SeverityNumberProto.Warn4 => LogLevel.Warning,
+        SeverityNumberProto.Error => LogLevel.Error,
+        SeverityNumberProto.Error2 => LogLevel.Error,
+        SeverityNumberProto.Error3 => LogLevel.Error,
+        SeverityNumberProto.Error4 => LogLevel.Error,
+        SeverityNumberProto.Fatal => LogLevel.Critical,
+        SeverityNumberProto.Fatal2 => LogLevel.Critical,
+        SeverityNumberProto.Fatal3 => LogLevel.Critical,
+        SeverityNumberProto.Fatal4 => LogLevel.Critical,
         _ => LogLevel.None
     };
 
