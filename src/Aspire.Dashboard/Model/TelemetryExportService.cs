@@ -237,7 +237,7 @@ public sealed class TelemetryExportService
             SpanId = span.SpanId,
             ParentSpanId = string.IsNullOrEmpty(span.ParentSpanId) ? null : span.ParentSpanId,
             Name = span.Name,
-            Kind = MapSpanKind(span.Kind),
+            Kind = (int)span.Kind,
             StartTimeUnixNano = OtlpHelpers.DateTimeToUnixNanoseconds(span.StartTime),
             EndTimeUnixNano = OtlpHelpers.DateTimeToUnixNanoseconds(span.EndTime),
             Attributes = ConvertAttributes(span.Attributes),
@@ -245,20 +245,6 @@ public sealed class TelemetryExportService
             Events = span.Events.Count > 0 ? span.Events.Select(ConvertSpanEvent).ToArray() : null,
             Links = span.Links.Count > 0 ? span.Links.Select(ConvertSpanLink).ToArray() : null,
             TraceState = span.State
-        };
-    }
-
-    private static int MapSpanKind(global::Aspire.Dashboard.Otlp.Model.OtlpSpanKind kind)
-    {
-        return kind switch
-        {
-            global::Aspire.Dashboard.Otlp.Model.OtlpSpanKind.Unspecified => global::Aspire.Dashboard.Otlp.Model.Serialization.OtlpSpanKind.Unspecified,
-            global::Aspire.Dashboard.Otlp.Model.OtlpSpanKind.Internal => global::Aspire.Dashboard.Otlp.Model.Serialization.OtlpSpanKind.Internal,
-            global::Aspire.Dashboard.Otlp.Model.OtlpSpanKind.Server => global::Aspire.Dashboard.Otlp.Model.Serialization.OtlpSpanKind.Server,
-            global::Aspire.Dashboard.Otlp.Model.OtlpSpanKind.Client => global::Aspire.Dashboard.Otlp.Model.Serialization.OtlpSpanKind.Client,
-            global::Aspire.Dashboard.Otlp.Model.OtlpSpanKind.Producer => global::Aspire.Dashboard.Otlp.Model.Serialization.OtlpSpanKind.Producer,
-            global::Aspire.Dashboard.Otlp.Model.OtlpSpanKind.Consumer => global::Aspire.Dashboard.Otlp.Model.Serialization.OtlpSpanKind.Consumer,
-            _ => global::Aspire.Dashboard.Otlp.Model.Serialization.OtlpSpanKind.Unspecified
         };
     }
 

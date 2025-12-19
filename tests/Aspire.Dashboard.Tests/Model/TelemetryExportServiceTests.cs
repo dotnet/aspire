@@ -3,7 +3,6 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Logs.V1;
@@ -74,7 +73,7 @@ public sealed class TelemetryExportServiceTests
 
         var logRecord = scopeLogs.LogRecords[0];
         Assert.Equal("Test log message", logRecord.Body?.StringValue);
-        Assert.Equal(OtlpSeverityNumber.Info, logRecord.SeverityNumber);
+        Assert.Equal((int)SeverityNumber.Info, logRecord.SeverityNumber);
         Assert.Equal("Information", logRecord.SeverityText);
         Assert.Equal("TestEvent", logRecord.EventName);
         Assert.Equal(OtlpHelpers.DateTimeToUnixNanoseconds(s_testTime), logRecord.TimeUnixNano);
@@ -280,14 +279,14 @@ public sealed class TelemetryExportServiceTests
         Assert.Single(scopeSpans.Spans);
 
         var span = scopeSpans.Spans[0];
-        Assert.Equal(Aspire.Dashboard.Otlp.Model.Serialization.OtlpSpanKind.Server, span.Kind);
+        Assert.Equal((int)OtlpSpanKind.Server, span.Kind);
         Assert.Equal("7472616365313233343536373839303132", span.TraceId); // hex of UTF-8 bytes of "trace123456789012"
         Assert.Equal("7370616e31323334", span.SpanId); // hex of UTF-8 bytes of "span1234"
         Assert.Equal("Test span. Id: span1234", span.Name);
         Assert.Equal(OtlpHelpers.DateTimeToUnixNanoseconds(s_testTime), span.StartTimeUnixNano);
         Assert.Equal(OtlpHelpers.DateTimeToUnixNanoseconds(s_testTime.AddSeconds(5)), span.EndTimeUnixNano);
         Assert.NotNull(span.Status);
-        Assert.Equal(OtlpStatusCode.Error, span.Status.Code);
+        Assert.Equal((int)Status.Types.StatusCode.Error, span.Status.Code);
         Assert.Equal("Something went wrong", span.Status.Message);
         Assert.NotNull(span.Attributes);
         Assert.Contains(span.Attributes, a => a.Key == "http.method" && a.Value?.StringValue == "GET");
