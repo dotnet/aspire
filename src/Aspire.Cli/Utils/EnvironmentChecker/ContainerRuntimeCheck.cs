@@ -18,12 +18,12 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
     /// <summary>
     /// The minimum Docker version required for Aspire.
     /// </summary>
-    public const string MinimumDockerVersion = "20.10.0";
+    public const string MinimumDockerVersion = "28.0.0";
 
     /// <summary>
     /// The minimum Podman version required for Aspire.
     /// </summary>
-    public const string MinimumPodmanVersion = "4.0.0";
+    public const string MinimumPodmanVersion = "5.0.0";
 
     public int Order => 40; // Process check - more expensive
 

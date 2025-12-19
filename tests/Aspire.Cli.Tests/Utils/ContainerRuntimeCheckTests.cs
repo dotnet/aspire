@@ -199,13 +199,13 @@ public class ContainerRuntimeCheckTests
     [Fact]
     public void MinimumDockerVersion_IsSetCorrectly()
     {
-        Assert.Equal("20.10.0", ContainerRuntimeCheck.MinimumDockerVersion);
+        Assert.Equal("28.0.0", ContainerRuntimeCheck.MinimumDockerVersion);
     }
 
     [Fact]
     public void MinimumPodmanVersion_IsSetCorrectly()
     {
-        Assert.Equal("4.0.0", ContainerRuntimeCheck.MinimumPodmanVersion);
+        Assert.Equal("5.0.0", ContainerRuntimeCheck.MinimumPodmanVersion);
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public class ContainerRuntimeCheckTests
 
         Assert.True(canParse);
         Assert.NotNull(version);
-        Assert.Equal(new Version(20, 10, 0), version);
+        Assert.Equal(new Version(28, 0, 0), version);
     }
 
     [Fact]
@@ -225,7 +225,7 @@ public class ContainerRuntimeCheckTests
 
         Assert.True(canParse);
         Assert.NotNull(version);
-        Assert.Equal(new Version(4, 0, 0), version);
+        Assert.Equal(new Version(5, 0, 0), version);
     }
 
     #endregion
