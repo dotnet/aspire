@@ -361,7 +361,8 @@ public partial class ResourcesTests : DashboardTestContext
         ImmutableArray<HealthReportViewModel>? healthReports,
         bool isHidden = false,
         string? stateStyle = null,
-        ImmutableDictionary<string, ResourcePropertyViewModel>? properties = null)
+        ImmutableDictionary<string, ResourcePropertyViewModel>? properties = null,
+        int? replicaIndex = null)
     {
         return new ResourceViewModel
         {
@@ -371,6 +372,7 @@ public partial class ResourcesTests : DashboardTestContext
             KnownState = state is not null && Enum.TryParse<KnownResourceState>(state, out var knownState) ? knownState : null,
             DisplayName = name,
             Uid = name,
+            ReplicaIndex = replicaIndex ?? 0,
             HealthReports = healthReports ?? [],
 
             StateStyle = stateStyle,
