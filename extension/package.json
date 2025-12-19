@@ -230,13 +230,13 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",
     "unit-test": "vscode-test",
-    "test": "npm unit-test",
+    "test": "npm run unit-test",
     "l10n:export": "gulp prepare",
     "l10n:import": "gulp localizationBundle",
-    "preinstall": "node credprovider-helper.js",
-    "precompile": "npm l10n:export && npm l10n:import",
-    "prewatch": "npm l10n:export && npm l10n:import",
-    "localize": "npm l10n:export && npm l10n:import"
+    "precompile": "npm run l10n:export && npm run l10n:import",
+    "prewatch": "npm run l10n:export && npm run l10n:import",
+    "localize": "npm run l10n:export && npm run l10n:import",
+    "credprovider": "node credprovider-helper.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
