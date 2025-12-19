@@ -10,6 +10,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.Collections;
+using Microsoft.AspNetCore.InternalTesting;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
@@ -575,13 +576,13 @@ public sealed class TelemetryExportServiceTests
         // Verify console log content
         var service1ConsoleLogEntry = archive.GetEntry("consolelogs/Service1.txt")!;
         using var service1Reader = new StreamReader(service1ConsoleLogEntry.Open());
-        var service1ConsoleContent = await service1Reader.ReadToEndAsync();
+        var service1ConsoleContent = await service1Reader.ReadToEndAsync().DefaultTimeout();
         Assert.Contains("Console log line 1 from Service1", service1ConsoleContent);
         Assert.Contains("Console log line 2 from Service1", service1ConsoleContent);
 
         var service2ConsoleLogEntry = archive.GetEntry("consolelogs/Service2.txt")!;
         using var service2Reader = new StreamReader(service2ConsoleLogEntry.Open());
-        var service2ConsoleContent = await service2Reader.ReadToEndAsync();
+        var service2ConsoleContent = await service2Reader.ReadToEndAsync().DefaultTimeout();
         Assert.Contains("Console log from Service2", service2ConsoleContent);
     }
 
@@ -614,13 +615,13 @@ public sealed class TelemetryExportServiceTests
 
         var sessionStorage = new TestSessionStorage();
         var consoleLogsManager = new ConsoleLogsManager(sessionStorage);
-        await consoleLogsManager.EnsureInitializedAsync();
+        await consoleLogsManager.EnsureInitializedAsync().DefaultTimeout();
 
         var consoleLogsFetcher = new ConsoleLogsFetcher(dashboardClient, consoleLogsManager);
         var service = new TelemetryExportService(repository, consoleLogsFetcher);
 
         // Act
-        using var zipStream = await service.ExportAllAsync(CancellationToken.None);
+        using var zipStream = await service.ExportAllAsync(CancellationToken.None).DefaultTimeout();
 
         // Assert
         using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
@@ -676,13 +677,13 @@ public sealed class TelemetryExportServiceTests
 
         var sessionStorage = new TestSessionStorage();
         var consoleLogsManager = new ConsoleLogsManager(sessionStorage);
-        await consoleLogsManager.EnsureInitializedAsync();
+        await consoleLogsManager.EnsureInitializedAsync().DefaultTimeout();
 
         var consoleLogsFetcher = new ConsoleLogsFetcher(dashboardClient, consoleLogsManager);
         var service = new TelemetryExportService(repository, consoleLogsFetcher);
 
         // Act
-        using var zipStream = await service.ExportAllAsync(CancellationToken.None);
+        using var zipStream = await service.ExportAllAsync(CancellationToken.None).DefaultTimeout();
 
         // Assert
         using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
