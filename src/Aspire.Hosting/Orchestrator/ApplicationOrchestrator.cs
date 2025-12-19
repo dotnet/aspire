@@ -227,113 +227,115 @@ internal sealed class ApplicationOrchestrator
                 {
                     // Create a URL for each endpoint
                     Debug.Assert(endpoint.AllocatedEndpoint is not null, "Endpoint should be allocated at this point as we're calling this from ResourceEndpointsAllocatedEvent handler.");
-                    if (endpoint.AllocatedEndpoint is { } allocatedEndpoint)
+                    if (endpoint.AllocatedEndpoint is not { } allocatedEndpoint)
                     {
-                        if (endpoint.FromLaunchProfile && primaryLaunchProfileEndpoint is null)
-                        {
-                            if (_logger.IsEnabled(LogLevel.Trace))
-                            {
-                                _logger.LogTrace("Setting primary launch profile endpoint to '{EndpointName}' for resource '{ResourceName}'.", endpoint.Name, resource.Name);
-                            }
-                            primaryLaunchProfileEndpoint = endpoint;
-                        }
+                        continue;
+                    }
 
-                        // The allocated endpoint is used for service discovery and is the primary URL displayed to
-                        // the user. In general, if valid for a particular service binding, the allocated endpoint
-                        // will be "localhost" as that's a valid address for the .NET developer certificate. However,
-                        // if a service is bound to a specific IP address, the allocated endpoint will be that same IP
-                        // address.
-                        var endpointReference = new EndpointReference(resourceWithEndpoints, endpoint, endpoint.DefaultNetworkID);
-                        var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = endpointReference };
-
-                        // In the case that a service is bound to multiple addresses or a *.localhost address, we generate
-                        // additional URLs to indicate to the user other ways their service can be reached. If the service
-                        // is bound to all interfaces (0.0.0.0, ::, etc.) we use the machine name as the additional
-                        // address. If bound to a *.localhost address, we add the originally declared *.localhost address
-                        // as an additional URL.
-                        var additionalUrl = allocatedEndpoint.BindingMode switch
-                        {
-                            // The allocated address doesn't match the original target host, so include the target host as
-                            // an additional URL.
-                            EndpointBindingMode.SingleAddress when !allocatedEndpoint.Address.Equals(endpoint.TargetHost, StringComparison.OrdinalIgnoreCase) => new ResourceUrlAnnotation
-                            {
-                                Url = $"{allocatedEndpoint.UriScheme}://{endpoint.TargetHost}:{allocatedEndpoint.Port}",
-                                Endpoint = endpointReference,
-                            },
-                            // For other single address bindings ("localhost", specific IP), don't include an additional URL.
-                            EndpointBindingMode.SingleAddress => null,
-                            // All other cases are binding to some set of all interfaces (IPv4, IPv6, or both), so add the machine
-                            // name as an additional URL.
-                            _ => new ResourceUrlAnnotation
-                            {
-                                Url = $"{allocatedEndpoint.UriScheme}://{Environment.MachineName}:{allocatedEndpoint.Port}",
-                                Endpoint = endpointReference,
-                            },
-                        };
-
-                        if (additionalUrl is not null && EndpointHostHelpers.IsLocalhostTld(additionalUrl.Endpoint?.EndpointAnnotation.TargetHost))
-                        {
-                            // If the additional URL is a *.localhost address we want to highlight that URL in the dashboard
-                            additionalUrl.DisplayLocation = UrlDisplayLocation.SummaryAndDetails;
-                            url.DisplayLocation = UrlDisplayLocation.DetailsOnly;
-
-                            // Swap so that the *.localhost URL is the primary URL shown in the dashboard and targeted by `WithUrlForEndpoint` calls.
-                            (additionalUrl, url) = (url, additionalUrl);
-                        }
-                        else if ((string.Equals(endpoint.UriScheme, "http", StringComparison.OrdinalIgnoreCase) || string.Equals(endpoint.UriScheme, "https", StringComparison.OrdinalIgnoreCase))
-                                 && additionalUrl is null && EndpointHostHelpers.IsDevLocalhostTld(_dashboardUri))
-                        {
-                            // For HTTP endpoints, if the endpoint target host has not already resulted in an additional URL and the dashboard URL is using a *.dev.localhost address,
-                            // we want to assign a *.dev.localhost address to every HTTP resource endpoint based on the dashboard URL.
-                            // This allows users to access their services from the dashboard using a consistent pattern.
-                            var subdomainSuffix = _dashboardUri.Host[.._dashboardUri.Host.IndexOf(".dev.localhost", StringComparison.OrdinalIgnoreCase)];
-
-                            // Strip any "apphost" suffix that might be present on the dashboard name.
-                            subdomainSuffix = TrimSuffix(subdomainSuffix, "apphost");
-
-                            // Make the existing localhost URL the additional URL so it's not the primary endpoint URL shown in the dashboard or targeted by `WithUrlForEndpoint` calls.
-                            additionalUrl = url;
-                            additionalUrl.DisplayLocation = UrlDisplayLocation.DetailsOnly;
-
-                            // Create the new primary URL using the *.dev.localhost pattern.
-                            url = new ResourceUrlAnnotation
-                            {
-                                // <scheme>://<resource-name>-<subdomain-suffix>.dev.localhost:<port>
-                                Url = $"{allocatedEndpoint.UriScheme}://{resource.Name.ToLowerInvariant()}-{subdomainSuffix}.dev.localhost:{allocatedEndpoint.Port}",
-                                Endpoint = endpointReference,
-                                DisplayLocation = UrlDisplayLocation.SummaryAndDetails
-                            };
-
-                            static string TrimSuffix(string value, string suffix)
-                            {
-                                char[] separators = ['-', '_', '.'];
-                                Span<char> suffixSpan = stackalloc char[suffix.Length + 1];
-                                foreach (var separator in separators)
-                                {
-                                    suffixSpan[0] = separator;
-                                    suffix.CopyTo(suffixSpan[1..]);
-                                    if (value.EndsWith(suffixSpan, StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        return value[..^suffixSpan.Length];
-                                    }
-                                }
-
-                                return value;
-                            }
-                        }
-
-                        urls.Add(url);
+                    if (endpoint.FromLaunchProfile && primaryLaunchProfileEndpoint is null)
+                    {
                         if (_logger.IsEnabled(LogLevel.Trace))
                         {
-                            _logger.LogTrace("Added URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", url.Url, endpoint.Name, resource.Name);
+                            _logger.LogTrace("Setting primary launch profile endpoint to '{EndpointName}' for resource '{ResourceName}'.", endpoint.Name, resource.Name);
                         }
-                        if (additionalUrl is not null)
+                        primaryLaunchProfileEndpoint = endpoint;
+                    }
+
+                    // The allocated endpoint is used for service discovery and is the primary URL displayed to
+                    // the user. In general, if valid for a particular service binding, the allocated endpoint
+                    // will be "localhost" as that's a valid address for the .NET developer certificate. However,
+                    // if a service is bound to a specific IP address, the allocated endpoint will be that same IP
+                    // address.
+                    var endpointReference = new EndpointReference(resourceWithEndpoints, endpoint, endpoint.DefaultNetworkID);
+                    var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = endpointReference };
+
+                    // In the case that a service is bound to multiple addresses or a *.localhost address, we generate
+                    // additional URLs to indicate to the user other ways their service can be reached. If the service
+                    // is bound to all interfaces (0.0.0.0, ::, etc.) we use the machine name as the additional
+                    // address. If bound to a *.localhost address, we add the originally declared *.localhost address
+                    // as an additional URL.
+                    var additionalUrl = allocatedEndpoint.BindingMode switch
+                    {
+                        // The allocated address doesn't match the original target host, so include the target host as
+                        // an additional URL.
+                        EndpointBindingMode.SingleAddress when !allocatedEndpoint.Address.Equals(endpoint.TargetHost, StringComparison.OrdinalIgnoreCase) => new ResourceUrlAnnotation
                         {
-                            urls.Add(additionalUrl);
-                            if (_logger.IsEnabled(LogLevel.Trace))
+                            Url = $"{allocatedEndpoint.UriScheme}://{endpoint.TargetHost}:{allocatedEndpoint.Port}",
+                            Endpoint = endpointReference,
+                        },
+                        // For other single address bindings ("localhost", specific IP), don't include an additional URL.
+                        EndpointBindingMode.SingleAddress => null,
+                        // All other cases are binding to some set of all interfaces (IPv4, IPv6, or both), so add the machine
+                        // name as an additional URL.
+                        _ => new ResourceUrlAnnotation
+                        {
+                            Url = $"{allocatedEndpoint.UriScheme}://{Environment.MachineName}:{allocatedEndpoint.Port}",
+                            Endpoint = endpointReference,
+                        },
+                    };
+
+                    if (additionalUrl is not null && EndpointHostHelpers.IsLocalhostTld(additionalUrl.Endpoint?.EndpointAnnotation.TargetHost))
+                    {
+                        // If the additional URL is a *.localhost address we want to highlight that URL in the dashboard
+                        additionalUrl.DisplayLocation = UrlDisplayLocation.SummaryAndDetails;
+                        url.DisplayLocation = UrlDisplayLocation.DetailsOnly;
+
+                        // Swap so that the *.localhost URL is the primary URL shown in the dashboard and targeted by `WithUrlForEndpoint` calls.
+                        (additionalUrl, url) = (url, additionalUrl);
+                    }
+                    else if ((string.Equals(endpoint.UriScheme, "http", StringComparison.OrdinalIgnoreCase) || string.Equals(endpoint.UriScheme, "https", StringComparison.OrdinalIgnoreCase))
+                                && additionalUrl is null && EndpointHostHelpers.IsDevLocalhostTld(_dashboardUri))
+                    {
+                        // For HTTP endpoints, if the endpoint target host has not already resulted in an additional URL and the dashboard URL is using a *.dev.localhost address,
+                        // we want to assign a *.dev.localhost address to every HTTP resource endpoint based on the dashboard URL.
+                        // This allows users to access their services from the dashboard using a consistent pattern.
+                        var subdomainSuffix = _dashboardUri.Host[.._dashboardUri.Host.IndexOf(".dev.localhost", StringComparison.OrdinalIgnoreCase)];
+
+                        // Strip any "apphost" suffix that might be present on the dashboard name.
+                        subdomainSuffix = TrimSuffix(subdomainSuffix, "apphost");
+
+                        // Make the existing localhost URL the additional URL so it's not the primary endpoint URL shown in the dashboard or targeted by `WithUrlForEndpoint` calls.
+                        additionalUrl = url;
+                        additionalUrl.DisplayLocation = UrlDisplayLocation.DetailsOnly;
+
+                        // Create the new primary URL using the *.dev.localhost pattern.
+                        url = new ResourceUrlAnnotation
+                        {
+                            // <scheme>://<resource-name>-<subdomain-suffix>.dev.localhost:<port>
+                            Url = $"{allocatedEndpoint.UriScheme}://{resource.Name.ToLowerInvariant()}-{subdomainSuffix}.dev.localhost:{allocatedEndpoint.Port}",
+                            Endpoint = endpointReference,
+                            DisplayLocation = UrlDisplayLocation.SummaryAndDetails
+                        };
+
+                        static string TrimSuffix(string value, string suffix)
+                        {
+                            char[] separators = ['-', '_', '.'];
+                            Span<char> suffixSpan = stackalloc char[suffix.Length + 1];
+                            foreach (var separator in separators)
                             {
-                                _logger.LogTrace("Added additional URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", additionalUrl.Url, endpoint.Name, resource.Name);
+                                suffixSpan[0] = separator;
+                                suffix.CopyTo(suffixSpan[1..]);
+                                if (value.EndsWith(suffixSpan, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    return value[..^suffixSpan.Length];
+                                }
                             }
+
+                            return value;
+                        }
+                    }
+
+                    urls.Add(url);
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                    {
+                        _logger.LogTrace("Added URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", url.Url, endpoint.Name, resource.Name);
+                    }
+                    if (additionalUrl is not null)
+                    {
+                        urls.Add(additionalUrl);
+                        if (_logger.IsEnabled(LogLevel.Trace))
+                        {
+                            _logger.LogTrace("Added additional URL '{Url}' for endpoint '{EndpointName}' on resource '{ResourceName}'.", additionalUrl.Url, endpoint.Name, resource.Name);
                         }
                     }
                 }
