@@ -589,12 +589,48 @@ public class DistributedApplication : IHost, IAsyncDisposable
             }
         }
 
-        [DebuggerDisplay("{Resource}", Name = "{Resource.Name}", Type = "{Resource.GetType().FullName,nq}")]
+        [DebuggerDisplay("{DebuggerToString(),nq}", Name = "{Resource.Name}", Type = "{Resource.GetType().FullName,nq}")]
         internal class ResourceStateDebugView
         {
             public required IResource Resource { get; init; }
 
             public required CustomResourceSnapshot? Snapshot { get; init; }
+
+            private string DebuggerToString()
+            {
+                var value = $@"Type = {Resource.GetType().Name}, Name = ""{Resource.Name}"", State = {GetDebugText(Snapshot?.State?.Text)}";
+
+                if (Snapshot?.HealthStatus != null)
+                {
+                    value += $", HealthStatus = {GetDebugText(Snapshot?.HealthStatus)}";
+                }
+
+                if (KnownResourceStates.TerminalStates.Contains(Snapshot?.State?.Text, StringComparers.ResourceState))
+                {
+                    if (Snapshot?.ExitCode != null)
+                    {
+                        value += $", ExitCode = {GetDebugText(Snapshot?.ExitCode)}";
+                    }
+                }
+
+                return value;
+            }
+
+            private static string GetDebugText(object? value)
+            {
+                if (value is null)
+                {
+                    return "(null)";
+                }
+                else if (value is string)
+                {
+                    return $@"""{value}""";
+                }
+                else
+                {
+                    return value?.ToString() ?? string.Empty;
+                }
+            }
         }
     }
 }
