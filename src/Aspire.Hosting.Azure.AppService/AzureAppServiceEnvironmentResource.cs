@@ -124,7 +124,17 @@ public class AzureAppServiceEnvironmentResource :
 
     private async Task PrintDashboardUrlAsync(PipelineStepContext context)
     {
-        var dashboardUri = await DashboardNameReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        string dashboardUri;
+
+        if (this.TryGetLastAnnotation<AzureAppServiceEnvironmentDashboardUriAnnotation>(out var dashboardUriAnnotation))
+        {
+            dashboardUri = dashboardUriAnnotation.DashboardUri;
+        }
+        else
+        {
+            var dashboardName = await DashboardNameReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+            dashboardUri = $"https://{dashboardName}.{AzureAppServiceWebSiteResource.AzureAppServiceDnsSuffixPublicCloud}";
+        }
 
         await context.ReportingStep.CompleteAsync(
             $"Dashboard available at [{dashboardUri}]({dashboardUri})",

@@ -468,6 +468,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     private const string AzureManagementScopePublicCloud = $"{AzureManagementEndpointPublicCloud}/.default";
     internal const string AzureAppServiceDnsSuffixPublicCloud = "azurewebsites.net";
 
+    // Length constraints
     internal const int MaxWebsiteNameLength = 60;
     internal const int MaxWebsiteNameLengthWithDnl = 43;
     internal const int MaxWebsiteNameLengthWithSlot = 41;
