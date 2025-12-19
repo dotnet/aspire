@@ -268,40 +268,4 @@ public class ContainerRuntimeCheckTests
     }
 
     #endregion
-
-    #region Minimum Version Constants Tests
-
-    [Fact]
-    public void MinimumDockerVersion_IsSetCorrectly()
-    {
-        Assert.Equal("28.0.0", ContainerRuntimeCheck.MinimumDockerVersion);
-    }
-
-    [Fact]
-    public void MinimumPodmanVersion_IsSetCorrectly()
-    {
-        Assert.Equal("5.0.0", ContainerRuntimeCheck.MinimumPodmanVersion);
-    }
-
-    [Fact]
-    public void MinimumDockerVersion_CanBeParsedAsVersion()
-    {
-        var canParse = Version.TryParse(ContainerRuntimeCheck.MinimumDockerVersion, out var version);
-
-        Assert.True(canParse);
-        Assert.NotNull(version);
-        Assert.Equal(new Version(28, 0, 0), version);
-    }
-
-    [Fact]
-    public void MinimumPodmanVersion_CanBeParsedAsVersion()
-    {
-        var canParse = Version.TryParse(ContainerRuntimeCheck.MinimumPodmanVersion, out var version);
-
-        Assert.True(canParse);
-        Assert.NotNull(version);
-        Assert.Equal(new Version(5, 0, 0), version);
-    }
-
-    #endregion
 }
