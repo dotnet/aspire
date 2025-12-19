@@ -317,10 +317,7 @@ internal static class OtlpJsonToProtobufConverter
             }
         }
         logRecord.DroppedAttributesCount = json.DroppedAttributesCount;
-        if (json.Flags.HasValue)
-        {
-            logRecord.Flags = json.Flags.Value;
-        }
+        logRecord.Flags = json.Flags;
         if (json.TraceId is not null)
         {
             logRecord.TraceId = HexToByteString(json.TraceId);

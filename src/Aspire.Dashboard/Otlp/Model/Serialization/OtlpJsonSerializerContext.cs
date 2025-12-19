@@ -69,4 +69,15 @@ internal sealed partial class OtlpJsonSerializerContext : JsonSerializerContext
         WriteIndented = false,
         TypeInfoResolver = Default
     };
+
+    /// <summary>
+    /// Gets the serializer options for OTLP JSON serialization with indented output.
+    /// </summary>
+    public static JsonSerializerOptions IndentedOptions { get; } = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = true,
+        TypeInfoResolver = Default
+    };
 }

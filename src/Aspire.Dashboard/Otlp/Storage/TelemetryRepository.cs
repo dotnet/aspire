@@ -1266,10 +1266,10 @@ public sealed class TelemetryRepository : IDisposable
             Status = ConvertStatus(span.Status),
             StatusMessage = span.Status?.Message,
             Attributes = span.Attributes.ToKeyValuePairs(context),
-            State = span.TraceState,
+            State = !string.IsNullOrEmpty(span.TraceState) ? span.TraceState : null,
             Events = events,
             Links = links,
-            BackLinks = new()
+            BackLinks = []
         };
 
         foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
