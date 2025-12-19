@@ -488,7 +488,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
                 executionContext,
                 deploymentStateManager: new MockDeploymentStateManager()),
             Options.Create(dashboardOptions ?? new()),
-            NullLogger<ApplicationOrchestrator>.Instance
+            serviceProvider.GetRequiredService<ILogger<ApplicationOrchestrator>>()
         );
     }
 
