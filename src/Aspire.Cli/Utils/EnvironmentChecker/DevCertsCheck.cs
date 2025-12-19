@@ -8,8 +8,14 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.Utils.EnvironmentChecker;
 
 /// <summary>
-/// Checks if the dotnet dev-certs HTTPS certificate is trusted.
+/// Checks if the dotnet dev-certs HTTPS certificate is trusted and detects multiple certificates.
 /// </summary>
+/// <remarks>
+/// This check uses the machine-readable format (--check-trust-machine-readable) available in .NET 10+
+/// to get detailed certificate information including trust levels. It warns when multiple certificates
+/// are detected, which can cause confusion about which certificate will be used. Falls back to the
+/// legacy --check --trust method for older .NET SDK versions.
+/// </remarks>
 internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmentCheck
 {
     private static readonly TimeSpan s_processTimeout = TimeSpan.FromSeconds(30);
@@ -148,7 +154,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                process.Kill();
+                process.Kill(entireProcessTree: true);
                 return null;
             }
 
@@ -208,7 +214,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                process.Kill();
+                process.Kill(entireProcessTree: true);
                 return [new EnvironmentCheckResult
                 {
                     Category = "sdk",
@@ -261,9 +267,9 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
 /// </summary>
 internal sealed class DevCertificate
 {
-    public string Thumbprint { get; set; } = string.Empty;
-    public string Subject { get; set; } = string.Empty;
-    public bool IsHttpsDevelopmentCertificate { get; set; }
-    public bool IsExportable { get; set; }
-    public string TrustLevel { get; set; } = string.Empty;
+    public string Thumbprint { get; init; } = string.Empty;
+    public string Subject { get; init; } = string.Empty;
+    public bool IsHttpsDevelopmentCertificate { get; init; }
+    public bool IsExportable { get; init; }
+    public string TrustLevel { get; init; } = string.Empty;
 }
