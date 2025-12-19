@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.Network;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting;
 
@@ -81,11 +82,17 @@ public static class AzureVirtualNetworkExtensions
             // Add subnets
             if (azureResource.Subnets.Count > 0)
             {
+                // Chain subnet provisioning to ensure deployment doesn't fail
+                // due to parallel creation of subnets within the VNet.
+                // TODO: verify this is necessary
+                ProvisionableResource? dependsOn = null;
                 foreach (var subnet in azureResource.Subnets)
                 {
-                    var cdkSubnet = subnet.ToProvisioningEntity(infra);
+                    var cdkSubnet = subnet.ToProvisioningEntity(infra, dependsOn);
                     cdkSubnet.Parent = vnet;
                     infra.Add(cdkSubnet);
+
+                    dependsOn = cdkSubnet;
                 }
             }
 

@@ -13,7 +13,8 @@ namespace Aspire.Hosting.Azure;
 public class AzureBlobStorageResource(string name, AzureStorageResource storage) : Resource(name),
     IResourceWithConnectionString,
     IResourceWithParent<AzureStorageResource>,
-    IResourceWithAzureFunctionsConfig
+    IResourceWithAzureFunctionsConfig,
+    IAzurePrivateEndpointTarget
 {
     /// <summary>
     /// Gets the parent AzureStorageResource of this AzureBlobStorageResource.
@@ -80,6 +81,10 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
             target[$"{AzureStorageResource.BlobsConnectionKeyPrefix}__{connectionName}__ServiceUri"] = Parent.BlobEndpoint;
         }
     }
+
+    BicepOutputReference IAzurePrivateEndpointTarget.Id => Parent.Id;
+
+    IEnumerable<string> IAzurePrivateEndpointTarget.GetPrivateLinkGroupIds() => ["blob"];
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {

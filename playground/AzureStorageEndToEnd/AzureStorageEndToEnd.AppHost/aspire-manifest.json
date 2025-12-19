@@ -33,6 +33,14 @@
       "type": "value.v0",
       "connectionString": "Endpoint={storage.outputs.blobEndpoint};ContainerName=test-container-2"
     },
+    "private-endpoints-blobs-pe": {
+      "type": "azure.bicep.v0",
+      "path": "private-endpoints-blobs-pe.module.bicep",
+      "params": {
+        "vnet_outputs_private_endpoints_id": "{vnet.outputs.private_endpoints_Id}",
+        "storage_outputs_id": "{storage.outputs.id}"
+      }
+    },
     "storage-queues": {
       "type": "value.v0",
       "connectionString": "{storage.outputs.queueEndpoint}"

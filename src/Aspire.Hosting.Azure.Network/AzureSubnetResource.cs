@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Network;
 using Azure.Provisioning;
 using Azure.Provisioning.Network;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -47,7 +48,7 @@ public class AzureSubnetResource(string name, string subnetName, string addressP
     /// <summary>
     /// Gets the subnet Id output reference.
     /// </summary>
-    public BicepOutputReference Id => new($"{subnetName}_Id", parent);
+    public BicepOutputReference Id => new($"{Infrastructure.NormalizeBicepIdentifier(subnetName)}_Id", parent);
 
     /// <summary>
     /// Gets the parent Azure Virtual Network resource.
@@ -65,7 +66,7 @@ public class AzureSubnetResource(string name, string subnetName, string addressP
     /// <summary>
     /// Converts the current instance to a provisioning entity.
     /// </summary>
-    internal SubnetResource ToProvisioningEntity(AzureResourceInfrastructure infra)
+    internal SubnetResource ToProvisioningEntity(AzureResourceInfrastructure infra, ProvisionableResource? dependsOn)
     {
         var subnet = new SubnetResource(Infrastructure.NormalizeBicepIdentifier(Name))
         {
@@ -73,6 +74,11 @@ public class AzureSubnetResource(string name, string subnetName, string addressP
             AddressPrefix = AddressPrefix,
             // TODO: DefaultOutboundAccess = DefaultOutboundAccess
         };
+
+        if (dependsOn is not null)
+        {
+            subnet.DependsOn.Add(dependsOn);
+        }
 
         if (NatGateway is not null)
         {

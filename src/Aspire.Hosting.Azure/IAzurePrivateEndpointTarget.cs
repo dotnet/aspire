@@ -1,0 +1,23 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Hosting.ApplicationModel;
+
+namespace Aspire.Hosting.Azure;
+
+/// <summary>
+/// Represents an Azure resource that can be connected to via a private endpoint.
+/// </summary>
+public interface IAzurePrivateEndpointTarget : IResource
+{
+    /// <summary>
+    /// Gets the "id" output reference from the Azure resource.
+    /// </summary>
+    BicepOutputReference Id { get; }
+
+    /// <summary>
+    /// Gets the group IDs for the private link service connection (e.g., "blob", "file" for storage).
+    /// </summary>
+    /// <returns>A collection of group IDs for the private link service connection.</returns>
+    IEnumerable<string> GetPrivateLinkGroupIds();
+}
