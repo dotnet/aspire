@@ -634,4 +634,104 @@ public partial class ResourcesTests : DashboardTestContext
         var resource = filteredResources[0];
         Assert.Equal("error", resource.StateStyle);
     }
+
+    [Fact]
+    public async Task CollapseState_PersistedToLocalStorage_WithReplicaIndex()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var storage = new Dictionary<string, object>();
+        var localStorage = new TestLocalStorage
+        {
+            OnSetUnprotectedAsync = (key, value) => storage[key] = value!,
+            OnGetUnprotectedAsync = key => storage.TryGetValue(key, out var value) ? (true, value) : (false, null)
+        };
+        
+        // Create replica resources with same display name but different resource names
+        var replica1 = new ResourceViewModel
+        {
+            Name = "replica-0",
+            DisplayName = "replica",
+            ResourceType = "Container",
+            State = "Running",
+            Uid = "replica-0",
+            HealthReports = [],
+            StateStyle = null,
+            CreationTimeStamp = null,
+            StartTimeStamp = null,
+            StopTimeStamp = null,
+            Environment = default,
+            Urls = [],
+            Volumes = default,
+            Relationships = default,
+            Properties = ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
+            Commands = [],
+            IsHidden = false,
+        };
+        var replica2 = new ResourceViewModel
+        {
+            Name = "replica-1",
+            DisplayName = "replica",
+            ResourceType = "Container",
+            State = "Running",
+            Uid = "replica-1",
+            HealthReports = [],
+            StateStyle = null,
+            CreationTimeStamp = null,
+            StartTimeStamp = null,
+            StopTimeStamp = null,
+            Environment = default,
+            Urls = [],
+            Volumes = default,
+            Relationships = default,
+            Properties = ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
+            Commands = [],
+            IsHidden = false,
+        };
+        
+        var initialResources = new List<ResourceViewModel>
+        {
+            replica1,
+            replica2
+        };
+        
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true, 
+            initialResources: initialResources,
+            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        
+        // Setup with custom local storage
+        FluentUISetupHelpers.AddCommonDashboardServices(this, localStorage: localStorage);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+        
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        await cut.InvokeAsync(async () =>
+        {
+            // Wait for resources to load
+            await Task.Delay(100);
+        });
+
+        // Act - Get expected storage keys
+        var appName = dashboardClient.ApplicationName ?? "default";
+        
+        // Expected storage keys should include app name, display name, and replica index
+        var replica1Key = $"{BrowserStorageKeys.ResourcesCollapsedState}_{appName}_replica_0";
+        var replica2Key = $"{BrowserStorageKeys.ResourcesCollapsedState}_{appName}_replica_1";
+        
+        // Set collapse state for replica1
+        await localStorage.SetUnprotectedAsync(replica1Key, true);
+        
+        // Assert - Verify the key format includes app name, display name, and replica index
+        var result1 = await localStorage.GetUnprotectedAsync<bool>(replica1Key);
+        Assert.True(result1.Success);
+        Assert.True(result1.Value);
+        
+        // Verify replica2 has a different key
+        var result2 = await localStorage.GetUnprotectedAsync<bool>(replica2Key);
+        Assert.False(result2.Success); // Should not be set yet
+    }
 }

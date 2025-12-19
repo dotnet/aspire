@@ -59,6 +59,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     [Inject]
     public required ISessionStorage SessionStorage { get; init; }
     [Inject]
+    public required ILocalStorage LocalStorage { get; init; }
+    [Inject]
     public required IAIContextProvider AIContextProvider { get; init; }
     [Inject]
     public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
@@ -249,10 +251,11 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
         if (DashboardClient.IsEnabled)
         {
-            var collapsedResult = await SessionStorage.GetAsync<List<string>>(BrowserStorageKeys.ResourcesCollapsedResourceNames);
-            if (collapsedResult.Success)
+            // Migration: Try to load old session storage format first
+            var oldCollapsedResult = await SessionStorage.GetAsync<List<string>>(BrowserStorageKeys.ResourcesCollapsedResourceNames);
+            if (oldCollapsedResult.Success)
             {
-                foreach (var resourceName in collapsedResult.Value)
+                foreach (var resourceName in oldCollapsedResult.Value)
                 {
                     _collapsedResourceNames.Add(resourceName);
                 }
@@ -287,6 +290,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             }
 
             UpdateMaxHighlightedCount();
+            
+            // Load collapsed state from local storage now that resources are available
+            await LoadCollapsedStateFromLocalStorageAsync();
+            
             await _dataGrid.SafeRefreshDataAsync();
 
             // Listen for updates and apply.
@@ -750,6 +757,22 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         return false;
     }
 
+    private string GetResourceCollapseStateKey(ResourceViewModel resource)
+    {
+        // Get all resources with the same display name (replicas), ordered by name for consistent indexing
+        var peersWithSameName = _resourceByName.Values
+            .Where(r => string.Equals(r.DisplayName, resource.DisplayName, StringComparisons.ResourceName))
+            .OrderBy(r => r.Name, StringComparer.Ordinal)
+            .ToList();
+
+        // Find the index of this resource among its peers
+        var replicaIndex = peersWithSameName.FindIndex(r => string.Equals(r.Name, resource.Name, StringComparisons.ResourceName));
+
+        // Generate key: appName_displayName_index
+        var appName = DashboardClient.ApplicationName ?? "default";
+        return $"{BrowserStorageKeys.ResourcesCollapsedState}_{appName}_{resource.DisplayName}_{replicaIndex}";
+    }
+
     private string GetRowClass(ResourceViewModel resource)
         => string.Equals(resource.Name, SelectedResource?.Name, StringComparisons.ResourceName) ? "selected-row resource-row" : "resource-row";
 
@@ -796,6 +819,27 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         return tooltipBuilder.ToString();
     }
 
+    private async Task LoadCollapsedStateFromLocalStorageAsync()
+    {
+        // Load collapsed state for all current resources from local storage
+        foreach (var resource in _resourceByName.Values)
+        {
+            var key = GetResourceCollapseStateKey(resource);
+            var result = await LocalStorage.GetUnprotectedAsync<bool>(key);
+            
+            if (result.Success && result.Value)
+            {
+                _collapsedResourceNames.Add(resource.Name);
+            }
+        }
+    }
+
+    private async Task SaveCollapsedStateAsync(ResourceViewModel resource, bool isCollapsed)
+    {
+        var key = GetResourceCollapseStateKey(resource);
+        await LocalStorage.SetUnprotectedAsync(key, isCollapsed);
+    }
+
     private async Task OnToggleCollapse(ResourceGridViewModel viewModel)
     {
         // View model data is recreated if data updates.
@@ -811,7 +855,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             _collapsedResourceNames.Remove(viewModel.Resource.Name);
         }
 
-        await SessionStorage.SetAsync(BrowserStorageKeys.ResourcesCollapsedResourceNames, _collapsedResourceNames.ToList());
+        // Save to local storage with new key format
+        await SaveCollapsedStateAsync(viewModel.Resource, viewModel.IsCollapsed);
         await _dataGrid.SafeRefreshDataAsync();
         UpdateMenuButtons();
     }
@@ -823,11 +868,14 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             .Where(r => _resourceByName.Values.Any(nested => nested.GetResourcePropertyValue(KnownProperties.Resource.ParentName) == r.Name))
             .ToList();
 
-        if (HasCollapsedResources())
+        var isExpanding = HasCollapsedResources();
+        
+        if (isExpanding)
         {
             foreach (var resource in resourcesWithChildren)
             {
                 _collapsedResourceNames.Remove(resource.Name);
+                await SaveCollapsedStateAsync(resource, false);
             }
         }
         else
@@ -835,10 +883,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             foreach (var resource in resourcesWithChildren)
             {
                 _collapsedResourceNames.Add(resource.Name);
+                await SaveCollapsedStateAsync(resource, true);
             }
         }
 
-        await SessionStorage.SetAsync(BrowserStorageKeys.ResourcesCollapsedResourceNames, _collapsedResourceNames.ToList());
         await _dataGrid.SafeRefreshDataAsync();
         UpdateMenuButtons();
     }
