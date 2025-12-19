@@ -1309,6 +1309,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, D
                 exe.Spec.ExecutionType = ExecutionType.Process;
             }
 
+            if (executable.TryGetLastAnnotation<ResourceStdinAnnotation>(out var stdinAnnotation))
+            {
+                exe.Spec.Stdin = stdinAnnotation.Enabled && exe.Spec.ExecutionType == ExecutionType.Process;
+            }
+
             SetInitialResourceState(executable, exe);
 
             var exeAppResource = new RenderedModelResource(executable, exe);
@@ -1405,6 +1410,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, D
                     // and should be HIGHER priority than the launch profile settings).
                     // This means we need to apply the launch profile settings manually inside CreateExecutableAsync().
                     projectArgs.Add("--no-launch-profile");
+                }
+
+                if (project.TryGetLastAnnotation<ResourceStdinAnnotation>(out var stdinAnnotation))
+                {
+                    exeSpec.Spec.Stdin = stdinAnnotation.Enabled && exeSpec.Spec.ExecutionType == ExecutionType.Process;
                 }
 
                 // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.

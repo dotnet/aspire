@@ -216,4 +216,5 @@ public static class ExecutableResourceBuilderExtensions
     {
         public override ResourceAnnotationCollection Annotations => er.Annotations;
     }
+
 }

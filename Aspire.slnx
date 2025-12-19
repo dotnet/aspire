@@ -310,6 +310,7 @@
   </Folder>
   <Folder Name="/playground/StdIoEndToEnd/">
     <Project Path="playground/StdioEndToEnd/StdioEndToEnd.AppHost/StdioEndToEnd.AppHost.csproj" />
+    <Project Path="playground/StdioEndToEnd/StdioEndToEnd.StdinEcho/StdioEndToEnd.StdinEcho.csproj" />
   </Folder>
   <Folder Name="/playground/Stress/">
     <Project Path="playground/Stress/Stress.ApiService/Stress.ApiService.csproj" />

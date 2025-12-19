@@ -16,10 +16,23 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddProject<Projects.StdioEndToEnd_StdinEcho>("stdin-echo-dotnet")
+    .WithStdin();  // Enable stdin input command for the project resource
+
 // Create a simple container that reads from stdin and echoes each line back with a "Received: " prefix.
 // The 'alpine' image with a shell script will read stdin and write to stdout.
-_ = builder.AddContainer("stdin-echo", "alpine")
+_ = builder.AddContainer("stdin-echo-container", "alpine")
     .WithArgs("sh", "-c", "echo 'Container started. Waiting for stdin input...' && while read line; do echo \"Received: $line\"; done")
     .WithStdin();  // Enable stdin support - container will be started with -i flag
+
+#if !SKIP_DASHBOARD_REFERENCE
+// This project is only added in playground projects to support development/debugging
+// of the dashboard. It is not required in end developer code. Comment out this code
+// or build with `/p:SkipDashboardReference=true`, to test end developer
+// dashboard launch experience, Refer to Directory.Build.props for the path to
+// the dashboard binary (defaults to the Aspire.Dashboard bin output in the
+// artifacts dir).
+builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+#endif
 
 builder.Build().Run();

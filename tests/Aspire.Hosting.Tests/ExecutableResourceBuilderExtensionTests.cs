@@ -6,6 +6,7 @@
 
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Tests;
 
@@ -99,5 +100,26 @@ public class ExecutableResourceBuilderExtensionTests
 
         var annotation = executable.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
         Assert.Null(annotation);
+    }
+
+    [Fact]
+    public void WithStdinAddsSendInputCommand()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var executable = builder.AddExecutable("myexe", "command", "workingdirectory")
+            .WithStdin();
+
+        var command = executable.Resource.Annotations.OfType<ResourceCommandAnnotation>().Single(a => a.Name == "send-stdin-input");
+        Assert.Equal("Send Input", command.DisplayName);
+    }
+
+    [Fact]
+    public void WithStdinFalseDoesNotAddSendInputCommand()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var executable = builder.AddExecutable("myexe", "command", "workingdirectory")
+            .WithStdin(enabled: false);
+
+        Assert.DoesNotContain(executable.Resource.Annotations.OfType<ResourceCommandAnnotation>(), a => a.Name == "send-stdin-input");
     }
 }

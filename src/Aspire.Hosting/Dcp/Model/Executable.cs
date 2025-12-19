@@ -69,6 +69,12 @@ internal sealed class ExecutableSpec
     /// </summary>
     [JsonPropertyName("pemCertificates")]
     public ExecutablePemCertificates? PemCertificates { get; set; }
+
+    /// <summary>
+    /// Keep stdin open on the executable.
+    /// </summary>
+    [JsonPropertyName("stdin")]
+    public bool? Stdin { get; set; }
 }
 
 internal sealed class AmbientEnvironment
@@ -172,6 +178,12 @@ internal sealed record ExecutableStatus : V1Status
     /// </summary>
     [JsonPropertyName("stdErrFile")]
     public string? StdErrFile { get; set; }
+
+    /// <summary>
+    /// The path of a temporary file used as a backing store for stdin input.
+    /// </summary>
+    [JsonPropertyName("stdinFile")]
+    public string? StdinFile { get; set; }
 
     /// <summary>
     /// Effective values of environment variables, after all substitutions have been applied

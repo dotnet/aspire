@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <ProjectReference Include="..\StdioEndToEnd.StdinEcho\StdioEndToEnd.StdinEcho.csproj" />
   </ItemGroup>
 
 </Project>

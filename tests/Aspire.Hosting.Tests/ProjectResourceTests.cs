@@ -26,6 +26,28 @@ namespace Aspire.Hosting.Tests;
 public class ProjectResourceTests
 {
     [Fact]
+    public async Task WithStdinAddsSendInputCommandToProject()
+    {
+        var projectDirectoryPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var projectFilePath = Path.Combine(projectDirectoryPath, "Project.csproj");
+        var propertiesDirectoryPath = Path.Combine(projectDirectoryPath, "Properties");
+        var launchSettingsFilePath = Path.Combine(propertiesDirectoryPath, "launchSettings.json");
+
+        Directory.CreateDirectory(projectDirectoryPath);
+        await File.WriteAllTextAsync(projectFilePath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>").DefaultTimeout();
+
+        Directory.CreateDirectory(propertiesDirectoryPath);
+        await File.WriteAllTextAsync(launchSettingsFilePath, "{\"profiles\":{}}" ).DefaultTimeout();
+
+        var appBuilder = CreateBuilder();
+        var project = appBuilder.AddProject("project", projectFilePath)
+            .WithStdin();
+
+        var command = project.Resource.Annotations.OfType<ResourceCommandAnnotation>().Single(a => a.Name == "send-stdin-input");
+        Assert.Equal("Send Input", command.DisplayName);
+    }
+
+    [Fact]
     public async Task AddProjectWithInvalidLaunchSettingsShouldThrowSpecificError()
     {
         var projectDetails = await PrepareProjectWithMalformedLaunchSettingsAsync().DefaultTimeout();

@@ -14,7 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="entrypoint">An optional container entrypoint.</param>
 public class ContainerResource(string name, string? entrypoint = null)
     : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints, IResourceWithWaitSupport, IResourceWithProbes,
-    IComputeResource
+    IComputeResource, IResourceWithStdin
 {
     /// <summary>
     /// The container Entrypoint.
