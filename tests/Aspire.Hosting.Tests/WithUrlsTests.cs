@@ -951,19 +951,20 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        // Resource B has the endpoint
-        var resourceB = builder.AddProject<ProjectA>("resourceb")
+        // Resource A has the endpoint
+        var resourceA = builder.AddProject<Projects.ServiceA>("resourcea")
             .WithHttpEndpoint(name: "api");
 
-        // Resource C gets a URL that references resource B's endpoint via the object model
-        var resourceC = builder.AddProject<ProjectA>("resourcec")
+        // Resource B gets a URL that references resource A's endpoint via the object model
+        var resourceB = builder.AddProject<Projects.ServiceA>("resourceb")
+            .WaitFor(resourceA)
             .WithUrls(c =>
             {
                 c.Urls.Add(new()
                 {
                     DisplayText = "API Docs",
-                    Url = "/swagger",
-                    Endpoint = resourceB.Resource.GetEndpoint("api")
+                    Url = "/",
+                    Endpoint = resourceA.Resource.GetEndpoint("api")
                 });
             });
 
@@ -972,20 +973,21 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
 
         await app.StartAsync();
 
-        // Wait for resource C to be running
+        // Wait for resource B to be running & have the expected URLs
         var resourceEvent = await rns.WaitForResourceAsync(
-            resourceC.Resource.Name,
-            e => e.Snapshot.State == KnownResourceStates.Running,
+            resourceB.Resource.Name,
+            e => e.Snapshot.State == KnownResourceStates.Running
+                    && e.Snapshot.Urls.Length == resourceB.Resource.GetEndpoints().ToArray().Length + 1
+                    && e.Snapshot.Urls.All(u => !u.IsInactive),
             default).DefaultTimeout();
 
         await app.StopAsync().DefaultTimeout();
 
-        // Verify that the URL from resource B's endpoint appears in resource C's snapshot
+        // Verify that the URL from resource A's endpoint appears in resource B's snapshot
         var crossResourceUrl = resourceEvent.Snapshot.Urls.FirstOrDefault(u => u.DisplayProperties.DisplayName == "API Docs");
 
         Assert.NotNull(crossResourceUrl);
         Assert.StartsWith("http://localhost", crossResourceUrl.Url);
-        Assert.EndsWith("/swagger", crossResourceUrl.Url);
         Assert.Equal("api", crossResourceUrl.Name);
         Assert.False(crossResourceUrl.IsInactive);
     }
