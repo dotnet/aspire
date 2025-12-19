@@ -15,6 +15,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     private string? _currentSetting;
     private List<CultureInfo> _languageOptions = null!;
     private CultureInfo? _selectedUiCulture;
+    private bool _isImporting;
 
     private IDisposable? _themeChangedSubscription;
 
@@ -29,6 +30,9 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     [Inject]
     public required IDialogService DialogService { get; init; }
+
+    [Inject]
+    public required TelemetryImportService TelemetryImportService { get; init; }
 
     protected override void OnInitialized()
     {
@@ -98,6 +102,33 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
             Height = "auto"
         };
         await DialogService.ShowDialogAsync<ManageDataDialog>(parameters);
+    }
+
+    private void OnInputFileProgressChange(FluentInputFileEventArgs args)
+    {
+        _isImporting = true;
+    }
+
+    private async Task OnInputFileCompleted(IEnumerable<FluentInputFileEventArgs> args)
+    {
+        try
+        {
+            var files = args.ToList();
+
+            foreach (var file in files)
+            {
+                if (file.LocalFile != null)
+                {
+                    using var fileStream = file.LocalFile.OpenRead();
+                    await TelemetryImportService.ImportAsync(file.Name, fileStream, CancellationToken.None);
+                }
+            }
+        }
+        finally
+        {
+            _isImporting = false;
+            StateHasChanged();
+        }
     }
 
     public void Dispose()

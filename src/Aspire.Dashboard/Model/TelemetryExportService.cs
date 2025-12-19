@@ -201,7 +201,7 @@ public sealed class TelemetryExportService
         }
     }
 
-    internal static OtlpLogsDataJson ConvertLogsToOtlpJson(OtlpResource resource, IReadOnlyList<OtlpLogEntry> logs)
+    internal static OtlpTelemetryDataJson ConvertLogsToOtlpJson(OtlpResource resource, IReadOnlyList<OtlpLogEntry> logs)
     {
         // Group logs by scope
         var logsByScope = logs.GroupBy(l => l.Scope);
@@ -212,7 +212,7 @@ public sealed class TelemetryExportService
             LogRecords = scopeGroup.Select(ConvertLogEntry).ToArray()
         }).ToArray();
 
-        return new OtlpLogsDataJson
+        return new OtlpTelemetryDataJson
         {
             ResourceLogs =
             [
@@ -241,7 +241,7 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static OtlpTracesDataJson ConvertTracesToOtlpJson(OtlpResource resource, IReadOnlyList<OtlpTrace> traces)
+    internal static OtlpTelemetryDataJson ConvertTracesToOtlpJson(OtlpResource resource, IReadOnlyList<OtlpTrace> traces)
     {
         // Group spans by scope
         var allSpans = traces.SelectMany(t => t.Spans).ToList();
@@ -253,7 +253,7 @@ public sealed class TelemetryExportService
             Spans = scopeGroup.Select(ConvertSpan).ToArray()
         }).ToArray();
 
-        return new OtlpTracesDataJson
+        return new OtlpTelemetryDataJson
         {
             ResourceSpans =
             [
@@ -320,7 +320,7 @@ public sealed class TelemetryExportService
         };
     }
 
-    internal static OtlpMetricsDataJson ConvertMetricsToOtlpJson(OtlpResource resource, List<OtlpInstrumentSummary> instruments)
+    internal static OtlpTelemetryDataJson ConvertMetricsToOtlpJson(OtlpResource resource, List<OtlpInstrumentSummary> instruments)
     {
         // Group instruments by scope
         var instrumentsByScope = instruments.GroupBy(i => i.Parent);
@@ -331,7 +331,7 @@ public sealed class TelemetryExportService
             Metrics = scopeGroup.Select(ConvertInstrument).ToArray()
         }).ToArray();
 
-        return new OtlpMetricsDataJson
+        return new OtlpTelemetryDataJson
         {
             ResourceMetrics =
             [

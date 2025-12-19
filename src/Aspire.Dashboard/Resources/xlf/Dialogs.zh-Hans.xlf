@@ -637,6 +637,11 @@
         <target state="translated">全部导出</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsImportButtonText">
+        <source>Import</source>
+        <target state="new">Import</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
         <source>Remove all</source>
         <target state="translated">全部移除</target>

@@ -305,6 +305,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<ShortcutManager>();
         builder.Services.AddScoped<ConsoleLogsManager>();
         builder.Services.AddScoped<TelemetryExportService>();
+        builder.Services.AddScoped<TelemetryImportService>();
         builder.Services.AddSingleton<IInstrumentUnitResolver, DefaultInstrumentUnitResolver>();
 
         builder.Services.AddScoped<IAIContextProvider, AIContextProvider>();
