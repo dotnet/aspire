@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Utils;
@@ -17,13 +18,26 @@ internal static class BrowserStorageKeys
     public const string ResourcesPageState = "Resources_PageState";
     public const string ConsoleLogConsoleSettings = "Aspire_ConsoleLog_ConsoleSettings";
     public const string ConsoleLogFilters = "Aspire_ConsoleLog_Filters";
-    public const string ResourcesCollapsedResourceNames = "Aspire_Resources_CollapsedResourceNames";
     public const string TextVisualizerDialogSettings = "Aspire_TextVisualizerDialog_TextVisualizerDialogSettings";
     public const string ResourcesShowResourceTypes = "Aspire_Resources_ShowResourceTypes";
 
     public const string AssistantChatAssistantSettings = "Aspire_AssistantChat_AssistantSettings";
     public const string DashboardTelemetrySettings = "Aspire_Settings_DashboardTelemetry";
     public const string ResourcesShowHiddenResources = "Aspire_Resources_ShowHiddenResources";
+
+    public static string CollapsedResourceNamesKey(string applicationName)
+    {
+        ArgumentNullException.ThrowIfNull(applicationName);
+
+        var builder = new StringBuilder(applicationName.Length);
+
+        foreach (var character in applicationName)
+        {
+            builder.Append(char.IsLetterOrDigit(character) ? character : '_');
+        }
+
+        return $"Aspire_Resources_CollapsedResourceNames_{builder.ToString()}";
+    }
 
     public static string SplitterOrientationKey(string viewKey)
     {
