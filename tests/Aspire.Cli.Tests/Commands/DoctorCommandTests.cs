@@ -23,4 +23,21 @@ public class DoctorCommandTests(ITestOutputHelper outputHelper)
         // Help should return success
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
+
+    [Fact]
+    public async Task DoctorCommand_Runs_Successfully()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var result = command.Parse("doctor");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // Doctor command should complete (exit code 0 or 1 depending on environment)
+        // We don't assert specific exit code as it depends on the environment
+        Assert.True(exitCode == ExitCodeConstants.Success || exitCode == ExitCodeConstants.InvalidCommand);
+    }
 }
