@@ -621,6 +621,12 @@ internal sealed class AzureAppServiceWebsiteContext(
             parentWebSite: parentWebSite,
             deploymentSlot: deploymentSlot);
 
+        // Configure sticky slot settings when deployment slots are used
+        if (deploymentSlot is not null && parentWebSite is not null)
+        {
+            AddStickySlotSettings(infra, parentWebSite);
+        }
+
         // Allow users to customize the web app here
         if (deploymentSlot is not null)
         {
@@ -684,6 +690,9 @@ internal sealed class AzureAppServiceWebsiteContext(
             isSlot: true,
             parentWebSite: (WebSite)webSite,
             deploymentSlot: deploymentSlot);
+
+        // Configure sticky slot settings when deployment slots are used
+        AddStickySlotSettings(infra, webSite);
 
         // Allow users to customize the website
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
@@ -854,6 +863,22 @@ internal sealed class AzureAppServiceWebsiteContext(
             hostValue = GetSlotHostName(slotName);
             _slotEndpointMapping[name] = mapping with { Host = hostValue };
         }
+    }
+
+    /// <summary>
+    /// Configures sticky slot settings to ensure OTEL_SERVICE_NAME remains with each slot during swaps.
+    /// </summary>
+    /// <param name="infra">The Azure resource infrastructure.</param>
+    /// <param name="parentWebSite">The parent WebSite resource.</param>
+    private static void AddStickySlotSettings(AzureResourceInfrastructure infra, WebSite parentWebSite)
+    {
+        var slotConfigNames = new SlotConfigNames("slotConfigNames")
+        {
+            Parent = parentWebSite,
+            AppSettingNames = ["OTEL_SERVICE_NAME"]
+        };
+
+        infra.Add(slotConfigNames);
     }
 
     enum SecretType
