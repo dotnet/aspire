@@ -9,6 +9,7 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Utils.EnvironmentChecker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
@@ -33,6 +34,7 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
         var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<McpStartCommand>();
         var packagingService = provider.GetRequiredService<IPackagingService>();
+        var environmentChecker = provider.GetRequiredService<IEnvironmentChecker>();
 
         // Act
         var command = new McpStartCommand(
@@ -43,7 +45,8 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
             auxiliaryBackchannelMonitor,
             loggerFactory,
             logger,
-            packagingService);
+            packagingService,
+            environmentChecker);
 
         // Assert
         Assert.NotNull(command);
@@ -58,6 +61,7 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
         
         var toolNames = cliTools.Keys.Cast<string>().OrderBy(name => name).ToArray();
         Assert.Collection(toolNames,
+            name => Assert.Equal("doctor", name),
             name => Assert.Equal("get_integration_docs", name),
             name => Assert.Equal("list_apphosts", name),
             name => Assert.Equal("list_integrations", name),
@@ -191,6 +195,7 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
         var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<McpStartCommand>();
         var packagingService = provider.GetRequiredService<IPackagingService>();
+        var environmentChecker = provider.GetRequiredService<IEnvironmentChecker>();
 
         var command = new McpStartCommand(
             interactionService,
@@ -200,7 +205,8 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
             monitor,
             loggerFactory,
             logger,
-            packagingService);
+            packagingService,
+            environmentChecker);
 
         // Act - Use reflection to call GetSelectedConnection
         var method = typeof(McpStartCommand).GetMethod("GetSelectedConnection",
@@ -237,6 +243,7 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
         var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<McpStartCommand>();
         var packagingService = provider.GetRequiredService<IPackagingService>();
+        var environmentChecker = provider.GetRequiredService<IEnvironmentChecker>();
 
         var command = new McpStartCommand(
             interactionService,
@@ -246,7 +253,8 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
             monitor,
             loggerFactory,
             logger,
-            packagingService);
+            packagingService,
+            environmentChecker);
 
         // Act
         var method = typeof(McpStartCommand).GetMethod("GetSelectedConnection",
@@ -286,6 +294,7 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
         var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<McpStartCommand>();
         var packagingService = provider.GetRequiredService<IPackagingService>();
+        var environmentChecker = provider.GetRequiredService<IEnvironmentChecker>();
 
         var command = new McpStartCommand(
             interactionService,
@@ -295,7 +304,8 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
             monitor,
             loggerFactory,
             logger,
-            packagingService);
+            packagingService,
+            environmentChecker);
 
         // Act
         var method = typeof(McpStartCommand).GetMethod("GetSelectedConnection",
@@ -338,6 +348,7 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
         var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<McpStartCommand>();
         var packagingService = provider.GetRequiredService<IPackagingService>();
+        var environmentChecker = provider.GetRequiredService<IEnvironmentChecker>();
 
         var command = new McpStartCommand(
             interactionService,
@@ -347,7 +358,8 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
             monitor,
             loggerFactory,
             logger,
-            packagingService);
+            packagingService,
+            environmentChecker);
 
         // Act
         var method = typeof(McpStartCommand).GetMethod("GetSelectedConnection",
@@ -385,6 +397,7 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
         var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<McpStartCommand>();
         var packagingService = provider.GetRequiredService<IPackagingService>();
+        var environmentChecker = provider.GetRequiredService<IEnvironmentChecker>();
 
         var command = new McpStartCommand(
             interactionService,
@@ -394,7 +407,8 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
             monitor,
             loggerFactory,
             logger,
-            packagingService);
+            packagingService,
+            environmentChecker);
 
         // Act
         var method = typeof(McpStartCommand).GetMethod("GetSelectedConnection",
@@ -435,6 +449,7 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
         var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<McpStartCommand>();
         var packagingService = provider.GetRequiredService<IPackagingService>();
+        var environmentChecker = provider.GetRequiredService<IEnvironmentChecker>();
 
         var command = new McpStartCommand(
             interactionService,
@@ -444,7 +459,8 @@ public class McpStartCommandTests(ITestOutputHelper outputHelper)
             monitor,
             loggerFactory,
             logger,
-            packagingService);
+            packagingService,
+            environmentChecker);
 
         // Act
         var method = typeof(McpStartCommand).GetMethod("GetSelectedConnection",
