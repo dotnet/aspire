@@ -71,6 +71,41 @@
 - **VS Code**: Run `./build.sh` first, then use `./start-code.sh` to launch with correct environment
 - **Visual Studio**: Run `./build.cmd` first, then use `./startvs.cmd` to launch with local SDK environment
 
+### Start App Hosts in a background job
+
+When running an App Host from an interactive console (for example, PowerShell or a terminal session you plan to reuse), start it in a background job/process. If you start the App Host in the foreground and then reuse the console for another command (or stop the current interactive session), the App Host process can be terminated.
+
+Run the App Host in the background so it continues running while you execute other commands:
+
+**PowerShell (Start-Job)**
+
+```powershell
+# From the AppHost project directory
+Start-Job -Name "AspireAppHost" -ScriptBlock { dotnet run }
+
+# Inspect output / state
+Get-Job -Name "AspireAppHost" | Format-List *
+Receive-Job -Name "AspireAppHost" -Keep
+
+# Stop when done
+Stop-Job -Name "AspireAppHost"
+Remove-Job -Name "AspireAppHost"
+```
+
+**bash (background process)**
+
+```bash
+# From the AppHost project directory
+(dotnet run &)
+
+# Optionally capture output to a log
+dotnet run > apphost.log 2>&1 &
+
+# Find and stop later
+ps aux | grep dotnet
+kill <pid>
+```
+
 ### Testing
 
 * We use xUnit SDK v3 with Microsoft.Testing.Platform (https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-intro)
