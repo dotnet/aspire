@@ -348,7 +348,7 @@ internal sealed class DashboardClient : IDashboardClient
         Debug.Assert(Monitor.IsEntered(_lock), "Caller must hold _lock.");
 
         // There is no consistent way to know which replica is instance 1 vs instance 2. It shouldn't ever matter.
-        // This index provides an easy way to indentify resources across app runs that takes into account replicas.
+        // This index provides an easy way to identify resources across app runs that takes into account replicas.
         var replicas = _resourceByName.Values.Count(r => r.DisplayName == displayName);
         return replicas + 1;
     }
