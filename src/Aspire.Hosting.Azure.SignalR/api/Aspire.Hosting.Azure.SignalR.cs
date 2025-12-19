@@ -35,7 +35,11 @@ namespace Aspire.Hosting.ApplicationModel
 
         public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
 
+        public ReferenceExpression UriExpression { get { throw null; } }
+
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }
 

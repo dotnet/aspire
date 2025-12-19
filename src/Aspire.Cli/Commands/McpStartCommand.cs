@@ -11,6 +11,7 @@ using Aspire.Cli.Mcp;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Shared.Mcp;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
@@ -34,7 +35,7 @@ internal sealed class McpStartCommand : BaseCommand
     private McpClient? _notificationClient;
     private IAsyncDisposable? _toolListChangedHandler;
 
-    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService)
+    public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
     {
         _auxiliaryBackchannelMonitor = auxiliaryBackchannelMonitor;
@@ -47,7 +48,8 @@ internal sealed class McpStartCommand : BaseCommand
             ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
             ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
-            ["get_integration_docs"] = new GetIntegrationDocsTool()
+            ["get_integration_docs"] = new GetIntegrationDocsTool(),
+            ["doctor"] = new DoctorTool(environmentChecker)
         };
     }
 
@@ -313,7 +315,7 @@ internal sealed class McpStartCommand : BaseCommand
 
         _logger.LogInformation("MCP CallTool request received for tool: {ToolName}", toolName);
 
-        // Handle CLI-specific tools - these don't need an MCP connection to the AppHost
+        // Handle tools that don't need an MCP connection to the AppHost
         if (_cliTools.TryGetValue(toolName, out var cliTool))
         {
             var result = await cliTool.CallToolAsync(null!, request.Params?.Arguments, cancellationToken);

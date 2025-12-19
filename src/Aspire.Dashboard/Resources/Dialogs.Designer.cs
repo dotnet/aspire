@@ -1114,6 +1114,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Export all.
+        /// </summary>
+        public static string SettingsExportAllButtonText {
+            get {
+                return ResourceManager.GetString("SettingsExportAllButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Format JSON.
         /// </summary>
         public static string TextVisualizerDialogJsonFormat {

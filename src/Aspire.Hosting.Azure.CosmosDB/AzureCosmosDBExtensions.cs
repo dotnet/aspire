@@ -22,6 +22,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureCosmosExtensions
 {
+    private const string EmulatorHealthEndpointName = "emulatorhealth";
+
     /// <summary>
     /// Adds an Azure Cosmos DB connection to the application model.
     /// </summary>
@@ -124,13 +126,22 @@ public static class AzureCosmosExtensions
             }
         });
 
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureCosmosDB(
-            sp => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
-            name: healthCheckKey
+        if (useVNextPreview)
+        {
+            builder.WithHttpEndpoint(name: EmulatorHealthEndpointName, targetPort: 8080)
+                .WithHttpHealthCheck(endpointName: EmulatorHealthEndpointName, path: "/ready")
+                .WithUrlForEndpoint(EmulatorHealthEndpointName, u => u.DisplayLocation = UrlDisplayLocation.DetailsOnly);
+        }
+        else
+        {
+            var healthCheckKey = $"{builder.Resource.Name}_check";
+            builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureCosmosDB(
+                sp => cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized."),
+                name: healthCheckKey
             );
 
-        builder.WithHealthCheck(healthCheckKey);
+            builder.WithHealthCheck(healthCheckKey);
+        }
 
         if (configureContainer != null)
         {

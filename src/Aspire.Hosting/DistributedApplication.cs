@@ -49,12 +49,13 @@ namespace Aspire.Hosting;
 /// </example>
 /// </remarks>
 [DebuggerDisplay("{_host}")]
+[DebuggerTypeProxy(typeof(DistributedApplicationDebuggerProxy))]
 public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
-    private ResourceNotificationService? _resourceNotifications;
     private ResourceCommandService? _resourceCommands;
     private LocaleOverrideContext? _localeOverrideContext;
+    private readonly DistributedApplicationModel _model;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplication"/> class.
@@ -65,6 +66,13 @@ public class DistributedApplication : IHost, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(host);
 
         _host = host;
+
+        // Model and ResourceNotifications need to be set up front
+        // If the Debugger Proxy tries to lazy load them, VS fails with the error:
+        // > calls into native method System.Runtime.CompilerServices.RuntimeHelpers.TryEnsureSufficientExecutionStack()
+        // > Evaluation of native methods in this context is not supported.
+        _model = host.Services.GetRequiredService<DistributedApplicationModel>();
+        ResourceNotifications = host.Services.GetRequiredService<ResourceNotificationService>();
     }
 
     /// <summary>
@@ -293,7 +301,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </code>
     /// </example>
     /// </remarks>
-    public ResourceNotificationService ResourceNotifications => _resourceNotifications ??= _host.Services.GetRequiredService<ResourceNotificationService>();
+    public ResourceNotificationService ResourceNotifications { get; }
 
     /// <summary>
     /// Gets the service for executing resource commands.
@@ -544,4 +552,69 @@ public class DistributedApplication : IHost, IAsyncDisposable
     Task IHost.StartAsync(CancellationToken cancellationToken) => StartAsync(cancellationToken);
 
     Task IHost.StopAsync(CancellationToken cancellationToken) => StopAsync(cancellationToken);
+
+    internal struct DistributedApplicationDebuggerProxy(DistributedApplication app)
+    {
+        public readonly IHost Host => app._host;
+
+        public List<ResourceStateDebugView> Resources
+        {
+            get
+            {
+                if (app._model == null)
+                {
+                    return [];
+                }
+
+                var results = new List<ResourceStateDebugView>(app._model.Resources.Count);
+                foreach (var resource in app._model.Resources)
+                {
+                    resource.TryGetLastAnnotation<DcpInstancesAnnotation>(out var dcpInstancesAnnotation);
+                    if (dcpInstancesAnnotation is not null)
+                    {
+                        foreach(var instance in dcpInstancesAnnotation.Instances)
+                        {
+                            app.ResourceNotifications.TryGetCurrentState(instance.Name, out var resourceEvent);
+                            results.Add(new() { Resource = resource, Snapshot = resourceEvent?.Snapshot });
+                        }
+                    }
+                    else
+                    {
+                        app.ResourceNotifications.TryGetCurrentState(resource.Name, out var resourceEvent);
+                        results.Add(new() { Resource = resource, Snapshot = resourceEvent?.Snapshot });
+                    }
+                }
+
+                return results;
+            }
+        }
+
+        [DebuggerDisplay("{DebuggerToString(),nq}", Name = "{Resource.Name}", Type = "{Resource.GetType().FullName,nq}")]
+        internal class ResourceStateDebugView
+        {
+            public required IResource Resource { get; init; }
+
+            public required CustomResourceSnapshot? Snapshot { get; init; }
+
+            private string DebuggerToString()
+            {
+                var value = $@"Type = {Resource.GetType().Name}, Name = ""{Resource.Name}"", State = {Snapshot?.State?.Text ?? "(null)"}";
+
+                if (Snapshot?.HealthStatus is { } healthStatus)
+                {
+                    value += $", HealthStatus = {healthStatus}";
+                }
+
+                if (KnownResourceStates.TerminalStates.Contains(Snapshot?.State?.Text, StringComparers.ResourceState))
+                {
+                    if (Snapshot?.ExitCode is { } exitCode)
+                    {
+                        value += $", ExitCode = {exitCode}";
+                    }
+                }
+
+                return value;
+            }
+        }
+    }
 }
