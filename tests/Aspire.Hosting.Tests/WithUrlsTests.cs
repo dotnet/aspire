@@ -946,6 +946,52 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync().DefaultTimeout();
     }
 
+    [Fact]
+    public async Task WithUrlCanAddUrlFromAnotherResourcesEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        // Resource A has the endpoint
+        var resourceA = builder.AddProject<Projects.ServiceA>("resourcea")
+            .WithHttpEndpoint(name: "api");
+
+        // Resource B gets a URL that references resource A's endpoint via the object model
+        var resourceB = builder.AddProject<Projects.ServiceA>("resourceb")
+            .WaitFor(resourceA)
+            .WithUrls(c =>
+            {
+                c.Urls.Add(new()
+                {
+                    DisplayText = "API Docs",
+                    Url = "/",
+                    Endpoint = resourceA.Resource.GetEndpoint("api")
+                });
+            });
+
+        await using var app = await builder.BuildAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await app.StartAsync();
+
+        // Wait for resource B to be running & have the expected URLs
+        var resourceEvent = await rns.WaitForResourceAsync(
+            resourceB.Resource.Name,
+            e => e.Snapshot.State == KnownResourceStates.Running
+                    && e.Snapshot.Urls.Length == resourceB.Resource.GetEndpoints().ToArray().Length + 1
+                    && e.Snapshot.Urls.All(u => !u.IsInactive),
+            default).DefaultTimeout();
+
+        await app.StopAsync().DefaultTimeout();
+
+        // Verify that the URL from resource A's endpoint appears in resource B's snapshot
+        var crossResourceUrl = resourceEvent.Snapshot.Urls.FirstOrDefault(u => u.DisplayProperties.DisplayName == "API Docs");
+
+        Assert.NotNull(crossResourceUrl);
+        Assert.StartsWith("http://localhost", crossResourceUrl.Url);
+        Assert.Equal("api", crossResourceUrl.Name);
+        Assert.False(crossResourceUrl.IsInactive);
+    }
+
     private sealed class CustomResource(string name) : Resource(name), IResourceWithEndpoints
     {
 
