@@ -308,6 +308,9 @@
     <Project Path="playground/SqlServerScript/WebApplication1/WebApplication1.csproj" />
     <Project Path="playground/SqlServerScript/WebApplication2/WebApplication2.csproj" />
   </Folder>
+  <Folder Name="/playground/StdIoEndToEnd/">
+    <Project Path="playground/StdioEndToEnd/StdioEndToEnd.AppHost/StdioEndToEnd.AppHost.csproj" />
+  </Folder>
   <Folder Name="/playground/Stress/">
     <Project Path="playground/Stress/Stress.ApiService/Stress.ApiService.csproj" />
     <Project Path="playground/Stress/Stress.AppHost/Stress.AppHost.csproj" />
