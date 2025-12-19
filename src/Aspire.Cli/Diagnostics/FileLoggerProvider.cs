@@ -68,8 +68,18 @@ internal sealed class FileLoggerProvider : ILoggerProvider
         }
 
         _disposed = true;
-        _logWriter?.Dispose();
-        _writeLock.Dispose();
+
+        // Wait for any pending writes to complete before disposing
+        _writeLock.Wait();
+        try
+        {
+            _logWriter?.Dispose();
+        }
+        finally
+        {
+            _writeLock.Release();
+            _writeLock.Dispose();
+        }
     }
 
     private DirectoryInfo GetDiagnosticsBundleDirectory()
