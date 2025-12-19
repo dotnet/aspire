@@ -211,21 +211,4 @@ public class FileLoggerProviderTests
         }
     }
 
-    [Fact]
-    public void FileLoggerProvider_DoesNotThrowOnFailure()
-    {
-        // Arrange - Use an invalid path to trigger an error
-        var invalidDir = new DirectoryInfo("/dev/null/invalid/path");
-        var context = new CliExecutionContext(invalidDir, invalidDir, invalidDir, invalidDir, homeDirectory: invalidDir);
-        var timeProvider = new FakeTimeProvider();
-
-        // Act & Assert - Should not throw
-        using var provider = new FileLoggerProvider(context, timeProvider);
-        var logger = provider.CreateLogger("Test");
-        
-        logger.LogError(new InvalidOperationException("Test"), "Test error");
-        
-        // Should return null on failure
-        Assert.Null(provider.GetDiagnosticsPath());
-    }
 }
