@@ -946,6 +946,50 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync().DefaultTimeout();
     }
 
+    [Fact]
+    public async Task WithUrlCanAddUrlFromAnotherResourcesEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        // Resource B has the endpoint
+        var resourceB = builder.AddProject<ProjectA>("resourceb")
+            .WithHttpEndpoint(name: "api");
+
+        // Resource C gets a URL that references resource B's endpoint via the object model
+        var resourceC = builder.AddProject<ProjectA>("resourcec")
+            .WithUrls(c =>
+            {
+                c.Urls.Add(new()
+                {
+                    DisplayText = "API Docs",
+                    Url = "/swagger",
+                    Endpoint = resourceB.Resource.GetEndpoint("api")
+                });
+            });
+
+        await using var app = await builder.BuildAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await app.StartAsync();
+
+        // Wait for resource C to be running
+        var resourceEvent = await rns.WaitForResourceAsync(
+            resourceC.Resource.Name,
+            e => e.Snapshot.State == KnownResourceStates.Running,
+            default).DefaultTimeout();
+
+        await app.StopAsync().DefaultTimeout();
+
+        // Verify that the URL from resource B's endpoint appears in resource C's snapshot
+        var crossResourceUrl = resourceEvent.Snapshot.Urls.FirstOrDefault(u => u.DisplayProperties.DisplayName == "API Docs");
+
+        Assert.NotNull(crossResourceUrl);
+        Assert.StartsWith("http://localhost", crossResourceUrl.Url);
+        Assert.EndsWith("/swagger", crossResourceUrl.Url);
+        Assert.Equal("api", crossResourceUrl.Name);
+        Assert.False(crossResourceUrl.IsInactive);
+    }
+
     private sealed class CustomResource(string name) : Resource(name), IResourceWithEndpoints
     {
 

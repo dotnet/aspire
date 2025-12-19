@@ -243,12 +243,14 @@ internal class ResourceSnapshotBuilder
             var resourceServices = _resourceState.AppResources.OfType<ServiceWithModelResource>().Where(r => r.Service.AppModelResourceName == resource.AppModelResourceName).Select(s => s.Service).ToList();
             var name = resource.Metadata.Name;
 
-            // Add the endpoint URLs
+            // Add the endpoint URLs for endpoints belonging to the current resource
             var serviceEndpoints = new HashSet<(string EndpointName, string ServiceMetadataName)>(resourceServices.Where(s => !string.IsNullOrEmpty(s.EndpointName)).Select(s => (s.EndpointName!, s.Metadata.Name)));
+            var processedEndpointUrls = new HashSet<ResourceUrlAnnotation>();
+
             foreach (var endpoint in serviceEndpoints)
             {
                 var (endpointName, serviceName) = endpoint;
-                var urlsForEndpoint = endpointUrls.Where(u => string.Equals(endpointName, u.Endpoint?.EndpointName, StringComparisons.EndpointAnnotationName)).ToList();
+                var urlsForEndpoint = endpointUrls.Where(u => string.Equals(endpointName, u.Endpoint?.EndpointName, StringComparisons.EndpointAnnotationName) && u.Endpoint?.Resource.Name == appModelResource.Name).ToList();
 
                 foreach (var endpointUrl in urlsForEndpoint)
                 {
@@ -256,7 +258,29 @@ internal class ResourceSnapshotBuilder
                     var isInactive = activeEndpoint is null;
 
                     urls.Add(new(Name: endpointUrl.Endpoint!.EndpointName, Url: endpointUrl.Url, IsInternal: endpointUrl.IsInternal) { IsInactive = isInactive, DisplayProperties = new(endpointUrl.DisplayText ?? "", endpointUrl.DisplayOrder ?? 0) });
+                    processedEndpointUrls.Add(endpointUrl);
                 }
+            }
+
+            // Add endpoint URLs that reference endpoints from other resources
+            var crossResourceEndpointUrls = endpointUrls.Where(u => !processedEndpointUrls.Contains(u)).ToList();
+            foreach (var endpointUrl in crossResourceEndpointUrls)
+            {
+                var endpointOwnerResourceName = endpointUrl.Endpoint!.Resource.Name;
+                var endpointName = endpointUrl.Endpoint.EndpointName;
+
+                // Find the services for the endpoint's owner resource
+                var endpointOwnerServices = _resourceState.AppResources.OfType<ServiceWithModelResource>()
+                    .Where(r => r.Service.AppModelResourceName == endpointOwnerResourceName)
+                    .Select(s => s.Service)
+                    .ToList();
+
+                var matchingService = endpointOwnerServices.FirstOrDefault(s => string.Equals(s.EndpointName, endpointName, StringComparisons.EndpointAnnotationName));
+
+                // Determine if the endpoint is active based on the owner resource's state
+                var isInactive = matchingService is null;
+
+                urls.Add(new(Name: endpointName, Url: endpointUrl.Url, IsInternal: endpointUrl.IsInternal) { IsInactive = isInactive, DisplayProperties = new(endpointUrl.DisplayText ?? "", endpointUrl.DisplayOrder ?? 0) });
             }
 
             // Add the non-endpoint URLs
