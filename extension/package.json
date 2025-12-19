@@ -235,8 +235,7 @@
     "l10n:import": "gulp localizationBundle",
     "precompile": "npm run l10n:export && npm run l10n:import",
     "prewatch": "npm run l10n:export && npm run l10n:import",
-    "localize": "npm run l10n:export && npm run l10n:import",
-    "credprovider": "node credprovider-helper.js"
+    "localize": "npm run l10n:export && npm run l10n:import"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
