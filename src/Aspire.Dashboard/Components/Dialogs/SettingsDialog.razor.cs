@@ -143,7 +143,6 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     public void Dispose()
     {
         _cts.Cancel();
-        _cts.Dispose();
         _themeChangedSubscription?.Dispose();
     }
 }
