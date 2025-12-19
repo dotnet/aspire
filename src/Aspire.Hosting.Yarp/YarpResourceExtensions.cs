@@ -158,7 +158,7 @@ public static class YarpResourceExtensions
 
         builder.Resource.HostHttpsPort = port;
 
-        return builder;
+        return builder.WithEndpoint("https", ep => ep.Port = port, createIfNotExists: false);
     }
 
     /// <summary>
