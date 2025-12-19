@@ -598,38 +598,22 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
             private string DebuggerToString()
             {
-                var value = $@"Type = {Resource.GetType().Name}, Name = ""{Resource.Name}"", State = {GetDebugText(Snapshot?.State?.Text)}";
+                var value = $@"Type = {Resource.GetType().Name}, Name = ""{Resource.Name}"", State = {Snapshot?.State?.Text ?? "(null)"}";
 
-                if (Snapshot?.HealthStatus != null)
+                if (Snapshot?.HealthStatus is { } healthStatus)
                 {
-                    value += $", HealthStatus = {GetDebugText(Snapshot?.HealthStatus)}";
+                    value += $", HealthStatus = {healthStatus}";
                 }
 
                 if (KnownResourceStates.TerminalStates.Contains(Snapshot?.State?.Text, StringComparers.ResourceState))
                 {
-                    if (Snapshot?.ExitCode != null)
+                    if (Snapshot?.ExitCode is { } exitCode)
                     {
-                        value += $", ExitCode = {GetDebugText(Snapshot?.ExitCode)}";
+                        value += $", ExitCode = {exitCode}";
                     }
                 }
 
                 return value;
-            }
-
-            private static string GetDebugText(object? value)
-            {
-                if (value is null)
-                {
-                    return "(null)";
-                }
-                else if (value is string)
-                {
-                    return $@"""{value}""";
-                }
-                else
-                {
-                    return value?.ToString() ?? string.Empty;
-                }
             }
         }
     }
