@@ -9,4 +9,6 @@ const child = spawn('npx', ['@microsoft/artifacts-npm-credprovider'], {
     shell: false,
 });
 
-child.on('exit', code => process.exit(code));
+child.on('error', err => console.error(err.message));
+
+child.on('exit', code => process.exit(code ?? 1));
