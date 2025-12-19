@@ -7,8 +7,6 @@ namespace Aspire.Cli.Tests.Utils;
 
 public class ContainerRuntimeCheckTests
 {
-    #region ParseVersionFromJsonOutput Tests
-
     [Fact]
     public void ParseVersionFromJsonOutput_WithDockerJsonOutput_ReturnsBothVersions()
     {
@@ -177,10 +175,6 @@ public class ContainerRuntimeCheckTests
         Assert.Null(context);
     }
 
-    #endregion
-
-    #region ParseVersionFromOutput Tests (Text Fallback)
-
     [Theory]
     [InlineData("Docker version 20.10.17, build 100c701", "20.10.17")]
     [InlineData("Docker version 27.5.1, build 9f9e405", "27.5.1")]
@@ -266,6 +260,4 @@ public class ContainerRuntimeCheckTests
             Assert.NotNull(result);
         }
     }
-
-    #endregion
 }
