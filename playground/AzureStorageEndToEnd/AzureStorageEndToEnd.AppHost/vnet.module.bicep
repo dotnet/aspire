@@ -32,7 +32,20 @@ resource subnet1 'Microsoft.Network/virtualNetworks/subnets@2025-01-01' = {
   parent: vnet
 }
 
+resource private_endpoints 'Microsoft.Network/virtualNetworks/subnets@2025-01-01' = {
+  name: 'private-endpoints'
+  properties: {
+    addressPrefix: '10.0.2.0/24'
+  }
+  parent: vnet
+  dependsOn: [
+    subnet1
+  ]
+}
+
 output subnet1_Id string = subnet1.id
+
+output private_endpoints_Id string = private_endpoints.id
 
 output id string = vnet.id
 

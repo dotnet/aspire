@@ -47,6 +47,11 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     public BicepOutputReference TableEndpoint => new("tableEndpoint", this);
 
     /// <summary>
+    /// Gets the "id" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference Id => new("id", this);
+
+    /// <summary>
     /// Gets the "name" output reference for the resource.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);

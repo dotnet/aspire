@@ -126,6 +126,7 @@ public static class AzureStorageExtensions
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = storageAccount.Name });
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string)) { Value = storageAccount.Id });
         };
 
         var resource = new AzureStorageResource(name, configureInfrastructure);
