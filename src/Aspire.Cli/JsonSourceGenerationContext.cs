@@ -16,7 +16,6 @@ namespace Aspire.Cli;
 [JsonSerializable(typeof(DoctorCheckResponse))]
 [JsonSerializable(typeof(EnvironmentCheckResult))]
 [JsonSerializable(typeof(DoctorCheckSummary))]
-[JsonSerializable(typeof(List<DevCertificate>))]
 internal partial class JsonSourceGenerationContext : JsonSerializerContext
 {
 }
