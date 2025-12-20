@@ -184,6 +184,11 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
                 await callback.Callback(envContext).ConfigureAwait(false);
             }
         }
+        if (resource.TryGetLastAnnotation<AppIdentityAnnotation>(out var identityAnnotation))
+        {
+            collectedEnvVars["AZURE_CLIENT_ID"] = identityAnnotation.IdentityResource.ClientId;
+            collectedEnvVars["AZURE_TOKEN_CREDENTIALS"] = "ManagedIdentityCredential";
+        }
         var resolvedEnvVars = new Dictionary<string, string>();
         foreach (var (key, value) in collectedEnvVars)
         {

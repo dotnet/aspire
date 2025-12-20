@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "Microsoft",
+  "classifications": [
+    "Common",
+    "Aspire",
+    "Cloud",
+    "Web",
+    "Web API",
+    "API",
+    "Service",
+    "Python",
+    "JavaScript",
+    "Foundry",
+    "Azure"
+  ],
+  "name": "Aspire Azure Agent Starter",
+  "defaultName": "AspireAgentStarter",
+  "description": "A project template for creating an Aspire Azure Agent with a Python backend API service and a JavaScript frontend using Vite and React.",
+  "shortName": "aspire-agent-starter",
+  "sourceName": "AspireAgentStarter.1",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "precedence": "9000",
+  "identity": "Aspire.AgentStarter.CSharp",
+  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
+  "groupIdentity": "Aspire.AgentStarter",
+  "guids": [
+  ],
+  "sources": [
+    {
+      "source": "./13.0",
+      "target": "./"
+    }
+  ],
+  "symbols": {},
+  "primaryOutputs": [
+    {
+      "path": "apphost.cs"
+    }
+  ]
+}

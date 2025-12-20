@@ -6,10 +6,10 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.CognitiveServices;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
-using static Azure.Provisioning.Expressions.BicepFunction;
 using Microsoft.Extensions.DependencyInjection;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
+using Azure.Provisioning.Roles;
 
 namespace Aspire.Hosting;
 
@@ -20,6 +20,8 @@ public static class AzureCognitiveServicesAccountBuilderExtensions
 {
     /// <summary>
     /// Adds an Azure Cognitive Services account resource to the distributed application model.
+    ///
+    /// By default, it configures the account to allow for Foundry projects and "new" Foundry portal access.
     /// </summary>
     /// <remarks>This method configures the resource with default settings suitable for most Azure AI projects scenarios.</remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
@@ -50,6 +52,18 @@ public static class AzureCognitiveServicesAccountBuilderExtensions
                 },
                 infra =>
                 {
+                    UserAssignedIdentity identity;
+                    if (aspireResource.Identity is not null)
+                    {
+                        identity = (UserAssignedIdentity)aspireResource.Identity.AddAsExistingResource(infra);
+                    }
+                    else
+                    {
+                        // This is the principal used for the app runtime
+                        identity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{aspireResource.Name}-mi"));
+                        infra.Add(identity);
+                    }
+
                     var account = new CognitiveServicesAccount(infra.AspireResource.GetBicepIdentifier())
                     {
                         Name = name,
@@ -60,11 +74,16 @@ public static class AzureCognitiveServicesAccountBuilderExtensions
                         },
                         Identity = new ManagedServiceIdentity()
                         {
-                            ManagedServiceIdentityType = ManagedServiceIdentityType.SystemAssigned
+                            ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
+                            UserAssignedIdentities = {
+                                {identity.Id.Compile().ToString(), new UserAssignedIdentityDetails() }
+                            }
                         },
                         Properties = new CognitiveServicesAccountProperties
                         {
-                            CustomSubDomainName = ToLower(Take(Concat(infra.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                            // 2025-12-19: Steer users away from setting CustomSubDomainName, as if it is different from
+                            // the resource name, any projects in this account won't
+                            // work with the nextgen Foundry Portal UI.
                             PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
                             DisableLocalAuth = true,
                             AllowProjectManagement = true

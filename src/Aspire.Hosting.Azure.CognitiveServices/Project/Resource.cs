@@ -2,16 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Buffers.Text;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.CognitiveServices;
+using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
-
-#pragma warning disable ASPIREPIPELINES001
-#pragma warning disable ASPIREAZURE001
 
 /// <summary>
 /// The Azure Cognitive Services project resource.
@@ -54,6 +55,27 @@ public class AzureCognitiveServicesProjectResource :
             };
             steps.Add(loginStep);
 
+            var computeUrls = new PipelineStep
+            {
+                Name = $"compute-endpoints-{name}",
+                Action = async (context) => {
+                    var opts = context.Services.GetRequiredService<IOptions<AzureProvisionerOptions>>().Value;
+                    var subscriptionId = opts.SubscriptionId;
+                    var resourceGroupName = opts.ResourceGroup;
+                    if (string.IsNullOrEmpty(subscriptionId) || string.IsNullOrEmpty(resourceGroupName))
+                    {
+                        return;
+                    }
+                    var encodedSubscriptionId = EncodeSubscriptionId(subscriptionId);
+                    // Print dashboard URL
+                    await context.ReportingStep.CompleteAsync(
+                        $"https://ai.azure.com/nextgen/r/{encodedSubscriptionId},{resourceGroupName},,{Parent.Name},{Name}/home").ConfigureAwait(false);
+                },
+                Resource = this,
+                DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
+                RequiredBySteps = [WellKnownPipelineSteps.Deploy]
+            };
+            steps.Add(computeUrls);
             return steps;
         }));
 
@@ -130,8 +152,6 @@ public class AzureCognitiveServicesProjectResource :
     /// <summary>
     /// Get the address for the particular agent's endpoint.
     /// </summary>
-    /// <param name="endpointReference"></param>
-    /// <returns></returns>
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
@@ -141,24 +161,11 @@ public class AzureCognitiveServicesProjectResource :
     /// <summary>
     /// This is the encoding that the Foundry web portal uses in their URLs, for some reason
     /// </summary>
-    /// <param name="subscriptionId"></param>
-    /// <returns></returns>
     internal static string EncodeSubscriptionId(string subscriptionId)
     {
         var guid = Guid.Parse(subscriptionId);
         var encoded = Base64Url.EncodeToString(guid.ToByteArray());
         return encoded.TrimEnd('=');
-    }
-
-    internal static string DashboardUrl(string subscriptionId, string resourceGroupName, string accountName, string projectName)
-    {
-        return $"{WebUrlBase(subscriptionId, resourceGroupName, accountName, projectName)}/home";
-    }
-
-    internal static string WebUrlBase(string subscriptionId, string resourceGroupName, string accountName, string projectName)
-    {
-        var encodedSubscriptionId = EncodeSubscriptionId(subscriptionId);
-        return $"https://ai.azure.com/nextgen/r/{encodedSubscriptionId},{resourceGroupName},,{accountName},{projectName}";
     }
 
     internal IContainerRegistry GetContainerRegistry()
@@ -174,6 +181,23 @@ public class AzureCognitiveServicesProjectResource :
     /// The tag name for the "login to ACR" publish/deploy pipeline step.
     /// </summary>
     public const string LogInToAcrStepTag = "login-to-acr-";
+
+    /// <summary>
+    /// Tries to get the application identity resource associated with this project via
+    /// the <see cref="AppIdentityAnnotation"/>. This is the identity that will be
+    /// used by the project to access other Azure resources such as the container registry.
+    /// </summary>
+    public bool TryGetAppIdentityResource([NotNullWhen(true)] out IAppIdentityResource? identity)
+    {
+        if (this.TryGetLastAnnotation<AppIdentityAnnotation>(out var identityAnnotation))
+        {
+            identity = identityAnnotation.IdentityResource;
+            return true;
+        }
+        else
+        {
+            identity = null;
+            return false;
+        }
+    }
 }
-#pragma warning restore ASPIREPIPELINES001
-#pragma warning restore ASPIREAZURE001
