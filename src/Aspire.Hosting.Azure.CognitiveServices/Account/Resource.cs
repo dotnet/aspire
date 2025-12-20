@@ -48,4 +48,9 @@ public class AzureCognitiveServicesAccountResource(string name, Action<AzureReso
     {
         provisionableResource.Name = name;
     }
+
+    /// <summary>
+    /// The user-assigned managed identity for the Cognitive Services account to use when acting.
+    /// </summary>
+    public AzureUserAssignedIdentityResource? Identity { get; set; }
 }

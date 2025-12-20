@@ -48,12 +48,20 @@ public static class AzureCognitiveServicesProjectExtensions
             var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string)) { Value = new BicepValue<string>(string.Empty) };
             infra.Add(userPrincipalId);
 
-            // This is the principal used for the app runtime
-            var identity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-mi"))
+            UserAssignedIdentity identity;
+            if (aspireResource.TryGetAppIdentityResource(out var idResource) && idResource is AzureUserAssignedIdentityResource identityResource)
             {
-                Tags = tags
-            };
-            infra.Add(identity);
+                identity = (UserAssignedIdentity)identityResource.AddAsExistingResource(infra);
+            }
+            else
+            {
+                // This is the principal used for the app runtime
+                identity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-mi"))
+                {
+                    Tags = tags
+                };
+                infra.Add(identity);
+            }
 
             // Use a user-provided container registry or create a new one.
             // The container registry is used to host images for hosted agents.
@@ -71,11 +79,10 @@ public static class AzureCognitiveServicesProjectExtensions
                 };
             }
             infra.Add(containerRegistry);
-            // TODO: re-enable once role assignment permissions issues are fixed.
-            // var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, identity);
-            // // There's a bug in the CDK, see https://github.com/Azure/azure-sdk-for-net/issues/47265
-            // pullRa.Name = CreateGuid(containerRegistry.Id, identity.Id, pullRa.RoleDefinitionId);
-            // infra.Add(pullRa);
+            var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, identity);
+            // There's a bug in the CDK, see https://github.com/Azure/azure-sdk-for-net/issues/47265
+            pullRa.Name = BicepFunction.CreateGuid(containerRegistry.Id, identity.Id, pullRa.RoleDefinitionId);
+            infra.Add(pullRa);
 
             var account = builder.Resource.AddAsExistingResource(infra);
             // Create the Cognitive Services project resource
@@ -96,14 +103,14 @@ public static class AzureCognitiveServicesProjectExtensions
                         Name = name,
                         Identity = new ManagedServiceIdentity()
                         {
-                            ManagedServiceIdentityType = ManagedServiceIdentityType.SystemAssigned
+                            ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
+                            // We hack in this dictionary because the CDK doesn't take BicepValues as
+                            // keys.
+                            UserAssignedIdentities =
+                            {
+                                { identity.Id.Compile().ToString(), new UserAssignedIdentityDetails() }
+                            }
                         },
-                        // TODO: Keys must be IDs, but UserAssignedIdentities expects string keys, whereas we
-                        // have BicepValue Ids. Not sure how to resolve this yet.
-                        // Identity = new ManagedServiceIdentity()
-                        // {
-                        //     UserAssignedIdentities = { { identity.Id, new UserAssignedIdentityDetails() } }
-                        // },
                         Properties = new CognitiveServicesProjectProperties
                         {
                             DisplayName = name

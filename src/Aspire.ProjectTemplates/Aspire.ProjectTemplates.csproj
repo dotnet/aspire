@@ -43,6 +43,12 @@
       <DestinationFile>$(IntermediateOutputPath)content\templates\aspire-py-starter\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
     </TemplateProjectFiles>
 
+    <!-- Template project files: apphost.cs (aspire-agent-starter) -->
+    <TemplateProjectFiles Include="$(MSBuildThisFileDirectory)templates\aspire-agent-starter\**\apphost.cs">
+      <PackagePath>content/templates/aspire-agent-starter/%(RecursiveDir)</PackagePath>
+      <DestinationFile>$(IntermediateOutputPath)content\templates\aspire-agent-starter\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
+    </TemplateProjectFiles>
+
     <TemplateProjectFilesObj Include="@(TemplateProjectFiles->'%(DestinationFile)')" />
 
     <TemplateFiles Include="$(MSBuildThisFileDirectory)templates\**\*"
