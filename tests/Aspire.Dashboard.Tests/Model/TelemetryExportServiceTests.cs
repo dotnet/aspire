@@ -4,7 +4,6 @@
 using System.IO.Compression;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Tests.Shared;
@@ -693,18 +692,5 @@ public sealed class TelemetryExportServiceTests
         Assert.Collection(entryNames,
             name => Assert.Equal("structuredlogs/ServiceWithLogs.json", name),
             name => Assert.Equal("traces/ServiceWithTraces.json", name));
-    }
-
-    private sealed class TestSessionStorage : ISessionStorage
-    {
-        public Task<StorageResult<T>> GetAsync<T>(string key)
-        {
-            return Task.FromResult<StorageResult<T>>(new StorageResult<T>(success: false, value: default));
-        }
-
-        public Task SetAsync<T>(string key, T value)
-        {
-            return Task.CompletedTask;
-        }
     }
 }
