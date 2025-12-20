@@ -6,9 +6,7 @@
 #pragma warning disable ASPIREPIPELINES003
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Pipelines;
-using Azure.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -43,32 +41,10 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             var steps = new List<PipelineStep>();
 
-            var websiteExistsCheckStep = new PipelineStep
-            {
-                Name = $"check-{targetResource.Name}-exists",
-                Action = async ctx =>
-                {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-                    var isSlotDeployment = computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null;
-                    if (!isSlotDeployment)
-                    {
-                        return;
-                    }
-
-                    var websiteName = await GetAppServiceWebsiteNameAsync(ctx).ConfigureAwait(false);
-                    var exists = await CheckWebSiteExistsAsync(websiteName, ctx).ConfigureAwait(false);
-                    
-                    if (!exists)
-                    {
-                        ctx.ReportingStep.Log(LogLevel.Information, $"Website {websiteName} does not exist. Adding annotation to refresh provisionable resource", false);
-                        targetResource.Annotations.Add(new AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation());
-                    }
-                },
-                Tags = ["check-website-exists"],
-                DependsOnSteps = new List<string> { "create-provisioning-context" },
-            };
-
-            steps.Add(websiteExistsCheckStep);
+            // When using deployment slots with @onlyIfNotExists(), we build both webapp and slot during manifest publishing
+            var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+            var isSlotDeployment = computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null;
+            // Note: Do not add the annotation here. It will be added during deployment pipeline step if needed.
 
             var updateProvisionableResourceStep = new PipelineStep
             {
@@ -127,7 +103,20 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                            await computerEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
                     }
 
-                    var hostName = await GetAppServiceWebsiteNameAsync(ctx, deploymentSlot).ConfigureAwait(false);
+                    // Build the Azure App Service website name
+                    var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    var hostName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
+                    
+                    if (!string.IsNullOrWhiteSpace(deploymentSlot))
+                    {
+                        hostName += $"-{deploymentSlot}";
+                    }
+
+                    if (hostName.Length > 60)
+                    {
+                        hostName = hostName.Substring(0, 60);
+                    }
+                    
                     var endpoint = $"https://{hostName}.azurewebsites.net";
                     ctx.ReportingStep.Log(LogLevel.Information, $"Successfully deployed **{targetResource.Name}** to [{endpoint}]({endpoint})", enableMarkdown: true);
                 },
@@ -177,54 +166,75 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     public IResource TargetResource { get; }
 
     /// <summary>
-    /// Checks if an Azure App Service website exists.
+    /// Gets the list of resource identifiers that should have the @onlyIfNotExists() decorator.
     /// </summary>
-    /// <param name="websiteName">The name of the website to check.</param>
-    /// <param name="context">The pipeline step context.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains <c>true</c> if the website exists; otherwise, <c>false</c>.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when required services or configuration are not available.</exception>
-    private static async Task<bool> CheckWebSiteExistsAsync(string websiteName, PipelineStepContext context)
+    internal List<string> OnlyIfNotExistsResources { get; } = new();
+
+    /// <inheritdoc/>
+    public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {
-        // Get required services
-        var httpClientFactory = context.Services.GetService<IHttpClientFactory>();
-
-        if (httpClientFactory is null)
+        // Generate the base bicep template file
+        var templateFile = base.GetBicepTemplateFile(directory, deleteTemporaryFileOnDispose);
+        
+        // Get the website context which was used during ConfigureInfrastructure
+        // The context tracks resources that need the @onlyIfNotExists() decorator
+        var websiteContext = FindWebsiteContext();
+        if (websiteContext is not null && websiteContext.OnlyIfNotExistsResources.Count > 0)
         {
-            throw new InvalidOperationException("IHttpClientFactory is not registered in the service provider.");
+            // Copy resource identifiers from context to this resource for post-processing
+            OnlyIfNotExistsResources.Clear();
+            foreach (var resourceIdentifier in websiteContext.OnlyIfNotExistsResources)
+            {
+                OnlyIfNotExistsResources.Add(resourceIdentifier);
+            }
+            
+            // Post-process the bicep file to inject @onlyIfNotExists() decorators
+            var bicepContent = File.ReadAllText(templateFile.Path);
+            var processedBicep = AppService.BicepDecoratorWriter.InjectOnlyIfNotExistsDecorators(OnlyIfNotExistsResources, bicepContent);
+            File.WriteAllText(templateFile.Path, processedBicep);
+        }
+        
+        return templateFile;
+    }
+
+    /// <inheritdoc/>
+    public override string GetBicepTemplateString()
+    {
+        // Generate the base bicep template
+        var baseBicep = base.GetBicepTemplateString();
+        
+        // Get the website context which was used during ConfigureInfrastructure
+        // The context tracks resources that should have @onlyIfNotExists() decorator
+        var websiteContext = FindWebsiteContext();
+        if (websiteContext is not null)
+        {
+            // Copy resources from context to this resource for post-processing
+            OnlyIfNotExistsResources.Clear();
+            foreach (var resourceIdentifier in websiteContext.OnlyIfNotExistsResources)
+            {
+                OnlyIfNotExistsResources.Add(resourceIdentifier);
+            }
+        }
+        
+        // Post-process to inject @onlyIfNotExists() decorators
+        var processedBicep = AppService.BicepDecoratorWriter.InjectOnlyIfNotExistsDecorators(OnlyIfNotExistsResources, baseBicep);
+        
+        return processedBicep;
+    }
+
+    private AppService.AzureAppServiceWebsiteContext? FindWebsiteContext()
+    {
+        // Find the Azure App Service environment from the target resource's deployment target annotation
+        var deploymentTargetAnnotation = TargetResource.GetDeploymentTargetAnnotation();
+        if (deploymentTargetAnnotation?.ComputeEnvironment is AzureAppServiceEnvironmentResource computerEnv)
+        {
+            if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+            {
+                return environmentContextAnnotation.EnvironmentContext.TryGetWebsiteContext(TargetResource);
+            }
         }
 
-        var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
-
-        // Find the AzureEnvironmentResource from the application model
-        var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
-        if (azureEnvironment == null)
-        {
-            throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
-        }
-
-        var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
-        var subscriptionId = provisioningContext.Subscription.Id.SubscriptionId?.ToString()
-            ?? throw new InvalidOperationException("SubscriptionId is required.");
-        var resourceGroupName = provisioningContext.ResourceGroup.Name
-            ?? throw new InvalidOperationException("ResourceGroup name is required.");
-
-        context.ReportingStep.Log(LogLevel.Information, $"Check if website {websiteName} exists", false);
-        // Prepare ARM endpoint and request
-        var url = $"{AzureManagementEndpoint}/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{websiteName}?api-version=2025-03-01";
-
-        // Get access token for ARM
-        var tokenRequest = new TokenRequestContext([AzureManagementScope]);
-        var token = await tokenCredentialProvider.TokenCredential
-            .GetTokenAsync(tokenRequest, context.CancellationToken)
-            .ConfigureAwait(false);
-
-        var httpClient = httpClientFactory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Token);
-
-        using var response = await httpClient.SendAsync(request, context.CancellationToken).ConfigureAwait(false);
-
-        return response.StatusCode == System.Net.HttpStatusCode.OK;
+        return null;
     }
 
     /// <summary>
