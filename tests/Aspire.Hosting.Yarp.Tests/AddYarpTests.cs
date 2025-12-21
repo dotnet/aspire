@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Yarp.Tests;
@@ -394,6 +395,57 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         var dockerfile = await buildAnnotation.DockerfileFactory(context);
 
         await Verify(dockerfile);
+    }
+
+    [Fact]
+    public async Task VerifyWithHostHttpsPortCreatesHttpsEndpointWithSpecifiedPort()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: true,
+            trustCertificate: true,
+            tlsTerminate: false));
+
+        const int httpsPort = 12345;
+
+        var yarp = builder.AddYarp("yarp")
+            .WithHttpsDeveloperCertificate()
+            .WithHostHttpsPort(httpsPort);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var beforeStartEvent = new BeforeStartEvent(app.Services, model);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        var httpsEndpoint = Assert.Single(yarp.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "https");
+        Assert.Equal(httpsPort, httpsEndpoint.Port);
+        Assert.Equal("https", httpsEndpoint.UriScheme);
+    }
+
+    [Fact]
+    public async Task VerifyWithHostHttpsPortDoesNotCreateHttpsEndpointWithoutCertificateConfiguration()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        builder.Services.AddSingleton<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: true,
+            trustCertificate: true,
+            tlsTerminate: false));
+
+        var yarp = builder.AddYarp("yarp")
+            .WithHostHttpsPort(12345);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var beforeStartEvent = new BeforeStartEvent(app.Services, model);
+        await builder.Eventing.PublishAsync(beforeStartEvent);
+
+        Assert.DoesNotContain(yarp.Resource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "https");
     }
 
     private sealed class TestContainerFilesResource(string name) : ContainerResource(name), IResourceWithContainerFiles
