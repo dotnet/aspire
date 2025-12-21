@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Logging;
@@ -11,13 +10,6 @@ namespace Aspire.Cli.Utils.EnvironmentChecker;
 /// <summary>
 /// Checks if the dotnet dev-certs HTTPS certificate is trusted and detects multiple certificates.
 /// </summary>
-/// <remarks>
-/// This check uses X509Store to directly examine certificates in the certificate store.
-/// It checks for ASP.NET Core HTTPS development certificates by looking for the well-known OID.
-/// Trust is verified by checking if the certificate is trusted by the system (using X509Chain on macOS,
-/// or by checking the Root stores on Windows/Linux).
-/// Warnings are issued for multiple certificates or certificates older than version 5.
-/// </remarks>
 internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmentCheck
 {
     public int Order => 35; // After SDK check (30), before container checks (40+)
@@ -45,9 +37,8 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
             // Check which certificates are trusted
             var trustedCerts = devCertificates.Where(IsCertificateTrusted).ToList();
 
-            // Check for old certificate versions (< 5) among trusted certificates
-            const int MinimumRecommendedCertificateVersion = 5;
-            var oldTrustedCerts = trustedCerts.Where(c => c.GetCertificateVersion() < MinimumRecommendedCertificateVersion).ToList();
+            // Check for old certificate versions among trusted certificates
+            var oldTrustedCerts = trustedCerts.Where(c => c.GetCertificateVersion() < X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust).ToList();
 
             var results = new List<EnvironmentCheckResult>();
 
@@ -81,7 +72,8 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
                     });
                 }
             }
-            // Check for multiple trusted certificates (in Root store)
+            // Check for orphaned trusted certificates (in Root store but not in My store, or multiple certs in Root store for single cert in My store)
+            // This can happen when old certificates were trusted but the certificate in My store was regenerated
             else if (trustedCerts.Count > 1)
             {
                 results.Add(new EnvironmentCheckResult
@@ -130,7 +122,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
                     Name = "dev-certs-version",
                     Status = EnvironmentCheckStatus.Warning,
                     Message = $"HTTPS development certificate has an older version ({versions})",
-                    Details = "Older certificate versions (< v5) may not support container trust scenarios. Consider regenerating your development certificate.",
+                    Details = $"Older certificate versions (< v{X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust}) may not support container trust scenarios. Consider regenerating your development certificate. For best compatibility, use .NET SDK 10.0.101 or later.",
                     Fix = "Run 'dotnet dev-certs https --clean' to remove all certificates, then run 'dotnet dev-certs https --trust' to create a new one.",
                     Link = "https://aka.ms/aspire-prerequisites#dev-certs"
                 });
@@ -171,8 +163,12 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
                 if (cert.IsAspNetCoreDevelopmentCertificate() &&
                     cert.NotBefore <= now && now <= cert.NotAfter)
                 {
-                    devCerts.Add(cert);
+                    // Create a new instance to avoid keeping references to store certificates
+                    devCerts.Add(new X509Certificate2(cert));
                 }
+
+                // Dispose the certificate from the store enumeration
+                cert.Dispose();
             }
         }
         catch (Exception ex)
@@ -186,116 +182,10 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
     /// <summary>
     /// Checks if a certificate is trusted by the system.
     /// </summary>
-    /// <remarks>
-    /// On macOS, uses X509Chain to verify trust through the Keychain.
-    /// On Linux, checks the OpenSSL trust directory (~/.aspnet/dev-certs/trust/).
-    /// On Windows, checks if the certificate exists in the Root stores.
-    /// </remarks>
     private bool IsCertificateTrusted(X509Certificate2 certificate)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            // On macOS, use X509Chain to check if the certificate is trusted via the Keychain
-            using var chain = new X509Chain();
-            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-            chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-
-            try
-            {
-                var isValid = chain.Build(certificate);
-                if (isValid)
-                {
-                    return true;
-                }
-
-                // Check if the only error is UntrustedRoot - if so, we need to check
-                // if it's actually trusted in the keychain (self-signed cert scenario)
-                var hasOnlyUntrustedRootError = chain.ChainStatus.Length > 0 &&
-                    chain.ChainStatus.All(s => s.Status == X509ChainStatusFlags.UntrustedRoot);
-
-                if (hasOnlyUntrustedRootError)
-                {
-                    // For self-signed certs, X509Chain may still report UntrustedRoot
-                    // even when the cert is trusted in keychain. Check the Root stores.
-                    return IsCertificateInRootStore(certificate);
-                }
-
-                return false;
-            }
-            catch (Exception ex)
-            {
-                logger.LogDebug(ex, "Error checking certificate trust via X509Chain");
-                return false;
-            }
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            // On Linux, check the OpenSSL trust directory
-            return IsCertificateInOpenSslTrustStore(certificate) || IsCertificateInRootStore(certificate);
-        }
-        else
-        {
-            // On Windows, check if the certificate is in the Root stores
-            return IsCertificateInRootStore(certificate);
-        }
-    }
-
-    /// <summary>
-    /// Checks if a certificate exists in the OpenSSL trust directory on Linux.
-    /// </summary>
-    /// <remarks>
-    /// The dotnet dev-certs tool exports trusted certificates to ~/.aspnet/dev-certs/trust/
-    /// with the naming pattern: aspnetcore-localhost-{THUMBPRINT}.pem
-    /// </remarks>
-    private bool IsCertificateInOpenSslTrustStore(X509Certificate2 certificate)
-    {
-        try
-        {
-            var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var trustDir = Path.Combine(homeDir, ".aspnet", "dev-certs", "trust");
-
-            if (!Directory.Exists(trustDir))
-            {
-                logger.LogDebug("OpenSSL trust directory does not exist: {TrustDir}", trustDir);
-                return false;
-            }
-
-            // Look for certificate file with matching thumbprint
-            // Format: aspnetcore-localhost-{THUMBPRINT}.pem
-            var expectedFileName = $"aspnetcore-localhost-{certificate.Thumbprint}.pem";
-            var certPath = Path.Combine(trustDir, expectedFileName);
-
-            if (File.Exists(certPath))
-            {
-                logger.LogDebug("Found trusted certificate in OpenSSL trust directory: {CertPath}", certPath);
-                return true;
-            }
-
-            // Also check for any .pem files that might match by reading their content
-            foreach (var pemFile in Directory.GetFiles(trustDir, "*.pem"))
-            {
-                try
-                {
-                    using var trustedCert = X509CertificateLoader.LoadCertificateFromFile(pemFile);
-                    if (string.Equals(trustedCert.Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
-                    {
-                        logger.LogDebug("Found matching certificate in OpenSSL trust directory: {PemFile}", pemFile);
-                        return true;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogDebug(ex, "Error reading PEM file: {PemFile}", pemFile);
-                }
-            }
-
-            return false;
-        }
-        catch (Exception ex)
-        {
-            logger.LogDebug(ex, "Error checking OpenSSL trust directory");
-            return false;
-        }
+        // Check if the certificate exists in the Root stores (works across all platforms)
+        return IsCertificateInRootStore(certificate);
     }
 
     /// <summary>
@@ -318,9 +208,17 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
 
                 foreach (var cert in store.Certificates)
                 {
-                    if (string.Equals(cert.Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+                    try
                     {
-                        return true;
+                        if (string.Equals(cert.Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+                    }
+                    finally
+                    {
+                        // Dispose certificates from the store enumeration
+                        cert.Dispose();
                     }
                 }
             }
