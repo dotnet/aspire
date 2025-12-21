@@ -126,6 +126,12 @@ internal sealed class DoctorCommand : BaseCommand
         // Use 2 spaces after icon for consistent alignment (warning triangle is wider than checkmark)
         _ansiConsole.MarkupLine($"  [{color}]{icon}[/]  {result.Message.EscapeMarkup()}");
 
+        // Show details if available
+        if (!string.IsNullOrEmpty(result.Details))
+        {
+            _ansiConsole.MarkupLine($"        [dim]{result.Details.EscapeMarkup()}[/]");
+        }
+
         // Show fix suggestion if available
         if (!string.IsNullOrEmpty(result.Fix))
         {
