@@ -584,7 +584,7 @@
       </trans-unit>
       <trans-unit id="SettingsExportAllButtonText">
         <source>Export all</source>
-        <target state="new">Export all</target>
+        <target state="translated">모두 내보내기</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
