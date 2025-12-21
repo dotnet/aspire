@@ -96,10 +96,6 @@ Remove-Job -Name "AspireAppHost"
 
 ```bash
 # From the AppHost project directory
-# Basic example: run AppHost in the background in a subshell
-(dotnet run &)
-
-# Recommended: run in the background and capture output to a log
 dotnet run > apphost.log 2>&1 &
 
 # Find and stop later
