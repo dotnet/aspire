@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Logging;
@@ -45,6 +47,13 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
             // Check for multiple dev certificates (in My store)
             if (devCertificates.Count > 1)
             {
+                var certDetails = string.Join(", ", devCertificates.Select(c =>
+                {
+                    var version = c.GetCertificateVersion();
+                    var isTrusted = trustedCerts.Contains(c);
+                    return $"v{version} ({c.Thumbprint[..8]}...){(isTrusted ? " [trusted]" : "")}";
+                }));
+
                 if (trustedCerts.Count == 0)
                 {
                     results.Add(new EnvironmentCheckResult
@@ -53,7 +62,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
                         Name = "dev-certs",
                         Status = EnvironmentCheckStatus.Warning,
                         Message = $"Multiple HTTPS development certificates found ({devCertificates.Count} certificates), but none are trusted",
-                        Details = "Having multiple development certificates can cause confusion. None of them are currently trusted.",
+                        Details = $"Found certificates: {certDetails}. Having multiple certificates can cause confusion.",
                         Fix = "Run 'dotnet dev-certs https --clean' to remove all certificates, then run 'dotnet dev-certs https --trust' to create a new one.",
                         Link = "https://aka.ms/aspire-prerequisites#dev-certs"
                     });
@@ -66,7 +75,7 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
                         Name = "dev-certs",
                         Status = EnvironmentCheckStatus.Warning,
                         Message = $"Multiple HTTPS development certificates found ({devCertificates.Count} certificates)",
-                        Details = "Having multiple development certificates can cause confusion when selecting which certificate to use.",
+                        Details = $"Found certificates: {certDetails}. Having multiple certificates can cause confusion when selecting which one to use.",
                         Fix = "Run 'dotnet dev-certs https --clean' to remove all certificates, then run 'dotnet dev-certs https --trust' to create a new one.",
                         Link = "https://aka.ms/aspire-prerequisites#dev-certs"
                     });
@@ -88,14 +97,15 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
             }
             else if (trustedCerts.Count == 0)
             {
-                // Single certificate that's not trusted
+                // Single certificate that's not trusted - provide diagnostic info
+                var cert = devCertificates[0];
                 results.Add(new EnvironmentCheckResult
                 {
                     Category = "sdk",
                     Name = "dev-certs",
                     Status = EnvironmentCheckStatus.Warning,
                     Message = "HTTPS development certificate is not trusted",
-                    Details = "Aspire uses HTTPS for secure communication between the dashboard and your services during local development.",
+                    Details = $"Certificate {cert.Thumbprint} exists in the personal store but was not found in the trusted root store.",
                     Fix = "Run: dotnet dev-certs https --trust",
                     Link = "https://aka.ms/aspire-prerequisites#dev-certs"
                 });
@@ -184,8 +194,68 @@ internal sealed class DevCertsCheck(ILogger<DevCertsCheck> logger) : IEnvironmen
     /// </summary>
     private bool IsCertificateTrusted(X509Certificate2 certificate)
     {
-        // Check if the certificate exists in the Root stores (works across all platforms)
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            // On macOS, use 'security verify-cert' to check trust (same as dotnet dev-certs)
+            return IsCertificateTrustedOnMacOS(certificate);
+        }
+
+        // On Windows/Linux, check if the certificate exists in the Root stores
         return IsCertificateInRootStore(certificate);
+    }
+
+    /// <summary>
+    /// Checks if a certificate is trusted on macOS using the security command.
+    /// </summary>
+    /// <remarks>
+    /// This logic is based on ASP.NET Core's MacOSCertificateManager.GetTrustLevel method:
+    /// https://github.com/dotnet/aspnetcore/blob/main/src/Shared/CertificateGeneration/MacOSCertificateManager.cs
+    /// It uses 'security verify-cert' to check trust, which is the same approach used by 'dotnet dev-certs https --trust'.
+    /// </remarks>
+    private bool IsCertificateTrustedOnMacOS(X509Certificate2 certificate)
+    {
+        DirectoryInfo? tempDir = null;
+        try
+        {
+            // Create a temporary directory for the certificate file
+            tempDir = Directory.CreateTempSubdirectory("aspire-cert-");
+            var tempCertPath = Path.Combine(tempDir.FullName, $"{certificate.Thumbprint}.pem");
+            var pemData = certificate.ExportCertificatePem();
+            File.WriteAllText(tempCertPath, pemData);
+
+            // Use 'security verify-cert' to check trust
+            var processInfo = new ProcessStartInfo
+            {
+                FileName = "security",
+                Arguments = $"verify-cert -c \"{tempCertPath}\" -p basic -p ssl",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(processInfo);
+            if (process is null)
+            {
+                logger.LogDebug("Failed to start security verify-cert process");
+                return false;
+            }
+
+            process.WaitForExit(TimeSpan.FromSeconds(10));
+            return process.ExitCode == 0;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Error checking certificate trust on macOS");
+            return false;
+        }
+        finally
+        {
+            if (tempDir != null)
+            {
+                try { tempDir.Delete(recursive: true); } catch { }
+            }
+        }
     }
 
     /// <summary>
