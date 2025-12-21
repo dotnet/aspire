@@ -275,7 +275,7 @@
     <value>Export all</value>
   </data>
   <data name="SettingsExportErrorMessage" xml:space="preserve">
-    <value>Failed to export telemetry:</value>
+    <value>Failed to export telemetry</value>
   </data>
   <data name="TextVisualizerSecretWarningTitle" xml:space="preserve">
     <value>Sensitive value hidden</value>

@@ -19,7 +19,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     private List<CultureInfo> _languageOptions = null!;
     private CultureInfo? _selectedUiCulture;
     private bool _isExporting;
-    private string? _exportErrorMessage;
+    private string? _errorMessage;
 
     private IDisposable? _themeChangedSubscription;
 
@@ -118,7 +118,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         }
 
         _isExporting = true;
-        _exportErrorMessage = null;
+        _errorMessage = null;
         StateHasChanged();
 
         try
@@ -131,7 +131,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         }
         catch (Exception ex)
         {
-            _exportErrorMessage = ex.Message;
+            _errorMessage = $"{Loc[nameof(Resources.Dialogs.SettingsExportErrorMessage)]}: {ex.Message}";
         }
         finally
         {

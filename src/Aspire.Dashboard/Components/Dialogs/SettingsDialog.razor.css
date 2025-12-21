@@ -1,4 +1,4 @@
-.export-error-message {
-    margin-top: calc(var(--design-unit) * 2px);
+.telemetry-error-message {
     color: var(--error);
+    font-size: var(--type-ramp-minus-1-font-size);
 }
