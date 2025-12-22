@@ -47,6 +47,9 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     [Inject]
     public required IJSRuntime JS { get; init; }
 
+    [Inject]
+    public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
+
     protected override void OnInitialized()
     {
         _languageOptions = GlobalizationHelpers.OrderedLocalizedCultures;
@@ -131,6 +134,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         }
         catch (Exception ex)
         {
+            ErrorRecorder.RecordError("Error exporting telemetry", ex, writeToLogging: true);
             _errorMessage = $"{Loc[nameof(Resources.Dialogs.SettingsExportErrorMessage)]}: {ex.Message}";
         }
         finally
