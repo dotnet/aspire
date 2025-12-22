@@ -118,7 +118,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     }
 
     /// <summary>
-    /// Lists MCP tools for all resources in the application model that are annotated with <see cref="McpEndpointAnnotation"/>.
+    /// Lists MCP tools for all resources in the application model that are annotated with <see cref="McpServerEndpointAnnotation"/>.
     /// </summary>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A list of resources that expose MCP servers and their available tools.</returns>
@@ -136,7 +136,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             .Select(r => new
             {
                 Resource = r,
-                HasAnnotation = r.TryGetLastAnnotation<McpEndpointAnnotation>(out var annotation),
+                HasAnnotation = r.TryGetLastAnnotation<McpServerEndpointAnnotation>(out var annotation),
                 Annotation = annotation
             })
             .Where(x => x.HasAnnotation)
@@ -167,7 +167,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                logger.LogDebug("Found {ToolsNumber} in {ResourceName}: {Tools}", tools.Length, resource.Name, string.Join(", ", tools.Select(x => x.Name)));
+                logger.LogDebug("Found {ToolsNumber} tools for {ResourceName}: {Tools}", tools.Length, resource.Name, string.Join(", ", tools.Select(x => x.Name)));
             }
 
             results.Add(new ResourceMcpTool
@@ -182,7 +182,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     }
 
     /// <summary>
-    /// Invokes a tool on the MCP server exposed by a resource annotated with <see cref="McpEndpointAnnotation"/>.
+    /// Invokes a tool on the MCP server exposed by a resource annotated with <see cref="McpServerEndpointAnnotation"/>.
     /// </summary>
     /// <param name="resourceName">The resource name.</param>
     /// <param name="toolName">The tool name to invoke.</param>
@@ -213,7 +213,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             throw new InvalidOperationException($"Resource '{resourceName}' not found.");
         }
 
-        if (!resource.TryGetLastAnnotation<McpEndpointAnnotation>(out var annotation))
+        if (!resource.TryGetLastAnnotation<McpServerEndpointAnnotation>(out var annotation))
         {
             throw new InvalidOperationException($"Resource '{resourceName}' does not have an MCP endpoint annotation.");
         }
@@ -307,7 +307,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         return Task.CompletedTask;
     }
 
-    private static async Task<Uri?> TryGetMcpEndpointUrlAsync(IResourceWithEndpoints resource, McpEndpointAnnotation annotation, CancellationToken cancellationToken)
+    private static async Task<Uri?> TryGetMcpEndpointUrlAsync(IResourceWithEndpoints resource, McpServerEndpointAnnotation annotation, CancellationToken cancellationToken)
     {
         var endpoint = resource.GetEndpoint(annotation.EndpointName);
         if (!endpoint.Exists)

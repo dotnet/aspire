@@ -188,14 +188,9 @@ internal sealed class McpStartCommand : BaseCommand
 
             var result = await connection.CallResourceMcpToolAsync(resourceAndTool.ResourceName, resourceAndTool.Tool.Name, args, cancellationToken).ConfigureAwait(false);
 
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                // _logger.LogDebug("Result: {Result}", JsonSerializer.Serialize(result, McpJsonUtilities.DefaultOptions));
-            }
-
             if (result is null)
             {
-                throw new McpProtocolException($"Failed to get MCP tool result for '{toolName}' try to refresh the tools with 'refresh_tools'.", McpErrorCode.InternalError);
+                throw new McpProtocolException($"Failed to get MCP tool result for '{toolName}'. Try refreshing the tools with 'refresh_tools'.", McpErrorCode.InternalError);
             }
 
             return result;

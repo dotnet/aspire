@@ -263,8 +263,10 @@ public static class PostgresBuilderExtensions
 
     /// <summary>
     /// Adds an administration and development platform for PostgreSQL to the application model using pgweb.
-    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
     /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="PostgresContainerImageTags.PgWebTag"/> tag of the <inheritdoc cref="PostgresContainerImageTags.PgWebImage"/> container image.
+    /// </remarks>
     /// <param name="builder">The Postgres server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -380,7 +382,7 @@ public static class PostgresBuilderExtensions
             {
                 context.EnvironmentVariables[PostgresMcpDatabaseUriEnvVarName] = builder.Resource.UriExpression;
             })
-            .WithAnnotation(new McpEndpointAnnotation(PostgresMcpContainerResource.PrimaryEndpointName, "/sse"))
+            .WithAnnotation(new McpServerEndpointAnnotation(PostgresMcpContainerResource.PrimaryEndpointName, "/sse"))
             .WithIconName("BrainCircuit"); // Show a BrainCircuit icon for MCP resources in the dashboard
 
         configureContainer?.Invoke(mcpContainerBuilder);
@@ -427,7 +429,7 @@ public static class PostgresBuilderExtensions
             {
                 context.EnvironmentVariables[PostgresMcpDatabaseUriEnvVarName] = builder.Resource.UriExpression;
             })
-            .WithAnnotation(new McpEndpointAnnotation(PostgresMcpContainerResource.PrimaryEndpointName, "/sse"))
+            .WithAnnotation(new McpServerEndpointAnnotation(PostgresMcpContainerResource.PrimaryEndpointName, "/sse"))
             .WithIconName("BrainCircuit"); // Show a BrainCircuit icon for MCP resources in the dashboard
 
         configureContainer?.Invoke(mcpContainerBuilder);

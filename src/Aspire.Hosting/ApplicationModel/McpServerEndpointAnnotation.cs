@@ -10,14 +10,14 @@ namespace Aspire.Hosting.ApplicationModel;
 /// This annotation is intended for discovery and proxying scenarios where the Aspire AppHost can act as a mediator
 /// between clients (such as the Aspire CLI) and MCP servers exposed by resources.
 /// </remarks>
-public sealed class McpEndpointAnnotation : IResourceAnnotation
+public sealed class McpServerEndpointAnnotation : IResourceAnnotation
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="McpEndpointAnnotation"/> class.
+    /// Initializes a new instance of the <see cref="McpServerEndpointAnnotation"/> class.
     /// </summary>
     /// <param name="endpointName">The name of the endpoint on the resource that hosts the MCP server.</param>
     /// <param name="path">An optional path to append to the endpoint URL. Defaults to <c>"/mcp"</c>.</param>
-    public McpEndpointAnnotation(string endpointName, string? path = "/mcp")
+    public McpServerEndpointAnnotation(string endpointName, string? path = "/mcp")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
 

@@ -30,7 +30,7 @@ public class PostgresMcpBuilderTests
         Assert.Equal("http", endpoint.UriScheme);
         Assert.Equal(8000, endpoint.TargetPort);
 
-        var mcpAnnotation = Assert.Single(mcpContainer.Annotations.OfType<McpEndpointAnnotation>());
+        var mcpAnnotation = Assert.Single(mcpContainer.Annotations.OfType<McpServerEndpointAnnotation>());
         Assert.Equal(PostgresMcpContainerResource.PrimaryEndpointName, mcpAnnotation.EndpointName);
         Assert.Equal("/sse", mcpAnnotation.Path);
     }
