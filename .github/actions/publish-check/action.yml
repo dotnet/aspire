@@ -1,0 +1,75 @@
+name: Publish Check
+description: Publish a GitHub Check Run with optional check suite discovery and diagnostics
+
+inputs:
+  github_token:
+    description: Token used to authenticate GitHub API requests (recommended to pass ${{ github.token }})
+    required: false
+  owner_repo:
+    description: The owner/repo to operate on (defaults to $GITHUB_REPOSITORY)
+    required: false
+  head_sha:
+    description: The commit SHA for the check run (defaults to $GITHUB_SHA)
+    required: false
+  check_name:
+    description: The name of the check
+    required: true
+  title:
+    description: Title shown in the check output
+    required: false
+  status:
+    description: The status of the check run (queued, in_progress, completed). Defaults to completed
+    required: false
+    default: completed
+  conclusion:
+    description: The conclusion of the check run (success, failure, neutral, cancelled, timed_out, action_required, stale, skipped)
+    required: false
+  details_url:
+    description: A URL with more details for the check run
+    required: false
+  summary_file:
+    description: Path to a file whose contents will become the check summary
+    required: false
+  summary_text:
+    description: Inline summary text for the check (takes precedence over summary_file)
+    required: false
+  check_suite_id:
+    description: Explicit check suite id to associate the check run with
+    required: false
+  discover_check_suite:
+    description: When true, discover the suite id from the current workflow run and fail if it cannot be determined
+    required: false
+    default: 'false'
+  workflow_run_id:
+    description: The workflow run id to use for discovery (defaults to $GITHUB_RUN_ID)
+    required: false
+  workflow_job_name:
+    description: Optional job name filter used during discovery
+    required: false
+  runner_label:
+    description: Optional runner label filter (e.g., ubuntu-latest, windows-latest, macos-latest) used during discovery
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Publish Check
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        INPUT_OWNER_REPO: ${{ inputs.owner_repo }}
+        INPUT_HEAD_SHA: ${{ inputs.head_sha }}
+        INPUT_CHECK_NAME: ${{ inputs.check_name }}
+        INPUT_TITLE: ${{ inputs.title }}
+        INPUT_STATUS: ${{ inputs.status }}
+        INPUT_CONCLUSION: ${{ inputs.conclusion }}
+        INPUT_DETAILS_URL: ${{ inputs.details_url }}
+        INPUT_SUMMARY_FILE: ${{ inputs.summary_file }}
+        INPUT_SUMMARY_TEXT: ${{ inputs.summary_text }}
+        INPUT_CHECK_SUITE_ID: ${{ inputs.check_suite_id }}
+        INPUT_DISCOVER_CHECK_SUITE: ${{ inputs.discover_check_suite }}
+        INPUT_WORKFLOW_RUN_ID: ${{ inputs.workflow_run_id }}
+        INPUT_WORKFLOW_JOB_NAME: ${{ inputs.workflow_job_name }}
+        INPUT_RUNNER_LABEL: ${{ inputs.runner_label }}
+      run: |
+        & "${{ github.action_path }}/publish-check.ps1"
