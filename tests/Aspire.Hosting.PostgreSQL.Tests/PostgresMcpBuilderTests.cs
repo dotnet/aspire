@@ -40,7 +40,9 @@ public class PostgresMcpBuilderTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.AddPostgres("postgres")
+        var pass = appBuilder.AddParameter("pass", "p@ssw0rd1");
+
+        appBuilder.AddPostgres("postgres", password: pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5432))
             .WithPostgresMcp();
 
@@ -53,8 +55,7 @@ public class PostgresMcpBuilderTests
         var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpContainer, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         var databaseUri = Assert.Single(env, e => e.Key == "DATABASE_URI");
-        var uriProperty = Assert.Single(((IResourceWithConnectionString)server).GetConnectionProperties(), p => p.Key == "Uri");
-        Assert.Equal(uriProperty.Value.ValueExpression, databaseUri.Value);
+        Assert.Equal("postgresql://postgres:p%40ssw0rd1@postgres.dev.internal:5432", databaseUri.Value);
     }
 
     [Fact]
@@ -62,7 +63,9 @@ public class PostgresMcpBuilderTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.AddPostgres("postgres")
+        var pass = appBuilder.AddParameter("pass", "p@ssw0rd1");
+
+        appBuilder.AddPostgres("postgres", password: pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5432))
             .AddDatabase("db")
             .WithPostgresMcp();
@@ -76,8 +79,7 @@ public class PostgresMcpBuilderTests
         var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpContainer, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         var databaseUri = Assert.Single(env, e => e.Key == "DATABASE_URI");
-        var uriProperty = Assert.Single(((IResourceWithConnectionString)database).GetConnectionProperties(), p => p.Key == "Uri");
-        Assert.Equal(uriProperty.Value.ValueExpression, databaseUri.Value);
+        Assert.Equal("postgresql://postgres:p%40ssw0rd1@postgres.dev.internal:5432/db", databaseUri.Value);
     }
 
     [Fact]
