@@ -133,6 +133,44 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to delete the value for parameter `{0}`? .
+        /// </summary>
+        internal static string DeleteParameterMessage {
+            get {
+                return ResourceManager.GetString("DeleteParameterMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to delete the value for parameter `{0}`?
+        ///
+        ///The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there..
+        /// </summary>
+        internal static string DeleteParameterMessageWithUserSecrets {
+            get {
+                return ResourceManager.GetString("DeleteParameterMessageWithUserSecrets", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete.
+        /// </summary>
+        internal static string DeleteParameterPrimaryButtonText {
+            get {
+                return ResourceManager.GetString("DeleteParameterPrimaryButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete parameter value.
+        /// </summary>
+        internal static string DeleteParameterTitle {
+            get {
+                return ResourceManager.GetString("DeleteParameterTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to There are unresolved parameters that need to be set. Please provide values for them..
         /// </summary>
         internal static string ParametersBarMessage {
@@ -156,6 +194,15 @@ namespace Aspire.Hosting.Resources {
         internal static string ParametersBarTitle {
             get {
                 return ResourceManager.GetString("ParametersBarTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete from user secrets.
+        /// </summary>
+        internal static string ParametersInputsDeleteLabel {
+            get {
+                return ResourceManager.GetString("ParametersInputsDeleteLabel", resourceCulture);
             }
         }
         

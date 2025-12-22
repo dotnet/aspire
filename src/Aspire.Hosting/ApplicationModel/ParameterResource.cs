@@ -45,7 +45,7 @@ public class ParameterResource : Resource, IManifestExpressionProvider, IValuePr
         get
         {
             // If the WaitForValueTcs has a set value then prefer it.
-            if (WaitForValueTcs?.Task is { IsCompletedSuccessfully: true } valueTask)
+            if (WaitForValueTcs?.Task is { IsCompleted: true } valueTask)
             {
                 return valueTask.Result;
             }

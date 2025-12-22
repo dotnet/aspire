@@ -32,7 +32,7 @@ public class ParameterProcessorTests
         };
 
         // Act
-        await parameterProcessor.InitializeParametersAsync(parameters);
+        await parameterProcessor.InitializeParametersAsync(parameters).DefaultTimeout();
 
         // Assert
         foreach (var param in parameters)
@@ -40,7 +40,7 @@ public class ParameterProcessorTests
             Assert.NotNull(param.WaitForValueTcs);
             Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
 #pragma warning disable CS0618 // Type or member is obsolete
-            Assert.Equal(param.Value, await param.WaitForValueTcs.Task);
+            Assert.Equal(param.Value, await param.WaitForValueTcs.Task.DefaultTimeout());
 #pragma warning restore CS0618 // Type or member is obsolete
         }
     }
@@ -58,7 +58,7 @@ public class ParameterProcessorTests
         };
 
         // Act
-        await parameterProcessor.InitializeParametersAsync(parameters);
+        await parameterProcessor.InitializeParametersAsync(parameters).DefaultTimeout();
 
         // Assert
         foreach (var param in parameters)
@@ -66,7 +66,7 @@ public class ParameterProcessorTests
             Assert.NotNull(param.WaitForValueTcs);
             Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
 #pragma warning disable CS0618 // Type or member is obsolete
-            Assert.Equal(param.Value, await param.WaitForValueTcs.Task);
+            Assert.Equal(param.Value, await param.WaitForValueTcs.Task.DefaultTimeout());
 #pragma warning restore CS0618 // Type or member is obsolete
         }
     }
@@ -90,10 +90,10 @@ public class ParameterProcessorTests
         });
 
         // Act
-        await parameterProcessor.InitializeParametersAsync([secretParam]);
+        await parameterProcessor.InitializeParametersAsync([secretParam]).DefaultTimeout();
 
         // Wait for the notification
-        await watchTask.WaitAsync(TimeSpan.FromSeconds(5));
+        await watchTask.DefaultTimeout();
 
         // Assert
         var (resource, snapshot) = Assert.Single(updates);
@@ -110,7 +110,7 @@ public class ParameterProcessorTests
         var parameterWithMissingValue = CreateParameterWithMissingValue("missingParam");
 
         // Act
-        await parameterProcessor.InitializeParametersAsync([parameterWithMissingValue]);
+        await parameterProcessor.InitializeParametersAsync([parameterWithMissingValue]).DefaultTimeout();
 
         // Assert
         Assert.NotNull(parameterWithMissingValue.WaitForValueTcs);
@@ -126,7 +126,7 @@ public class ParameterProcessorTests
         var parameterWithMissingValue = CreateParameterWithMissingValue("missingParam");
 
         // Act
-        await parameterProcessor.InitializeParametersAsync([parameterWithMissingValue]);
+        await parameterProcessor.InitializeParametersAsync([parameterWithMissingValue]).DefaultTimeout();
 
         // Assert
         Assert.NotNull(parameterWithMissingValue.WaitForValueTcs);
@@ -144,7 +144,7 @@ public class ParameterProcessorTests
         var parameterWithMissingValue = CreateParameterWithMissingValue("missingParam");
 
         // Act
-        await parameterProcessor.InitializeParametersAsync([parameterWithMissingValue]);
+        await parameterProcessor.InitializeParametersAsync([parameterWithMissingValue]).DefaultTimeout();
 
         // Assert - Parameter should remain unresolved when dashboard is enabled
         Assert.NotNull(parameterWithMissingValue.WaitForValueTcs);
@@ -159,7 +159,7 @@ public class ParameterProcessorTests
         var parameterWithError = CreateParameterWithGenericError("errorParam");
 
         // Act
-        await parameterProcessor.InitializeParametersAsync([parameterWithError]);
+        await parameterProcessor.InitializeParametersAsync([parameterWithError]).DefaultTimeout();
 
         // Assert
         Assert.NotNull(parameterWithError.WaitForValueTcs);
@@ -193,7 +193,7 @@ public class ParameterProcessorTests
         var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
         // Assert - Wait for the first interaction (message bar)
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(InteractionStrings.ParametersBarTitle, messageBarInteraction.Title);
         Assert.Equal(InteractionStrings.ParametersBarMessage, messageBarInteraction.Message);
 
@@ -201,7 +201,7 @@ public class ParameterProcessorTests
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true)); // Data = true (user clicked Enter Values)
 
         // Wait for the inputs interaction
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(InteractionStrings.ParametersInputsTitle, inputsInteraction.Title);
         Assert.Equal(InteractionStrings.ParametersInputsMessage, inputsInteraction.Message);
         Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
@@ -239,27 +239,27 @@ public class ParameterProcessorTests
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         // Wait for the handle task to complete
-        await handleTask;
+        await handleTask.DefaultTimeout();
 
         // Assert - All parameters should now be resolved
         Assert.True(param1.WaitForValueTcs!.Task.IsCompletedSuccessfully);
         Assert.True(param2.WaitForValueTcs!.Task.IsCompletedSuccessfully);
         Assert.True(secretParam.WaitForValueTcs!.Task.IsCompletedSuccessfully);
-        Assert.Equal("value1", await param1.WaitForValueTcs.Task);
-        Assert.Equal("value2", await param2.WaitForValueTcs.Task);
-        Assert.Equal("secretValue", await secretParam.WaitForValueTcs.Task);
+        Assert.Equal("value1", await param1.WaitForValueTcs.Task.DefaultTimeout());
+        Assert.Equal("value2", await param2.WaitForValueTcs.Task.DefaultTimeout());
+        Assert.Equal("secretValue", await secretParam.WaitForValueTcs.Task.DefaultTimeout());
 
         // Notification service should have received updates for each parameter
         // Marking them as Running with the provided values
-        await updates.MoveNextAsync();
+        await updates.MoveNextAsync().DefaultTimeout();
         Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("value1", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
 
-        await updates.MoveNextAsync();
+        await updates.MoveNextAsync().DefaultTimeout();
         Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("value2", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
 
-        await updates.MoveNextAsync();
+        await updates.MoveNextAsync().DefaultTimeout();
         Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("secretValue", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
         Assert.True(updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.IsSensitive ?? false);
@@ -279,14 +279,14 @@ public class ParameterProcessorTests
         _ = parameterProcessor.HandleUnresolvedParametersAsync([parameterWithMissingValue], CancellationToken.None);
 
         // Wait for the message bar interaction
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(InteractionStrings.ParametersBarTitle, messageBarInteraction.Title);
 
         // Complete the message bar interaction with false (user chose not to enter values)
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Cancel<bool>());
 
         // Assert that the message bar will show up again if there are still unresolved parameters
-        var nextMessageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var nextMessageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(InteractionStrings.ParametersBarTitle, nextMessageBarInteraction.Title);
 
         // Assert - Parameter should remain unresolved since user cancelled
@@ -301,7 +301,7 @@ public class ParameterProcessorTests
         var parameterProcessor = CreateParameterProcessor();
 
         // Act & Assert - Should not throw
-        await parameterProcessor.InitializeParametersAsync([]);
+        await parameterProcessor.InitializeParametersAsync([]).DefaultTimeout();
     }
 
     [Fact]
@@ -319,10 +319,10 @@ public class ParameterProcessorTests
         var logsTask = ConsoleLoggingTestHelpers.WatchForLogsAsync(loggerService, 1, parameterWithMissingValue);
 
         // Act
-        await parameterProcessor.InitializeParametersAsync([parameterWithMissingValue]);
+        await parameterProcessor.InitializeParametersAsync([parameterWithMissingValue]).DefaultTimeout();
 
         // Wait for logs to be written
-        var logs = await logsTask.WaitAsync(TimeSpan.FromSeconds(5));
+        var logs = await logsTask.DefaultTimeout();
 
         // Assert - Should log warning without exception details
         Assert.Single(logs);
@@ -343,10 +343,10 @@ public class ParameterProcessorTests
         var logsTask = ConsoleLoggingTestHelpers.WatchForLogsAsync(loggerService, 1, parameterWithError);
 
         // Act
-        await parameterProcessor.InitializeParametersAsync([parameterWithError]);
+        await parameterProcessor.InitializeParametersAsync([parameterWithError]).DefaultTimeout();
 
         // Wait for logs to be written
-        var logs = await logsTask.WaitAsync(TimeSpan.FromSeconds(5));
+        var logs = await logsTask.DefaultTimeout();
 
         // Assert - Should log error message
         Assert.Single(logs);
@@ -377,19 +377,19 @@ public class ParameterProcessorTests
         var handleTask = parameterProcessor.HandleUnresolvedParametersAsync([parameter], CancellationToken.None);
 
         // Wait for the message bar interaction
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
 
         // Wait for the inputs interaction
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         inputsInteraction.Inputs["testParam"].Value = "testValue";
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         // Wait for the handle task to complete
-        await handleTask;
+        await handleTask.DefaultTimeout();
 
         // Wait for logs to be written
-        var logs = await logsTask.WaitAsync(TimeSpan.FromSeconds(5));
+        var logs = await logsTask.DefaultTimeout();
 
         // Assert - Should log that parameter was resolved via user interaction
         Assert.Single(logs);
@@ -424,11 +424,11 @@ public class ParameterProcessorTests
         _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
         // Wait for the message bar interaction and complete it
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
 
         // Wait for the inputs interaction
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(3, inputsInteraction.Inputs.Count); // 2 parameters + 1 save option
@@ -464,11 +464,11 @@ public class ParameterProcessorTests
         _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
         // Wait for the message bar interaction and complete it
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
 
         // Wait for the inputs interaction
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(2, inputsInteraction.Inputs.Count); // 1 secret parameter + 1 save option
@@ -498,7 +498,7 @@ public class ParameterProcessorTests
         var parameterProcessor = CreateParameterProcessor();
 
         // Act
-        await parameterProcessor.InitializeParametersAsync(model);
+        await parameterProcessor.InitializeParametersAsync(model).DefaultTimeout();
 
         // Assert
         var explicitParameterResource = model.Resources.OfType<ParameterResource>().First(p => p.Name == "explicitParam");
@@ -508,8 +508,8 @@ public class ParameterProcessorTests
         Assert.NotNull(referencedParameterResource.WaitForValueTcs);
         Assert.True(explicitParameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
         Assert.True(referencedParameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
-        Assert.Equal("explicitValue", await explicitParameterResource.WaitForValueTcs.Task);
-        Assert.Equal("referencedValue", await referencedParameterResource.WaitForValueTcs.Task);
+        Assert.Equal("explicitValue", await explicitParameterResource.WaitForValueTcs.Task.DefaultTimeout());
+        Assert.Equal("referencedValue", await referencedParameterResource.WaitForValueTcs.Task.DefaultTimeout());
     }
 
     [Fact]
@@ -523,7 +523,7 @@ public class ParameterProcessorTests
         var parameterProcessor = CreateParameterProcessor();
 
         // Act & Assert - Should not throw
-        await parameterProcessor.InitializeParametersAsync(model);
+        await parameterProcessor.InitializeParametersAsync(model).DefaultTimeout();
     }
 
     [Fact]
@@ -543,14 +543,14 @@ public class ParameterProcessorTests
         var parameterProcessor = CreateParameterProcessor();
 
         // Act
-        await parameterProcessor.InitializeParametersAsync(model);
+        await parameterProcessor.InitializeParametersAsync(model).DefaultTimeout();
 
         // Assert
         var explicitParameterResource = model.Resources.OfType<ParameterResource>().Single();
         Assert.Equal("explicitParam", explicitParameterResource.Name);
         Assert.NotNull(explicitParameterResource.WaitForValueTcs);
         Assert.True(explicitParameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
-        Assert.Equal("explicitValue", await explicitParameterResource.WaitForValueTcs.Task);
+        Assert.Equal("explicitValue", await explicitParameterResource.WaitForValueTcs.Task.DefaultTimeout());
     }
 
     [Fact]
@@ -569,14 +569,14 @@ public class ParameterProcessorTests
         var parameterProcessor = CreateParameterProcessor();
 
         // Act
-        await parameterProcessor.InitializeParametersAsync(model);
+        await parameterProcessor.InitializeParametersAsync(model).DefaultTimeout();
 
         // Assert
         var parameterResource = model.Resources.OfType<ParameterResource>().Single();
         Assert.Equal("envParam", parameterResource.Name);
         Assert.NotNull(parameterResource.WaitForValueTcs);
         Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
-        Assert.Equal("envValue", await parameterResource.WaitForValueTcs.Task);
+        Assert.Equal("envValue", await parameterResource.WaitForValueTcs.Task.DefaultTimeout());
     }
 
     [Fact]
@@ -592,13 +592,13 @@ public class ParameterProcessorTests
         var parameterProcessor = CreateParameterProcessor();
 
         // Act
-        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true);
+        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true).DefaultTimeout();
 
         // Assert
         var parameterResource = model.Resources.OfType<ParameterResource>().Single();
         Assert.NotNull(parameterResource.WaitForValueTcs);
         Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
-        Assert.Equal("testValue", await parameterResource.WaitForValueTcs.Task);
+        Assert.Equal("testValue", await parameterResource.WaitForValueTcs.Task.DefaultTimeout());
     }
 
     [Fact]
@@ -614,13 +614,13 @@ public class ParameterProcessorTests
         var parameterProcessor = CreateParameterProcessor();
 
         // Act
-        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: false);
+        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: false).DefaultTimeout();
 
         // Assert
         var parameterResource = model.Resources.OfType<ParameterResource>().Single();
         Assert.NotNull(parameterResource.WaitForValueTcs);
         Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
-        Assert.Equal("testValue", await parameterResource.WaitForValueTcs.Task);
+        Assert.Equal("testValue", await parameterResource.WaitForValueTcs.Task.DefaultTimeout());
     }
 
     [Fact]
@@ -640,7 +640,7 @@ public class ParameterProcessorTests
         var parameterProcessor = CreateParameterProcessor(interactionService: interactionService);
 
         // Act
-        await parameterProcessor.InitializeParametersAsync(model);
+        await parameterProcessor.InitializeParametersAsync(model).DefaultTimeout();
 
         // Assert
         var parameterResource = model.Resources.OfType<ParameterResource>().Single();
@@ -670,7 +670,7 @@ public class ParameterProcessorTests
         var parameterProcessor = CreateParameterProcessor();
 
         // Act - Should not hang or throw due to circular references
-        await parameterProcessor.InitializeParametersAsync(model);
+        await parameterProcessor.InitializeParametersAsync(model).DefaultTimeout();
 
         // Assert
         var parameters = model.Resources.OfType<ParameterResource>().ToList();
@@ -710,7 +710,7 @@ public class ParameterProcessorTests
         var parameterProcessor = app.Services.GetRequiredService<ParameterProcessor>();
 
         // Act - Should not throw InvalidOperationException about IServiceProvider not being available
-        await parameterProcessor.InitializeParametersAsync(model);
+        await parameterProcessor.InitializeParametersAsync(model).DefaultTimeout();
 
         // Assert
         Assert.True(serviceProviderAccessed);
@@ -741,7 +741,7 @@ public class ParameterProcessorTests
         var parameterProcessor = CreateParameterProcessor();
 
         // Act - The excluded container should be skipped during parameter collection
-        await parameterProcessor.InitializeParametersAsync(model);
+        await parameterProcessor.InitializeParametersAsync(model).DefaultTimeout();
 
         // Assert
         // The environment callback should have been invoked during parameter collection
@@ -768,7 +768,7 @@ public class ParameterProcessorTests
         var parameter = CreateParameterResource("testParam", "testValue");
 
         // Act
-        await parameterProcessor.InitializeParametersAsync([parameter]);
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
 
         // Assert - Command should be added when interaction service is available
         var setValueCommand = parameter.Annotations.OfType<ResourceCommandAnnotation>()
@@ -776,8 +776,6 @@ public class ParameterProcessorTests
         Assert.NotNull(setValueCommand);
         Assert.Equal(CommandStrings.SetParameterName, setValueCommand.DisplayName);
         Assert.Equal(CommandStrings.SetParameterDescription, setValueCommand.DisplayDescription);
-        Assert.Equal("Key", setValueCommand.IconName);
-        Assert.Equal(IconVariant.Filled, setValueCommand.IconVariant);
         Assert.True(setValueCommand.IsHighlighted);
     }
 
@@ -790,7 +788,7 @@ public class ParameterProcessorTests
         var parameter = CreateParameterResource("testParam", "testValue");
 
         // Act
-        await parameterProcessor.InitializeParametersAsync([parameter]);
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
 
         // Assert - Command should not be added when interaction service is not available
         var setValueCommand = parameter.Annotations.OfType<ResourceCommandAnnotation>()
@@ -810,7 +808,7 @@ public class ParameterProcessorTests
         var parameter = CreateParameterResource("testParam", "initialValue");
 
         // Initialize the parameter
-        await parameterProcessor.InitializeParametersAsync([parameter]);
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
 
         // Reset WaitForValueTcs to track updates
         parameter.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -822,7 +820,7 @@ public class ParameterProcessorTests
         });
 
         // Wait for the input dialog to be presented
-        var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(InteractionStrings.SetParameterTitle, inputInteraction.Title);
         Assert.Equal(InteractionStrings.SetParameterMessage, inputInteraction.Message);
         // Should have 2 inputs: parameter value input + RememberParameters checkbox (in run mode)
@@ -838,10 +836,10 @@ public class ParameterProcessorTests
         inputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputInteraction.Inputs));
 
         // Wait for the set value task to complete
-        await setValueTask;
+        await setValueTask.DefaultTimeout();
 
         // Assert - Parameter value should be updated
-        Assert.Equal("newValue", await parameter.GetValueAsync(CancellationToken.None));
+        Assert.Equal("newValue", await parameter.GetValueAsync(CancellationToken.None).DefaultTimeout());
     }
 
     [Fact]
@@ -853,7 +851,7 @@ public class ParameterProcessorTests
         var parameter = CreateParameterResource("testParam", "initialValue");
 
         // Initialize the parameter
-        await parameterProcessor.InitializeParametersAsync([parameter]);
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
 
         // Reset WaitForValueTcs to track updates
         var originalTcs = parameter.WaitForValueTcs;
@@ -866,13 +864,13 @@ public class ParameterProcessorTests
         });
 
         // Wait for the input dialog to be presented
-        var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
 
         // Cancel the interaction
         inputInteraction.CompletionTcs.SetResult(InteractionResult.Cancel<InteractionInputCollection>());
 
         // Wait for the set value task to complete
-        await setValueTask;
+        await setValueTask.DefaultTimeout();
 
         // Assert - Parameter value should remain unchanged (WaitForValueTcs not set)
         Assert.False(parameter.WaitForValueTcs!.Task.IsCompleted);
@@ -887,7 +885,7 @@ public class ParameterProcessorTests
         var parameter = CreateParameterResource("secretParam", "secretValue", secret: true);
 
         // Initialize the parameter
-        await parameterProcessor.InitializeParametersAsync([parameter]);
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
 
         // Reset WaitForValueTcs to track updates
         parameter.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -899,7 +897,7 @@ public class ParameterProcessorTests
         });
 
         // Wait for the input dialog to be presented
-        var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
 
         // Assert - Should use SecretText input type for secret parameters
         Assert.Equal(2, inputInteraction.Inputs.Count);
@@ -911,10 +909,10 @@ public class ParameterProcessorTests
         inputInteraction.Inputs["secretParam"].Value = "newSecretValue";
         inputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputInteraction.Inputs));
 
-        await setValueTask;
+        await setValueTask.DefaultTimeout();
 
         // Assert - Parameter value should be updated
-        Assert.Equal("newSecretValue", await parameter.WaitForValueTcs!.Task);
+        Assert.Equal("newSecretValue", await parameter.WaitForValueTcs!.Task.DefaultTimeout());
     }
 
     [Fact]
@@ -1077,6 +1075,11 @@ public class ParameterProcessorTests
         {
             return Task.CompletedTask;
         }
+
+        public Task DeleteSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private static ParameterResource CreateParameterResource(string name, string value, bool secret = false)
@@ -1127,12 +1130,12 @@ public class ParameterProcessorTests
         };
 
         // Act
-        await parameterProcessor.InitializeParametersAsync([parameterWithGenerateDefault]);
+        await parameterProcessor.InitializeParametersAsync([parameterWithGenerateDefault]).DefaultTimeout();
 
         // Assert - Should succeed because value exists in configuration
         Assert.NotNull(parameterWithGenerateDefault.WaitForValueTcs);
         Assert.True(parameterWithGenerateDefault.WaitForValueTcs.Task.IsCompletedSuccessfully);
-        Assert.Equal("existingValue", await parameterWithGenerateDefault.WaitForValueTcs.Task);
+        Assert.Equal("existingValue", await parameterWithGenerateDefault.WaitForValueTcs.Task.DefaultTimeout());
     }
 
     [Fact]
@@ -1156,15 +1159,15 @@ public class ParameterProcessorTests
 
         var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
 
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         inputsInteraction.Inputs["mydb"].Value = "Server=localhost;Database=mydb";
         inputsInteraction.Inputs["RememberParameters"].Value = "true";
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
-        await handleTask;
+        await handleTask.DefaultTimeout();
 
         // Verify the value was saved correctly in the flattened state
         Assert.True(capturingStateManager.State.TryGetPropertyValue("ConnectionStrings:mydb", out var valueNode));
@@ -1195,15 +1198,15 @@ public class ParameterProcessorTests
 
         var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
 
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         inputsInteraction.Inputs["myparam"].Value = "myvalue";
         inputsInteraction.Inputs["RememberParameters"].Value = "true";
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
-        await handleTask;
+        await handleTask.DefaultTimeout();
 
         // Verify the value was saved correctly in the flattened state
         Assert.True(capturingStateManager.State.TryGetPropertyValue("Parameters:myparam", out var valueNode));
@@ -1237,15 +1240,15 @@ public class ParameterProcessorTests
 
         var handleTask = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
-        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
 
-        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         inputsInteraction.Inputs["customparam"].Value = "customvalue";
         inputsInteraction.Inputs["RememberParameters"].Value = "true";
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
-        await handleTask;
+        await handleTask.DefaultTimeout();
 
         // Verify the value was saved correctly in the flattened state
         Assert.True(capturingStateManager.State.TryGetPropertyValue("MyCustomSection:MyCustomKey", out var valueNode));
@@ -1253,6 +1256,217 @@ public class ParameterProcessorTests
 
         // Verify the entire state structure as JSON (mimics what gets saved to disk)
         await VerifyJson(capturingStateManager.State.ToJsonString());
+    }
+
+    [Fact]
+    public async Task SetParameterAsync_WithSavedState_OnlyShowsValueAndSaveInputs()
+    {
+        // Arrange
+        var capturingStateManager = new CapturingMockDeploymentStateManager();
+        var testInteractionService = new TestInteractionService { IsAvailable = true };
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService,
+            deploymentStateManager: capturingStateManager);
+
+        var parameter = CreateParameterResource("testParam", "initialValue");
+
+        // Initialize the parameter
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
+
+        // First SetParameterAsync call - set and save a value to establish saved state
+        var firstSetValueTask = Task.Run(async () =>
+        {
+            await parameterProcessor.SetParameterAsync(parameter);
+        });
+
+        var firstInputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+        // First time: should have 2 inputs (value + save)
+        Assert.Equal(2, firstInputInteraction.Inputs.Count);
+
+        // Set the value and save it
+        firstInputInteraction.Inputs["testParam"].Value = "savedValue";
+        firstInputInteraction.Inputs["RememberParameters"].Value = "true";
+        firstInputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(firstInputInteraction.Inputs));
+
+        await firstSetValueTask.DefaultTimeout();
+
+        // Second SetParameterAsync call - should still only have 2 inputs (delete is now a separate command)
+        var secondSetValueTask = Task.Run(async () =>
+        {
+            await parameterProcessor.SetParameterAsync(parameter);
+        });
+
+        var secondInputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+
+        // Assert - Should have 2 inputs: value + save (delete is now a separate command)
+        Assert.Equal(2, secondInputInteraction.Inputs.Count);
+        Assert.True(secondInputInteraction.Inputs.ContainsName("testParam"));
+        Assert.True(secondInputInteraction.Inputs.ContainsName("RememberParameters"));
+
+        // Complete the interaction
+        secondInputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(secondInputInteraction.Inputs));
+
+        await secondSetValueTask.DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task DeleteParameterAsync_DeletesFromDeploymentState()
+    {
+        // Arrange
+        var capturingStateManager = new CapturingMockDeploymentStateManager();
+        var testInteractionService = new TestInteractionService { IsAvailable = true };
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService,
+            deploymentStateManager: capturingStateManager);
+
+        var parameter = CreateParameterResource("testParam", "initialValue");
+
+        // Initialize the parameter
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
+
+        // First SetParameterAsync call - set and save a value to establish saved state
+        var firstSetValueTask = Task.Run(async () =>
+        {
+            await parameterProcessor.SetParameterAsync(parameter);
+        });
+
+        var firstInputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+        firstInputInteraction.Inputs["testParam"].Value = "savedValue";
+        firstInputInteraction.Inputs["RememberParameters"].Value = "true";
+        firstInputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(firstInputInteraction.Inputs));
+
+        await firstSetValueTask.DefaultTimeout();
+
+        // Verify value was saved
+        Assert.True(capturingStateManager.State.Count > 0);
+
+        // Call DeleteParameterAsync to delete the value - need to run in background as it shows a prompt
+        var deleteTask = Task.Run(async () =>
+        {
+            await parameterProcessor.DeleteParameterAsync(parameter);
+        });
+
+        // Wait for the delete confirmation dialog
+        var deleteConfirmation = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+        Assert.Equal(InteractionStrings.DeleteParameterTitle, deleteConfirmation.Title);
+        // Should have delete from user secrets checkbox since value is saved
+        Assert.True(deleteConfirmation.Inputs.ContainsName(ParameterProcessor.DeleteFromUserSecretsName));
+        // Default should be checked
+        Assert.Equal("true", deleteConfirmation.Inputs[ParameterProcessor.DeleteFromUserSecretsName].Value);
+
+        // Confirm the deletion with delete from user secrets checked
+        deleteConfirmation.CompletionTcs.SetResult(InteractionResult.Ok(deleteConfirmation.Inputs));
+
+        await deleteTask.DefaultTimeout();
+
+        // Assert - State should be cleared
+        // The section still exists but should have no data
+        var section = await capturingStateManager.AcquireSectionAsync($"Parameters:{parameter.Name}").DefaultTimeout();
+        Assert.Empty(section.Data);
+    }
+
+    [Fact]
+    public async Task SetParameterAsync_WithoutSavedState_DoesNotShowDeleteCheckbox()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService { IsAvailable = true };
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService);
+
+        var parameter = CreateParameterResource("testParam", "initialValue");
+
+        // Initialize the parameter
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
+
+        // Act - Start the SetParameterAsync task
+        var setValueTask = Task.Run(async () =>
+        {
+            await parameterProcessor.SetParameterAsync(parameter);
+        });
+
+        // Wait for the input dialog to be presented
+        var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+
+        // Assert - Should only have 2 inputs (value + save), no delete checkbox
+        Assert.Equal(2, inputInteraction.Inputs.Count);
+        Assert.True(inputInteraction.Inputs.ContainsName("testParam"));
+        Assert.True(inputInteraction.Inputs.ContainsName("RememberParameters"));
+        Assert.False(inputInteraction.Inputs.ContainsName("DeleteParameter"));
+
+        // Complete the interaction
+        inputInteraction.CompletionTcs.SetResult(InteractionResult.Cancel<InteractionInputCollection>());
+        await setValueTask.DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task DeleteParameterAsync_AddsParameterBackToUnresolvedAndStartsResolutionTask()
+    {
+        // Arrange
+        var capturingStateManager = new CapturingMockDeploymentStateManager();
+        var testInteractionService = new TestInteractionService { IsAvailable = true };
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService,
+            deploymentStateManager: capturingStateManager);
+
+        var parameter = CreateParameterResource("testParam", "initialValue");
+
+        // Initialize the parameter
+        await parameterProcessor.InitializeParametersAsync([parameter]).DefaultTimeout();
+
+        // First SetParameterAsync call - set and save a value to establish saved state
+        var firstSetValueTask = Task.Run(async () =>
+        {
+            await parameterProcessor.SetParameterAsync(parameter);
+        });
+
+        var firstInputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+        firstInputInteraction.Inputs["testParam"].Value = "savedValue";
+        firstInputInteraction.Inputs["RememberParameters"].Value = "true";
+        firstInputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(firstInputInteraction.Inputs));
+
+        await firstSetValueTask.DefaultTimeout();
+
+        // Call DeleteParameterAsync to delete the value - need to run in background as it shows a prompt
+        var deleteTask = Task.Run(async () =>
+        {
+            await parameterProcessor.DeleteParameterAsync(parameter);
+        });
+
+        // Wait for the delete confirmation dialog
+        var deleteConfirmation = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+        Assert.Equal(InteractionStrings.DeleteParameterTitle, deleteConfirmation.Title);
+
+        // Confirm the deletion
+        deleteConfirmation.CompletionTcs.SetResult(InteractionResult.Ok(deleteConfirmation.Inputs));
+
+        await deleteTask.DefaultTimeout();
+
+        // After delete, the resolution task should start and show a notification
+        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+        Assert.Equal(InteractionStrings.ParametersBarTitle, notificationInteraction.Title);
+
+        // Dismiss the notification to proceed to inputs dialog
+        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // The inputs dialog should appear with the deleted parameter
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
+        Assert.Equal(InteractionStrings.ParametersInputsTitle, inputsInteraction.Title);
+        Assert.True(inputsInteraction.Inputs.ContainsName("testParam"));
+
+        // Complete the interaction with a new value
+        inputsInteraction.Inputs["testParam"].Value = "newValue";
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+
+        // Verify the parameter was resolved with the new value
+        Assert.Equal("newValue", await parameter.GetValueAsync(CancellationToken.None).DefaultTimeout());
     }
 
     private sealed class CapturingMockDeploymentStateManager : IDeploymentStateManager
@@ -1283,6 +1497,20 @@ public class ParameterProcessorTests
 
             // Store the section data in the unflattened state object
             _unflattenedState[section.SectionName] = section.Data.DeepClone().AsObject();
+
+            // Flatten the state to mimic what FileDeploymentStateManager saves to disk
+            _flattenedState = JsonFlattener.FlattenJsonObject(_unflattenedState);
+
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        {
+            // Increment version to allow multiple saves with the same instance (mimics FileDeploymentStateManager)
+            section.Version++;
+
+            // Remove the section from the unflattened state object
+            _unflattenedState.Remove(section.SectionName);
 
             // Flatten the state to mimic what FileDeploymentStateManager saves to disk
             _flattenedState = JsonFlattener.FlattenJsonObject(_unflattenedState);
