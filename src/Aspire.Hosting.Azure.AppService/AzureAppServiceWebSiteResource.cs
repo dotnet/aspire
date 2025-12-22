@@ -48,8 +48,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Name = $"check-{targetResource.Name}-exists",
                 Action = async ctx =>
                 {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-                    var isSlotDeployment = computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null;
+                    var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                    var isSlotDeployment = computeEnv.DeploymentSlot is not null || computeEnv.DeploymentSlotParameter is not null;
                     if (!isSlotDeployment)
                     {
                         return;
@@ -75,14 +75,14 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Name = $"update-{targetResource.Name}-provisionable-resource",
                 Action = async ctx =>
                 {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                    var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
 
                     if (!targetResource.TryGetLastAnnotation<AzureAppServiceWebsiteRefreshProvisionableResourceAnnotation>(out _))
                     {
                         return;
                     } 
 
-                    if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+                    if (computeEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
                     {
                         var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(targetResource);
                         var provisioningOptions = ctx.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
@@ -117,14 +117,14 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                 Description = $"Prints the deployment summary and URL for {targetResource.Name}.",
                 Action = async ctx =>
                 {
-                    var computerEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
+                    var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
                     string? deploymentSlot = null;
 
-                    if (computerEnv.DeploymentSlot is not null || computerEnv.DeploymentSlotParameter is not null)
+                    if (computeEnv.DeploymentSlot is not null || computeEnv.DeploymentSlotParameter is not null)
                     {
-                        deploymentSlot = computerEnv.DeploymentSlotParameter is null ?
-                           computerEnv.DeploymentSlot :
-                           await computerEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+                        deploymentSlot = computeEnv.DeploymentSlotParameter is null ?
+                           computeEnv.DeploymentSlot :
+                           await computeEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
                     }
 
                     var hostName = await GetAppServiceWebsiteNameAsync(ctx, deploymentSlot).ConfigureAwait(false);
@@ -235,22 +235,34 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// <returns>A task that represents the asynchronous operation. The task result contains the website name.</returns>
     private async Task<string> GetAppServiceWebsiteNameAsync(PipelineStepContext context, string? deploymentSlot = null)
     {
-        var computerEnv = (AzureAppServiceEnvironmentResource)TargetResource.GetDeploymentTargetAnnotation()!.ComputeEnvironment!;
-        var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        var computeEnv = (AzureAppServiceEnvironmentResource)TargetResource.GetDeploymentTargetAnnotation()!.ComputeEnvironment!;
+        var websiteSuffix = await computeEnv.WebSiteSuffix.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
         var websiteName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
+        int maxWebSiteLength = deploymentSlot is null ?
+            MaxWebSiteNameLength :
+            MaxWebSiteNameHostPrefixLengthWithSlot;
+
+        if (websiteName.Length > maxWebSiteLength)
+        {
+            websiteName = websiteName.Substring(0, maxWebSiteLength);
+        }
 
         if (!string.IsNullOrWhiteSpace(deploymentSlot))
         {
+            if (deploymentSlot.Length > MaxSlotHostPrefixLength)
+            {
+                deploymentSlot = deploymentSlot.Substring(0, MaxSlotHostPrefixLength);
+            }
             websiteName += $"-{deploymentSlot}";
         }
 
-        if (websiteName.Length > 60)
-        {
-            websiteName = websiteName.Substring(0, 60);
-        }
         return websiteName;
     }
 
     private const string AzureManagementScope = "https://management.azure.com/.default";
     private const string AzureManagementEndpoint = "https://management.azure.com/";
+    internal const int MaxWebSiteNameLength = 60;
+    internal const int MaxWebSiteNameHostPrefixLengthWithSlot = 40;
+    internal const int MaxSlotHostPrefixLength = 21;
+
 }
