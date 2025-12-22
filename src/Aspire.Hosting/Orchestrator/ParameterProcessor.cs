@@ -26,7 +26,7 @@ public sealed class ParameterProcessor(
     DistributedApplicationExecutionContext executionContext,
     IDeploymentStateManager deploymentStateManager)
 {
-    private const string RememberParametersName = "RememberParameters";
+    internal const string SaveToUserSecretsName = "SaveToUserSecrets";
     internal const string DeleteFromUserSecretsName = "DeleteFromUserSecrets";
 
     private readonly List<ParameterResource> _unresolvedParameters = [];
@@ -337,7 +337,7 @@ public sealed class ParameterProcessor(
     {
         return new InteractionInput
         {
-            Name = RememberParametersName,
+            Name = SaveToUserSecretsName,
             InputType = InputType.Boolean,
             Label = InteractionStrings.ParametersInputsRememberLabel,
             // Default to true if value already exists (was read from user secrets)

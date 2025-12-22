@@ -823,13 +823,13 @@ public class ParameterProcessorTests
         var inputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         Assert.Equal(InteractionStrings.SetParameterTitle, inputInteraction.Title);
         Assert.Equal(InteractionStrings.SetParameterMessage, inputInteraction.Message);
-        // Should have 2 inputs: parameter value input + RememberParameters checkbox (in run mode)
+        // Should have 2 inputs: parameter value input + SaveToUserSecrets checkbox (in run mode)
         Assert.Equal(2, inputInteraction.Inputs.Count);
         Assert.Equal("testParam", inputInteraction.Inputs["testParam"].Label);
         // Existing value should be pre-populated
         Assert.Equal("initialValue", inputInteraction.Inputs["testParam"].Value);
-        // RememberParameters shouldn't be true because the existing value isn't saved to sate.
-        Assert.Null(inputInteraction.Inputs["RememberParameters"].Value);
+        // SaveToUserSecrets shouldn't be true because the existing value isn't saved to sate.
+        Assert.Null(inputInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName].Value);
 
         // Complete the interaction with a new value
         inputInteraction.Inputs["testParam"].Value = "newValue";
@@ -995,12 +995,12 @@ public class ParameterProcessorTests
         var firstInputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
         Assert.Equal(InteractionStrings.SetParameterTitle, firstInputInteraction.Title);
 
-        // First time: no saved state, so RememberParameters should be null/unchecked
-        Assert.Null(firstInputInteraction.Inputs["RememberParameters"].Value);
+        // First time: no saved state, so SaveToUserSecrets should be null/unchecked
+        Assert.Null(firstInputInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName].Value);
 
         // Set the value and enable save
         firstInputInteraction.Inputs["testParam"].Value = "firstValue";
-        firstInputInteraction.Inputs["RememberParameters"].Value = "true";
+        firstInputInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName].Value = "true";
         firstInputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(firstInputInteraction.Inputs));
 
         await firstSetValueTask.DefaultTimeout();
@@ -1021,8 +1021,8 @@ public class ParameterProcessorTests
         // Assert - Second interaction should have the previously set value pre-populated
         Assert.Equal("firstValue", secondInputInteraction.Inputs["testParam"].Value);
 
-        // Assert - RememberParameters should be checked (true) since parameter has saved state
-        Assert.Equal("true", secondInputInteraction.Inputs["RememberParameters"].Value);
+        // Assert - SaveToUserSecrets should be checked (true) since parameter has saved state
+        Assert.Equal("true", secondInputInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName].Value);
 
         // Complete the second interaction with a new value
         secondInputInteraction.Inputs["testParam"].Value = "secondValue";
@@ -1164,7 +1164,7 @@ public class ParameterProcessorTests
 
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         inputsInteraction.Inputs["mydb"].Value = "Server=localhost;Database=mydb";
-        inputsInteraction.Inputs["RememberParameters"].Value = "true";
+        inputsInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName].Value = "true";
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         await handleTask.DefaultTimeout();
@@ -1203,7 +1203,7 @@ public class ParameterProcessorTests
 
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         inputsInteraction.Inputs["myparam"].Value = "myvalue";
-        inputsInteraction.Inputs["RememberParameters"].Value = "true";
+        inputsInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName].Value = "true";
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         await handleTask.DefaultTimeout();
@@ -1245,7 +1245,7 @@ public class ParameterProcessorTests
 
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         inputsInteraction.Inputs["customparam"].Value = "customvalue";
-        inputsInteraction.Inputs["RememberParameters"].Value = "true";
+        inputsInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName].Value = "true";
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
 
         await handleTask.DefaultTimeout();
@@ -1287,7 +1287,7 @@ public class ParameterProcessorTests
 
         // Set the value and save it
         firstInputInteraction.Inputs["testParam"].Value = "savedValue";
-        firstInputInteraction.Inputs["RememberParameters"].Value = "true";
+        firstInputInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName].Value = "true";
         firstInputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(firstInputInteraction.Inputs));
 
         await firstSetValueTask.DefaultTimeout();
@@ -1303,7 +1303,7 @@ public class ParameterProcessorTests
         // Assert - Should have 2 inputs: value + save (delete is now a separate command)
         Assert.Equal(2, secondInputInteraction.Inputs.Count);
         Assert.True(secondInputInteraction.Inputs.ContainsName("testParam"));
-        Assert.True(secondInputInteraction.Inputs.ContainsName("RememberParameters"));
+        Assert.True(secondInputInteraction.Inputs.ContainsName(ParameterProcessor.SaveToUserSecretsName));
 
         // Complete the interaction
         secondInputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(secondInputInteraction.Inputs));
@@ -1336,7 +1336,7 @@ public class ParameterProcessorTests
 
         var firstInputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
         firstInputInteraction.Inputs["testParam"].Value = "savedValue";
-        firstInputInteraction.Inputs["RememberParameters"].Value = "true";
+        firstInputInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName].Value = "true";
         firstInputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(firstInputInteraction.Inputs));
 
         await firstSetValueTask.DefaultTimeout();
@@ -1358,6 +1358,7 @@ public class ParameterProcessorTests
         Assert.Null(deleteConfirmation.Inputs[ParameterProcessor.DeleteFromUserSecretsName].Value);
 
         // Confirm the deletion with delete from user secrets checked
+        deleteConfirmation.Inputs[ParameterProcessor.DeleteFromUserSecretsName].Value = "true";
         deleteConfirmation.CompletionTcs.SetResult(InteractionResult.Ok(deleteConfirmation.Inputs));
 
         await deleteTask.DefaultTimeout();
@@ -1395,7 +1396,7 @@ public class ParameterProcessorTests
         // Assert - Should only have 2 inputs (value + save), no delete checkbox
         Assert.Equal(2, inputInteraction.Inputs.Count);
         Assert.True(inputInteraction.Inputs.ContainsName("testParam"));
-        Assert.True(inputInteraction.Inputs.ContainsName("RememberParameters"));
+        Assert.True(inputInteraction.Inputs.ContainsName(ParameterProcessor.SaveToUserSecretsName));
         Assert.False(inputInteraction.Inputs.ContainsName("DeleteParameter"));
 
         // Complete the interaction
@@ -1428,7 +1429,7 @@ public class ParameterProcessorTests
 
         var firstInputInteraction = await testInteractionService.Interactions.Reader.ReadAsync().AsTask().DefaultTimeout();
         firstInputInteraction.Inputs["testParam"].Value = "savedValue";
-        firstInputInteraction.Inputs["RememberParameters"].Value = "true";
+        firstInputInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName].Value = "true";
         firstInputInteraction.CompletionTcs.SetResult(InteractionResult.Ok(firstInputInteraction.Inputs));
 
         await firstSetValueTask.DefaultTimeout();
