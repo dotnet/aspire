@@ -1355,8 +1355,7 @@ public class ParameterProcessorTests
         Assert.Equal(InteractionStrings.DeleteParameterTitle, deleteConfirmation.Title);
         // Should have delete from user secrets checkbox since value is saved
         Assert.True(deleteConfirmation.Inputs.ContainsName(ParameterProcessor.DeleteFromUserSecretsName));
-        // Default should be checked
-        Assert.Equal("true", deleteConfirmation.Inputs[ParameterProcessor.DeleteFromUserSecretsName].Value);
+        Assert.Null(deleteConfirmation.Inputs[ParameterProcessor.DeleteFromUserSecretsName].Value);
 
         // Confirm the deletion with delete from user secrets checked
         deleteConfirmation.CompletionTcs.SetResult(InteractionResult.Ok(deleteConfirmation.Inputs));
