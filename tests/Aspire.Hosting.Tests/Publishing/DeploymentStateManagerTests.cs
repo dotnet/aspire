@@ -273,6 +273,22 @@ public class DeploymentStateManagerTests
     }
 
     [Fact]
+    public async Task NestedSections_CanBeModified_UsingSetValue()
+    {
+        var stateManager = CreateFileDeploymentStateManager();
+
+        var section = await stateManager.AcquireSectionAsync("Root:Branch1:Leaf");
+
+        section.SetValue("value1");
+
+        await stateManager.SaveSectionAsync(section);
+
+        var verify = await stateManager.AcquireSectionAsync("Root:Branch1:Leaf");
+
+        Assert.Equal("value1", verify.Data[""]?.GetValue<string>());
+    }
+
+    [Fact]
     public async Task NestedSection_VersionConflict_ThrowsException()
     {
         var stateManager = CreateFileDeploymentStateManager();

@@ -56,7 +56,7 @@ public sealed class ParameterProcessor(
         if (interactionService.IsAvailable && _unresolvedParameters.Count > 0)
         {
             // Start the loop that will allow the user to specify values for unresolved parameters.
-            var task = EnsureParameterResolutionTaskRunning();
+            var task = EnsureParameterResolutionTaskRunningAsync();
 
             if (waitForResolution)
             {
@@ -65,7 +65,7 @@ public sealed class ParameterProcessor(
         }
     }
 
-    private Task EnsureParameterResolutionTaskRunning()
+    private Task EnsureParameterResolutionTaskRunningAsync()
     {
         lock (_resolutionTaskLock)
         {
@@ -430,7 +430,7 @@ public sealed class ParameterProcessor(
                 await UpdateParameterStateAsync(parameterResource, "Parameter value has been deleted", new("Value missing", KnownResourceStateStyles.Warn)).ConfigureAwait(false);
 
                 // Start the resolution task if it's not running
-                _ = EnsureParameterResolutionTaskRunning();
+                _ = EnsureParameterResolutionTaskRunningAsync();
             }
         }
         catch (Exception ex)
