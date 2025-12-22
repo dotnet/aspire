@@ -144,18 +144,24 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     private async Task OnInputFileCompleted(IEnumerable<FluentInputFileEventArgs> args)
     {
-        var files = args.ToList();
-
-        foreach (var file in files)
+        try
         {
-            if (file.LocalFile != null)
+            var files = args.ToList();
+
+            foreach (var file in files)
             {
-                using var fileStream = file.LocalFile.OpenRead();
-                await TelemetryImportService.ImportAsync(file.Name, fileStream, CancellationToken.None);
+                if (file.LocalFile != null)
+                {
+                    using var fileStream = file.LocalFile.OpenRead();
+                    await TelemetryImportService.ImportAsync(file.Name, fileStream, CancellationToken.None);
+                }
             }
         }
-
-        _isImporting = false;
+        finally
+        {
+            _isImporting = false;
+            StateHasChanged();
+        }
     }
 
     public void Dispose()
