@@ -2,13 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.IO.Compression;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -21,7 +19,6 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     private CultureInfo? _selectedUiCulture;
     private bool _isExporting;
     private bool _isImporting;
-    private FluentInputFile? _inputFileRef;
 
     private IDisposable? _themeChangedSubscription;
 
@@ -140,55 +137,29 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         }
     }
 
-    private async Task OnFileUploadedAsync(FluentInputFileEventArgs args)
+    private void OnInputFileProgressChange(FluentInputFileEventArgs args)
     {
-        //if (_isImporting)
-        //{
-        //    return;
-        //}
-
         _isImporting = true;
-        //StateHasChanged();
+    }
 
-        try
+    private async Task OnInputFileCompleted(IEnumerable<FluentInputFileEventArgs> args)
+    {
+        var files = args.ToList();
+
+        foreach (var file in files)
         {
-            if (args.Buffer is not null)
+            if (file.LocalFile != null)
             {
-                var ms = new MemoryStream(args.Buffer.Data, 0, args.Buffer.BytesRead);
-                await TelemetryImportService.ImportAsync(args.Name, ms, CancellationToken.None);
+                using var fileStream = file.LocalFile.OpenRead();
+                await TelemetryImportService.ImportAsync(file.Name, fileStream, CancellationToken.None);
             }
         }
-        finally
-        {
-            args.LocalFile?.Delete();
 
-            _isImporting = false;
-            //StateHasChanged();
-        }
+        _isImporting = false;
     }
 
     public void Dispose()
     {
         _themeChangedSubscription?.Dispose();
-    }
-
-    private static async Task OnInputFileChange(InputFileChangeEventArgs args)
-    {
-        var file = args.File;
-        const long maxSize = 50_000_000;
-
-        await using var s = file.OpenReadStream(maxSize);
-        await using var ms = new MemoryStream();
-
-        await s.CopyToAsync(ms);
-
-        if (ms.Length != file.Size)
-        {
-            throw new InvalidDataException("Partial upload");
-        }
-
-        ms.Position = 0;
-        using var zip = new ZipArchive(ms);
-        var entries = zip.Entries;
     }
 }

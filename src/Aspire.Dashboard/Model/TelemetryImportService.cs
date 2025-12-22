@@ -76,11 +76,8 @@ public sealed class TelemetryImportService
             _logger.LogDebug("Processing zip entry: {EntryName}", entry.FullName);
 
             using var entryStream = entry.Open();
-            using var entryMemoryStream = new MemoryStream();
-            await entryStream.CopyToAsync(entryMemoryStream, cancellationToken).ConfigureAwait(false);
-            entryMemoryStream.Position = 0;
 
-            await ImportJsonAsync(entry.Name, entryMemoryStream, cancellationToken).ConfigureAwait(false);
+            await ImportJsonAsync(entry.Name, entryStream, cancellationToken).ConfigureAwait(false);
         }
     }
 

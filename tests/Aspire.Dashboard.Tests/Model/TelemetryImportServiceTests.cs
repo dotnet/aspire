@@ -403,7 +403,7 @@ public sealed class TelemetryImportServiceTests
                                 new OtlpLogRecordJson
                                 {
                                     TimeUnixNano = timeUnixNano,
-                                    SeverityNumber = OtlpSeverityNumber.Info,
+                                    SeverityNumber = (int)SeverityNumber.Info,
                                     SeverityText = "Information",
                                     Body = new OtlpAnyValueJson { StringValue = message }
                                 }
@@ -450,7 +450,7 @@ public sealed class TelemetryImportServiceTests
                                     TraceId = traceId,
                                     SpanId = spanId,
                                     Name = operationName,
-                                    Kind = Aspire.Dashboard.Otlp.Model.Serialization.OtlpSpanKind.Server,
+                                    Kind = (int)Span.Types.SpanKind.Server,
                                     StartTimeUnixNano = timeUnixNano,
                                     EndTimeUnixNano = endTimeUnixNano,
                                     Status = new OtlpSpanStatusJson()

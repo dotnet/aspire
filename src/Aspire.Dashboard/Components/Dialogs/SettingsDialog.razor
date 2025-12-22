@@ -48,15 +48,15 @@
                               aria-label="@Loc[nameof(Dialogs.SettingsExportAllButtonText)]">
                     @Loc[nameof(Dialogs.SettingsExportAllButtonText)]
                 </FluentButton>
-                <InputFile OnChange="OnInputFileChange" />
-                <FluentInputFile @ref="_inputFileRef"
-                                 AnchorId="import-button"
+                <FluentInputFile AnchorId="import-button"
                                  DragDropZoneVisible="false"
                                  Accept=".zip,.json"
                                  Multiple="false"
                                  MaximumFileSize="@(100 * 1024 * 1024)"
-                                 Mode="InputFileMode.Buffer"
-                                 OnFileUploaded="OnFileUploadedAsync" />
+                                 Mode="InputFileMode.SaveToTemporaryFolder"
+                                 OnCompleted="OnInputFileCompleted"
+                                 OnProgressChange="OnInputFileProgressChange"
+                                 />
                 <FluentButton Id="import-button"
                               IconStart="@(new Icons.Regular.Size16.ArrowUpload())"
                               Loading="@_isImporting"
