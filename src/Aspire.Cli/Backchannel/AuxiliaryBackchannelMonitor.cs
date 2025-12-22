@@ -186,15 +186,11 @@ internal sealed class AuxiliaryBackchannelMonitor(
             // Support both "auxi.sock.*" (new) and "aux.sock.*" (old) for backward compatibility
             // Note: "aux" is a reserved device name on Windows < 11, but we still scan for it
             // to support connections from older CLI versions
-            var auxiFiles = Directory.Exists(_backchannelsDirectory) 
-                ? Directory.GetFiles(_backchannelsDirectory, "auxi.sock.*") 
-                : [];
-            var auxFiles = Directory.Exists(_backchannelsDirectory)
-                ? Directory.GetFiles(_backchannelsDirectory, "aux.sock.*")
-                : [];
-            
+            // Using "aux*.sock.*" wildcard to match both patterns
             var currentFiles = new HashSet<string>(
-                auxiFiles.Concat(auxFiles),
+                Directory.Exists(_backchannelsDirectory)
+                    ? Directory.GetFiles(_backchannelsDirectory, "aux*.sock.*")
+                    : [],
                 StringComparer.OrdinalIgnoreCase);
 
             // Find new files (files that exist now but weren't known before)
@@ -376,12 +372,11 @@ internal sealed class AuxiliaryBackchannelMonitor(
         while (!cancellationToken.IsCancellationRequested)
         {
             // Watch for both "auxi.sock.*" (new) and "aux.sock.*" (old) patterns for backward compatibility
-            var auxiChangeToken = fileProvider.Watch("auxi.sock.*");
-            var auxChangeToken = fileProvider.Watch("aux.sock.*");
+            // Using "aux*.sock.*" wildcard to match both patterns
+            var changeToken = fileProvider.Watch("aux*.sock.*");
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            using var auxiRegistration = auxiChangeToken.RegisterChangeCallback(state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), tcs);
-            using var auxRegistration = auxChangeToken.RegisterChangeCallback(state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), tcs);
+            using var registration = changeToken.RegisterChangeCallback(state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), tcs);
             using var cancellationRegistration = cancellationToken.Register(() => tcs.TrySetCanceled());
 
             bool changed;
