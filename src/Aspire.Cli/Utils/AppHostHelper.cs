@@ -95,7 +95,9 @@ internal static class AppHostHelper
         // Use limited characters to keep socket path length reasonable (Unix socket path limits)
         var hash = Convert.ToHexString(hashBytes)[..HashLength].ToLowerInvariant();
         
-        var socketPath = Path.Combine(backchannelsDir, $"aux.sock.{hash}");
+        // Note: "aux" is a reserved device name on Windows < 11 (from DOS days: CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+        // Using "auxi" instead to avoid "SocketException: A socket operation encountered a dead network"
+        var socketPath = Path.Combine(backchannelsDir, $"auxi.sock.{hash}");
         return socketPath;
     }
 }
