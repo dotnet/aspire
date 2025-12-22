@@ -37,12 +37,28 @@ public sealed class TelemetryImportService
     /// <returns>A task representing the async operation.</returns>
     public async Task ImportAsync(string fileName, Stream stream, CancellationToken cancellationToken)
     {
+        await ImportCoreAsync(fileName, stream, allowZipFile: true, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ImportCoreAsync(string fileName, Stream stream, bool allowZipFile, CancellationToken cancellationToken)
+    {
         var extension = Path.GetExtension(fileName).ToLowerInvariant();
 
         switch (extension)
         {
             case ".zip":
-                await ImportZipAsync(stream, cancellationToken).ConfigureAwait(false);
+                if (!allowZipFile)
+                {
+                    // Allowing zip file is a flag to not extract zip files inside zip files. Avoid unexpected recursion.
+                    goto default;
+                }
+
+                // Copy input stream to MemoryStream because ZipArchive requires synchronous reads and seeking.
+                var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream, cancellationToken).ConfigureAwait(false);
+                memoryStream.Position = 0;
+
+                await ImportZipAsync(memoryStream, cancellationToken).ConfigureAwait(false);
                 break;
             case ".json":
                 await ImportJsonAsync(fileName, stream, cancellationToken).ConfigureAwait(false);
@@ -52,32 +68,19 @@ public sealed class TelemetryImportService
                 _logger.LogDebug("Ignoring text file {FileName} - console log import not supported", fileName);
                 break;
             default:
-                _logger.LogWarning("Unsupported file type: {Extension}", extension);
+                _logger.LogDebug("Unsupported file type: {Extension}", extension);
                 break;
         }
     }
 
     private async Task ImportZipAsync(Stream stream, CancellationToken cancellationToken)
     {
-        // Copy input stream to MemoryStream because ZipArchive requires synchronous reads
-        using var memoryStream = new MemoryStream();
-        await stream.CopyToAsync(memoryStream, cancellationToken).ConfigureAwait(false);
-        memoryStream.Position = 0;
-
-        using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Read, leaveOpen: true);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
 
         foreach (var entry in archive.Entries)
         {
-            if (!entry.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            _logger.LogDebug("Processing zip entry: {EntryName}", entry.FullName);
-
             using var entryStream = entry.Open();
-
-            await ImportJsonAsync(entry.Name, entryStream, cancellationToken).ConfigureAwait(false);
+            await ImportCoreAsync(entry.Name, entryStream, allowZipFile: false, cancellationToken).ConfigureAwait(false);
         }
     }
 
