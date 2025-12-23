@@ -5,6 +5,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StreamJsonRpc;
@@ -297,7 +298,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
@@ -312,6 +313,6 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         outputHelper.WriteLine($"Socket path: {service.SocketPath}");
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
     }
 }
