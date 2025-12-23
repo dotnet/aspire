@@ -18,7 +18,7 @@ internal static class AzureAppServiceEnvironmentUtility
     public static BicepValue<string> GetDashboardHostName(string aspireResourceName)
     {
         return BicepFunction.Take(
-    BicepFunction.Interpolate($"{BicepFunction.ToLower(aspireResourceName)}-{BicepFunction.ToLower(ResourceName)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), 60);
+    BicepFunction.Interpolate($"{BicepFunction.ToLower(aspireResourceName)}-{BicepFunction.ToLower(ResourceName)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), AzureAppServiceWebSiteResource.MaxHostPrefixLength);
     }
 
     public static WebSite AddDashboard(AzureResourceInfrastructure infra,
