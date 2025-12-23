@@ -37,7 +37,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
     // within the naming spec for the app service.
     private BicepValue<string> HostName => BicepFunction.Take(
-        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
+        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), AzureAppServiceWebSiteResource.MaxHostPrefixLength);
 
     /// <summary>
     /// Gets the hostname for a deployment slot by appending the slot name to the base website name.
@@ -47,12 +47,10 @@ internal sealed class AzureAppServiceWebsiteContext(
     public BicepValue<string> GetSlotHostName(BicepValue<string> deploymentSlot)
     {
         var websitePrefix = BicepFunction.Take(
-            BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), AzureAppServiceWebSiteResource.MaxWebSiteNameHostPrefixLengthWithSlot);
+            BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), AzureAppServiceWebSiteResource.MaxWebSiteHostPrefixLengthWithSlot);
 
-        var slotPrefix = BicepFunction.Take(
-            BicepFunction.Interpolate($"-{BicepFunction.ToLower(deploymentSlot)}"), AzureAppServiceWebSiteResource.MaxSlotHostPrefixLength);
-
-        return BicepFunction.Interpolate($"{websitePrefix}-{slotPrefix}");
+        return BicepFunction.Take(
+            BicepFunction.Interpolate($"{websitePrefix}-{BicepFunction.ToLower(deploymentSlot)}"), AzureAppServiceWebSiteResource.MaxHostPrefixLength);
     }
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
