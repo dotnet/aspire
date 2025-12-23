@@ -33,11 +33,22 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                 // so we want to ensure the certificate that will be used by ASP.NET Core is the first one in the bundle.
                 // Match the ordering logic ASP.NET Core uses, including DateTimeOffset.Now for current time: https://github.com/dotnet/aspnetcore/blob/0aefdae365ff9b73b52961acafd227309524ce3c/src/Shared/CertificateGeneration/CertificateManager.cs#L122
                 var now = DateTimeOffset.Now;
+                
+                // Get all valid ASP.NET Core development certificates
+                var validCerts = store.Certificates
+                    .Where(c => c.IsAspNetCoreDevelopmentCertificate())
+                    .Where(c => c.NotBefore <= now && now <= c.NotAfter)
+                    .ToList();
+                
+                // If any certificate has a Subject Key Identifier extension, exclude certificates without it
+                if (validCerts.Any(c => c.HasSubjectKeyIdentifier()))
+                {
+                    validCerts = validCerts.Where(c => c.HasSubjectKeyIdentifier()).ToList();
+                }
+                
                 // Take the highest version valid certificate for each unique SKI
                 devCerts.AddRange(
-                    store.Certificates
-                        .Where(c => c.IsAspNetCoreDevelopmentCertificate())
-                        .Where(c => c.NotBefore <= now && now <= c.NotAfter)
+                    validCerts
                         .GroupBy(c => c.Extensions.OfType<X509SubjectKeyIdentifierExtension>().FirstOrDefault()?.SubjectKeyIdentifier)
                         .SelectMany(g => g.OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter).Take(1))
                         .OrderByDescending(c => c.GetCertificateVersion()).ThenByDescending(c => c.NotAfter));

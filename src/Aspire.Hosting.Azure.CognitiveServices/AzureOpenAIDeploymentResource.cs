@@ -110,7 +110,7 @@ public class AzureOpenAIDeploymentResource : Resource, IResourceWithParent<Azure
             yield return property;
         }
 
-        yield return new("Model", ReferenceExpression.Create($"{DeploymentName}"));
+        yield return new("ModelName", ReferenceExpression.Create($"{DeploymentName}"));
     }
 
     private static string ThrowIfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)

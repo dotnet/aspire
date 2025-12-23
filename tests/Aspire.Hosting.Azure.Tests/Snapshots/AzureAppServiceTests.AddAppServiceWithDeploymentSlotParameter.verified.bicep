@@ -53,14 +53,6 @@ resource webappslot 'Microsoft.Web/sites/slots@2025-03-01' = {
           value: project1_containerport
         }
         {
-          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
-          value: 'true'
-        }
-        {
-          name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
-          value: 'true'
-        }
-        {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
           value: 'in_memory'
         }

@@ -22,7 +22,7 @@ public class AzurePostgresFlexibleServerDatabaseConnectionPropertiesTests
             properties.OrderBy(p => p.Key),
             property =>
             {
-                Assert.Equal("Database", property.Key);
+                Assert.Equal("DatabaseName", property.Key);
                 Assert.Equal("mydb", property.Value.ValueExpression);
             },
             property =>
@@ -61,7 +61,7 @@ public class AzurePostgresFlexibleServerDatabaseConnectionPropertiesTests
             properties.OrderBy(p => p.Key),
             property =>
             {
-                Assert.Equal("Database", property.Key);
+                Assert.Equal("DatabaseName", property.Key);
                 Assert.Equal("mydb", property.Value.ValueExpression);
             },
             property =>

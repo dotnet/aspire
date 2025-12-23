@@ -794,17 +794,13 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(true, true)]
-    public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl(bool useLaunchSettings, bool useHttps)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WithUrlForEndpointUpdateTurnsRelativeUrlIntoAbsoluteUrl(bool useHttps)
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var project = useLaunchSettings
-            ? builder.AddProject<ProjectB>("project")
-            : builder.AddProject<ProjectA>("project");
+        var project = builder.AddProject<ProjectA>("project");
 
         if (useHttps)
         {
@@ -813,16 +809,6 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         else
         {
             project.WithHttpEndpoint(name: "test");
-        }
-
-        if (useLaunchSettings)
-        {
-            // Update the URL from the launch profile
-            project.WithUrlForEndpoint("http", url =>
-            {
-                url.Url = "/test-sub-path";
-                url.DisplayText = "Test Link";
-            });
         }
 
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -849,15 +835,53 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         Assert.EndsWith("/test-sub-path", endpointUrl.Url);
         Assert.Equal("Test Link", endpointUrl.DisplayText);
 
-        if (useLaunchSettings)
-        {
-            var launchProfileUrl = project.Resource.Annotations.OfType<ResourceUrlAnnotation>().FirstOrDefault(u => u.Endpoint?.EndpointName == "http");
+        await app.StopAsync().DefaultTimeout();
+    }
 
-            Assert.NotNull(launchProfileUrl);
-            Assert.StartsWith("http://localhost", launchProfileUrl.Url);
-            Assert.EndsWith("/test-sub-path", launchProfileUrl.Url);
-            Assert.Equal("Test Link", launchProfileUrl.DisplayText);
-        }
+    [Fact]
+    public async Task WithUrlForEndpointSupportsMultipleRelativeUrlsOnLaunchProfileEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var project = builder.AddProject<ProjectB>("project", launchProfileName: "http")
+            // Update the URL from the launch profile
+            .WithUrlForEndpoint("http", url =>
+            {
+                url.Url = "/test-sub-path";
+                url.DisplayText = "Test Link";
+            })
+            // Add another relative URL
+            .WithUrlForEndpoint("http", _ => new()
+            {
+                Url = "/test-another-sub-path",
+                DisplayText = "Another Test Link"
+            })
+            .OnBeforeResourceStarted((_, _, _) =>
+            {
+                tcs.SetResult();
+                return Task.CompletedTask;
+            });
+
+        await using var app = await builder.BuildAsync();
+        await app.StartAsync();
+        await tcs.Task.DefaultTimeout();
+
+        var launchProfileUrls = project.Resource.Annotations.OfType<ResourceUrlAnnotation>().Where(u => u.Endpoint?.EndpointName == "http");
+        Assert.Collection(launchProfileUrls,
+            url =>
+            {
+                Assert.StartsWith("http://localhost", url.Url);
+                Assert.EndsWith("/test-sub-path", url.Url);
+                Assert.Equal("Test Link", url.DisplayText);
+            },
+            url =>
+            {
+                Assert.StartsWith("http://localhost", url.Url);
+                Assert.EndsWith("/test-another-sub-path", url.Url);
+                Assert.Equal("Another Test Link", url.DisplayText);
+            }
+        );
 
         await app.StopAsync().DefaultTimeout();
     }
@@ -920,6 +944,52 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
         Assert.True(endpointUrl.Url.StartsWith("http://localhost") && endpointUrl.Url.EndsWith("/sub-path"));
 
         await app.StopAsync().DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task WithUrlCanAddUrlFromAnotherResourcesEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        // Resource A has the endpoint
+        var resourceA = builder.AddProject<Projects.ServiceA>("resourcea")
+            .WithHttpEndpoint(name: "api");
+
+        // Resource B gets a URL that references resource A's endpoint via the object model
+        var resourceB = builder.AddProject<Projects.ServiceA>("resourceb")
+            .WaitFor(resourceA)
+            .WithUrls(c =>
+            {
+                c.Urls.Add(new()
+                {
+                    DisplayText = "API Docs",
+                    Url = "/",
+                    Endpoint = resourceA.Resource.GetEndpoint("api")
+                });
+            });
+
+        await using var app = await builder.BuildAsync();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await app.StartAsync();
+
+        // Wait for resource B to be running & have the expected URLs
+        var resourceEvent = await rns.WaitForResourceAsync(
+            resourceB.Resource.Name,
+            e => e.Snapshot.State == KnownResourceStates.Running
+                    && e.Snapshot.Urls.Length == resourceB.Resource.GetEndpoints().ToArray().Length + 1
+                    && e.Snapshot.Urls.All(u => !u.IsInactive),
+            default).DefaultTimeout();
+
+        await app.StopAsync().DefaultTimeout();
+
+        // Verify that the URL from resource A's endpoint appears in resource B's snapshot
+        var crossResourceUrl = resourceEvent.Snapshot.Urls.FirstOrDefault(u => u.DisplayProperties.DisplayName == "API Docs");
+
+        Assert.NotNull(crossResourceUrl);
+        Assert.StartsWith("http://localhost", crossResourceUrl.Url);
+        Assert.Equal("api", crossResourceUrl.Name);
+        Assert.False(crossResourceUrl.IsInactive);
     }
 
     private sealed class CustomResource(string name) : Resource(name), IResourceWithEndpoints

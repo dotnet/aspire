@@ -31,7 +31,7 @@ public class AzureManagedRedisConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("redis://{redis.outputs.hostName}:10000", property.Value.ValueExpression);
+                Assert.Equal("rediss://{redis.outputs.hostName}:10000", property.Value.ValueExpression);
             });
     }
 
@@ -58,7 +58,7 @@ public class AzureManagedRedisConnectionPropertiesTests
             property =>
             {
                 Assert.Equal("Uri", property.Key);
-                Assert.Equal("redis://:{redis-kv.secrets.primaryaccesskey--redis}@{redis.outputs.hostName}:10000", property.Value.ValueExpression);
+                Assert.Equal("rediss://:{redis-kv.secrets.primaryaccesskey--redis}@{redis.outputs.hostName}:10000", property.Value.ValueExpression);
             },
             property =>
             {

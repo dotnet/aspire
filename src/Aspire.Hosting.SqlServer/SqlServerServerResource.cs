@@ -72,7 +72,6 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
         builder.Append($"{Host}");
         builder.AppendLiteral(":");
         builder.Append($"{Port}");
-        builder.AppendLiteral(";trustServerCertificate=true");
 
         if (!string.IsNullOrEmpty(databaseName))
         {
@@ -80,6 +79,8 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
             builder.AppendLiteral(";databaseName=");
             builder.Append($"{databaseNameReference}");
         }
+
+        builder.AppendLiteral(";trustServerCertificate=true");
 
         return builder.Build();
     }

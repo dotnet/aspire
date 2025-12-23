@@ -136,10 +136,10 @@ public class AzureManagedRedisResource(string name, Action<AzureResourceInfrastr
 
             if (UseAccessKeyAuthentication)
             {
-                return ReferenceExpression.Create($"redis://:{PrimaryAccessKeySecretOutput:uri}@{HostName}:{Port}");
+                return ReferenceExpression.Create($"rediss://:{PrimaryAccessKeySecretOutput:uri}@{HostName}:{Port}");
             }
 
-            return ReferenceExpression.Create($"redis://{HostName}:{Port}");
+            return ReferenceExpression.Create($"rediss://{HostName}:{Port}");
         }
     }
 

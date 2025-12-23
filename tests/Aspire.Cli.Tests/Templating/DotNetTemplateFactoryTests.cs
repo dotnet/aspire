@@ -51,7 +51,7 @@ public class DotNetTemplateFactoryTests
 
     private static async Task WriteNuGetConfigAsync(DirectoryInfo dir, string content)
     {
-        var path = Path.Combine(dir.FullName, "NuGet.config");
+        var path = Path.Combine(dir.FullName, "nuget.config");
         await File.WriteAllTextAsync(path, content);
     }
 
@@ -76,8 +76,8 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel);
 
         // Assert
-        var nugetConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
-        Assert.True(File.Exists(nugetConfigPath), "NuGet.config should be created in working directory for in-place creation");
+        var nugetConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
+        Assert.True(File.Exists(nugetConfigPath), "nuget.config should be created in working directory for in-place creation");
     }
 
     [Fact]
@@ -108,8 +108,8 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel);
 
         // Assert
-        var nugetConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
-        Assert.True(File.Exists(nugetConfigPath), "NuGet.config should exist in working directory");
+        var nugetConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
+        Assert.True(File.Exists(nugetConfigPath), "nuget.config should exist in working directory");
 
         var content = await File.ReadAllTextAsync(nugetConfigPath);
         Assert.Contains("https://test.feed.example.com", content);
@@ -145,15 +145,15 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
 
         // Assert
-        // Parent NuGet.config should remain unchanged
-        var parentConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
+        // Parent nuget.config should remain unchanged
+        var parentConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
         var parentContent = await File.ReadAllTextAsync(parentConfigPath);
         Assert.Equal(parentConfigContent.ReplaceLineEndings(), parentContent.ReplaceLineEndings());
         Assert.DoesNotContain("https://test.feed.example.com", parentContent);
 
-        // New NuGet.config should be created in output directory
-        var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
-        Assert.True(File.Exists(outputConfigPath), "NuGet.config should be created in output directory");
+        // New nuget.config should be created in output directory
+        var outputConfigPath = Path.Combine(outputDir.FullName, "nuget.config");
+        Assert.True(File.Exists(outputConfigPath), "nuget.config should be created in output directory");
 
         var outputContent = await File.ReadAllTextAsync(outputConfigPath);
         Assert.Contains("https://test.feed.example.com", outputContent);
@@ -188,8 +188,8 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
 
         // Assert
-        var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
-        Assert.True(File.Exists(outputConfigPath), "NuGet.config should exist in output directory");
+        var outputConfigPath = Path.Combine(outputDir.FullName, "nuget.config");
+        Assert.True(File.Exists(outputConfigPath), "nuget.config should exist in output directory");
 
         var content = await File.ReadAllTextAsync(outputConfigPath);
         Assert.Contains("https://test.feed.example.com", content);
@@ -214,13 +214,13 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
 
         // Assert
-        // No NuGet.config should exist in working directory
-        var workingConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
-        Assert.False(File.Exists(workingConfigPath), "No NuGet.config should be created in working directory");
+        // No nuget.config should exist in working directory
+        var workingConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
+        Assert.False(File.Exists(workingConfigPath), "No nuget.config should be created in working directory");
 
-        // New NuGet.config should be created in output directory
-        var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
-        Assert.True(File.Exists(outputConfigPath), "NuGet.config should be created in output directory");
+        // New nuget.config should be created in output directory
+        var outputConfigPath = Path.Combine(outputDir.FullName, "nuget.config");
+        Assert.True(File.Exists(outputConfigPath), "nuget.config should be created in output directory");
 
         var content = await File.ReadAllTextAsync(outputConfigPath);
         Assert.Contains("https://test.feed.example.com", content);
@@ -240,11 +240,11 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
 
         // Assert
-        // No NuGet.config should be created anywhere
-        var workingConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
-        var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
-        Assert.False(File.Exists(workingConfigPath), "No NuGet.config should be created for implicit channel");
-        Assert.False(File.Exists(outputConfigPath), "No NuGet.config should be created for implicit channel");
+        // No nuget.config should be created anywhere
+        var workingConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
+        var outputConfigPath = Path.Combine(outputDir.FullName, "nuget.config");
+        Assert.False(File.Exists(workingConfigPath), "No nuget.config should be created for implicit channel");
+        Assert.False(File.Exists(outputConfigPath), "No nuget.config should be created for implicit channel");
     }
 
     [Fact]
@@ -261,11 +261,11 @@ public class DotNetTemplateFactoryTests
         await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
 
         // Assert
-        // No NuGet.config should be created anywhere
-        var workingConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
-        var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
-        Assert.False(File.Exists(workingConfigPath), "No NuGet.config should be created when no mappings exist");
-        Assert.False(File.Exists(outputConfigPath), "No NuGet.config should be created when no mappings exist");
+        // No nuget.config should be created anywhere
+        var workingConfigPath = Path.Combine(workingDir.FullName, "nuget.config");
+        var outputConfigPath = Path.Combine(outputDir.FullName, "nuget.config");
+        Assert.False(File.Exists(workingConfigPath), "No nuget.config should be created when no mappings exist");
+        Assert.False(File.Exists(outputConfigPath), "No nuget.config should be created when no mappings exist");
     }
 
     [Fact]

@@ -61,7 +61,7 @@ public class AzureKustoConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("Database", property.Key);
+                Assert.Equal("DatabaseName", property.Key);
                 Assert.Equal("testdb", property.Value.ValueExpression);
             });
     }
@@ -85,7 +85,7 @@ public class AzureKustoConnectionPropertiesTests
             },
             property =>
             {
-                Assert.Equal("Database", property.Key);
+                Assert.Equal("DatabaseName", property.Key);
                 Assert.Equal("testdb", property.Value.ValueExpression);
             });
     }

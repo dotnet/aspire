@@ -75,7 +75,7 @@ resource dashboard 'Microsoft.Web/sites@2025-03-01' = {
           value: 'Unsecured'
         }
         {
-          name: 'Dashboard__Otlp__SuppressUnsecuredTelemetryMessage'
+          name: 'Dashboard__Otlp__SuppressUnsecuredMessage'
           value: 'true'
         }
         {
