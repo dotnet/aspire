@@ -262,7 +262,7 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     }
 
     private const string AzureManagementScope = "https://management.azure.com/.default";
-    private const string AzureManagementEndpoint = "https://management.azure.com/"
+    private const string AzureManagementEndpoint = "https://management.azure.com/";
     internal const int MaxHostPrefixLength = 59;
     internal const int MaxWebSiteHostPrefixLengthWithSlot = 40;
 }
