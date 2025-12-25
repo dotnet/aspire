@@ -19,10 +19,19 @@ internal sealed class TypeScriptCodeGenerator : ICodeGenerator
     private const string HashFileName = ".codegen-hash";
 
     private readonly ILogger<TypeScriptCodeGenerator> _logger;
+    private readonly IExtensionMethodProvider _extensionMethodProvider;
 
-    public TypeScriptCodeGenerator(ILogger<TypeScriptCodeGenerator> logger)
+    public TypeScriptCodeGenerator(
+        ILogger<TypeScriptCodeGenerator> logger,
+        ExtensionMethodProviderFactory providerFactory)
     {
         _logger = logger;
+        _extensionMethodProvider = providerFactory.CreateProvider();
+
+        if (providerFactory.IsLocalDevelopment)
+        {
+            _logger.LogDebug("Using assembly scanning for code generation from {RepoRoot}", providerFactory.LocalRepoRoot);
+        }
     }
 
     /// <inheritdoc />
@@ -92,19 +101,19 @@ internal sealed class TypeScriptCodeGenerator : ICodeGenerator
         return savedHash != currentHash;
     }
 
-    private static ApplicationModel CreateApplicationModel(List<(string PackageId, string Version)> packages)
+    private ApplicationModel CreateApplicationModel(List<(string PackageId, string Version)> packages)
     {
         var integrations = new List<IntegrationModel>();
 
         foreach (var (packageId, version) in packages)
         {
-            // Create a basic integration model for each package
-            // In a full implementation, this would scan the actual assemblies
+            var methods = _extensionMethodProvider.GetExtensionMethods(packageId);
+
             var integration = new IntegrationModel
             {
                 PackageId = packageId,
                 Version = version,
-                ExtensionMethods = CreateExtensionMethodsForPackage(packageId)
+                ExtensionMethods = methods
             };
 
             integrations.Add(integration);
@@ -114,47 +123,6 @@ internal sealed class TypeScriptCodeGenerator : ICodeGenerator
         {
             Integrations = integrations
         };
-    }
-
-    private static List<ExtensionMethodModel> CreateExtensionMethodsForPackage(string packageId)
-    {
-        // Extract the resource name from the package ID
-        // e.g., "Aspire.Hosting.Redis" -> "Redis"
-        var parts = packageId.Split('.');
-        var resourceName = parts.Length > 2 ? parts[^1] : parts[^1];
-
-        // Create common extension methods for this integration
-        var methods = new List<ExtensionMethodModel>();
-
-        // Add the main "AddXxx" method
-        if (!string.Equals(packageId, "Aspire.Hosting", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(packageId, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
-        {
-            methods.Add(new ExtensionMethodModel
-            {
-                Name = string.Create(CultureInfo.InvariantCulture, $"Add{resourceName}"),
-                ExtendedType = "IDistributedApplicationBuilder",
-                ReturnType = string.Create(CultureInfo.InvariantCulture, $"IResourceBuilder<{resourceName}Resource>"),
-                ResourceType = string.Create(CultureInfo.InvariantCulture, $"{resourceName}Resource"),
-                ContainingType = string.Create(CultureInfo.InvariantCulture, $"{resourceName}BuilderExtensions"),
-                Parameters =
-                [
-                    new ParameterModel
-                    {
-                        Name = "builder",
-                        Type = "IDistributedApplicationBuilder",
-                        IsThis = true
-                    },
-                    new ParameterModel
-                    {
-                        Name = "name",
-                        Type = "string"
-                    }
-                ]
-            });
-        }
-
-        return methods;
     }
 
     private static void SaveGenerationHash(string appPath, List<(string PackageId, string Version)> packages)

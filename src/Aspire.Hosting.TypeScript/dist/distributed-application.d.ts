@@ -12,26 +12,9 @@ export declare class DistributedApplicationBuilder {
      */
     initialize(): Promise<void>;
     /**
-     * Add a container resource
+     * Invoke a method on the builder. Used by generated integration methods.
      */
-    addContainer(name: string, image: string): Promise<ResourceBuilder>;
-    /**
-     * Add a Redis resource
-     */
-    addRedis(name: string): Promise<ResourceBuilder>;
-    /**
-     * Add a PostgreSQL resource
-     */
-    addPostgres(name: string): Promise<ResourceBuilder>;
-    /**
-     * Add a project resource
-     */
-    addProject(name: string, projectPath: string): Promise<ResourceBuilder>;
-    /**
-     * Add a generic executable resource
-     */
-    addExecutable(name: string, command: string, workingDirectory: string, ...args: string[]): Promise<ResourceBuilder>;
-    private invokeMethod;
+    invoke(methodName: string, args: Record<string, unknown>, methodType?: string): Promise<ResourceBuilder>;
     /**
      * Build and run the distributed application
      */
@@ -64,7 +47,10 @@ export declare class ResourceBuilder {
      * Expose an endpoint
      */
     withEndpoint(name: string, port: number, scheme?: string): Promise<ResourceBuilder>;
-    private invokeMethod;
+    /**
+     * Invoke a method on the resource builder. Used by generated integration methods.
+     */
+    invoke(methodName: string, args: Record<string, unknown>): Promise<ResourceBuilder>;
     getVariableName(): string;
 }
 /**

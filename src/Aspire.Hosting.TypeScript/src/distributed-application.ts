@@ -43,41 +43,9 @@ export class DistributedApplicationBuilder {
     }
 
     /**
-     * Add a container resource
+     * Invoke a method on the builder. Used by generated integration methods.
      */
-    async addContainer(name: string, image: string): Promise<ResourceBuilder> {
-        return this.invokeMethod('AddContainer', { name, image }, 'Aspire.Hosting.ContainerResourceBuilderExtensions');
-    }
-
-    /**
-     * Add a Redis resource
-     */
-    async addRedis(name: string): Promise<ResourceBuilder> {
-        return this.invokeMethod('AddRedis', { name });
-    }
-
-    /**
-     * Add a PostgreSQL resource
-     */
-    async addPostgres(name: string): Promise<ResourceBuilder> {
-        return this.invokeMethod('AddPostgres', { name });
-    }
-
-    /**
-     * Add a project resource
-     */
-    async addProject(name: string, projectPath: string): Promise<ResourceBuilder> {
-        return this.invokeMethod('AddProject', { name, projectPath });
-    }
-
-    /**
-     * Add a generic executable resource
-     */
-    async addExecutable(name: string, command: string, workingDirectory: string, ...args: string[]): Promise<ResourceBuilder> {
-        return this.invokeMethod('AddExecutable', { name, command, workingDirectory, args });
-    }
-
-    private async invokeMethod(methodName: string, args: Record<string, unknown>, methodType?: string): Promise<ResourceBuilder> {
+    async invoke(methodName: string, args: Record<string, unknown>, methodType?: string): Promise<ResourceBuilder> {
         if (!this.client) {
             throw new Error('Builder not initialized. Call initialize() first.');
         }
@@ -139,14 +107,14 @@ export class ResourceBuilder {
      * Add a reference to another resource
      */
     async withReference(other: ResourceBuilder): Promise<ResourceBuilder> {
-        return this.invokeMethod('WithReference', { builder: other.getVariableName() });
+        return this.invoke('WithReference', { builder: other.getVariableName() });
     }
 
     /**
      * Wait for another resource to be ready
      */
     async waitFor(other: ResourceBuilder): Promise<ResourceBuilder> {
-        return this.invokeMethod('WaitFor', { dependency: other.getVariableName() });
+        return this.invoke('WaitFor', { dependency: other.getVariableName() });
     }
 
     /**
@@ -163,11 +131,12 @@ export class ResourceBuilder {
     ): Promise<ResourceBuilder> {
         if (typeof nameOrCallback === 'function') {
             // Callback-based environment variables
+            // Uses withEnvironmentCallback (from PolyglotMethodNameAttribute)
             const callbackId = registerCallback(nameOrCallback);
-            return this.invokeMethod('WithEnvironment', { callback: callbackId });
+            return this.invoke('withEnvironmentCallback', { callback: callbackId });
         } else {
             // Static environment variable
-            return this.invokeMethod('WithEnvironment', { name: nameOrCallback, value });
+            return this.invoke('WithEnvironment', { name: nameOrCallback, value });
         }
     }
 
@@ -175,10 +144,13 @@ export class ResourceBuilder {
      * Expose an endpoint
      */
     async withEndpoint(name: string, port: number, scheme?: string): Promise<ResourceBuilder> {
-        return this.invokeMethod('WithEndpoint', { name, port, scheme: scheme || 'http' });
+        return this.invoke('WithEndpoint', { name, port, scheme: scheme || 'http' });
     }
 
-    private async invokeMethod(methodName: string, args: Record<string, unknown>): Promise<ResourceBuilder> {
+    /**
+     * Invoke a method on the resource builder. Used by generated integration methods.
+     */
+    async invoke(methodName: string, args: Record<string, unknown>): Promise<ResourceBuilder> {
         const targetVar = generateVariableName();
 
         const instruction: InvokeInstruction = {

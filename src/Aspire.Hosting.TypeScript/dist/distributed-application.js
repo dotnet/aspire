@@ -33,36 +33,9 @@ export class DistributedApplicationBuilder {
         }
     }
     /**
-     * Add a container resource
+     * Invoke a method on the builder. Used by generated integration methods.
      */
-    async addContainer(name, image) {
-        return this.invokeMethod('AddContainer', { name, image }, 'Aspire.Hosting.ContainerResourceBuilderExtensions');
-    }
-    /**
-     * Add a Redis resource
-     */
-    async addRedis(name) {
-        return this.invokeMethod('AddRedis', { name });
-    }
-    /**
-     * Add a PostgreSQL resource
-     */
-    async addPostgres(name) {
-        return this.invokeMethod('AddPostgres', { name });
-    }
-    /**
-     * Add a project resource
-     */
-    async addProject(name, projectPath) {
-        return this.invokeMethod('AddProject', { name, projectPath });
-    }
-    /**
-     * Add a generic executable resource
-     */
-    async addExecutable(name, command, workingDirectory, ...args) {
-        return this.invokeMethod('AddExecutable', { name, command, workingDirectory, args });
-    }
-    async invokeMethod(methodName, args, methodType) {
+    async invoke(methodName, args, methodType) {
         if (!this.client) {
             throw new Error('Builder not initialized. Call initialize() first.');
         }
@@ -116,32 +89,36 @@ export class ResourceBuilder {
      * Add a reference to another resource
      */
     async withReference(other) {
-        return this.invokeMethod('WithReference', { builder: other.getVariableName() });
+        return this.invoke('WithReference', { builder: other.getVariableName() });
     }
     /**
      * Wait for another resource to be ready
      */
     async waitFor(other) {
-        return this.invokeMethod('WaitFor', { dependency: other.getVariableName() });
+        return this.invoke('WaitFor', { dependency: other.getVariableName() });
     }
     async withEnvironment(nameOrCallback, value) {
         if (typeof nameOrCallback === 'function') {
             // Callback-based environment variables
+            // Uses withEnvironmentCallback (from PolyglotMethodNameAttribute)
             const callbackId = registerCallback(nameOrCallback);
-            return this.invokeMethod('WithEnvironment', { callback: callbackId });
+            return this.invoke('withEnvironmentCallback', { callback: callbackId });
         }
         else {
             // Static environment variable
-            return this.invokeMethod('WithEnvironment', { name: nameOrCallback, value });
+            return this.invoke('WithEnvironment', { name: nameOrCallback, value });
         }
     }
     /**
      * Expose an endpoint
      */
     async withEndpoint(name, port, scheme) {
-        return this.invokeMethod('WithEndpoint', { name, port, scheme: scheme || 'http' });
+        return this.invoke('WithEndpoint', { name, port, scheme: scheme || 'http' });
     }
-    async invokeMethod(methodName, args) {
+    /**
+     * Invoke a method on the resource builder. Used by generated integration methods.
+     */
+    async invoke(methodName, args) {
         const targetVar = generateVariableName();
         const instruction = {
             name: 'INVOKE',

@@ -320,9 +320,30 @@ public class InstructionProcessor : IAsyncDisposable
             var providedArgNames = instruction.Args.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             // Find all methods with the matching name
+            // First, check if any method has a PolyglotMethodNameAttribute that matches
+            // This allows polyglot SDKs to use unique names for overloads
             var candidateMethods = type.GetMethods()
-                .Where(m => m.Name == instruction.MethodName)
                 .Where(m => m.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false))
+                .Where(m =>
+                {
+                    // Check for PolyglotMethodNameAttribute first (using reflection to avoid type dependency)
+                    var polyglotAttr = m.GetCustomAttributesData()
+                        .FirstOrDefault(a => a.AttributeType.Name == "PolyglotMethodNameAttribute");
+
+                    if (polyglotAttr != null)
+                    {
+                        // Get the MethodName from the constructor argument
+                        var methodName = polyglotAttr.ConstructorArguments.FirstOrDefault().Value as string;
+                        if (methodName != null)
+                        {
+                            // Match by polyglot name (case-insensitive)
+                            return string.Equals(methodName, instruction.MethodName, StringComparison.OrdinalIgnoreCase);
+                        }
+                    }
+
+                    // Fall back to C# method name
+                    return m.Name == instruction.MethodName;
+                })
                 .ToList();
 
             // Score each candidate based on argument name matching and source type compatibility
