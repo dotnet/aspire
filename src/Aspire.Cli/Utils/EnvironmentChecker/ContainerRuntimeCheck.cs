@@ -545,6 +545,9 @@ internal sealed class ContainerVersionJson
     public ContainerServerJson? Server { get; set; }
 }
 
+/// <summary>
+/// JSON structure for the Client section of container runtime version output.
+/// </summary>
 internal sealed class ContainerClientJson
 {
     [JsonPropertyName("Version")]
@@ -554,6 +557,9 @@ internal sealed class ContainerClientJson
     public string? Context { get; set; }
 }
 
+/// <summary>
+/// JSON structure for the Server section of container runtime version output.
+/// </summary>
 internal sealed class ContainerServerJson
 {
     [JsonPropertyName("Version")]
