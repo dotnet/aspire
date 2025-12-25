@@ -16,7 +16,7 @@ Checks are organized into three categories:
 
 These checks validate the developer's machine environment. They can run anywhere without needing an Aspire project and don't depend on what resources are configured in any AppHost.
 
-### 1.1 Deprecated Aspire Workload Detection
+### Deprecated Aspire Workload Detection
 **Source:** Internal knowledge, [#11202](https://github.com/dotnet/aspire/issues/11202)
 
 The `aspire` workload is deprecated and should be uninstalled. Users with this workload installed may encounter conflicts or confusion.
@@ -32,27 +32,7 @@ dotnet workload uninstall aspire
 
 ---
 
-### 1.2 IDE Certificate Expiry Detection
-**Source:** [#6207](https://github.com/dotnet/aspire/issues/6207), [#5548](https://github.com/dotnet/aspire/issues/5548)
-
-IDE-generated certificates expire after 7 days. Users leaving VS open for extended periods encounter:
-```text
-tls: failed to verify certificate: x509: certificate has expired or is not yet valid
-```
-
-**Check logic:**
-- Locate IDE session certificates (VS/Rider/VS Code)
-- Check expiration dates
-- Warn if expired or expiring soon
-
-**Fix suggestion:**
-```text
-Restart your IDE to regenerate the session certificate
-```
-
----
-
-### 1.3 Container Runtime Configuration (Enhanced)
+### Container Runtime Configuration (Enhanced)
 **Source:** [#10199](https://github.com/dotnet/aspire/issues/10199), [#6635](https://github.com/dotnet/aspire/issues/6635)
 
 Current check validates Docker/Podman, but could be enhanced:
@@ -65,7 +45,7 @@ Current check validates Docker/Podman, but could be enhanced:
 
 ---
 
-### 1.4 Docker Windows Container Mode Detection
+### Docker Windows Container Mode Detection
 **Source:** [#11389](https://github.com/dotnet/aspire/issues/11389)
 
 Docker running in Windows container mode causes confusing errors when pulling Linux images.
@@ -86,7 +66,7 @@ Switch Docker Desktop to Linux containers mode (right-click Docker tray icon)
 
 ---
 
-### 1.5 Docker Proxy Configuration
+### Docker Proxy Configuration
 **Source:** [#11413](https://github.com/dotnet/aspire/issues/11413)
 
 Corporate proxy settings can prevent Docker from pulling images.
@@ -98,52 +78,7 @@ Corporate proxy settings can prevent Docker from pulling images.
 
 ---
 
-### 1.6 NuGet Connectivity
-**Source:** [Discussion #12518](https://github.com/dotnet/aspire/discussions/12518), [#13433](https://github.com/dotnet/aspire/issues/13433)
-
-Aspire projects require NuGet package restore. Corporate firewalls or offline environments cause failures.
-
-**Check logic:**
-- Test connectivity to nuget.org
-- Check for configured private feeds
-- Warn about potential restore failures
-
----
-
-### 1.7 Docker Snap Installation (Linux)
-**Source:** [#11027](https://github.com/dotnet/aspire/issues/11027)
-
-Docker installed via Snap on Linux causes "docker command appears to be aliased" errors because snap symlinks point to `/usr/bin/snap`.
-
-**Error pattern:**
-```text
-docker command appears to be aliased to a different container runtime
-```
-
-**Check logic:**
-- On Linux, check if docker is installed via snap (`/snap/bin/docker` symlinks to `/usr/bin/snap`)
-- Warn about potential issues with snap-installed Docker
-
-**Fix suggestion:**
-```text
-Install Docker via apt/dnf instead of snap
-```
-
----
-
-### 1.8 localhost DNS Resolution
-**Source:** [#10754](https://github.com/dotnet/aspire/issues/10754)
-
-Containers may be accessible on `127.0.0.1` but not `localhost` if IPv6 is misconfigured or hosts file has issues.
-
-**Check logic:**
-- Verify `localhost` resolves correctly
-- Check hosts file configuration
-- Warn about potential connection issues if mismatch detected
-
----
-
-### 1.9 Windows Dev Drive Configuration
+### Windows Dev Drive Configuration
 **Source:** [#10268](https://github.com/dotnet/aspire/issues/10268)
 
 NuGet packages on a Dev Drive mounted as a folder using a directory junction causes DCP failures.
@@ -164,7 +99,7 @@ Use a directory symbolic link instead of a directory junction when mounting Dev 
 
 ---
 
-### 1.10 Corporate Network/VPN Detection
+### Corporate Network/VPN Detection
 **Source:** [#9376](https://github.com/dotnet/aspire/issues/9376)
 
 Corporate security software (Cisco Umbrella, ZScaler, etc.) can interfere with DNS resolution and container networking.
@@ -176,7 +111,7 @@ Corporate security software (Cisco Umbrella, ZScaler, etc.) can interfere with D
 
 ---
 
-### 1.11 Dev Container Configuration
+### Dev Container Configuration
 **Source:** [#6830](https://github.com/dotnet/aspire/issues/6830)
 
 Aspire doesn't support `docker-outside-of-docker` in dev containers. Must use `docker-in-docker`.
@@ -188,7 +123,7 @@ Aspire doesn't support `docker-outside-of-docker` in dev containers. Must use `d
 
 ---
 
-### 1.12 Proxy Environment Variables
+### Proxy Environment Variables
 **Source:** [#1012](https://github.com/dotnet/aspire/issues/1012), [#3355](https://github.com/dotnet/aspire/issues/3355)
 
 HTTP_PROXY/HTTPS_PROXY settings can break Aspire's internal communications to localhost.
@@ -211,7 +146,7 @@ Add to NO_PROXY: localhost,127.0.0.1,::1
 
 ---
 
-### 1.13 IPv6 Localhost Availability
+### IPv6 Localhost Availability
 **Source:** [#3355](https://github.com/dotnet/aspire/issues/3355)
 
 Corporate VPNs or network configurations that block IPv6 localhost (::1) cause Aspire startup failures.
@@ -233,19 +168,7 @@ Contact IT to allow IPv6 localhost access, or check VPN configuration
 
 ---
 
-### 1.14 OTEL Environment Variable Conflicts
-**Source:** [#6939](https://github.com/dotnet/aspire/issues/6939)
-
-User-configured OTEL exporters (e.g., Seq) may conflict with Aspire's default `OTEL_EXPORTER_OTLP_PROTOCOL=grpc` setting.
-
-**Check logic:**
-- Detect if custom OTEL environment variables are set
-- Warn about potential conflicts with Aspire's OTEL configuration
-- Suggest checking telemetry pipeline if logs not appearing
-
----
-
-### 1.15 Group Policy Blocking Aspire Tools
+### Group Policy Blocking Aspire Tools
 **Source:** [#6855](https://github.com/dotnet/aspire/issues/6855)
 
 Corporate group policies can block execution of `Aspire.RuntimeIdentifier.Tool`, preventing Aspire from starting.
@@ -271,7 +194,7 @@ Or contact IT to whitelist Aspire tools
 
 ---
 
-### 1.16 Corporate Certificate Policy
+### Corporate Certificate Policy
 **Source:** [#7443](https://github.com/dotnet/aspire/issues/7443), [#9158](https://github.com/dotnet/aspire/issues/9158)
 
 Corporate policies blocking self-signed certificates prevent Aspire's internal TLS communication.
@@ -295,7 +218,7 @@ Or work with IT to allow Aspire's self-signed certificates
 
 ---
 
-### 1.17 HTTP/2 Proxy Interference
+### HTTP/2 Proxy Interference
 **Source:** [#1818](https://github.com/dotnet/aspire/issues/1818)
 
 Corporate proxies that don't support HTTP/2 break OTEL telemetry connections.
@@ -312,30 +235,11 @@ Requesting HTTP version 2.0 with version policy RequestVersionOrHigher while una
 
 ---
 
-### 1.18 CI/CD Environment Dev Certs
-**Source:** [#9061](https://github.com/dotnet/aspire/issues/9061)
-
-GitHub Actions and other CI environments don't have dev-certs trusted by default.
-
-**Check logic:**
-- Detect CI environment (GITHUB_ACTIONS, TF_BUILD, CI env vars)
-- Check if dev-certs are trusted
-- Warn about SSL errors in CI
-
-**Fix suggestion:**
-```bash
-# Add to CI pipeline:
-dotnet dev-certs https --clean
-dotnet dev-certs https --trust
-```
-
----
-
 ## Category 2: Project-specific Checks
 
 These checks analyze an AppHost project or solution directory by inspecting project files (.csproj, launchSettings.json, etc.). The AppHost doesn't need to be running and these checks do NOT parse AppHost.cs code.
 
-### 2.1 Dashboard Port Availability
+### Dashboard Port Availability
 **Source:** [#3044](https://github.com/dotnet/aspire/issues/3044), [#5112](https://github.com/dotnet/aspire/issues/5112)
 
 Dashboard fails to start when its default ports are in use.
@@ -346,7 +250,7 @@ Dashboard fails to start when its default ports are in use.
 
 ---
 
-### 2.2 Aspire SDK Version Consistency
+### Aspire SDK Version Consistency
 **Source:** [#12274](https://github.com/dotnet/aspire/issues/12274)
 
 Mismatched or missing SDK versions cause confusing errors (e.g., VS asking for "Desktop Experience" workload).
@@ -358,7 +262,7 @@ Mismatched or missing SDK versions cause confusing errors (e.g., VS asking for "
 
 ---
 
-### 2.3 launchSettings.json Validation
+### launchSettings.json Validation
 **Source:** [#7975](https://github.com/dotnet/aspire/issues/7975)
 
 Invalid JSON in launchSettings.json (e.g., trailing commas) causes silent failures.
@@ -369,7 +273,7 @@ Invalid JSON in launchSettings.json (e.g., trailing commas) causes silent failur
 
 ---
 
-### 2.4 Central Package Management Detection
+### Central Package Management Detection
 **Source:** [#13241](https://github.com/dotnet/aspire/issues/13241)
 
 `aspire add` doesn't support Central Package Management, causing confusion.
@@ -380,7 +284,7 @@ Invalid JSON in launchSettings.json (e.g., trailing commas) causes silent failur
 
 ---
 
-### 2.5 AppHost SDK Package Availability
+### AppHost SDK Package Availability
 **Source:** [#6622](https://github.com/dotnet/aspire/issues/6622)
 
 Aspire orchestration fails if the AppHost SDK package isn't in the local NuGet cache.
@@ -397,7 +301,7 @@ dotnet restore
 
 ---
 
-### 2.6 UserSecretsId Configuration
+### UserSecretsId Configuration
 **Source:** General
 
 AppHost projects require a `UserSecretsId` property for secrets to work (unless using single-file AppHost).
@@ -415,7 +319,7 @@ Or run: dotnet user-secrets init
 
 ---
 
-### 2.7 Referenced Projects Exist
+### Referenced Projects Exist
 **Source:** [#12851](https://github.com/dotnet/aspire/issues/12851)
 
 AppHost fails with unclear errors if referenced projects don't exist.
@@ -431,7 +335,7 @@ AppHost fails with unclear errors if referenced projects don't exist.
 
 These checks require the AppHost to be running to gather diagnostic data. They can inspect resource configuration and test actual connectivity.
 
-### 3.1 Azure Functions Core Tools Detection
+### Azure Functions Core Tools Detection
 **Source:** [#7010](https://github.com/dotnet/aspire/issues/7010)
 
 Users adding Azure Functions to their Aspire projects get cryptic errors when `func` CLI is not installed or not in PATH.
@@ -455,7 +359,7 @@ Or install Azure development workload in Visual Studio
 
 ---
 
-### 3.2 Node.js/npm Detection
+### Node.js/npm Detection
 **Source:** General
 
 **Check logic:**
@@ -470,7 +374,7 @@ Install Node.js from: https://nodejs.org/
 
 ---
 
-### 3.3 Python Detection
+### Python Detection
 **Source:** General
 
 **Check logic:**
@@ -480,7 +384,7 @@ Install Node.js from: https://nodejs.org/
 
 ---
 
-### 3.4 Port Conflict Detection
+### Port Conflict Detection
 **Source:** [#12247](https://github.com/dotnet/aspire/issues/12247), [#8246](https://github.com/dotnet/aspire/issues/8246), [#6659](https://github.com/dotnet/aspire/issues/6659)
 
 Fixed ports configured via `.WithEndpoint(port: N)` fail with "address already in use" errors.
@@ -503,7 +407,7 @@ Kill the process or use a different port
 
 ---
 
-### 3.5 Container-to-Host Connectivity
+### Container-to-Host Connectivity
 **Source:** [#6547](https://github.com/dotnet/aspire/issues/6547), [#8286](https://github.com/dotnet/aspire/issues/8286), [#12615](https://github.com/dotnet/aspire/issues/12615)
 
 Containers can't reach services running on the host, especially with Docker Engine (not Desktop) or Podman.
@@ -520,7 +424,7 @@ export ASPIRE_ENABLE_CONTAINER_TUNNEL=true
 
 ---
 
-### 3.6 Health Check Status Monitoring
+### Health Check Status Monitoring
 **Source:** [#10995](https://github.com/dotnet/aspire/issues/10995), [#11550](https://github.com/dotnet/aspire/issues/11550)
 
 Containers stuck in "unhealthy" state, especially on ARM64 where health checks use IPv6 but containers default to IPv4.
@@ -532,7 +436,7 @@ Containers stuck in "unhealthy" state, especially on ARM64 where health checks u
 
 ---
 
-### 3.7 Telemetry Pipeline Validation
+### Telemetry Pipeline Validation
 **Source:** [#6635](https://github.com/dotnet/aspire/issues/6635)
 
 Podman containers sometimes don't send telemetry to the dashboard.
@@ -543,7 +447,7 @@ Podman containers sometimes don't send telemetry to the dashboard.
 
 ---
 
-### 3.8 Resource Startup Timeout Detection
+### Resource Startup Timeout Detection
 **Source:** [#12241](https://github.com/dotnet/aspire/issues/12241)
 
 DCP service creation can timeout on slow machines or with many resources.
@@ -554,7 +458,7 @@ DCP service creation can timeout on slow machines or with many resources.
 
 ---
 
-### 3.9 PostgreSQL Volume Authentication Issues
+### PostgreSQL Volume Authentication Issues
 **Source:** [#11337](https://github.com/dotnet/aspire/issues/11337)
 
 PostgreSQL containers fail with SCRAM authentication errors when reusing volumes with changed passwords.
@@ -576,7 +480,7 @@ Delete the PostgreSQL volume and restart, or ensure password hasn't changed
 
 ---
 
-### 3.10 SQL Server Volume Permission Issues
+### SQL Server Volume Permission Issues
 **Source:** [#7182](https://github.com/dotnet/aspire/issues/7182), [#12763](https://github.com/dotnet/aspire/issues/12763), [#5055](https://github.com/dotnet/aspire/issues/5055)
 
 SQL Server containers fail with permission errors on bind mounts, especially on macOS/ARM64.
@@ -588,7 +492,7 @@ SQL Server containers fail with permission errors on bind mounts, especially on 
 
 ---
 
-### 3.11 Project Build Status
+### Project Build Status
 **Source:** [#2154](https://github.com/dotnet/aspire/issues/2154)
 
 Projects referenced via path (not solution) may not be built, causing startup failures.
@@ -600,7 +504,7 @@ Projects referenced via path (not solution) may not be built, causing startup fa
 
 ---
 
-### 3.12 Bind Mount Path Issues (WSL)
+### Bind Mount Path Issues (WSL)
 **Source:** [#5378](https://github.com/dotnet/aspire/issues/5378), [#3945](https://github.com/dotnet/aspire/issues/3945)
 
 Bind mounts fail when paths don't translate correctly between Windows and WSL/Linux.
