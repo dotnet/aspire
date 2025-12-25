@@ -200,8 +200,7 @@ public class Program
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
 
         // Code generators (keyed by AppHostType).
-        builder.Services.AddSingleton<ExtensionMethodProviderFactory>();
-        builder.Services.AddKeyedSingleton<ICodeGenerator, TypeScriptCodeGenerator>(AppHostType.TypeScript);
+        builder.Services.AddKeyedSingleton<ICodeGenerator, TypeScriptCodeGeneratorService>(AppHostType.TypeScript);
 
         // AppHost project handlers.
         builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();

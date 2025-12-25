@@ -1,76 +1,99 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.CodeGeneration.Models.Types;
+
 namespace Aspire.Hosting.CodeGeneration.Models;
 
-/// <summary>
-/// Represents a resource type in the Aspire hosting model.
-/// </summary>
 public sealed class ResourceModel
 {
     /// <summary>
-    /// Gets or sets the resource type name (e.g., "RedisResource").
+    /// The resource type.
     /// </summary>
-    public required string TypeName { get; init; }
+    /// <example>RedisResource</example>
+    public required RoType ResourceType { get; init; }
 
     /// <summary>
-    /// Gets or sets the full type name including namespace.
+    /// Extension methods for IResourceBuilder{T} of the current resource.
     /// </summary>
-    public required string FullTypeName { get; init; }
+    /// <example>
+    /// <code>
+    /// IResourceBuilder&lt;RedisResource&gt; WithRedisCommander(this IResourceBuilder&lt;RedisResource&gt; builder, Action&lt;IResourceBuilder&lt;RedisCommanderResource&gt;&gt;? configureContainer = null, string? containerName = null)
+    /// </code>
+    /// </example>
+    public List<RoMethod> IResourceTypeBuilderExtensionsMethods { get; } = [];
 
-    /// <summary>
-    /// Gets or sets the base type if any.
-    /// </summary>
-    public string? BaseType { get; init; }
+    public HashSet<RoType> ModelTypes { get; } = [];
 
-    /// <summary>
-    /// Gets or sets the package that defines this resource.
-    /// </summary>
-    public required string PackageId { get; init; }
+    public void DiscoverOpenGenericExtensionMethods(IntegrationModel integrationModel)
+    {
+        // Add all concrete resource builder methods from this integration.
 
-    /// <summary>
-    /// Gets or sets the extension methods that can be called on IResourceBuilder of this resource.
-    /// </summary>
-    public List<ExtensionMethodModel> ResourceBuilderMethods { get; init; } = [];
+        // Look into all shared extensions from other integrations
 
-    /// <summary>
-    /// Gets or sets the properties exposed by this resource.
-    /// </summary>
-    public List<PropertyModel> Properties { get; init; } = [];
+        // Open generic methods need to be defined on the concrete builder type (RedisResourceBuilder) so they can return
+        // the same builder type, not on a base builder (ResourceBuilder).
 
-    /// <summary>
-    /// Gets or sets the XML documentation for this resource.
-    /// </summary>
-    public string? Documentation { get; init; }
-}
+        // Methods constrained to the resource type: e.g., IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, ...) where T : ContainerResource
+        // Methods constrained to an interface: e.g., IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, ...) where T : IResourceWithEndpoints
 
-/// <summary>
-/// Represents a property on a resource type.
-/// </summary>
-public sealed class PropertyModel
-{
-    /// <summary>
-    /// Gets or sets the property name.
-    /// </summary>
-    public required string Name { get; init; }
+        var allTypeForThisResource = new HashSet<RoType>();
+        var allInterfacesForThisResource = new HashSet<RoType>();
 
-    /// <summary>
-    /// Gets or sets the property type.
-    /// </summary>
-    public required string Type { get; init; }
+        void PopulateInterfaces(RoType t)
+        {
+            foreach (var i in t.Interfaces)
+            {
+                allInterfacesForThisResource.Add(i);
+            }
+        }
 
-    /// <summary>
-    /// Gets or sets whether this property has a getter.
-    /// </summary>
-    public bool HasGetter { get; init; }
+        // Inherited types
+        var parentType = ResourceType;
 
-    /// <summary>
-    /// Gets or sets whether this property has a setter.
-    /// </summary>
-    public bool HasSetter { get; init; }
+        var objectType = integrationModel.WellKnownTypes.GetKnownType(typeof(object));
 
-    /// <summary>
-    /// Gets or sets the XML documentation for this property.
-    /// </summary>
-    public string? Documentation { get; init; }
+        while (parentType != null && parentType != objectType)
+        {
+            PopulateInterfaces(parentType);
+            allTypeForThisResource.Add(parentType);
+            parentType = parentType.BaseType;
+        }
+
+        // Looks from IResourceBuilder<RedisResource> and also IResourceBuilder<IResourceWithConnectionString>
+        foreach (var type in allTypeForThisResource.Union(allInterfacesForThisResource))
+        {
+            var targetType = integrationModel.WellKnownTypes.IResourceBuilderType.MakeGenericType(type);
+            var methods = integrationModel.GetExtensionMethods(integrationModel.WellKnownTypes, targetType).ToArray();
+            IResourceTypeBuilderExtensionsMethods.AddRange(methods);
+        }
+
+        // Open generic methods need to be defined on the concrete builder type (RedisResourceBuilder) so they can return
+        // the same builder type, not on a base builder (ResourceBuilder).
+        // Methods constrained to the resource type: e.g., IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, ...) where T : ContainerResource
+
+        var openGenericMethods = new List<RoMethod>();
+
+        foreach (var m in integrationModel.SharedExtensionMethods)
+        {
+            var genArgs = m.GetGenericArguments();
+            var genArg = genArgs[0];
+
+            if (genArgs.Count > 1)
+            {
+                // TODO: Not supported:
+                // public static IResourceBuilder<T> WithEnvironment<T, TValue>(this IResourceBuilder<T> builder, string name, TValue value)
+                continue;
+            }
+
+            if (genArg.GetGenericParameterConstraints().All(x => allInterfacesForThisResource.Contains(x) || allTypeForThisResource.Contains(x)))
+            {
+                openGenericMethods.Add(m.MakeGenericMethod(ResourceType));
+            }
+        }
+
+        IResourceTypeBuilderExtensionsMethods.AddRange(openGenericMethods);
+
+        integrationModel.DiscoverModelClasses(IResourceTypeBuilderExtensionsMethods, ModelTypes);
+    }
 }

@@ -1,7 +1,8 @@
 // Aspire TypeScript AppHost
 // For more information, see: https://learn.microsoft.com/dotnet/aspire
 
-import { createBuilder, registerCallback } from '@aspire/hosting';
+// Import from the generated module (created by code generation)
+import { createBuilder } from './.modules/distributed-application.js';
 
 async function main() {
     console.log("Aspire TypeScript AppHost starting...");
@@ -12,30 +13,15 @@ async function main() {
         const builder = await createBuilder();
         console.log("Builder created successfully!");
 
-        // Add a container resource (using redis image for testing)
-        console.log("Adding redis container...");
-        const redis = await builder.addContainer("cache", "redis");
-        console.log("Container added successfully!");
-
-        // Test callback: Add environment variable with static value
-        console.log("Adding static environment variable...");
-        await redis.withEnvironment("STATIC_VAR", "hello-from-typescript");
-        console.log("Static environment variable added!");
-
-        // Test callback: Add environment variable with callback
-        console.log("Adding callback-based environment variable...");
-        await redis.withEnvironment((context) => {
-            console.log(">>> CALLBACK INVOKED FROM .NET! <<<");
-            console.log("Context received:", JSON.stringify(context));
-            context.environmentVariables["DYNAMIC_VAR"] = `dynamic-value-${Date.now()}`;
-            console.log(">>> CALLBACK COMPLETED <<<");
-        });
-        console.log("Callback-based environment variable added!");
+        // Add a Redis resource
+        console.log("Adding redis...");
+        const redis = await builder.addRedis("cache");
+        console.log("Redis added successfully!");
 
         // Build and run the application
         console.log("Building and running application...");
-        const app = await builder.build();
-        console.log("Application started!");
+        const app = builder.build();
+        console.log("Application built!");
 
         await app.run();
 

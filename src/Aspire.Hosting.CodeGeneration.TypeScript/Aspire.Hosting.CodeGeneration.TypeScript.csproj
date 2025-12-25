@@ -10,6 +10,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\types.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.types.ts" />
+    <EmbeddedResource Include="Resources\RemoteAppHostClient.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.RemoteAppHostClient.ts" />
+    <EmbeddedResource Include="Resources\package.json" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.package.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.CodeGeneration\Aspire.Hosting.CodeGeneration.csproj" />
   </ItemGroup>
 

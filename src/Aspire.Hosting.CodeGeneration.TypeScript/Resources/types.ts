@@ -1,5 +1,3 @@
-// Instruction types for JSON-RPC communication with GenericAppHost
-
 export interface Instruction {
   name: string;
 }
@@ -8,6 +6,7 @@ export interface CreateBuilderInstruction extends Instruction {
   name: 'CREATE_BUILDER';
   builderName: string;
   args: string[];
+  projectDirectory: string;
 }
 
 export interface RunBuilderInstruction extends Instruction {
@@ -36,7 +35,7 @@ export interface InvokeInstruction extends Instruction {
   methodName: string;
   methodArgumentTypes: string[];
   metadataToken: number;
-  args: Record<string, unknown>;
+  args: Record<string, any>;
 }
 
 export type AnyInstruction =
@@ -49,35 +48,5 @@ export type AnyInstruction =
 export interface InstructionResult {
   success: boolean;
   error?: string;
-  [key: string]: unknown;
-}
-
-/**
- * Type for callback functions that can be registered and invoked from .NET.
- * Callbacks can be sync or async and can return any value.
- */
-export type CallbackFunction<TArgs = unknown, TResult = unknown> =
-  (args: TArgs) => TResult | Promise<TResult>;
-
-/**
- * Context passed to environment variable callbacks.
- */
-export interface EnvironmentCallbackContext {
-  environmentVariables: Record<string, string>;
-}
-
-/**
- * Context passed to command callbacks.
- */
-export interface CommandContext {
-  resourceName: string;
-  serviceName?: string;
-}
-
-/**
- * Context passed to health check callbacks.
- */
-export interface HealthCheckContext {
-  resourceName: string;
-  url?: string;
+  [key: string]: any;
 }

@@ -88,9 +88,24 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 }
             }
 
-            // Step 2: Get package references and run code generation if needed
+            // Step 2: Get package references and build GenericAppHost FIRST (code gen needs assemblies)
             var packages = GetPackageReferences(directory).ToList();
+            var projectModel = new ProjectModel(directory.FullName);
+            var socketPath = projectModel.GetSocketPath();
 
+            // Create the GenericAppHost project files
+            _interactionService.DisplayMessage("gear", "Preparing GenericAppHost...");
+            projectModel.CreateProjectFiles(packages);
+
+            // Build the GenericAppHost (must happen before code generation!)
+            var buildSuccess = await projectModel.BuildAsync(_interactionService);
+            if (!buildSuccess)
+            {
+                _interactionService.DisplayError("Failed to build GenericAppHost.");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
+            // Step 3: Run code generation now that assemblies are built
             if (_codeGenerator.NeedsGeneration(directory.FullName, packages))
             {
                 await _interactionService.ShowStatusAsync(
@@ -103,22 +118,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                             cancellationToken);
                         return true;
                     });
-            }
-
-            // Step 3: Start the GenericAppHost (RemoteAppHost server)
-            var projectModel = new ProjectModel(directory.FullName);
-            var socketPath = projectModel.GetSocketPath();
-
-            // Create the GenericAppHost project files
-            _interactionService.DisplayMessage("gear", "Preparing GenericAppHost...");
-            projectModel.CreateProjectFiles(packages);
-
-            // Build the GenericAppHost
-            var buildSuccess = await projectModel.BuildAsync(_interactionService);
-            if (!buildSuccess)
-            {
-                _interactionService.DisplayError("Failed to build GenericAppHost.");
-                return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
             // Read launchSettings.json if it exists

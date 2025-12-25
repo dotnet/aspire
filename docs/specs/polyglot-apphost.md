@@ -12,7 +12,7 @@ The architecture is designed around these key principles:
 
 1. **Reuse Existing Integrations**: All 100+ existing Aspire.Hosting.* NuGet packages work automatically with TypeScript and Python app hosts. No need to rewrite or port integrations - they're available immediately.
 
-2. **Incremental Native Support**: While the GenericAppHost provides full compatibility, language-specific SDKs can incrementally add native implementations for commonly used patterns, improving developer experience over time.
+2. **Native Language Experience**: Generated SDKs provide idiomatic APIs with instance methods (e.g., `builder.addRedis("cache")`) rather than function-based approaches.
 
 3. **Consistent CLI Experience**: Commands like `aspire run`, `aspire add`, and `aspire new` work identically regardless of the app host language. Developers don't need to learn different workflows.
 
@@ -30,7 +30,14 @@ flowchart TB
         TSP[TypeScriptAppHostProject]
         PL[ProjectLocator]
         PM[ProjectModel]
-        CGS[CodeGenerationService]
+        CGS[TypeScriptCodeGeneratorService]
+    end
+
+    subgraph CodeGen["Code Generation Library"]
+        ACG[Aspire.Hosting.CodeGeneration]
+        TSCG[Aspire.Hosting.CodeGeneration.TypeScript]
+        ALR[AssemblyLoaderContext]
+        AM[ApplicationModel]
     end
 
     subgraph GenericAppHost["GenericAppHost (.NET)"]
@@ -49,9 +56,14 @@ flowchart TB
     AC --> PL
     PL -->|Detects apphost.ts| TSP
     AC -->|Updates settings.json| CGS
-    TSP -->|1. Runs code generation| CGS
-    TSP -->|2. Scaffolds & Builds| PM
+    TSP -->|1. Scaffolds & Builds| PM
     PM -->|Creates| GenericAppHost
+    TSP -->|2. Runs code generation| CGS
+    CGS --> ACG
+    ACG --> ALR
+    ALR -->|Loads assemblies| AM
+    AM --> TSCG
+    TSCG -->|Generates .modules/| TS
     TSP -->|3. Starts via dotnet exec| JRS
     TSP -->|4. Starts via npx tsx| TS
 
@@ -69,11 +81,14 @@ flowchart TB
 ### Startup Sequence
 
 1. **Detection**: `ProjectLocator` finds `apphost.ts` or `apphost.py` in the working directory
-2. **Code Generation**: Generates TypeScript/Python SDK wrappers for installed integrations
-3. **GenericAppHost Preparation**:
+2. **GenericAppHost Preparation**:
    - `ProjectModel` scaffolds a .NET project in `$TMPDIR/.aspire/hosts/<hash>/`
    - References `Aspire.AppHost.Sdk` and required hosting packages
    - Builds the project with `dotnet build`
+3. **Code Generation**:
+   - Loads assemblies from build output using `AssemblyLoaderContext`
+   - Builds `ApplicationModel` via reflection on loaded assemblies
+   - Generates TypeScript SDK into `.modules/` folder
 4. **GenericAppHost Launch**: Started via `dotnet exec` with:
    - `REMOTE_APP_HOST_SOCKET_PATH` - Unix domain socket path for JSON-RPC
    - `REMOTE_APP_HOST_PID` - CLI process ID for orphan detection
@@ -132,103 +147,123 @@ sequenceDiagram
 
 ## Code Generation
 
-The CLI generates TypeScript/Python SDK wrappers that provide type-safe APIs for Aspire integrations.
+The CLI generates TypeScript SDK code that provides type-safe APIs with instance methods for all Aspire integrations.
 
-### How It Works
+### Architecture
 
 ```mermaid
 flowchart LR
     subgraph Input
         CFG[.aspire/settings.json]
+        ASM[Built Assemblies]
     end
 
-    subgraph CLI
-        CGS[CodeGenerationService]
+    subgraph Library["Aspire.Hosting.CodeGeneration"]
+        ALC[AssemblyLoaderContext]
+        AM[ApplicationModel]
+        IM[IntegrationModel]
+        RM[ResourceModel]
+    end
+
+    subgraph TSLib["Aspire.Hosting.CodeGeneration.TypeScript"]
         TSG[TypeScriptCodeGenerator]
+        EMB[Embedded Resources]
     end
 
-    subgraph Output[".aspire-gen/"]
-        IDX[index.ts]
+    subgraph Output[".modules/"]
+        DA[distributed-application.ts]
         TYP[types.ts]
-        INT[integrations/*.ts]
+        RPC[RemoteAppHostClient.ts]
     end
 
-    CFG -->|Package refs| CGS
-    CGS -->|ApplicationModel| TSG
-    TSG --> IDX
+    CFG -->|Package refs| ALC
+    ASM -->|PE metadata| ALC
+    ALC --> AM
+    AM --> IM
+    IM --> RM
+    AM --> TSG
+    EMB --> TSG
+    TSG --> DA
     TSG --> TYP
-    TSG --> INT
+    TSG --> RPC
 ```
+
+### How It Works
+
+1. **Assembly Loading**: `AssemblyLoaderContext` uses `System.Reflection.Metadata` (PEReader) to load assemblies without executing them - this is AOT-compatible and lightweight.
+
+2. **Model Building**: `ApplicationModel` aggregates `IntegrationModel` instances for each package, extracting:
+   - Extension methods on `IDistributedApplicationBuilder`
+   - Resource types implementing `IResource`
+   - Method signatures and parameter types
+
+3. **Code Generation**: `TypeScriptCodeGenerator` produces:
+   - `DistributedApplicationBuilder` class with instance methods
+   - Resource-specific builder classes (e.g., `RedisResourceBuilder`)
+   - Type definitions for parameters and return types
 
 ### Generation Trigger
 
 Code generation runs automatically when:
 
-1. **First Run**: `.aspire-gen/` folder doesn't exist
+1. **First Run**: `.modules/` folder doesn't exist
 2. **Package Changes**: Hash of package references has changed
 3. **After `aspire add`**: When adding new integrations
 
-The CLI computes a SHA256 hash of all package IDs and versions. This hash is stored in `.aspire-gen/.codegen-hash` and compared on each run.
+The CLI computes a SHA256 hash of all package IDs and versions. This hash is stored in `.modules/.codegen-hash` and compared on each run.
 
 ### Generated File Structure
 
 ```
-.aspire-gen/
-├── .codegen-hash           # SHA256 hash of package references
-├── index.ts                # Re-exports all generated code
-├── types.ts                # Instruction types and common interfaces
-└── integrations/
-    ├── hosting.ts          # Core Aspire.Hosting methods
-    ├── apphost.ts          # AppHost SDK methods
-    └── redis.ts            # Per-integration wrappers (e.g., AddRedis)
+.modules/
+├── .codegen-hash              # SHA256 hash of package references
+├── distributed-application.ts # Main SDK with builder classes
+├── types.ts                   # Instruction types for JSON-RPC
+└── RemoteAppHostClient.ts     # JSON-RPC client implementation
 ```
 
 ### Generated Code Example
 
-For `Aspire.Hosting.Redis`, the generator creates:
+For `Aspire.Hosting.Redis`, the generator creates instance methods on `DistributedApplicationBuilder`:
 
 ```typescript
-// .aspire-gen/integrations/redis.ts
-// Auto-generated from Aspire.Hosting.Redis v13.1.0
+// .modules/distributed-application.ts (excerpt)
 
-import type { DistributedApplicationBuilder, ResourceBuilder } from '../distributed-application.js';
-
-export async function addRedis(builder: DistributedApplicationBuilder, name: string): Promise<ResourceBuilder<'unknown'>> {
-  const result = await builder.invoke('AddRedis', [name]);
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to invoke AddRedis');
+export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {
+  /**
+   * Adds a Redis resource to the application.
+   * @param name The name of the resource.
+   * @param port The host port for Redis.
+   * @returns A RedisResourceBuilder for further configuration.
+   */
+  async addRedis(name: string, port?: number | null): Promise<RedisResourceBuilder> {
+    // ... implementation
   }
-  return builder.getResourceBuilder<'unknown'>(result.resourceName!);
+}
+
+export class RedisResourceBuilder extends ResourceBuilderBase {
+  /**
+   * Configures Redis persistence.
+   */
+  async withPersistence(interval?: number | null, keysChangedThreshold?: number | null): Promise<this> {
+    // ... implementation
+  }
 }
 ```
 
-This allows TypeScript app hosts to write:
+This allows TypeScript app hosts to write idiomatic code:
 
 ```typescript
 // apphost.ts
-import { DistributedApplication } from '@aspire/hosting';
+import { createBuilder } from './.modules/distributed-application.js';
 
-const builder = await DistributedApplication.createBuilder();
-const cache = builder.addRedis('cache');  // Type-safe!
-await builder.build().run();
+const builder = await createBuilder();
+const cache = await builder.addRedis('cache');
+await cache.withPersistence();
+
+const app = builder.build();
+await app.run();
 ```
-
-### Incremental Generation
-
-The `CodeGenerationService` implements incremental generation to avoid unnecessary rebuilds by comparing hashes of package references.
-
-### TypeScript Base Library
-
-The generated code depends on a base TypeScript library (`@aspire/hosting`) that provides:
-
-| Class | Purpose |
-|-------|---------|
-| `DistributedApplication` | Entry point, creates builders |
-| `DistributedApplicationBuilder` | Configures resources |
-| `ResourceBuilder<T>` | Fluent API for resource configuration |
-| `AspireClient` | JSON-RPC client for GenericAppHost communication |
-
-The base library handles all communication with the GenericAppHost, translating TypeScript method calls into JSON-RPC instructions.
 
 ## Adding Integrations
 
@@ -271,7 +306,7 @@ flowchart TB
 
 ### For TypeScript/Python Projects
 1. Updates `.aspire/settings.json` with the package reference
-2. Regenerates SDK code to include new integration wrappers
+2. Regenerates SDK code to include new integration methods
 3. On next `aspire run`, the GenericAppHost will restore and include the new package
 
 ## Configuration
@@ -331,7 +366,7 @@ The GenericAppHost uses the same Aspire package version as the installed CLI:
 | `$TMPDIR/.aspire/hosts/<hash>/` | GenericAppHost project directory |
 | `$TMPDIR/.aspire/sockets/<hash>.sock` | Unix domain socket for JSON-RPC |
 | `.aspire/settings.json` | Project configuration with package references |
-| `.aspire-gen/` | Generated TypeScript/Python SDK code |
+| `.modules/` | Generated TypeScript SDK code |
 | `apphost.run.json` | Launch settings (in project root) |
 
 The `<hash>` is derived from the SHA256 of the app host directory path, ensuring unique locations per project.

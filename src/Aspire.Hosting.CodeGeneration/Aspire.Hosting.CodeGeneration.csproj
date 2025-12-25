@@ -7,6 +7,7 @@
     <RootNamespace>Aspire.Hosting.CodeGeneration</RootNamespace>
     <IsPackable>false</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
 </Project>

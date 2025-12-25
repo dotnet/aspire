@@ -2,17 +2,22 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Reflection;
 using Aspire.Hosting.CodeGeneration.Models;
+using Aspire.Hosting.CodeGeneration.Models.Types;
 
 namespace Aspire.Hosting.CodeGeneration.TypeScript;
 
 /// <summary>
-/// Generates TypeScript code from the Aspire application model.
+/// Generates TypeScript code from the Aspire application model with rich type information.
+/// Produces instance methods on DistributedApplicationBuilder and resource-specific builder classes.
 /// </summary>
-public sealed partial class TypeScriptCodeGenerator : ICodeGenerator
+public sealed class TypeScriptCodeGenerator : ICodeGenerator
 {
+    // Custom record-like classes that contain the overload parameters
+    private readonly Dictionary<RoMethod, string> _overloadParameterClassByMethod = [];
+    private readonly Dictionary<string, string> _overloadParameterClassByName = [];
+
     /// <inheritdoc />
     public string Language => "TypeScript";
 
@@ -21,32 +26,14 @@ public sealed partial class TypeScriptCodeGenerator : ICodeGenerator
     {
         var files = new Dictionary<string, string>();
 
-        // Generate main index.ts that re-exports everything
-        var indexBuilder = new StringBuilder();
-        indexBuilder.AppendLine("// Auto-generated Aspire TypeScript SDK");
-        indexBuilder.AppendLine("// Do not edit manually");
-        indexBuilder.AppendLine();
-        indexBuilder.AppendLine("export * from './distributed-application.js';");
-        indexBuilder.AppendLine("export * from './types.js';");
-        indexBuilder.AppendLine("export * from './client.js';");
+        // Generate main distributed-application.ts
+        using var writer = new StringWriter();
+        GenerateDistributedApplicationContent(writer, model);
+        files["distributed-application.ts"] = writer.ToString();
 
-        foreach (var integration in model.Integrations)
-        {
-            var moduleName = GetModuleName(integration.PackageId);
-            indexBuilder.AppendLine(CultureInfo.InvariantCulture, $"export * from './integrations/{moduleName}.js';");
-        }
-
-        files["index.ts"] = indexBuilder.ToString();
-
-        // Generate types.ts with common type definitions
-        files["types.ts"] = GenerateTypesFile();
-
-        // Generate each integration file
-        foreach (var integration in model.Integrations)
-        {
-            var (path, content) = GenerateIntegrationFile(integration);
-            files[path] = content;
-        }
+        // Include embedded resource files
+        files["types.ts"] = GetEmbeddedResource("types.ts");
+        files["RemoteAppHostClient.ts"] = GetEmbeddedResource("RemoteAppHostClient.ts");
 
         return files;
     }
@@ -54,325 +41,670 @@ public sealed partial class TypeScriptCodeGenerator : ICodeGenerator
     /// <inheritdoc />
     public Dictionary<string, string> GenerateIntegration(IntegrationModel integration)
     {
-        var files = new Dictionary<string, string>();
-        var moduleName = GetModuleName(integration.PackageId);
-        var content = GenerateIntegrationContent(integration);
-        files[string.Create(CultureInfo.InvariantCulture, $"integrations/{moduleName}.ts")] = content;
-        return files;
+        // Integration methods are included in the main distributed-application.ts
+        return [];
     }
 
     /// <inheritdoc />
     public Dictionary<string, string> GenerateResource(ResourceModel resource)
     {
-        var files = new Dictionary<string, string>();
-        var content = GenerateResourceClass(resource);
-        var fileName = ToKebabCase(resource.TypeName);
-        files[string.Create(CultureInfo.InvariantCulture, $"resources/{fileName}.ts")] = content;
-        return files;
+        // Resource classes are included in the main distributed-application.ts
+        return [];
     }
 
-    private static string GenerateTypesFile()
+    /// <summary>
+    /// Gets the package.json template content.
+    /// </summary>
+    public static string GetPackageJsonTemplate()
     {
-        var builder = new StringBuilder();
-        builder.AppendLine("// Auto-generated type definitions");
-        builder.AppendLine();
-
-        // Instruction types
-        builder.AppendLine("export interface InstructionResult {");
-        builder.AppendLine("  success: boolean;");
-        builder.AppendLine("  builderName?: string;");
-        builder.AppendLine("  resourceName?: string;");
-        builder.AppendLine("  result?: unknown;");
-        builder.AppendLine("  error?: string;");
-        builder.AppendLine("}");
-        builder.AppendLine();
-
-        builder.AppendLine("export interface CreateBuilderInstruction {");
-        builder.AppendLine("  name: 'CREATE_BUILDER';");
-        builder.AppendLine("  builderName: string;");
-        builder.AppendLine("  args?: string[];");
-        builder.AppendLine("}");
-        builder.AppendLine();
-
-        builder.AppendLine("export interface InvokeInstruction {");
-        builder.AppendLine("  name: 'INVOKE';");
-        builder.AppendLine("  builderName: string;");
-        builder.AppendLine("  resourceName?: string;");
-        builder.AppendLine("  methodName: string;");
-        builder.AppendLine("  args: unknown[];");
-        builder.AppendLine("}");
-        builder.AppendLine();
-
-        builder.AppendLine("export interface RunBuilderInstruction {");
-        builder.AppendLine("  name: 'RUN_BUILDER';");
-        builder.AppendLine("  builderName: string;");
-        builder.AppendLine("}");
-        builder.AppendLine();
-
-        builder.AppendLine("export type AnyInstruction = CreateBuilderInstruction | InvokeInstruction | RunBuilderInstruction;");
-        builder.AppendLine();
-
-        // Resource builder options
-        builder.AppendLine("export interface ResourceBuilderOptions {");
-        builder.AppendLine("  name: string;");
-        builder.AppendLine("}");
-        builder.AppendLine();
-
-        // Endpoint options
-        builder.AppendLine("export interface EndpointOptions {");
-        builder.AppendLine("  port?: number;");
-        builder.AppendLine("  targetPort?: number;");
-        builder.AppendLine("  scheme?: 'http' | 'https' | 'tcp';");
-        builder.AppendLine("  name?: string;");
-        builder.AppendLine("}");
-        builder.AppendLine();
-
-        // Environment variable options
-        builder.AppendLine("export interface EnvironmentOptions {");
-        builder.AppendLine("  name: string;");
-        builder.AppendLine("  value: string | (() => string);");
-        builder.AppendLine("}");
-        builder.AppendLine();
-
-        // Volume options
-        builder.AppendLine("export interface VolumeOptions {");
-        builder.AppendLine("  name?: string;");
-        builder.AppendLine("  target: string;");
-        builder.AppendLine("  isReadOnly?: boolean;");
-        builder.AppendLine("}");
-        builder.AppendLine();
-
-        // Bind mount options
-        builder.AppendLine("export interface BindMountOptions {");
-        builder.AppendLine("  source: string;");
-        builder.AppendLine("  target: string;");
-        builder.AppendLine("  isReadOnly?: boolean;");
-        builder.AppendLine("}");
-
-        return builder.ToString();
+        return GetEmbeddedResource("package.json");
     }
 
-    private static (string path, string content) GenerateIntegrationFile(IntegrationModel integration)
+    private static string GetEmbeddedResource(string name)
     {
-        var moduleName = GetModuleName(integration.PackageId);
-        var content = GenerateIntegrationContent(integration);
-        return (string.Create(CultureInfo.InvariantCulture, $"integrations/{moduleName}.ts"), content);
+        var assembly = Assembly.GetExecutingAssembly();
+        var resourceName = $"Aspire.Hosting.CodeGeneration.TypeScript.Resources.{name}";
+
+        using var stream = assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"Embedded resource '{name}' not found.");
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 
-    private static string GenerateIntegrationContent(IntegrationModel integration)
+    private void GenerateDistributedApplicationContent(TextWriter writer, ApplicationModel model)
     {
-        var builder = new StringBuilder();
+        var escapedAppPath = OperatingSystem.IsWindows()
+            ? model.AppPath.Replace("\\", "\\\\")
+            : model.AppPath;
 
-        builder.AppendLine(CultureInfo.InvariantCulture, $"// Auto-generated from {integration.PackageId} v{integration.Version}");
-        builder.AppendLine();
-        builder.AppendLine("import type { DistributedApplicationBuilder, ResourceBuilder } from '../distributed-application.js';");
-        builder.AppendLine("import type { InstructionResult } from '../types.js';");
-        builder.AppendLine();
+        // Write the header with imports and utility functions
+        writer.WriteLine($$"""
+        import { RemoteAppHostClient } from './RemoteAppHostClient.js';
+        import { AnyInstruction, CreateBuilderInstruction, RunBuilderInstruction } from './types.js';
 
-        // Generate extension function for each method
-        foreach (var method in integration.ExtensionMethods)
-        {
-            if (!method.ExtendedType.Contains("IDistributedApplicationBuilder", StringComparison.Ordinal))
-            {
-                continue;
+        // Get socket path from environment variable (set by aspire run)
+        const socketPath = process.env.REMOTE_APP_HOST_SOCKET_PATH;
+        if (!socketPath) {
+            throw new Error('REMOTE_APP_HOST_SOCKET_PATH environment variable not set. Please run with "aspire run".');
+        }
+
+        const client = new RemoteAppHostClient(socketPath);
+
+        const _name = Symbol('_name');
+        let source: string = "";
+        let instructions: any[] = [];
+
+        function writeLine(code: string) {
+          source += code + '\n';
+        }
+
+        async function sendInstruction(instruction: AnyInstruction) {
+          instructions.push(instruction);
+          const result = await client.executeInstruction(instruction);
+        }
+
+        function capture(fn: () => void) : string {
+          var tmp = source;
+          source = "";
+          fn();
+          var result = source;
+          source = tmp;
+          return result;
+        }
+
+        function emitLinePragma() {
+          const err = new Error();
+          (Error as any).captureStackTrace?.(err, emitLinePragma);
+          const frame = err.stack?.split('\n')[2] || '';
+          const m = /\s+at\s+(?:.+\s\()?(.+):(\d+):(\d+)\)?/.exec(frame);
+          if (!m) return;
+          const [, file, line] = m;
+          writeLine(`#line ${line} "${file}"`);
+        }
+
+        function convertNullable<T>(value?: T): string {
+          if (value === null || value === undefined) {
+            return "default";
+          }
+          if (typeof value === 'string') {
+            return `"${value}"`;
+          } else if (Array.isArray(value)) {
+            return convertArray(value);
+          } else {
+            return `${value}`;
+          }
+        }
+
+        function convertArray<T>(array?: T[]): string {
+          if (!array) {
+            return "default";
+          }
+          if (array.length === 0) {
+            return "[]";
+          }
+          var values = array?.map((item) => {
+            if (typeof item === 'string') {
+              return `"${item}"`;
+            }
+            else if (Array.isArray(item)) {
+              return convertArray(item);
+            }
+            else if (item === null || item === undefined) {
+                return "null";
+            } else {
+              return item;
+            }
+          }).join(', ');
+
+          return `[${values}]`;
+        }
+
+        export async function createBuilder(args: string[] = []): Promise<DistributedApplicationBuilder> {
+            const distributedApplicationBuilder = new DistributedApplicationBuilder(args);
+
+            console.log('🔌 Connecting to GenericAppHost...');
+
+            while (true) {
+              try {
+                await client.connect();
+                await client.ping();
+                console.log('✅ Connected successfully!');
+                break;
+              } catch (error) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
             }
 
-            builder.AppendLine(GenerateExtensionFunction(method));
-            builder.AppendLine();
+            const createBuilderInstruction: CreateBuilderInstruction = {
+              name: 'CREATE_BUILDER',
+              builderName: distributedApplicationBuilder[_name],
+              projectDirectory: process.cwd(),
+              args: args
+            };
+
+            await sendInstruction(createBuilderInstruction);
+
+            return distributedApplicationBuilder;
         }
 
-        // Generate ResourceBuilder extension methods
-        var resourceBuilderMethods = integration.ExtensionMethods
-            .Where(m => m.ExtendedType.Contains("IResourceBuilder", StringComparison.Ordinal))
-            .ToList();
+        export class DistributedApplication {
+          constructor(private builderName: string) {
+          }
+          async run() {
+            writeLine(`${this.builderName}.Build().Run();`);
+            writeLine('}');
+            writeLine('catch (Exception ex)');
+            writeLine('{');
+            writeLine('    Helpers.PrintException(ex);');
+            writeLine('    Environment.Exit(1);');
+            writeLine('}');
 
-        if (resourceBuilderMethods.Count > 0)
+            const runBuilderInstruction: RunBuilderInstruction = {
+                    name: 'RUN_BUILDER',
+                    builderName: this.builderName
+                };
+
+            sendInstruction(runBuilderInstruction);
+
+            console.log("Application is running. Press Ctrl+C to stop...");
+
+            process.on("SIGINT", () => {
+              console.log("\nStopping application...");
+                client.disconnect();
+                console.log(`👋 Disconnected from GenericAppHost`);
+              process.exit(0);
+            });
+          }
+        }
+
+        abstract class DistributedApplicationBuilderBase {
+          constructor(private args: string[]) {
+            writeLine('try {');
+            this[_name] = `appBuilder${DistributedApplicationBuilderBase.index++}`;
+            writeLine('var options = new DistributedApplicationOptions');
+            writeLine('{');
+            writeLine('    Args = args ?? []')
+            writeLine('};');
+            writeLine('typeof(DistributedApplicationOptions).GetProperty("ProjectDirectory", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.SetValue(options, @"{{escapedAppPath}}");');
+            writeLine(`var ${this[_name]} = DistributedApplication.CreateBuilder(options);`);
+          }
+
+          build() {
+            return new DistributedApplication(this[_name]);
+          }
+
+          private [_name]: string;
+          private static index: number = 1;
+        }
+
+        abstract class ReferenceClass {
+          constructor(protected builder: DistributedApplicationBuilderBase, protected cstype: string, prefix: string) {
+            this[_name] = `${prefix}${ReferenceClass.index++}`;
+            writeLine(`${cstype} ${this[_name]};`);
+          }
+
+          private [_name]: string;
+          private static index: number = 1;
+        }
+        """);
+
+        // Generate DistributedApplicationBuilder class with methods from all integrations
+        writer.WriteLine("export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {");
+        foreach (var integration in model.IntegrationModels.Values)
         {
-            builder.AppendLine("// ResourceBuilder extension methods");
-            foreach (var method in resourceBuilderMethods)
-            {
-                builder.AppendLine(GenerateResourceBuilderExtension(method));
-                builder.AppendLine();
+            GenerateMethods(writer, model, integration.IDistributedApplicationBuilderExtensionMethods, "this");
+        }
+        writer.WriteLine("}");
+
+        // Generate base resource builder classes
+        writer.WriteLine("""
+          export class IResourceWithConnectionStringBuilder extends ReferenceClass {
+            constructor(builder: DistributedApplicationBuilderBase) {
+              super(builder, "IResourceBuilder<IResourceWithConnectionString>", "resourceWithConnectionStringBuilder");
             }
+          }
+
+          export class ResourceBuilder extends ReferenceClass {
+            constructor(builder: DistributedApplicationBuilderBase, cstype: string) {
+              super(builder, cstype, "resourceBuilder");
+            }
+          }
+          """);
+
+        // Generate resource-specific builder classes
+        GenerateResourceClasses(writer, model);
+
+        // Generate model classes (enums, etc.)
+        GenerateModelClasses(writer, model);
+
+        // Generate overload parameter classes
+        GenerateParameterClasses(writer);
+    }
+
+    private void GenerateParameterClasses(TextWriter writer)
+    {
+        foreach (var overloadParameterType in _overloadParameterClassByMethod.Values)
+        {
+            writer.WriteLine(overloadParameterType);
         }
-
-        return builder.ToString();
     }
 
-    private static string GenerateExtensionFunction(ExtensionMethodModel method)
+    private static void GenerateModelClasses(TextWriter textWriter, ApplicationModel model)
     {
-        var builder = new StringBuilder();
-
-        // Add JSDoc comment
-        if (!string.IsNullOrEmpty(method.Documentation))
+        foreach (var type in model.ModelTypes)
         {
-            builder.AppendLine("/**");
-            builder.AppendLine(CultureInfo.InvariantCulture, $" * {method.Documentation}");
-            builder.AppendLine(" */");
-        }
-
-        var funcName = ToCamelCase(method.Name);
-        var resourceType = method.ResourceType != null ? GetTypeScriptType(method.ResourceType) : "unknown";
-
-        // Build parameters (skip 'this' parameter)
-        var parameters = method.Parameters
-            .Where(p => !p.IsThis)
-            .Select(FormatParameter)
-            .ToList();
-
-        var paramList = parameters.Count > 0 ? string.Join(", ", parameters) : "";
-        var builderParam = parameters.Count > 0
-            ? string.Create(CultureInfo.InvariantCulture, $"builder: DistributedApplicationBuilder, {paramList}")
-            : "builder: DistributedApplicationBuilder";
-
-        builder.AppendLine(CultureInfo.InvariantCulture, $"export async function {funcName}({builderParam}): Promise<ResourceBuilder<'{resourceType}'>> {{");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"  const result = await builder.invoke('{method.Name}', [{GetArgumentsList(method)}]);");
-        builder.AppendLine("  if (!result.success) {");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"    throw new Error(result.error || 'Failed to invoke {method.Name}');");
-        builder.AppendLine("  }");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"  return builder.getResourceBuilder<'{resourceType}'>(result.resourceName!);");
-        builder.AppendLine("}");
-
-        return builder.ToString();
-    }
-
-    private static string GenerateResourceBuilderExtension(ExtensionMethodModel method)
-    {
-        var builder = new StringBuilder();
-        var funcName = ToCamelCase(method.Name);
-
-        // Extract resource type from IResourceBuilder<T>
-        var resourceTypeMatch = ResourceBuilderTypeRegex().Match(method.ExtendedType);
-        var resourceType = resourceTypeMatch.Success ? resourceTypeMatch.Groups[1].Value : "unknown";
-
-        // Build parameters (skip 'this' parameter)
-        var parameters = method.Parameters
-            .Where(p => !p.IsThis)
-            .Select(FormatParameter)
-            .ToList();
-
-        var paramList = parameters.Count > 0 ? string.Join(", ", parameters) : "";
-        var rbParam = parameters.Count > 0
-            ? string.Create(CultureInfo.InvariantCulture, $"resourceBuilder: ResourceBuilder<'{resourceType}'>, {paramList}")
-            : string.Create(CultureInfo.InvariantCulture, $"resourceBuilder: ResourceBuilder<'{resourceType}'>");
-
-        builder.AppendLine(CultureInfo.InvariantCulture, $"export async function {funcName}({rbParam}): Promise<ResourceBuilder<'{resourceType}'>> {{");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"  const result = await resourceBuilder.invoke('{method.Name}', [{GetArgumentsList(method)}]);");
-        builder.AppendLine("  if (!result.success) {");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"    throw new Error(result.error || 'Failed to invoke {method.Name}');");
-        builder.AppendLine("  }");
-        builder.AppendLine("  return resourceBuilder;");
-        builder.AppendLine("}");
-
-        return builder.ToString();
-    }
-
-    private static string GenerateResourceClass(ResourceModel resource)
-    {
-        var builder = new StringBuilder();
-        builder.AppendLine(CultureInfo.InvariantCulture, $"// Auto-generated from {resource.PackageId}");
-        builder.AppendLine();
-        builder.AppendLine("import type { ResourceBuilder } from '../distributed-application.js';");
-        builder.AppendLine();
-
-        if (!string.IsNullOrEmpty(resource.Documentation))
-        {
-            builder.AppendLine("/**");
-            builder.AppendLine(CultureInfo.InvariantCulture, $" * {resource.Documentation}");
-            builder.AppendLine(" */");
-        }
-
-        builder.AppendLine(CultureInfo.InvariantCulture, $"export interface {resource.TypeName}Resource {{");
-
-        foreach (var prop in resource.Properties)
-        {
-            var tsType = GetTypeScriptType(prop.Type);
-            builder.AppendLine(CultureInfo.InvariantCulture, $"  readonly {ToCamelCase(prop.Name)}: {tsType};");
-        }
-
-        builder.AppendLine("}");
-
-        return builder.ToString();
-    }
-
-    private static string FormatParameter(ParameterModel param)
-    {
-        var tsType = GetTypeScriptType(param.Type);
-        var optional = param.IsOptional ? "?" : "";
-        return string.Create(CultureInfo.InvariantCulture, $"{ToCamelCase(param.Name)}{optional}: {tsType}");
-    }
-
-    private static string GetArgumentsList(ExtensionMethodModel method)
-    {
-        var args = method.Parameters
-            .Where(p => !p.IsThis)
-            .Select(p => ToCamelCase(p.Name));
-        return string.Join(", ", args);
-    }
-
-    private static string GetTypeScriptType(string dotNetType)
-    {
-        // Handle common .NET to TypeScript type mappings
-        return dotNetType switch
-        {
-            "string" or "String" => "string",
-            "int" or "Int32" or "long" or "Int64" or "short" or "Int16" => "number",
-            "float" or "Single" or "double" or "Double" or "decimal" or "Decimal" => "number",
-            "bool" or "Boolean" => "boolean",
-            "void" or "Void" => "void",
-            "object" or "Object" => "unknown",
-            _ when dotNetType.EndsWith('?') => string.Create(CultureInfo.InvariantCulture, $"{GetTypeScriptType(dotNetType[..^1])} | undefined"),
-            _ when dotNetType.Contains("IEnumerable", StringComparison.Ordinal) || dotNetType.Contains("List", StringComparison.Ordinal) || dotNetType.Contains("[]", StringComparison.Ordinal) => "unknown[]",
-            _ when dotNetType.Contains("Dictionary", StringComparison.Ordinal) => "Record<string, unknown>",
-            _ when dotNetType.Contains("Action", StringComparison.Ordinal) || dotNetType.Contains("Func", StringComparison.Ordinal) => "(...args: unknown[]) => unknown",
-            _ => "unknown"
-        };
-    }
-
-    private static string GetModuleName(string packageId)
-    {
-        // Convert "Aspire.Hosting.Redis" to "redis"
-        var parts = packageId.Split('.');
-        var name = parts.Length > 2 ? parts[^1] : parts[^1];
-        return name.ToLowerInvariant();
-    }
-
-    private static string ToCamelCase(string name)
-    {
-        if (string.IsNullOrEmpty(name))
-        {
-            return name;
-        }
-        return string.Create(CultureInfo.InvariantCulture, $"{char.ToLowerInvariant(name[0])}{name[1..]}");
-    }
-
-    private static string ToKebabCase(string name)
-    {
-        if (string.IsNullOrEmpty(name))
-        {
-            return name;
-        }
-
-        var result = new StringBuilder();
-        for (var i = 0; i < name.Length; i++)
-        {
-            var c = name[i];
-            if (char.IsUpper(c))
+            if (type.IsEnum)
             {
-                if (i > 0)
-                {
-                    result.Append('-');
-                }
-                result.Append(char.ToLowerInvariant(c));
+                textWriter.WriteLine();
+                textWriter.WriteLine($$"""
+                    export enum {{type.Name}} {
+                      {{string.Join(", ", type.GetEnumNames().Select(x => $"{x} = \"{x}\""))}}
+                    }
+                    """);
             }
             else
             {
-                result.Append(c);
+                textWriter.WriteLine();
+                textWriter.WriteLine($$"""
+                export class {{SanitizeClassName(type.Name)}} extends ReferenceClass {
+                  constructor(builder: DistributedApplicationBuilderBase) {
+                      super(builder, "{{type.Name}}", "{{CamelCase(type.Name)}}");
+                  }
+                }
+                """);
             }
         }
-        return result.ToString();
     }
 
-    [GeneratedRegex(@"IResourceBuilder<(\w+)>")]
-    private static partial Regex ResourceBuilderTypeRegex();
+    private static string SanitizeClassName(string name) => name.Replace("+", "_");
+
+    private void GenerateResourceClasses(TextWriter textWriter, ApplicationModel model)
+    {
+        foreach (var resourceModel in model.ResourceModels.Values)
+        {
+            EmitResourceClass(textWriter, model, resourceModel);
+        }
+    }
+
+    private void EmitResourceClass(TextWriter textWriter, ApplicationModel model, ResourceModel resourceModel)
+    {
+        var resourceName = SanitizeClassName(resourceModel.ResourceType.Name);
+        textWriter.WriteLine();
+        textWriter.WriteLine($$"""
+                export class {{resourceName}}Builder extends ReferenceClass {
+                  constructor(builder: DistributedApplicationBuilderBase, cstype: string = "IResourceBuilder<{{resourceModel.ResourceType.FullName}}>") {
+                      super(builder, cstype, "{{CamelCase(resourceName)}}Builder");
+                  }
+                """);
+
+        GenerateMethods(textWriter, model, resourceModel.IResourceTypeBuilderExtensionsMethods, "this.builder");
+
+        textWriter.WriteLine("}");
+    }
+
+    private void GenerateMethods(TextWriter writer, ApplicationModel model, IEnumerable<RoMethod> extensionMethods, string ctorArgs)
+    {
+        foreach (var methodGroups in extensionMethods.GroupBy(m => m.Name))
+        {
+            var indexes = new Dictionary<string, int>();
+            var overloads = methodGroups.OrderBy(m => m.Parameters.Count).ToArray();
+
+            foreach (var overload in overloads)
+            {
+                var methodNameAttribute = overload.GetCustomAttributes()
+                    .FirstOrDefault(attr => attr.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
+
+                var preferredMethodName = methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
+                    ?? methodNameAttribute?.FixedArguments.ElementAtOrDefault(0)?.ToString()
+                    ?? overload.Name;
+
+                var returnType = overload.ReturnType;
+                var jsReturnTypeName = FormatJsType(model, returnType);
+
+                var parameterTypes = new List<string>();
+
+                var methodName = model.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
+                    ? CamelCase(mapping.GeneratedName)
+                    : CamelCase(preferredMethodName);
+
+                if (indexes.TryGetValue(methodName, out var index))
+                {
+                    indexes[methodName] = index + 1;
+                    methodName = $"{methodName}{(index + 1).ToString(CultureInfo.InvariantCulture)}";
+                }
+                else
+                {
+                    indexes[methodName] = 0;
+                }
+
+                var parameters = overload.Parameters.Skip(1); // Skip the first parameter (this)
+
+                bool ParameterIsOptionalOrNullable(RoParameterInfo p) => p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType);
+
+                var orderedParameters = parameters.OrderBy(p => p.IsOptional ? 1 : 0).ThenBy(p => model.WellKnownTypes.IsNullableOfT(p.ParameterType) ? 1 : 0);
+
+                const string optionalArgumentName = "optionalArguments";
+
+                var optionalParameters = overload.Parameters.Skip(1).Where(ParameterIsOptionalOrNullable).ToArray();
+                var shouldCreateArgsClass = optionalParameters.Length > 1;
+
+                var parameterList = string.Join(", ", orderedParameters.Select(p => FormatArgument(model, p)));
+                var csParameterList = string.Join(", ", parameters.Select(p => FormatCsArgument(model, p)));
+                var jsonParameterList = string.Join(", ", parameters.Select(p => FormatJsonArgument(model, p, prefix: shouldCreateArgsClass && optionalParameters.Contains(p) ? $"{optionalArgumentName}?." : "")));
+
+                string optionalArgsInitSnippet = "";
+
+                if (shouldCreateArgsClass)
+                {
+                    var parameterType = $"{overload.Name}Args";
+
+                    if (!_overloadParameterClassByMethod.TryGetValue(overload, out var overloadParameterClass))
+                    {
+                        var k = 1;
+                        while (_overloadParameterClassByName.ContainsKey(parameterType))
+                        {
+                            parameterType = $"{overload.Name}Args{k++}";
+                        }
+
+                        overloadParameterClass = $$"""
+                        export class {{parameterType}} {
+                        """;
+
+                        foreach (var p in optionalParameters)
+                        {
+                            overloadParameterClass += $"\n      public {p.Name}?: {FormatJsType(model, p.ParameterType)};";
+                        }
+
+                        overloadParameterClass += "\n";
+
+                        static bool HasDefaultValue(RoParameterInfo p) => p.RawDefaultValue != null && p.RawDefaultValue != DBNull.Value && p.RawDefaultValue != Missing.Value;
+
+                        overloadParameterClass += $$"""
+
+                            constructor(args: Partial<{{parameterType}}> = {}) {
+                        """;
+
+                        foreach (var p in optionalParameters)
+                        {
+                            if (HasDefaultValue(p))
+                            {
+                                var defaultValue = "";
+
+                                if (p.ParameterType == model.WellKnownTypes.GetKnownType<string>())
+                                {
+                                    defaultValue += $" = \"{p.RawDefaultValue}\"";
+                                }
+                                else if (p.ParameterType == model.WellKnownTypes.GetKnownType<bool>())
+                                {
+                                    defaultValue += $" = {p.RawDefaultValue!.ToString()!.ToLower()}";
+                                }
+                                else if (p.ParameterType.IsEnum)
+                                {
+                                    defaultValue += $" = {p.ParameterType.Name}.{p.RawDefaultValue}";
+                                }
+                                else
+                                {
+                                    defaultValue += $" = {p.RawDefaultValue}";
+                                }
+
+                                overloadParameterClass += $"\n      this.{p.Name} {defaultValue};";
+                            }
+                        }
+
+                        overloadParameterClass += "\n      Object.assign(this, args);";
+                        overloadParameterClass += "\n    }";
+                        overloadParameterClass += "\n}";
+
+                        _overloadParameterClassByMethod[overload] = overloadParameterClass;
+                        _overloadParameterClassByName[parameterType] = overloadParameterClass;
+                    }
+
+                    parameterTypes.Add(parameterType);
+
+                    parameterList = string.Join(", ", parameters.Except(optionalParameters).Select(p => FormatArgument(model, p)));
+                    if (parameterList.Length > 0)
+                    {
+                        parameterList += ", ";
+                    }
+                    parameterList += $"{optionalArgumentName}: {parameterType} = new {parameterType}()";
+
+                    var csParameters = new List<string>();
+                    foreach (var parameter in parameters)
+                    {
+                        if (ParameterIsOptionalOrNullable(parameter))
+                        {
+                            csParameters.Add(FormatCsArgument(model, parameter, $"{optionalArgumentName}?."));
+                        }
+                        else
+                        {
+                            csParameters.Add(FormatCsArgument(model, parameter));
+                        }
+                    }
+
+                    csParameterList = string.Join(", ", csParameters);
+
+                    optionalArgsInitSnippet = $$"""
+
+                        {{optionalArgumentName}} = Object.assign(new {{parameterType}}(), {{optionalArgumentName}});
+                    """;
+                }
+
+                // Generate JSDoc comments
+                writer.WriteLine($$"""
+
+                   /**
+                   * {{overload.Name}}
+                   * @remarks C# Definition: {{FormatMethodSignature(overload)}}
+                   {{string.Join("\n   ", parameters.Select(p => $"* @param {{{FormatJsType(model, p.ParameterType)}}} {p.Name} C# Type: {PrettyPrintCSharpType(p.ParameterType)}"))}}
+                   * @returns {{{jsReturnTypeName}}} C# Type: {{PrettyPrintCSharpType(returnType)}}
+                   */
+                """);
+
+                // Method body
+                writer.WriteLine($$"""
+                  async {{methodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
+                    emitLinePragma();
+                    var result = new {{jsReturnTypeName}}({{ctorArgs}});
+                    writeLine(`${result[_name]} = ${this[_name]}.{{overload.Name}}({{csParameterList}});`);
+                    await sendInstruction({
+                        name: 'INVOKE',
+                        source: this[_name],
+                        target: result[_name],
+                        methodAssembly: '{{overload.DeclaringType?.DeclaringAssembly.Name}}',
+                        methodType: '{{overload.DeclaringType?.FullName}}',
+                        methodName: '{{overload.Name}}',
+                        methodArgumentTypes: [{{string.Join(", ", overload.Parameters.Select(p => "'" + p.ParameterType.FullName + "'"))}}],
+                        metadataToken: {{overload.MetadataToken}},
+                        args: {{{jsonParameterList}}}
+                    });
+                    return result;
+                  };
+                """);
+            }
+        }
+    }
+
+    private static string FormatMethodSignature(RoMethod method)
+    {
+        var parameters = method.Parameters;
+        var parameterList = string.Join(", ", parameters.Select(p => $"{PrettyPrintCSharpType(p.ParameterType)} {p.Name}"));
+
+        var genericArguments = method.GetGenericArguments();
+
+        if (genericArguments.Count > 0)
+        {
+            var genericArgumentList = string.Join(", ", genericArguments.Select(PrettyPrintCSharpType));
+            return $"{PrettyPrintCSharpType(method.ReturnType)} {method.Name}<{genericArgumentList}>({parameterList})";
+        }
+
+        return $"{PrettyPrintCSharpType(method.ReturnType)} {method.Name}({parameterList})";
+    }
+
+    private static string PrettyPrintCSharpType(RoType? t)
+    {
+        if (t is null)
+        {
+            return "";
+        }
+
+        return t.Name;
+    }
+
+    private static string CamelCase(string methodName)
+    {
+        return char.ToLowerInvariant(methodName[0]) + methodName.Substring(1);
+    }
+
+    private static string FormatJsonArgument(ApplicationModel model, RoParameterInfo p, string prefix)
+    {
+        var result = p.Name!;
+        result += $": {prefix}{p.Name!}";
+
+        if (p.ParameterType.IsGenericType && p.ParameterType.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
+        {
+            result += "?.[_name]";
+        }
+
+        if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
+        {
+            result = $"{result} || null";
+        }
+
+        return result;
+    }
+
+    private static string FormatArgument(ApplicationModel model, RoParameterInfo p)
+    {
+        var result = p.Name!;
+        var IsNullableOfT = model.WellKnownTypes.IsNullableOfT(p.ParameterType);
+        if (p.IsOptional || IsNullableOfT)
+        {
+            result += "?";
+        }
+
+        if (IsNullableOfT)
+        {
+            result += $": {FormatJsType(model, p.ParameterType.GetGenericArguments()[0])} | null";
+        }
+        else
+        {
+            result += $": {FormatJsType(model, p.ParameterType)}";
+        }
+
+        return result;
+    }
+
+    private static string FormatCsArgument(ApplicationModel model, RoParameterInfo p) => FormatCsArgument(model, p, "");
+
+    private static string FormatCsArgument(ApplicationModel model, RoParameterInfo p, string prefix)
+    {
+        string result;
+
+        var actionType = model.WellKnownTypes.GetKnownType(typeof(Action<>));
+
+        // Handle callback parameters
+        if (p.ParameterType.IsGenericType &&
+            p.ParameterType.GenericTypeDefinition == actionType &&
+            p.ParameterType.GetGenericArguments()[0] is { } genericArgument &&
+            genericArgument.IsGenericType &&
+            genericArgument.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
+        {
+            var resourceType = genericArgument.GetGenericArguments()[0];
+            var resourceName = SanitizeClassName(resourceType.Name);
+
+            return $$"""
+                ${ capture(() => {
+                        if ({{prefix}}{{p.Name}}) {
+                          writeLine('builder =>');
+                          writeLine('{');
+                          let r = new {{resourceName}}Builder(result.builder);
+                          writeLine(`${r[_name]} = builder;`);
+                          {{prefix}}{{p.Name}}(r);
+                          writeLine('}');
+                          } else { writeLine('builder => { }'); }
+                        }) }
+                """;
+        }
+        else if (p.ParameterType.IsGenericType && p.ParameterType.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
+        {
+            result = $"{prefix}{p.Name}?.[_name]";
+        }
+        else if (model.ModelTypes.Contains(p.ParameterType) && !p.ParameterType.IsEnum)
+        {
+            result = $"{prefix}{p.Name}?.[_name]";
+        }
+        else
+        {
+            result = $"{prefix}{p.Name}";
+        }
+
+        // Value conversion
+        if (p.ParameterType.IsArray)
+        {
+            result = $"${{convertArray({result})}}";
+        }
+        else if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
+        {
+            result = $"${{convertNullable({result})}}";
+        }
+        else if (p.ParameterType == model.WellKnownTypes.GetKnownType<string>())
+        {
+            result = $"\"${{{result}}}\"";
+        }
+        else if (p.ParameterType.IsEnum)
+        {
+            result = $"{p.ParameterType.Name}.${{{result}}}";
+        }
+        else
+        {
+            result = $"${{{result}}}";
+        }
+
+        return result;
+    }
+
+    private static string FormatJsType(ApplicationModel model, RoType type)
+    {
+        return type switch
+        {
+            { IsGenericType: true } when model.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var t) && t == model.WellKnownTypes.IResourceWithConnectionStringType => "IResourceWithConnectionStringBuilder",
+            { IsGenericType: true } when model.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var t) && t.IsInterface => "ResourceBuilder",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType => $"{type.GetGenericArguments()[0].Name}Builder",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Nullable<>)) => FormatJsType(model, type.GetGenericArguments()[0]) + " | null",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(List<>)) => "Array",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Dictionary<,>)) => "Map",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IList<>)) => "Array",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(ICollection<>)) => "Array",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IReadOnlyList<>)) => "Array",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IReadOnlyCollection<>)) => "Array",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Action<>)) => $"({string.Join(" ,", type.GetGenericArguments().Select((x, i) => $"p{i}: {FormatJsType(model, x)}"))}) => void",
+            { } when type.IsArray => $"Array<{FormatJsType(model, type.GetElementType() ?? model.WellKnownTypes.GetKnownType(typeof(object)))}>",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(char)) => "string",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(string)) => "string",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(Version)) => "string",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(Uri)) => "string",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(sbyte)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(byte)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(short)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(ushort)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(int)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(uint)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(long)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(ulong)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(nint)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(nuint)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(double)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(float)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(decimal)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(bool)) => "boolean",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(Guid)) => "string",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(object)) => "any",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(DateTime)) => "Date",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(TimeSpan)) => "number",
+            { } when type == model.WellKnownTypes.GetKnownType(typeof(DateTimeOffset)) => "Date",
+            { } when model.ModelTypes.Contains(type) => SanitizeClassName(type.Name),
+            { } when type.IsEnum => "any",
+            _ => "any"
+        };
+    }
 }
