@@ -9,6 +9,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@aspire/hosting": "file:../../src/Aspire.Hosting.TypeScript",
     "tsx": "^4.7.0",
     "vscode-jsonrpc": "^8.2.0"
   },

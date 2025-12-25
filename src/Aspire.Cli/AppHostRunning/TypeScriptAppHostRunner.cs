@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Cli.CodeGeneration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Rosetta;
@@ -15,13 +16,16 @@ namespace Aspire.Cli.AppHostRunning;
 internal sealed class TypeScriptAppHostRunner : IAppHostRunner
 {
     private readonly IInteractionService _interactionService;
+    private readonly ICodeGenerationService _codeGenerationService;
     private readonly ILogger<TypeScriptAppHostRunner> _logger;
 
     public TypeScriptAppHostRunner(
         IInteractionService interactionService,
+        ICodeGenerationService codeGenerationService,
         ILogger<TypeScriptAppHostRunner> logger)
     {
         _interactionService = interactionService;
+        _codeGenerationService = codeGenerationService;
         _logger = logger;
     }
 
@@ -81,12 +85,26 @@ internal sealed class TypeScriptAppHostRunner : IAppHostRunner
                 }
             }
 
-            // Step 2: Start the GenericAppHost (RemoteAppHost server)
+            // Step 2: Get package references and run code generation if needed
+            var packages = GetPackageReferences(directory).ToList();
+
+            if (_codeGenerationService.NeedsGeneration(directory.FullName, packages))
+            {
+                await _interactionService.ShowStatusAsync(
+                    "Generating TypeScript SDK...",
+                    async () =>
+                    {
+                        await _codeGenerationService.GenerateTypeScriptAsync(
+                            directory.FullName,
+                            packages,
+                            cancellationToken);
+                        return true;
+                    });
+            }
+
+            // Step 3: Start the GenericAppHost (RemoteAppHost server)
             var projectModel = new ProjectModel(directory.FullName);
             var socketPath = projectModel.GetSocketPath();
-
-            // Read aspire.json to get package references (if any)
-            var packages = GetPackageReferences(directory);
 
             // Create the GenericAppHost project files
             _interactionService.DisplayMessage("gear", "Preparing GenericAppHost...");
@@ -114,7 +132,7 @@ internal sealed class TypeScriptAppHostRunner : IAppHostRunner
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            // Step 3: Execute the TypeScript apphost
+            // Step 4: Execute the TypeScript apphost
             _interactionService.DisplayMessage("rocket", "Starting TypeScript AppHost...");
 
             // Pass the socket path to the TypeScript process

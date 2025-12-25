@@ -254,6 +254,14 @@ internal sealed class ProjectModel
         startInfo.Environment["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath;
         startInfo.Environment["REMOTE_APP_HOST_PID"] = hostPid.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
+        // Dashboard environment variables (equivalent to launchSettings.json)
+        startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
+        startInfo.Environment["DOTNET_ENVIRONMENT"] = "Development";
+        startInfo.Environment["ASPNETCORE_URLS"] = "https://localhost:17292;http://localhost:15013";
+        startInfo.Environment["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:21227";
+        startInfo.Environment["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:22105";
+        startInfo.Environment["DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES"] = "true";
+
         var process = Process.Start(startInfo)!;
         return process;
     }

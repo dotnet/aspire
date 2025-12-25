@@ -107,23 +107,76 @@ public class InstructionProcessor
         var type = assembly.GetType(instruction.MethodType)
             ?? throw new InvalidOperationException($"Type '{instruction.MethodType}' not found in assembly '{instruction.MethodAssembly}'");
 
-        // Find the method using metadata token
-        var method = type.GetMethods().FirstOrDefault(m => m.MetadataToken == instruction.MetadataToken)
-            ?? throw new InvalidOperationException($"Method with metadata token '{instruction.MetadataToken}' not found on type '{instruction.MethodType}'");
+        // Find the method by metadata token or by name
+        System.Reflection.MethodInfo? method = null;
+
+        if (instruction.MetadataToken != 0)
+        {
+            method = type.GetMethods().FirstOrDefault(m => m.MetadataToken == instruction.MetadataToken);
+        }
+
+        // Fall back to finding by name if metadata token is 0 or not found
+        if (method == null)
+        {
+            var sourceType = sourceObj.GetType();
+
+            // Find all methods with the matching name
+            var candidateMethods = type.GetMethods()
+                .Where(m => m.Name == instruction.MethodName)
+                .Where(m => m.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false))
+                .ToList();
+
+            // Try to find the best matching method based on the first parameter type (extension method target)
+            foreach (var candidate in candidateMethods)
+            {
+                var parameters = candidate.GetParameters();
+                if (parameters.Length == 0)
+                {
+                    continue;
+                }
+
+                var firstParamType = parameters[0].ParameterType;
+
+                // Handle generic parameters
+                if (firstParamType.IsGenericType)
+                {
+                    var genericTypeDef = firstParamType.GetGenericTypeDefinition();
+                    // Check if source type implements the generic interface
+                    var sourceInterfaces = sourceType.GetInterfaces();
+                    foreach (var iface in sourceInterfaces)
+                    {
+                        if (iface.IsGenericType && iface.GetGenericTypeDefinition() == genericTypeDef)
+                        {
+                            method = candidate;
+                            break;
+                        }
+                    }
+                }
+                else if (firstParamType.IsAssignableFrom(sourceType))
+                {
+                    method = candidate;
+                }
+
+                if (method != null)
+                {
+                    break;
+                }
+            }
+
+            if (method == null && candidateMethods.Count > 0)
+            {
+                // Just use the first candidate if we couldn't find a perfect match
+                method = candidateMethods[0];
+            }
+        }
+
+        if (method == null)
+        {
+            throw new InvalidOperationException($"Method '{instruction.MethodName}' not found on type '{instruction.MethodType}'");
+        }
 
         // Check if this is an extension method
         var isExtensionMethod = method.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false);
-
-        // Check if the selected method matches the expected name and parameter count
-        if (method.Name != instruction.MethodName)
-        {
-            throw new InvalidOperationException($"Method name mismatch: expected '{instruction.MethodName}', found '{method.Name}'");
-        }
-
-        if ((method.GetParameters().Length - (isExtensionMethod ? 1 : 0)) != instruction.Args.Count)
-        {
-            throw new InvalidOperationException($"Method parameter count mismatch: expected {method.GetParameters().Length - (isExtensionMethod ? 1 : 0)}, found {instruction.Args.Count}");
-        }
 
         // Prepare arguments in the correct order
         var methodParameters = method.GetParameters();
