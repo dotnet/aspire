@@ -16,6 +16,14 @@ public class RemoteAppHostService : IAsyncDisposable
     /// </summary>
     public void RequestCancellation() => _cts.Cancel();
 
+    /// <summary>
+    /// Sets the JSON-RPC connection for callback invocation.
+    /// </summary>
+    public void SetClientConnection(JsonRpc clientRpc)
+    {
+        _instructionProcessor.SetClientConnection(clientRpc);
+    }
+
     [JsonRpcMethod("executeInstruction")]
     public async Task<object?> ExecuteInstructionAsync(string instructionJson)
     {
@@ -139,7 +147,10 @@ public class JsonRpcServer : IAsyncDisposable
             using var networkStream = new NetworkStream(clientSocket, ownsSocket: true);
             using var jsonRpc = JsonRpc.Attach(networkStream, _service);
 
-            Console.WriteLine($"JsonRpc connection established for client {clientId}");
+            // Enable bidirectional communication - allow .NET to call back to TypeScript
+            _service.SetClientConnection(jsonRpc);
+
+            Console.WriteLine($"JsonRpc connection established for client {clientId} (bidirectional)");
 
             // Wait for the connection to be closed by the client, an error, or cancellation
             using var registration = cancellationToken.Register(() => jsonRpc.Dispose());

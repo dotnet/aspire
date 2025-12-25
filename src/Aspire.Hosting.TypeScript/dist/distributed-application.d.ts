@@ -1,4 +1,5 @@
 import { RemoteAppHostClient } from './client.js';
+import type { EnvironmentCallbackContext } from './types.js';
 /**
  * Builder for creating distributed applications
  */
@@ -52,9 +53,13 @@ export declare class ResourceBuilder {
      */
     waitFor(other: ResourceBuilder): Promise<ResourceBuilder>;
     /**
-     * Add an environment variable
+     * Add an environment variable with a static value
      */
     withEnvironment(name: string, value: string): Promise<ResourceBuilder>;
+    /**
+     * Add environment variables using a callback that receives the context
+     */
+    withEnvironment(callback: (context: EnvironmentCallbackContext) => void | Promise<void>): Promise<ResourceBuilder>;
     /**
      * Expose an endpoint
      */

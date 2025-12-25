@@ -37,3 +37,28 @@ export interface InstructionResult {
     error?: string;
     [key: string]: unknown;
 }
+/**
+ * Type for callback functions that can be registered and invoked from .NET.
+ * Callbacks can be sync or async and can return any value.
+ */
+export type CallbackFunction<TArgs = unknown, TResult = unknown> = (args: TArgs) => TResult | Promise<TResult>;
+/**
+ * Context passed to environment variable callbacks.
+ */
+export interface EnvironmentCallbackContext {
+    environmentVariables: Record<string, string>;
+}
+/**
+ * Context passed to command callbacks.
+ */
+export interface CommandContext {
+    resourceName: string;
+    serviceName?: string;
+}
+/**
+ * Context passed to health check callbacks.
+ */
+export interface HealthCheckContext {
+    resourceName: string;
+    url?: string;
+}

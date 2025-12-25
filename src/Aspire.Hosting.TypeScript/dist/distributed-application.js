@@ -1,5 +1,5 @@
 // DistributedApplication - High-level API for Aspire distributed applications in TypeScript
-import { connectToRemoteAppHost } from './client.js';
+import { connectToRemoteAppHost, registerCallback } from './client.js';
 let builderCounter = 0;
 let variableCounter = 0;
 function generateBuilderName() {
@@ -124,11 +124,16 @@ export class ResourceBuilder {
     async waitFor(other) {
         return this.invokeMethod('WaitFor', { dependency: other.getVariableName() });
     }
-    /**
-     * Add an environment variable
-     */
-    async withEnvironment(name, value) {
-        return this.invokeMethod('WithEnvironment', { name, value });
+    async withEnvironment(nameOrCallback, value) {
+        if (typeof nameOrCallback === 'function') {
+            // Callback-based environment variables
+            const callbackId = registerCallback(nameOrCallback);
+            return this.invokeMethod('WithEnvironment', { callback: callbackId });
+        }
+        else {
+            // Static environment variable
+            return this.invokeMethod('WithEnvironment', { name: nameOrCallback, value });
+        }
     }
     /**
      * Expose an endpoint

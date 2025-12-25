@@ -1,4 +1,17 @@
 import type { AnyInstruction, InstructionResult } from './types.js';
+/**
+ * Register a callback function that can be invoked from the .NET side.
+ * Returns a callback ID that should be passed to methods accepting callbacks.
+ */
+export declare function registerCallback<TArgs = unknown, TResult = void>(callback: (args: TArgs) => TResult | Promise<TResult>): string;
+/**
+ * Unregister a callback by its ID.
+ */
+export declare function unregisterCallback(callbackId: string): boolean;
+/**
+ * Get the number of registered callbacks.
+ */
+export declare function getCallbackCount(): number;
 export declare class RemoteAppHostClient {
     private connection;
     private socket;

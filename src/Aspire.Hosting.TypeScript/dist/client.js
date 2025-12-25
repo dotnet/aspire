@@ -1,6 +1,30 @@
 // RemoteAppHostClient - Client for communicating with GenericAppHost via Unix domain socket
 import * as net from 'net';
 import * as rpc from 'vscode-jsonrpc/node.js';
+// Callback registry - maps callback IDs to functions
+const callbackRegistry = new Map();
+let callbackIdCounter = 0;
+/**
+ * Register a callback function that can be invoked from the .NET side.
+ * Returns a callback ID that should be passed to methods accepting callbacks.
+ */
+export function registerCallback(callback) {
+    const callbackId = `callback_${++callbackIdCounter}_${Date.now()}`;
+    callbackRegistry.set(callbackId, callback);
+    return callbackId;
+}
+/**
+ * Unregister a callback by its ID.
+ */
+export function unregisterCallback(callbackId) {
+    return callbackRegistry.delete(callbackId);
+}
+/**
+ * Get the number of registered callbacks.
+ */
+export function getCallbackCount() {
+    return callbackRegistry.size;
+}
 export class RemoteAppHostClient {
     connection = null;
     socket = null;
@@ -47,6 +71,22 @@ export class RemoteAppHostClient {
                         this.notifyDisconnect();
                     });
                     this.connection.onError((err) => console.error('JsonRpc connection error:', err));
+                    // Register the callback handler for bidirectional communication
+                    // This allows .NET to invoke callbacks registered on the TypeScript side
+                    this.connection.onRequest('invokeCallback', async (callbackId, args) => {
+                        const callback = callbackRegistry.get(callbackId);
+                        if (!callback) {
+                            throw new Error(`Callback not found: ${callbackId}`);
+                        }
+                        try {
+                            // Always await in case the callback is async
+                            return await Promise.resolve(callback(args));
+                        }
+                        catch (error) {
+                            const message = error instanceof Error ? error.message : String(error);
+                            throw new Error(`Callback execution failed: ${message}`);
+                        }
+                    });
                     this.connection.listen();
                     resolve();
                 }

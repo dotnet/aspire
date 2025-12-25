@@ -2,7 +2,15 @@
 // Main entry point
 
 export * from './types.js';
-export * from './client.js';
+export {
+    RemoteAppHostClient,
+    getClient,
+    connectToRemoteAppHost,
+    // Callback utilities for bidirectional communication
+    registerCallback,
+    unregisterCallback,
+    getCallbackCount
+} from './client.js';
 export {
     DistributedApplicationBuilder,
     DistributedApplication,

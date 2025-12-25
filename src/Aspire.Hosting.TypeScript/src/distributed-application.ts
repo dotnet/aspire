@@ -1,6 +1,6 @@
 // DistributedApplication - High-level API for Aspire distributed applications in TypeScript
-import { RemoteAppHostClient, connectToRemoteAppHost } from './client.js';
-import type { CreateBuilderInstruction, RunBuilderInstruction, InvokeInstruction } from './types.js';
+import { RemoteAppHostClient, connectToRemoteAppHost, registerCallback } from './client.js';
+import type { CreateBuilderInstruction, RunBuilderInstruction, InvokeInstruction, EnvironmentCallbackContext } from './types.js';
 
 let builderCounter = 0;
 let variableCounter = 0;
@@ -150,10 +150,25 @@ export class ResourceBuilder {
     }
 
     /**
-     * Add an environment variable
+     * Add an environment variable with a static value
      */
-    async withEnvironment(name: string, value: string): Promise<ResourceBuilder> {
-        return this.invokeMethod('WithEnvironment', { name, value });
+    async withEnvironment(name: string, value: string): Promise<ResourceBuilder>;
+    /**
+     * Add environment variables using a callback that receives the context
+     */
+    async withEnvironment(callback: (context: EnvironmentCallbackContext) => void | Promise<void>): Promise<ResourceBuilder>;
+    async withEnvironment(
+        nameOrCallback: string | ((context: EnvironmentCallbackContext) => void | Promise<void>),
+        value?: string
+    ): Promise<ResourceBuilder> {
+        if (typeof nameOrCallback === 'function') {
+            // Callback-based environment variables
+            const callbackId = registerCallback(nameOrCallback);
+            return this.invokeMethod('WithEnvironment', { callback: callbackId });
+        } else {
+            // Static environment variable
+            return this.invokeMethod('WithEnvironment', { name: nameOrCallback, value });
+        }
     }
 
     /**

@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Aspire.Hosting;
+using StreamJsonRpc;
 
 namespace RemoteAppHost;
 
@@ -18,8 +19,173 @@ public class InstructionProcessor : IAsyncDisposable
         PropertyNameCaseInsensitive = true
     };
     private volatile bool _disposed;
+    private JsonRpc? _clientRpc;
 
     private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan CallbackTimeout = TimeSpan.FromSeconds(60);
+
+    /// <summary>
+    /// Sets the JSON-RPC connection to use for invoking callbacks on the client.
+    /// </summary>
+    public void SetClientConnection(JsonRpc clientRpc)
+    {
+        _clientRpc = clientRpc;
+    }
+
+    /// <summary>
+    /// Invokes a callback registered on the client side.
+    /// </summary>
+    /// <typeparam name="TResult">The expected result type.</typeparam>
+    /// <param name="callbackId">The callback ID registered on the client.</param>
+    /// <param name="args">Arguments to pass to the callback.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The result from the callback.</returns>
+    public async Task<TResult> InvokeCallbackAsync<TResult>(string callbackId, object? args, CancellationToken cancellationToken = default)
+    {
+        if (_clientRpc == null)
+        {
+            throw new InvalidOperationException("No client connection available for callback invocation");
+        }
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(CallbackTimeout);
+
+        try
+        {
+            return await _clientRpc.InvokeWithCancellationAsync<TResult>(
+                "invokeCallback",
+                [callbackId, args],
+                cts.Token);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException($"Callback '{callbackId}' timed out after {CallbackTimeout.TotalSeconds}s");
+        }
+    }
+
+    /// <summary>
+    /// Invokes a callback that returns no value.
+    /// </summary>
+    public async Task InvokeCallbackAsync(string callbackId, object? args, CancellationToken cancellationToken = default)
+    {
+        await InvokeCallbackAsync<object?>(callbackId, args, cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates a proxy delegate that invokes a callback on the TypeScript client.
+    /// </summary>
+    private object? CreateCallbackProxy(string callbackId, Type delegateType)
+    {
+        // Handle common delegate patterns
+        // We need to create a delegate that, when invoked, calls back to TypeScript
+
+        if (delegateType == typeof(Action))
+        {
+            return new Action(() =>
+            {
+                InvokeCallbackAsync(callbackId, null).GetAwaiter().GetResult();
+            });
+        }
+
+        // Check for Func<Task> (async action with no args)
+        if (delegateType == typeof(Func<Task>))
+        {
+            return new Func<Task>(() => InvokeCallbackAsync(callbackId, null));
+        }
+
+        // Check for Func<CancellationToken, Task> (async action with cancellation)
+        if (delegateType == typeof(Func<CancellationToken, Task>))
+        {
+            return new Func<CancellationToken, Task>(ct => InvokeCallbackAsync(callbackId, null, ct));
+        }
+
+        // Handle generic Action<T>
+        if (delegateType.IsGenericType && delegateType.GetGenericTypeDefinition() == typeof(Action<>))
+        {
+            var argType = delegateType.GetGenericArguments()[0];
+            var proxyMethod = GetType().GetMethod(nameof(CreateActionProxy), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .MakeGenericMethod(argType);
+            return proxyMethod.Invoke(this, [callbackId]);
+        }
+
+        // Handle Func<T, Task> (async with one arg)
+        if (delegateType.IsGenericType && delegateType.GetGenericTypeDefinition() == typeof(Func<,>))
+        {
+            var args = delegateType.GetGenericArguments();
+            if (args[1] == typeof(Task))
+            {
+                var proxyMethod = GetType().GetMethod(nameof(CreateAsyncActionProxy), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                    .MakeGenericMethod(args[0]);
+                return proxyMethod.Invoke(this, [callbackId]);
+            }
+            // Func<T, TResult> - sync function with return value
+            var funcProxyMethod = GetType().GetMethod(nameof(CreateFuncProxy), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .MakeGenericMethod(args[0], args[1]);
+            return funcProxyMethod.Invoke(this, [callbackId]);
+        }
+
+        // Handle Func<T, Task<TResult>> (async with one arg and return value)
+        if (delegateType.IsGenericType && delegateType.GetGenericTypeDefinition() == typeof(Func<,>))
+        {
+            var args = delegateType.GetGenericArguments();
+            if (args[1].IsGenericType && args[1].GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                var resultType = args[1].GetGenericArguments()[0];
+                var proxyMethod = GetType().GetMethod(nameof(CreateAsyncFuncProxy), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                    .MakeGenericMethod(args[0], resultType);
+                return proxyMethod.Invoke(this, [callbackId]);
+            }
+        }
+
+        // Handle Func<T1, T2, Task> (async with two args)
+        if (delegateType.IsGenericType && delegateType.GetGenericTypeDefinition() == typeof(Func<,,>))
+        {
+            var args = delegateType.GetGenericArguments();
+            if (args[2] == typeof(Task))
+            {
+                var proxyMethod = GetType().GetMethod(nameof(CreateAsyncAction2Proxy), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                    .MakeGenericMethod(args[0], args[1]);
+                return proxyMethod.Invoke(this, [callbackId]);
+            }
+        }
+
+        Console.WriteLine($"Warning: Unsupported delegate type for callback: {delegateType}");
+        return null;
+    }
+
+    // Helper methods for creating typed proxy delegates
+    private Action<T> CreateActionProxy<T>(string callbackId)
+    {
+        return arg => InvokeCallbackAsync(callbackId, arg).GetAwaiter().GetResult();
+    }
+
+    private Func<T, Task> CreateAsyncActionProxy<T>(string callbackId)
+    {
+        return arg => InvokeCallbackAsync(callbackId, arg);
+    }
+
+    private Func<T, TResult> CreateFuncProxy<T, TResult>(string callbackId)
+    {
+        return arg => InvokeCallbackAsync<TResult>(callbackId, arg).GetAwaiter().GetResult();
+    }
+
+    private Func<T, Task<TResult>> CreateAsyncFuncProxy<T, TResult>(string callbackId)
+    {
+        return arg => InvokeCallbackAsync<TResult>(callbackId, arg);
+    }
+
+    private Func<T1, T2, Task> CreateAsyncAction2Proxy<T1, T2>(string callbackId)
+    {
+        return (arg1, arg2) => InvokeCallbackAsync(callbackId, new { arg1, arg2 });
+    }
+
+    /// <summary>
+    /// Checks if a type is a delegate type.
+    /// </summary>
+    private static bool IsDelegateType(Type type)
+    {
+        return typeof(Delegate).IsAssignableFrom(type);
+    }
 
     public async Task<object?> ExecuteInstructionAsync(string instructionJson, CancellationToken cancellationToken = default)
     {
@@ -151,6 +317,7 @@ public class InstructionProcessor : IAsyncDisposable
         if (method == null)
         {
             var sourceType = sourceObj.GetType();
+            var providedArgNames = instruction.Args.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             // Find all methods with the matching name
             var candidateMethods = type.GetMethods()
@@ -158,7 +325,9 @@ public class InstructionProcessor : IAsyncDisposable
                 .Where(m => m.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false))
                 .ToList();
 
-            // Try to find the best matching method based on the first parameter type (extension method target)
+            // Score each candidate based on argument name matching and source type compatibility
+            var scoredCandidates = new List<(System.Reflection.MethodInfo Method, int Score, bool SourceTypeMatches)>();
+
             foreach (var candidate in candidateMethods)
             {
                 var parameters = candidate.GetParameters();
@@ -167,33 +336,46 @@ public class InstructionProcessor : IAsyncDisposable
                     continue;
                 }
 
+                // Check if the source type matches the first parameter (extension method target)
                 var firstParamType = parameters[0].ParameterType;
+                var sourceTypeMatches = false;
 
-                // Handle generic parameters
                 if (firstParamType.IsGenericType)
                 {
                     var genericTypeDef = firstParamType.GetGenericTypeDefinition();
-                    // Check if source type implements the generic interface
                     var sourceInterfaces = sourceType.GetInterfaces();
-                    foreach (var iface in sourceInterfaces)
-                    {
-                        if (iface.IsGenericType && iface.GetGenericTypeDefinition() == genericTypeDef)
-                        {
-                            method = candidate;
-                            break;
-                        }
-                    }
+                    sourceTypeMatches = sourceInterfaces.Any(iface =>
+                        iface.IsGenericType && iface.GetGenericTypeDefinition() == genericTypeDef);
                 }
-                else if (firstParamType.IsAssignableFrom(sourceType))
+                else
                 {
-                    method = candidate;
+                    sourceTypeMatches = firstParamType.IsAssignableFrom(sourceType);
                 }
 
-                if (method != null)
+                if (!sourceTypeMatches)
                 {
-                    break;
+                    continue;
                 }
+
+                // Score based on how many provided argument names match method parameter names
+                // Skip the first parameter (this) for extension methods
+                var methodParamNames = parameters.Skip(1).Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var matchingArgs = providedArgNames.Count(argName => methodParamNames.Contains(argName));
+                var missingRequiredArgs = parameters.Skip(1).Count(p => !p.HasDefaultValue && !providedArgNames.Contains(p.Name!));
+
+                // Higher score = better match
+                // Penalize methods that have required arguments we didn't provide
+                var score = matchingArgs * 10 - missingRequiredArgs * 100;
+
+                scoredCandidates.Add((candidate, score, sourceTypeMatches));
             }
+
+            // Pick the best scoring method
+            method = scoredCandidates
+                .OrderByDescending(x => x.Score)
+                .ThenBy(x => x.Method.GetParameters().Length) // Prefer simpler methods if tied
+                .Select(x => x.Method)
+                .FirstOrDefault();
 
             if (method == null && candidateMethods.Count > 0)
             {
@@ -228,12 +410,26 @@ public class InstructionProcessor : IAsyncDisposable
             var paramName = methodParameters[i].Name;
             if (paramName != null && instruction.Args.TryGetValue(paramName, out var argValue))
             {
+                var paramType = methodParameters[i].ParameterType;
+
                 // Convert JsonElement to the appropriate type if needed
                 if (argValue is JsonElement jsonElement)
                 {
+                    // Check if this is a callback parameter (delegate type with string callbackId)
+                    if (IsDelegateType(paramType) && jsonElement.ValueKind == JsonValueKind.String)
+                    {
+                        var callbackId = jsonElement.GetString()!;
+                        var proxy = CreateCallbackProxy(callbackId, paramType);
+                        if (proxy != null)
+                        {
+                            arguments[i] = proxy;
+                            continue;
+                        }
+                    }
+
                     try
                     {
-                        arguments[i] = JsonSerializer.Deserialize(jsonElement.GetRawText(), methodParameters[i].ParameterType, _jsonOptions);
+                        arguments[i] = JsonSerializer.Deserialize(jsonElement.GetRawText(), paramType, _jsonOptions);
                     }
                     catch (Exception ex)
                     {
@@ -243,9 +439,9 @@ public class InstructionProcessor : IAsyncDisposable
                             )
                         {
                             // Check the type compatibility. This may be an error if the wrong extension method was picked by the code generation.
-                            if (!methodParameters[i].ParameterType.IsAssignableFrom(varValue.GetType()))
+                            if (!paramType.IsAssignableFrom(varValue.GetType()))
                             {
-                                throw new InvalidOperationException($"Failed to convert argument '{paramName}' to type '{methodParameters[i].ParameterType}': {ex.Message}");
+                                throw new InvalidOperationException($"Failed to convert argument '{paramName}' to type '{paramType}': {ex.Message}");
                             }
 
                             arguments[i] = varValue;
