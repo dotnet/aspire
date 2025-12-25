@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Rosetta;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.AppHostRunning;
@@ -62,6 +63,8 @@ internal sealed class TypeScriptAppHostRunner : IAppHostRunner
 
         _logger.LogDebug("Running TypeScript AppHost: {AppHostFile}", appHostFile.FullName);
 
+        Process? genericAppHostProcess = null;
+
         try
         {
             // Step 1: Check if node_modules exists, run npm install if needed
@@ -78,17 +81,49 @@ internal sealed class TypeScriptAppHostRunner : IAppHostRunner
                 }
             }
 
-            // Step 2: Start the RemoteAppHost server (TODO: Implement Rosetta integration)
-            // The RemoteAppHost is a hidden .NET process that the TypeScript apphost
-            // communicates with via JSON-RPC over named pipes.
+            // Step 2: Start the GenericAppHost (RemoteAppHost server)
+            var projectModel = new ProjectModel(directory.FullName);
+            var socketPath = projectModel.GetSocketPath();
 
-            // For now, we'll just execute the TypeScript file directly
-            // Full implementation requires porting the Rosetta RemoteAppHost from PR #11667
+            // Read aspire.json to get package references (if any)
+            var packages = GetPackageReferences(directory);
 
-            _interactionService.DisplayMessage("rocket", "Starting TypeScript AppHost...");
+            // Create the GenericAppHost project files
+            _interactionService.DisplayMessage("gear", "Preparing GenericAppHost...");
+            projectModel.CreateProjectFiles(packages);
+
+            // Build the GenericAppHost
+            var buildSuccess = await projectModel.BuildAsync(_interactionService);
+            if (!buildSuccess)
+            {
+                _interactionService.DisplayError("Failed to build GenericAppHost.");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
+            // Start the GenericAppHost process
+            _interactionService.DisplayMessage("rocket", "Starting GenericAppHost...");
+            var currentPid = Environment.ProcessId;
+            genericAppHostProcess = projectModel.Run(socketPath, currentPid);
+
+            // Give the server a moment to start
+            await Task.Delay(500, cancellationToken);
+
+            if (genericAppHostProcess.HasExited)
+            {
+                _interactionService.DisplayError("GenericAppHost process exited unexpectedly.");
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
 
             // Step 3: Execute the TypeScript apphost
-            var exitCode = await ExecuteTypeScriptAppHostAsync(appHostFile, directory, context.EnvironmentVariables, cancellationToken);
+            _interactionService.DisplayMessage("rocket", "Starting TypeScript AppHost...");
+
+            // Pass the socket path to the TypeScript process
+            var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
+            {
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath
+            };
+
+            var exitCode = await ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken);
 
             return exitCode;
         }
@@ -103,6 +138,30 @@ internal sealed class TypeScriptAppHostRunner : IAppHostRunner
             _interactionService.DisplayError($"Failed to run TypeScript AppHost: {ex.Message}");
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+        finally
+        {
+            // Clean up the GenericAppHost process
+            if (genericAppHostProcess is not null && !genericAppHostProcess.HasExited)
+            {
+                try
+                {
+                    genericAppHostProcess.Kill(entireProcessTree: true);
+                    genericAppHostProcess.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error killing GenericAppHost process");
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<(string Name, string Version)> GetPackageReferences(DirectoryInfo _)
+    {
+        // TODO: Read aspire.json to get package references
+        // For now, return the base Aspire.Hosting package
+        yield return ("Aspire.Hosting", ProjectModel.AspireHostVersion);
+        yield return ("Aspire.Hosting.AppHost", ProjectModel.AspireHostVersion);
     }
 
     private async Task<int> RunNpmInstallAsync(DirectoryInfo directory, CancellationToken cancellationToken)

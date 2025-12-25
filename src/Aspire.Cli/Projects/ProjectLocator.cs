@@ -422,6 +422,46 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                         });
                     }
 
+                    // If still no projects found, check for TypeScript apphosts (apphost.ts)
+                    if (foundProjects.Count == 0)
+                    {
+                        var tsAppHostFiles = directory.GetFiles("apphost.ts", enumerationOptions);
+                        logger.LogDebug("Found {CandidateFileCount} TypeScript apphost candidates", tsAppHostFiles.Length);
+
+                        foreach (var candidateFile in tsAppHostFiles)
+                        {
+                            logger.LogDebug("Checking TypeScript apphost candidate {CandidateFile}", candidateFile.FullName);
+
+                            if (IsValidTypeScriptAppHost(candidateFile))
+                            {
+                                logger.LogDebug("Found valid TypeScript apphost {AppHostFile}", candidateFile.FullName);
+                                var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
+                                interactionService.DisplaySubtleMessage(relativePath);
+                                foundProjects.Add(candidateFile);
+                            }
+                        }
+                    }
+
+                    // If still no projects found, check for Python apphosts (apphost.py)
+                    if (foundProjects.Count == 0)
+                    {
+                        var pyAppHostFiles = directory.GetFiles("apphost.py", enumerationOptions);
+                        logger.LogDebug("Found {CandidateFileCount} Python apphost candidates", pyAppHostFiles.Length);
+
+                        foreach (var candidateFile in pyAppHostFiles)
+                        {
+                            logger.LogDebug("Checking Python apphost candidate {CandidateFile}", candidateFile.FullName);
+
+                            if (IsValidPythonAppHost(candidateFile))
+                            {
+                                logger.LogDebug("Found valid Python apphost {AppHostFile}", candidateFile.FullName);
+                                var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
+                                interactionService.DisplaySubtleMessage(relativePath);
+                                foundProjects.Add(candidateFile);
+                            }
+                        }
+                    }
+
                     // Sort for deterministic results
                     foundProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
 

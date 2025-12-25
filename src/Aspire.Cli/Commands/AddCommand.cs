@@ -69,12 +69,6 @@ internal sealed class AddCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
-        {
-            return ExitCodeConstants.SdkNotInstalled;
-        }
-
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var outputCollector = new OutputCollector();
@@ -84,11 +78,26 @@ internal sealed class AddCommand : BaseCommand
             var integrationName = parseResult.GetValue<string>("integration");
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
+            var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
+            var effectiveAppHostProjectFile = searchResult.SelectedProjectFile;
 
             if (effectiveAppHostProjectFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
+            }
+
+            // Check if this is a TypeScript or Python AppHost
+            if (searchResult.DetectedType is AppHostType.TypeScript or AppHostType.Python)
+            {
+                InteractionService.DisplayMessage("information", $"Adding integrations to {searchResult.DetectedType.Value} projects is coming soon!");
+                InteractionService.DisplayMessage("info", "For now, manually add the integration to your package.json (TypeScript) or requirements.txt (Python).");
+                return ExitCodeConstants.Success;
+            }
+
+            // Check if the .NET SDK is available (only needed for .NET projects)
+            if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+            {
+                return ExitCodeConstants.SdkNotInstalled;
             }
 
             var source = parseResult.GetValue<string?>("--source");

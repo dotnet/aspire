@@ -9,6 +9,7 @@ using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
@@ -31,6 +32,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
+    private readonly ILanguageService _languageService;
 
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
@@ -53,7 +55,9 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment,
+        ILanguageService languageService)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -64,6 +68,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(languageService);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -75,6 +80,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
+        _languageService = languageService;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -101,12 +107,16 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         
         var channelOption = new Option<string?>("--channel")
         {
-            Description = isStagingEnabled 
+            Description = isStagingEnabled
                 ? NewCommandStrings.ChannelOptionDescriptionWithStaging
                 : NewCommandStrings.ChannelOptionDescription,
             Recursive = true
         };
         Options.Add(channelOption);
+
+        var languageOption = new Option<string?>("--language", "-l");
+        languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
+        Options.Add(languageOption);
 
         _templates = templateProvider.GetTemplates();
 
@@ -135,13 +145,25 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+
+        // Check if language is explicitly specified
+        var explicitLanguage = parseResult.GetValue<string?>("--language");
+
+        // If language is TypeScript or Python, create polyglot apphost
+        if (!string.IsNullOrWhiteSpace(explicitLanguage) &&
+            AppHostLanguageExtensions.TryParse(explicitLanguage, out var language) &&
+            language is AppHostLanguage.TypeScript or AppHostLanguage.Python)
+        {
+            return await CreatePolyglotProjectAsync(parseResult, language, cancellationToken);
+        }
+
+        // For C# or unspecified language, use the existing template system
         // Check if the .NET SDK is available
         if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
-
-        using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
@@ -151,6 +173,138 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         return templateResult.ExitCode;
+    }
+
+    private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, AppHostLanguage language, CancellationToken cancellationToken)
+    {
+        // Get project name
+        var projectName = parseResult.GetValue<string>("--name");
+        if (string.IsNullOrWhiteSpace(projectName))
+        {
+            projectName = await _prompter.PromptForProjectNameAsync("AspireApp", cancellationToken);
+        }
+
+        // Get output directory
+        var outputPath = parseResult.GetValue<string?>("--output");
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, projectName);
+        }
+        else if (!Path.IsPathRooted(outputPath))
+        {
+            outputPath = Path.Combine(_executionContext.WorkingDirectory.FullName, outputPath);
+        }
+
+        // Create the output directory
+        if (!Directory.Exists(outputPath))
+        {
+            Directory.CreateDirectory(outputPath);
+        }
+
+        var directory = new DirectoryInfo(outputPath);
+
+        // Save language preference
+        await _languageService.SetLanguageAsync(language, isGlobal: false, cancellationToken);
+
+        // Create the apphost files
+        if (language == AppHostLanguage.TypeScript)
+        {
+            await CreateTypeScriptProjectAsync(directory, projectName, cancellationToken);
+        }
+        else if (language == AppHostLanguage.Python)
+        {
+            await CreatePythonProjectAsync(directory, projectName, cancellationToken);
+        }
+
+        InteractionService.DisplaySuccess($"Created {language.GetDisplayName()} project at {outputPath}");
+        InteractionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
+
+        if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
+        {
+            extensionInteractionService.OpenEditor(outputPath);
+        }
+
+        return ExitCodeConstants.Success;
+    }
+
+    private static async Task CreateTypeScriptProjectAsync(DirectoryInfo directory, string projectName, CancellationToken cancellationToken)
+    {
+        var appHostPath = Path.Combine(directory.FullName, "apphost.ts");
+        var packageJsonPath = Path.Combine(directory.FullName, "package.json");
+
+        var appHostContent = """
+            // Aspire TypeScript AppHost
+            // For more information, see: https://learn.microsoft.com/dotnet/aspire
+
+            console.log("Aspire TypeScript AppHost starting...");
+
+            // TODO: Add your distributed application configuration here
+            // This is a placeholder - full Aspire integration coming soon!
+
+            // Keep the process running
+            setInterval(() => {}, 1000);
+            """;
+
+        await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
+
+        var packageJsonContent = $$"""
+            {
+              "name": "{{projectName.ToLowerInvariant()}}",
+              "version": "1.0.0",
+              "type": "module",
+              "scripts": {
+                "start": "npx tsx apphost.ts"
+              },
+              "dependencies": {
+                "tsx": "^4.7.0"
+              },
+              "devDependencies": {
+                "typescript": "^5.3.0"
+              }
+            }
+            """;
+
+        await File.WriteAllTextAsync(packageJsonPath, packageJsonContent, cancellationToken);
+    }
+
+    private static async Task CreatePythonProjectAsync(DirectoryInfo directory, string projectName, CancellationToken cancellationToken)
+    {
+        var appHostPath = Path.Combine(directory.FullName, "apphost.py");
+        var pyprojectPath = Path.Combine(directory.FullName, "pyproject.toml");
+
+        var appHostContent = """
+            #!/usr/bin/env python3
+            """
+            + "\"\"\"Aspire Python AppHost.\"\"\"\n\n"
+            + """
+            import time
+
+            print("Aspire Python AppHost starting...")
+
+            # TODO: Add your distributed application configuration here
+            # This is a placeholder - full Aspire integration coming soon!
+
+            # Keep the process running
+            while True:
+                time.sleep(1)
+            """;
+
+        await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
+
+        var pyprojectContent = $$"""
+            [project]
+            name = "{{projectName.ToLowerInvariant()}}"
+            version = "1.0.0"
+            description = "Aspire Python AppHost"
+            requires-python = ">=3.10"
+            dependencies = []
+
+            [build-system]
+            requires = ["hatchling"]
+            build-backend = "hatchling.build"
+            """;
+
+        await File.WriteAllTextAsync(pyprojectPath, pyprojectContent, cancellationToken);
     }
 }
 
