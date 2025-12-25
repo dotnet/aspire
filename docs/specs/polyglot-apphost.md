@@ -6,15 +6,31 @@ This document describes how the Aspire CLI supports non-.NET app hosts (TypeScri
 
 The polyglot apphost feature allows developers to write Aspire app hosts in languages other than C#. The CLI detects the app host type based on entry point files (`apphost.ts`, `apphost.py`) and orchestrates the appropriate runtime.
 
+## Design Goals
+
+The architecture is designed around these key principles:
+
+1. **Reuse Existing Integrations**: All 100+ existing Aspire.Hosting.* NuGet packages work automatically with TypeScript and Python app hosts. No need to rewrite or port integrations - they're available immediately.
+
+2. **Incremental Native Support**: While the GenericAppHost provides full compatibility, language-specific SDKs can incrementally add native implementations for commonly used patterns, improving developer experience over time.
+
+3. **Consistent CLI Experience**: Commands like `aspire run`, `aspire add`, and `aspire new` work identically regardless of the app host language. Developers don't need to learn different workflows.
+
+4. **Leverage .NET Ecosystem**: The heavy lifting (container orchestration, service discovery, health checks, telemetry) remains in .NET where the mature Aspire.Hosting libraries live. Language runtimes focus on providing idiomatic APIs.
+
+This approach means that when a new Aspire integration is released (e.g., `Aspire.Hosting.Milvus`), it's immediately available to TypeScript and Python developers via `aspire add milvus` - no SDK updates required.
+
 ## Architecture
 
 ```mermaid
 flowchart TB
     subgraph CLI["Aspire CLI"]
         RC[RunCommand]
+        AC[AddCommand]
         TSR[TypeScriptAppHostRunner]
         PL[ProjectLocator]
         PM[ProjectModel]
+        CGS[CodeGenerationService]
     end
 
     subgraph GenericAppHost["GenericAppHost (.NET)"]
@@ -30,11 +46,14 @@ flowchart TB
     end
 
     RC --> PL
+    AC --> PL
     PL -->|Detects apphost.ts| TSR
-    TSR -->|1. Scaffolds & Builds| PM
+    AC -->|Updates settings.json| CGS
+    TSR -->|1. Runs code generation| CGS
+    TSR -->|2. Scaffolds & Builds| PM
     PM -->|Creates| GenericAppHost
-    TSR -->|2. Starts via dotnet exec| JRS
-    TSR -->|3. Starts via npx tsx| TS
+    TSR -->|3. Starts via dotnet exec| JRS
+    TSR -->|4. Starts via npx tsx| TS
 
     TS --> Client
     Client <-->|Unix Domain Socket| JRS
@@ -50,7 +69,7 @@ flowchart TB
 ### Startup Sequence
 
 1. **Detection**: `ProjectLocator` finds `apphost.ts` or `apphost.py` in the working directory
-2. **Code Generation**: Rosetta generates TypeScript/Python SDK wrappers for installed integrations
+2. **Code Generation**: Generates TypeScript/Python SDK wrappers for installed integrations
 3. **GenericAppHost Preparation**:
    - `ProjectModel` scaffolds a .NET project in `$TMPDIR/.aspire/hosts/<hash>/`
    - References `Aspire.AppHost.Sdk` and required hosting packages
@@ -111,17 +130,16 @@ sequenceDiagram
     RPC-->>TS: Result
 ```
 
-## Code Generation (Rosetta)
+## Code Generation
 
-The CLI generates TypeScript/Python SDK wrappers that provide type-safe APIs for Aspire integrations. This is called "Rosetta" - translating between .NET and other languages.
+The CLI generates TypeScript/Python SDK wrappers that provide type-safe APIs for Aspire integrations.
 
 ### How It Works
 
 ```mermaid
 flowchart LR
     subgraph Input
-        PJ[package.json]
-        AJ[aspire.json]
+        CFG[.aspire/settings.json]
     end
 
     subgraph CLI
@@ -135,8 +153,7 @@ flowchart LR
         INT[integrations/*.ts]
     end
 
-    PJ -->|Package refs| CGS
-    AJ -->|Package refs| CGS
+    CFG -->|Package refs| CGS
     CGS -->|ApplicationModel| TSG
     TSG --> IDX
     TSG --> TYP
@@ -149,7 +166,7 @@ Code generation runs automatically when:
 
 1. **First Run**: `.aspire-gen/` folder doesn't exist
 2. **Package Changes**: Hash of package references has changed
-3. **Manual**: After running `aspire add` to add new integrations
+3. **After `aspire add`**: When adding new integrations
 
 The CLI computes a SHA256 hash of all package IDs and versions. This hash is stored in `.aspire-gen/.codegen-hash` and compared on each run.
 
@@ -176,18 +193,12 @@ For `Aspire.Hosting.Redis`, the generator creates:
 
 import type { DistributedApplicationBuilder, ResourceBuilder } from '../distributed-application.js';
 
-declare module '../distributed-application.js' {
-  interface DistributedApplicationBuilder {
-    /**
-     * Adds a Redis container to the application.
-     * @param name The name of the resource
-     */
-    addRedis(name: string): ResourceBuilder<RedisResource>;
+export async function addRedis(builder: DistributedApplicationBuilder, name: string): Promise<ResourceBuilder<'unknown'>> {
+  const result = await builder.invoke('AddRedis', [name]);
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to invoke AddRedis');
   }
-}
-
-export interface RedisResource {
-  readonly name: string;
+  return builder.getResourceBuilder<'unknown'>(result.resourceName!);
 }
 ```
 
@@ -202,51 +213,9 @@ const cache = builder.addRedis('cache');  // Type-safe!
 await builder.build().run();
 ```
 
-### ApplicationModel
-
-The code generator builds an `ApplicationModel` from package references:
-
-```csharp
-public class ApplicationModel
-{
-    public List<IntegrationModel> Integrations { get; set; }
-}
-
-public class IntegrationModel
-{
-    public string PackageId { get; set; }      // e.g., "Aspire.Hosting.Redis"
-    public string Version { get; set; }         // e.g., "13.1.0"
-    public List<ExtensionMethodModel> ExtensionMethods { get; set; }
-}
-
-public class ExtensionMethodModel
-{
-    public string Name { get; set; }            // e.g., "AddRedis"
-    public string ExtendedType { get; set; }    // e.g., "IDistributedApplicationBuilder"
-    public string ReturnType { get; set; }      // e.g., "IResourceBuilder<RedisResource>"
-    public List<ParameterModel> Parameters { get; set; }
-}
-```
-
 ### Incremental Generation
 
-The `CodeGenerationService` implements incremental generation to avoid unnecessary rebuilds:
-
-```csharp
-public bool NeedsGeneration(string appPath, IEnumerable<(string PackageId, string Version)> packages)
-{
-    // Check if .aspire-gen exists
-    if (!Directory.Exists(generatedPath)) return true;
-
-    // Check if hash file exists
-    if (!File.Exists(hashPath)) return true;
-
-    // Compare hashes
-    var savedHash = File.ReadAllText(hashPath);
-    var currentHash = ComputePackagesHash(packages);
-    return savedHash != currentHash;
-}
-```
+The `CodeGenerationService` implements incremental generation to avoid unnecessary rebuilds by comparing hashes of package references.
 
 ### TypeScript Base Library
 
@@ -261,7 +230,70 @@ The generated code depends on a base TypeScript library (`@aspire/hosting`) that
 
 The base library handles all communication with the GenericAppHost, translating TypeScript method calls into JSON-RPC instructions.
 
+## Adding Integrations
+
+The `aspire add` command works consistently across all app host types:
+
+```bash
+# Works the same for .NET, TypeScript, and Python projects
+aspire add redis
+aspire add Aspire.Hosting.Redis --version 13.1.0
+```
+
+### How It Works
+
+```mermaid
+flowchart TB
+    subgraph AddCommand
+        DETECT[Detect AppHost Type]
+        SEARCH[Search NuGet Packages]
+        SELECT[Select Package/Version]
+    end
+
+    subgraph DotNet[".NET Projects"]
+        DOTNET_ADD[dotnet add package]
+    end
+
+    subgraph Polyglot["TypeScript/Python Projects"]
+        UPDATE_CFG[Update .aspire/settings.json]
+        REGEN[Regenerate SDK Code]
+    end
+
+    DETECT --> SEARCH
+    SEARCH --> SELECT
+    SELECT -->|.csproj| DOTNET_ADD
+    SELECT -->|apphost.ts/py| UPDATE_CFG
+    UPDATE_CFG --> REGEN
+```
+
+### For .NET Projects
+- Uses `dotnet add package` to add the NuGet package reference
+
+### For TypeScript/Python Projects
+1. Updates `.aspire/settings.json` with the package reference
+2. Regenerates SDK code to include new integration wrappers
+3. On next `aspire run`, the GenericAppHost will restore and include the new package
+
 ## Configuration
+
+### .aspire/settings.json
+
+The `.aspire/settings.json` file configures the polyglot app host. The `packages` field uses an object literal format similar to npm's `package.json`:
+
+```json
+{
+  "appHostPath": "../apphost.ts",
+  "packages": {
+    "Aspire.Hosting.Redis": "13.1.0",
+    "Aspire.Hosting.PostgreSQL": "13.1.0"
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `appHostPath` | Relative path to the app host entry point |
+| `packages` | Object mapping package names to versions |
 
 ### apphost.run.json
 
@@ -284,20 +316,6 @@ The `apphost.run.json` file configures the app host runtime, using the same form
 
 The CLI reads this file and passes environment variables to the GenericAppHost process.
 
-### aspire.json
-
-The `aspire.json` file declares package dependencies for code generation:
-
-```json
-{
-  "language": "typescript",
-  "sdk": "Aspire.AppHost.Sdk",
-  "packages": [
-    { "name": "Aspire.Hosting.Redis", "version": "9.0.0" }
-  ]
-}
-```
-
 ## Version Handling
 
 The GenericAppHost uses the same Aspire package version as the installed CLI:
@@ -312,9 +330,9 @@ The GenericAppHost uses the same Aspire package version as the installed CLI:
 |------|-------------|
 | `$TMPDIR/.aspire/hosts/<hash>/` | GenericAppHost project directory |
 | `$TMPDIR/.aspire/sockets/<hash>.sock` | Unix domain socket for JSON-RPC |
+| `.aspire/settings.json` | Project configuration with package references |
 | `.aspire-gen/` | Generated TypeScript/Python SDK code |
 | `apphost.run.json` | Launch settings (in project root) |
-| `aspire.json` | Package dependencies (in project root) |
 
 The `<hash>` is derived from the SHA256 of the app host directory path, ensuring unique locations per project.
 

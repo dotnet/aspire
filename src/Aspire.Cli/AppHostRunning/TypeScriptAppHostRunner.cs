@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Aspire.Cli.CodeGeneration;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Rosetta;
@@ -178,12 +179,28 @@ internal sealed class TypeScriptAppHostRunner : IAppHostRunner
         }
     }
 
-    private static IEnumerable<(string Name, string Version)> GetPackageReferences(DirectoryInfo _)
+    private static IEnumerable<(string Name, string Version)> GetPackageReferences(DirectoryInfo directory)
     {
-        // TODO: Read aspire.json to get package references
-        // For now, return the base Aspire.Hosting package
+        // Always include the base Aspire.Hosting packages
         yield return ("Aspire.Hosting", ProjectModel.AspireHostVersion);
         yield return ("Aspire.Hosting.AppHost", ProjectModel.AspireHostVersion);
+
+        // Read additional packages from .aspire/settings.json
+        var aspireConfig = AspireJsonConfiguration.Load(directory.FullName);
+        if (aspireConfig?.Packages is not null)
+        {
+            foreach (var (packageName, version) in aspireConfig.Packages)
+            {
+                // Skip base packages as they're already included
+                if (string.Equals(packageName, "Aspire.Hosting", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(packageName, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                yield return (packageName, version);
+            }
+        }
     }
 
     private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)

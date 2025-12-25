@@ -3,12 +3,14 @@
 
 using System.CommandLine;
 using System.Globalization;
+using Aspire.Cli.CodeGeneration;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Rosetta;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Semver;
@@ -26,8 +28,9 @@ internal sealed class AddCommand : BaseCommand
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
+    private readonly ICodeGenerationService _codeGenerationService;
 
-    public AddCommand(IDotNetCliRunner runner, IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+    public AddCommand(IDotNetCliRunner runner, IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment, ICodeGenerationService codeGenerationService)
         : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -39,6 +42,7 @@ internal sealed class AddCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(codeGenerationService);
 
         _runner = runner;
         _packagingService = packagingService;
@@ -48,6 +52,7 @@ internal sealed class AddCommand : BaseCommand
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
+        _codeGenerationService = codeGenerationService;
 
         var integrationArgument = new Argument<string>("integration");
         integrationArgument.Description = AddCommandStrings.IntegrationArgumentDescription;
@@ -86,12 +91,14 @@ internal sealed class AddCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            // Check if this is a TypeScript or Python AppHost
+            // Check if this is a TypeScript or Python AppHost - handle separately
             if (searchResult.DetectedType is AppHostType.TypeScript or AppHostType.Python)
             {
-                InteractionService.DisplayMessage("information", $"Adding integrations to {searchResult.DetectedType.Value} projects is coming soon!");
-                InteractionService.DisplayMessage("info", "For now, manually add the integration to your package.json (TypeScript) or requirements.txt (Python).");
-                return ExitCodeConstants.Success;
+                return await AddIntegrationToPolyglotProjectAsync(
+                    searchResult,
+                    integrationName,
+                    parseResult.GetValue<string?>("--version"),
+                    cancellationToken);
             }
 
             // Check if the .NET SDK is available (only needed for .NET projects)
@@ -274,6 +281,157 @@ internal sealed class AddCommand : BaseCommand
         var friendlyName = packageId.Replace('.', '-').ToLowerInvariant();
 
         return (friendlyName, packageWithChannel.Package, packageWithChannel.Channel);
+    }
+
+    private async Task<int> AddIntegrationToPolyglotProjectAsync(
+        AppHostProjectSearchResult searchResult,
+        string? integrationName,
+        string? version,
+        CancellationToken cancellationToken)
+    {
+        var projectDirectory = searchResult.SelectedProjectFile!.Directory!;
+
+        // Search for available packages
+        var packagesWithChannels = await InteractionService.ShowStatusAsync(
+            AddCommandStrings.SearchingForAspirePackages,
+            async () =>
+            {
+                var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+                var hasHives = ExecutionContext.GetPrHiveCount() > 0;
+                var channels = hasHives
+                    ? allChannels
+                    : allChannels.Where(c => c.Type is PackageChannelType.Implicit);
+
+                var packages = new List<(NuGetPackage Package, PackageChannel Channel)>();
+                var packagesLock = new object();
+
+                await Parallel.ForEachAsync(channels, cancellationToken, async (channel, ct) =>
+                {
+                    var integrationPackages = await channel.GetIntegrationPackagesAsync(
+                        workingDirectory: projectDirectory,
+                        cancellationToken: ct);
+                    lock (packagesLock)
+                    {
+                        packages.AddRange(integrationPackages.Select(p => (p, channel)));
+                    }
+                });
+
+                return packages;
+            });
+
+        if (!packagesWithChannels.Any())
+        {
+            throw new EmptyChoicesException(AddCommandStrings.NoIntegrationPackagesFound);
+        }
+
+        var packagesWithShortName = packagesWithChannels.Select(GenerateFriendlyName).OrderBy(p => p.FriendlyName, new CommunityToolkitFirstComparer());
+
+        if (!packagesWithShortName.Any())
+        {
+            InteractionService.DisplayError(AddCommandStrings.NoPackagesFound);
+            return ExitCodeConstants.FailedToAddPackage;
+        }
+
+        var filteredPackagesWithShortName = packagesWithShortName.Where(p => p.FriendlyName == integrationName || p.Package.Id == integrationName);
+
+        if (!filteredPackagesWithShortName.Any() && integrationName is not null)
+        {
+            filteredPackagesWithShortName = packagesWithShortName.Where(
+                p => p.FriendlyName.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
+                || p.Package.Id.Contains(integrationName, StringComparison.OrdinalIgnoreCase)
+                );
+        }
+
+        var selectedNuGetPackage = filteredPackagesWithShortName.Count() switch
+        {
+            0 => await GetPackageByInteractiveFlowWithNoMatchesMessage(packagesWithShortName, integrationName, cancellationToken),
+            1 => filteredPackagesWithShortName.First().Package.Version == version
+                ? filteredPackagesWithShortName.First()
+                : await GetPackageByInteractiveFlow(filteredPackagesWithShortName, null, cancellationToken),
+            > 1 => await GetPackageByInteractiveFlow(filteredPackagesWithShortName, version, cancellationToken),
+            _ => throw new InvalidOperationException(AddCommandStrings.UnexpectedNumberOfPackagesFound)
+        };
+
+        // Add package to .aspire/settings.json
+        var addResult = await InteractionService.ShowStatusAsync(
+            AddCommandStrings.AddingAspireIntegration,
+            async () =>
+            {
+                // Load existing settings.json or create new one
+                var aspireConfig = AspireJsonConfiguration.Load(projectDirectory.FullName);
+                if (aspireConfig is null)
+                {
+                    // Determine the apphost path relative to .aspire folder
+                    var appHostFile = searchResult.SelectedProjectFile!;
+                    var appHostPath = Path.GetRelativePath(
+                        Path.Combine(projectDirectory.FullName, AspireJsonConfiguration.SettingsFolder),
+                        appHostFile.FullName);
+                    aspireConfig = AspireJsonConfiguration.CreateDefault(appHostPath);
+                }
+
+                // Add the package
+                aspireConfig.AddOrUpdatePackage(selectedNuGetPackage.Package.Id, selectedNuGetPackage.Package.Version);
+
+                // Save the configuration
+                aspireConfig.Save(projectDirectory.FullName);
+
+                return ExitCodeConstants.Success;
+            });
+
+        if (addResult != ExitCodeConstants.Success)
+        {
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, addResult));
+            return ExitCodeConstants.FailedToAddPackage;
+        }
+
+        // Regenerate TypeScript/Python SDK code
+        await InteractionService.ShowStatusAsync(
+            "Regenerating SDK code...",
+            async () =>
+            {
+                // Load the updated configuration to get all packages
+                var aspireConfig = AspireJsonConfiguration.Load(projectDirectory.FullName);
+                var packages = GetPackagesFromConfig(aspireConfig);
+
+                if (searchResult.DetectedType == AppHostType.TypeScript)
+                {
+                    await _codeGenerationService.GenerateTypeScriptAsync(
+                        projectDirectory.FullName,
+                        packages,
+                        cancellationToken);
+                }
+                // TODO: Add Python support when implemented
+                // else if (searchResult.DetectedType == AppHostType.Python)
+                // {
+                //     await _codeGenerationService.GeneratePythonAsync(...)
+                // }
+
+                return true;
+            });
+
+        InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageAddedSuccessfully, selectedNuGetPackage.Package.Id, selectedNuGetPackage.Package.Version));
+        return ExitCodeConstants.Success;
+    }
+
+    private static IEnumerable<(string PackageId, string Version)> GetPackagesFromConfig(AspireJsonConfiguration? config)
+    {
+        // Always include base packages
+        yield return ("Aspire.Hosting", ProjectModel.AspireHostVersion);
+        yield return ("Aspire.Hosting.AppHost", ProjectModel.AspireHostVersion);
+
+        if (config?.Packages is not null)
+        {
+            foreach (var (packageName, version) in config.Packages)
+            {
+                if (string.Equals(packageName, "Aspire.Hosting", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(packageName, "Aspire.Hosting.AppHost", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                yield return (packageName, version);
+            }
+        }
     }
 }
 
