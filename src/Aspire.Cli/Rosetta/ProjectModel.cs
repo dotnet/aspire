@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Rosetta;
 
@@ -23,7 +24,7 @@ internal sealed class ProjectModel
     private const string LaunchSettingsJsonFileName = "./Properties/launchSettings.json";
     private const string TargetFramework = "net9.0";
 
-    public static string AspireHostVersion = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_VERSION") ?? "9.0.0";
+    public static string AspireHostVersion = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_VERSION") ?? VersionHelper.GetDefaultTemplateVersion();
     public static string? LocalPackagePath = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_SOURCE");
 
     public const string BuildFolder = "build";
@@ -235,7 +236,8 @@ internal sealed class ProjectModel
     /// </summary>
     /// <param name="socketPath">The Unix domain socket path for JSON-RPC communication.</param>
     /// <param name="hostPid">The PID of the host process for orphan detection.</param>
-    public Process Run(string socketPath, int hostPid)
+    /// <param name="launchSettingsEnvVars">Optional environment variables from apphost.run.json or launchSettings.json.</param>
+    public Process Run(string socketPath, int hostPid, IReadOnlyDictionary<string, string>? launchSettingsEnvVars = null)
     {
         var assemblyPath = Path.Combine(BuildPath, ProjectDllName);
         var dotnetExe = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
@@ -254,15 +256,44 @@ internal sealed class ProjectModel
         startInfo.Environment["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath;
         startInfo.Environment["REMOTE_APP_HOST_PID"] = hostPid.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-        // Dashboard environment variables (equivalent to launchSettings.json)
-        startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
-        startInfo.Environment["DOTNET_ENVIRONMENT"] = "Development";
-        startInfo.Environment["ASPNETCORE_URLS"] = "https://localhost:17292;http://localhost:15013";
-        startInfo.Environment["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:21227";
-        startInfo.Environment["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:22105";
-        startInfo.Environment["DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES"] = "true";
+        // Apply environment variables from apphost.run.json / launchSettings.json if available
+        if (launchSettingsEnvVars != null)
+        {
+            foreach (var (key, value) in launchSettingsEnvVars)
+            {
+                startInfo.Environment[key] = value;
+            }
+        }
+        else
+        {
+            // Default environment variables when no launchSettings.json is present
+            startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
+            startInfo.Environment["DOTNET_ENVIRONMENT"] = "Development";
+        }
+
+        startInfo.RedirectStandardOutput = true;
+        startInfo.RedirectStandardError = true;
 
         var process = Process.Start(startInfo)!;
+
+        // Forward GenericAppHost output to console
+        process.OutputDataReceived += (sender, e) =>
+        {
+            if (e.Data is not null)
+            {
+                Console.WriteLine(e.Data);
+            }
+        };
+        process.ErrorDataReceived += (sender, e) =>
+        {
+            if (e.Data is not null)
+            {
+                Console.Error.WriteLine(e.Data);
+            }
+        };
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
         return process;
     }
 

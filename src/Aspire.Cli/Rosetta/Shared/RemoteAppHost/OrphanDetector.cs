@@ -10,6 +10,11 @@ internal sealed class OrphanDetector : BackgroundService
 {
     private const string HostProcessId = "REMOTE_APP_HOST_PID";
 
+    /// <summary>
+    /// Called when the parent process has died.
+    /// </summary>
+    public Action? OnParentDied { get; set; }
+
     internal Func<int, bool> IsProcessRunning { get; set; } = (int pid) =>
     {
         try
@@ -31,8 +36,11 @@ internal sealed class OrphanDetector : BackgroundService
             {
                 // If there is no PID environment variable, we assume that the process is not a child process
                 // of the .NET Aspire CLI and we won't continue monitoring.
+                Console.WriteLine("No parent PID specified, orphan detection disabled.");
                 return;
             }
+
+            Console.WriteLine($"Monitoring parent process PID: {pid}");
 
             using var periodic = new PeriodicTimer(TimeSpan.FromSeconds(1), TimeProvider.System);
 
@@ -40,13 +48,16 @@ internal sealed class OrphanDetector : BackgroundService
             {
                 if (!IsProcessRunning(pid))
                 {
-                    Environment.Exit(0);
+                    Console.WriteLine($"Parent process {pid} is no longer running.");
+                    OnParentDied?.Invoke();
+                    return;
                 }
             } while (await periodic.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
             // This is expected when the app is shutting down.
+            Console.WriteLine("Orphan detector stopped.");
         }
     }
 }

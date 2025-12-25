@@ -7,11 +7,29 @@ export class RemoteAppHostClient {
     private connection: rpc.MessageConnection | null = null;
     private socket: net.Socket | null = null;
     private socketPath: string;
+    private disconnectCallbacks: (() => void)[] = [];
 
     constructor(socketPath?: string) {
         this.socketPath = socketPath || process.env.REMOTE_APP_HOST_SOCKET_PATH || '';
         if (!this.socketPath) {
             throw new Error('Socket path not provided and REMOTE_APP_HOST_SOCKET_PATH environment variable not set');
+        }
+    }
+
+    /**
+     * Register a callback to be called when the connection is lost
+     */
+    onDisconnect(callback: () => void): void {
+        this.disconnectCallbacks.push(callback);
+    }
+
+    private notifyDisconnect(): void {
+        for (const callback of this.disconnectCallbacks) {
+            try {
+                callback();
+            } catch {
+                // Ignore callback errors
+            }
         }
     }
 
@@ -33,7 +51,10 @@ export class RemoteAppHostClient {
                     const writer = new rpc.SocketMessageWriter(this.socket!);
                     this.connection = rpc.createMessageConnection(reader, writer);
 
-                    this.connection.onClose(() => { this.connection = null; });
+                    this.connection.onClose(() => {
+                        this.connection = null;
+                        this.notifyDisconnect();
+                    });
                     this.connection.onError((err) => console.error('JsonRpc connection error:', err));
 
                     this.connection.listen();
@@ -46,6 +67,7 @@ export class RemoteAppHostClient {
             this.socket.on('close', () => {
                 this.connection?.dispose();
                 this.connection = null;
+                this.notifyDisconnect();
             });
         });
     }

@@ -48,7 +48,7 @@ public class InstructionProcessor
         return Task.FromResult<object>(new { success = true, builderName = instruction.BuilderName });
     }
 
-    private Task<object> ExecuteRunBuilderAsync(string instructionJson)
+    private async Task<object> ExecuteRunBuilderAsync(string instructionJson)
     {
         var instruction = JsonSerializer.Deserialize<RunBuilderInstruction>(instructionJson, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to deserialize RUN_BUILDER instruction");
@@ -59,23 +59,29 @@ public class InstructionProcessor
             throw new InvalidOperationException($"Builder '{instruction.BuilderName}' not found or is not a valid builder");
         }
 
-        // Build and run the application
+        // Build and start the application
         var app = builder.Build();
 
-        // Start the application in the background
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await app.RunAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Application run failed: {ex.Message}");
-            }
-        });
+        // Store the app so we can access it later for shutdown
+        _variables[$"{instruction.BuilderName}_app"] = app;
 
-        return Task.FromResult<object>(new { success = true, builderName = instruction.BuilderName, status = "running" });
+        try
+        {
+            // Start the application and wait for startup to complete
+            // This will throw if startup fails (e.g., port conflict)
+            await app.StartAsync();
+
+            // The app is now running in the background.
+            // When the TypeScript client disconnects, the server will shut down
+            // and the app will be disposed.
+
+            return new { success = true, builderName = instruction.BuilderName, status = "running" };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Application startup failed: {ex.Message}");
+            throw; // Re-throw to propagate error back to client
+        }
     }
 
     private object ExecutePragma(string instructionJson)

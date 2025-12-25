@@ -174,13 +174,23 @@ export class DistributedApplication {
         console.log('Distributed application is running...');
         console.log('Press Ctrl+C to stop.');
         await new Promise((resolve) => {
-            const shutdown = () => {
-                console.log('\nShutting down...');
+            let resolved = false;
+            const shutdown = (reason) => {
+                if (resolved)
+                    return;
+                resolved = true;
+                console.log(`\nShutting down (${reason})...`);
                 this.client.disconnect();
                 resolve();
             };
-            process.on('SIGINT', shutdown);
-            process.on('SIGTERM', shutdown);
+            // Handle signals
+            process.on('SIGINT', () => shutdown('SIGINT'));
+            process.on('SIGTERM', () => shutdown('SIGTERM'));
+            // Handle connection loss to GenericAppHost
+            this.client.onDisconnect(() => {
+                console.log('Lost connection to GenericAppHost.');
+                shutdown('connection lost');
+            });
         });
     }
 }

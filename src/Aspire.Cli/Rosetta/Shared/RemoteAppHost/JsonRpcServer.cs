@@ -35,9 +35,15 @@ public class JsonRpcServer : IDisposable
 {
     private readonly string _socketPath;
     private readonly RemoteAppHostService _service;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private Socket? _listenSocket;
     private bool _disposed;
+    private int _activeClientCount;
+    private bool _hasHadClient;
+
+    /// <summary>
+    /// Called when all clients have disconnected (and at least one client had connected).
+    /// </summary>
+    public Action? OnAllClientsDisconnected { get; set; }
 
     public JsonRpcServer(string socketPath)
     {
@@ -45,7 +51,7 @@ public class JsonRpcServer : IDisposable
         _service = new RemoteAppHostService();
     }
 
-    public async Task StartAsync()
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         Console.WriteLine($"Starting JsonRpc server on Unix domain socket: {_socketPath}");
         Console.WriteLine("Server will continue running until stopped manually.");
@@ -68,18 +74,20 @@ public class JsonRpcServer : IDisposable
         _listenSocket.Bind(endpoint);
         _listenSocket.Listen(10);
 
-        while (!_cancellationTokenSource.Token.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
                 Console.WriteLine("Waiting for client connection...");
 
-                var clientSocket = await _listenSocket.AcceptAsync(_cancellationTokenSource.Token);
+                var clientSocket = await _listenSocket.AcceptAsync(cancellationToken);
 
                 Console.WriteLine("Client connected!");
+                Interlocked.Increment(ref _activeClientCount);
+                _hasHadClient = true;
 
                 // Handle the connection in a separate task
-                _ = Task.Run(async () => await HandleClientAsync(clientSocket), _cancellationTokenSource.Token);
+                _ = Task.Run(async () => await HandleClientAsync(clientSocket, cancellationToken), cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -90,14 +98,14 @@ public class JsonRpcServer : IDisposable
             {
                 Console.WriteLine($"Error in server loop: {ex.Message}");
                 Console.WriteLine("Retrying in 1 second...");
-                await Task.Delay(1000, _cancellationTokenSource.Token);
+                await Task.Delay(1000, cancellationToken);
             }
         }
 
         Console.WriteLine("Server stopped.");
     }
 
-    private async Task HandleClientAsync(Socket clientSocket)
+    private async Task HandleClientAsync(Socket clientSocket, CancellationToken cancellationToken)
     {
         var clientId = Guid.NewGuid().ToString("N")[..8]; // Short client identifier
 
@@ -108,7 +116,8 @@ public class JsonRpcServer : IDisposable
 
             Console.WriteLine($"JsonRpc connection established for client {clientId}");
 
-            // Wait for the connection to be closed by the client or an error
+            // Wait for the connection to be closed by the client, an error, or cancellation
+            using var registration = cancellationToken.Register(() => jsonRpc.Dispose());
             await jsonRpc.Completion;
 
             Console.WriteLine($"Client {clientId} disconnected gracefully");
@@ -128,14 +137,21 @@ public class JsonRpcServer : IDisposable
             {
                 Console.WriteLine($"Error during cleanup for client {clientId}: {ex.Message}");
             }
-        }
 
-        Console.WriteLine("Ready for next client connection...");
+            // Decrement active client count and check if all clients disconnected
+            var remaining = Interlocked.Decrement(ref _activeClientCount);
+            Console.WriteLine($"Active clients remaining: {remaining}");
+
+            if (remaining == 0 && _hasHadClient)
+            {
+                Console.WriteLine("All clients have disconnected.");
+                OnAllClientsDisconnected?.Invoke();
+            }
+        }
     }
 
     public void Stop()
     {
-        _cancellationTokenSource.Cancel();
         _listenSocket?.Close();
     }
 
@@ -144,7 +160,6 @@ public class JsonRpcServer : IDisposable
         if (!_disposed)
         {
             Stop();
-            _cancellationTokenSource.Dispose();
             _listenSocket?.Dispose();
 
             // Clean up socket file

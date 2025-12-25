@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Text.Json;
 using Aspire.Cli.CodeGeneration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
@@ -118,10 +119,13 @@ internal sealed class TypeScriptAppHostRunner : IAppHostRunner
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
+            // Read launchSettings.json if it exists
+            var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory);
+
             // Start the GenericAppHost process
             _interactionService.DisplayMessage("rocket", "Starting GenericAppHost...");
             var currentPid = Environment.ProcessId;
-            genericAppHostProcess = projectModel.Run(socketPath, currentPid);
+            genericAppHostProcess = projectModel.Run(socketPath, currentPid, launchSettingsEnvVars);
 
             // Give the server a moment to start
             await Task.Delay(500, cancellationToken);
@@ -180,6 +184,88 @@ internal sealed class TypeScriptAppHostRunner : IAppHostRunner
         // For now, return the base Aspire.Hosting package
         yield return ("Aspire.Hosting", ProjectModel.AspireHostVersion);
         yield return ("Aspire.Hosting.AppHost", ProjectModel.AspireHostVersion);
+    }
+
+    private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)
+    {
+        // For single-file apphosts (TypeScript/Python), look for apphost.run.json
+        // similar to how .NET single-file apphosts use apphost.run.json
+        var apphostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
+        var launchSettingsPath = Path.Combine(directory.FullName, "Properties", "launchSettings.json");
+
+        var configPath = File.Exists(apphostRunPath) ? apphostRunPath : launchSettingsPath;
+
+        if (!File.Exists(configPath))
+        {
+            _logger.LogDebug("No apphost.run.json or launchSettings.json found in {Path}", directory.FullName);
+            return null;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(configPath);
+            using var doc = JsonDocument.Parse(json);
+
+            if (!doc.RootElement.TryGetProperty("profiles", out var profiles))
+            {
+                return null;
+            }
+
+            // Try to find the 'https' profile first, then fall back to the first profile
+            JsonElement? profileElement = null;
+            if (profiles.TryGetProperty("https", out var httpsProfile))
+            {
+                profileElement = httpsProfile;
+            }
+            else
+            {
+                // Use the first profile
+                using var enumerator = profiles.EnumerateObject();
+                if (enumerator.MoveNext())
+                {
+                    profileElement = enumerator.Current.Value;
+                }
+            }
+
+            if (profileElement == null)
+            {
+                return null;
+            }
+
+            var result = new Dictionary<string, string>();
+
+            // Read applicationUrl and convert to ASPNETCORE_URLS
+            if (profileElement.Value.TryGetProperty("applicationUrl", out var appUrl) &&
+                appUrl.ValueKind == JsonValueKind.String)
+            {
+                result["ASPNETCORE_URLS"] = appUrl.GetString()!;
+            }
+
+            // Read environment variables
+            if (profileElement.Value.TryGetProperty("environmentVariables", out var envVars))
+            {
+                foreach (var prop in envVars.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.String)
+                    {
+                        result[prop.Name] = prop.Value.GetString()!;
+                    }
+                }
+            }
+
+            if (result.Count == 0)
+            {
+                return null;
+            }
+
+            _logger.LogDebug("Read {Count} environment variables from apphost.run.json", result.Count);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read launchSettings.json");
+            return null;
+        }
     }
 
     private async Task<int> RunNpmInstallAsync(DirectoryInfo directory, CancellationToken cancellationToken)
@@ -296,8 +382,42 @@ internal sealed class TypeScriptAppHostRunner : IAppHostRunner
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        await process.WaitForExitAsync(cancellationToken);
-        return process.ExitCode;
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+            return process.ExitCode;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // CLI was cancelled (e.g., Ctrl+C), gracefully terminate the Node process
+            _logger.LogDebug("Cancellation requested, terminating TypeScript process");
+
+            if (!process.HasExited)
+            {
+                try
+                {
+                    // Try graceful termination first (SIGTERM on Unix, TerminateProcess on Windows)
+                    process.Kill(entireProcessTree: true);
+
+                    // Give it a moment to exit
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        await process.WaitForExitAsync(cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Process didn't exit in time, it will be cleaned up when disposed
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error terminating TypeScript process");
+                }
+            }
+
+            throw; // Re-throw to signal cancellation to caller
+        }
     }
 
     private static string? FindNpmPath()
