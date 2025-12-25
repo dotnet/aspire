@@ -628,8 +628,12 @@ internal sealed class RunCommand : BaseCommand
             // Check if the project file has a UserSecretsId element
             var projectContent = await File.ReadAllTextAsync(projectFile.FullName, cancellationToken).ConfigureAwait(false);
             
+            // Use XDocument to properly parse the XML and check for UserSecretsId
+            var doc = System.Xml.Linq.XDocument.Parse(projectContent);
+            var hasUserSecretsId = doc.Descendants().Any(e => e.Name.LocalName == "UserSecretsId");
+            
             // If the project already has a UserSecretsId, we don't need to do anything
-            if (projectContent.Contains("<UserSecretsId>", StringComparison.OrdinalIgnoreCase))
+            if (hasUserSecretsId)
             {
                 return;
             }
@@ -654,7 +658,28 @@ internal sealed class RunCommand : BaseCommand
             using var process = new Process { StartInfo = startInfo };
             process.Start();
             
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            // Add a timeout to prevent indefinite hanging
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
+            
+            try
+            {
+                await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // Timeout occurred - try to kill the process
+                try
+                {
+                    process.Kill();
+                }
+                catch
+                {
+                    // Ignore any errors when trying to kill the process
+                }
+                _logger.LogWarning("Timeout while initializing user secrets for project {ProjectFile}", projectFile.FullName);
+                return;
+            }
 
             if (process.ExitCode == 0)
             {
