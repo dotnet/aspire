@@ -105,6 +105,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.GitRepositoryFactory);
         services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
         services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
+        services.AddSingleton<IEnvironmentCheck, DeprecatedWorkloadCheck>();
         services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
         services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
         services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
