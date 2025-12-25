@@ -263,13 +263,14 @@ public sealed class ParameterProcessor(
                     var inputs = resourceInputs.Select(i => i.Input).ToList();
                     InteractionInput? saveParameters = null;
 
-                    if (showSaveToSecrets && userSecretsManager.IsAvailable)
+                    if (showSaveToSecrets)
                     {
                         saveParameters = new InteractionInput
                         {
                             Name = "RememberParameters",
                             InputType = InputType.Boolean,
-                            Label = InteractionStrings.ParametersInputsRememberLabel
+                            Label = InteractionStrings.ParametersInputsRememberLabel,
+                            Disabled = !userSecretsManager.IsAvailable
                         };
                         inputs.Add(saveParameters);
                     }

@@ -491,7 +491,7 @@ public class ParameterProcessorTests
     }
 
     [Fact]
-    public async Task HandleUnresolvedParametersAsync_WhenUserSecretsNotAvailable_DoesNotShowSaveCheckbox()
+    public async Task HandleUnresolvedParametersAsync_WhenUserSecretsNotAvailable_ShowsDisabledSaveCheckbox()
     {
         // Arrange
         var testInteractionService = new TestInteractionService();
@@ -515,13 +515,16 @@ public class ParameterProcessorTests
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
 
-        // Assert - Should only have 1 input (the parameter), no save checkbox
-        Assert.Single(inputsInteraction.Inputs);
+        // Assert - Should have 2 inputs (parameter + disabled save checkbox)
+        Assert.Equal(2, inputsInteraction.Inputs.Count);
         Assert.Equal("param1", inputsInteraction.Inputs[0].Label);
+        Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, inputsInteraction.Inputs[1].Label);
+        Assert.Equal(InputType.Boolean, inputsInteraction.Inputs[1].InputType);
+        Assert.True(inputsInteraction.Inputs[1].Disabled); // Should be disabled when user secrets not available
     }
 
     [Fact]
-    public async Task HandleUnresolvedParametersAsync_WhenUserSecretsAvailable_ShowsSaveCheckbox()
+    public async Task HandleUnresolvedParametersAsync_WhenUserSecretsAvailable_ShowsEnabledSaveCheckbox()
     {
         // Arrange
         var testInteractionService = new TestInteractionService();
@@ -545,11 +548,12 @@ public class ParameterProcessorTests
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
 
-        // Assert - Should have 2 inputs (parameter + save checkbox)
+        // Assert - Should have 2 inputs (parameter + enabled save checkbox)
         Assert.Equal(2, inputsInteraction.Inputs.Count);
         Assert.Equal("param1", inputsInteraction.Inputs[0].Label);
         Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, inputsInteraction.Inputs[1].Label);
         Assert.Equal(InputType.Boolean, inputsInteraction.Inputs[1].InputType);
+        Assert.False(inputsInteraction.Inputs[1].Disabled); // Should be enabled when user secrets are available
     }
 
     [Fact]
