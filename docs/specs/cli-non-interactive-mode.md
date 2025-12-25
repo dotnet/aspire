@@ -481,4 +481,4 @@ When adding new commands or modifying existing ones:
 
 ## Changelog
 
-- **2024-XX-XX**: Initial draft based on codebase investigation
+- **2025-06-25**: Initial draft based on codebase investigation
