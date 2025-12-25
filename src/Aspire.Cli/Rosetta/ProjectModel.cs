@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
@@ -162,6 +163,13 @@ internal sealed class ProjectModel
             // Local build: use project references like the playground
             var repoRoot = Path.GetFullPath(LocalAspirePath) + Path.DirectorySeparatorChar;
 
+            // Determine OS/architecture for DCP package name (matches Directory.Build.props logic)
+            var (buildOs, buildArch) = GetBuildPlatform();
+            var dcpPackageName = $"microsoft.developercontrolplane.{buildOs}-{buildArch}";
+
+            // DCP version - should match what's in eng/Versions.props
+            const string dcpVersion = "0.20.7";
+
             template = $"""
                 <Project Sdk="Microsoft.NET.Sdk">
 
@@ -185,6 +193,9 @@ internal sealed class ProjectModel
                         <SkipValidateAspireHostProjectResources>true</SkipValidateAspireHostProjectResources>
                         <SkipAddAspireDefaultReferences>true</SkipAddAspireDefaultReferences>
                         <AspireHostingSDKVersion>42.42.42</AspireHostingSDKVersion>
+                        <!-- DCP and Dashboard paths for local development (same as Directory.Build.props) -->
+                        <DcpDir>$(NuGetPackageRoot){dcpPackageName}/{dcpVersion}/tools/</DcpDir>
+                        <AspireDashboardDir>{repoRoot}artifacts/bin/Aspire.Dashboard/Debug/net8.0/</AspireDashboardDir>
                     </PropertyGroup>
                     <ItemGroup>
                         <PackageReference Include="StreamJsonRpc" Version="2.22.23" />
@@ -376,19 +387,13 @@ internal sealed class ProjectModel
         startInfo.Environment["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath;
         startInfo.Environment["REMOTE_APP_HOST_PID"] = hostPid.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-        // Apply environment variables from apphost.run.json / launchSettings.json if available
+        // Apply environment variables from apphost.run.json / launchSettings.json
         if (launchSettingsEnvVars != null)
         {
             foreach (var (key, value) in launchSettingsEnvVars)
             {
                 startInfo.Environment[key] = value;
             }
-        }
-        else
-        {
-            // Default environment variables when no launchSettings.json is present
-            startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
-            startInfo.Environment["DOTNET_ENVIRONMENT"] = "Development";
         }
 
         startInfo.RedirectStandardOutput = true;
@@ -487,5 +492,26 @@ internal sealed class ProjectModel
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Gets the OS and architecture identifiers for the DCP package name.
+    /// </summary>
+    private static (string Os, string Arch) GetBuildPlatform()
+    {
+        // OS mapping (matches MSBuild logic in Directory.Build.props)
+        var os = OperatingSystem.IsLinux() ? "linux"
+            : OperatingSystem.IsMacOS() ? "darwin"
+            : "windows";
+
+        // Architecture mapping
+        var arch = RuntimeInformation.OSArchitecture switch
+        {
+            Architecture.X86 => "386",
+            Architecture.Arm64 => "arm64",
+            _ => "amd64"
+        };
+
+        return (os, arch);
     }
 }
