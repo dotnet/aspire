@@ -21,7 +21,6 @@ internal sealed class ProjectModel
     private const string AppsFolder = "hosts";
     public const string ProjectFileName = "GenericAppHost.csproj";
     private const string ProjectDllName = "GenericAppHost.dll";
-    private const string LaunchSettingsJsonFileName = "./Properties/launchSettings.json";
     private const string TargetFramework = "net9.0";
 
     public static string AspireHostVersion = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_VERSION") ?? GetEffectiveVersion();
@@ -119,60 +118,35 @@ internal sealed class ProjectModel
         var appSettingsJsonPath = Path.Combine(_projectModelPath, "appsettings.json");
         File.WriteAllText(appSettingsJsonPath, appSettingsJson);
 
-        // Create NuGet.config
-        var localPackageSource = LocalPackagePath is not null ? $"""
-                    <add key="local" value="{LocalPackagePath.Replace("\\", "/")}" />
-                """ : string.Empty;
-
-        var nugetConfig = $$"""
-            <?xml version="1.0" encoding="utf-8"?>
-            <configuration>
-                <packageSources>
-                    <clear />{{localPackageSource}}
-                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-                </packageSources>
-            </configuration>
-            """;
-
+        // Handle NuGet.config:
+        // 1. If local package source is specified (dev scenario), create a config that includes it
+        // 2. Otherwise, copy user's NuGet.config if found (to respect their feeds/auth)
         var nugetConfigPath = Path.Combine(_projectModelPath, "NuGet.config");
-        File.WriteAllText(nugetConfigPath, nugetConfig);
-
-        // Create launchSettings.json
-        var launchSettingsJson = """
+        if (LocalPackagePath is not null)
         {
-            "$schema": "https://json.schemastore.org/launchsettings.json",
-            "profiles": {
-                "https": {
-                    "commandName": "Project",
-                    "dotnetRunMessages": true,
-                    "launchBrowser": true,
-                    "applicationUrl": "https://localhost:17292;http://localhost:15013",
-                    "environmentVariables": {
-                        "ASPNETCORE_ENVIRONMENT": "Development",
-                        "DOTNET_ENVIRONMENT": "Development",
-                        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:21227",
-                        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:22169"
-                    }
-                },
-                "http": {
-                    "commandName": "Project",
-                    "dotnetRunMessages": true,
-                    "launchBrowser": true,
-                    "applicationUrl": "http://localhost:15013",
-                    "environmentVariables": {
-                        "ASPNETCORE_ENVIRONMENT": "Development",
-                        "DOTNET_ENVIRONMENT": "Development",
-                        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:19101",
-                        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:20025"
-                    }
-                }
+            var nugetConfig = $"""
+                <?xml version="1.0" encoding="utf-8"?>
+                <configuration>
+                    <packageSources>
+                        <add key="local" value="{LocalPackagePath.Replace("\\", "/")}" />
+                    </packageSources>
+                </configuration>
+                """;
+            File.WriteAllText(nugetConfigPath, nugetConfig);
+        }
+        else
+        {
+            // Search for NuGet.config starting from user's project directory and walking up
+            var userNugetConfig = FindNuGetConfig(_appPath);
+            if (userNugetConfig is not null)
+            {
+                File.Copy(userNugetConfig, nugetConfigPath, overwrite: true);
             }
         }
-        """;
 
-        var launchSettingsJsonPath = Path.Combine(_projectModelPath, LaunchSettingsJsonFileName);
-        Directory.CreateDirectory(Path.GetDirectoryName(launchSettingsJsonPath)!);
-        File.WriteAllText(launchSettingsJsonPath, launchSettingsJson);
+        // Note: We don't create launchSettings.json here. Environment variables
+        // (ports, OTLP endpoints, etc.) are read from the user's apphost.run.json
+        // and passed directly to Run() at runtime.
 
         // Create the project file
         var template = $"""
@@ -322,5 +296,63 @@ internal sealed class ProjectModel
         Directory.CreateDirectory(socketDir);
 
         return Path.Combine(socketDir, socketName);
+    }
+
+    /// <summary>
+    /// Gets a project-level NuGet config path using dotnet nuget config paths command.
+    /// Only returns configs that are within the project directory tree, not global user configs.
+    /// </summary>
+    private static string? FindNuGetConfig(string workingDirectory)
+    {
+        try
+        {
+            var startInfo = new ProcessStartInfo("dotnet")
+            {
+                Arguments = "nuget config paths",
+                WorkingDirectory = workingDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process is null)
+            {
+                return null;
+            }
+
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+            {
+                return null;
+            }
+
+            // Find a config that's within the project directory tree (not global user config).
+            // Global configs (e.g., ~/.nuget/NuGet/NuGet.Config) will be found by dotnet anyway.
+            var configPaths = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+            var workingDirFullPath = Path.GetFullPath(workingDirectory);
+
+            foreach (var configPath in configPaths)
+            {
+                if (File.Exists(configPath))
+                {
+                    var configFullPath = Path.GetFullPath(configPath);
+                    // Check if this config is within the project directory tree
+                    if (configFullPath.StartsWith(workingDirFullPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return configPath;
+                    }
+                }
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
