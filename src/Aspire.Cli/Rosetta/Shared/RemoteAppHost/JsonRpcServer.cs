@@ -9,13 +9,29 @@ namespace RemoteAppHost;
 public class RemoteAppHostService : IAsyncDisposable
 {
     private readonly InstructionProcessor _instructionProcessor = new();
+    private readonly CancellationTokenSource _cts = new();
+
+    /// <summary>
+    /// Signals that the service should stop accepting new instructions.
+    /// </summary>
+    public void RequestCancellation() => _cts.Cancel();
 
     [JsonRpcMethod("executeInstruction")]
     public async Task<object?> ExecuteInstructionAsync(string instructionJson)
     {
         try
         {
-            return await _instructionProcessor.ExecuteInstructionAsync(instructionJson);
+            return await _instructionProcessor.ExecuteInstructionAsync(instructionJson, _cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("Instruction execution was cancelled");
+            return new { success = false, error = "Operation cancelled" };
+        }
+        catch (ObjectDisposedException)
+        {
+            Console.WriteLine("Instruction processor has been disposed");
+            return new { success = false, error = "Service is shutting down" };
         }
         catch (Exception ex)
         {
@@ -32,6 +48,10 @@ public class RemoteAppHostService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        // Cancel any in-flight operations
+        _cts.Cancel();
+        _cts.Dispose();
+
         await _instructionProcessor.DisposeAsync();
     }
 }

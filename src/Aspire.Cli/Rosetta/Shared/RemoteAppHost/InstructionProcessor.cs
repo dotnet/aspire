@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Aspire.Hosting;
 
@@ -8,32 +9,39 @@ namespace RemoteAppHost;
 
 public class InstructionProcessor : IAsyncDisposable
 {
-    private readonly Dictionary<string, object> _variables = new();
+    private readonly ConcurrentDictionary<string, object> _variables = new();
+    private readonly ConcurrentDictionary<string, System.Reflection.Assembly> _assemblyCache = new();
     private readonly List<DistributedApplication> _runningApps = new();
-    private readonly object _lock = new();
+    private readonly object _appsLock = new();
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true
     };
-    private bool _disposed;
+    private volatile bool _disposed;
 
-    public async Task<object?> ExecuteInstructionAsync(string instructionJson)
+    private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(30);
+
+    public async Task<object?> ExecuteInstructionAsync(string instructionJson, CancellationToken cancellationToken = default)
     {
-        var jsonDocument = JsonDocument.Parse(instructionJson);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        using var jsonDocument = JsonDocument.Parse(instructionJson);
         var instructionName = jsonDocument.RootElement.GetProperty("name").GetString();
 
         return instructionName switch
         {
-            "CREATE_BUILDER" => await ExecuteCreateBuilderAsync(instructionJson),
-            "RUN_BUILDER" => await ExecuteRunBuilderAsync(instructionJson),
+            "CREATE_BUILDER" => await ExecuteCreateBuilderAsync(instructionJson, cancellationToken),
+            "RUN_BUILDER" => await ExecuteRunBuilderAsync(instructionJson, cancellationToken),
             "pragma" => ExecutePragma(instructionJson),
             "INVOKE" => ExecuteInvoke(instructionJson),
             _ => throw new NotSupportedException($"Instruction '{instructionName}' is not supported")
         };
     }
 
-    private Task<object> ExecuteCreateBuilderAsync(string instructionJson)
+    private Task<object> ExecuteCreateBuilderAsync(string instructionJson, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var instruction = JsonSerializer.Deserialize<CreateBuilderInstruction>(instructionJson, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to deserialize CREATE_BUILDER instruction");
 
@@ -45,14 +53,16 @@ public class InstructionProcessor : IAsyncDisposable
         // Create the distributed application builder
         var builder = DistributedApplication.CreateBuilder(options);
 
-        // Store the builder in the variables dictionary
+        // Store the builder in the variables dictionary (thread-safe)
         _variables[instruction.BuilderName] = builder;
 
         return Task.FromResult<object>(new { success = true, builderName = instruction.BuilderName });
     }
 
-    private async Task<object> ExecuteRunBuilderAsync(string instructionJson)
+    private async Task<object> ExecuteRunBuilderAsync(string instructionJson, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var instruction = JsonSerializer.Deserialize<RunBuilderInstruction>(instructionJson, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to deserialize RUN_BUILDER instruction");
 
@@ -65,11 +75,11 @@ public class InstructionProcessor : IAsyncDisposable
         // Build and start the application
         var app = builder.Build();
 
-        // Store the app so we can access it later for shutdown
+        // Store the app so we can access it later for shutdown (thread-safe)
         _variables[$"{instruction.BuilderName}_app"] = app;
 
         // Track the app for graceful shutdown
-        lock (_lock)
+        lock (_appsLock)
         {
             _runningApps.Add(app);
         }
@@ -78,7 +88,7 @@ public class InstructionProcessor : IAsyncDisposable
         {
             // Start the application and wait for startup to complete
             // This will throw if startup fails (e.g., port conflict)
-            await app.StartAsync();
+            await app.StartAsync(cancellationToken);
 
             // The app is now running in the background.
             // When the server shuts down, DisposeAsync will stop all running apps.
@@ -90,7 +100,7 @@ public class InstructionProcessor : IAsyncDisposable
             Console.WriteLine($"Application startup failed: {ex.Message}");
 
             // Remove from tracking since it failed to start
-            lock (_lock)
+            lock (_appsLock)
             {
                 _runningApps.Remove(app);
             }
@@ -115,14 +125,15 @@ public class InstructionProcessor : IAsyncDisposable
         var instruction = JsonSerializer.Deserialize<InvokeInstruction>(instructionJson, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to deserialize INVOKE instruction");
 
-        // Get the source object from variables
+        // Get the source object from variables (thread-safe)
         if (!_variables.TryGetValue(instruction.Source, out var sourceObj))
         {
             throw new InvalidOperationException($"Source variable '{instruction.Source}' not found");
         }
 
-        // Load the assembly
-        var assembly = System.Reflection.Assembly.Load(instruction.MethodAssembly);
+        // Load the assembly (cached)
+        var assembly = _assemblyCache.GetOrAdd(instruction.MethodAssembly,
+            assemblyName => System.Reflection.Assembly.Load(assemblyName));
 
         // Get the type
         var type = assembly.GetType(instruction.MethodType)
@@ -246,9 +257,14 @@ public class InstructionProcessor : IAsyncDisposable
                     arguments[i] = argValue;
                 }
             }
+            else if (methodParameters[i].HasDefaultValue)
+            {
+                // Use the default value for optional parameters
+                arguments[i] = methodParameters[i].DefaultValue;
+            }
             else
             {
-                throw new InvalidOperationException($"Argument '{paramName}' not found in instruction args for extension method parameter at index {i}");
+                throw new InvalidOperationException($"Required argument '{paramName}' not found in instruction args for method parameter at index {i}");
             }
         }
 
@@ -312,7 +328,7 @@ public class InstructionProcessor : IAsyncDisposable
 
         // Get a copy of the running apps to stop
         List<DistributedApplication> appsToStop;
-        lock (_lock)
+        lock (_appsLock)
         {
             appsToStop = new List<DistributedApplication>(_runningApps);
             _runningApps.Clear();
@@ -320,16 +336,26 @@ public class InstructionProcessor : IAsyncDisposable
 
         Console.WriteLine($"Stopping {appsToStop.Count} running application(s)...");
 
-        // Stop all running applications gracefully
+        // Stop all running applications gracefully with timeout
         foreach (var app in appsToStop)
         {
             try
             {
                 Console.WriteLine("Stopping DistributedApplication...");
-                await app.StopAsync();
-                Console.WriteLine("DistributedApplication stopped.");
 
-                // Dispose the app to clean up resources
+                // Use a timeout to prevent hanging indefinitely
+                using var cts = new CancellationTokenSource(ShutdownTimeout);
+                try
+                {
+                    await app.StopAsync(cts.Token);
+                    Console.WriteLine("DistributedApplication stopped.");
+                }
+                catch (OperationCanceledException)
+                {
+                    Console.WriteLine($"Warning: DistributedApplication stop timed out after {ShutdownTimeout.TotalSeconds}s");
+                }
+
+                // Dispose the app to clean up resources (no timeout - dispose should be quick)
                 await app.DisposeAsync();
                 Console.WriteLine("DistributedApplication disposed.");
             }
@@ -341,6 +367,7 @@ public class InstructionProcessor : IAsyncDisposable
 
         // Clear all variables
         _variables.Clear();
+        _assemblyCache.Clear();
 
         Console.WriteLine("InstructionProcessor disposed.");
     }
