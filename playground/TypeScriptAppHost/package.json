@@ -9,9 +9,11 @@
     "build": "tsc"
   },
   "dependencies": {
-    "tsx": "^4.7.0"
+    "tsx": "^4.7.0",
+    "vscode-jsonrpc": "^8.2.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "@types/node": "^20.0.0"
   }
 }
