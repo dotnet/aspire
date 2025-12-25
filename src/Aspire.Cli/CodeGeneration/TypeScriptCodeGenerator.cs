@@ -4,29 +4,32 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using Aspire.Cli.Projects;
 using Aspire.Hosting.CodeGeneration.Models;
-using Aspire.Hosting.CodeGeneration.TypeScript;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.CodeGeneration;
 
 /// <summary>
-/// Service for generating TypeScript/Python code from Aspire packages.
+/// Code generator for TypeScript AppHost projects.
 /// </summary>
-internal sealed class CodeGenerationService : ICodeGenerationService
+internal sealed class TypeScriptCodeGenerator : ICodeGenerator
 {
     private const string GeneratedFolderName = ".aspire-gen";
     private const string HashFileName = ".codegen-hash";
 
-    private readonly ILogger<CodeGenerationService> _logger;
+    private readonly ILogger<TypeScriptCodeGenerator> _logger;
 
-    public CodeGenerationService(ILogger<CodeGenerationService> logger)
+    public TypeScriptCodeGenerator(ILogger<TypeScriptCodeGenerator> logger)
     {
         _logger = logger;
     }
 
     /// <inheritdoc />
-    public async Task GenerateTypeScriptAsync(
+    public AppHostType SupportedType => AppHostType.TypeScript;
+
+    /// <inheritdoc />
+    public async Task GenerateAsync(
         string appPath,
         IEnumerable<(string PackageId, string Version)> packages,
         CancellationToken cancellationToken)
@@ -38,7 +41,7 @@ internal sealed class CodeGenerationService : ICodeGenerationService
         var model = CreateApplicationModel(packagesList);
 
         // Generate the code
-        var generator = new TypeScriptCodeGenerator();
+        var generator = new Aspire.Hosting.CodeGeneration.TypeScript.TypeScriptCodeGenerator();
         var files = generator.GenerateDistributedApplication(model);
 
         // Write the files to the generated folder

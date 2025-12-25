@@ -199,8 +199,8 @@ public class Program
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
 
-        // Code generation services.
-        builder.Services.AddSingleton<ICodeGenerationService, CodeGenerationService>();
+        // Code generators (keyed by AppHostType).
+        builder.Services.AddKeyedSingleton<ICodeGenerator, TypeScriptCodeGenerator>(AppHostType.TypeScript);
 
         // AppHost project handlers.
         builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();

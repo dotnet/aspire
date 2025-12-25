@@ -8,6 +8,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Rosetta;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.AppHostRunning;
@@ -18,16 +19,16 @@ namespace Aspire.Cli.AppHostRunning;
 internal sealed class TypeScriptAppHostProject : IAppHostProject
 {
     private readonly IInteractionService _interactionService;
-    private readonly ICodeGenerationService _codeGenerationService;
+    private readonly ICodeGenerator _codeGenerator;
     private readonly ILogger<TypeScriptAppHostProject> _logger;
 
     public TypeScriptAppHostProject(
         IInteractionService interactionService,
-        ICodeGenerationService codeGenerationService,
+        [FromKeyedServices(AppHostType.TypeScript)] ICodeGenerator codeGenerator,
         ILogger<TypeScriptAppHostProject> logger)
     {
         _interactionService = interactionService;
-        _codeGenerationService = codeGenerationService;
+        _codeGenerator = codeGenerator;
         _logger = logger;
     }
 
@@ -90,13 +91,13 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Step 2: Get package references and run code generation if needed
             var packages = GetPackageReferences(directory).ToList();
 
-            if (_codeGenerationService.NeedsGeneration(directory.FullName, packages))
+            if (_codeGenerator.NeedsGeneration(directory.FullName, packages))
             {
                 await _interactionService.ShowStatusAsync(
                     "Generating TypeScript SDK...",
                     async () =>
                     {
-                        await _codeGenerationService.GenerateTypeScriptAsync(
+                        await _codeGenerator.GenerateAsync(
                             directory.FullName,
                             packages,
                             cancellationToken);
@@ -468,7 +469,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
         // Regenerate TypeScript SDK code
         var packages = GetPackageReferences(directory).ToList();
-        await _codeGenerationService.GenerateTypeScriptAsync(
+        await _codeGenerator.GenerateAsync(
             directory.FullName,
             packages,
             cancellationToken);
