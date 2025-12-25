@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREUSERSECRETS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 namespace Aspire.Hosting.Tests.Orchestrator;
 
@@ -173,7 +174,11 @@ public class ParameterProcessorTests
         // Arrange
         var testInteractionService = new TestInteractionService();
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
-        var parameterProcessor = CreateParameterProcessor(notificationService: notificationService, interactionService: testInteractionService);
+        var mockUserSecretsManager = new MockUserSecretsManager();
+        var parameterProcessor = CreateParameterProcessor(
+            notificationService: notificationService,
+            interactionService: testInteractionService,
+            userSecretsManager: mockUserSecretsManager);
         var param1 = CreateParameterWithMissingValue("param1");
         var param2 = CreateParameterWithMissingValue("param2");
         var secretParam = CreateParameterWithMissingValue("secretParam", secret: true);
@@ -402,7 +407,10 @@ public class ParameterProcessorTests
     {
         // Arrange
         var testInteractionService = new TestInteractionService();
-        var parameterProcessor = CreateParameterProcessor(interactionService: testInteractionService);
+        var mockUserSecretsManager = new MockUserSecretsManager();
+        var parameterProcessor = CreateParameterProcessor(
+            interactionService: testInteractionService,
+            userSecretsManager: mockUserSecretsManager);
 
         var param1 = CreateParameterWithMissingValue("param1");
         param1.Description = "This is a test parameter";
@@ -450,7 +458,10 @@ public class ParameterProcessorTests
     {
         // Arrange
         var testInteractionService = new TestInteractionService();
-        var parameterProcessor = CreateParameterProcessor(interactionService: testInteractionService);
+        var mockUserSecretsManager = new MockUserSecretsManager();
+        var parameterProcessor = CreateParameterProcessor(
+            interactionService: testInteractionService,
+            userSecretsManager: mockUserSecretsManager);
 
         var secretParam = CreateParameterWithMissingValue("secretParam", secret: true);
         secretParam.Description = "This is a secret parameter";
@@ -477,6 +488,68 @@ public class ParameterProcessorTests
         Assert.Equal("This is a secret parameter", secretInput.Description);
         Assert.False(secretInput.EnableDescriptionMarkdown);
         Assert.Equal(InputType.SecretText, secretInput.InputType);
+    }
+
+    [Fact]
+    public async Task HandleUnresolvedParametersAsync_WhenUserSecretsNotAvailable_DoesNotShowSaveCheckbox()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var noopUserSecretsManager = UserSecrets.NoopUserSecretsManager.Instance;
+        var parameterProcessor = CreateParameterProcessor(
+            interactionService: testInteractionService,
+            userSecretsManager: noopUserSecretsManager);
+
+        var param = CreateParameterWithMissingValue("param1");
+        param.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        List<ParameterResource> parameters = [param];
+
+        // Act
+        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        // Wait for the message bar interaction and complete it
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Assert - Should only have 1 input (the parameter), no save checkbox
+        Assert.Single(inputsInteraction.Inputs);
+        Assert.Equal("param1", inputsInteraction.Inputs[0].Label);
+    }
+
+    [Fact]
+    public async Task HandleUnresolvedParametersAsync_WhenUserSecretsAvailable_ShowsSaveCheckbox()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var mockUserSecretsManager = new MockUserSecretsManager();
+        var parameterProcessor = CreateParameterProcessor(
+            interactionService: testInteractionService,
+            userSecretsManager: mockUserSecretsManager);
+
+        var param = CreateParameterWithMissingValue("param1");
+        param.WaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        List<ParameterResource> parameters = [param];
+
+        // Act
+        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+
+        // Wait for the message bar interaction and complete it
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+
+        // Assert - Should have 2 inputs (parameter + save checkbox)
+        Assert.Equal(2, inputsInteraction.Inputs.Count);
+        Assert.Equal("param1", inputsInteraction.Inputs[0].Label);
+        Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, inputsInteraction.Inputs[1].Label);
+        Assert.Equal(InputType.Boolean, inputsInteraction.Inputs[1].InputType);
     }
 
     [Fact]
@@ -765,7 +838,8 @@ public class ParameterProcessorTests
         ILogger<ParameterProcessor>? logger = null,
         bool disableDashboard = true,
         DistributedApplicationExecutionContext? executionContext = null,
-        IDeploymentStateManager? deploymentStateManager = null)
+        IDeploymentStateManager? deploymentStateManager = null,
+        IUserSecretsManager? userSecretsManager = null)
     {
         return new ParameterProcessor(
             notificationService ?? ResourceNotificationServiceTestHelpers.Create(),
@@ -773,7 +847,8 @@ public class ParameterProcessorTests
             interactionService ?? CreateInteractionService(disableDashboard),
             logger ?? new NullLogger<ParameterProcessor>(),
             executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            deploymentStateManager ?? new MockDeploymentStateManager()
+            deploymentStateManager ?? new MockDeploymentStateManager(),
+            userSecretsManager ?? UserSecrets.NoopUserSecretsManager.Instance
         );
     }
 
@@ -796,6 +871,24 @@ public class ParameterProcessorTests
         }
 
         public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class MockUserSecretsManager : IUserSecretsManager
+    {
+        public bool IsAvailable => true;
+        public string FilePath => "/mock/path/secrets.json";
+
+        public bool TrySetSecret(string name, string value) => true;
+
+        public void GetOrSetSecret(IConfigurationManager configuration, string name, Func<string> valueGenerator)
+        {
+            // Mock implementation - do nothing
+        }
+
+        public Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }
@@ -863,10 +956,12 @@ public class ParameterProcessorTests
         var capturingStateManager = new CapturingMockDeploymentStateManager();
         var testInteractionService = new TestInteractionService();
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var mockUserSecretsManager = new MockUserSecretsManager();
         var parameterProcessor = CreateParameterProcessor(
             notificationService: notificationService,
             interactionService: testInteractionService,
-            deploymentStateManager: capturingStateManager);
+            deploymentStateManager: capturingStateManager,
+            userSecretsManager: mockUserSecretsManager);
 
         var connectionStringParam = new ConnectionStringParameterResource(
             "mydb",
@@ -902,10 +997,12 @@ public class ParameterProcessorTests
         var capturingStateManager = new CapturingMockDeploymentStateManager();
         var testInteractionService = new TestInteractionService();
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var mockUserSecretsManager = new MockUserSecretsManager();
         var parameterProcessor = CreateParameterProcessor(
             notificationService: notificationService,
             interactionService: testInteractionService,
-            deploymentStateManager: capturingStateManager);
+            deploymentStateManager: capturingStateManager,
+            userSecretsManager: mockUserSecretsManager);
 
         var regularParam = new ParameterResource(
             "myparam",
@@ -941,10 +1038,12 @@ public class ParameterProcessorTests
         var capturingStateManager = new CapturingMockDeploymentStateManager();
         var testInteractionService = new TestInteractionService();
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
+        var mockUserSecretsManager = new MockUserSecretsManager();
         var parameterProcessor = CreateParameterProcessor(
             notificationService: notificationService,
             interactionService: testInteractionService,
-            deploymentStateManager: capturingStateManager);
+            deploymentStateManager: capturingStateManager,
+            userSecretsManager: mockUserSecretsManager);
 
         var customParam = new ParameterResource(
             "customparam",
