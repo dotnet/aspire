@@ -149,6 +149,12 @@ internal sealed class RunCommand : BaseCommand
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
 
+            // Initialize user secrets if the project doesn't have a user secrets ID configured
+            if (!isSingleFileAppHost)
+            {
+                await EnsureUserSecretsInitializedAsync(effectiveAppHostFile, cancellationToken);
+            }
+
             var env = new Dictionary<string, string>();
 
             var debug = parseResult.GetValue<bool>("--debug");
@@ -613,5 +619,57 @@ internal sealed class RunCommand : BaseCommand
 
         // Timeout reached
         return false;
+    }
+
+    private async Task EnsureUserSecretsInitializedAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Check if the project file has a UserSecretsId element
+            var projectContent = await File.ReadAllTextAsync(projectFile.FullName, cancellationToken).ConfigureAwait(false);
+            
+            // If the project already has a UserSecretsId, we don't need to do anything
+            if (projectContent.Contains("<UserSecretsId>", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            // Run 'dotnet user-secrets init' to add a UserSecretsId to the project
+            _logger.LogDebug("Initializing user secrets for project {ProjectFile}", projectFile.FullName);
+            
+            var startInfo = new ProcessStartInfo("dotnet")
+            {
+                WorkingDirectory = projectFile.Directory?.FullName ?? Directory.GetCurrentDirectory(),
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            
+            startInfo.ArgumentList.Add("user-secrets");
+            startInfo.ArgumentList.Add("init");
+            startInfo.ArgumentList.Add("--project");
+            startInfo.ArgumentList.Add(projectFile.FullName);
+
+            using var process = new Process { StartInfo = startInfo };
+            process.Start();
+            
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+            if (process.ExitCode == 0)
+            {
+                _logger.LogDebug("Successfully initialized user secrets for project {ProjectFile}", projectFile.FullName);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to initialize user secrets for project {ProjectFile}. Exit code: {ExitCode}", projectFile.FullName, process.ExitCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the entire run if we can't initialize user secrets
+            // Just log a warning and continue
+            _logger.LogWarning(ex, "Exception while trying to initialize user secrets for project {ProjectFile}", projectFile.FullName);
+        }
     }
 }

@@ -14,6 +14,14 @@ namespace Aspire.Hosting;
 public interface IUserSecretsManager
 {
     /// <summary>
+    /// Gets a value indicating whether user secrets are available.
+    /// </summary>
+    /// <remarks>
+    /// Returns <c>true</c> if the project has a user secrets ID configured; otherwise, <c>false</c>.
+    /// </remarks>
+    bool IsAvailable { get; }
+
+    /// <summary>
     /// Gets the path to the user secrets file.
     /// </summary>
     string FilePath { get; }

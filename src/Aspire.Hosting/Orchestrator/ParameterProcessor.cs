@@ -23,7 +23,8 @@ public sealed class ParameterProcessor(
     IInteractionService interactionService,
     ILogger<ParameterProcessor> logger,
     DistributedApplicationExecutionContext executionContext,
-    IDeploymentStateManager deploymentStateManager)
+    IDeploymentStateManager deploymentStateManager,
+    IUserSecretsManager userSecretsManager)
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
 
@@ -262,7 +263,7 @@ public sealed class ParameterProcessor(
                     var inputs = resourceInputs.Select(i => i.Input).ToList();
                     InteractionInput? saveParameters = null;
 
-                    if (showSaveToSecrets)
+                    if (showSaveToSecrets && userSecretsManager.IsAvailable)
                     {
                         saveParameters = new InteractionInput
                         {
