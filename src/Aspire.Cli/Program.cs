@@ -22,6 +22,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
+using Aspire.Cli.AppHostRunning;
 using Aspire.Cli.Caching;
 using Aspire.Hosting;
 using Aspire.Shared;
@@ -195,6 +196,10 @@ public class Program
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
+
+        // AppHost runners.
+        builder.Services.AddSingleton<IAppHostRunnerFactory, AppHostRunnerFactory>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostRunner, DotNetAppHostRunner>());
 
         // Environment checking services.
         builder.Services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();

@@ -1,0 +1,74 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.CommandLine;
+using Aspire.Cli.Backchannel;
+using Aspire.Cli.Projects;
+
+namespace Aspire.Cli.AppHostRunning;
+
+/// <summary>
+/// Context containing all information needed to run an AppHost.
+/// </summary>
+internal sealed class AppHostRunnerContext
+{
+    /// <summary>
+    /// Gets the AppHost file to run.
+    /// </summary>
+    public required FileInfo AppHostFile { get; init; }
+
+    /// <summary>
+    /// Gets the detected type of the AppHost.
+    /// </summary>
+    public required AppHostType Type { get; init; }
+
+    /// <summary>
+    /// Gets whether to run in watch mode (hot reload).
+    /// </summary>
+    public bool Watch { get; init; }
+
+    /// <summary>
+    /// Gets whether to run in debug mode.
+    /// </summary>
+    public bool Debug { get; init; }
+
+    /// <summary>
+    /// Gets whether to skip building before running.
+    /// </summary>
+    public bool NoBuild { get; init; }
+
+    /// <summary>
+    /// Gets whether to wait for a debugger to attach.
+    /// </summary>
+    public bool WaitForDebugger { get; init; }
+
+    /// <summary>
+    /// Gets whether to start a debug session (for extension hosts).
+    /// </summary>
+    public bool StartDebugSession { get; init; }
+
+    /// <summary>
+    /// Gets additional environment variables to pass to the AppHost.
+    /// </summary>
+    public IDictionary<string, string> EnvironmentVariables { get; init; } = new Dictionary<string, string>();
+
+    /// <summary>
+    /// Gets any unmatched command-line tokens to pass through to the AppHost.
+    /// </summary>
+    public string[] UnmatchedTokens { get; init; } = [];
+
+    /// <summary>
+    /// Gets the task completion source for the backchannel connection.
+    /// </summary>
+    public TaskCompletionSource<IAppHostCliBackchannel>? BackchannelCompletionSource { get; init; }
+
+    /// <summary>
+    /// Gets the parse result from the command line.
+    /// </summary>
+    public ParseResult? ParseResult { get; init; }
+
+    /// <summary>
+    /// Gets the working directory for the command.
+    /// </summary>
+    public required DirectoryInfo WorkingDirectory { get; init; }
+}
