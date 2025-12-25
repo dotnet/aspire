@@ -6,7 +6,7 @@ using StreamJsonRpc;
 
 namespace RemoteAppHost;
 
-public class RemoteAppHostService
+public class RemoteAppHostService : IAsyncDisposable
 {
     private readonly InstructionProcessor _instructionProcessor = new();
 
@@ -29,9 +29,14 @@ public class RemoteAppHostService
     {
         return "pong";
     }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _instructionProcessor.DisposeAsync();
+    }
 }
 
-public class JsonRpcServer : IDisposable
+public class JsonRpcServer : IAsyncDisposable
 {
     private readonly string _socketPath;
     private readonly RemoteAppHostService _service;
@@ -155,12 +160,18 @@ public class JsonRpcServer : IDisposable
         _listenSocket?.Close();
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (!_disposed)
         {
+            _disposed = true;
+
             Stop();
             _listenSocket?.Dispose();
+
+            // Dispose the service which will stop all running apps
+            Console.WriteLine("Disposing RemoteAppHostService...");
+            await _service.DisposeAsync();
 
             // Clean up socket file
             if (File.Exists(_socketPath))
@@ -172,7 +183,7 @@ public class JsonRpcServer : IDisposable
                 catch { }
             }
 
-            _disposed = true;
+            Console.WriteLine("JsonRpcServer disposed.");
         }
     }
 }

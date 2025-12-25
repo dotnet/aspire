@@ -6,13 +6,16 @@ using Aspire.Hosting;
 
 namespace RemoteAppHost;
 
-public class InstructionProcessor
+public class InstructionProcessor : IAsyncDisposable
 {
     private readonly Dictionary<string, object> _variables = new();
+    private readonly List<DistributedApplication> _runningApps = new();
+    private readonly object _lock = new();
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true
     };
+    private bool _disposed;
 
     public async Task<object?> ExecuteInstructionAsync(string instructionJson)
     {
@@ -65,6 +68,12 @@ public class InstructionProcessor
         // Store the app so we can access it later for shutdown
         _variables[$"{instruction.BuilderName}_app"] = app;
 
+        // Track the app for graceful shutdown
+        lock (_lock)
+        {
+            _runningApps.Add(app);
+        }
+
         try
         {
             // Start the application and wait for startup to complete
@@ -72,14 +81,20 @@ public class InstructionProcessor
             await app.StartAsync();
 
             // The app is now running in the background.
-            // When the TypeScript client disconnects, the server will shut down
-            // and the app will be disposed.
+            // When the server shuts down, DisposeAsync will stop all running apps.
 
             return new { success = true, builderName = instruction.BuilderName, status = "running" };
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Application startup failed: {ex.Message}");
+
+            // Remove from tracking since it failed to start
+            lock (_lock)
+            {
+                _runningApps.Remove(app);
+            }
+
             throw; // Re-throw to propagate error back to client
         }
     }
@@ -284,5 +299,49 @@ public class InstructionProcessor
             methodName = instruction.MethodName,
             result = result?.ToString() ?? "null"
         };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        // Get a copy of the running apps to stop
+        List<DistributedApplication> appsToStop;
+        lock (_lock)
+        {
+            appsToStop = new List<DistributedApplication>(_runningApps);
+            _runningApps.Clear();
+        }
+
+        Console.WriteLine($"Stopping {appsToStop.Count} running application(s)...");
+
+        // Stop all running applications gracefully
+        foreach (var app in appsToStop)
+        {
+            try
+            {
+                Console.WriteLine("Stopping DistributedApplication...");
+                await app.StopAsync();
+                Console.WriteLine("DistributedApplication stopped.");
+
+                // Dispose the app to clean up resources
+                await app.DisposeAsync();
+                Console.WriteLine("DistributedApplication disposed.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error stopping application: {ex.Message}");
+            }
+        }
+
+        // Clear all variables
+        _variables.Clear();
+
+        Console.WriteLine("InstructionProcessor disposed.");
     }
 }

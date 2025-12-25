@@ -28,7 +28,7 @@ if (string.IsNullOrEmpty(socketPath))
 Console.WriteLine($"Starting RemoteAppHost JsonRpc Server on {socketPath}...");
 Console.WriteLine("This server will continue running until stopped with Ctrl+C");
 
-using var server = new JsonRpcServer(socketPath);
+await using var server = new JsonRpcServer(socketPath);
 
 // When the last client disconnects, shut down the server
 server.OnAllClientsDisconnected = () =>
