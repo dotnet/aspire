@@ -1,0 +1,17 @@
+{
+  "name": "typescript-apphost",
+  "version": "1.0.0",
+  "description": "Sample TypeScript AppHost for testing",
+  "main": "apphost.js",
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx apphost.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "tsx": "^4.7.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

@@ -1,0 +1,10 @@
+[project]
+name = "python-apphost"
+version = "1.0.0"
+description = "Sample Python AppHost for testing"
+requires-python = ">=3.10"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

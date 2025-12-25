@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 using System.Globalization;
+using Aspire.Cli.AppHostRunning;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
@@ -40,6 +41,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<RunCommand> _logger;
+    private readonly IAppHostRunnerFactory _runnerFactory;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -56,6 +58,7 @@ internal sealed class RunCommand : BaseCommand
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment,
         ILogger<RunCommand> logger,
+        IAppHostRunnerFactory runnerFactory,
         TimeProvider? timeProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
@@ -69,6 +72,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(runnerFactory);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -82,6 +86,7 @@ internal sealed class RunCommand : BaseCommand
         _features = features;
         _hostEnvironment = hostEnvironment;
         _logger = logger;
+        _runnerFactory = runnerFactory;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
         var projectOption = new Option<FileInfo?>("--project");
@@ -131,11 +136,33 @@ internal sealed class RunCommand : BaseCommand
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
+            var searchResult = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile: true, cancellationToken);
+            var effectiveAppHostFile = searchResult.SelectedProjectFile;
 
             if (effectiveAppHostFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
+            }
+
+            // Check if this is a TypeScript or Python AppHost - use the appropriate runner
+            if (searchResult.DetectedType is AppHostType.TypeScript or AppHostType.Python)
+            {
+                var runner = _runnerFactory.GetRunner(searchResult.DetectedType.Value);
+                var context = new AppHostRunnerContext
+                {
+                    AppHostFile = effectiveAppHostFile,
+                    Type = searchResult.DetectedType.Value,
+                    Watch = false,
+                    Debug = parseResult.GetValue<bool>("--debug"),
+                    NoBuild = false,
+                    WaitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger"),
+                    StartDebugSession = startDebugSession,
+                    EnvironmentVariables = new Dictionary<string, string>(),
+                    UnmatchedTokens = parseResult.UnmatchedTokens.ToArray(),
+                    WorkingDirectory = ExecutionContext.WorkingDirectory
+                };
+
+                return await runner.RunAsync(context, cancellationToken);
             }
 
             // Check for running instance if feature is enabled

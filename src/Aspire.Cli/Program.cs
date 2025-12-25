@@ -149,6 +149,7 @@ public class Program
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
         builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();
+        builder.Services.AddSingleton<ILanguageService, LanguageService>();
         builder.Services.AddSingleton<FallbackProjectParser>();
         builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
@@ -200,6 +201,8 @@ public class Program
         // AppHost runners.
         builder.Services.AddSingleton<IAppHostRunnerFactory, AppHostRunnerFactory>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostRunner, DotNetAppHostRunner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostRunner, TypeScriptAppHostRunner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostRunner, PythonAppHostRunner>());
 
         // Environment checking services.
         builder.Services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
