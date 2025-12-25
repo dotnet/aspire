@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Rosetta;
@@ -10,16 +11,16 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.AppHostRunning;
 
 /// <summary>
-/// Runner for Python AppHost projects (apphost.py).
+/// Handler for Python AppHost projects (apphost.py).
 /// </summary>
-internal sealed class PythonAppHostRunner : IAppHostRunner
+internal sealed class PythonAppHostProject : IAppHostProject
 {
     private readonly IInteractionService _interactionService;
-    private readonly ILogger<PythonAppHostRunner> _logger;
+    private readonly ILogger<PythonAppHostProject> _logger;
 
-    public PythonAppHostRunner(
+    public PythonAppHostProject(
         IInteractionService interactionService,
-        ILogger<PythonAppHostRunner> logger)
+        ILogger<PythonAppHostProject> logger)
     {
         _interactionService = interactionService;
         _logger = logger;
@@ -57,7 +58,7 @@ internal sealed class PythonAppHostRunner : IAppHostRunner
     }
 
     /// <inheritdoc />
-    public async Task<int> RunAsync(AppHostRunnerContext context, CancellationToken cancellationToken)
+    public async Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken)
     {
         var appHostFile = context.AppHostFile;
         var directory = appHostFile.Directory!;
@@ -345,5 +346,23 @@ internal sealed class PythonAppHostRunner : IAppHostRunner
             return Path.Combine(directory.FullName, ".venv", "Scripts", "pip.exe");
         }
         return Path.Combine(directory.FullName, ".venv", "bin", "pip");
+    }
+
+    /// <inheritdoc />
+    public Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken)
+    {
+        var directory = context.AppHostFile.Directory;
+        if (directory is null)
+        {
+            return Task.FromResult(false);
+        }
+
+        // Update .aspire/settings.json with the new package
+        var config = AspireJsonConfiguration.Load(directory.FullName) ?? new AspireJsonConfiguration();
+        config.AddOrUpdatePackage(context.PackageId, context.PackageVersion);
+        config.Save(directory.FullName);
+
+        // TODO: Regenerate Python SDK code when code generation is implemented for Python
+        return Task.FromResult(true);
     }
 }

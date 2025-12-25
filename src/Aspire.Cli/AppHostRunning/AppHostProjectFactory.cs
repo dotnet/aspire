@@ -6,32 +6,32 @@ using Aspire.Cli.Projects;
 namespace Aspire.Cli.AppHostRunning;
 
 /// <summary>
-/// Factory for creating AppHost runners based on the project type.
+/// Factory for getting AppHost projects based on the project type.
 /// </summary>
-internal sealed class AppHostRunnerFactory : IAppHostRunnerFactory
+internal sealed class AppHostProjectFactory : IAppHostProjectFactory
 {
-    private readonly IEnumerable<IAppHostRunner> _runners;
+    private readonly IEnumerable<IAppHostProject> _projects;
 
-    public AppHostRunnerFactory(IEnumerable<IAppHostRunner> runners)
+    public AppHostProjectFactory(IEnumerable<IAppHostProject> projects)
     {
-        _runners = runners;
+        _projects = projects;
     }
 
     /// <inheritdoc />
-    public IAppHostRunner GetRunner(AppHostType type)
+    public IAppHostProject GetProject(AppHostType type)
     {
-        var runner = _runners.FirstOrDefault(r => r.SupportedType == type);
+        var project = _projects.FirstOrDefault(p => p.SupportedType == type);
 
-        if (runner is null)
+        if (project is null)
         {
-            throw new NotSupportedException($"No runner available for AppHost type '{type}'.");
+            throw new NotSupportedException($"No handler available for AppHost type '{type}'.");
         }
 
-        return runner;
+        return project;
     }
 
     /// <inheritdoc />
-    public IAppHostRunner? TryGetRunner(FileInfo appHostFile)
+    public IAppHostProject? TryGetProject(FileInfo appHostFile)
     {
         var type = DetectAppHostType(appHostFile);
 
@@ -40,7 +40,7 @@ internal sealed class AppHostRunnerFactory : IAppHostRunnerFactory
             return null;
         }
 
-        return _runners.FirstOrDefault(r => r.SupportedType == type.Value);
+        return _projects.FirstOrDefault(p => p.SupportedType == type.Value);
     }
 
     /// <summary>

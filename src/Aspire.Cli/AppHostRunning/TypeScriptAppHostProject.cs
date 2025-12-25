@@ -13,18 +13,18 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.AppHostRunning;
 
 /// <summary>
-/// Runner for TypeScript AppHost projects (apphost.ts).
+/// Handler for TypeScript AppHost projects (apphost.ts).
 /// </summary>
-internal sealed class TypeScriptAppHostRunner : IAppHostRunner
+internal sealed class TypeScriptAppHostProject : IAppHostProject
 {
     private readonly IInteractionService _interactionService;
     private readonly ICodeGenerationService _codeGenerationService;
-    private readonly ILogger<TypeScriptAppHostRunner> _logger;
+    private readonly ILogger<TypeScriptAppHostProject> _logger;
 
-    public TypeScriptAppHostRunner(
+    public TypeScriptAppHostProject(
         IInteractionService interactionService,
         ICodeGenerationService codeGenerationService,
-        ILogger<TypeScriptAppHostRunner> logger)
+        ILogger<TypeScriptAppHostProject> logger)
     {
         _interactionService = interactionService;
         _codeGenerationService = codeGenerationService;
@@ -62,7 +62,7 @@ internal sealed class TypeScriptAppHostRunner : IAppHostRunner
     }
 
     /// <inheritdoc />
-    public async Task<int> RunAsync(AppHostRunnerContext context, CancellationToken cancellationToken)
+    public async Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken)
     {
         var appHostFile = context.AppHostFile;
         var directory = appHostFile.Directory!;
@@ -450,5 +450,29 @@ internal sealed class TypeScriptAppHostRunner : IAppHostRunner
     private static string? FindNodePath()
     {
         return PathLookupHelper.FindFullPathFromPath("node");
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken)
+    {
+        var directory = context.AppHostFile.Directory;
+        if (directory is null)
+        {
+            return false;
+        }
+
+        // Update .aspire/settings.json with the new package
+        var config = AspireJsonConfiguration.Load(directory.FullName) ?? new AspireJsonConfiguration();
+        config.AddOrUpdatePackage(context.PackageId, context.PackageVersion);
+        config.Save(directory.FullName);
+
+        // Regenerate TypeScript SDK code
+        var packages = GetPackageReferences(directory).ToList();
+        await _codeGenerationService.GenerateTypeScriptAsync(
+            directory.FullName,
+            packages,
+            cancellationToken);
+
+        return true;
     }
 }

@@ -10,7 +10,7 @@ namespace Aspire.Cli.AppHostRunning;
 /// <summary>
 /// Context containing all information needed to run an AppHost.
 /// </summary>
-internal sealed class AppHostRunnerContext
+internal sealed class AppHostProjectContext
 {
     /// <summary>
     /// Gets the AppHost file to run.

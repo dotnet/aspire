@@ -41,7 +41,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<RunCommand> _logger;
-    private readonly IAppHostRunnerFactory _runnerFactory;
+    private readonly IAppHostProjectFactory _projectFactory;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -58,7 +58,7 @@ internal sealed class RunCommand : BaseCommand
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment,
         ILogger<RunCommand> logger,
-        IAppHostRunnerFactory runnerFactory,
+        IAppHostProjectFactory projectFactory,
         TimeProvider? timeProvider)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
@@ -72,7 +72,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(runnerFactory);
+        ArgumentNullException.ThrowIfNull(projectFactory);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -86,7 +86,7 @@ internal sealed class RunCommand : BaseCommand
         _features = features;
         _hostEnvironment = hostEnvironment;
         _logger = logger;
-        _runnerFactory = runnerFactory;
+        _projectFactory = projectFactory;
         _timeProvider = timeProvider ?? TimeProvider.System;
 
         var projectOption = new Option<FileInfo?>("--project");
@@ -144,11 +144,11 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            // Check if this is a TypeScript or Python AppHost - use the appropriate runner
+            // Check if this is a TypeScript or Python AppHost - use the appropriate project handler
             if (searchResult.DetectedType is AppHostType.TypeScript or AppHostType.Python)
             {
-                var runner = _runnerFactory.GetRunner(searchResult.DetectedType.Value);
-                var context = new AppHostRunnerContext
+                var project = _projectFactory.GetProject(searchResult.DetectedType.Value);
+                var context = new AppHostProjectContext
                 {
                     AppHostFile = effectiveAppHostFile,
                     Type = searchResult.DetectedType.Value,
@@ -162,7 +162,7 @@ internal sealed class RunCommand : BaseCommand
                     WorkingDirectory = ExecutionContext.WorkingDirectory
                 };
 
-                return await runner.RunAsync(context, cancellationToken);
+                return await project.RunAsync(context, cancellationToken);
             }
 
             // Check for running instance if feature is enabled

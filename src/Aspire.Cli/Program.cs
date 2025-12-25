@@ -202,11 +202,11 @@ public class Program
         // Code generation services.
         builder.Services.AddSingleton<ICodeGenerationService, CodeGenerationService>();
 
-        // AppHost runners.
-        builder.Services.AddSingleton<IAppHostRunnerFactory, AppHostRunnerFactory>();
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostRunner, DotNetAppHostRunner>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostRunner, TypeScriptAppHostRunner>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostRunner, PythonAppHostRunner>());
+        // AppHost project handlers.
+        builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, DotNetAppHostProject>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, TypeScriptAppHostProject>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, PythonAppHostProject>());
 
         // Environment checking services.
         builder.Services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();

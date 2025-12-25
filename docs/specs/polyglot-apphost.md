@@ -27,7 +27,7 @@ flowchart TB
     subgraph CLI["Aspire CLI"]
         RC[RunCommand]
         AC[AddCommand]
-        TSR[TypeScriptAppHostRunner]
+        TSP[TypeScriptAppHostProject]
         PL[ProjectLocator]
         PM[ProjectModel]
         CGS[CodeGenerationService]
@@ -47,13 +47,13 @@ flowchart TB
 
     RC --> PL
     AC --> PL
-    PL -->|Detects apphost.ts| TSR
+    PL -->|Detects apphost.ts| TSP
     AC -->|Updates settings.json| CGS
-    TSR -->|1. Runs code generation| CGS
-    TSR -->|2. Scaffolds & Builds| PM
+    TSP -->|1. Runs code generation| CGS
+    TSP -->|2. Scaffolds & Builds| PM
     PM -->|Creates| GenericAppHost
-    TSR -->|3. Starts via dotnet exec| JRS
-    TSR -->|4. Starts via npx tsx| TS
+    TSP -->|3. Starts via dotnet exec| JRS
+    TSP -->|4. Starts via npx tsx| TS
 
     TS --> Client
     Client <-->|Unix Domain Socket| JRS

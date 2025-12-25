@@ -21,9 +21,9 @@ using StreamJsonRpc;
 namespace Aspire.Cli.AppHostRunning;
 
 /// <summary>
-/// Runner for .NET AppHost projects (.csproj and single-file .cs).
+/// Handler for .NET AppHost projects (.csproj and single-file .cs).
 /// </summary>
-internal sealed class DotNetAppHostRunner : IAppHostRunner
+internal sealed class DotNetAppHostProject : IAppHostProject
 {
     private const int ProcessTerminationTimeoutMs = 10000;
     private const int ProcessTerminationPollIntervalMs = 250;
@@ -37,11 +37,11 @@ internal sealed class DotNetAppHostRunner : IAppHostRunner
     private readonly IFeatures _features;
     private readonly ICliHostEnvironment _hostEnvironment;
     private readonly TimeProvider _timeProvider;
-    private readonly ILogger<DotNetAppHostRunner> _logger;
+    private readonly ILogger<DotNetAppHostProject> _logger;
 
     private readonly Dictionary<string, RpcResourceState> _resourceStates = new();
 
-    public DotNetAppHostRunner(
+    public DotNetAppHostProject(
         IDotNetCliRunner runner,
         IInteractionService interactionService,
         ICertificateService certificateService,
@@ -51,7 +51,7 @@ internal sealed class DotNetAppHostRunner : IAppHostRunner
         IFeatures features,
         ICliHostEnvironment hostEnvironment,
         TimeProvider timeProvider,
-        ILogger<DotNetAppHostRunner> logger)
+        ILogger<DotNetAppHostProject> logger)
     {
         _runner = runner;
         _interactionService = interactionService;
@@ -92,7 +92,7 @@ internal sealed class DotNetAppHostRunner : IAppHostRunner
     }
 
     /// <inheritdoc />
-    public async Task<int> RunAsync(AppHostRunnerContext context, CancellationToken cancellationToken)
+    public async Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken)
     {
         var effectiveAppHostFile = context.AppHostFile;
         var isExtensionHost = ExtensionHelper.IsExtensionHost(_interactionService, out _, out _);
@@ -553,5 +553,20 @@ internal sealed class DotNetAppHostRunner : IAppHostRunner
         }
 
         return false;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken)
+    {
+        var options = new DotNetCliRunnerInvocationOptions();
+        var result = await _runner.AddPackageAsync(
+            context.AppHostFile,
+            context.PackageId,
+            context.PackageVersion,
+            context.Source,
+            options,
+            cancellationToken);
+
+        return result == 0;
     }
 }
