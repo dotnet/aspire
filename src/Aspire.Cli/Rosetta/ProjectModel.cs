@@ -24,7 +24,20 @@ internal sealed class ProjectModel
     private const string LaunchSettingsJsonFileName = "./Properties/launchSettings.json";
     private const string TargetFramework = "net9.0";
 
-    public static string AspireHostVersion = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_VERSION") ?? VersionHelper.GetDefaultTemplateVersion();
+    public static string AspireHostVersion = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_VERSION") ?? GetEffectiveVersion();
+
+    private static string GetEffectiveVersion()
+    {
+        var version = VersionHelper.GetDefaultTemplateVersion();
+        // Dev versions (e.g., "13.2.0-dev") don't exist on NuGet, fall back to latest stable
+        if (version.EndsWith("-dev", StringComparison.OrdinalIgnoreCase))
+        {
+            // Use the latest stable version available on NuGet
+            // This should be updated when new stable versions are released
+            return "13.1.0";
+        }
+        return version;
+    }
     public static string? LocalPackagePath = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_SOURCE");
 
     public const string BuildFolder = "build";
