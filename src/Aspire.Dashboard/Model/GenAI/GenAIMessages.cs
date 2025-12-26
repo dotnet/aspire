@@ -126,7 +126,12 @@ public class MessagePartConverter : JsonConverter<MessagePart>
     }
 }
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    ReadCommentHandling = JsonCommentHandling.Skip,
+    AllowTrailingCommas = true,
+    AllowDuplicateProperties = true)]
 [JsonSerializable(typeof(MessagePart))]
 [JsonSerializable(typeof(TextPart))]
 [JsonSerializable(typeof(ToolCallRequestPart))]
