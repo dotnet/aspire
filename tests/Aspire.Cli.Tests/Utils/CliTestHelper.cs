@@ -107,7 +107,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.GitRepositoryFactory);
         services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
         services.AddKeyedSingleton<ICodeGenerator, TypeScriptCodeGeneratorService>(AppHostType.TypeScript);
-        services.AddSingleton<ILanguageService, LanguageService>();
+        services.AddSingleton(options.LanguageServiceFactory);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, DotNetAppHostProject>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, TypeScriptAppHostProject>());
         services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
@@ -382,6 +382,11 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var logger = serviceProvider.GetRequiredService<ILogger<GitRepository>>();
         return new GitRepository(executionContext, logger);
+    };
+
+    public Func<IServiceProvider, ILanguageService> LanguageServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        return new TestLanguageService();
     };
 }
 
