@@ -5,13 +5,13 @@ using System.Text.Json.Serialization;
 
 namespace Aspire.Hosting.RemoteHost;
 
-public record Instruction
+internal record Instruction
 {
     [JsonPropertyName("name")]
     public required string Name { get; init; }
 }
 
-public record CreateBuilderInstruction : Instruction
+internal sealed record CreateBuilderInstruction : Instruction
 {
     [JsonPropertyName("builderName")]
     public required string BuilderName { get; init; }
@@ -23,13 +23,13 @@ public record CreateBuilderInstruction : Instruction
     public string? ProjectDirectory { get; init; }
 }
 
-public record RunBuilderInstruction : Instruction
+internal sealed record RunBuilderInstruction : Instruction
 {
     [JsonPropertyName("builderName")]
     public required string BuilderName { get; init; }
 }
 
-public record PragmaInstruction : Instruction
+internal sealed record PragmaInstruction : Instruction
 {
     [JsonPropertyName("type")]
     public required string Type { get; init; }
@@ -38,7 +38,7 @@ public record PragmaInstruction : Instruction
     public required string Value { get; init; }
 }
 
-public record DeclareInstruction : Instruction
+internal sealed record DeclareInstruction : Instruction
 {
     [JsonPropertyName("type")]
     public required string Type { get; init; }
@@ -47,7 +47,7 @@ public record DeclareInstruction : Instruction
     public required string VarName { get; init; }
 }
 
-public record InvokeInstruction : Instruction
+internal sealed record InvokeInstruction : Instruction
 {
     [JsonPropertyName("source")]
     public required string Source { get; init; }

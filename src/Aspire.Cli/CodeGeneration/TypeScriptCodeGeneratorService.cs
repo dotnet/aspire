@@ -134,29 +134,25 @@ internal sealed class TypeScriptCodeGeneratorService : ICodeGenerator
         }
 
         // Load core runtime assemblies first (required for WellKnownTypes)
-        // These are in the build output when SelfContained=true, or in the runtime directory
-        var mscorlibPath = Path.Combine(buildPath, "System.Private.CoreLib.dll");
-        if (File.Exists(mscorlibPath))
+        // These are in the build output when SelfContained=true, otherwise fall back to the runtime directories
+        var runtimeDirectory = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory();
+
+        // Add runtime directory to search paths so referenced assemblies can be found
+        searchPaths.Add(runtimeDirectory);
+
+        // Also add the ASP.NET Core shared framework directory (contains HealthChecks, etc.)
+        var aspnetCoreDirectory = runtimeDirectory.Replace("Microsoft.NETCore.App", "Microsoft.AspNetCore.App");
+        if (Directory.Exists(aspnetCoreDirectory))
         {
-            assemblyLoaderContext.LoadAssembly(mscorlibPath);
+            searchPaths.Add(aspnetCoreDirectory);
         }
 
-        var systemRuntimePath = Path.Combine(buildPath, "System.Runtime.dll");
-        if (File.Exists(systemRuntimePath))
-        {
-            assemblyLoaderContext.LoadAssembly(systemRuntimePath);
-        }
+        // Load core runtime assemblies using full search paths so dependencies can be resolved
+        assemblyLoaderContext.LoadAssembly("System.Private.CoreLib", searchPaths, loadDependencies: true);
+        assemblyLoaderContext.LoadAssembly("System.Runtime", searchPaths, loadDependencies: true);
 
         // Load Aspire.Hosting for well-known types
-        var aspireHostingPath = Path.Combine(buildPath, "Aspire.Hosting.dll");
-        if (File.Exists(aspireHostingPath))
-        {
-            assemblyLoaderContext.LoadAssembly(aspireHostingPath);
-        }
-        else
-        {
-            _logger.LogWarning("Aspire.Hosting.dll not found in build output at {Path}", aspireHostingPath);
-        }
+        assemblyLoaderContext.LoadAssembly("Aspire.Hosting", searchPaths, loadDependencies: true);
 
         WellKnownTypes? wellKnownTypes = null;
 
@@ -221,7 +217,10 @@ internal sealed class TypeScriptCodeGeneratorService : ICodeGenerator
 
                 foreach (var frameworkPath in frameworks)
                 {
-                    var assembly = context.LoadAssembly(packageId, [frameworkPath], loadDependencies: true);
+                    // Include the framework path along with all search paths for dependency resolution
+                    var allPaths = new List<string> { frameworkPath };
+                    allPaths.AddRange(searchPaths);
+                    var assembly = context.LoadAssembly(packageId, allPaths, loadDependencies: true);
                     if (assembly is not null)
                     {
                         return assembly;

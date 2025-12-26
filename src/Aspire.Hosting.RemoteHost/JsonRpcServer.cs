@@ -4,11 +4,10 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
 
 namespace Aspire.Hosting.RemoteHost;
 
-public class RemoteAppHostService : IAsyncDisposable
+internal sealed class RemoteAppHostService : IAsyncDisposable
 {
     private readonly InstructionProcessor _instructionProcessor = new();
     private readonly CancellationTokenSource _cts = new();
@@ -31,7 +30,7 @@ public class RemoteAppHostService : IAsyncDisposable
     {
         try
         {
-            return await _instructionProcessor.ExecuteInstructionAsync(instructionJson, _cts.Token);
+            return await _instructionProcessor.ExecuteInstructionAsync(instructionJson, _cts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException ex)
         {
@@ -53,7 +52,9 @@ public class RemoteAppHostService : IAsyncDisposable
     }
 
     [JsonRpcMethod("ping")]
+#pragma warning disable CA1822 // Mark members as static - JSON-RPC methods must be instance methods
     public string Ping()
+#pragma warning restore CA1822
     {
         return "pong";
     }
@@ -154,11 +155,11 @@ public class RemoteAppHostService : IAsyncDisposable
         _cts.Cancel();
         _cts.Dispose();
 
-        await _instructionProcessor.DisposeAsync();
+        await _instructionProcessor.DisposeAsync().ConfigureAwait(false);
     }
 }
 
-public class JsonRpcServer : IAsyncDisposable
+internal sealed class JsonRpcServer : IAsyncDisposable
 {
     private readonly string _socketPath;
     private readonly RemoteAppHostService _service;
@@ -207,14 +208,14 @@ public class JsonRpcServer : IAsyncDisposable
             {
                 Console.WriteLine("Waiting for client connection...");
 
-                var clientSocket = await _listenSocket.AcceptAsync(cancellationToken);
+                var clientSocket = await _listenSocket.AcceptAsync(cancellationToken).ConfigureAwait(false);
 
                 Console.WriteLine("Client connected!");
                 Interlocked.Increment(ref _activeClientCount);
                 _hasHadClient = true;
 
                 // Handle the connection in a separate task
-                _ = Task.Run(async () => await HandleClientAsync(clientSocket, cancellationToken), cancellationToken);
+                _ = Task.Run(() => HandleClientAsync(clientSocket, cancellationToken), cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -225,7 +226,7 @@ public class JsonRpcServer : IAsyncDisposable
             {
                 Console.WriteLine($"Error in server loop: {ex.Message}");
                 Console.WriteLine("Retrying in 1 second...");
-                await Task.Delay(1000, cancellationToken);
+                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -252,8 +253,8 @@ public class JsonRpcServer : IAsyncDisposable
             Console.WriteLine($"JsonRpc connection established for client {clientId} (bidirectional)");
 
             // Wait for the connection to be closed by the client, an error, or cancellation
-            using var registration = cancellationToken.Register(() => jsonRpc.Dispose());
-            await jsonRpc.Completion;
+            using var registration = cancellationToken.Register(jsonRpc.Dispose);
+            await jsonRpc.Completion.ConfigureAwait(false);
 
             Console.WriteLine($"Client {clientId} disconnected gracefully");
         }
@@ -301,7 +302,7 @@ public class JsonRpcServer : IAsyncDisposable
 
             // Dispose the service which will stop all running apps
             Console.WriteLine("Disposing RemoteAppHostService...");
-            await _service.DisposeAsync();
+            await _service.DisposeAsync().ConfigureAwait(false);
 
             // Clean up socket file
             if (File.Exists(_socketPath))

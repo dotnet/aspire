@@ -2,11 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- Disable warnings for code moved from CLI embedded resources -->
-    <NoWarn>$(NoWarn);CS1591;CA2007;CA1305;IDE0005;IDE0011;IDE0200;IDE1006</NoWarn>
+    <Description>Remote host server for polyglot Aspire AppHosts.</Description>
+    <PackageTags>aspire hosting polyglot</PackageTags>
+    <!-- New package, no baseline to compare against yet -->
+    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>

@@ -20,7 +20,7 @@ public static class RemoteHostServer
 
         // Start the orphan detector to monitor the parent process
         var orphanDetector = new OrphanDetector();
-        var orphanDetectorTask = orphanDetector.StartAsync(cts.Token);
+        _ = orphanDetector.StartAsync(cts.Token);
 
         orphanDetector.OnParentDied = () =>
         {
@@ -38,47 +38,57 @@ public static class RemoteHostServer
         Console.WriteLine($"Starting RemoteAppHost JsonRpc Server on {socketPath}...");
         Console.WriteLine("This server will continue running until stopped with Ctrl+C");
 
-        await using var server = new JsonRpcServer(socketPath);
-
-        server.OnAllClientsDisconnected = () =>
-        {
-            Console.WriteLine("All clients disconnected, shutting down server...");
-            cts.Cancel();
-        };
-
-        // Handle graceful shutdown
-        Console.CancelKeyPress += (sender, e) =>
-        {
-            e.Cancel = true;
-            Console.WriteLine("\nShutting down server...");
-            cts.Cancel();
-        };
-
-        // Handle SIGTERM
-        AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
-        {
-            Console.WriteLine("Process exit requested, shutting down...");
-            cts.Cancel();
-        };
-
+        var server = new JsonRpcServer(socketPath);
         try
         {
-            await server.StartAsync(cts.Token);
-            Console.WriteLine("Server has stopped gracefully.");
-        }
-        catch (OperationCanceledException)
-        {
-            Console.WriteLine("Server shutdown requested.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Server error: {ex.Message}");
-            throw;
+            server.OnAllClientsDisconnected = () =>
+            {
+                Console.WriteLine("All clients disconnected, shutting down server...");
+                cts.Cancel();
+            };
+
+            // Handle graceful shutdown
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                e.Cancel = true;
+                Console.WriteLine("\nShutting down server...");
+                cts.Cancel();
+            };
+
+            // Handle SIGTERM
+            AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
+            {
+                Console.WriteLine("Process exit requested, shutting down...");
+                try
+                {
+                    cts.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // CTS already disposed, server already shutting down
+                }
+            };
+
+            try
+            {
+                await server.StartAsync(cts.Token).ConfigureAwait(false);
+                Console.WriteLine("Server has stopped gracefully.");
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("Server shutdown requested.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Server error: {ex.Message}");
+                throw;
+            }
         }
         finally
         {
+            await server.DisposeAsync().ConfigureAwait(false);
             // Stop the orphan detector
-            await orphanDetector.StopAsync(CancellationToken.None);
+            await orphanDetector.StopAsync(CancellationToken.None).ConfigureAwait(false);
         }
 
         Console.WriteLine("Goodbye!");

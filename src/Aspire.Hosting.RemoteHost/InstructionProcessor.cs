@@ -3,12 +3,11 @@
 
 using System.Collections.Concurrent;
 using System.Text.Json;
-using Aspire.Hosting;
 using StreamJsonRpc;
 
 namespace Aspire.Hosting.RemoteHost;
 
-public class InstructionProcessor : IAsyncDisposable
+internal sealed class InstructionProcessor : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, object> _variables = new();
     private readonly ConcurrentDictionary<string, System.Reflection.Assembly> _assemblyCache = new();
@@ -25,8 +24,8 @@ public class InstructionProcessor : IAsyncDisposable
     private readonly ConcurrentDictionary<string, object> _objectRegistry = new();
     private long _objectIdCounter;
 
-    private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan CallbackTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan s_callbackTimeout = TimeSpan.FromSeconds(60);
 
     /// <summary>
     /// Sets the JSON-RPC connection to use for invoking callbacks on the client.
@@ -302,7 +301,7 @@ public class InstructionProcessor : IAsyncDisposable
             var indexParam = indexer.GetIndexParameters()[0];
             var keyValue = DeserializeArgument(key, indexParam.ParameterType);
             var valueType = indexer.PropertyType;
-            var typedValue = resolvedValue != null ? Convert.ChangeType(resolvedValue, valueType) : null;
+            var typedValue = resolvedValue != null ? Convert.ChangeType(resolvedValue, valueType, System.Globalization.CultureInfo.InvariantCulture) : null;
             indexer.SetValue(obj, typedValue, [keyValue]);
             return;
         }
@@ -373,7 +372,10 @@ public class InstructionProcessor : IAsyncDisposable
     /// </summary>
     private object? ResolveValueObject(object? value)
     {
-        if (value == null) return null;
+        if (value == null)
+        {
+            return null;
+        }
 
         // Check if it's a dictionary with $id (a proxy reference)
         if (value is System.Collections.IDictionary dict && dict.Contains("$id"))
@@ -634,7 +636,7 @@ public class InstructionProcessor : IAsyncDisposable
         }
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(CallbackTimeout);
+        cts.CancelAfter(s_callbackTimeout);
 
         // Convert complex objects to a marshalled representation with object IDs
         var serializableArgs = args != null && !IsSimpleType(args.GetType())
@@ -646,11 +648,11 @@ public class InstructionProcessor : IAsyncDisposable
             return await _clientRpc.InvokeWithCancellationAsync<TResult>(
                 "invokeCallback",
                 [callbackId, serializableArgs],
-                cts.Token);
+                cts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new TimeoutException($"Callback '{callbackId}' timed out after {CallbackTimeout.TotalSeconds}s");
+            throw new TimeoutException($"Callback '{callbackId}' timed out after {s_callbackTimeout.TotalSeconds}s");
         }
     }
 
@@ -659,7 +661,7 @@ public class InstructionProcessor : IAsyncDisposable
     /// </summary>
     public async Task InvokeCallbackAsync(string callbackId, object? args, CancellationToken cancellationToken = default)
     {
-        await InvokeCallbackAsync<object?>(callbackId, args, cancellationToken);
+        await InvokeCallbackAsync<object?>(callbackId, args, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -787,8 +789,8 @@ public class InstructionProcessor : IAsyncDisposable
 
         return instructionName switch
         {
-            "CREATE_BUILDER" => await ExecuteCreateBuilderAsync(instructionJson, cancellationToken),
-            "RUN_BUILDER" => await ExecuteRunBuilderAsync(instructionJson, cancellationToken),
+            "CREATE_BUILDER" => await ExecuteCreateBuilderAsync(instructionJson, cancellationToken).ConfigureAwait(false),
+            "RUN_BUILDER" => await ExecuteRunBuilderAsync(instructionJson, cancellationToken).ConfigureAwait(false),
             "pragma" => ExecutePragma(instructionJson),
             "INVOKE" => ExecuteInvoke(instructionJson),
             _ => throw new NotSupportedException($"Instruction '{instructionName}' is not supported")
@@ -845,7 +847,7 @@ public class InstructionProcessor : IAsyncDisposable
         {
             // Start the application and wait for startup to complete
             // This will throw if startup fails (e.g., port conflict)
-            await app.StartAsync(cancellationToken);
+            await app.StartAsync(cancellationToken).ConfigureAwait(false);
 
             // The app is now running in the background.
             // When the server shuts down, DisposeAsync will stop all running apps.
@@ -889,8 +891,7 @@ public class InstructionProcessor : IAsyncDisposable
         }
 
         // Load the assembly (cached)
-        var assembly = _assemblyCache.GetOrAdd(instruction.MethodAssembly,
-            assemblyName => System.Reflection.Assembly.Load(assemblyName));
+        var assembly = _assemblyCache.GetOrAdd(instruction.MethodAssembly, System.Reflection.Assembly.Load);
 
         // Get the type
         var type = assembly.GetType(instruction.MethodType)
@@ -972,7 +973,7 @@ public class InstructionProcessor : IAsyncDisposable
                 // Score based on how many provided argument names match method parameter names
                 // Skip the first parameter (this) for extension methods
                 var methodParamNames = parameters.Skip(1).Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var matchingArgs = providedArgNames.Count(argName => methodParamNames.Contains(argName));
+                var matchingArgs = providedArgNames.Count(methodParamNames.Contains);
                 var missingRequiredArgs = parameters.Skip(1).Count(p => !p.HasDefaultValue && !providedArgNames.Contains(p.Name!));
 
                 // Higher score = better match
@@ -1155,19 +1156,19 @@ public class InstructionProcessor : IAsyncDisposable
                 Console.WriteLine("Stopping DistributedApplication...");
 
                 // Use a timeout to prevent hanging indefinitely
-                using var cts = new CancellationTokenSource(ShutdownTimeout);
+                using var cts = new CancellationTokenSource(s_shutdownTimeout);
                 try
                 {
-                    await app.StopAsync(cts.Token);
+                    await app.StopAsync(cts.Token).ConfigureAwait(false);
                     Console.WriteLine("DistributedApplication stopped.");
                 }
                 catch (OperationCanceledException)
                 {
-                    Console.WriteLine($"Warning: DistributedApplication stop timed out after {ShutdownTimeout.TotalSeconds}s");
+                    Console.WriteLine($"Warning: DistributedApplication stop timed out after {s_shutdownTimeout.TotalSeconds}s");
                 }
 
                 // Dispose the app to clean up resources (no timeout - dispose should be quick)
-                await app.DisposeAsync();
+                await app.DisposeAsync().ConfigureAwait(false);
                 Console.WriteLine("DistributedApplication disposed.");
             }
             catch (Exception ex)
