@@ -293,7 +293,18 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         {
             if (key.ValueKind == JsonValueKind.Number && key.TryGetInt32(out var index))
             {
-                list[index] = resolvedValue;
+                // Get the list's element type and convert the value appropriately
+                var listType = obj.GetType();
+                var elementType = listType.IsGenericType
+                    ? listType.GetGenericArguments()[0]
+                    : typeof(object);
+
+                var typedValue = resolvedValue;
+                if (resolvedValue != null && elementType != typeof(object))
+                {
+                    typedValue = Convert.ChangeType(resolvedValue, elementType, System.Globalization.CultureInfo.InvariantCulture);
+                }
+                list[index] = typedValue;
                 return;
             }
             throw new InvalidOperationException($"List indexer requires a numeric index, got: {key.ValueKind}");
@@ -396,6 +407,17 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         if (element.ValueKind == JsonValueKind.Null)
         {
             return null;
+        }
+
+        // Handle callback parameters (delegate type with string callbackId)
+        if (IsDelegateType(targetType) && element.ValueKind == JsonValueKind.String)
+        {
+            var callbackId = element.GetString()!;
+            var proxy = CreateCallbackProxy(callbackId, targetType);
+            if (proxy != null)
+            {
+                return proxy;
+            }
         }
 
         // Handle primitives
