@@ -21,6 +21,10 @@ public class InstructionProcessor : IAsyncDisposable
     private volatile bool _disposed;
     private JsonRpc? _clientRpc;
 
+    // Object registry for marshalling objects to TypeScript
+    private readonly ConcurrentDictionary<string, object> _objectRegistry = new();
+    private long _objectIdCounter;
+
     private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan CallbackTimeout = TimeSpan.FromSeconds(60);
 
@@ -31,6 +35,479 @@ public class InstructionProcessor : IAsyncDisposable
     {
         _clientRpc = clientRpc;
     }
+
+    #region Object Marshalling
+
+    /// <summary>
+    /// Registers an object in the registry and returns its ID.
+    /// </summary>
+    private string RegisterObject(object obj)
+    {
+        var id = $"obj_{Interlocked.Increment(ref _objectIdCounter)}";
+        _objectRegistry[id] = obj;
+        return id;
+    }
+
+    /// <summary>
+    /// Unregisters an object from the registry.
+    /// </summary>
+    public void UnregisterObject(string objectId)
+    {
+        _objectRegistry.TryRemove(objectId, out _);
+    }
+
+    /// <summary>
+    /// Invokes a method on a registered object. Called by TypeScript via JSON-RPC.
+    /// </summary>
+    public object? InvokeMethod(string objectId, string methodName, JsonElement? args)
+    {
+        if (!_objectRegistry.TryGetValue(objectId, out var obj))
+        {
+            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
+        }
+
+        var type = obj.GetType();
+        var methods = type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Where(m => m.Name.Equals(methodName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (methods.Count == 0)
+        {
+            throw new InvalidOperationException($"Method '{methodName}' not found on type '{type.Name}'");
+        }
+
+        // Parse arguments
+        var argDict = new Dictionary<string, JsonElement>();
+        if (args.HasValue && args.Value.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in args.Value.EnumerateObject())
+            {
+                argDict[prop.Name] = prop.Value;
+            }
+        }
+
+        // Find best matching method based on argument count/names
+        System.Reflection.MethodInfo? bestMethod = null;
+        var bestScore = -1;
+
+        foreach (var method in methods)
+        {
+            var parameters = method.GetParameters();
+            var score = 0;
+
+            // Check if all provided args match parameter names
+            var paramNames = parameters.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var argName in argDict.Keys)
+            {
+                if (paramNames.Contains(argName))
+                {
+                    score += 10;
+                }
+            }
+
+            // Penalize for missing required parameters
+            foreach (var param in parameters)
+            {
+                if (!param.HasDefaultValue && !argDict.ContainsKey(param.Name!))
+                {
+                    score -= 100;
+                }
+            }
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestMethod = method;
+            }
+        }
+
+        if (bestMethod == null)
+        {
+            bestMethod = methods[0];
+        }
+
+        // Build argument array
+        var parameters2 = bestMethod.GetParameters();
+        var arguments = new object?[parameters2.Length];
+
+        for (int i = 0; i < parameters2.Length; i++)
+        {
+            var param = parameters2[i];
+            if (argDict.TryGetValue(param.Name!, out var argValue))
+            {
+                arguments[i] = DeserializeArgument(argValue, param.ParameterType);
+            }
+            else if (param.HasDefaultValue)
+            {
+                arguments[i] = param.DefaultValue;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Required argument '{param.Name}' not provided for method '{methodName}'");
+            }
+        }
+
+        // Invoke the method
+        var result = bestMethod.Invoke(obj, arguments);
+
+        // If result is a complex object, register it and return a proxy representation
+        if (result != null && !IsSimpleType(result.GetType()))
+        {
+            return MarshalObject(result);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Gets a property value from a registered object. Called by TypeScript via JSON-RPC.
+    /// </summary>
+    public object? GetProperty(string objectId, string propertyName)
+    {
+        if (!_objectRegistry.TryGetValue(objectId, out var obj))
+        {
+            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
+        }
+
+        var type = obj.GetType();
+        var property = type.GetProperty(propertyName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
+
+        if (property == null)
+        {
+            throw new InvalidOperationException($"Property '{propertyName}' not found on type '{type.Name}'");
+        }
+
+        var value = property.GetValue(obj);
+
+        // If value is a complex object, register it and return a proxy representation
+        if (value != null && !IsSimpleType(value.GetType()))
+        {
+            return MarshalObject(value);
+        }
+
+        return value;
+    }
+
+    /// <summary>
+    /// Sets a property value on a registered object. Called by TypeScript via JSON-RPC.
+    /// </summary>
+    public void SetProperty(string objectId, string propertyName, JsonElement value)
+    {
+        if (!_objectRegistry.TryGetValue(objectId, out var obj))
+        {
+            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
+        }
+
+        var type = obj.GetType();
+        var property = type.GetProperty(propertyName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
+
+        if (property == null)
+        {
+            throw new InvalidOperationException($"Property '{propertyName}' not found on type '{type.Name}'");
+        }
+
+        if (!property.CanWrite)
+        {
+            throw new InvalidOperationException($"Property '{propertyName}' is read-only");
+        }
+
+        var deserializedValue = DeserializeArgument(value, property.PropertyType);
+        property.SetValue(obj, deserializedValue);
+    }
+
+    /// <summary>
+    /// Gets an item from an indexer (e.g., dictionary[key]). Called by TypeScript via JSON-RPC.
+    /// </summary>
+    public object? GetIndexer(string objectId, JsonElement key)
+    {
+        if (!_objectRegistry.TryGetValue(objectId, out var obj))
+        {
+            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
+        }
+
+        // Handle dictionary-like objects
+        if (obj is System.Collections.IDictionary dict)
+        {
+            var keyValue = key.ValueKind == JsonValueKind.String ? key.GetString() : key.ToString();
+            if (dict.Contains(keyValue!))
+            {
+                var value = dict[keyValue!];
+                if (value != null && !IsSimpleType(value.GetType()))
+                {
+                    return MarshalObject(value);
+                }
+                return value;
+            }
+            return null;
+        }
+
+        // Handle indexed properties
+        var type = obj.GetType();
+        var indexer = type.GetProperties().FirstOrDefault(p => p.GetIndexParameters().Length > 0);
+
+        if (indexer != null)
+        {
+            var indexParam = indexer.GetIndexParameters()[0];
+            var keyValue = DeserializeArgument(key, indexParam.ParameterType);
+            var value = indexer.GetValue(obj, [keyValue]);
+
+            if (value != null && !IsSimpleType(value.GetType()))
+            {
+                return MarshalObject(value);
+            }
+            return value;
+        }
+
+        throw new InvalidOperationException($"Object '{objectId}' does not support indexing");
+    }
+
+    /// <summary>
+    /// Sets an item via an indexer (e.g., dictionary[key] = value). Called by TypeScript via JSON-RPC.
+    /// </summary>
+    public void SetIndexer(string objectId, JsonElement key, JsonElement value)
+    {
+        var keyValue = key.ValueKind == JsonValueKind.String ? key.GetString() : key.ToString();
+        SetIndexerByStringKey(objectId, keyValue!, ResolveValue(value));
+    }
+
+    /// <summary>
+    /// Sets an item via an indexer with a string key. Called by TypeScript via JSON-RPC.
+    /// </summary>
+    public void SetIndexerByStringKey(string objectId, string key, object? value)
+    {
+        if (!_objectRegistry.TryGetValue(objectId, out var obj))
+        {
+            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
+        }
+
+        // Resolve the value if it's a proxy reference
+        var resolvedValue = ResolveValueObject(value);
+
+        // Handle dictionary-like objects
+        if (obj is System.Collections.IDictionary dict)
+        {
+            dict[key] = resolvedValue;
+            return;
+        }
+
+        throw new InvalidOperationException($"Object '{objectId}' does not support indexed assignment");
+    }
+
+    /// <summary>
+    /// Gets an item from an indexer with a string key.
+    /// </summary>
+    public object? GetIndexerByStringKey(string objectId, string key)
+    {
+        if (!_objectRegistry.TryGetValue(objectId, out var obj))
+        {
+            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
+        }
+
+        // Handle dictionary-like objects
+        if (obj is System.Collections.IDictionary dict)
+        {
+            if (dict.Contains(key))
+            {
+                var value = dict[key];
+                if (value != null && !IsSimpleType(value.GetType()))
+                {
+                    return MarshalObject(value);
+                }
+                return value;
+            }
+            return null;
+        }
+
+        throw new InvalidOperationException($"Object '{objectId}' does not support indexing");
+    }
+
+    /// <summary>
+    /// Resolves a value that might be a proxy reference (with $id) to the actual .NET object.
+    /// </summary>
+    private object? ResolveValueObject(object? value)
+    {
+        if (value == null) return null;
+
+        // Check if it's a dictionary with $id (a proxy reference)
+        if (value is System.Collections.IDictionary dict && dict.Contains("$id"))
+        {
+            var refId = dict["$id"]?.ToString();
+            if (!string.IsNullOrEmpty(refId) && _objectRegistry.TryGetValue(refId, out var refObj))
+            {
+                return refObj;
+            }
+        }
+
+        // Check if it's a JsonElement
+        if (value is JsonElement jsonElement)
+        {
+            return ResolveValue(jsonElement);
+        }
+
+        return value;
+    }
+
+    /// <summary>
+    /// Resolves a JsonElement value that might be a proxy reference.
+    /// </summary>
+    private object? ResolveValue(JsonElement element)
+    {
+        // Check if it's a proxy reference (object with $id)
+        if (element.ValueKind == JsonValueKind.Object && element.TryGetProperty("$id", out var idProp))
+        {
+            var refId = idProp.GetString();
+            if (!string.IsNullOrEmpty(refId) && _objectRegistry.TryGetValue(refId, out var refObj))
+            {
+                return refObj;
+            }
+        }
+
+        // Handle primitives
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString(),
+            JsonValueKind.Number => element.TryGetInt64(out var l) ? l : element.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => null,
+            _ => element.GetRawText() // fallback
+        };
+    }
+
+    /// <summary>
+    /// Marshals a .NET object to a representation that can be sent to TypeScript.
+    /// </summary>
+    private Dictionary<string, object?> MarshalObject(object obj)
+    {
+        var type = obj.GetType();
+        var objectId = RegisterObject(obj);
+
+        var result = new Dictionary<string, object?>
+        {
+            ["$id"] = objectId,
+            ["$type"] = type.Name,
+            ["$fullType"] = type.FullName
+        };
+
+        // Include simple property values directly
+        foreach (var prop in type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+        {
+            try
+            {
+                if (prop.GetIndexParameters().Length > 0)
+                {
+                    continue;
+                }
+
+                var propType = prop.PropertyType;
+
+                // Skip problematic types
+                if (propType.FullName?.StartsWith("System.Reflection") == true ||
+                    typeof(Delegate).IsAssignableFrom(propType))
+                {
+                    continue;
+                }
+
+                var value = prop.GetValue(obj);
+
+                if (value == null || IsSimpleType(propType))
+                {
+                    result[prop.Name] = value;
+                }
+                else
+                {
+                    // For complex nested objects, just include type info - they can be fetched via getProperty
+                    result[prop.Name + "$type"] = value.GetType().Name;
+                }
+            }
+            catch
+            {
+                // Ignore properties that can't be read
+            }
+        }
+
+        // Include available methods
+        var methods = type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Where(m => !m.IsSpecialName) // Exclude property getters/setters
+            .Where(m => m.DeclaringType != typeof(object)) // Exclude Object methods
+            .Select(m => new
+            {
+                name = m.Name,
+                parameters = m.GetParameters().Select(p => new { name = p.Name, type = p.ParameterType.Name }).ToArray()
+            })
+            .GroupBy(m => m.name)
+            .Select(g => g.First()) // Just include one overload for now
+            .ToArray();
+
+        result["$methods"] = methods;
+
+        return result;
+    }
+
+    /// <summary>
+    /// Deserializes a JSON argument to the target type.
+    /// </summary>
+    private object? DeserializeArgument(JsonElement element, Type targetType)
+    {
+        // Handle object references (proxied objects from TypeScript)
+        if (element.ValueKind == JsonValueKind.Object && element.TryGetProperty("$id", out var idProp))
+        {
+            var refId = idProp.GetString();
+            if (refId != null && _objectRegistry.TryGetValue(refId, out var refObj))
+            {
+                return refObj;
+            }
+        }
+
+        // Handle null
+        if (element.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        // Handle primitives
+        if (targetType == typeof(string))
+        {
+            return element.GetString();
+        }
+        if (targetType == typeof(int) || targetType == typeof(int?))
+        {
+            return element.GetInt32();
+        }
+        if (targetType == typeof(long) || targetType == typeof(long?))
+        {
+            return element.GetInt64();
+        }
+        if (targetType == typeof(double) || targetType == typeof(double?))
+        {
+            return element.GetDouble();
+        }
+        if (targetType == typeof(bool) || targetType == typeof(bool?))
+        {
+            return element.GetBoolean();
+        }
+
+        // Fall back to JSON deserialization
+        return JsonSerializer.Deserialize(element.GetRawText(), targetType, _jsonOptions);
+    }
+
+    /// <summary>
+    /// Checks if a type is a simple/primitive type that can be serialized directly.
+    /// </summary>
+    private static bool IsSimpleType(Type type)
+    {
+        return type.IsPrimitive ||
+               type == typeof(string) ||
+               type == typeof(decimal) ||
+               type == typeof(DateTime) ||
+               type == typeof(DateTimeOffset) ||
+               type == typeof(TimeSpan) ||
+               type == typeof(Guid) ||
+               type.IsEnum ||
+               (Nullable.GetUnderlyingType(type) is { } underlying && IsSimpleType(underlying));
+    }
+
+    #endregion
 
     /// <summary>
     /// Invokes a callback registered on the client side.
@@ -50,11 +527,16 @@ public class InstructionProcessor : IAsyncDisposable
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(CallbackTimeout);
 
+        // Convert complex objects to a marshalled representation with object IDs
+        var serializableArgs = args != null && !IsSimpleType(args.GetType())
+            ? MarshalObject(args)
+            : args;
+
         try
         {
             return await _clientRpc.InvokeWithCancellationAsync<TResult>(
                 "invokeCallback",
-                [callbackId, args],
+                [callbackId, serializableArgs],
                 cts.Token);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

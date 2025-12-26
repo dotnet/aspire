@@ -14,6 +14,7 @@ public sealed class RoDefinitionType : RoType
     private readonly Lazy<bool> _isGenericType;
     private readonly Lazy<bool> _isEnum;
     private readonly Lazy<IReadOnlyList<RoMethod>> _methods;
+    private readonly Lazy<IReadOnlyList<RoPropertyInfo>> _properties;
     private readonly Lazy<IReadOnlyList<RoType>> _genericArguments;
     private readonly Lazy<IReadOnlyList<RoType>> _genericTypeArguments;
     private readonly Lazy<bool> _containsGenericParameters;
@@ -32,6 +33,7 @@ public sealed class RoDefinitionType : RoType
         _isGenericType = new(LoadIsGenericType);
         _isEnum = new(LoadIsEnum);
         _methods = new(LoadMethods);
+        _properties = new(LoadProperties);
         _genericArguments = new(LoadGenericArguments);
         _genericTypeArguments = new(LoadGenericTypeArguments);
         _containsGenericParameters = new(LoadContainsGenericParameters);
@@ -101,6 +103,7 @@ public sealed class RoDefinitionType : RoType
         return new RoConstructedGenericType(this, typeArguments);
     }
     public override IReadOnlyList<RoMethod> Methods => _methods.Value;
+    public override IReadOnlyList<RoPropertyInfo> Properties => _properties.Value;
     public override RoMethod? GetMethod(string name)
     {
         return Methods.FirstOrDefault(m => m.Name == name);
@@ -298,6 +301,71 @@ public sealed class RoDefinitionType : RoType
         }
 
         return methods;
+    }
+
+    private List<RoPropertyInfo> LoadProperties()
+    {
+        var properties = new List<RoPropertyInfo>();
+        var displayTypeProvider = new DisplayTypeProvider(_reader);
+
+        foreach (var propertyHandle in TypeDefinition.GetProperties())
+        {
+            try
+            {
+                var propertyDef = _reader.GetPropertyDefinition(propertyHandle);
+                var accessors = propertyDef.GetAccessors();
+
+                // Check if getter is public
+                var hasPublicGetter = false;
+                var hasPublicSetter = false;
+
+                if (!accessors.Getter.IsNil)
+                {
+                    var getterDef = _reader.GetMethodDefinition(accessors.Getter);
+                    hasPublicGetter = (getterDef.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public;
+                }
+
+                if (!accessors.Setter.IsNil)
+                {
+                    var setterDef = _reader.GetMethodDefinition(accessors.Setter);
+                    hasPublicSetter = (setterDef.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public;
+                }
+
+                // Skip if neither getter nor setter is public
+                if (!hasPublicGetter && !hasPublicSetter)
+                {
+                    continue;
+                }
+
+                // Decode property signature to get type name
+                var signature = propertyDef.DecodeSignature(displayTypeProvider, genericContext: null);
+                var propertyTypeName = signature.ReturnType;
+
+                // Try to resolve the property type
+                var propertyType = DeclaringAssembly.AssemblyLoaderContext.GetType(propertyTypeName, _genericParameters);
+                if (propertyType is null)
+                {
+                    continue; // Skip properties with unresolvable types
+                }
+
+                var propertyName = _reader.GetString(propertyDef.Name);
+
+                properties.Add(new RoPropertyInfo
+                {
+                    Name = propertyName,
+                    PropertyType = propertyType,
+                    DeclaringType = this,
+                    CanRead = hasPublicGetter,
+                    CanWrite = hasPublicSetter
+                });
+            }
+            catch
+            {
+                // Skip properties that can't be resolved
+            }
+        }
+
+        return properties;
     }
 
     private IReadOnlyList<RoType> LoadGenericArguments()

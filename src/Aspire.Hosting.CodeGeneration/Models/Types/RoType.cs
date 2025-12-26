@@ -118,6 +118,14 @@ public abstract class RoType : IEquatable<RoType>
     /// </remarks>
     public virtual IReadOnlyList<RoMethod> Methods => [];
     public virtual RoMethod? GetMethod(string name) => null;
+
+    /// <summary>
+    /// Gets the collection of property metadata associated with the current type.
+    /// </summary>
+    /// <remarks>Only public properties.
+    /// The returned list provides read-only access to property information.
+    /// </remarks>
+    public virtual IReadOnlyList<RoPropertyInfo> Properties => [];
     public virtual IEnumerable<RoCustomAttributeData> GetCustomAttributes() => throw new NotImplementedException();
     /// <summary>
     /// Gets the zero-based position of the generic parameter if this type represents a generic parameter; otherwise -1.

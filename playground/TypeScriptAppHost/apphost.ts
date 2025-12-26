@@ -2,27 +2,33 @@
 // For more information, see: https://learn.microsoft.com/dotnet/aspire
 
 // Import from the generated module (created by code generation)
-import { createBuilder } from './.modules/distributed-application.js';
+import { createBuilder, EnvironmentCallbackContextProxy } from './.modules/distributed-application.js';
 
 async function main() {
     console.log("Aspire TypeScript AppHost starting...");
 
     try {
         // Create the distributed application builder
-        console.log("Creating distributed application builder...");
         const builder = await createBuilder();
-        console.log("Builder created successfully!");
 
-        // Add a Redis resource
-        console.log("Adding redis...");
-        const redis = await builder.addRedis("cache");
-        console.log("Redis added successfully!");
+        // Add a Redis container
+        const redis = await builder.addContainer("myredis", "redis:latest");
+
+        // Use WithEnvironment callback to set custom environment variables
+        // The callback now receives a typed EnvironmentCallbackContextProxy with property accessors
+        await redis.withEnvironment(async (context: EnvironmentCallbackContextProxy) => {
+            // Get the EnvironmentVariables dictionary using the typed accessor
+            const envVars = await context.getEnvironmentVariables();
+
+            // Set environment variables - these will be passed to the container
+            await envVars.set("MY_CUSTOM_VAR", "Hello from TypeScript with typed proxies!");
+            await envVars.set("REDIS_CONFIG", "configured-via-typescript");
+
+            console.log("Environment variables configured via TypeScript callback!");
+        });
 
         // Build and run the application
-        console.log("Building and running application...");
         const app = builder.build();
-        console.log("Application built!");
-
         await app.run();
 
     } catch (error) {

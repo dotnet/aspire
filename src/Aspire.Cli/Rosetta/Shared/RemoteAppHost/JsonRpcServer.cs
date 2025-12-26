@@ -54,6 +54,46 @@ public class RemoteAppHostService : IAsyncDisposable
         return "pong";
     }
 
+    #region Object Marshalling
+
+    [JsonRpcMethod("invokeMethod")]
+    public object? InvokeMethod(string objectId, string methodName, System.Text.Json.JsonElement? args)
+    {
+        return _instructionProcessor.InvokeMethod(objectId, methodName, args);
+    }
+
+    [JsonRpcMethod("getProperty")]
+    public object? GetProperty(string objectId, string propertyName)
+    {
+        return _instructionProcessor.GetProperty(objectId, propertyName);
+    }
+
+    [JsonRpcMethod("setProperty")]
+    public void SetProperty(string objectId, string propertyName, System.Text.Json.JsonElement value)
+    {
+        _instructionProcessor.SetProperty(objectId, propertyName, value);
+    }
+
+    [JsonRpcMethod("getIndexer")]
+    public object? GetIndexer(string objectId, string key)
+    {
+        return _instructionProcessor.GetIndexerByStringKey(objectId, key);
+    }
+
+    [JsonRpcMethod("setIndexer")]
+    public void SetIndexer(string objectId, string key, object? value)
+    {
+        _instructionProcessor.SetIndexerByStringKey(objectId, key, value);
+    }
+
+    [JsonRpcMethod("unregisterObject")]
+    public void UnregisterObject(string objectId)
+    {
+        _instructionProcessor.UnregisterObject(objectId);
+    }
+
+    #endregion
+
     public async ValueTask DisposeAsync()
     {
         // Cancel any in-flight operations

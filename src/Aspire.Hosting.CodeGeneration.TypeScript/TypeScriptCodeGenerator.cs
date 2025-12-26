@@ -18,6 +18,10 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
     private readonly Dictionary<RoMethod, string> _overloadParameterClassByMethod = [];
     private readonly Dictionary<string, string> _overloadParameterClassByName = [];
 
+    // Types that need proxy wrapper classes (callback parameter types)
+    private readonly HashSet<string> _callbackProxyTypes = [];
+    private readonly Dictionary<string, RoType> _callbackProxyTypesByName = [];
+
     /// <inheritdoc />
     public string Language => "TypeScript";
 
@@ -79,7 +83,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
         // Write the header with imports and utility functions
         writer.WriteLine($$"""
-        import { RemoteAppHostClient } from './RemoteAppHostClient.js';
+        import { RemoteAppHostClient, registerCallback, DotNetProxy, wrapIfProxy } from './RemoteAppHostClient.js';
         import { AnyInstruction, CreateBuilderInstruction, RunBuilderInstruction } from './types.js';
 
         // Get socket path from environment variable (set by aspire run)
@@ -279,6 +283,9 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
         // Generate overload parameter classes
         GenerateParameterClasses(writer);
+
+        // Generate callback proxy wrapper classes
+        GenerateCallbackProxyClasses(writer, model);
     }
 
     private void GenerateParameterClasses(TextWriter writer)
@@ -287,6 +294,219 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         {
             writer.WriteLine(overloadParameterType);
         }
+    }
+
+    private void GenerateCallbackProxyClasses(TextWriter writer, ApplicationModel model)
+    {
+        // Generate proxy wrapper classes for callback parameter types
+        // These provide typed wrappers around DotNetProxy with property accessors
+        foreach (var (typeName, roType) in _callbackProxyTypesByName)
+        {
+            writer.WriteLine();
+            writer.WriteLine($$"""
+                /**
+                 * Typed proxy wrapper for {{typeName}}
+                 * Provides typed access to .NET object properties via JSON-RPC
+                 */
+                export class {{typeName}}Proxy {
+                    constructor(private _proxy: DotNetProxy) {}
+
+                    /** Get the underlying proxy for advanced operations */
+                    get proxy(): DotNetProxy { return this._proxy; }
+
+                    /** The .NET type name */
+                    get $type(): string { return this._proxy.$type; }
+                """);
+
+            // Generate typed property accessors
+            foreach (var property in roType.Properties)
+            {
+                var jsReturnType = GetProxyReturnType(model, property.PropertyType);
+                var needsWrapper = jsReturnType.EndsWith("Proxy", StringComparison.Ordinal);
+
+                if (property.CanRead)
+                {
+                    if (needsWrapper)
+                    {
+                        writer.WriteLine($$"""
+
+                            /**
+                             * Gets the {{property.Name}} property
+                             * @returns Promise<{{jsReturnType}}>
+                             */
+                            async get{{property.Name}}(): Promise<{{jsReturnType}}> {
+                                const result = await this._proxy.getProperty("{{property.Name}}");
+                                return new {{jsReturnType}}(result as DotNetProxy);
+                            }
+                        """);
+                    }
+                    else
+                    {
+                        writer.WriteLine($$"""
+
+                            /**
+                             * Gets the {{property.Name}} property
+                             * @returns Promise<{{jsReturnType}}>
+                             */
+                            async get{{property.Name}}(): Promise<{{jsReturnType}}> {
+                                const result = await this._proxy.getProperty("{{property.Name}}");
+                                return result as {{jsReturnType}};
+                            }
+                        """);
+                    }
+                }
+
+                if (property.CanWrite)
+                {
+                    var jsParamType = GetSimpleJsType(model, property.PropertyType);
+                    writer.WriteLine($$"""
+
+                        /**
+                         * Sets the {{property.Name}} property
+                         */
+                        async set{{property.Name}}(value: {{jsParamType}}): Promise<void> {
+                            await this._proxy.setProperty("{{property.Name}}", value);
+                        }
+                    """);
+                }
+            }
+
+            // Add generic fallback methods for accessing any property/method
+            writer.WriteLine($$"""
+
+                    /**
+                     * Gets a property value from the .NET object (generic fallback)
+                     * @param propertyName The property name
+                     */
+                    async getProperty<T = unknown>(propertyName: string): Promise<T> {
+                        const result = await this._proxy.getProperty(propertyName);
+                        return result as T;
+                    }
+
+                    /**
+                     * Sets a property value on the .NET object (generic fallback)
+                     * @param propertyName The property name
+                     * @param value The value to set
+                     */
+                    async setProperty(propertyName: string, value: unknown): Promise<void> {
+                        await this._proxy.setProperty(propertyName, value);
+                    }
+
+                    /**
+                     * Gets an indexed value (e.g., dictionary[key])
+                     */
+                    async getIndexer<T = unknown>(key: string | number): Promise<T> {
+                        const result = await this._proxy.getIndexer(key);
+                        return result as T;
+                    }
+
+                    /**
+                     * Sets an indexed value (e.g., dictionary[key] = value)
+                     */
+                    async setIndexer(key: string | number, value: unknown): Promise<void> {
+                        await this._proxy.setIndexer(key, value);
+                    }
+
+                    /**
+                     * Invokes a method on the .NET object
+                     */
+                    async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
+                        const result = await this._proxy.invokeMethod(methodName, args);
+                        return result as T;
+                    }
+
+                    /**
+                     * Releases the proxy reference
+                     */
+                    async dispose(): Promise<void> {
+                        await this._proxy.dispose();
+                    }
+                }
+                """);
+        }
+
+        // Generate a DictionaryProxy for generic dictionary access
+        writer.WriteLine($$"""
+
+            /**
+             * Generic dictionary proxy for IDictionary<string, object> access
+             */
+            export class DictionaryProxy {
+                constructor(private _proxy: DotNetProxy) {}
+
+                /** Get the underlying proxy for advanced operations */
+                get proxy(): DotNetProxy { return this._proxy; }
+
+                async get<T = unknown>(key: string): Promise<T> {
+                    const result = await this._proxy.getIndexer(key);
+                    return result as T;
+                }
+
+                async set(key: string, value: unknown): Promise<void> {
+                    await this._proxy.setIndexer(key, value);
+                }
+
+                async dispose(): Promise<void> {
+                    await this._proxy.dispose();
+                }
+            }
+            """);
+    }
+
+    private string GetProxyReturnType(ApplicationModel model, RoType propertyType)
+    {
+        // Check if this is a known proxy type
+        if (_callbackProxyTypesByName.ContainsKey(propertyType.Name))
+        {
+            return $"{propertyType.Name}Proxy";
+        }
+
+        // Check for dictionary types
+        if (propertyType.IsGenericType && propertyType.GenericTypeDefinition is { } genDef)
+        {
+            var dictionaryTypes = new[] { typeof(Dictionary<,>), typeof(IDictionary<,>) };
+            if (dictionaryTypes.Any(d => genDef == model.WellKnownTypes.GetKnownType(d)))
+            {
+                return "DictionaryProxy";
+            }
+        }
+
+        // Simple types return as-is
+        if (IsSimpleType(model, propertyType))
+        {
+            return GetSimpleJsType(model, propertyType);
+        }
+
+        // Complex types return DotNetProxy
+        return "DotNetProxy";
+    }
+
+    private static string GetSimpleJsType(ApplicationModel model, RoType type)
+    {
+        if (type == model.WellKnownTypes.GetKnownType(typeof(string)))
+        {
+            return "string";
+        }
+
+        if (type == model.WellKnownTypes.GetKnownType(typeof(bool)))
+        {
+            return "boolean";
+        }
+
+        if (type == model.WellKnownTypes.GetKnownType(typeof(int)) ||
+            type == model.WellKnownTypes.GetKnownType(typeof(long)) ||
+            type == model.WellKnownTypes.GetKnownType(typeof(double)) ||
+            type == model.WellKnownTypes.GetKnownType(typeof(float)))
+        {
+            return "number";
+        }
+
+        if (type.IsEnum)
+        {
+            return "string";
+        }
+
+        return "unknown";
     }
 
     private static void GenerateModelClasses(TextWriter textWriter, ApplicationModel model)
@@ -351,14 +571,22 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
             foreach (var overload in overloads)
             {
+                var returnType = overload.ReturnType;
+
+                // Skip methods that return primitive types (can't be instantiated as classes)
+                // or have out/ref parameters
+                if (IsPrimitiveReturnType(model, returnType) ||
+                    overload.Parameters.Any(p => p.ParameterType.IsByRef))
+                {
+                    continue;
+                }
+
                 var methodNameAttribute = overload.GetCustomAttributes()
                     .FirstOrDefault(attr => attr.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
 
                 var preferredMethodName = methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
                     ?? methodNameAttribute?.FixedArguments.ElementAtOrDefault(0)?.ToString()
                     ?? overload.Name;
-
-                var returnType = overload.ReturnType;
                 var jsReturnTypeName = FormatJsType(model, returnType);
 
                 var parameterTypes = new List<string>();
@@ -557,6 +785,50 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
     private static string FormatJsonArgument(ApplicationModel model, RoParameterInfo p, string prefix)
     {
+        var actionType = model.WellKnownTypes.GetKnownType(typeof(Action<>));
+
+        // Handle Action<IResourceBuilder<T>> - these use inline capture, not JSON-RPC callbacks
+        // So we don't pass them in the args (the C# code is generated inline)
+        if (p.ParameterType.IsGenericType &&
+            p.ParameterType.GenericTypeDefinition == actionType &&
+            p.ParameterType.GetGenericArguments()[0] is { } genericArgument &&
+            genericArgument.IsGenericType &&
+            genericArgument.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
+        {
+            // This callback is handled by inline capture in FormatCsArgument, not via JSON-RPC
+            // Return null for this parameter in the args
+            return $"{p.Name}: null";
+        }
+
+        // Handle other delegate types - register callback and pass ID
+        if (IsDelegateType(model, p.ParameterType))
+        {
+            // Register the callback and pass the callback ID to the server
+            // The server will invoke it via JSON-RPC when the C# delegate is called
+
+            // Check if this is an Action<T> with a complex type that has a proxy wrapper
+            if (p.ParameterType.IsGenericType &&
+                p.ParameterType.GenericTypeDefinition == actionType &&
+                p.ParameterType.GetGenericArguments()[0] is { } callbackArgType &&
+                !IsSimpleType(model, callbackArgType) &&
+                !callbackArgType.IsGenericType) // Skip generic types like IResourceBuilder<T>
+            {
+                var proxyTypeName = $"{callbackArgType.Name}Proxy";
+                // Wrap the callback to convert DotNetProxy to the expected proxy type
+                if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
+                {
+                    return $"{p.Name}: {prefix}{p.Name} ? registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {proxyTypeName}(arg))) : null";
+                }
+                return $"{p.Name}: registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {proxyTypeName}(arg)))";
+            }
+
+            if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
+            {
+                return $"{p.Name}: {prefix}{p.Name} ? registerCallback({prefix}{p.Name}) : null";
+            }
+            return $"{p.Name}: registerCallback({prefix}{p.Name})";
+        }
+
         var result = p.Name!;
         result += $": {prefix}{p.Name!}";
 
@@ -573,7 +845,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         return result;
     }
 
-    private static string FormatArgument(ApplicationModel model, RoParameterInfo p)
+    private string FormatArgument(ApplicationModel model, RoParameterInfo p)
     {
         var result = p.Name!;
         var IsNullableOfT = model.WellKnownTypes.IsNullableOfT(p.ParameterType);
@@ -602,7 +874,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
         var actionType = model.WellKnownTypes.GetKnownType(typeof(Action<>));
 
-        // Handle callback parameters
+        // Handle Action<IResourceBuilder<T>> callbacks with inline capture
         if (p.ParameterType.IsGenericType &&
             p.ParameterType.GenericTypeDefinition == actionType &&
             p.ParameterType.GetGenericArguments()[0] is { } genericArgument &&
@@ -624,6 +896,14 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                           } else { writeLine('builder => { }'); }
                         }) }
                 """;
+        }
+        // Handle other delegate types (Action<T>, Func<T,R>, etc.) with bidirectional JSON-RPC callbacks
+        // For C# code generation, we use a placeholder since the actual callback is handled via JSON-RPC
+        else if (IsDelegateType(model, p.ParameterType))
+        {
+            // The actual callback invocation happens via JSON-RPC, not in the generated C# code
+            // Use null as placeholder in the C# code - the real callback is passed in instruction args
+            return "null /* callback handled via JSON-RPC */";
         }
         else if (p.ParameterType.IsGenericType && p.ParameterType.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
         {
@@ -663,7 +943,154 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         return result;
     }
 
-    private static string FormatJsType(ApplicationModel model, RoType type)
+    /// <summary>
+    /// Checks if a return type is a primitive type that can't be instantiated as a class.
+    /// </summary>
+    private static bool IsPrimitiveReturnType(ApplicationModel model, RoType type)
+    {
+        // Check for void
+        if (type == model.WellKnownTypes.GetKnownType(typeof(void)))
+        {
+            return true;
+        }
+
+        // Check for primitive/value types that can't be used as class constructors
+        var primitiveTypes = new[]
+        {
+            typeof(bool), typeof(char),
+            typeof(sbyte), typeof(byte), typeof(short), typeof(ushort),
+            typeof(int), typeof(uint), typeof(long), typeof(ulong),
+            typeof(nint), typeof(nuint),
+            typeof(float), typeof(double), typeof(decimal),
+            typeof(string), typeof(Guid), typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan)
+        };
+
+        foreach (var primitiveType in primitiveTypes)
+        {
+            if (type == model.WellKnownTypes.GetKnownType(primitiveType))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if a type is a delegate type (Action, Func, etc.)
+    /// </summary>
+    private static bool IsDelegateType(ApplicationModel model, RoType type)
+    {
+        // Check for Action (no generic args)
+        if (type == model.WellKnownTypes.GetKnownType(typeof(Action)))
+        {
+            return true;
+        }
+
+        // Check for generic Action<T>, Action<T1, T2>, etc.
+        if (type.IsGenericType)
+        {
+            var genericDef = type.GenericTypeDefinition;
+            var actionTypes = new[]
+            {
+                typeof(Action<>), typeof(Action<,>), typeof(Action<,,>), typeof(Action<,,,>)
+            };
+            var funcTypes = new[]
+            {
+                typeof(Func<>), typeof(Func<,>), typeof(Func<,,>), typeof(Func<,,,>)
+            };
+
+            foreach (var actionType in actionTypes)
+            {
+                if (genericDef == model.WellKnownTypes.GetKnownType(actionType))
+                {
+                    return true;
+                }
+            }
+
+            foreach (var funcType in funcTypes)
+            {
+                if (genericDef == model.WellKnownTypes.GetKnownType(funcType))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Formats an Action delegate type and registers its argument type for proxy generation.
+    /// </summary>
+    private string FormatActionType(ApplicationModel model, RoType actionType)
+    {
+        var args = actionType.GetGenericArguments();
+        var argTypes = new List<string>();
+
+        for (int i = 0; i < args.Count; i++)
+        {
+            var argType = args[i];
+            var typeName = argType.Name;
+
+            // Check if this is an IResourceBuilder<T> type - these use inline capture, not JSON-RPC callbacks
+            // So they should use the regular formatted type, not a proxy wrapper
+            if (argType.IsGenericType && argType.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
+            {
+                argTypes.Add($"p{i}: {FormatJsType(model, argType)}");
+            }
+            // Register complex types for proxy wrapper generation
+            else if (!IsSimpleType(model, argType) && !string.IsNullOrEmpty(typeName))
+            {
+                if (_callbackProxyTypes.Add(typeName))
+                {
+                    _callbackProxyTypesByName[typeName] = argType;
+                }
+                // Use the proxy wrapper type name
+                argTypes.Add($"p{i}: {typeName}Proxy");
+            }
+            else
+            {
+                argTypes.Add($"p{i}: {FormatJsType(model, argType)}");
+            }
+        }
+
+        return $"({string.Join(", ", argTypes)}) => void | Promise<void>";
+    }
+
+    /// <summary>
+    /// Checks if a type is a simple/primitive type that doesn't need a proxy wrapper.
+    /// </summary>
+    private static bool IsSimpleType(ApplicationModel model, RoType type)
+    {
+        // Check for primitive types
+        var primitiveTypes = new[]
+        {
+            typeof(bool), typeof(char),
+            typeof(sbyte), typeof(byte), typeof(short), typeof(ushort),
+            typeof(int), typeof(uint), typeof(long), typeof(ulong),
+            typeof(nint), typeof(nuint),
+            typeof(float), typeof(double), typeof(decimal),
+            typeof(string), typeof(Guid), typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan)
+        };
+
+        foreach (var primitiveType in primitiveTypes)
+        {
+            if (type == model.WellKnownTypes.GetKnownType(primitiveType))
+            {
+                return true;
+            }
+        }
+
+        if (type.IsEnum)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private string FormatJsType(ApplicationModel model, RoType type)
     {
         return type switch
         {
@@ -671,13 +1098,13 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             { IsGenericType: true } when model.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var t) && t.IsInterface => "ResourceBuilder",
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType => $"{type.GetGenericArguments()[0].Name}Builder",
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Nullable<>)) => FormatJsType(model, type.GetGenericArguments()[0]) + " | null",
-            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(List<>)) => "Array",
-            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Dictionary<,>)) => "Map",
-            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IList<>)) => "Array",
-            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(ICollection<>)) => "Array",
-            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IReadOnlyList<>)) => "Array",
-            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IReadOnlyCollection<>)) => "Array",
-            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Action<>)) => $"({string.Join(" ,", type.GetGenericArguments().Select((x, i) => $"p{i}: {FormatJsType(model, x)}"))}) => void",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(List<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Dictionary<,>)) => "Map<any, any>",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IList<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(ICollection<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IReadOnlyList<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IReadOnlyCollection<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Action<>)) => FormatActionType(model, type),
             { } when type.IsArray => $"Array<{FormatJsType(model, type.GetElementType() ?? model.WellKnownTypes.GetKnownType(typeof(object)))}>",
             { } when type == model.WellKnownTypes.GetKnownType(typeof(char)) => "string",
             { } when type == model.WellKnownTypes.GetKnownType(typeof(string)) => "string",
@@ -704,6 +1131,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             { } when type == model.WellKnownTypes.GetKnownType(typeof(DateTimeOffset)) => "Date",
             { } when model.ModelTypes.Contains(type) => SanitizeClassName(type.Name),
             { } when type.IsEnum => "any",
+            { IsGenericParameter: true } => "any", // Generic type parameters like T, TBuilder
             _ => "any"
         };
     }
