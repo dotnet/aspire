@@ -541,7 +541,10 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         {
             return new Action(() =>
             {
-                InvokeCallbackAsync(callbackId, null).GetAwaiter().GetResult();
+                // Use Task.Run to avoid blocking the RPC dispatcher thread.
+                // Without this, if the callback calls back to .NET, we'd deadlock
+                // because the dispatcher can't process the response while blocked.
+                Task.Run(() => InvokeCallbackAsync(callbackId, null)).GetAwaiter().GetResult();
             });
         }
 
@@ -614,7 +617,8 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     // Helper methods for creating typed proxy delegates
     private Action<T> CreateActionProxy<T>(string callbackId)
     {
-        return arg => InvokeCallbackAsync(callbackId, arg).GetAwaiter().GetResult();
+        // Use Task.Run to avoid blocking the RPC dispatcher thread
+        return arg => Task.Run(() => InvokeCallbackAsync(callbackId, arg)).GetAwaiter().GetResult();
     }
 
     private Func<T, Task> CreateAsyncActionProxy<T>(string callbackId)
@@ -624,7 +628,8 @@ internal sealed class InstructionProcessor : IAsyncDisposable
 
     private Func<T, TResult> CreateFuncProxy<T, TResult>(string callbackId)
     {
-        return arg => InvokeCallbackAsync<TResult>(callbackId, arg).GetAwaiter().GetResult();
+        // Use Task.Run to avoid blocking the RPC dispatcher thread
+        return arg => Task.Run(() => InvokeCallbackAsync<TResult>(callbackId, arg)).GetAwaiter().GetResult();
     }
 
     private Func<T, Task<TResult>> CreateAsyncFuncProxy<T, TResult>(string callbackId)

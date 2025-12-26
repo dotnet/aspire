@@ -67,6 +67,12 @@ async function main() {
             await args.set(1, "512mb");
             const updatedArg = await args.get(1);
             console.log(`✅ List set(1) works: "${updatedArg}"`);
+
+            // TEST RE-ENTRANT CALLBACK: During this callback, call back to .NET
+            // This tests that callback execution doesn't deadlock when calling .NET
+            // Previously this would deadlock due to blocking .GetAwaiter().GetResult()
+            const resource = await context.getResource();
+            console.log(`✅ Re-entrant callback works! Got resource: ${resource.$type}`);
         });
 
         // Test ReferenceExpression with EndpointReference

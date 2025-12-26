@@ -245,6 +245,7 @@ internal sealed class JsonRpcServer : IAsyncDisposable
     private async Task HandleClientAsync(Socket clientSocket, CancellationToken cancellationToken)
     {
         var clientId = Guid.NewGuid().ToString("N")[..8]; // Short client identifier
+        var disconnectReason = "unknown";
 
         try
         {
@@ -262,26 +263,75 @@ internal sealed class JsonRpcServer : IAsyncDisposable
             Console.WriteLine($"JsonRpc connection established for client {clientId} (bidirectional)");
 
             // Wait for the connection to be closed by the client, an error, or cancellation
-            using var registration = cancellationToken.Register(jsonRpc.Dispose);
-            await jsonRpc.Completion.ConfigureAwait(false);
+            using var registration = cancellationToken.Register(() =>
+            {
+                disconnectReason = "server shutdown";
+                try { jsonRpc.Dispose(); }
+                catch { /* ignore disposal errors during cancellation */ }
+            });
 
-            Console.WriteLine($"Client {clientId} disconnected gracefully");
+            try
+            {
+                await jsonRpc.Completion.ConfigureAwait(false);
+                disconnectReason = "graceful disconnect";
+            }
+            catch (ConnectionLostException)
+            {
+                disconnectReason = "connection lost (client disconnected unexpectedly)";
+            }
+            catch (ObjectDisposedException)
+            {
+                // This happens when server shutdown causes jsonRpc.Dispose()
+                disconnectReason ??= "server shutdown";
+            }
+            catch (IOException ex) when (ex.InnerException is SocketException)
+            {
+                disconnectReason = "socket closed (client terminated)";
+            }
+
+            Console.WriteLine($"Client {clientId}: {disconnectReason}");
+        }
+        catch (SocketException ex)
+        {
+            Console.WriteLine($"Client {clientId} socket error: {ex.SocketErrorCode} - {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Client {clientId} I/O error: {ex.Message}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error handling client {clientId}: {ex.Message}");
+            Console.WriteLine($"Client {clientId} unexpected error: {ex.GetType().Name} - {ex.Message}");
         }
         finally
         {
+            // Clean up socket - wrap in try-catch since it might already be disposed
             try
             {
-                clientSocket?.Close();
-                Console.WriteLine($"Connection cleanup completed for client {clientId}");
+                if (clientSocket.Connected)
+                {
+                    clientSocket.Shutdown(SocketShutdown.Both);
+                }
             }
-            catch (Exception ex)
+            catch (SocketException)
             {
-                Console.WriteLine($"Error during cleanup for client {clientId}: {ex.Message}");
+                // Socket already closed, ignore
             }
+            catch (ObjectDisposedException)
+            {
+                // Socket already disposed, ignore
+            }
+
+            try
+            {
+                clientSocket.Close();
+            }
+            catch
+            {
+                // Ignore errors during close
+            }
+
+            Console.WriteLine($"Connection cleanup completed for client {clientId}");
 
             // Decrement active client count and check if all clients disconnected
             var remaining = Interlocked.Decrement(ref _activeClientCount);
@@ -290,7 +340,14 @@ internal sealed class JsonRpcServer : IAsyncDisposable
             if (remaining == 0 && _hasHadClient)
             {
                 Console.WriteLine("All clients have disconnected.");
-                OnAllClientsDisconnected?.Invoke();
+                try
+                {
+                    OnAllClientsDisconnected?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error in OnAllClientsDisconnected callback: {ex.Message}");
+                }
             }
         }
     }
