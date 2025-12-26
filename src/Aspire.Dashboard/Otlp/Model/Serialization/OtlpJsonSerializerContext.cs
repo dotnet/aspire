@@ -15,8 +15,7 @@ namespace Aspire.Dashboard.Otlp.Model.Serialization;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     WriteIndented = false,
     ReadCommentHandling = JsonCommentHandling.Skip,
-    AllowTrailingCommas = true,
-    AllowDuplicateProperties = true)]
+    AllowTrailingCommas = true)]
 [JsonSerializable(typeof(OtlpAnyValueJson))]
 [JsonSerializable(typeof(OtlpArrayValueJson))]
 [JsonSerializable(typeof(OtlpKeyValueListJson))]

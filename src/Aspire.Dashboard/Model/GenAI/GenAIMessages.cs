@@ -130,8 +130,7 @@ public class MessagePartConverter : JsonConverter<MessagePart>
     PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     ReadCommentHandling = JsonCommentHandling.Skip,
-    AllowTrailingCommas = true,
-    AllowDuplicateProperties = true)]
+    AllowTrailingCommas = true)]
 [JsonSerializable(typeof(MessagePart))]
 [JsonSerializable(typeof(TextPart))]
 [JsonSerializable(typeof(ToolCallRequestPart))]

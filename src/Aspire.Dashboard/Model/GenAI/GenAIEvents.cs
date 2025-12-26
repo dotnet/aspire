@@ -49,8 +49,7 @@ public sealed class ToolCallFunction
     PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     ReadCommentHandling = JsonCommentHandling.Skip,
-    AllowTrailingCommas = true,
-    AllowDuplicateProperties = true)]
+    AllowTrailingCommas = true)]
 [JsonSerializable(typeof(SystemOrUserEvent))]
 [JsonSerializable(typeof(AssistantEvent))]
 [JsonSerializable(typeof(ToolEvent))]
