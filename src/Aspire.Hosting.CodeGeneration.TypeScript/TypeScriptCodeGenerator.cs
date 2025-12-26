@@ -193,14 +193,34 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
               args: args
             };
 
-            await sendInstruction(createBuilderInstruction);
+            const result = await sendInstruction(createBuilderInstruction);
+
+            // Store the builder proxy for property access (Configuration, Environment, Services)
+            if (result && typeof result === 'object' && 'builder' in result) {
+              distributedApplicationBuilder._setBuilderProxy(new DotNetProxy(result.builder as any));
+            }
 
             return distributedApplicationBuilder;
         }
 
         export class DistributedApplication {
-          constructor(private builderName: string) {
+          private _appProxy: DotNetProxy | null = null;
+
+          constructor(private builderName: string, private builderProxy: DotNetProxy | null) {
           }
+
+          /**
+           * Gets the Services property (IServiceProvider).
+           * Use this to resolve services after the application is built and running.
+           */
+          async getServices(): Promise<ServiceProviderProxy> {
+            if (!this._appProxy) {
+              throw new Error('Application not yet running. Call run() first.');
+            }
+            const services = await this._appProxy.getProperty('Services') as DotNetProxy;
+            return new ServiceProviderProxy(services);
+          }
+
           async run() {
             writeLine(`${this.builderName}.Build().Run();`);
             writeLine('}');
@@ -215,7 +235,12 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                     builderName: this.builderName
                 };
 
-            sendInstruction(runBuilderInstruction);
+            const result = await sendInstruction(runBuilderInstruction);
+
+            // Store the app proxy for service resolution
+            if (result && typeof result === 'object' && 'app' in result) {
+              this._appProxy = new DotNetProxy(result.app as any);
+            }
 
             console.log("Application is running. Press Ctrl+C to stop...");
 
@@ -228,7 +253,281 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
           }
         }
 
+        /**
+         * Strongly-typed proxy for IConfiguration.
+         * Provides natural access to configuration values.
+         */
+        export class ConfigurationProxy {
+          constructor(private _proxy: DotNetProxy) {}
+
+          /** Get the underlying proxy for advanced operations */
+          get proxy(): DotNetProxy { return this._proxy; }
+
+          /**
+           * Gets a configuration value by key.
+           * @param key The configuration key (e.g., "Logging:LogLevel:Default")
+           */
+          async get(key: string): Promise<string | null> {
+            const result = await this._proxy.getIndexer(key);
+            return result as string | null;
+          }
+
+          /**
+           * Gets a configuration section.
+           * @param key The section key
+           */
+          async getSection(key: string): Promise<ConfigurationProxy> {
+            const result = await this._proxy.invokeMethod('GetSection', { key });
+            return new ConfigurationProxy(result as DotNetProxy);
+          }
+
+          /**
+           * Gets a connection string by name.
+           * @param name The connection string name
+           */
+          async getConnectionString(name: string): Promise<string | null> {
+            const result = await this._proxy.invokeMethod('GetConnectionString', { name });
+            return result as string | null;
+          }
+
+          /**
+           * Gets the key of this configuration section.
+           */
+          async getKey(): Promise<string> {
+            return await this._proxy.getProperty('Key') as string;
+          }
+
+          /**
+           * Gets the path of this configuration section.
+           */
+          async getPath(): Promise<string> {
+            return await this._proxy.getProperty('Path') as string;
+          }
+
+          /**
+           * Gets the value of this configuration section.
+           */
+          async getValue(): Promise<string | null> {
+            return await this._proxy.getProperty('Value') as string | null;
+          }
+        }
+
+        /**
+         * Strongly-typed proxy for IHostEnvironment.
+         * Provides natural access to environment information.
+         */
+        export class HostEnvironmentProxy {
+          constructor(private _proxy: DotNetProxy) {}
+
+          /** Get the underlying proxy for advanced operations */
+          get proxy(): DotNetProxy { return this._proxy; }
+
+          /**
+           * Gets the name of the environment (e.g., "Development", "Production").
+           */
+          async getEnvironmentName(): Promise<string> {
+            return await this._proxy.getProperty('EnvironmentName') as string;
+          }
+
+          /**
+           * Gets the name of the application.
+           */
+          async getApplicationName(): Promise<string> {
+            return await this._proxy.getProperty('ApplicationName') as string;
+          }
+
+          /**
+           * Gets the content root path.
+           */
+          async getContentRootPath(): Promise<string> {
+            return await this._proxy.getProperty('ContentRootPath') as string;
+          }
+
+          /**
+           * Checks if the environment is Development.
+           */
+          async isDevelopment(): Promise<boolean> {
+            const envName = await this.getEnvironmentName();
+            return envName === 'Development';
+          }
+
+          /**
+           * Checks if the environment is Production.
+           */
+          async isProduction(): Promise<boolean> {
+            const envName = await this.getEnvironmentName();
+            return envName === 'Production';
+          }
+
+          /**
+           * Checks if the environment is Staging.
+           */
+          async isStaging(): Promise<boolean> {
+            const envName = await this.getEnvironmentName();
+            return envName === 'Staging';
+          }
+
+          /**
+           * Checks if the environment matches the specified name.
+           */
+          async isEnvironment(environmentName: string): Promise<boolean> {
+            const envName = await this.getEnvironmentName();
+            return envName.toLowerCase() === environmentName.toLowerCase();
+          }
+        }
+
+        /**
+         * Strongly-typed proxy for DistributedApplicationExecutionContext.
+         * Provides access to execution context information.
+         */
+        export class ExecutionContextProxy {
+          constructor(private _proxy: DotNetProxy) {}
+
+          /** Get the underlying proxy for advanced operations */
+          get proxy(): DotNetProxy { return this._proxy; }
+
+          /**
+           * Checks if the application is running in run mode.
+           */
+          async isRunMode(): Promise<boolean> {
+            return await this._proxy.getProperty('IsRunMode') as boolean;
+          }
+
+          /**
+           * Checks if the application is running in publish mode.
+           */
+          async isPublishMode(): Promise<boolean> {
+            return await this._proxy.getProperty('IsPublishMode') as boolean;
+          }
+
+          /**
+           * Gets the operation being performed (Run or Publish).
+           */
+          async getOperation(): Promise<string> {
+            return await this._proxy.getProperty('Operation') as string;
+          }
+        }
+
+        /**
+         * Strongly-typed proxy for ILoggerFactory.
+         * Provides natural access to logging functionality.
+         */
+        export class LoggerFactoryProxy {
+          constructor(private _proxy: DotNetProxy) {}
+
+          /** Get the underlying proxy for advanced operations */
+          get proxy(): DotNetProxy { return this._proxy; }
+
+          /**
+           * Creates a logger with the specified category name.
+           * @param categoryName The category name for the logger
+           */
+          async createLogger(categoryName: string): Promise<LoggerProxy> {
+            const result = await this._proxy.invokeMethod('CreateLogger', { categoryName });
+            return new LoggerProxy(result as DotNetProxy);
+          }
+        }
+
+        /**
+         * Strongly-typed proxy for ILogger.
+         * Provides natural logging methods.
+         */
+        export class LoggerProxy {
+          constructor(private _proxy: DotNetProxy) {}
+
+          /** Get the underlying proxy for advanced operations */
+          get proxy(): DotNetProxy { return this._proxy; }
+
+          /**
+           * Logs an informational message.
+           */
+          async logInformation(message: string): Promise<void> {
+            await this._proxy.invokeMethod('Log', { logLevel: 2, message });
+          }
+
+          /**
+           * Logs a warning message.
+           */
+          async logWarning(message: string): Promise<void> {
+            await this._proxy.invokeMethod('Log', { logLevel: 3, message });
+          }
+
+          /**
+           * Logs an error message.
+           */
+          async logError(message: string): Promise<void> {
+            await this._proxy.invokeMethod('Log', { logLevel: 4, message });
+          }
+
+          /**
+           * Logs a debug message.
+           */
+          async logDebug(message: string): Promise<void> {
+            await this._proxy.invokeMethod('Log', { logLevel: 1, message });
+          }
+        }
+
+        /**
+         * Proxy for IServiceProvider to resolve services after build.
+         * Supports well-known type aliases (e.g., "IConfiguration") and full type names.
+         */
+        export class ServiceProviderProxy {
+          constructor(private _proxy: DotNetProxy) {}
+
+          /** Get the underlying proxy for advanced operations */
+          get proxy(): DotNetProxy { return this._proxy; }
+
+          /**
+           * Gets a service of the specified type.
+           * @param typeName Type name - supports aliases or full names
+           * @returns The resolved service proxy or null if not found
+           */
+          async getService(typeName: string): Promise<DotNetProxy | null> {
+            const result = await client.getService(this._proxy.$id, typeName);
+            if (result === null || result === undefined) {
+              return null;
+            }
+            return new DotNetProxy(result as any);
+          }
+
+          /**
+           * Gets a required service of the specified type.
+           * @param typeName Type name - supports aliases or full names
+           * @throws Error if the service is not found
+           */
+          async getRequiredService(typeName: string): Promise<DotNetProxy> {
+            const result = await client.getRequiredService(this._proxy.$id, typeName);
+            return new DotNetProxy(result as any);
+          }
+
+          /**
+           * Gets the IConfiguration service.
+           */
+          async getConfiguration(): Promise<ConfigurationProxy> {
+            const result = await client.getRequiredService(this._proxy.$id, 'IConfiguration');
+            return new ConfigurationProxy(new DotNetProxy(result as any));
+          }
+
+          /**
+           * Gets the IHostEnvironment service.
+           */
+          async getHostEnvironment(): Promise<HostEnvironmentProxy> {
+            const result = await client.getRequiredService(this._proxy.$id, 'IHostEnvironment');
+            return new HostEnvironmentProxy(new DotNetProxy(result as any));
+          }
+
+          /**
+           * Gets the ILoggerFactory service.
+           */
+          async getLoggerFactory(): Promise<LoggerFactoryProxy> {
+            const result = await client.getRequiredService(this._proxy.$id, 'ILoggerFactory');
+            return new LoggerFactoryProxy(new DotNetProxy(result as any));
+          }
+        }
+
         abstract class DistributedApplicationBuilderBase {
+          private _builderProxy: DotNetProxy | null = null;
+
           constructor(private args: string[]) {
             writeLine('try {');
             this[_name] = `appBuilder${DistributedApplicationBuilderBase.index++}`;
@@ -240,8 +539,97 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             writeLine(`var ${this[_name]} = DistributedApplication.CreateBuilder(options);`);
           }
 
+          /** @internal Sets the builder proxy for property access */
+          _setBuilderProxy(proxy: DotNetProxy) {
+            this._builderProxy = proxy;
+          }
+
+          /** Gets the underlying builder proxy */
+          get builderProxy(): DotNetProxy | null {
+            return this._builderProxy;
+          }
+
+          /**
+           * Gets the Configuration property (ConfigurationManager).
+           * Use this to read configuration values before building the application.
+           */
+          async getConfiguration(): Promise<ConfigurationProxy> {
+            if (!this._builderProxy) {
+              throw new Error('Builder proxy not initialized');
+            }
+            const result = await this._builderProxy.getProperty('Configuration') as DotNetProxy;
+            return new ConfigurationProxy(result);
+          }
+
+          /**
+           * Gets the Environment property (IHostEnvironment).
+           * Use this to check environment name, application name, etc.
+           */
+          async getEnvironment(): Promise<HostEnvironmentProxy> {
+            if (!this._builderProxy) {
+              throw new Error('Builder proxy not initialized');
+            }
+            const result = await this._builderProxy.getProperty('Environment') as DotNetProxy;
+            return new HostEnvironmentProxy(result);
+          }
+
+          /**
+           * Gets the ExecutionContext property (DistributedApplicationExecutionContext).
+           * Use this to check if running in run mode vs publish mode.
+           */
+          async getExecutionContext(): Promise<ExecutionContextProxy> {
+            if (!this._builderProxy) {
+              throw new Error('Builder proxy not initialized');
+            }
+            const result = await this._builderProxy.getProperty('ExecutionContext') as DotNetProxy;
+            return new ExecutionContextProxy(result);
+          }
+
+          /**
+           * Checks if the application is running in the Development environment.
+           */
+          async isDevelopment(): Promise<boolean> {
+            const env = await this.getEnvironment();
+            return await env.isDevelopment();
+          }
+
+          /**
+           * Checks if the application is running in the Production environment.
+           */
+          async isProduction(): Promise<boolean> {
+            const env = await this.getEnvironment();
+            return await env.isProduction();
+          }
+
+          /**
+           * Checks if the execution context is in run mode (vs publish mode).
+           */
+          async isRunMode(): Promise<boolean> {
+            const ctx = await this.getExecutionContext();
+            return await ctx.isRunMode();
+          }
+
+          /**
+           * Checks if the execution context is in publish mode.
+           */
+          async isPublishMode(): Promise<boolean> {
+            const ctx = await this.getExecutionContext();
+            return await ctx.isPublishMode();
+          }
+
+          /**
+           * Gets the Services property (IServiceCollection).
+           * Use this to register additional services before building.
+           */
+          async getServices(): Promise<DotNetProxy> {
+            if (!this._builderProxy) {
+              throw new Error('Builder proxy not initialized');
+            }
+            return await this._builderProxy.getProperty('Services') as DotNetProxy;
+          }
+
           build() {
-            return new DistributedApplication(this[_name]);
+            return new DistributedApplication(this[_name], this._builderProxy);
           }
 
           private [_name]: string;

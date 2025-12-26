@@ -6,7 +6,10 @@ import {
     createBuilder,
     EnvironmentCallbackContextProxy,
     CommandLineArgsCallbackContextProxy,
-    EndpointReferenceProxy
+    EndpointReferenceProxy,
+    ConfigurationProxy,
+    HostEnvironmentProxy,
+    ExecutionContextProxy
 } from './.modules/distributed-application.js';
 import { ListProxy, refExpr } from './.modules/RemoteAppHostClient.js';
 
@@ -16,6 +19,46 @@ async function main() {
     try {
         // Create the distributed application builder
         const builder = await createBuilder();
+
+        // ========================================
+        // Test strongly-typed builder properties
+        // ========================================
+
+        // Test Configuration access
+        const config = await builder.getConfiguration();
+        console.log("✅ Got Configuration proxy");
+
+        // Test reading a config value (may be null if not set)
+        const aspnetEnv = await config.get("ASPNETCORE_ENVIRONMENT");
+        console.log(`   ASPNETCORE_ENVIRONMENT: ${aspnetEnv ?? "(not set)"}`);
+
+        // Test Environment access
+        const env = await builder.getEnvironment();
+        const envName = await env.getEnvironmentName();
+        const appName = await env.getApplicationName();
+        console.log(`✅ Got Environment: ${envName}, App: ${appName}`);
+
+        // Test environment checks
+        const isDev = await env.isDevelopment();
+        const isProd = await env.isProduction();
+        console.log(`   isDevelopment: ${isDev}, isProduction: ${isProd}`);
+
+        // Test ExecutionContext access
+        const ctx = await builder.getExecutionContext();
+        const isRunMode = await ctx.isRunMode();
+        const isPublishMode = await ctx.isPublishMode();
+        console.log(`✅ Got ExecutionContext: isRunMode=${isRunMode}, isPublishMode=${isPublishMode}`);
+
+        // Test convenience methods on builder
+        console.log(`✅ builder.isDevelopment(): ${await builder.isDevelopment()}`);
+        console.log(`✅ builder.isRunMode(): ${await builder.isRunMode()}`);
+
+        // ========================================
+        // Conditional logic based on environment (like C# pattern)
+        // ========================================
+        if (await builder.isDevelopment() && await builder.isRunMode()) {
+            console.log("🔧 Running in Development + RunMode - adding dev-only configuration");
+        }
 
         // Add a Redis container
         const redis = await builder.addContainer("myredis", "redis:latest");

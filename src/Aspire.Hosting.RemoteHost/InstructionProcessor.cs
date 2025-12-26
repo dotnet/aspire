@@ -58,6 +58,75 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         _objectRegistry.Unregister(objectId);
     }
 
+    #region Service Resolution
+
+    // Well-known types mapped to their actual Type objects for fast lookup
+    private static readonly Dictionary<string, Type> s_wellKnownTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["IConfiguration"] = typeof(Microsoft.Extensions.Configuration.IConfiguration),
+        ["IHostEnvironment"] = typeof(Microsoft.Extensions.Hosting.IHostEnvironment),
+        ["ILoggerFactory"] = typeof(Microsoft.Extensions.Logging.ILoggerFactory),
+    };
+
+    /// <summary>
+    /// Resolves a service from an IServiceProvider by type name.
+    /// Supports well-known type aliases (e.g., "IConfiguration") or assembly-qualified type names.
+    /// </summary>
+    public object? GetService(string serviceProviderObjectId, string typeName)
+    {
+        var serviceProvider = _objectRegistry.Get(serviceProviderObjectId) as IServiceProvider
+            ?? throw new InvalidOperationException($"Object '{serviceProviderObjectId}' is not an IServiceProvider");
+
+        var type = ResolveType(typeName)
+            ?? throw new InvalidOperationException($"Type '{typeName}' not found. Use a well-known alias (IConfiguration, IHostEnvironment, ILoggerFactory) or an assembly-qualified type name.");
+
+        var service = serviceProvider.GetService(type);
+        if (service != null && !ObjectRegistry.IsSimpleType(service.GetType()))
+        {
+            return _objectRegistry.Marshal(service);
+        }
+        return service;
+    }
+
+    /// <summary>
+    /// Resolves a required service from an IServiceProvider by type name.
+    /// Throws if the service is not found.
+    /// </summary>
+    public object? GetRequiredService(string serviceProviderObjectId, string typeName)
+    {
+        var serviceProvider = _objectRegistry.Get(serviceProviderObjectId) as IServiceProvider
+            ?? throw new InvalidOperationException($"Object '{serviceProviderObjectId}' is not an IServiceProvider");
+
+        var type = ResolveType(typeName)
+            ?? throw new InvalidOperationException($"Type '{typeName}' not found. Use a well-known alias (IConfiguration, IHostEnvironment, ILoggerFactory) or an assembly-qualified type name.");
+
+        var service = serviceProvider.GetService(type)
+            ?? throw new InvalidOperationException($"Required service of type '{typeName}' was not found in the service provider.");
+
+        if (!ObjectRegistry.IsSimpleType(service.GetType()))
+        {
+            return _objectRegistry.Marshal(service);
+        }
+        return service;
+    }
+
+    /// <summary>
+    /// Resolves a type by name. Supports well-known aliases or assembly-qualified type names.
+    /// </summary>
+    private static Type? ResolveType(string typeName)
+    {
+        // Check for well-known type alias first (fast path)
+        if (s_wellKnownTypes.TryGetValue(typeName, out var knownType))
+        {
+            return knownType;
+        }
+
+        // For everything else, require assembly-qualified name
+        return Type.GetType(typeName);
+    }
+
+    #endregion
+
     /// <summary>
     /// Invokes a method on a registered object. Called by TypeScript via JSON-RPC.
     /// </summary>
@@ -689,7 +758,11 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         // Store the builder in the variables dictionary (thread-safe)
         _variables[instruction.BuilderName] = builder;
 
-        return Task.FromResult<object>(new { success = true, builderName = instruction.BuilderName });
+        // Register the builder in the ObjectRegistry so it can be accessed via proxy
+        // This enables access to Configuration, Environment, Services properties
+        var marshalledBuilder = _objectRegistry.Marshal(builder);
+
+        return Task.FromResult<object>(new { success = true, builderName = instruction.BuilderName, builder = marshalledBuilder });
     }
 
     private async Task<object> ExecuteRunBuilderAsync(string instructionJson, CancellationToken cancellationToken)
@@ -711,6 +784,9 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         // Store the app so we can access it later for shutdown (thread-safe)
         _variables[$"{instruction.BuilderName}_app"] = app;
 
+        // Register the app in the ObjectRegistry for property access (Services, etc.)
+        var marshalledApp = _objectRegistry.Marshal(app);
+
         // Track the app for graceful shutdown
         lock (_appsLock)
         {
@@ -726,7 +802,7 @@ internal sealed class InstructionProcessor : IAsyncDisposable
             // The app is now running in the background.
             // When the server shuts down, DisposeAsync will stop all running apps.
 
-            return new { success = true, builderName = instruction.BuilderName, status = "running" };
+            return new { success = true, builderName = instruction.BuilderName, status = "running", app = marshalledApp };
         }
         catch (Exception ex)
         {

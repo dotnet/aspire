@@ -156,6 +156,34 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
         }
     }
 
+    [JsonRpcMethod("getService")]
+    public object? GetService(string serviceProviderObjectId, string typeName)
+    {
+        try
+        {
+            return _instructionProcessor.GetService(serviceProviderObjectId, typeName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting service '{typeName}' from '{serviceProviderObjectId}': {ex.Message}");
+            throw;
+        }
+    }
+
+    [JsonRpcMethod("getRequiredService")]
+    public object? GetRequiredService(string serviceProviderObjectId, string typeName)
+    {
+        try
+        {
+            return _instructionProcessor.GetRequiredService(serviceProviderObjectId, typeName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting required service '{typeName}' from '{serviceProviderObjectId}': {ex.Message}");
+            throw;
+        }
+    }
+
     #endregion
 
     public async ValueTask DisposeAsync()
