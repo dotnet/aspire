@@ -258,7 +258,7 @@ Communication between the guest and host uses JSON-RPC 2.0 over Unix domain sock
 
 The protocol uses **header-delimited messages** matching the `vscode-jsonrpc` format:
 
-```
+```text
 Content-Length: 123\r\n
 \r\n
 {"jsonrpc":"2.0","id":1,"method":"ping","params":[]}
@@ -646,7 +646,7 @@ The CLI generates language-specific SDK code that provides type-safe APIs with i
 
 ### Generated File Structure
 
-```
+```text
 .modules/
 ├── .codegen-hash              # SHA256 hash of package references
 ├── distributed-application.ts # Main SDK with builder classes
