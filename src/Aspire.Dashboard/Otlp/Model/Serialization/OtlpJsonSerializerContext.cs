@@ -13,7 +13,9 @@ namespace Aspire.Dashboard.Otlp.Model.Serialization;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    WriteIndented = false)]
+    WriteIndented = false,
+    ReadCommentHandling = JsonCommentHandling.Skip,
+    AllowTrailingCommas = true)]
 [JsonSerializable(typeof(OtlpAnyValueJson))]
 [JsonSerializable(typeof(OtlpArrayValueJson))]
 [JsonSerializable(typeof(OtlpKeyValueListJson))]

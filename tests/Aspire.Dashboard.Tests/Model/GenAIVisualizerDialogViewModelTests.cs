@@ -1270,6 +1270,184 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Empty(vm.ToolDefinitions);
     }
 
+    [Fact]
+    public void Create_GenAISpanAttributes_JsonWithCommentsAndTrailingCommas_HasMessages()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // JSON with comments and trailing commas - these are commonly produced by AI SDKs and LLM outputs
+        var systemInstruction = """
+            [
+                // System instruction comment
+                {
+                    "type": "text",
+                    "content": "You are a helpful assistant.", // trailing comment
+                },
+            ]
+            """;
+
+        var inputMessages = """
+            [
+                /* Multi-line
+                   comment */
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "type": "text",
+                            "content": "Hello!", // inline comment
+                        },
+                    ],
+                },
+            ]
+            """;
+
+        var outputMessages = """
+            [
+                {
+                    "role": "assistant", // role comment
+                    "parts": [
+                        {
+                            "type": "text",
+                            "content": "Hi there!", // response comment
+                        },
+                    ], // trailing comma after parts
+                }, // trailing comma after message
+            ]
+            """;
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create("server.address", "ai-server.address"),
+            KeyValuePair.Create(GenAIHelpers.GenAISystemInstructions, systemInstruction),
+            KeyValuePair.Create(GenAIHelpers.GenAIInputMessages, inputMessages),
+            KeyValuePair.Create(GenAIHelpers.GenAIOutputInstructions, outputMessages)
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert - verify JSON with comments and trailing commas is parsed correctly
+        Assert.Collection(vm.Items,
+            m =>
+            {
+                Assert.Equal(GenAIItemType.SystemMessage, m.Type);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("You are a helpful assistant.", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.UserMessage, m.Type);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Hello!", Assert.IsType<TextPart>(p.MessagePart).Content));
+            },
+            m =>
+            {
+                Assert.Equal(GenAIItemType.OutputMessage, m.Type);
+                Assert.Collection(m.ItemParts,
+                    p => Assert.Equal("Hi there!", Assert.IsType<TextPart>(p.MessagePart).Content));
+            });
+        Assert.Null(vm.DisplayErrorMessage);
+    }
+
+    [Fact]
+    public void Create_GenAIToolDefinitions_JsonWithCommentsAndTrailingCommas_HasToolDefinitions()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Tool definitions JSON with comments and trailing commas
+        var toolDefinitions = """
+            [
+                // First tool definition
+                {
+                    "type": "function",
+                    "name": "get_weather", // tool name
+                    "description": "Gets weather for a location",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "location": {
+                                "type": "string",
+                                "description": "The city name", // trailing comment
+                            },
+                        }, // trailing comma
+                    },
+                },
+                /* Second tool */
+                {
+                    "type": "function",
+                    "name": "search",
+                    "description": "Searches the web",
+                },
+            ]
+            """;
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create(GenAIHelpers.GenAIToolDefinitions, toolDefinitions)
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert - verify tool definitions with comments and trailing commas are parsed correctly
+        Assert.Equal(2, vm.ToolDefinitions.Count);
+        Assert.Contains(vm.ToolDefinitions, t => t.ToolDefinition.Name == "get_weather" && t.ToolDefinition.Description == "Gets weather for a location");
+        Assert.Contains(vm.ToolDefinitions, t => t.ToolDefinition.Name == "search" && t.ToolDefinition.Description == "Searches the web");
+    }
+
     private static GenAIVisualizerDialogViewModel Create(
         TelemetryRepository repository,
         SpanDetailsViewModel spanDetailsViewModel)

@@ -82,7 +82,13 @@ public sealed class GenAIVisualizerDialogViewModel
             try
             {
                 // Deserialize to intermediate format since OpenApiSchema doesn't work well with System.Text.Json
-                var jsonNode = JsonNode.Parse(toolDefinitionsJson);
+                var documentOptions = new JsonDocumentOptions
+                {
+                    CommentHandling = JsonCommentHandling.Skip,
+                    AllowTrailingCommas = true,
+                    AllowDuplicateProperties = true
+                };
+                var jsonNode = JsonNode.Parse(toolDefinitionsJson, documentOptions: documentOptions);
                 if (jsonNode is JsonArray array)
                 {
                     viewModel.ToolDefinitions = new List<ToolDefinitionViewModel>();
