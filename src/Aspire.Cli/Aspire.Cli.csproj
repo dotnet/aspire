@@ -144,11 +144,6 @@
     <EmbeddedResource Include="$(SharedDir)Mcp\Resources\aspire-64.png" Link="Mcp\Resources\aspire-64.png" />
   </ItemGroup>
 
-  <!-- RemoteAppHost files are embedded as resources for the GenericAppHost project -->
-  <ItemGroup>
-    <Compile Remove="Rosetta\Shared\RemoteAppHost\*.cs" />
-    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\*.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Update="Resources\ExecCommandStrings.resx">

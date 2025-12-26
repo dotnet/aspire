@@ -6,7 +6,7 @@ using System.Text.Json;
 using Aspire.Hosting;
 using StreamJsonRpc;
 
-namespace RemoteAppHost;
+namespace Aspire.Hosting.RemoteHost;
 
 public class InstructionProcessor : IAsyncDisposable
 {

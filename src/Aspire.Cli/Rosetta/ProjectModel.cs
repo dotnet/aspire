@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -97,17 +96,12 @@ internal sealed class ProjectModel
     /// <returns>The full path to the project file.</returns>
     public string CreateProjectFiles(IEnumerable<(string Name, string Version)> packages)
     {
-        var assembly = Assembly.GetExecutingAssembly();
+        // Create Program.cs that starts the RemoteHost server
+        var programCs = """
+            await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args);
+            """;
 
-        foreach (var csFile in new[] { "InstructionModels.cs", "InstructionProcessor.cs", "JsonRpcServer.cs", "Program.cs", "OrphanDetector.cs" })
-        {
-            // Extract embedded resource
-            using var stream = assembly.GetManifestResourceStream($"Aspire.Cli.Rosetta.Shared.RemoteAppHost.{csFile}")
-                ?? throw new InvalidProgramException($"A resource stream was not found: {csFile}");
-
-            using var reader = new StreamReader(stream);
-            File.WriteAllText(Path.Combine(_projectModelPath, csFile), reader.ReadToEnd());
-        }
+        File.WriteAllText(Path.Combine(_projectModelPath, "Program.cs"), programCs);
 
         // Create appsettings.json
         var appSettingsJson = """
@@ -318,14 +312,29 @@ internal sealed class ProjectModel
                     new XElement("ProjectReference",
                         new XAttribute("Include", dashboardProject))));
             }
+
+            // Add Aspire.Hosting.RemoteHost project reference
+            var remoteHostProject = Path.Combine(repoRoot, "src", "Aspire.Hosting.RemoteHost", "Aspire.Hosting.RemoteHost.csproj");
+            if (File.Exists(remoteHostProject))
+            {
+                doc.Root!.Add(new XElement("ItemGroup",
+                    new XElement("ProjectReference",
+                        new XAttribute("Include", remoteHostProject))));
+            }
         }
         else
         {
             // Add package references (standard NuGet flow)
-            doc.Root!.Add(new XElement("ItemGroup",
-                packages.Select(p => new XElement("PackageReference",
-                    new XAttribute("Include", p.Name),
-                    new XAttribute("Version", p.Version)))));
+            var packageRefs = packages.Select(p => new XElement("PackageReference",
+                new XAttribute("Include", p.Name),
+                new XAttribute("Version", p.Version))).ToList();
+
+            // Add Aspire.Hosting.RemoteHost package reference
+            packageRefs.Add(new XElement("PackageReference",
+                new XAttribute("Include", "Aspire.Hosting.RemoteHost"),
+                new XAttribute("Version", AspireHostVersion)));
+
+            doc.Root!.Add(new XElement("ItemGroup", packageRefs));
         }
 
         var projectFileName = Path.Combine(_projectModelPath, ProjectFileName);

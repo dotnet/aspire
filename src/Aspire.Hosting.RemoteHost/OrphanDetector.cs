@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Hosting;
 
-namespace RemoteAppHost;
+namespace Aspire.Hosting.RemoteHost;
 
 internal sealed class OrphanDetector : BackgroundService
 {

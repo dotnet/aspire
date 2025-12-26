@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace RemoteAppHost;
+namespace Aspire.Hosting.RemoteHost;
 
 public record Instruction
 {
