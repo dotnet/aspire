@@ -18,9 +18,9 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
     private readonly Dictionary<RoMethod, string> _overloadParameterClassByMethod = [];
     private readonly Dictionary<string, string> _overloadParameterClassByName = [];
 
-    // Types that need proxy wrapper classes (callback parameter types)
-    private readonly HashSet<string> _callbackProxyTypes = [];
-    private readonly Dictionary<string, RoType> _callbackProxyTypesByName = [];
+    // Types that need proxy wrapper classes (all complex types get proxies)
+    private readonly HashSet<string> _proxyTypes = [];
+    private readonly Dictionary<string, RoType> _proxyTypesByName = [];
 
     /// <inheritdoc />
     public string Language => "TypeScript";
@@ -97,6 +97,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         const _name = Symbol('_name');
         let source: string = "";
         let instructions: any[] = [];
+        let proxyCounter = 0;
 
         function writeLine(code: string) {
           source += code + '\n';
@@ -110,6 +111,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             const errorMessage = 'error' in result ? String(result.error) : 'Unknown error';
             throw new Error(`Instruction failed: ${errorMessage}`);
           }
+          return result;
         }
 
         function capture(fn: () => void) : string {
@@ -305,7 +307,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
     {
         // Generate proxy wrapper classes for callback parameter types
         // These provide typed wrappers around DotNetProxy with property accessors
-        foreach (var (typeName, roType) in _callbackProxyTypesByName)
+        foreach (var (typeName, roType) in _proxyTypesByName)
         {
             writer.WriteLine();
             writer.WriteLine($$"""
@@ -462,7 +464,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
     private string GetProxyReturnType(ApplicationModel model, RoType propertyType)
     {
         // Check if this is a known proxy type
-        if (_callbackProxyTypesByName.ContainsKey(propertyType.Name))
+        if (_proxyTypesByName.ContainsKey(propertyType.Name))
         {
             return $"{propertyType.Name}Proxy";
         }
@@ -742,26 +744,59 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                    */
                 """);
 
-                // Method body
-                writer.WriteLine($$"""
-                  async {{methodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
-                    emitLinePragma();
-                    var result = new {{jsReturnTypeName}}({{ctorArgs}});
-                    writeLine(`${result[_name]} = ${this[_name]}.{{overload.Name}}({{csParameterList}});`);
-                    await sendInstruction({
-                        name: 'INVOKE',
-                        source: this[_name],
-                        target: result[_name],
-                        methodAssembly: '{{overload.DeclaringType?.DeclaringAssembly.Name}}',
-                        methodType: '{{overload.DeclaringType?.FullName}}',
-                        methodName: '{{overload.Name}}',
-                        methodArgumentTypes: [{{string.Join(", ", overload.Parameters.Select(p => "'" + p.ParameterType.FullName + "'"))}}],
-                        metadataToken: {{overload.MetadataToken}},
-                        args: {{{jsonParameterList}}}
-                    });
-                    return result;
-                  };
-                """);
+                // Method body - different for proxy types vs builder types
+                var isProxyReturnType = jsReturnTypeName.EndsWith("Proxy", StringComparison.Ordinal);
+
+                if (isProxyReturnType)
+                {
+                    // For proxy types, use the marshalled result from sendInstruction
+                    writer.WriteLine($$"""
+                      async {{methodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
+                        emitLinePragma();
+                        var tempTarget = `{{CamelCase(returnType.Name)}}${++proxyCounter}`;
+                        writeLine(`var ${tempTarget} = ${this[_name]}.{{overload.Name}}({{csParameterList}});`);
+                        const response = await sendInstruction({
+                            name: 'INVOKE',
+                            source: this[_name],
+                            target: tempTarget,
+                            methodAssembly: '{{overload.DeclaringType?.DeclaringAssembly.Name}}',
+                            methodType: '{{overload.DeclaringType?.FullName}}',
+                            methodName: '{{overload.Name}}',
+                            methodArgumentTypes: [{{string.Join(", ", overload.Parameters.Select(p => "'" + p.ParameterType.FullName + "'"))}}],
+                            metadataToken: {{overload.MetadataToken}},
+                            args: {{{jsonParameterList}}}
+                        });
+                        const marshalledResult = (response as any)?.result;
+                        if (marshalledResult && marshalledResult.$id) {
+                            return new {{jsReturnTypeName}}(new DotNetProxy(marshalledResult));
+                        }
+                        throw new Error('{{overload.Name}} did not return a marshalled object');
+                      };
+                    """);
+                }
+                else
+                {
+                    // For builder types, use the existing approach with variable tracking
+                    writer.WriteLine($$"""
+                      async {{methodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
+                        emitLinePragma();
+                        var result = new {{jsReturnTypeName}}({{ctorArgs}});
+                        writeLine(`${result[_name]} = ${this[_name]}.{{overload.Name}}({{csParameterList}});`);
+                        await sendInstruction({
+                            name: 'INVOKE',
+                            source: this[_name],
+                            target: result[_name],
+                            methodAssembly: '{{overload.DeclaringType?.DeclaringAssembly.Name}}',
+                            methodType: '{{overload.DeclaringType?.FullName}}',
+                            methodName: '{{overload.Name}}',
+                            methodArgumentTypes: [{{string.Join(", ", overload.Parameters.Select(p => "'" + p.ParameterType.FullName + "'"))}}],
+                            metadataToken: {{overload.MetadataToken}},
+                            args: {{{jsonParameterList}}}
+                        });
+                        return result;
+                      };
+                    """);
+                }
             }
         }
     }
@@ -1056,9 +1091,9 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             // Register complex types for proxy wrapper generation
             else if (!IsSimpleType(model, argType) && !string.IsNullOrEmpty(typeName))
             {
-                if (_callbackProxyTypes.Add(typeName))
+                if (_proxyTypes.Add(typeName))
                 {
-                    _callbackProxyTypesByName[typeName] = argType;
+                    _proxyTypesByName[typeName] = argType;
                 }
                 // Use the proxy wrapper type name
                 argTypes.Add($"p{i}: {typeName}Proxy");
@@ -1143,10 +1178,24 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             { } when type == model.WellKnownTypes.GetKnownType(typeof(DateTime)) => "Date",
             { } when type == model.WellKnownTypes.GetKnownType(typeof(TimeSpan)) => "number",
             { } when type == model.WellKnownTypes.GetKnownType(typeof(DateTimeOffset)) => "Date",
-            { } when model.ModelTypes.Contains(type) => SanitizeClassName(type.Name),
-            { } when type.IsEnum => "any",
+            { } when type.IsEnum => type.Name,
             { IsGenericParameter: true } => "any", // Generic type parameters like T, TBuilder
+            // All other non-primitive types get a proxy wrapper
+            { } when model.ModelTypes.Contains(type) => RegisterProxyType(type),
             _ => "any"
         };
+    }
+
+    /// <summary>
+    /// Registers a type for proxy wrapper generation and returns the proxy type name.
+    /// </summary>
+    private string RegisterProxyType(RoType type)
+    {
+        var typeName = type.Name;
+        if (_proxyTypes.Add(typeName))
+        {
+            _proxyTypesByName[typeName] = type;
+        }
+        return $"{typeName}Proxy";
     }
 }

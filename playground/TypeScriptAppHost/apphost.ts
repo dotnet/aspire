@@ -5,9 +5,10 @@
 import {
     createBuilder,
     EnvironmentCallbackContextProxy,
-    CommandLineArgsCallbackContextProxy
+    CommandLineArgsCallbackContextProxy,
+    EndpointReferenceProxy
 } from './.modules/distributed-application.js';
-import { ListProxy } from './.modules/RemoteAppHostClient.js';
+import { ListProxy, refExpr } from './.modules/RemoteAppHostClient.js';
 
 async function main() {
     console.log("Aspire TypeScript AppHost starting...");
@@ -67,6 +68,17 @@ async function main() {
             const updatedArg = await args.get(1);
             console.log(`✅ List set(1) works: "${updatedArg}"`);
         });
+
+        // Test ReferenceExpression with EndpointReference
+        // Get an endpoint from redis and use it in a reference expression
+        // getEndpoint returns an EndpointReferenceProxy that wraps a DotNetProxy
+        const redisEndpoint = await redis.getEndpoint("tcp");
+        console.log(`✅ Got endpoint: ${redisEndpoint.$type}`);
+
+        // Create a ReferenceExpression using the refExpr template literal
+        // refExpr accepts proxy wrappers directly - it extracts the underlying proxy
+        const connectionExpr = refExpr`redis://${redisEndpoint}`;
+        console.log(`✅ Created ReferenceExpression: ${JSON.stringify(connectionExpr)}`);
 
         // Build and run the application
         const app = builder.build();

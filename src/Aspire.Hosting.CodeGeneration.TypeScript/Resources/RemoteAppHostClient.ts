@@ -233,10 +233,24 @@ export class ReferenceExpression {
 }
 
 /**
+ * Interface for proxy wrapper classes that have an underlying DotNetProxy.
+ */
+export interface HasProxy {
+    proxy: DotNetProxy;
+}
+
+/**
+ * Type guard to check if a value has a proxy property.
+ */
+function hasProxy(value: unknown): value is HasProxy {
+    return value !== null && typeof value === 'object' && 'proxy' in value && (value as HasProxy).proxy instanceof DotNetProxy;
+}
+
+/**
  * Tagged template literal for creating ReferenceExpression instances.
  *
- * DotNetProxy values are replaced with {$id} placeholders that .NET
- * uses to look up objects from the registry.
+ * DotNetProxy values (or proxy wrappers) are replaced with {$id} placeholders
+ * that .NET uses to look up objects from the registry.
  *
  * Usage:
  * ```typescript
@@ -246,7 +260,7 @@ export class ReferenceExpression {
  * await resource.withEnvironment("CONNECTION_STRING", expr);
  * ```
  */
-export function refExpr(strings: TemplateStringsArray, ...values: (DotNetProxy | string | number | boolean)[]): ReferenceExpression {
+export function refExpr(strings: TemplateStringsArray, ...values: (DotNetProxy | HasProxy | string | number | boolean)[]): ReferenceExpression {
     let format = '';
 
     for (let i = 0; i < strings.length; i++) {
@@ -257,6 +271,9 @@ export function refExpr(strings: TemplateStringsArray, ...values: (DotNetProxy |
             if (value instanceof DotNetProxy) {
                 // Use the object's $id as a placeholder
                 format += `{${value.$id}}`;
+            } else if (hasProxy(value)) {
+                // Proxy wrapper - use the underlying proxy's $id
+                format += `{${value.proxy.$id}}`;
             } else {
                 // Primitives are inlined as literals
                 format += String(value);

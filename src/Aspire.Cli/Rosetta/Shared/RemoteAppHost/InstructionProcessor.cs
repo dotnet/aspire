@@ -1116,12 +1116,15 @@ public class InstructionProcessor : IAsyncDisposable
             _variables[instruction.Target] = result;
         }
 
+        // Marshal the result so TypeScript can use it as a DotNetProxy
+        var marshalledResult = result != null ? MarshalObject(result) : null;
+
         return new {
             success = true,
             source = instruction.Source,
             target = instruction.Target,
             methodName = instruction.MethodName,
-            result = result?.ToString() ?? "null"
+            result = marshalledResult
         };
     }
 
