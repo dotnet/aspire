@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Tests.Shared.DashboardModel;
@@ -692,5 +693,92 @@ public sealed class TelemetryExportServiceTests
         Assert.Collection(entryNames,
             name => Assert.Equal("structuredlogs/ServiceWithLogs.json", name),
             name => Assert.Equal("traces/ServiceWithTraces.json", name));
+    }
+
+    [Fact]
+    public async Task ExportAllAsync_JapaneseCharactersInLogs_PreservesContent()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+
+        const string japaneseMessage = "これはテストログメッセージです"; // "This is a test log message"
+        const string japaneseAttributeValue = "日本語の属性値"; // "Japanese attribute value"
+        const string japaneseEventName = "テストイベント"; // "Test event"
+
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "JapaneseService", instanceId: "instance-1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("JapaneseLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(
+                                time: s_testTime,
+                                message: japaneseMessage,
+                                severity: SeverityNumber.Info,
+                                eventName: japaneseEventName,
+                                attributes: [new KeyValuePair<string, string>("japanese.attr", japaneseAttributeValue)])
+                        }
+                    }
+                }
+            }
+        });
+
+        var dashboardClient = new TestDashboardClient(isEnabled: false);
+
+        var sessionStorage = new TestSessionStorage();
+        var consoleLogsManager = new ConsoleLogsManager(sessionStorage);
+        await consoleLogsManager.EnsureInitializedAsync().DefaultTimeout();
+
+        var consoleLogsFetcher = new ConsoleLogsFetcher(dashboardClient, consoleLogsManager);
+        var service = new TelemetryExportService(repository, consoleLogsFetcher);
+
+        // Act
+        using var zipStream = await service.ExportAllAsync(CancellationToken.None).DefaultTimeout();
+
+        // Assert
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+
+        var logEntry = archive.GetEntry("structuredlogs/JapaneseService.json");
+        Assert.NotNull(logEntry);
+
+        using var reader = new StreamReader(logEntry.Open());
+        var jsonContent = await reader.ReadToEndAsync().DefaultTimeout();
+
+        // Verify Japanese characters appear directly in JSON (not Unicode-escaped)
+        Assert.Contains(japaneseMessage, jsonContent);
+        Assert.Contains(japaneseAttributeValue, jsonContent);
+        Assert.Contains(japaneseEventName, jsonContent);
+
+        // Deserialize the JSON to verify the content is correct after round-trip
+        var logsData = System.Text.Json.JsonSerializer.Deserialize<OtlpLogsDataJson>(jsonContent, OtlpJsonSerializerContext.Default.OtlpLogsDataJson);
+
+        Assert.NotNull(logsData);
+        Assert.NotNull(logsData.ResourceLogs);
+        Assert.Single(logsData.ResourceLogs);
+
+        var resourceLogs = logsData.ResourceLogs[0];
+        Assert.NotNull(resourceLogs.ScopeLogs);
+        Assert.Single(resourceLogs.ScopeLogs);
+
+        var scopeLogs = resourceLogs.ScopeLogs[0];
+        Assert.NotNull(scopeLogs.LogRecords);
+        Assert.Single(scopeLogs.LogRecords);
+
+        var logRecord = scopeLogs.LogRecords[0];
+
+        // Verify Japanese characters are preserved after serialization and deserialization
+        Assert.Equal(japaneseMessage, logRecord.Body?.StringValue);
+        Assert.Equal(japaneseEventName, logRecord.EventName);
+
+        Assert.NotNull(logRecord.Attributes);
+        var japaneseAttr = Assert.Single(logRecord.Attributes, a => a.Key == "japanese.attr");
+        Assert.Equal(japaneseAttributeValue, japaneseAttr.Value?.StringValue);
     }
 }
