@@ -53,8 +53,7 @@ internal sealed class LanguageService : ILanguageService
         var languages = new Dictionary<AppHostLanguage, string>
         {
             { AppHostLanguage.CSharp, AppHostLanguage.CSharp.GetDisplayName() },
-            { AppHostLanguage.TypeScript, AppHostLanguage.TypeScript.GetDisplayName() },
-            { AppHostLanguage.Python, AppHostLanguage.Python.GetDisplayName() }
+            { AppHostLanguage.TypeScript, AppHostLanguage.TypeScript.GetDisplayName() }
         };
 
         _interactionService.DisplayEmptyLine();

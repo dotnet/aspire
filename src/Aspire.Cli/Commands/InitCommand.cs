@@ -548,10 +548,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         {
             await CreateTypeScriptAppHostAsync(workingDirectory, cancellationToken);
         }
-        else if (language == AppHostLanguage.Python)
-        {
-            await CreatePythonAppHostAsync(workingDirectory, cancellationToken);
-        }
 
         InteractionService.DisplaySuccess($"Created {appHostFileName}");
         InteractionService.DisplayMessage("information", $"Run 'aspire run' to start your AppHost.");
@@ -600,51 +596,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 """;
 
             await File.WriteAllTextAsync(packageJsonPath, packageJsonContent, cancellationToken);
-        }
-    }
-
-    private static async Task CreatePythonAppHostAsync(DirectoryInfo directory, CancellationToken cancellationToken)
-    {
-        var appHostPath = Path.Combine(directory.FullName, "apphost.py");
-        var pyprojectPath = Path.Combine(directory.FullName, "pyproject.toml");
-
-        // Create a minimal Python apphost
-        var appHostContent = """
-            #!/usr/bin/env python3
-            """
-            + "\"\"\"Aspire Python AppHost.\"\"\"\n\n"
-            + """
-            import time
-
-            print("Aspire Python AppHost starting...")
-
-            # TODO: Add your distributed application configuration here
-            # This is a placeholder - full Aspire integration coming soon!
-
-            # Keep the process running
-            while True:
-                time.sleep(1)
-            """;
-
-        await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
-
-        // Create pyproject.toml if it doesn't exist
-        if (!File.Exists(pyprojectPath))
-        {
-            var pyprojectContent = """
-                [project]
-                name = "aspire-apphost"
-                version = "1.0.0"
-                description = "Aspire Python AppHost"
-                requires-python = ">=3.10"
-                dependencies = []
-
-                [build-system]
-                requires = ["hatchling"]
-                build-backend = "hatchling.build"
-                """;
-
-            await File.WriteAllTextAsync(pyprojectPath, pyprojectContent, cancellationToken);
         }
     }
 

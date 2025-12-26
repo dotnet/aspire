@@ -206,7 +206,6 @@ public class Program
         builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, DotNetAppHostProject>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, TypeScriptAppHostProject>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, PythonAppHostProject>());
 
         // Environment checking services.
         builder.Services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();

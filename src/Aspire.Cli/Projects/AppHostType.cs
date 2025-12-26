@@ -21,10 +21,5 @@ internal enum AppHostType
     /// <summary>
     /// TypeScript AppHost (apphost.ts or aspire.json with TypeScript).
     /// </summary>
-    TypeScript,
-
-    /// <summary>
-    /// Python AppHost (apphost.py or aspire.json with Python).
-    /// </summary>
-    Python
+    TypeScript
 }

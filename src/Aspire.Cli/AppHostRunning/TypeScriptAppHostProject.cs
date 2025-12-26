@@ -205,7 +205,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
     private Dictionary<string, string>? ReadLaunchSettingsEnvironmentVariables(DirectoryInfo directory)
     {
-        // For single-file apphosts (TypeScript/Python), look for apphost.run.json
+        // For TypeScript apphosts, look for apphost.run.json
         // similar to how .NET single-file apphosts use apphost.run.json
         var apphostRunPath = Path.Combine(directory.FullName, "apphost.run.json");
         var launchSettingsPath = Path.Combine(directory.FullName, "Properties", "launchSettings.json");

@@ -16,12 +16,7 @@ internal enum AppHostLanguage
     /// <summary>
     /// TypeScript (Node.js) AppHost.
     /// </summary>
-    TypeScript,
-
-    /// <summary>
-    /// Python AppHost.
-    /// </summary>
-    Python
+    TypeScript
 }
 
 /// <summary>
@@ -36,7 +31,6 @@ internal static class AppHostLanguageExtensions
     {
         AppHostLanguage.CSharp => "C# (.NET)",
         AppHostLanguage.TypeScript => "TypeScript (Node.js)",
-        AppHostLanguage.Python => "Python",
         _ => language.ToString()
     };
 
@@ -47,7 +41,6 @@ internal static class AppHostLanguageExtensions
     {
         AppHostLanguage.CSharp => ".cs",
         AppHostLanguage.TypeScript => ".ts",
-        AppHostLanguage.Python => ".py",
         _ => throw new ArgumentOutOfRangeException(nameof(language))
     };
 
@@ -58,7 +51,6 @@ internal static class AppHostLanguageExtensions
     {
         AppHostLanguage.CSharp => "apphost.cs",
         AppHostLanguage.TypeScript => "apphost.ts",
-        AppHostLanguage.Python => "apphost.py",
         _ => throw new ArgumentOutOfRangeException(nameof(language))
     };
 
@@ -80,7 +72,6 @@ internal static class AppHostLanguageExtensions
         {
             "csharp" or "c#" or "cs" or "dotnet" or ".net" => AppHostLanguage.CSharp,
             "typescript" or "ts" or "node" or "nodejs" => AppHostLanguage.TypeScript,
-            "python" or "py" => AppHostLanguage.Python,
             _ => default
         };
 
@@ -88,7 +79,6 @@ internal static class AppHostLanguageExtensions
         {
             "csharp" or "c#" or "cs" or "dotnet" or ".net" => true,
             "typescript" or "ts" or "node" or "nodejs" => true,
-            "python" or "py" => true,
             _ => false
         };
     }
@@ -100,7 +90,6 @@ internal static class AppHostLanguageExtensions
     {
         AppHostLanguage.CSharp => "csharp",
         AppHostLanguage.TypeScript => "typescript",
-        AppHostLanguage.Python => "python",
         _ => throw new ArgumentOutOfRangeException(nameof(language))
     };
 }

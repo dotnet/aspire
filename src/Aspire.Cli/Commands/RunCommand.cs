@@ -144,8 +144,8 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            // Check if this is a TypeScript or Python AppHost - use the appropriate project handler
-            if (searchResult.DetectedType is AppHostType.TypeScript or AppHostType.Python)
+            // Check if this is a TypeScript AppHost - use the appropriate project handler
+            if (searchResult.DetectedType is AppHostType.TypeScript)
             {
                 var project = _projectFactory.GetProject(searchResult.DetectedType.Value);
                 var context = new AppHostProjectContext

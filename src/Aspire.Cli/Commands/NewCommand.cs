@@ -150,10 +150,10 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         // Check if language is explicitly specified
         var explicitLanguage = parseResult.GetValue<string?>("--language");
 
-        // If language is TypeScript or Python, create polyglot apphost
+        // If language is TypeScript, create polyglot apphost
         if (!string.IsNullOrWhiteSpace(explicitLanguage) &&
             AppHostLanguageExtensions.TryParse(explicitLanguage, out var language) &&
-            language is AppHostLanguage.TypeScript or AppHostLanguage.Python)
+            language is AppHostLanguage.TypeScript)
         {
             return await CreatePolyglotProjectAsync(parseResult, language, cancellationToken);
         }
@@ -211,10 +211,6 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         {
             await CreateTypeScriptProjectAsync(directory, projectName, cancellationToken);
         }
-        else if (language == AppHostLanguage.Python)
-        {
-            await CreatePythonProjectAsync(directory, projectName, cancellationToken);
-        }
 
         InteractionService.DisplaySuccess($"Created {language.GetDisplayName()} project at {outputPath}");
         InteractionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
@@ -267,45 +263,6 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         await File.WriteAllTextAsync(packageJsonPath, packageJsonContent, cancellationToken);
     }
 
-    private static async Task CreatePythonProjectAsync(DirectoryInfo directory, string projectName, CancellationToken cancellationToken)
-    {
-        var appHostPath = Path.Combine(directory.FullName, "apphost.py");
-        var pyprojectPath = Path.Combine(directory.FullName, "pyproject.toml");
-
-        var appHostContent = """
-            #!/usr/bin/env python3
-            """
-            + "\"\"\"Aspire Python AppHost.\"\"\"\n\n"
-            + """
-            import time
-
-            print("Aspire Python AppHost starting...")
-
-            # TODO: Add your distributed application configuration here
-            # This is a placeholder - full Aspire integration coming soon!
-
-            # Keep the process running
-            while True:
-                time.sleep(1)
-            """;
-
-        await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
-
-        var pyprojectContent = $$"""
-            [project]
-            name = "{{projectName.ToLowerInvariant()}}"
-            version = "1.0.0"
-            description = "Aspire Python AppHost"
-            requires-python = ">=3.10"
-            dependencies = []
-
-            [build-system]
-            requires = ["hatchling"]
-            build-backend = "hatchling.build"
-            """;
-
-        await File.WriteAllTextAsync(pyprojectPath, pyprojectContent, cancellationToken);
-    }
 }
 
 internal interface INewCommandPrompter

@@ -1,24 +1,28 @@
 # Polyglot AppHost Support
 
-This document describes how the Aspire CLI supports non-.NET app hosts (TypeScript, Python) through a polyglot architecture.
+This document describes how the Aspire CLI supports non-.NET app hosts through a polyglot architecture. Currently, TypeScript is the supported guest language.
 
 ## Overview
 
-The polyglot apphost feature allows developers to write Aspire app hosts in languages other than C#. The CLI detects the app host type based on entry point files (`apphost.ts`, `apphost.py`) and orchestrates the appropriate runtime.
+The polyglot apphost feature allows developers to write Aspire app hosts in guest languages other than C#. The CLI detects the app host type based on entry point files (e.g., `apphost.ts`) and orchestrates the appropriate guest runtime.
+
+**Terminology:**
+- **Host**: The .NET GenericAppHost process running Aspire.Hosting
+- **Guest**: The language runtime (TypeScript) executing the user's apphost code
 
 ## Design Goals
 
 The architecture is designed around these key principles:
 
-1. **Reuse Existing Integrations**: All 100+ existing Aspire.Hosting.* NuGet packages work automatically with TypeScript and Python app hosts. No need to rewrite or port integrations - they're available immediately.
+1. **Reuse Existing Integrations**: All 100+ existing Aspire.Hosting.* NuGet packages work automatically with polyglot app hosts. No need to rewrite or port integrations - they're available immediately.
 
 2. **Native Language Experience**: Generated SDKs provide idiomatic APIs with instance methods (e.g., `builder.addRedis("cache")`) rather than function-based approaches.
 
 3. **Consistent CLI Experience**: Commands like `aspire run`, `aspire add`, and `aspire new` work identically regardless of the app host language. Developers don't need to learn different workflows.
 
-4. **Leverage .NET Ecosystem**: The heavy lifting (container orchestration, service discovery, health checks, telemetry) remains in .NET where the mature Aspire.Hosting libraries live. Language runtimes focus on providing idiomatic APIs.
+4. **Leverage .NET Ecosystem**: The heavy lifting (container orchestration, service discovery, health checks, telemetry) remains in .NET where the mature Aspire.Hosting libraries live. Guest languages focus on providing idiomatic APIs.
 
-This approach means that when a new Aspire integration is released (e.g., `Aspire.Hosting.Milvus`), it's immediately available to TypeScript and Python developers via `aspire add milvus` - no SDK updates required.
+This approach means that when a new Aspire integration is released (e.g., `Aspire.Hosting.Milvus`), it's immediately available to polyglot developers via `aspire add milvus` - no SDK updates required.
 
 ## Architecture
 
@@ -43,13 +47,15 @@ flowchart TB
     subgraph GenericAppHost["GenericAppHost (.NET)"]
         JRS[JsonRpcServer]
         IP[InstructionProcessor]
+        OR[ObjectRegistry]
         OD[OrphanDetector]
         AH[Aspire.Hosting]
     end
 
-    subgraph LanguageRuntime["Language Runtime"]
+    subgraph Guest["Guest (TypeScript)"]
         TS[TypeScript AppHost]
         Client[JSON-RPC Client]
+        Proxy[DotNetProxy]
     end
 
     RC --> PL
@@ -64,13 +70,16 @@ flowchart TB
     ALR -->|Loads assemblies| AM
     AM --> TSCG
     TSCG -->|Generates .modules/| TS
-    TSP -->|3. Starts via dotnet exec| JRS
-    TSP -->|4. Starts via npx tsx| TS
+    TSP -->|3. Starts host via dotnet exec| JRS
+    TSP -->|4. Starts guest via npx tsx| TS
 
     TS --> Client
     Client <-->|Unix Domain Socket| JRS
     JRS --> IP
     IP -->|Executes Instructions| AH
+    IP -->|Marshals objects| OR
+    OR -->|Returns proxies| Client
+    Client --> Proxy
 
     OD -->|Monitors CLI PID| CLI
     OD -->|Terminates on parent death| GenericAppHost
@@ -80,7 +89,7 @@ flowchart TB
 
 ### Startup Sequence
 
-1. **Detection**: `ProjectLocator` finds `apphost.ts` or `apphost.py` in the working directory
+1. **Detection**: `ProjectLocator` finds `apphost.ts` in the working directory
 2. **GenericAppHost Preparation**:
    - `ProjectModel` scaffolds a .NET project in `$TMPDIR/.aspire/hosts/<hash>/`
    - References `Aspire.AppHost.Sdk` and required hosting packages
@@ -89,128 +98,551 @@ flowchart TB
    - Loads assemblies from build output using `AssemblyLoaderContext`
    - Builds `ApplicationModel` via reflection on loaded assemblies
    - Generates TypeScript SDK into `.modules/` folder
-4. **GenericAppHost Launch**: Started via `dotnet exec` with:
+4. **Host Launch**: GenericAppHost started via `dotnet exec` with:
    - `REMOTE_APP_HOST_SOCKET_PATH` - Unix domain socket path for JSON-RPC
    - `REMOTE_APP_HOST_PID` - CLI process ID for orphan detection
    - Environment variables from `apphost.run.json`
-5. **Language Runtime Launch**: Started via `npx tsx` (TypeScript) or `python` (Python)
-6. **Connection**: Language runtime connects to GenericAppHost over Unix domain socket
+5. **Guest Launch**: TypeScript guest started via `npx tsx`
+6. **Connection**: Guest connects to host over Unix domain socket
 
 ### Shutdown Sequence
 
 Shutdown can be triggered by:
 
 1. **User Interrupt (Ctrl+C)**: CLI receives signal, terminates child processes
-2. **CLI Death**: `OrphanDetector` in GenericAppHost monitors parent PID, terminates when parent dies
-3. **Connection Loss**: Language runtime detects disconnection and exits
+2. **CLI Death**: `OrphanDetector` in host monitors parent PID, terminates when parent dies
+3. **Connection Loss**: Guest detects disconnection and exits
 4. **Startup Failure**: Errors (e.g., port conflicts) propagate back through JSON-RPC and terminate all processes
+
+---
+
+## Type System and Marshalling
+
+The polyglot architecture bridges two type systems: the host (.NET) and the guest (TypeScript). This section describes how types are mapped and how complex objects are marshalled between them.
+
+### Design Principles
+
+1. **Primitives pass directly**: Strings, numbers, booleans serialize as JSON primitives
+2. **Complex objects become proxies**: Non-primitive types are registered in the host and accessed via JSON-RPC calls from the guest
+3. **Callbacks are bidirectional**: Guest can register callbacks that the host invokes
+
+### Object Registry
+
+The `ObjectRegistry` in the host maintains a `ConcurrentDictionary<string, object>` mapping unique IDs to live .NET objects. When a complex object needs to be returned to the guest:
+
+1. Object is registered with a unique ID (e.g., `obj_1`, `obj_2`)
+2. A marshalled representation is sent: `{ $id, $type, $fullType, $methods, ...properties }`
+3. Guest wraps this in a `DotNetProxy` or generated proxy wrapper class
+4. Subsequent operations use the `$id` to reference the object in the host
+
+### Type Mappings
+
+#### Guest → Host (Sending data to .NET)
+
+| TypeScript Type | .NET Type | Handling |
+|-----------------|-----------|----------|
+| `string` | `string` | Direct JSON |
+| `number` | `int`, `long`, `double` | Explicit type coercion |
+| `boolean` | `bool` | Direct JSON |
+| `null` | `null` | Direct JSON |
+| Object with `$id` | Registry lookup | Proxy reference resolved |
+| `{ $referenceExpression, format }` | `ReferenceExpression` | Special handling |
+| Arrays | `T[]`, `List<T>` | JSON deserialization |
+
+#### Host → Guest (Returning data to TypeScript)
+
+| .NET Type | TypeScript Type | Notes |
+|-----------|-----------------|-------|
+| `string` | `string` | Direct |
+| `bool` | `boolean` | Direct |
+| Numeric types | `number` | All numeric types become number |
+| `DateTime`, `Guid` | `string` | ISO 8601 / string format |
+| Enums | `string` | Enum name as string |
+| Complex objects | `DotNetProxy` | Marshalled with `$id` |
+| `IResourceBuilder<T>` | Generated builder class | e.g., `RedisResourceBuilder` |
+| Model types | Generated proxy wrapper | e.g., `EndpointReferenceProxy` |
+
+### Proxy Classes
+
+#### Base Proxy: `DotNetProxy`
+
+The foundation for all remote object access:
+
+```typescript
+class DotNetProxy {
+    readonly $id: string;      // Object ID in registry
+    readonly $type: string;    // Short type name
+
+    // Remote operations via JSON-RPC
+    async invokeMethod(name: string, args?: Record<string, unknown>): Promise<unknown>;
+    async getProperty(name: string): Promise<unknown>;
+    async setProperty(name: string, value: unknown): Promise<void>;
+    async getIndexer(key: string | number): Promise<unknown>;
+    async setIndexer(key: string | number, value: unknown): Promise<void>;
+    async dispose(): Promise<void>;  // Release from registry
+}
+```
+
+#### Collection Proxies
+
+**`ListProxy<T>`** - For `IList<T>` operations:
+```typescript
+class ListProxy<T> {
+    async add(item: T): Promise<void>;
+    async get(index: number): Promise<T>;
+    async set(index: number, value: T): Promise<void>;
+    async count(): Promise<number>;
+    async clear(): Promise<void>;
+    async contains(item: T): Promise<boolean>;
+    async remove(item: T): Promise<boolean>;
+    async removeAt(index: number): Promise<void>;
+    async insert(index: number, item: T): Promise<void>;
+}
+```
+
+#### Generated Proxy Wrappers
+
+The code generator creates typed wrapper classes for model types:
+
+```typescript
+// Generated for EndpointReference
+class EndpointReferenceProxy {
+    private _proxy: DotNetProxy;
+    get proxy(): DotNetProxy { return this._proxy; }
+    get $type(): string { return this._proxy.$type; }
+
+    async getResource(): Promise<DotNetProxy> { ... }
+    async getEndpointName(): Promise<string> { ... }
+}
+
+// Generated for callback contexts
+class EnvironmentCallbackContextProxy {
+    async getEnvironmentVariables(): Promise<DotNetProxy>;
+    async getResource(): Promise<DotNetProxy>;
+    async getExecutionContext(): Promise<DotNetProxy>;
+}
+```
+
+All generated proxies implement `HasProxy`:
+```typescript
+interface HasProxy {
+    proxy: DotNetProxy;
+}
+```
+
+### ReferenceExpression
+
+`ReferenceExpression` allows building connection strings and other expressions that reference host objects:
+
+```typescript
+// Tagged template literal creates ReferenceExpression
+const endpoint = await redis.getEndpoint("tcp");
+const expr = refExpr`redis://${endpoint}`;
+
+// Serializes as:
+{ $referenceExpression: true, format: "redis://{obj_4}" }
+```
+
+The `refExpr` function:
+- Detects `DotNetProxy` instances and proxy wrappers (via `HasProxy`)
+- Replaces them with `{$id}` placeholders
+- Host reconstructs the expression using object registry lookups
+
+---
 
 ## JSON-RPC Protocol
 
-Communication between the language runtime and GenericAppHost uses JSON-RPC 2.0 over Unix domain sockets.
+Communication between the guest and host uses JSON-RPC 2.0 over Unix domain sockets (or named pipes on Windows).
 
-### Instructions
+### Transport Layer
 
-| Instruction | Description |
-|-------------|-------------|
-| `CREATE_BUILDER` | Creates a `DistributedApplicationBuilder` |
-| `INVOKE` | Invokes a method on a resource or builder |
-| `RUN_BUILDER` | Builds and runs the distributed application |
+The protocol uses **header-delimited messages** matching the `vscode-jsonrpc` format:
 
-### Example Flow
-
-```mermaid
-sequenceDiagram
-    participant TS as TypeScript AppHost
-    participant RPC as JSON-RPC Server
-    participant IP as InstructionProcessor
-    participant Aspire as Aspire.Hosting
-
-    TS->>RPC: CREATE_BUILDER {name: "app"}
-    RPC->>IP: Execute
-    IP->>Aspire: DistributedApplication.CreateBuilder()
-    IP-->>RPC: {success: true, builderName: "app"}
-    RPC-->>TS: Result
-
-    TS->>RPC: INVOKE {method: "AddRedis", args: ["cache"]}
-    RPC->>IP: Execute
-    IP->>Aspire: builder.AddRedis("cache")
-    IP-->>RPC: {success: true, resourceName: "cache"}
-    RPC-->>TS: Result
-
-    TS->>RPC: RUN_BUILDER {builderName: "app"}
-    RPC->>IP: Execute
-    IP->>Aspire: app.RunAsync()
-    IP-->>RPC: {success: true, status: "running"}
-    RPC-->>TS: Result
 ```
+Content-Length: 123\r\n
+\r\n
+{"jsonrpc":"2.0","id":1,"method":"ping","params":[]}
+```
+
+### Connection Setup (Guest Side)
+
+```typescript
+import * as net from 'net';
+import * as rpc from 'vscode-jsonrpc/node.js';
+
+// Socket path passed via environment variable from CLI
+const socketPath = process.env.REMOTE_APP_HOST_SOCKET_PATH;
+
+// Connect to host's Unix domain socket
+const socket = net.createConnection(socketPath);
+
+// Create JSON-RPC connection
+const reader = new rpc.SocketMessageReader(socket);
+const writer = new rpc.SocketMessageWriter(socket);
+const connection = rpc.createMessageConnection(reader, writer);
+
+// Start listening for messages
+connection.listen();
+```
+
+### RPC Methods
+
+#### `ping` - Health Check
+
+```typescript
+// Request
+const response = await connection.sendRequest('ping');
+// Response: "pong"
+```
+
+#### `executeInstruction` - High-Level Operations
+
+Instructions are the primary way to interact with the Aspire.Hosting API. They're serialized as JSON strings.
+
+```typescript
+// CREATE_BUILDER - Create a DistributedApplicationBuilder
+const createBuilderInstruction = {
+    type: 'CREATE_BUILDER',
+    builderName: 'builder',
+    args: ['MyApp']  // Application name
+};
+const result = await connection.sendRequest(
+    'executeInstruction',
+    JSON.stringify(createBuilderInstruction)
+);
+// Response: { success: true, builderName: 'builder' }
+
+// INVOKE - Call a method on the builder or resource
+const invokeInstruction = {
+    type: 'INVOKE',
+    source: 'builder',           // Variable name holding the object
+    target: 'redis',             // Variable name to store result
+    methodName: 'AddRedis',      // .NET method name
+    args: { name: 'cache' }      // Named parameters
+};
+const invokeResult = await connection.sendRequest(
+    'executeInstruction',
+    JSON.stringify(invokeInstruction)
+);
+// Response: { success: true, source: 'builder', target: 'redis',
+//             result: { $id: 'obj_1', $type: 'RedisResource', ... } }
+
+// RUN_BUILDER - Build and run the application
+const runInstruction = {
+    type: 'RUN_BUILDER',
+    builderName: 'builder'
+};
+await connection.sendRequest(
+    'executeInstruction',
+    JSON.stringify(runInstruction)
+);
+```
+
+#### `invokeMethod` - Call Method on Registered Object
+
+```typescript
+// Call Add() on a list
+await connection.sendRequest('invokeMethod',
+    'obj_5',           // objectId from registry
+    'Add',             // method name
+    { item: '--maxmemory' }  // named arguments
+);
+
+// Call a method with no arguments
+const count = await connection.sendRequest('invokeMethod',
+    'obj_5',
+    'get_Count',       // Property getter
+    null
+);
+```
+
+#### `getProperty` / `setProperty` - Property Access
+
+```typescript
+// Get property value
+const count = await connection.sendRequest('getProperty',
+    'obj_5',           // objectId
+    'Count'            // property name
+);
+// Response: 4
+
+// Set property value
+await connection.sendRequest('setProperty',
+    'obj_3',
+    'Name',
+    'new-name'
+);
+```
+
+#### `getIndexer` / `setIndexer` - Indexed Access
+
+```typescript
+// Get list item by index
+const item = await connection.sendRequest('getIndexer',
+    'obj_5',           // objectId (list)
+    0                  // index
+);
+
+// Set list item by index
+await connection.sendRequest('setIndexer',
+    'obj_5',
+    1,                 // index
+    '512mb'            // new value
+);
+
+// Get dictionary item by key
+const value = await connection.sendRequest('getIndexer',
+    'obj_8',           // objectId (dictionary)
+    'MY_VAR'           // key
+);
+
+// Set dictionary item by key
+await connection.sendRequest('setIndexer',
+    'obj_8',
+    'MY_VAR',
+    'new-value'
+);
+```
+
+#### `unregisterObject` - Release Object from Registry
+
+```typescript
+// Release object when no longer needed
+await connection.sendRequest('unregisterObject', 'obj_5');
+```
+
+### Callback Mechanism
+
+Callbacks allow the host to invoke guest functions during method execution (e.g., `WithEnvironment` callbacks).
+
+#### Registering Callbacks (Guest Side)
+
+```typescript
+// Callback registry on the guest side
+const callbackRegistry = new Map<string, Function>();
+let callbackIdCounter = 0;
+
+function registerCallback<TArgs, TResult>(
+    callback: (args: TArgs) => TResult | Promise<TResult>
+): string {
+    const callbackId = `callback_${++callbackIdCounter}_${Date.now()}`;
+    callbackRegistry.set(callbackId, callback);
+    return callbackId;
+}
+```
+
+#### Handling Callback Invocations (Guest Side)
+
+```typescript
+// Register handler for incoming callback requests from host
+connection.onRequest('invokeCallback', async (callbackId: string, args: unknown) => {
+    const callback = callbackRegistry.get(callbackId);
+    if (!callback) {
+        throw new Error(`Callback not found: ${callbackId}`);
+    }
+
+    // Wrap marshalled objects in proxies
+    const wrappedArgs = wrapIfProxy(args);
+
+    // Execute callback (may be async)
+    return await Promise.resolve(callback(wrappedArgs));
+});
+```
+
+#### Example: Environment Callback
+
+```typescript
+// Register a callback that configures environment variables
+const callbackId = registerCallback(async (context: DotNetProxy) => {
+    // context is a marshalled EnvironmentCallbackContext from the host
+    const envVars = await context.invokeMethod('get_EnvironmentVariables');
+
+    // envVars is now a DotNetProxy for IDictionary<string, object>
+    await connection.sendRequest('setIndexer',
+        envVars.$id,
+        'MY_VAR',
+        'Hello from guest!'
+    );
+});
+
+// Pass callback ID to host method via instruction
+const instruction = {
+    type: 'INVOKE',
+    source: 'redis',
+    target: 'redis',
+    methodName: 'WithEnvironment',
+    args: { callback: callbackId }
+};
+await connection.sendRequest('executeInstruction', JSON.stringify(instruction));
+
+// During execution, host will call back to guest via 'invokeCallback'
+```
+
+### Object Marshalling Format
+
+When the host returns complex objects, they're marshalled with metadata:
+
+```typescript
+// Marshalled object format
+interface MarshalledObject {
+    $id: string;        // Unique ID in object registry (e.g., "obj_1")
+    $type: string;      // Short type name (e.g., "RedisResource")
+    $fullType: string;  // Full type name with namespace
+    $methods?: string[];// Available methods (first overload only)
+    [key: string]: unknown;  // Serialized property values
+}
+
+// Example marshalled RedisResource
+{
+    "$id": "obj_1",
+    "$type": "RedisResource",
+    "$fullType": "Aspire.Hosting.Redis.RedisResource",
+    "$methods": ["WithEnvironment", "WithArgs", "GetEndpoint"],
+    "Name": "cache"
+}
+```
+
+### Wrapping Marshalled Objects (Guest Side)
+
+```typescript
+function wrapIfProxy(value: unknown): unknown {
+    if (value && typeof value === 'object' && '$id' in value && '$type' in value) {
+        return new DotNetProxy(value as MarshalledObject);
+    }
+    return value;
+}
+
+// DotNetProxy provides a convenient API over the raw RPC calls to the host
+class DotNetProxy {
+    constructor(private marshalled: MarshalledObject) {}
+
+    get $id(): string { return this.marshalled.$id; }
+    get $type(): string { return this.marshalled.$type; }
+
+    async invokeMethod(name: string, args?: Record<string, unknown>): Promise<unknown> {
+        const result = await connection.sendRequest('invokeMethod', this.$id, name, args ?? null);
+        return wrapIfProxy(result);
+    }
+
+    async getProperty(name: string): Promise<unknown> {
+        const result = await connection.sendRequest('getProperty', this.$id, name);
+        return wrapIfProxy(result);
+    }
+
+    async getIndexer(key: string | number): Promise<unknown> {
+        const result = await connection.sendRequest('getIndexer', this.$id, key);
+        return wrapIfProxy(result);
+    }
+
+    async setIndexer(key: string | number, value: unknown): Promise<void> {
+        await connection.sendRequest('setIndexer', this.$id, key, value);
+    }
+
+    async dispose(): Promise<void> {
+        await connection.sendRequest('unregisterObject', this.$id);
+    }
+}
+```
+
+### Error Handling
+
+Errors from the host are returned as JSON-RPC error responses:
+
+```typescript
+try {
+    await connection.sendRequest('invokeMethod', 'obj_1', 'NonExistentMethod', null);
+} catch (error) {
+    // error.message: "Method 'NonExistentMethod' not found on type 'RedisResource'"
+    // error.code: -32603 (Internal error)
+}
+```
+
+### Connection Lifecycle (Guest Side)
+
+```typescript
+// Handle disconnection from host
+connection.onClose(() => {
+    console.log('Connection to host closed');
+    process.exit(0);
+});
+
+connection.onError((err) => {
+    console.error('JSON-RPC connection error:', err);
+});
+
+// Clean disconnect
+function disconnect(): void {
+    connection.dispose();
+    socket.end();
+}
+```
+
+### Complete Example: Guest Low-Level RPC
+
+```typescript
+import * as net from 'net';
+import * as rpc from 'vscode-jsonrpc/node.js';
+
+async function main() {
+    // Connect to host
+    const socketPath = process.env.REMOTE_APP_HOST_SOCKET_PATH!;
+    const socket = net.createConnection(socketPath);
+
+    await new Promise<void>((resolve, reject) => {
+        socket.once('connect', resolve);
+        socket.once('error', reject);
+    });
+
+    const connection = rpc.createMessageConnection(
+        new rpc.SocketMessageReader(socket),
+        new rpc.SocketMessageWriter(socket)
+    );
+    connection.listen();
+
+    // Health check
+    const pong = await connection.sendRequest('ping');
+    console.log('Connected:', pong);  // "pong"
+
+    // Create builder
+    await connection.sendRequest('executeInstruction', JSON.stringify({
+        type: 'CREATE_BUILDER',
+        builderName: 'builder',
+        args: ['MyApp']
+    }));
+
+    // Add Redis
+    const result = await connection.sendRequest('executeInstruction', JSON.stringify({
+        type: 'INVOKE',
+        source: 'builder',
+        target: 'redis',
+        methodName: 'AddRedis',
+        args: { name: 'cache' }
+    }));
+
+    const redisProxy = new DotNetProxy(result.result);
+    console.log('Created Redis:', redisProxy.$type);  // "IResourceBuilder`1"
+
+    // Get endpoint
+    const endpointResult = await connection.sendRequest('invokeMethod',
+        redisProxy.$id, 'GetEndpoint', { name: 'tcp' });
+    const endpointProxy = new DotNetProxy(endpointResult);
+    console.log('Endpoint:', endpointProxy.$type);  // "EndpointReference"
+
+    // Run the application
+    await connection.sendRequest('executeInstruction', JSON.stringify({
+        type: 'RUN_BUILDER',
+        builderName: 'builder'
+    }));
+}
+
+main().catch(console.error);
+```
+
+---
 
 ## Code Generation
 
-The CLI generates TypeScript SDK code that provides type-safe APIs with instance methods for all Aspire integrations.
-
-### Architecture
-
-```mermaid
-flowchart LR
-    subgraph Input
-        CFG[.aspire/settings.json]
-        ASM[Built Assemblies]
-    end
-
-    subgraph Library["Aspire.Hosting.CodeGeneration"]
-        ALC[AssemblyLoaderContext]
-        AM[ApplicationModel]
-        IM[IntegrationModel]
-        RM[ResourceModel]
-    end
-
-    subgraph TSLib["Aspire.Hosting.CodeGeneration.TypeScript"]
-        TSG[TypeScriptCodeGenerator]
-        EMB[Embedded Resources]
-    end
-
-    subgraph Output[".modules/"]
-        DA[distributed-application.ts]
-        TYP[types.ts]
-        RPC[RemoteAppHostClient.ts]
-    end
-
-    CFG -->|Package refs| ALC
-    ASM -->|PE metadata| ALC
-    ALC --> AM
-    AM --> IM
-    IM --> RM
-    AM --> TSG
-    EMB --> TSG
-    TSG --> DA
-    TSG --> TYP
-    TSG --> RPC
-```
-
-### How It Works
-
-1. **Assembly Loading**: `AssemblyLoaderContext` uses `System.Reflection.Metadata` (PEReader) to load assemblies without executing them - this is AOT-compatible and lightweight.
-
-2. **Model Building**: `ApplicationModel` aggregates `IntegrationModel` instances for each package, extracting:
-   - Extension methods on `IDistributedApplicationBuilder`
-   - Resource types implementing `IResource`
-   - Method signatures and parameter types
-
-3. **Code Generation**: `TypeScriptCodeGenerator` produces:
-   - `DistributedApplicationBuilder` class with instance methods
-   - Resource-specific builder classes (e.g., `RedisResourceBuilder`)
-   - Type definitions for parameters and return types
-
-### Generation Trigger
-
-Code generation runs automatically when:
-
-1. **First Run**: `.modules/` folder doesn't exist
-2. **Package Changes**: Hash of package references has changed
-3. **After `aspire add`**: When adding new integrations
-
-The CLI computes a SHA256 hash of all package IDs and versions. This hash is stored in `.modules/.codegen-hash` and compared on each run.
+The CLI generates language-specific SDK code that provides type-safe APIs with instance methods for all Aspire integrations.
 
 ### Generated File Structure
 
@@ -222,98 +654,43 @@ The CLI computes a SHA256 hash of all package IDs and versions. This hash is sto
 └── RemoteAppHostClient.ts     # JSON-RPC client implementation
 ```
 
-### Generated Code Example
+### Generation Trigger
 
-For `Aspire.Hosting.Redis`, the generator creates instance methods on `DistributedApplicationBuilder`:
+Code generation runs automatically when:
 
-```typescript
-// .modules/distributed-application.ts (excerpt)
+1. **First Run**: `.modules/` folder doesn't exist
+2. **Package Changes**: Hash of package references has changed
+3. **After `aspire add`**: When adding new integrations
+4. **Development Mode**: When `ASPIRE_REPO_ROOT` is set (always regenerates)
 
-export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {
-  /**
-   * Adds a Redis resource to the application.
-   * @param name The name of the resource.
-   * @param port The host port for Redis.
-   * @returns A RedisResourceBuilder for further configuration.
-   */
-  async addRedis(name: string, port?: number | null): Promise<RedisResourceBuilder> {
-    // ... implementation
-  }
-}
+### Generated Code Structure
 
-export class RedisResourceBuilder extends ResourceBuilderBase {
-  /**
-   * Configures Redis persistence.
-   */
-  async withPersistence(interval?: number | null, keysChangedThreshold?: number | null): Promise<this> {
-    // ... implementation
-  }
-}
-```
+For each Aspire integration, the generator creates:
 
-This allows TypeScript app hosts to write idiomatic code:
+1. **Builder methods** on `DistributedApplicationBuilder`:
+   ```typescript
+   async addRedis(name: string, port?: number | null): Promise<RedisResourceBuilder>
+   ```
 
-```typescript
-// apphost.ts
-import { createBuilder } from './.modules/distributed-application.js';
+2. **Resource-specific builder classes**:
+   ```typescript
+   class RedisResourceBuilder {
+       async withPersistence(...): Promise<this>;
+       async getEndpoint(name: string): Promise<EndpointReferenceProxy>;
+   }
+   ```
 
-const builder = await createBuilder();
-const cache = await builder.addRedis('cache');
-await cache.withPersistence();
+3. **Proxy wrapper classes** for model types:
+   ```typescript
+   class EndpointReferenceProxy { ... }
+   class EnvironmentCallbackContextProxy { ... }
+   ```
 
-const app = builder.build();
-await app.run();
-```
-
-## Adding Integrations
-
-The `aspire add` command works consistently across all app host types:
-
-```bash
-# Works the same for .NET, TypeScript, and Python projects
-aspire add redis
-aspire add Aspire.Hosting.Redis --version 13.1.0
-```
-
-### How It Works
-
-```mermaid
-flowchart TB
-    subgraph AddCommand
-        DETECT[Detect AppHost Type]
-        SEARCH[Search NuGet Packages]
-        SELECT[Select Package/Version]
-    end
-
-    subgraph DotNet[".NET Projects"]
-        DOTNET_ADD[dotnet add package]
-    end
-
-    subgraph Polyglot["TypeScript/Python Projects"]
-        UPDATE_CFG[Update .aspire/settings.json]
-        REGEN[Regenerate SDK Code]
-    end
-
-    DETECT --> SEARCH
-    SEARCH --> SELECT
-    SELECT -->|.csproj| DOTNET_ADD
-    SELECT -->|apphost.ts/py| UPDATE_CFG
-    UPDATE_CFG --> REGEN
-```
-
-### For .NET Projects
-- Uses `dotnet add package` to add the NuGet package reference
-
-### For TypeScript/Python Projects
-1. Updates `.aspire/settings.json` with the package reference
-2. Regenerates SDK code to include new integration methods
-3. On next `aspire run`, the GenericAppHost will restore and include the new package
+---
 
 ## Configuration
 
 ### .aspire/settings.json
-
-The `.aspire/settings.json` file configures the polyglot app host. The `packages` field uses an object literal format similar to npm's `package.json`:
 
 ```json
 {
@@ -325,14 +702,9 @@ The `.aspire/settings.json` file configures the polyglot app host. The `packages
 }
 ```
 
-| Field | Description |
-|-------|-------------|
-| `appHostPath` | Relative path to the app host entry point |
-| `packages` | Object mapping package names to versions |
-
 ### apphost.run.json
 
-The `apphost.run.json` file configures the app host runtime, using the same format as .NET launch settings:
+Launch settings for the app host:
 
 ```json
 {
@@ -341,23 +713,54 @@ The `apphost.run.json` file configures the app host runtime, using the same form
     "https": {
       "applicationUrl": "https://localhost:17000;http://localhost:15000",
       "environmentVariables": {
-        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:21000",
-        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:22000"
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:21000"
       }
     }
   }
 }
 ```
 
-The CLI reads this file and passes environment variables to the GenericAppHost process.
+---
 
-## Version Handling
+## Example Usage
 
-The GenericAppHost uses the same Aspire package version as the installed CLI:
+```typescript
+// apphost.ts
+import { createBuilder, refExpr } from './.modules/distributed-application.js';
+import { EnvironmentCallbackContextProxy } from './.modules/distributed-application.js';
 
-- Production versions (e.g., `13.1.0`): Used directly
-- Dev versions (e.g., `13.2.0-dev`): Falls back to latest stable (`13.1.0`)
-- Override: Set `ASPIRE_POLYGLOT_PACKAGE_VERSION` environment variable
+async function main() {
+    const builder = await createBuilder();
+
+    // Add Redis - returns typed RedisResourceBuilder
+    const redis = await builder.addRedis('cache');
+
+    // Configure with callback - receives typed context proxy
+    await redis.withEnvironmentCallback(async (context: EnvironmentCallbackContextProxy) => {
+        const envVars = await context.getEnvironmentVariables();
+        await envVars.set("REDIS_CONFIG", "custom-value");
+    });
+
+    // Configure args using ListProxy
+    await redis.withArgs2(async (context) => {
+        const args = await context.getArgs();
+        await args.add("--maxmemory");
+        await args.add("256mb");
+    });
+
+    // Use reference expressions with endpoint proxies
+    const endpoint = await redis.getEndpoint("tcp");
+    const connString = refExpr`redis://${endpoint}`;
+
+    // Build and run
+    const app = builder.build();
+    await app.run();
+}
+
+main();
+```
+
+---
 
 ## File Locations
 
@@ -366,32 +769,24 @@ The GenericAppHost uses the same Aspire package version as the installed CLI:
 | `$TMPDIR/.aspire/hosts/<hash>/` | GenericAppHost project directory |
 | `$TMPDIR/.aspire/sockets/<hash>.sock` | Unix domain socket for JSON-RPC |
 | `.aspire/settings.json` | Project configuration with package references |
-| `.modules/` | Generated TypeScript SDK code |
+| `.modules/` | Generated SDK code |
 | `apphost.run.json` | Launch settings (in project root) |
 
-The `<hash>` is derived from the SHA256 of the app host directory path, ensuring unique locations per project.
-
-## Orphan Detection
-
-The `OrphanDetector` class monitors the CLI process to prevent orphaned GenericAppHost processes:
-
-```csharp
-// GenericAppHost monitors CLI PID
-var cliPid = Environment.GetEnvironmentVariable("REMOTE_APP_HOST_PID");
-OrphanDetector.MonitorParentProcess(int.Parse(cliPid), () => {
-    Environment.Exit(0);
-});
-```
-
-This ensures cleanup even if the CLI crashes or is killed unexpectedly.
+---
 
 ## Error Handling
 
-Errors during startup (e.g., port conflicts, missing dependencies) are propagated through the JSON-RPC connection:
+Errors propagate through the JSON-RPC connection:
 
-1. GenericAppHost catches the exception in `InstructionProcessor`
-2. Error is returned as JSON-RPC error response
-3. Language runtime receives error and exits with failure code
+1. Host catches exceptions in `InstructionProcessor`
+2. Error is returned as JSON-RPC error response with message and stack trace
+3. Guest throws the error, which propagates to the catch block
 4. CLI detects child process exit and terminates
 
-This ensures the entire process tree terminates cleanly on startup failures.
+```typescript
+try {
+    await (redis as any).nonExistentMethod();
+} catch (e) {
+    // Error message: "redis.nonExistentMethod is not a function"
+}
+```

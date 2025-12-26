@@ -55,7 +55,6 @@ internal sealed class AppHostProjectFactory : IAppHostProjectFactory
             ".csproj" or ".fsproj" or ".vbproj" => AppHostType.DotNetProject,
             ".cs" => AppHostType.DotNetSingleFile,
             ".ts" => AppHostType.TypeScript,
-            ".py" => AppHostType.Python,
             ".json" when appHostFile.Name.Equals("aspire.json", StringComparison.OrdinalIgnoreCase) => DetectFromAspireJson(appHostFile),
             _ => null
         };
@@ -66,7 +65,7 @@ internal sealed class AppHostProjectFactory : IAppHostProjectFactory
     /// </summary>
     private static AppHostType? DetectFromAspireJson(FileInfo aspireJsonFile)
     {
-        // Look for sibling apphost.ts or apphost.py files
+        // Look for sibling apphost.ts file
         var directory = aspireJsonFile.Directory;
         if (directory is null)
         {
@@ -76,11 +75,6 @@ internal sealed class AppHostProjectFactory : IAppHostProjectFactory
         if (File.Exists(Path.Combine(directory.FullName, "apphost.ts")))
         {
             return AppHostType.TypeScript;
-        }
-
-        if (File.Exists(Path.Combine(directory.FullName, "apphost.py")))
-        {
-            return AppHostType.Python;
         }
 
         // TODO: Parse aspire.json to check for language field

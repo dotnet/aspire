@@ -136,31 +136,6 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 }
             }
 
-            // Scan for Python apphosts (apphost.py)
-            logger.LogDebug("Searching for Python apphosts in {SearchDirectory}", searchDirectory.FullName);
-            var pyAppHostFiles = searchDirectory.GetFiles("apphost.py", enumerationOptions);
-            logger.LogDebug("Found {CandidateFileCount} Python apphost candidates in {SearchDirectory}", pyAppHostFiles.Length, searchDirectory.FullName);
-
-            foreach (var candidateFile in pyAppHostFiles)
-            {
-                logger.LogDebug("Checking Python apphost candidate {CandidateFile}", candidateFile.FullName);
-
-                if (IsValidPythonAppHost(candidateFile))
-                {
-                    logger.LogDebug("Found Python apphost {CandidateFile} in {SearchDirectory}", candidateFile.FullName, searchDirectory.FullName);
-                    var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
-                    interactionService.DisplaySubtleMessage(relativePath);
-                    lock (lockObject)
-                    {
-                        appHostProjects.Add(candidateFile);
-                    }
-                }
-                else
-                {
-                    logger.LogTrace("Python candidate {CandidateFile} in {SearchDirectory} is not a valid apphost", candidateFile.FullName, searchDirectory.FullName);
-                }
-            }
-
             // This sort is done here to make results deterministic since we get all the app
             // host information in parallel and the order may vary.
             appHostProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
@@ -237,33 +212,9 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         return hasAspireJson || hasPackageJson;
     }
 
-    private static bool IsValidPythonAppHost(FileInfo candidateFile)
-    {
-        // Check if file is named apphost.py (case-insensitive)
-        if (!candidateFile.Name.Equals("apphost.py", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        // Check if directory contains no *.csproj files (not a .NET project)
-        var siblingCsprojFiles = candidateFile.Directory!.EnumerateFiles("*.csproj", SearchOption.TopDirectoryOnly);
-        if (siblingCsprojFiles.Any())
-        {
-            return false;
-        }
-
-        // For Python, check for aspire.json or pyproject.toml/requirements.txt
-        var directory = candidateFile.Directory!;
-        var hasAspireJson = File.Exists(Path.Combine(directory.FullName, "aspire.json"));
-        var hasPyprojectToml = File.Exists(Path.Combine(directory.FullName, "pyproject.toml"));
-        var hasRequirementsTxt = File.Exists(Path.Combine(directory.FullName, "requirements.txt"));
-
-        return hasAspireJson || hasPyprojectToml || hasRequirementsTxt;
-    }
-
     private static AppHostType? DetectAppHostTypeFromAspireJson(FileInfo aspireJsonFile)
     {
-        // Look for sibling apphost.ts or apphost.py files
+        // Look for sibling apphost.ts file
         var directory = aspireJsonFile.Directory;
         if (directory is null)
         {
@@ -273,11 +224,6 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         if (File.Exists(Path.Combine(directory.FullName, "apphost.ts")))
         {
             return AppHostType.TypeScript;
-        }
-
-        if (File.Exists(Path.Combine(directory.FullName, "apphost.py")))
-        {
-            return AppHostType.Python;
         }
 
         // TODO: Parse aspire.json to check for language field
@@ -296,7 +242,6 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             ".csproj" or ".fsproj" or ".vbproj" => AppHostType.DotNetProject,
             ".cs" => AppHostType.DotNetSingleFile,
             ".ts" => AppHostType.TypeScript,
-            ".py" => AppHostType.Python,
             ".json" when appHostFile.Name.Equals("aspire.json", StringComparison.OrdinalIgnoreCase) => DetectAppHostTypeFromAspireJson(appHostFile),
             _ => null
         };
@@ -442,26 +387,6 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                         }
                     }
 
-                    // If still no projects found, check for Python apphosts (apphost.py)
-                    if (foundProjects.Count == 0)
-                    {
-                        var pyAppHostFiles = directory.GetFiles("apphost.py", enumerationOptions);
-                        logger.LogDebug("Found {CandidateFileCount} Python apphost candidates", pyAppHostFiles.Length);
-
-                        foreach (var candidateFile in pyAppHostFiles)
-                        {
-                            logger.LogDebug("Checking Python apphost candidate {CandidateFile}", candidateFile.FullName);
-
-                            if (IsValidPythonAppHost(candidateFile))
-                            {
-                                logger.LogDebug("Found valid Python apphost {AppHostFile}", candidateFile.FullName);
-                                var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
-                                interactionService.DisplaySubtleMessage(relativePath);
-                                foundProjects.Add(candidateFile);
-                            }
-                        }
-                    }
-
                     // Sort for deterministic results
                     foundProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
 
@@ -539,19 +464,6 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     {
                         logger.LogDebug("Using TypeScript apphost {ProjectFile}", projectFile.FullName);
                         return new AppHostProjectSearchResult(projectFile, [projectFile]) { DetectedType = AppHostType.TypeScript };
-                    }
-                    else
-                    {
-                        throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
-                    }
-                }
-                // Handle Python apphost files
-                else if (projectFile.Name.Equals("apphost.py", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (IsValidPythonAppHost(projectFile))
-                    {
-                        logger.LogDebug("Using Python apphost {ProjectFile}", projectFile.FullName);
-                        return new AppHostProjectSearchResult(projectFile, [projectFile]) { DetectedType = AppHostType.Python };
                     }
                     else
                     {
