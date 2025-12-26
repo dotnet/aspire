@@ -3,10 +3,13 @@
 
 using System.Collections.Concurrent;
 using System.Text.Json;
-using StreamJsonRpc;
 
 namespace Aspire.Hosting.RemoteHost;
 
+/// <summary>
+/// Processes instructions from a polyglot AppHost client (e.g., TypeScript).
+/// This class handles object marshalling, method invocation, and instruction execution.
+/// </summary>
 internal sealed class InstructionProcessor : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, object> _variables = new();
@@ -18,41 +21,41 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         PropertyNameCaseInsensitive = true
     };
     private volatile bool _disposed;
-    private JsonRpc? _clientRpc;
 
-    // Object registry for marshalling objects to TypeScript
-    private readonly ConcurrentDictionary<string, object> _objectRegistry = new();
-    private long _objectIdCounter;
+    private readonly ObjectRegistry _objectRegistry;
+    private readonly ICallbackInvoker _callbackInvoker;
 
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan s_callbackTimeout = TimeSpan.FromSeconds(60);
 
     /// <summary>
-    /// Sets the JSON-RPC connection to use for invoking callbacks on the client.
+    /// Creates a new InstructionProcessor with the specified dependencies.
     /// </summary>
-    public void SetClientConnection(JsonRpc clientRpc)
+    /// <param name="objectRegistry">The object registry for managing marshalled objects.</param>
+    /// <param name="callbackInvoker">The callback invoker for invoking client callbacks.</param>
+    public InstructionProcessor(ObjectRegistry objectRegistry, ICallbackInvoker callbackInvoker)
     {
-        _clientRpc = clientRpc;
+        _objectRegistry = objectRegistry;
+        _callbackInvoker = callbackInvoker;
     }
+
+    /// <summary>
+    /// Gets the object registry used by this processor.
+    /// </summary>
+    public ObjectRegistry ObjectRegistry => _objectRegistry;
+
+    /// <summary>
+    /// Gets the callback invoker used by this processor.
+    /// </summary>
+    public ICallbackInvoker CallbackInvoker => _callbackInvoker;
 
     #region Object Marshalling
-
-    /// <summary>
-    /// Registers an object in the registry and returns its ID.
-    /// </summary>
-    private string RegisterObject(object obj)
-    {
-        var id = $"obj_{Interlocked.Increment(ref _objectIdCounter)}";
-        _objectRegistry[id] = obj;
-        return id;
-    }
 
     /// <summary>
     /// Unregisters an object from the registry.
     /// </summary>
     public void UnregisterObject(string objectId)
     {
-        _objectRegistry.TryRemove(objectId, out _);
+        _objectRegistry.Unregister(objectId);
     }
 
     /// <summary>
@@ -60,10 +63,7 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     /// </summary>
     public object? InvokeMethod(string objectId, string methodName, JsonElement? args)
     {
-        if (!_objectRegistry.TryGetValue(objectId, out var obj))
-        {
-            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
-        }
+        var obj = _objectRegistry.Get(objectId);
 
         var type = obj.GetType();
         var methods = type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
@@ -150,9 +150,9 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         var result = bestMethod.Invoke(obj, arguments);
 
         // If result is a complex object, register it and return a proxy representation
-        if (result != null && !IsSimpleType(result.GetType()))
+        if (result != null && !ObjectRegistry.IsSimpleType(result.GetType()))
         {
-            return MarshalObject(result);
+            return _objectRegistry.Marshal(result);
         }
 
         return result;
@@ -163,10 +163,7 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     /// </summary>
     public object? GetProperty(string objectId, string propertyName)
     {
-        if (!_objectRegistry.TryGetValue(objectId, out var obj))
-        {
-            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
-        }
+        var obj = _objectRegistry.Get(objectId);
 
         var type = obj.GetType();
         var property = type.GetProperty(propertyName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
@@ -179,9 +176,9 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         var value = property.GetValue(obj);
 
         // If value is a complex object, register it and return a proxy representation
-        if (value != null && !IsSimpleType(value.GetType()))
+        if (value != null && !ObjectRegistry.IsSimpleType(value.GetType()))
         {
-            return MarshalObject(value);
+            return _objectRegistry.Marshal(value);
         }
 
         return value;
@@ -192,10 +189,7 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     /// </summary>
     public void SetProperty(string objectId, string propertyName, JsonElement value)
     {
-        if (!_objectRegistry.TryGetValue(objectId, out var obj))
-        {
-            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
-        }
+        var obj = _objectRegistry.Get(objectId);
 
         var type = obj.GetType();
         var property = type.GetProperty(propertyName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
@@ -219,10 +213,7 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     /// </summary>
     public object? GetIndexer(string objectId, JsonElement key)
     {
-        if (!_objectRegistry.TryGetValue(objectId, out var obj))
-        {
-            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
-        }
+        var obj = _objectRegistry.Get(objectId);
 
         // Handle dictionary-like objects
         if (obj is System.Collections.IDictionary dict)
@@ -231,9 +222,9 @@ internal sealed class InstructionProcessor : IAsyncDisposable
             if (dict.Contains(keyValue!))
             {
                 var value = dict[keyValue!];
-                if (value != null && !IsSimpleType(value.GetType()))
+                if (value != null && !ObjectRegistry.IsSimpleType(value.GetType()))
                 {
-                    return MarshalObject(value);
+                    return _objectRegistry.Marshal(value);
                 }
                 return value;
             }
@@ -250,9 +241,9 @@ internal sealed class InstructionProcessor : IAsyncDisposable
                     throw new ArgumentOutOfRangeException(nameof(key), $"Index {index} is out of range for list of count {list.Count}");
                 }
                 var value = list[index];
-                if (value != null && !IsSimpleType(value.GetType()))
+                if (value != null && !ObjectRegistry.IsSimpleType(value.GetType()))
                 {
-                    return MarshalObject(value);
+                    return _objectRegistry.Marshal(value);
                 }
                 return value;
             }
@@ -269,9 +260,9 @@ internal sealed class InstructionProcessor : IAsyncDisposable
             var keyValue = DeserializeArgument(key, indexParam.ParameterType);
             var value = indexer.GetValue(obj, [keyValue]);
 
-            if (value != null && !IsSimpleType(value.GetType()))
+            if (value != null && !ObjectRegistry.IsSimpleType(value.GetType()))
             {
-                return MarshalObject(value);
+                return _objectRegistry.Marshal(value);
             }
             return value;
         }
@@ -284,13 +275,10 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     /// </summary>
     public void SetIndexer(string objectId, JsonElement key, JsonElement value)
     {
-        if (!_objectRegistry.TryGetValue(objectId, out var obj))
-        {
-            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
-        }
+        var obj = _objectRegistry.Get(objectId);
 
         // Resolve the value if it's a proxy reference
-        var resolvedValue = ResolveValue(value);
+        var resolvedValue = _objectRegistry.ResolveValue(value);
 
         // Handle dictionary-like objects
         if (obj is System.Collections.IDictionary dict)
@@ -333,13 +321,10 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     /// </summary>
     public void SetIndexerByStringKey(string objectId, string key, object? value)
     {
-        if (!_objectRegistry.TryGetValue(objectId, out var obj))
-        {
-            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
-        }
+        var obj = _objectRegistry.Get(objectId);
 
         // Resolve the value if it's a proxy reference
-        var resolvedValue = ResolveValueObject(value);
+        var resolvedValue = _objectRegistry.ResolveValueObject(value);
 
         // Handle dictionary-like objects
         if (obj is System.Collections.IDictionary dict)
@@ -363,10 +348,7 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     /// </summary>
     public object? GetIndexerByStringKey(string objectId, string key)
     {
-        if (!_objectRegistry.TryGetValue(objectId, out var obj))
-        {
-            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
-        }
+        var obj = _objectRegistry.Get(objectId);
 
         // Handle dictionary-like objects
         if (obj is System.Collections.IDictionary dict)
@@ -374,9 +356,9 @@ internal sealed class InstructionProcessor : IAsyncDisposable
             if (dict.Contains(key))
             {
                 var value = dict[key];
-                if (value != null && !IsSimpleType(value.GetType()))
+                if (value != null && !ObjectRegistry.IsSimpleType(value.GetType()))
                 {
-                    return MarshalObject(value);
+                    return _objectRegistry.Marshal(value);
                 }
                 return value;
             }
@@ -384,132 +366,6 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         }
 
         throw new InvalidOperationException($"Object '{objectId}' does not support indexing");
-    }
-
-    /// <summary>
-    /// Resolves a value that might be a proxy reference (with $id) to the actual .NET object.
-    /// </summary>
-    private object? ResolveValueObject(object? value)
-    {
-        if (value == null)
-        {
-            return null;
-        }
-
-        // Check if it's a dictionary with $id (a proxy reference)
-        if (value is System.Collections.IDictionary dict && dict.Contains("$id"))
-        {
-            var refId = dict["$id"]?.ToString();
-            if (!string.IsNullOrEmpty(refId) && _objectRegistry.TryGetValue(refId, out var refObj))
-            {
-                return refObj;
-            }
-        }
-
-        // Check if it's a JsonElement
-        if (value is JsonElement jsonElement)
-        {
-            return ResolveValue(jsonElement);
-        }
-
-        return value;
-    }
-
-    /// <summary>
-    /// Resolves a JsonElement value that might be a proxy reference.
-    /// </summary>
-    private object? ResolveValue(JsonElement element)
-    {
-        // Check if it's a proxy reference (object with $id)
-        if (element.ValueKind == JsonValueKind.Object && element.TryGetProperty("$id", out var idProp))
-        {
-            var refId = idProp.GetString();
-            if (!string.IsNullOrEmpty(refId) && _objectRegistry.TryGetValue(refId, out var refObj))
-            {
-                return refObj;
-            }
-        }
-
-        // Handle primitives
-        return element.ValueKind switch
-        {
-            JsonValueKind.String => element.GetString(),
-            JsonValueKind.Number => element.TryGetInt64(out var l) ? l : element.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Null => null,
-            _ => element.GetRawText() // fallback
-        };
-    }
-
-    /// <summary>
-    /// Marshals a .NET object to a representation that can be sent to TypeScript.
-    /// </summary>
-    private Dictionary<string, object?> MarshalObject(object obj)
-    {
-        var type = obj.GetType();
-        var objectId = RegisterObject(obj);
-
-        var result = new Dictionary<string, object?>
-        {
-            ["$id"] = objectId,
-            ["$type"] = type.Name,
-            ["$fullType"] = type.FullName
-        };
-
-        // Include simple property values directly
-        foreach (var prop in type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
-        {
-            try
-            {
-                if (prop.GetIndexParameters().Length > 0)
-                {
-                    continue;
-                }
-
-                var propType = prop.PropertyType;
-
-                // Skip problematic types
-                if (propType.FullName?.StartsWith("System.Reflection") == true ||
-                    typeof(Delegate).IsAssignableFrom(propType))
-                {
-                    continue;
-                }
-
-                var value = prop.GetValue(obj);
-
-                if (value == null || IsSimpleType(propType))
-                {
-                    result[prop.Name] = value;
-                }
-                else
-                {
-                    // For complex nested objects, just include type info - they can be fetched via getProperty
-                    result[prop.Name + "$type"] = value.GetType().Name;
-                }
-            }
-            catch
-            {
-                // Ignore properties that can't be read
-            }
-        }
-
-        // Include available methods
-        var methods = type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
-            .Where(m => !m.IsSpecialName) // Exclude property getters/setters
-            .Where(m => m.DeclaringType != typeof(object)) // Exclude Object methods
-            .Select(m => new
-            {
-                name = m.Name,
-                parameters = m.GetParameters().Select(p => new { name = p.Name, type = p.ParameterType.Name }).ToArray()
-            })
-            .GroupBy(m => m.name)
-            .Select(g => g.First()) // Just include one overload for now
-            .ToArray();
-
-        result["$methods"] = methods;
-
-        return result;
     }
 
     /// <summary>
@@ -521,7 +377,7 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         if (element.ValueKind == JsonValueKind.Object && element.TryGetProperty("$id", out var idProp))
         {
             var refId = idProp.GetString();
-            if (refId != null && _objectRegistry.TryGetValue(refId, out var refObj))
+            if (refId != null && _objectRegistry.TryGet(refId, out var refObj))
             {
                 return refObj;
             }
@@ -599,7 +455,7 @@ internal sealed class InstructionProcessor : IAsyncDisposable
 
             // Look up the object in the registry and append it
             var objectId = match.Groups[1].Value;
-            if (_objectRegistry.TryGetValue(objectId, out var obj))
+            if (_objectRegistry.TryGet(objectId, out var obj) && obj != null)
             {
                 builder.AppendValueProvider(obj);
             }
@@ -621,23 +477,9 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         return builder.Build();
     }
 
-    /// <summary>
-    /// Checks if a type is a simple/primitive type that can be serialized directly.
-    /// </summary>
-    private static bool IsSimpleType(Type type)
-    {
-        return type.IsPrimitive ||
-               type == typeof(string) ||
-               type == typeof(decimal) ||
-               type == typeof(DateTime) ||
-               type == typeof(DateTimeOffset) ||
-               type == typeof(TimeSpan) ||
-               type == typeof(Guid) ||
-               type.IsEnum ||
-               (Nullable.GetUnderlyingType(type) is { } underlying && IsSimpleType(underlying));
-    }
-
     #endregion
+
+    #region Callback Invocation
 
     /// <summary>
     /// Invokes a callback registered on the client side.
@@ -649,30 +491,12 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     /// <returns>The result from the callback.</returns>
     public async Task<TResult> InvokeCallbackAsync<TResult>(string callbackId, object? args, CancellationToken cancellationToken = default)
     {
-        if (_clientRpc == null)
-        {
-            throw new InvalidOperationException("No client connection available for callback invocation");
-        }
-
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(s_callbackTimeout);
-
         // Convert complex objects to a marshalled representation with object IDs
-        var serializableArgs = args != null && !IsSimpleType(args.GetType())
-            ? MarshalObject(args)
+        var serializableArgs = args != null && !ObjectRegistry.IsSimpleType(args.GetType())
+            ? _objectRegistry.Marshal(args)
             : args;
 
-        try
-        {
-            return await _clientRpc.InvokeWithCancellationAsync<TResult>(
-                "invokeCallback",
-                [callbackId, serializableArgs],
-                cts.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            throw new TimeoutException($"Callback '{callbackId}' timed out after {s_callbackTimeout.TotalSeconds}s");
-        }
+        return await _callbackInvoker.InvokeAsync<TResult>(callbackId, serializableArgs, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -798,6 +622,10 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     {
         return typeof(Delegate).IsAssignableFrom(type);
     }
+
+    #endregion
+
+    #region Instruction Execution
 
     public async Task<object?> ExecuteInstructionAsync(string instructionJson, CancellationToken cancellationToken = default)
     {
@@ -1137,7 +965,7 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         }
 
         // Marshal the result so TypeScript can use it as a DotNetProxy
-        var marshalledResult = result != null ? MarshalObject(result) : null;
+        var marshalledResult = result != null ? _objectRegistry.Marshal(result) : null;
 
         return new {
             success = true,
@@ -1147,6 +975,8 @@ internal sealed class InstructionProcessor : IAsyncDisposable
             result = marshalledResult
         };
     }
+
+    #endregion
 
     public async ValueTask DisposeAsync()
     {
@@ -1199,6 +1029,7 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         // Clear all variables
         _variables.Clear();
         _assemblyCache.Clear();
+        _objectRegistry.Clear();
 
         Console.WriteLine("InstructionProcessor disposed.");
     }

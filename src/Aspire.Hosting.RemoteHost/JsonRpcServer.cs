@@ -9,8 +9,17 @@ namespace Aspire.Hosting.RemoteHost;
 
 internal sealed class RemoteAppHostService : IAsyncDisposable
 {
-    private readonly InstructionProcessor _instructionProcessor = new();
+    private readonly ObjectRegistry _objectRegistry;
+    private readonly JsonRpcCallbackInvoker _callbackInvoker;
+    private readonly InstructionProcessor _instructionProcessor;
     private readonly CancellationTokenSource _cts = new();
+
+    public RemoteAppHostService()
+    {
+        _objectRegistry = new ObjectRegistry();
+        _callbackInvoker = new JsonRpcCallbackInvoker();
+        _instructionProcessor = new InstructionProcessor(_objectRegistry, _callbackInvoker);
+    }
 
     /// <summary>
     /// Signals that the service should stop accepting new instructions.
@@ -22,7 +31,7 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     /// </summary>
     public void SetClientConnection(JsonRpc clientRpc)
     {
-        _instructionProcessor.SetClientConnection(clientRpc);
+        _callbackInvoker.SetConnection(clientRpc);
     }
 
     [JsonRpcMethod("executeInstruction")]
