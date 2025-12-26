@@ -10,6 +10,7 @@ using Aspire.Hosting.CodeGeneration;
 using Aspire.Hosting.CodeGeneration.Models;
 using Aspire.Hosting.CodeGeneration.Models.Types;
 using LibCodeGen = Aspire.Hosting.CodeGeneration.TypeScript;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.CodeGeneration;
@@ -24,10 +25,12 @@ internal sealed class TypeScriptCodeGeneratorService : ICodeGenerator
     private const string HashFileName = ".codegen-hash";
 
     private readonly ILogger<TypeScriptCodeGeneratorService> _logger;
+    private readonly IConfiguration _configuration;
 
-    public TypeScriptCodeGeneratorService(ILogger<TypeScriptCodeGeneratorService> logger)
+    public TypeScriptCodeGeneratorService(ILogger<TypeScriptCodeGeneratorService> logger, IConfiguration configuration)
     {
         _logger = logger;
+        _configuration = configuration;
     }
 
     /// <inheritdoc />
@@ -79,6 +82,13 @@ internal sealed class TypeScriptCodeGeneratorService : ICodeGenerator
     /// <inheritdoc />
     public bool NeedsGeneration(string appPath, IEnumerable<(string PackageId, string Version)> packages)
     {
+        // In dev mode (ASPIRE_REPO_ROOT set), always regenerate to pick up code changes
+        if (!string.IsNullOrEmpty(_configuration["ASPIRE_REPO_ROOT"]))
+        {
+            _logger.LogDebug("Dev mode detected (ASPIRE_REPO_ROOT set), skipping generation cache");
+            return true;
+        }
+
         var packagesList = packages.ToList();
         var generatedPath = Path.Combine(appPath, GeneratedFolderName);
 
