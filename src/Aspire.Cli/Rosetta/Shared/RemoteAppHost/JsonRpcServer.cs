@@ -103,11 +103,12 @@ public class RemoteAppHostService : IAsyncDisposable
     }
 
     [JsonRpcMethod("getIndexer")]
-    public object? GetIndexer(string objectId, string key)
+    public object? GetIndexer(string objectId, JsonElement key)
     {
         try
         {
-            return _instructionProcessor.GetIndexerByStringKey(objectId, key);
+            // Use the JsonElement version which handles both dictionaries and list indexers
+            return _instructionProcessor.GetIndexer(objectId, key);
         }
         catch (Exception ex)
         {
@@ -117,11 +118,12 @@ public class RemoteAppHostService : IAsyncDisposable
     }
 
     [JsonRpcMethod("setIndexer")]
-    public void SetIndexer(string objectId, string key, object? value)
+    public void SetIndexer(string objectId, JsonElement key, JsonElement value)
     {
         try
         {
-            _instructionProcessor.SetIndexerByStringKey(objectId, key, value);
+            // Use the JsonElement version which handles both dictionaries and list indexers
+            _instructionProcessor.SetIndexer(objectId, key, value);
         }
         catch (Exception ex)
         {

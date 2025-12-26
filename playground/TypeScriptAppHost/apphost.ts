@@ -57,6 +57,15 @@ async function main() {
             // Get the count of args
             const count = await args.count();
             console.log(`Command line args configured: ${count} arguments added!`);
+
+            // Test list indexer - get and set by index
+            const firstArg = await args.get(0);
+            console.log(`✅ List get(0) works: "${firstArg}"`);
+
+            // Test set by index
+            await args.set(1, "512mb");
+            const updatedArg = await args.get(1);
+            console.log(`✅ List set(1) works: "${updatedArg}"`);
         });
 
         // Build and run the application

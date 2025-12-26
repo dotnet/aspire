@@ -262,12 +262,52 @@ public class InstructionProcessor : IAsyncDisposable
     }
 
     /// <summary>
-    /// Sets an item via an indexer (e.g., dictionary[key] = value). Called by TypeScript via JSON-RPC.
+    /// Sets an item via an indexer (e.g., dictionary[key] = value or list[index] = value). Called by TypeScript via JSON-RPC.
     /// </summary>
     public void SetIndexer(string objectId, JsonElement key, JsonElement value)
     {
-        var keyValue = key.ValueKind == JsonValueKind.String ? key.GetString() : key.ToString();
-        SetIndexerByStringKey(objectId, keyValue!, ResolveValue(value));
+        if (!_objectRegistry.TryGetValue(objectId, out var obj))
+        {
+            throw new InvalidOperationException($"Object '{objectId}' not found in registry");
+        }
+
+        // Resolve the value if it's a proxy reference
+        var resolvedValue = ResolveValue(value);
+
+        // Handle dictionary-like objects
+        if (obj is System.Collections.IDictionary dict)
+        {
+            var keyValue = key.ValueKind == JsonValueKind.String ? key.GetString() : key.ToString();
+            dict[keyValue!] = resolvedValue;
+            return;
+        }
+
+        // Handle list-like objects (IList)
+        if (obj is System.Collections.IList list)
+        {
+            if (key.ValueKind == JsonValueKind.Number && key.TryGetInt32(out var index))
+            {
+                list[index] = resolvedValue;
+                return;
+            }
+            throw new InvalidOperationException($"List indexer requires a numeric index, got: {key.ValueKind}");
+        }
+
+        // Handle indexed properties via reflection
+        var type = obj.GetType();
+        var indexer = type.GetProperties().FirstOrDefault(p => p.GetIndexParameters().Length > 0);
+
+        if (indexer != null)
+        {
+            var indexParam = indexer.GetIndexParameters()[0];
+            var keyValue = DeserializeArgument(key, indexParam.ParameterType);
+            var valueType = indexer.PropertyType;
+            var typedValue = resolvedValue != null ? Convert.ChangeType(resolvedValue, valueType) : null;
+            indexer.SetValue(obj, typedValue, [keyValue]);
+            return;
+        }
+
+        throw new InvalidOperationException($"Object '{objectId}' does not support indexed assignment");
     }
 
     /// <summary>
@@ -287,6 +327,13 @@ public class InstructionProcessor : IAsyncDisposable
         if (obj is System.Collections.IDictionary dict)
         {
             dict[key] = resolvedValue;
+            return;
+        }
+
+        // Handle list-like objects with numeric string key
+        if (obj is System.Collections.IList list && int.TryParse(key, out var index))
+        {
+            list[index] = resolvedValue;
             return;
         }
 
@@ -459,6 +506,15 @@ public class InstructionProcessor : IAsyncDisposable
             }
         }
 
+        // Handle ReferenceExpression from TypeScript
+        if (element.ValueKind == JsonValueKind.Object &&
+            element.TryGetProperty("$referenceExpression", out var refExprMarker) &&
+            refExprMarker.GetBoolean() &&
+            targetType.FullName == "Aspire.Hosting.ApplicationModel.ReferenceExpression")
+        {
+            return DeserializeReferenceExpression(element);
+        }
+
         // Handle null
         if (element.ValueKind == JsonValueKind.Null)
         {
@@ -489,6 +545,59 @@ public class InstructionProcessor : IAsyncDisposable
 
         // Fall back to JSON deserialization
         return JsonSerializer.Deserialize(element.GetRawText(), targetType, _jsonOptions);
+    }
+
+    /// <summary>
+    /// Deserializes a ReferenceExpression from a TypeScript-constructed format.
+    /// Format: { "$referenceExpression": true, "format": "Host={obj_1};Password={obj_2}" }
+    /// The {obj_N} placeholders reference objects in the registry.
+    /// </summary>
+    private object DeserializeReferenceExpression(JsonElement element)
+    {
+        if (!element.TryGetProperty("format", out var formatElement))
+        {
+            throw new InvalidOperationException("Invalid ReferenceExpression format: missing 'format' property");
+        }
+
+        var format = formatElement.GetString() ?? "";
+
+        // Use ReferenceExpressionBuilder to construct the expression
+        var builder = new Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder();
+
+        // Parse the format string, finding {obj_N} placeholders
+        var regex = new System.Text.RegularExpressions.Regex(@"\{(obj_\d+)\}");
+        var lastIndex = 0;
+
+        foreach (System.Text.RegularExpressions.Match match in regex.Matches(format))
+        {
+            // Append literal text before this placeholder
+            if (match.Index > lastIndex)
+            {
+                builder.AppendLiteral(format[lastIndex..match.Index]);
+            }
+
+            // Look up the object in the registry and append it
+            var objectId = match.Groups[1].Value;
+            if (_objectRegistry.TryGetValue(objectId, out var obj))
+            {
+                builder.AppendValueProvider(obj);
+            }
+            else
+            {
+                // Object not found - include the placeholder as literal
+                builder.AppendLiteral(match.Value);
+            }
+
+            lastIndex = match.Index + match.Length;
+        }
+
+        // Append any remaining literal text
+        if (lastIndex < format.Length)
+        {
+            builder.AppendLiteral(format[lastIndex..]);
+        }
+
+        return builder.Build();
     }
 
     /// <summary>

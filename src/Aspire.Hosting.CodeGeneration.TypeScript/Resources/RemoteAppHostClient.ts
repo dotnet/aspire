@@ -206,6 +206,68 @@ export class ListProxy<T = unknown> {
 }
 
 /**
+ * Represents a ReferenceExpression that can be passed to .NET methods.
+ * This is the result of using the `refExpr` tagged template literal.
+ *
+ * Serializes as a format string with {$id} placeholders for object references,
+ * which .NET can easily reconstruct using ReferenceExpressionBuilder.
+ */
+export class ReferenceExpression {
+    /** Marker to identify this as a ReferenceExpression for serialization */
+    readonly $referenceExpression = true;
+
+    constructor(
+        /** The format string with {$id} placeholders */
+        public readonly format: string
+    ) {}
+
+    /**
+     * Converts to a serializable format for passing to .NET.
+     */
+    toJSON() {
+        return {
+            $referenceExpression: true,
+            format: this.format
+        };
+    }
+}
+
+/**
+ * Tagged template literal for creating ReferenceExpression instances.
+ *
+ * DotNetProxy values are replaced with {$id} placeholders that .NET
+ * uses to look up objects from the registry.
+ *
+ * Usage:
+ * ```typescript
+ * const endpoint = await redis.getEndpoint("tcp");
+ * const password = await builder.addParameter("password", { secret: true });
+ * const expr = refExpr`Host=${endpoint};Password=${password}`;
+ * await resource.withEnvironment("CONNECTION_STRING", expr);
+ * ```
+ */
+export function refExpr(strings: TemplateStringsArray, ...values: (DotNetProxy | string | number | boolean)[]): ReferenceExpression {
+    let format = '';
+
+    for (let i = 0; i < strings.length; i++) {
+        format += strings[i];
+
+        if (i < values.length) {
+            const value = values[i];
+            if (value instanceof DotNetProxy) {
+                // Use the object's $id as a placeholder
+                format += `{${value.$id}}`;
+            } else {
+                // Primitives are inlined as literals
+                format += String(value);
+            }
+        }
+    }
+
+    return new ReferenceExpression(format);
+}
+
+/**
  * Checks if a value is a marshalled .NET object and wraps it in a proxy if so.
  */
 export function wrapIfProxy(value: unknown): unknown {
