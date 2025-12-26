@@ -189,6 +189,7 @@ public sealed class RoDefinitionMethod : RoMethod
             }
             catch
             {
+                // Skip attributes that can't be resolved
             }
         }
 

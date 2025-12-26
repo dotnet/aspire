@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Text.Json;
 using StreamJsonRpc;
+using StreamJsonRpc.Protocol;
 
 namespace RemoteAppHost;
 
@@ -31,20 +33,22 @@ public class RemoteAppHostService : IAsyncDisposable
         {
             return await _instructionProcessor.ExecuteInstructionAsync(instructionJson, _cts.Token);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
             Console.WriteLine("Instruction execution was cancelled");
-            return new { success = false, error = "Operation cancelled" };
+            throw new InvalidOperationException("Operation cancelled", ex);
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
             Console.WriteLine("Instruction processor has been disposed");
-            return new { success = false, error = "Service is shutting down" };
+            throw new InvalidOperationException("Service is shutting down", ex);
         }
         catch (Exception ex)
         {
+            // Log the error for server-side visibility, then re-throw so JSON-RPC
+            // properly propagates the error to the client
             Console.WriteLine($"Error executing instruction: {ex.Message}");
-            return new { success = false, error = ex.Message };
+            throw;
         }
     }
 
@@ -57,39 +61,87 @@ public class RemoteAppHostService : IAsyncDisposable
     #region Object Marshalling
 
     [JsonRpcMethod("invokeMethod")]
-    public object? InvokeMethod(string objectId, string methodName, System.Text.Json.JsonElement? args)
+    public object? InvokeMethod(string objectId, string methodName, JsonElement? args)
     {
-        return _instructionProcessor.InvokeMethod(objectId, methodName, args);
+        try
+        {
+            return _instructionProcessor.InvokeMethod(objectId, methodName, args);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error invoking method '{methodName}' on object '{objectId}': {ex.Message}");
+            throw;
+        }
     }
 
     [JsonRpcMethod("getProperty")]
     public object? GetProperty(string objectId, string propertyName)
     {
-        return _instructionProcessor.GetProperty(objectId, propertyName);
+        try
+        {
+            return _instructionProcessor.GetProperty(objectId, propertyName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting property '{propertyName}' on object '{objectId}': {ex.Message}");
+            throw;
+        }
     }
 
     [JsonRpcMethod("setProperty")]
     public void SetProperty(string objectId, string propertyName, System.Text.Json.JsonElement value)
     {
-        _instructionProcessor.SetProperty(objectId, propertyName, value);
+        try
+        {
+            _instructionProcessor.SetProperty(objectId, propertyName, value);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error setting property '{propertyName}' on object '{objectId}': {ex.Message}");
+            throw;
+        }
     }
 
     [JsonRpcMethod("getIndexer")]
     public object? GetIndexer(string objectId, string key)
     {
-        return _instructionProcessor.GetIndexerByStringKey(objectId, key);
+        try
+        {
+            return _instructionProcessor.GetIndexerByStringKey(objectId, key);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting indexer '{key}' on object '{objectId}': {ex.Message}");
+            throw;
+        }
     }
 
     [JsonRpcMethod("setIndexer")]
     public void SetIndexer(string objectId, string key, object? value)
     {
-        _instructionProcessor.SetIndexerByStringKey(objectId, key, value);
+        try
+        {
+            _instructionProcessor.SetIndexerByStringKey(objectId, key, value);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error setting indexer '{key}' on object '{objectId}': {ex.Message}");
+            throw;
+        }
     }
 
     [JsonRpcMethod("unregisterObject")]
     public void UnregisterObject(string objectId)
     {
-        _instructionProcessor.UnregisterObject(objectId);
+        try
+        {
+            _instructionProcessor.UnregisterObject(objectId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error unregistering object '{objectId}': {ex.Message}");
+            throw;
+        }
     }
 
     #endregion
@@ -185,7 +237,12 @@ public class JsonRpcServer : IAsyncDisposable
         try
         {
             using var networkStream = new NetworkStream(clientSocket, ownsSocket: true);
-            using var jsonRpc = JsonRpc.Attach(networkStream, _service);
+
+            // Use System.Text.Json formatter instead of the default Newtonsoft.Json formatter
+            var formatter = new SystemTextJsonFormatter();
+            var handler = new HeaderDelimitedMessageHandler(networkStream, networkStream, formatter);
+            using var jsonRpc = new JsonRpc(handler, _service);
+            jsonRpc.StartListening();
 
             // Enable bidirectional communication - allow .NET to call back to TypeScript
             _service.SetClientConnection(jsonRpc);

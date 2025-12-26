@@ -83,7 +83,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
         // Write the header with imports and utility functions
         writer.WriteLine($$"""
-        import { RemoteAppHostClient, registerCallback, DotNetProxy, wrapIfProxy } from './RemoteAppHostClient.js';
+        import { RemoteAppHostClient, registerCallback, DotNetProxy, ListProxy, wrapIfProxy } from './RemoteAppHostClient.js';
         import { AnyInstruction, CreateBuilderInstruction, RunBuilderInstruction } from './types.js';
 
         // Get socket path from environment variable (set by aspire run)
@@ -105,6 +105,11 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         async function sendInstruction(instruction: AnyInstruction) {
           instructions.push(instruction);
           const result = await client.executeInstruction(instruction);
+          // Check for error responses (defensive - JSON-RPC errors will throw automatically)
+          if (result && typeof result === 'object' && 'success' in result && result.success === false) {
+            const errorMessage = 'error' in result ? String(result.error) : 'Unknown error';
+            throw new Error(`Instruction failed: ${errorMessage}`);
+          }
         }
 
         function capture(fn: () => void) : string {
@@ -322,7 +327,8 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             foreach (var property in roType.Properties)
             {
                 var jsReturnType = GetProxyReturnType(model, property.PropertyType);
-                var needsWrapper = jsReturnType.EndsWith("Proxy", StringComparison.Ordinal);
+                // Only wrap with typed proxies - DotNetProxy is the base class and doesn't need wrapping
+                var needsWrapper = jsReturnType.EndsWith("Proxy", StringComparison.Ordinal) && jsReturnType != "DotNetProxy";
 
                 if (property.CanRead)
                 {
@@ -461,13 +467,21 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             return $"{propertyType.Name}Proxy";
         }
 
-        // Check for dictionary types
+        // Check for generic collection types
         if (propertyType.IsGenericType && propertyType.GenericTypeDefinition is { } genDef)
         {
+            // Dictionary types
             var dictionaryTypes = new[] { typeof(Dictionary<,>), typeof(IDictionary<,>) };
             if (dictionaryTypes.Any(d => genDef == model.WellKnownTypes.GetKnownType(d)))
             {
                 return "DictionaryProxy";
+            }
+
+            // List types
+            var listTypes = new[] { typeof(List<>), typeof(IList<>), typeof(ICollection<>) };
+            if (listTypes.Any(l => genDef == model.WellKnownTypes.GetKnownType(l)))
+            {
+                return "ListProxy";
             }
         }
 
@@ -585,7 +599,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                     .FirstOrDefault(attr => attr.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
 
                 var preferredMethodName = methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
-                    ?? methodNameAttribute?.FixedArguments.ElementAtOrDefault(0)?.ToString()
+                    ?? methodNameAttribute?.FixedArguments?.ElementAtOrDefault(0)?.ToString()
                     ?? overload.Name;
                 var jsReturnTypeName = FormatJsType(model, returnType);
 

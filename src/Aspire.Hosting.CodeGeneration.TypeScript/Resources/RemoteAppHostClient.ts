@@ -119,6 +119,93 @@ export class DotNetProxy {
 }
 
 /**
+ * A proxy for .NET List<T> or IList<T> collections.
+ * Provides list-like operations: add, get, count, clear, etc.
+ */
+export class ListProxy<T = unknown> {
+    constructor(private _proxy: DotNetProxy) {}
+
+    /** Get the underlying proxy for advanced operations */
+    get proxy(): DotNetProxy { return this._proxy; }
+
+    /**
+     * Add an item to the list
+     */
+    async add(item: T): Promise<void> {
+        const args = { item };
+        console.log(`ListProxy.add: calling Add with args =`, JSON.stringify(args));
+        await this._proxy.invokeMethod('Add', args);
+    }
+
+    /**
+     * Get an item by index
+     */
+    async get(index: number): Promise<T> {
+        const result = await this._proxy.getIndexer(index);
+        return result as T;
+    }
+
+    /**
+     * Set an item at the specified index
+     */
+    async set(index: number, value: T): Promise<void> {
+        await this._proxy.setIndexer(index, value);
+    }
+
+    /**
+     * Get the number of items in the list
+     */
+    async count(): Promise<number> {
+        const result = await this._proxy.getProperty('Count');
+        return result as number;
+    }
+
+    /**
+     * Remove all items from the list
+     */
+    async clear(): Promise<void> {
+        await this._proxy.invokeMethod('Clear');
+    }
+
+    /**
+     * Check if the list contains an item
+     */
+    async contains(item: T): Promise<boolean> {
+        const result = await this._proxy.invokeMethod('Contains', { item });
+        return result as boolean;
+    }
+
+    /**
+     * Remove an item from the list
+     */
+    async remove(item: T): Promise<boolean> {
+        const result = await this._proxy.invokeMethod('Remove', { item });
+        return result as boolean;
+    }
+
+    /**
+     * Remove an item at the specified index
+     */
+    async removeAt(index: number): Promise<void> {
+        await this._proxy.invokeMethod('RemoveAt', { index });
+    }
+
+    /**
+     * Insert an item at the specified index
+     */
+    async insert(index: number, item: T): Promise<void> {
+        await this._proxy.invokeMethod('Insert', { index, item });
+    }
+
+    /**
+     * Release the proxy reference
+     */
+    async dispose(): Promise<void> {
+        await this._proxy.dispose();
+    }
+}
+
+/**
  * Checks if a value is a marshalled .NET object and wraps it in a proxy if so.
  */
 export function wrapIfProxy(value: unknown): unknown {
