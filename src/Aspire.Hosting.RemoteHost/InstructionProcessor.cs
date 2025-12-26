@@ -240,6 +240,25 @@ internal sealed class InstructionProcessor : IAsyncDisposable
             return null;
         }
 
+        // Handle list-like objects (IList)
+        if (obj is System.Collections.IList list)
+        {
+            if (key.ValueKind == JsonValueKind.Number && key.TryGetInt32(out var index))
+            {
+                if (index < 0 || index >= list.Count)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(key), $"Index {index} is out of range for list of count {list.Count}");
+                }
+                var value = list[index];
+                if (value != null && !IsSimpleType(value.GetType()))
+                {
+                    return MarshalObject(value);
+                }
+                return value;
+            }
+            throw new InvalidOperationException($"List indexer requires a numeric index, got: {key.ValueKind}");
+        }
+
         // Handle indexed properties
         var type = obj.GetType();
         var indexer = type.GetProperties().FirstOrDefault(p => p.GetIndexParameters().Length > 0);
