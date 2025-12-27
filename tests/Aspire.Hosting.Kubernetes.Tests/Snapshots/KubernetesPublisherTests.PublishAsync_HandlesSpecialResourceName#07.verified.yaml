@@ -1,0 +1,11 @@
+---
+apiVersion: "v1"
+kind: "ConfigMap"
+metadata:
+  name: "special-resource-with-hyphens-config"
+  labels:
+    app.kubernetes.io/name: "my-chart"
+    app.kubernetes.io/component: "Special-resource-with-hyphens"
+    app.kubernetes.io/instance: "{{.Release.Name}}"
+data:
+  ORIGINAL_ENV: "{{ .Values.config.Special_resource_with_hyphens.ORIGINAL_ENV }}"

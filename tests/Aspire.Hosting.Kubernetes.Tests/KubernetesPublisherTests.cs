@@ -186,10 +186,24 @@ public class KubernetesPublisherTests()
         var csPlain = builder.AddConnectionString("api-cs2", ReferenceExpression.Create($"host.local:80"));
 
         var param3 = builder.AddResource(ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, "param3"));
-        builder.AddProject<TestProject>("SpeciaL-ApP", launchProfileName: null)
+
+        var containerResource = builder.AddContainer("Special-resource-with-hyphens", "my-image")
+            .AsHttp2Service()
+            .WithEnvironment("ORIGINAL_ENV", "value")
+            .WithHttpEndpoint(port: 80, targetPort: 80)
+            .WithHttpsEndpoint(port: 443, targetPort: 443)
+            .PublishAsKubernetesService(serviceResource =>
+            {
+                serviceResource.Workload!.PodTemplate.Spec.Containers[0].ImagePullPolicy = "Always";
+                (serviceResource.Workload as Deployment)!.Spec.RevisionHistoryLimit = 5;
+            });
+
+        var projectResource = builder.AddProject<TestProject>("SpeciaL-ApP", launchProfileName: null)
             .WithEnvironment("param3", param3)
             .WithReference(cs)
-            .WithReference(csPlain);
+            .WithReference(csPlain)
+            .WithReference(containerResource.GetEndpoint("http"))
+            .WithReference(containerResource.GetEndpoint("https"));
 
         var app = builder.Build();
 
@@ -202,7 +216,10 @@ public class KubernetesPublisherTests()
             "values.yaml",
             "templates/SpeciaL-ApP/deployment.yaml",
             "templates/SpeciaL-ApP/config.yaml",
-            "templates/SpeciaL-ApP/secrets.yaml"
+            "templates/SpeciaL-ApP/secrets.yaml",
+            "templates/Special-resource-with-hyphens/deployment.yaml",
+            "templates/Special-resource-with-hyphens/service.yaml",
+            "templates/Special-resource-with-hyphens/config.yaml"
         };
 
         SettingsTask settingsTask = default!;
