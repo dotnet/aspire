@@ -737,7 +737,7 @@ builder.Build().Run();");
         }
     }
 
-    public class TestFeatures : IFeatures
+    internal class TestFeatures : IFeatures
     {
         private readonly Dictionary<string, bool> _features = new();
 
@@ -750,6 +750,12 @@ builder.Build().Run();");
         public bool IsFeatureEnabled(string featureName, bool defaultValue = false)
         {
             return _features.TryGetValue(featureName, out var value) ? value : defaultValue;
+        }
+
+        public bool Enabled<TFeatureFlag>() where TFeatureFlag : IFeatureFlag, new()
+        {
+            var featureFlag = new TFeatureFlag();
+            return IsFeatureEnabled(featureFlag.ConfigurationKey, featureFlag.DefaultValue);
         }
     }
 
