@@ -6,21 +6,22 @@ This document describes how the Aspire CLI supports non-.NET app hosts. Currentl
 
 - [Overview](#overview)
 - [Architecture](#architecture)
-- [Development Mode](#development-mode)
+- [Configuration](#configuration)
 - [Process Lifecycle](#process-lifecycle)
+- [CLI Coordination](#cli-coordination)
 - [JSON-RPC Protocol](#json-rpc-protocol)
 - [Type System and Marshalling](#type-system-and-marshalling)
 - [Code Generation](#code-generation)
 - [TypeScript Implementation](#typescript-implementation)
-- [Publish Mode](#publish-mode)
 - [Adding New Guest Languages](#adding-new-guest-languages)
+- [Development Mode](#development-mode)
 
 ## Overview
 
-The polyglot apphost feature allows developers to write Aspire app hosts in non-.NET languages. The CLI detects the guest language entry point and orchestrates the guest runtime alongside a .NET GenericAppHost process.
+The polyglot apphost feature allows developers to write Aspire app hosts in non-.NET languages. The CLI detects the guest language entry point and orchestrates the guest runtime alongside an AppHost server.
 
 **Terminology:**
-- **Host**: The .NET GenericAppHost process running Aspire.Hosting
+- **Host (AppHost server)**: The .NET process running Aspire.Hosting
 - **Guest**: The non-.NET runtime executing the user's apphost code
 
 **Design Goals:**
@@ -31,7 +32,45 @@ The polyglot apphost feature allows developers to write Aspire app hosts in non-
 
 ## Architecture
 
-The CLI scaffolds a temporary .NET GenericAppHost project that references the required Aspire.Hosting packages. Code generation reflects over these assemblies to produce a language-specific SDK. At runtime, GenericAppHost starts a JSON-RPC server over Unix domain sockets, and the guest connects to send instructions. Each instruction (e.g., `AddRedis`, `WithEnvironment`) is executed by the `InstructionProcessor` against the real Aspire.Hosting APIs. Complex objects are registered in an `ObjectRegistry` and returned to the guest as proxies that can invoke methods remotely. An `OrphanDetector` monitors the CLI process and terminates GenericAppHost if the parent dies.
+The CLI scaffolds a temporary .NET project (the AppHost server) that references the required Aspire.Hosting packages. Code generation reflects over these assemblies to produce a language-specific SDK. At runtime, the AppHost server starts a JSON-RPC server over Unix domain sockets, and the guest connects to send instructions. Each instruction (e.g., `AddRedis`, `WithEnvironment`) is executed by the `InstructionProcessor` against the real Aspire.Hosting APIs. Complex objects are registered in an `ObjectRegistry` and returned to the guest as proxies that can invoke methods remotely. An `OrphanDetector` monitors the CLI process and terminates the AppHost server if the parent dies.
+
+```mermaid
+flowchart TB
+    subgraph CLI["Aspire CLI"]
+        subgraph Host["AppHost Server (.NET)"]
+            Hosting["Aspire.Hosting.*<br/>(Redis, Postgres, etc)"]
+            Processor["InstructionProcessor<br/>ObjectRegistry"]
+            Server["JSON-RPC Server"]
+            Hosting --> Processor --> Server
+        end
+
+        subgraph Guest["Guest (TypeScript)"]
+            SDK["Generated SDK<br/>(distributed-app.ts)"]
+            Client["RemoteAppHostClient<br/>(JSON-RPC)"]
+            UserCode["apphost.ts<br/>(User Code)"]
+            UserCode --> SDK --> Client
+        end
+
+        Client <-->|"Unix Domain Socket"| Server
+    end
+```
+
+```mermaid
+sequenceDiagram
+    participant G as Guest (TypeScript)
+    participant H as AppHost Server (.NET)
+
+    G->>H: addRedis("cache")
+    H-->>G: { $id: "obj_1" }
+
+    G->>H: withEnvironment(callback)
+    H->>G: invokeCallback(args)
+    G-->>H: callback result
+
+    G->>H: build()
+    G->>H: run()
+    H-->>G: orchestration started
+```
 
 ### Key Projects
 
@@ -41,32 +80,66 @@ The CLI scaffolds a temporary .NET GenericAppHost project that references the re
 | `Aspire.Hosting.CodeGeneration.<Language>` | Language-specific SDK generator |
 | `Aspire.Hosting.RemoteHost` | JSON-RPC server, instruction processor, object registry |
 
-## Development Mode
+## Configuration
 
-Set `ASPIRE_REPO_ROOT` to your local Aspire repository for development:
+Polyglot app hosts use two configuration files to manage settings and dependencies.
 
-```bash
-export ASPIRE_REPO_ROOT=/path/to/aspire
+### .aspire/settings.json
+
+This file stores the app host entry point and integration package references. It is created when you run `aspire init` or `aspire add` in a polyglot project.
+
+```json
+{
+  "appHostPath": "../apphost.ts",
+  "packages": {
+    "Aspire.Hosting.Redis": "9.2.0",
+    "Aspire.Hosting.PostgreSQL": "9.2.0"
+  }
+}
 ```
 
-This:
-- Skips SDK caching (always regenerates)
-- Uses local build artifacts from `artifacts/bin/` instead of NuGet packages
+| Property | Description |
+|----------|-------------|
+| `appHostPath` | Relative path to the app host entry point (e.g., `apphost.ts`) |
+| `packages` | Dictionary of Aspire.Hosting.* package references with versions |
+
+When you run `aspire add`, the CLI updates this file and regenerates the SDK to include the new integration APIs.
+
+### apphost.run.json
+
+This file provides launch settings for the app host, similar to `launchSettings.json` in .NET projects. It configures environment variables and URLs for the development environment.
+
+```json
+{
+  "profiles": {
+    "https": {
+      "applicationUrl": "https://localhost:17193;http://localhost:15069",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:21293"
+      }
+    }
+  }
+}
+```
+
+The CLI reads the `https` profile (or the first available profile) and passes these settings to the AppHost server. If no `apphost.run.json` exists, default development URLs are used.
 
 ## Process Lifecycle
 
 ### Startup Sequence
 
 1. **Detection**: `ProjectLocator` finds the guest entry point (e.g., `apphost.ts`)
-2. **GenericAppHost Preparation**:
-   - `ProjectModel` scaffolds a .NET project in `$TMPDIR/.aspire/hosts/<hash>/`
+2. **AppHost Server Preparation**:
+   - CLI scaffolds a .NET project in `$TMPDIR/.aspire/hosts/<hash>/`
    - References `Aspire.AppHost.Sdk` and required hosting packages
    - Builds the project with `dotnet build`
 3. **Code Generation**:
    - Loads assemblies from build output using `AssemblyLoaderContext`
    - Builds `ApplicationModel` via reflection on loaded assemblies
    - Generates SDK into language-specific output folder
-4. **Host Launch**: GenericAppHost started via `dotnet exec` with:
+4. **Host Launch**: AppHost server started via `dotnet exec` with:
    - `REMOTE_APP_HOST_SOCKET_PATH` - Unix domain socket path for JSON-RPC
    - `REMOTE_APP_HOST_PID` - CLI process ID for orphan detection
 5. **Guest Launch**: Guest runtime started with the entry point
@@ -80,6 +153,55 @@ Shutdown can be triggered by:
 2. **CLI Death**: `OrphanDetector` in host monitors parent PID, terminates when parent dies
 3. **Connection Loss**: Guest detects disconnection and exits
 4. **Startup Failure**: Errors propagate back through JSON-RPC and terminate all processes
+
+---
+
+## CLI Coordination
+
+The CLI uses the `IAppHostProject` interface to abstract language-specific behavior. Each supported app host type (`.NET`, `TypeScript`, etc.) has its own implementation, allowing CLI commands to work uniformly across languages.
+
+```mermaid
+classDiagram
+    class IAppHostProject {
+        <<interface>>
+        +RunAsync()
+        +PublishAsync()
+        +ValidateAsync()
+        +AddPackageAsync()
+    }
+
+    class DotNetAppHostProject {
+        .csproj / .cs files
+    }
+
+    class TypeScriptAppHostProject {
+        apphost.ts
+    }
+
+    IAppHostProject <|.. DotNetAppHostProject
+    IAppHostProject <|.. TypeScriptAppHostProject
+
+    RunCommand --> IAppHostProject : RunAsync
+    PipelineCommands --> IAppHostProject : PublishAsync
+    AddCommand --> IAppHostProject : AddPackageAsync
+```
+
+| CLI Command | IAppHostProject Method | Description |
+|-------------|------------------------|-------------|
+| `aspire run` | `RunAsync` | Build and run in development mode |
+| `aspire publish` / `deploy` / `do` | `PublishAsync` | Build and run in publish mode |
+| `aspire add` | `AddPackageAsync` | Add an integration package |
+
+### Polyglot Execution Model
+
+For polyglot app hosts, `RunAsync` and `PublishAsync` follow the same pattern:
+
+1. **Start the AppHost server** - A .NET process running Aspire.Hosting that exposes a JSON-RPC server
+2. **Start the guest** - The TypeScript (or other language) process that connects and sends instructions
+3. **Guest defines resources** - Via JSON-RPC calls like `addRedis()`, `addPostgres()`
+4. **Guest calls `run()`** - Triggers orchestration (run mode) or pipeline execution (publish mode)
+
+In **run mode**, the AppHost server runs until interrupted (Ctrl+C). In **publish mode**, it exits when the pipeline completes.
 
 ---
 
@@ -366,62 +488,6 @@ async function main() {
 main();
 ```
 
-### Configuration
-
-**.aspire/settings.json**
-```json
-{
-  "appHostPath": "../apphost.ts",
-  "packages": {
-    "Aspire.Hosting.Redis": "13.1.0"
-  }
-}
-```
-
-**apphost.run.json** - Launch settings for the app host.
-
----
-
-## Publish Mode
-
-TypeScript apphosts support `aspire publish`, `aspire deploy`, and `aspire do` through the same `PipelineCommandBase` used by .NET apphosts.
-
-### Process Launch and Data Flow
-
-`PipelineCommandBase` delegates to `IAppHostProject.PublishAsync()` which handles both .NET and TypeScript apphosts uniformly.
-
-**TypeScript publish flow:**
-
-1. **CLI starts GenericAppHost** with `ASPIRE_BACKCHANNEL_PATH` environment variable
-   - GenericAppHost opens a backchannel server for progress reporting
-   - CLI connects to receive pipeline status updates
-
-2. **CLI starts TypeScript process** with publish arguments
-   - Arguments like `--operation publish --step deploy` passed via command line
-   - `createBuilder()` defaults to `process.argv.slice(2)`, forwarding args to `CREATE_BUILDER`
-
-3. **GenericAppHost receives args via CREATE_BUILDER instruction**
-   - Creates `DistributedApplicationBuilder` with the publish arguments
-   - Sets `ExecutionContext.IsPublishMode = true`
-
-4. **TypeScript calls `app.run()`**
-   - Sends `RUN_BUILDER` instruction to GenericAppHost
-   - GenericAppHost executes the publish pipeline
-   - Progress reported via backchannel to CLI
-
-5. **Completion and shutdown**
-   - GenericAppHost exits when pipeline completes
-   - TypeScript detects disconnect via `client.onDisconnect()` and exits
-   - CLI reports final status
-
-### Run vs Publish
-
-| Aspect | Run Mode | Publish Mode |
-|--------|----------|--------------|
-| ExecutionContext | `IsRunMode = true` | `IsPublishMode = true` |
-| Lifecycle | Runs until Ctrl+C | Exits on completion |
-| Guest exit trigger | SIGINT | Host disconnect |
-
 ---
 
 ## Adding New Guest Languages
@@ -433,7 +499,7 @@ The polyglot architecture supports additional languages. The host-side infrastru
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | Code Generator | `Aspire.Hosting.CodeGeneration.<Language>` | Generate idiomatic SDK from `ApplicationModel` |
-| CLI Project Handler | `Aspire.Cli/AppHostRunning/<Language>AppHostProject.cs` | Implement `IAppHostProject` |
+| CLI Project Handler | `Aspire.Cli/Projects/<Language>AppHostProject.cs` | Implement `IAppHostProject` |
 | Project Locator | `Aspire.Cli/Projects/ProjectLocator.cs` | Detect entry point file |
 | Runtime Client | Embedded or generated | JSON-RPC client with proxy classes |
 
@@ -462,10 +528,12 @@ Implement `IAppHostProject`:
 ```csharp
 internal interface IAppHostProject
 {
-    Task<int> RunAsync(RunContext context, CancellationToken cancellationToken);
+    AppHostType SupportedType { get; }
+
+    Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken);
     Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken);
-    Task<PackageAddResult> AddPackageAsync(...);
-    Task<ProjectValidationResult> ValidateAsync(...);
+    Task<bool> ValidateAsync(FileInfo appHostFile, CancellationToken cancellationToken);
+    Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken);
 }
 ```
 
@@ -488,5 +556,19 @@ The guest language needs a JSON-RPC client that:
 These components work unchanged for any guest language:
 - `Aspire.Hosting.RemoteHost` - JSON-RPC server, instruction processor, object registry
 - `Aspire.Hosting.CodeGeneration` - Reflection-based model building
-- GenericAppHost scaffolding and build process
+- AppHost server scaffolding and build process
 - Backchannel for publish progress reporting
+
+---
+
+## Development Mode
+
+Set `ASPIRE_REPO_ROOT` to your local Aspire repository for development:
+
+```bash
+export ASPIRE_REPO_ROOT=/path/to/aspire
+```
+
+This:
+- Skips SDK caching (always regenerates)
+- Uses local build artifacts from `artifacts/bin/` instead of NuGet packages
