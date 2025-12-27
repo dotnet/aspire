@@ -27,6 +27,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.ApplicationModel
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Hub = {HubName}")]
     public partial class AzureWebPubSubHubResource : Resource, IResourceWithParent<AzureWebPubSubResource>, IResourceWithParent, IResource, IResourceWithConnectionString, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public AzureWebPubSubHubResource(string name, AzureWebPubSubResource webpubsub) : base(default!) { }
@@ -49,8 +50,6 @@ namespace Aspire.Hosting.ApplicationModel
         public Azure.BicepOutputReference Endpoint { get { throw null; } }
 
         public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
-
-        public ReferenceExpression UriExpression { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(Azure.AzureResourceInfrastructure infra) { throw null; }
 

@@ -30,6 +30,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class AzurePostgresFlexibleServerDatabaseResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzurePostgresFlexibleServerResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public AzurePostgresFlexibleServerDatabaseResource(string name, string databaseName, AzurePostgresFlexibleServerResource postgresParentResource) : base(default!) { }

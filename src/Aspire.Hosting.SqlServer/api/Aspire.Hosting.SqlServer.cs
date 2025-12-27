@@ -28,6 +28,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.ApplicationModel
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class SqlServerDatabaseResource : Resource, IResourceWithParent<SqlServerServerResource>, IResourceWithParent, IResource, IResourceWithConnectionString, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public SqlServerDatabaseResource(string name, string databaseName, SqlServerServerResource parent) : base(default!) { }
