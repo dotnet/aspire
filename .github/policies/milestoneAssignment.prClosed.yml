@@ -27,5 +27,5 @@ configuration:
       then:
       - removeMilestone
       - addMilestone:
-          milestone: 13.1
+          milestone: 13.1.1
       description: '[Milestone Assignments] Assign Milestone to PRs merged to release/13.1 branch'
