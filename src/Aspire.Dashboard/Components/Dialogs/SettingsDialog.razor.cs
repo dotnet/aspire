@@ -14,10 +14,12 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class SettingsDialog : IDialogContentComponent, IDisposable
 {
+    private readonly CancellationTokenSource _cts = new();
     private string? _currentSetting;
     private List<CultureInfo> _languageOptions = null!;
     private CultureInfo? _selectedUiCulture;
     private bool _isExporting;
+    private string? _errorMessage;
 
     private IDisposable? _themeChangedSubscription;
 
@@ -44,6 +46,9 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
 
     protected override void OnInitialized()
     {
@@ -116,15 +121,21 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         }
 
         _isExporting = true;
+        _errorMessage = null;
         StateHasChanged();
 
         try
         {
-            using var memoryStream = await TelemetryExportService.ExportAllAsync(CancellationToken.None);
+            using var memoryStream = await TelemetryExportService.ExportAllAsync(_cts.Token);
             var fileName = $"aspire-telemetry-export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip";
 
             using var streamRef = new DotNetStreamReference(memoryStream, leaveOpen: false);
             await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamRef);
+        }
+        catch (Exception ex)
+        {
+            ErrorRecorder.RecordError("Error exporting telemetry", ex, writeToLogging: true);
+            _errorMessage = $"{Loc[nameof(Resources.Dialogs.SettingsExportErrorMessage)]}: {ex.Message}";
         }
         finally
         {
@@ -135,6 +146,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     public void Dispose()
     {
+        _cts.Cancel();
         _themeChangedSubscription?.Dispose();
     }
 }

@@ -1,0 +1,4 @@
+.telemetry-error-message {
+    color: var(--error);
+    font-size: var(--type-ramp-minus-1-font-size);
+}

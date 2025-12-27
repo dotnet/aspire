@@ -51,6 +51,11 @@
             </div>
         </div>
 
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="telemetry-error-message">@_errorMessage</div>
+        }
+
         @if (TelemetryService is { IsTelemetryInitialized: true, IsTelemetryEnabled: true })
         {
             <div>

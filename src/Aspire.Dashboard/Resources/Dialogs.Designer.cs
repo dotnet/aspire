@@ -1105,20 +1105,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Remove all.
-        /// </summary>
-        public static string SettingsRemoveAllButtonText {
-            get {
-                return ResourceManager.GetString("SettingsRemoveAllButtonText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Export all.
         /// </summary>
         public static string SettingsExportAllButtonText {
             get {
                 return ResourceManager.GetString("SettingsExportAllButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to export telemetry.
+        /// </summary>
+        public static string SettingsExportErrorMessage {
+            get {
+                return ResourceManager.GetString("SettingsExportErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove all.
+        /// </summary>
+        public static string SettingsRemoveAllButtonText {
+            get {
+                return ResourceManager.GetString("SettingsRemoveAllButtonText", resourceCulture);
             }
         }
         
