@@ -113,4 +113,13 @@ internal interface IAppHostProject
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>True if the package was added successfully; otherwise, false.</returns>
     Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Checks for and handles any running instance of this AppHost.
+    /// </summary>
+    /// <param name="appHostFile">The AppHost file to check for running instances.</param>
+    /// <param name="homeDirectory">The user's home directory for computing socket paths.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>True if no running instance or it was successfully stopped; otherwise, false.</returns>
+    Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken);
 }

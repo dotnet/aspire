@@ -18,7 +18,9 @@ internal sealed class AppHostProjectFactory : IAppHostProjectFactory
     /// <inheritdoc />
     public IAppHostProject GetProject(AppHostType type)
     {
-        var project = _projects.FirstOrDefault(p => p.SupportedType == type);
+        // Map single-file .cs apphosts to the same handler as project-based apphosts
+        var lookupType = type == AppHostType.DotNetSingleFile ? AppHostType.DotNetProject : type;
+        var project = _projects.FirstOrDefault(p => p.SupportedType == lookupType);
 
         if (project is null)
         {

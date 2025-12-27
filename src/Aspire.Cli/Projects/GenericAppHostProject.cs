@@ -97,6 +97,11 @@ internal sealed class GenericAppHostProject
     public string AppPath => _appPath;
     public string BuildPath => Path.Combine(_projectModelPath, BuildFolder);
 
+    /// <summary>
+    /// Gets the full path to the GenericAppHost project file.
+    /// </summary>
+    public string GetProjectFilePath() => Path.Combine(_projectModelPath, ProjectFileName);
+
     public string GetProjectHash()
     {
         var hashFilePath = Path.Combine(_projectModelPath, ProjectHashFileName);

@@ -2,12 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.CodeGeneration;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -19,24 +22,31 @@ namespace Aspire.Cli.Projects;
 /// </summary>
 internal sealed class TypeScriptAppHostProject : IAppHostProject
 {
+    // Constants for running instance detection
+    private const int ProcessTerminationTimeoutMs = 10000; // Wait up to 10 seconds for processes to terminate
+    private const int ProcessTerminationPollIntervalMs = 250; // Check process status every 250ms
+
     private readonly IInteractionService _interactionService;
     private readonly ICodeGenerator _codeGenerator;
     private readonly IAppHostCliBackchannel _backchannel;
     private readonly IGenericAppHostProjectFactory _genericAppHostProjectFactory;
     private readonly ILogger<TypeScriptAppHostProject> _logger;
+    private readonly TimeProvider _timeProvider;
 
     public TypeScriptAppHostProject(
         IInteractionService interactionService,
         [FromKeyedServices(AppHostType.TypeScript)] ICodeGenerator codeGenerator,
         IAppHostCliBackchannel backchannel,
         IGenericAppHostProjectFactory genericAppHostProjectFactory,
-        ILogger<TypeScriptAppHostProject> logger)
+        ILogger<TypeScriptAppHostProject> logger,
+        TimeProvider? timeProvider = null)
     {
         _interactionService = interactionService;
         _codeGenerator = codeGenerator;
         _backchannel = backchannel;
         _genericAppHostProjectFactory = genericAppHostProjectFactory;
         _logger = logger;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     /// <inheritdoc />
@@ -113,27 +123,37 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             }
 
             // Step 3: Run code generation now that assemblies are built
+            // Note: We use DisplayMessage instead of ShowStatusAsync to avoid conflicts
+            // with RunCommand's ShowStatusAsync for backchannel waiting
             if (_codeGenerator.NeedsGeneration(directory.FullName, packages))
             {
-                await _interactionService.ShowStatusAsync(
-                    "Generating TypeScript SDK...",
-                    async () =>
-                    {
-                        await _codeGenerator.GenerateAsync(
-                            directory.FullName,
-                            packages,
-                            cancellationToken);
-                        return true;
-                    });
+                _interactionService.DisplayMessage("gear", "Generating TypeScript SDK...");
+                await _codeGenerator.GenerateAsync(
+                    directory.FullName,
+                    packages,
+                    cancellationToken);
             }
 
-            // Read launchSettings.json if it exists
-            var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory);
+            // Read launchSettings.json if it exists, or create defaults
+            var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+
+            // Generate a backchannel socket path for CLI to connect to GenericAppHost
+            var backchannelSocketPath = GetBackchannelSocketPath();
+
+            // Pass the backchannel socket path to GenericAppHost so it opens a server for CLI communication
+            launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
             // Start the GenericAppHost process
             _interactionService.DisplayMessage("rocket", "Starting GenericAppHost...");
             var currentPid = Environment.ProcessId;
             genericAppHostProcess = genericAppHostProject.Run(socketPath, currentPid, launchSettingsEnvVars);
+
+            // The backchannel completion source is the contract with RunCommand
+            // We signal this when the backchannel is ready, RunCommand uses it for UX
+            var backchannelCompletionSource = context.BackchannelCompletionSource ?? new TaskCompletionSource<IAppHostCliBackchannel>();
+
+            // Start connecting to the backchannel (for dashboard URLs, logs, etc.)
+            _ = StartBackchannelConnectionAsync(genericAppHostProcess, backchannelSocketPath, backchannelCompletionSource, cancellationToken);
 
             // Give the server a moment to start
             await Task.Delay(500, cancellationToken);
@@ -153,9 +173,20 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath
             };
 
-            var exitCode = await ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken);
+            // Start TypeScript apphost - it will connect to GenericAppHost, define resources, then exit
+            var pendingTypeScript = ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken);
 
-            return exitCode;
+            // Wait for TypeScript to finish defining resources
+            var typeScriptExitCode = await pendingTypeScript;
+            if (typeScriptExitCode != 0)
+            {
+                _logger.LogError("TypeScript apphost exited with code {ExitCode}", typeScriptExitCode);
+            }
+
+            // Wait for the GenericAppHost to exit (Ctrl+C)
+            await genericAppHostProcess.WaitForExitAsync(cancellationToken);
+
+            return genericAppHostProcess.ExitCode;
         }
         catch (OperationCanceledException)
         {
@@ -692,5 +723,116 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             cancellationToken);
 
         return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
+    {
+        // For TypeScript projects, we use the GenericAppHost's path to compute the socket path
+        // The GenericAppHost is created in a subdirectory of the apphost.ts directory
+        var directory = appHostFile.Directory;
+        if (directory is null)
+        {
+            return true; // No directory, nothing to check
+        }
+
+        var genericAppHostProject = _genericAppHostProjectFactory.Create(directory.FullName);
+        var genericAppHostPath = genericAppHostProject.GetProjectFilePath();
+
+        // Compute socket path based on the GenericAppHost project path
+        var auxiliarySocketPath = AppHostHelper.ComputeAuxiliarySocketPath(genericAppHostPath, homeDirectory.FullName);
+
+        // Check if the socket file exists
+        if (!File.Exists(auxiliarySocketPath))
+        {
+            return true; // No running instance, continue
+        }
+
+        // Stop the running instance
+        return await StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
+    }
+
+    private async Task<bool> StopRunningInstanceAsync(string socketPath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Connect to the auxiliary backchannel
+            using var backchannel = await AppHostAuxiliaryBackchannel.ConnectAsync(socketPath, _logger, cancellationToken).ConfigureAwait(false);
+
+            // Get the AppHost information
+            var appHostInfo = backchannel.AppHostInfo;
+
+            if (appHostInfo is null)
+            {
+                _logger.LogWarning("Failed to get AppHost information from running instance");
+                return false;
+            }
+
+            // Display message that we're stopping the previous instance
+            var cliPidText = appHostInfo.CliProcessId.HasValue ? appHostInfo.CliProcessId.Value.ToString(CultureInfo.InvariantCulture) : "N/A";
+            _interactionService.DisplayMessage("stop_sign", $"Stopping previous instance (AppHost PID: {appHostInfo.ProcessId.ToString(CultureInfo.InvariantCulture)}, CLI PID: {cliPidText})");
+
+            // Call StopAppHostAsync on the auxiliary backchannel
+            await backchannel.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
+
+            // Monitor the PIDs for termination
+            var stopped = await MonitorProcessesForTerminationAsync(appHostInfo, cancellationToken).ConfigureAwait(false);
+
+            if (stopped)
+            {
+                _interactionService.DisplaySuccess(RunCommandStrings.RunningInstanceStopped);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to stop running instance within timeout");
+            }
+
+            return stopped;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to stop running instance");
+            return false;
+        }
+    }
+
+    private async Task<bool> MonitorProcessesForTerminationAsync(AppHostInformation appHostInfo, CancellationToken cancellationToken)
+    {
+        var startTime = _timeProvider.GetUtcNow();
+        var pidsToMonitor = new List<int> { appHostInfo.ProcessId };
+
+        if (appHostInfo.CliProcessId.HasValue)
+        {
+            pidsToMonitor.Add(appHostInfo.CliProcessId.Value);
+        }
+
+        while ((_timeProvider.GetUtcNow() - startTime).TotalMilliseconds < ProcessTerminationTimeoutMs)
+        {
+            var allStopped = true;
+
+            foreach (var pid in pidsToMonitor)
+            {
+                try
+                {
+                    var process = Process.GetProcessById(pid);
+                    // If we can get the process, it's still running
+                    allStopped = false;
+                }
+                catch (ArgumentException)
+                {
+                    // Process doesn't exist, it has stopped
+                }
+            }
+
+            if (allStopped)
+            {
+                return true;
+            }
+
+            await Task.Delay(ProcessTerminationPollIntervalMs, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Timeout reached
+        return false;
     }
 }
