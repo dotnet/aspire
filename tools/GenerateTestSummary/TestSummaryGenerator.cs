@@ -9,7 +9,7 @@ namespace Aspire.TestTools;
 
 sealed partial class TestSummaryGenerator
 {
-    public static string CreateCombinedTestSummaryReport(string basePath)
+    public static string CreateCombinedTestSummaryReport(string basePath, bool showAllTests = false)
     {
         var resolved = Path.GetFullPath(basePath);
         if (!Directory.Exists(resolved))
@@ -196,10 +196,73 @@ sealed partial class TestSummaryGenerator
         overallTableBuilder.AppendLine("## Duration Statistics");
         overallTableBuilder.Append(GenerateDurationStatistics(basePath));
 
+        // Add all individual test results if showAllTests is true
+        if (showAllTests)
+        {
+            overallTableBuilder.AppendLine();
+            overallTableBuilder.AppendLine("## All Test Results");
+            overallTableBuilder.AppendLine();
+            overallTableBuilder.Append(GenerateAllTestsSection(basePath));
+        }
+
         return overallTableBuilder.ToString();
     }
 
-    public static void CreateSingleTestSummaryReport(string trxFilePath, StringBuilder reportBuilder, string? url)
+    private static string GenerateAllTestsSection(string basePath)
+    {
+        var resultBuilder = new StringBuilder();
+        var allTests = new List<(string TestName, string Outcome, string? ErrorInfo, string? StdOut)>();
+
+        var trxFiles = Directory.EnumerateFiles(basePath, "*.trx", SearchOption.AllDirectories);
+        foreach (var filePath in trxFiles)
+        {
+            TestRun? testRun;
+            try
+            {
+                testRun = TrxReader.DeserializeTrxFile(filePath);
+                if (testRun?.Results?.UnitTestResults is null)
+                {
+                    continue;
+                }
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var test in testRun.Results.UnitTestResults)
+            {
+                if (!string.IsNullOrEmpty(test.TestName))
+                {
+                    allTests.Add((test.TestName, test.Outcome ?? "Unknown", test.Output?.ErrorInfo?.InnerText, test.Output?.StdOut));
+                }
+            }
+        }
+
+        // Sort by test name
+        allTests.Sort((a, b) => string.Compare(a.TestName, b.TestName, StringComparison.OrdinalIgnoreCase));
+
+        foreach (var test in allTests)
+        {
+            if (test.Outcome == "Failed")
+            {
+                AppendFailedTestDetails(resultBuilder, test.TestName, test.ErrorInfo, test.StdOut);
+            }
+            else if (test.Outcome == "Passed")
+            {
+                resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"- ✅ {test.TestName}");
+            }
+            else
+            {
+                // Skipped/NotExecuted tests
+                resultBuilder.AppendLine(CultureInfo.InvariantCulture, $"- ⏭️ {test.TestName}");
+            }
+        }
+
+        return resultBuilder.ToString();
+    }
+
+    public static void CreateSingleTestSummaryReport(string trxFilePath, StringBuilder reportBuilder, string? url, bool showAllTests = false)
     {
         if (!File.Exists(trxFilePath))
         {
@@ -222,7 +285,9 @@ sealed partial class TestSummaryGenerator
 
         var counters = testRun.ResultSummary.Counters;
         var failed = counters.Failed;
-        if (failed == 0)
+        
+        // Skip if no failed tests and we're only showing failed tests
+        if (failed == 0 && !showAllTests)
         {
             Console.WriteLine($"No failed tests in {trxFilePath}");
             return;
@@ -248,45 +313,29 @@ sealed partial class TestSummaryGenerator
             return;
         }
 
-        var failedTests = testRun.Results.UnitTestResults.Where(r => r.Outcome == "Failed");
-        if (failedTests.Any())
+        // Get tests to display - all tests if showAllTests, otherwise only failed
+        var testsToDisplay = showAllTests
+            ? testRun.Results.UnitTestResults.OrderBy(r => r.TestName, StringComparer.OrdinalIgnoreCase)
+            : testRun.Results.UnitTestResults.Where(r => r.Outcome == "Failed");
+
+        foreach (var test in testsToDisplay)
         {
-            foreach (var test in failedTests)
+            if (test.Outcome == "Failed")
             {
-                reportBuilder.AppendLine("<div>");
-                reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"""
-                    <details><summary>🔴 <b>{test.TestName}</b></summary>
-
-                """);
-
-                reportBuilder.AppendLine();
-                reportBuilder.AppendLine("```yml");
-
-                reportBuilder.AppendLine(test.Output?.ErrorInfo?.InnerText);
-                if (test.Output?.StdOut is not null)
+                AppendFailedTestDetails(reportBuilder, test.TestName ?? "Unknown", test.Output?.ErrorInfo?.InnerText, test.Output?.StdOut);
+            }
+            else if (showAllTests)
+            {
+                // Only show passing/skipped tests when showAllTests is true
+                if (test.Outcome == "Passed")
                 {
-                    const int halfLength = 25_000;
-                    var stdOutSpan = test.Output.StdOut.AsSpan();
-
-                    reportBuilder.AppendLine();
-                    reportBuilder.AppendLine("### StdOut");
-
-                    var startSpan = stdOutSpan[..Math.Min(halfLength, stdOutSpan.Length)];
-                    reportBuilder.AppendLine(startSpan.ToString());
-
-                    if (stdOutSpan.Length > halfLength)
-                    {
-                        reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}... (snip) ...{Environment.NewLine}");
-                        var endSpan = stdOutSpan[^halfLength..];
-                        // `endSpan` might not begin at the true beginning of the original line
-                        reportBuilder.Append("... ");
-                        reportBuilder.Append(endSpan);
-                    }
+                    reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"- ✅ {test.TestName}");
                 }
-
-                reportBuilder.AppendLine("```");
-                reportBuilder.AppendLine();
-                reportBuilder.AppendLine("</div>");
+                else
+                {
+                    // Skipped/NotExecuted tests
+                    reportBuilder.AppendLine(CultureInfo.InvariantCulture, $"- ⏭️ {test.TestName}");
+                }
             }
         }
         reportBuilder.AppendLine();
@@ -515,6 +564,46 @@ sealed partial class TestSummaryGenerator
         }
 
         return resultBuilder.ToString();
+    }
+
+    private static void AppendFailedTestDetails(StringBuilder builder, string testName, string? errorInfo, string? stdOut)
+    {
+        builder.AppendLine("<div>");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"""
+            <details><summary>❌ <b>{testName}</b></summary>
+
+        """);
+
+        builder.AppendLine();
+        builder.AppendLine("```yml");
+
+        builder.AppendLine(errorInfo);
+        if (stdOut is not null)
+        {
+            const int halfLength = 25_000;
+            var stdOutSpan = stdOut.AsSpan();
+
+            builder.AppendLine();
+            builder.AppendLine("### StdOut");
+
+            var startSpan = stdOutSpan[..Math.Min(halfLength, stdOutSpan.Length)];
+            builder.AppendLine(startSpan.ToString());
+
+            if (stdOutSpan.Length > halfLength)
+            {
+                builder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}... (snip) ...{Environment.NewLine}");
+                var endSpan = stdOutSpan[^halfLength..];
+                // `endSpan` might not begin at the true beginning of the original line
+                builder.Append("... ");
+                builder.Append(endSpan);
+            }
+        }
+
+        builder.AppendLine("```");
+        builder.AppendLine();
+        builder.AppendLine("</details>");
+        builder.AppendLine("</div>");
+        builder.AppendLine();
     }
 
     public static string GetTestTitle(string trxFileName)
