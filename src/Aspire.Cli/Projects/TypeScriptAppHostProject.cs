@@ -200,11 +200,15 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         }
         catch (OperationCanceledException)
         {
+            // Signal that build/preparation failed so RunCommand doesn't hang waiting
+            context.BuildCompletionSource?.TrySetResult(false);
             _interactionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
         }
         catch (Exception ex)
         {
+            // Signal that build/preparation failed so RunCommand doesn't hang waiting
+            context.BuildCompletionSource?.TrySetResult(false);
             _logger.LogError(ex, "Failed to run TypeScript AppHost");
             _interactionService.DisplayError($"Failed to run TypeScript AppHost: {ex.Message}");
             return ExitCodeConstants.FailedToDotnetRunAppHost;

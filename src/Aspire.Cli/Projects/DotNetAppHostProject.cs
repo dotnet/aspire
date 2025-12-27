@@ -98,39 +98,57 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             env[KnownConfigNames.WaitForDebugger] = "true";
         }
 
-        await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+        try
+        {
+            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+        }
+        catch
+        {
+            // Signal that build/preparation failed so RunCommand doesn't hang waiting
+            context.BuildCompletionSource?.TrySetResult(false);
+            throw;
+        }
 
         var watch = !isSingleFileAppHost && (_features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false) || (isExtensionHost && !context.StartDebugSession));
 
-        if (!watch)
+        try
         {
-            if (!isSingleFileAppHost && !isExtensionHost)
+            if (!watch)
             {
-                var buildOptions = new DotNetCliRunnerInvocationOptions
+                if (!isSingleFileAppHost && !isExtensionHost)
                 {
-                    StandardOutputCallback = buildOutputCollector.AppendOutput,
-                    StandardErrorCallback = buildOutputCollector.AppendError,
-                };
+                    var buildOptions = new DotNetCliRunnerInvocationOptions
+                    {
+                        StandardOutputCallback = buildOutputCollector.AppendOutput,
+                        StandardErrorCallback = buildOutputCollector.AppendError,
+                    };
 
-                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostFile, buildOptions, context.WorkingDirectory, cancellationToken);
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostFile, buildOptions, context.WorkingDirectory, cancellationToken);
 
-                if (buildExitCode != 0)
-                {
-                    _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                    _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                    context.BuildCompletionSource?.TrySetResult(false);
-                    return ExitCodeConstants.FailedToBuildArtifacts;
+                    if (buildExitCode != 0)
+                    {
+                        _interactionService.DisplayLines(buildOutputCollector.GetLines());
+                        _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        context.BuildCompletionSource?.TrySetResult(false);
+                        return ExitCodeConstants.FailedToBuildArtifacts;
+                    }
                 }
             }
-        }
 
-        if (isSingleFileAppHost)
-        {
-            appHostCompatibilityCheck = (true, true, VersionHelper.GetDefaultTemplateVersion());
+            if (isSingleFileAppHost)
+            {
+                appHostCompatibilityCheck = (true, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            else
+            {
+                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostFile, _telemetry, context.WorkingDirectory, cancellationToken);
+            }
         }
-        else
+        catch
         {
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostFile, _telemetry, context.WorkingDirectory, cancellationToken);
+            // Signal that build/preparation failed so RunCommand doesn't hang waiting
+            context.BuildCompletionSource?.TrySetResult(false);
+            throw;
         }
 
         if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
