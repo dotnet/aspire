@@ -499,38 +499,20 @@ main();
 
 ## Adding New Guest Languages
 
-The polyglot architecture supports additional languages. The host-side infrastructure (`Aspire.Hosting.RemoteHost`) is language-agnostic—only the code generator and CLI integration are language-specific.
+The polyglot architecture supports additional languages. The host-side infrastructure (`Aspire.Hosting.RemoteHost`) is language-agnostic—only code generation and CLI integration are language-specific. To add a new language, implement `IAppHostProject`—this single interface handles all language-specific concerns including code generation.
 
 ### Components to Implement
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
+| AppHost Project | `Aspire.Cli/Projects/<Language>AppHostProject.cs` | Implement `IAppHostProject` with code generation |
 | Code Generator | `Aspire.Hosting.CodeGeneration.<Language>` | Generate idiomatic SDK from `ApplicationModel` |
-| CLI Project Handler | `Aspire.Cli/Projects/<Language>AppHostProject.cs` | Implement `IAppHostProject` |
 | Project Locator | `Aspire.Cli/Projects/ProjectLocator.cs` | Detect entry point file |
 | Runtime Client | Embedded or generated | JSON-RPC client with proxy classes |
 
-### Code Generator
+### IAppHostProject Implementation
 
-Create `Aspire.Hosting.CodeGeneration.<Language>` implementing `ICodeGenerator`:
-
-```csharp
-public interface ICodeGenerator
-{
-    bool NeedsGeneration(string projectDirectory, IReadOnlyDictionary<string, string> packages);
-    Task GenerateAsync(string projectDirectory, IReadOnlyDictionary<string, string> packages, CancellationToken cancellationToken);
-}
-```
-
-Key concerns:
-- Map .NET types to language equivalents
-- Generate builder classes with instance methods
-- Generate proxy wrappers for callback contexts
-- Emit JSON-RPC client infrastructure
-
-### CLI Integration
-
-Implement `IAppHostProject`:
+The `IAppHostProject` interface is the single extension point for new languages. Implement this interface to handle all CLI commands and integrate code generation:
 
 ```csharp
 internal interface IAppHostProject
@@ -549,6 +531,16 @@ Register with a keyed service for the `AppHostType`:
 ```csharp
 services.AddKeyedSingleton<IAppHostProject, PythonAppHostProject>(AppHostType.Python);
 ```
+
+### Code Generation
+
+Create a code generator in `Aspire.Hosting.CodeGeneration.<Language>` that produces an idiomatic SDK from the `ApplicationModel`. The generator is invoked by your `IAppHostProject` implementation during `RunAsync`/`PublishAsync`.
+
+Key concerns:
+- Map .NET types to language equivalents
+- Generate builder classes with instance methods
+- Generate proxy wrappers for callback contexts
+- Emit JSON-RPC client infrastructure
 
 ### Runtime Client Requirements
 

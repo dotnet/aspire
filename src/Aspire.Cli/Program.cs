@@ -23,7 +23,6 @@ using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Aspire.Cli.Caching;
-using Aspire.Cli.CodeGeneration;
 using Aspire.Hosting;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
@@ -198,9 +197,6 @@ public class Program
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
-
-        // Code generators (keyed by AppHostType).
-        builder.Services.AddKeyedSingleton<ICodeGenerator, TypeScriptCodeGeneratorService>(AppHostType.TypeScript);
 
         // AppHost project handlers.
         builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();

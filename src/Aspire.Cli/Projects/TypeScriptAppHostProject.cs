@@ -6,13 +6,14 @@ using System.Globalization;
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.CodeGeneration;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
-using Microsoft.Extensions.DependencyInjection;
+using Aspire.Hosting.CodeGeneration;
+using Aspire.Hosting.CodeGeneration.TypeScript;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
@@ -25,28 +26,33 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     // Constants for running instance detection
     private const int ProcessTerminationTimeoutMs = 10000; // Wait up to 10 seconds for processes to terminate
     private const int ProcessTerminationPollIntervalMs = 250; // Check process status every 250ms
+    private const string GeneratedFolderName = ".modules";
 
     private readonly IInteractionService _interactionService;
-    private readonly ICodeGenerator _codeGenerator;
     private readonly IAppHostCliBackchannel _backchannel;
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<TypeScriptAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
+    private readonly CodeGeneratorService _codeGeneratorService;
+    private readonly TypeScriptCodeGenerator _typeScriptGenerator;
 
     public TypeScriptAppHostProject(
         IInteractionService interactionService,
-        [FromKeyedServices(AppHostType.TypeScript)] ICodeGenerator codeGenerator,
         IAppHostCliBackchannel backchannel,
         IAppHostServerProjectFactory appHostServerProjectFactory,
+        IConfiguration configuration,
         ILogger<TypeScriptAppHostProject> logger,
         TimeProvider? timeProvider = null)
     {
         _interactionService = interactionService;
-        _codeGenerator = codeGenerator;
         _backchannel = backchannel;
         _appHostServerProjectFactory = appHostServerProjectFactory;
+        _configuration = configuration;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
+        _codeGeneratorService = new CodeGeneratorService();
+        _typeScriptGenerator = new TypeScriptCodeGenerator();
     }
 
     /// <inheritdoc />
@@ -127,14 +133,15 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             }
 
             // Step 3: Run code generation now that assemblies are built
-            if (_codeGenerator.NeedsGeneration(directory.FullName, packages))
+            if (NeedsGeneration(directory.FullName, packages))
             {
                 await _interactionService.ShowStatusAsync(
                     ":gear: Generating TypeScript SDK...",
                     async () =>
                     {
-                        await _codeGenerator.GenerateAsync(
+                        await GenerateCodeAsync(
                             directory.FullName,
+                            appHostServerProject.BuildPath,
                             packages,
                             cancellationToken);
                         return true;
@@ -558,14 +565,15 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             }
 
             // Step 3: Run code generation now that assemblies are built
-            if (_codeGenerator.NeedsGeneration(directory.FullName, packages))
+            if (NeedsGeneration(directory.FullName, packages))
             {
                 await _interactionService.ShowStatusAsync(
                     ":gear: Generating TypeScript SDK...",
                     async () =>
                     {
-                        await _codeGenerator.GenerateAsync(
+                        await GenerateCodeAsync(
                             directory.FullName,
+                            appHostServerProject.BuildPath,
                             packages,
                             cancellationToken);
                         return true;
@@ -734,9 +742,11 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         config.Save(directory.FullName);
 
         // Regenerate TypeScript SDK code
+        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
         var packages = GetPackageReferences(directory).ToList();
-        await _codeGenerator.GenerateAsync(
+        await GenerateCodeAsync(
             directory.FullName,
+            appHostServerProject.BuildPath,
             packages,
             cancellationToken);
 
@@ -852,5 +862,78 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
         // Timeout reached
         return false;
+    }
+
+    /// <summary>
+    /// Checks if code generation is needed based on the current state.
+    /// </summary>
+    private bool NeedsGeneration(string appPath, IEnumerable<(string PackageId, string Version)> packages)
+    {
+        // In dev mode (ASPIRE_REPO_ROOT set), always regenerate to pick up code changes
+        if (!string.IsNullOrEmpty(_configuration["ASPIRE_REPO_ROOT"]))
+        {
+            _logger.LogDebug("Dev mode detected (ASPIRE_REPO_ROOT set), skipping generation cache");
+            return true;
+        }
+
+        return _codeGeneratorService.NeedsGeneration(appPath, packages, GeneratedFolderName);
+    }
+
+    /// <summary>
+    /// Generates TypeScript SDK code for the specified app path.
+    /// </summary>
+    private async Task GenerateCodeAsync(
+        string appPath,
+        string buildPath,
+        IEnumerable<(string PackageId, string Version)> packages,
+        CancellationToken cancellationToken)
+    {
+        var packagesList = packages.ToList();
+        _logger.LogDebug("Generating TypeScript code for {Count} packages", packagesList.Count);
+
+        // Build assembly search paths
+        var searchPaths = BuildAssemblySearchPaths(buildPath);
+
+        // Use the shared code generator service
+        var fileCount = await _codeGeneratorService.GenerateAsync(
+            appPath,
+            _typeScriptGenerator,
+            packagesList,
+            searchPaths,
+            GeneratedFolderName,
+            cancellationToken);
+
+        _logger.LogInformation("Generated {Count} TypeScript files in {Path}",
+            fileCount, Path.Combine(appPath, GeneratedFolderName));
+    }
+
+    /// <summary>
+    /// Builds the list of paths to search for assemblies.
+    /// </summary>
+    private static List<string> BuildAssemblySearchPaths(string buildPath)
+    {
+        var searchPaths = new List<string> { buildPath };
+
+        // Add NuGet cache if available
+        var nugetCache = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".nuget", "packages");
+        if (Directory.Exists(nugetCache))
+        {
+            searchPaths.Add(nugetCache);
+        }
+
+        // Add runtime directory
+        var runtimeDirectory = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory();
+        searchPaths.Add(runtimeDirectory);
+
+        // Add ASP.NET Core shared framework directory (contains HealthChecks, etc.)
+        var aspnetCoreDirectory = runtimeDirectory.Replace("Microsoft.NETCore.App", "Microsoft.AspNetCore.App");
+        if (Directory.Exists(aspnetCoreDirectory))
+        {
+            searchPaths.Add(aspnetCoreDirectory);
+        }
+
+        return searchPaths;
     }
 }
