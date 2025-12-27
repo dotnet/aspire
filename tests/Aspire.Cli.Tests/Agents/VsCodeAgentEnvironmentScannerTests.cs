@@ -322,7 +322,7 @@ public class VsCodeAgentEnvironmentScannerTests(ITestOutputHelper outputHelper)
             hivesDirectory: workingDirectory,
             cacheDirectory: workingDirectory,
             sdksDirectory: workingDirectory,
-            debugMode: false,
+            logLevel: Microsoft.Extensions.Logging.LogLevel.Information,
             environmentVariables: environmentVariables,
             homeDirectory: homeDirectory);
     }
