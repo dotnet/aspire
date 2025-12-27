@@ -2,12 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Text.Json;
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.CodeGeneration;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Rosetta;
+using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -20,15 +23,18 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 {
     private readonly IInteractionService _interactionService;
     private readonly ICodeGenerator _codeGenerator;
+    private readonly IAppHostCliBackchannel _backchannel;
     private readonly ILogger<TypeScriptAppHostProject> _logger;
 
     public TypeScriptAppHostProject(
         IInteractionService interactionService,
         [FromKeyedServices(AppHostType.TypeScript)] ICodeGenerator codeGenerator,
+        IAppHostCliBackchannel backchannel,
         ILogger<TypeScriptAppHostProject> logger)
     {
         _interactionService = interactionService;
         _codeGenerator = codeGenerator;
+        _backchannel = backchannel;
         _logger = logger;
     }
 
@@ -316,10 +322,16 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         FileInfo appHostFile,
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string[]? additionalArgs = null)
     {
         // Try to find npx for running tsx directly, or use node if compiled
         var npxPath = FindNpxPath();
+
+        // Build the additional arguments string
+        var argsString = additionalArgs is { Length: > 0 }
+            ? " " + string.Join(" ", additionalArgs.Select(a => a.Contains(' ') ? $"\"{a}\"" : a))
+            : "";
 
         ProcessStartInfo startInfo;
 
@@ -329,7 +341,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             startInfo = new ProcessStartInfo
             {
                 FileName = npxPath,
-                Arguments = $"tsx \"{appHostFile.FullName}\"",
+                Arguments = $"tsx \"{appHostFile.FullName}\"{argsString}",
                 WorkingDirectory = directory.FullName,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -362,7 +374,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             startInfo = new ProcessStartInfo
             {
                 FileName = nodePath,
-                Arguments = $"\"{targetFile}\"",
+                Arguments = $"\"{targetFile}\"{argsString}",
                 WorkingDirectory = directory.FullName,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -450,6 +462,211 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private static string? FindNodePath()
     {
         return PathLookupHelper.FindFullPathFromPath("node");
+    }
+
+    /// <inheritdoc />
+    public async Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken)
+    {
+        var appHostFile = context.AppHostFile;
+        var directory = appHostFile.Directory!;
+
+        _logger.LogDebug("Publishing TypeScript AppHost: {AppHostFile}", appHostFile.FullName);
+
+        Process? genericAppHostProcess = null;
+
+        try
+        {
+            // Step 1: Check if node_modules exists, run npm install if needed
+            var nodeModulesPath = Path.Combine(directory.FullName, "node_modules");
+            if (!Directory.Exists(nodeModulesPath))
+            {
+                _interactionService.DisplayMessage("package", "Installing npm dependencies...");
+
+                var npmInstallResult = await RunNpmInstallAsync(directory, cancellationToken);
+                if (npmInstallResult != 0)
+                {
+                    _interactionService.DisplayError("Failed to install npm dependencies.");
+                    return ExitCodeConstants.FailedToBuildArtifacts;
+                }
+            }
+
+            // Step 2: Get package references and build GenericAppHost
+            var packages = GetPackageReferences(directory).ToList();
+            var projectModel = new ProjectModel(directory.FullName);
+            var jsonRpcSocketPath = projectModel.GetSocketPath();
+
+            // Create the GenericAppHost project files
+            _interactionService.DisplayMessage("gear", "Preparing GenericAppHost...");
+            projectModel.CreateProjectFiles(packages);
+
+            // Build the GenericAppHost
+            var buildSuccess = await projectModel.BuildAsync(_interactionService);
+            if (!buildSuccess)
+            {
+                _interactionService.DisplayError("Failed to build GenericAppHost.");
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+
+            // Step 3: Run code generation now that assemblies are built
+            // Note: We use DisplayMessage instead of ShowStatusAsync to avoid conflicts
+            // with PipelineCommandBase's ShowStatusAsync for backchannel waiting
+            if (_codeGenerator.NeedsGeneration(directory.FullName, packages))
+            {
+                _interactionService.DisplayMessage("gear", "Generating TypeScript SDK...");
+                await _codeGenerator.GenerateAsync(
+                    directory.FullName,
+                    packages,
+                    cancellationToken);
+            }
+
+            // Read launchSettings.json if it exists
+            var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
+
+            // Generate a backchannel socket path for CLI to connect to GenericAppHost
+            var backchannelSocketPath = GetBackchannelSocketPath();
+
+            // Pass the backchannel socket path to GenericAppHost so it opens a server
+            launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
+
+            // Start the GenericAppHost process (it opens the backchannel for progress reporting)
+            _interactionService.DisplayMessage("rocket", "Starting GenericAppHost for publish...");
+            var currentPid = Environment.ProcessId;
+
+            // GenericAppHost doesn't receive publish args - those go to the TypeScript app
+            genericAppHostProcess = projectModel.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars);
+
+            // Start connecting to the backchannel
+            if (context.BackchannelCompletionSource is not null)
+            {
+                _ = StartBackchannelConnectionAsync(genericAppHostProcess, backchannelSocketPath, context.BackchannelCompletionSource, cancellationToken);
+            }
+
+            // Give the server a moment to start
+            await Task.Delay(500, cancellationToken);
+
+            if (genericAppHostProcess.HasExited)
+            {
+                _interactionService.DisplayError("GenericAppHost process exited unexpectedly.");
+                return ExitCodeConstants.FailedToDotnetRunAppHost;
+            }
+
+            // Step 4: Execute the TypeScript apphost
+            // This connects to GenericAppHost via JSON-RPC and defines resources
+            _interactionService.DisplayMessage("rocket", "Starting TypeScript AppHost for publish...");
+
+            // Pass the socket path to the TypeScript process
+            var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
+            {
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath
+            };
+
+            // Execute the TypeScript apphost - this defines resources and triggers the publish
+            // Pass the publish arguments to the TypeScript app (e.g., --operation publish --step deploy)
+            var typeScriptExitCode = await ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken, context.Arguments);
+
+            if (typeScriptExitCode != 0)
+            {
+                _logger.LogError("TypeScript apphost exited with code {ExitCode}", typeScriptExitCode);
+                return typeScriptExitCode;
+            }
+
+            // Wait for the GenericAppHost to complete the publish pipeline
+            await genericAppHostProcess.WaitForExitAsync(cancellationToken);
+
+            return genericAppHostProcess.ExitCode;
+        }
+        catch (OperationCanceledException)
+        {
+            _interactionService.DisplayCancellationMessage();
+            return ExitCodeConstants.Success;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish TypeScript AppHost");
+            _interactionService.DisplayError($"Failed to publish TypeScript AppHost: {ex.Message}");
+            return ExitCodeConstants.FailedToDotnetRunAppHost;
+        }
+        finally
+        {
+            // Clean up the GenericAppHost process
+            if (genericAppHostProcess is not null && !genericAppHostProcess.HasExited)
+            {
+                try
+                {
+                    genericAppHostProcess.Kill(entireProcessTree: true);
+                    genericAppHostProcess.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error killing GenericAppHost process");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the backchannel socket path for CLI communication.
+    /// </summary>
+    private static string GetBackchannelSocketPath()
+    {
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var aspireCliPath = Path.Combine(homeDirectory, ".aspire", "cli", "backchannels");
+        Directory.CreateDirectory(aspireCliPath);
+        var socketName = $"{Guid.NewGuid():N}.sock";
+        return Path.Combine(aspireCliPath, socketName);
+    }
+
+    /// <summary>
+    /// Starts connecting to the GenericAppHost's backchannel server.
+    /// </summary>
+    private async Task StartBackchannelConnectionAsync(
+        Process process,
+        string socketPath,
+        TaskCompletionSource<IAppHostCliBackchannel> backchannelCompletionSource,
+        CancellationToken cancellationToken)
+    {
+        var startTime = DateTimeOffset.UtcNow;
+        var connectionAttempts = 0;
+
+        _logger.LogDebug("Starting backchannel connection to GenericAppHost at {SocketPath}", socketPath);
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                _logger.LogTrace("Attempting to connect to GenericAppHost backchannel at {SocketPath} (attempt {Attempt})", socketPath, ++connectionAttempts);
+                await _backchannel.ConnectAsync(socketPath, cancellationToken).ConfigureAwait(false);
+                backchannelCompletionSource.SetResult(_backchannel);
+                _logger.LogDebug("Connected to GenericAppHost backchannel at {SocketPath}", socketPath);
+                return;
+            }
+            catch (SocketException ex) when (process.HasExited && process.ExitCode != 0)
+            {
+                _logger.LogError("GenericAppHost process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
+                var backchannelException = new FailedToConnectBackchannelConnection($"GenericAppHost process has exited unexpectedly.", process, ex);
+                backchannelCompletionSource.SetException(backchannelException);
+                return;
+            }
+            catch (SocketException)
+            {
+                // Slow down polling after 10 seconds
+                var waitingFor = DateTimeOffset.UtcNow - startTime;
+                if (waitingFor > TimeSpan.FromSeconds(10))
+                {
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to connect to GenericAppHost backchannel");
+                backchannelCompletionSource.SetException(ex);
+                return;
+            }
+        }
     }
 
     /// <inheritdoc />

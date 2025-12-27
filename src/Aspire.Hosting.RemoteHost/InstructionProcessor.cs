@@ -795,9 +795,22 @@ internal sealed class InstructionProcessor : IAsyncDisposable
 
         try
         {
-            // Start the application and wait for startup to complete
-            // This will throw if startup fails (e.g., port conflict)
-            await app.StartAsync(cancellationToken).ConfigureAwait(false);
+            // Start the application in the background.
+            // For run mode, it will block until Ctrl+C.
+            // For publish mode, it will complete when publish is done and then exit.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await app.RunAsync(cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    // When the app completes (e.g., publish mode), exit the process
+                    Console.WriteLine("Application completed, shutting down...");
+                    Environment.Exit(0);
+                }
+            }, cancellationToken);
 
             // The app is now running in the background.
             // When the server shuts down, DisposeAsync will stop all running apps.

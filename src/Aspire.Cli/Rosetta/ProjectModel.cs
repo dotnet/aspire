@@ -377,7 +377,8 @@ internal sealed class ProjectModel
     /// <param name="socketPath">The Unix domain socket path for JSON-RPC communication.</param>
     /// <param name="hostPid">The PID of the host process for orphan detection.</param>
     /// <param name="launchSettingsEnvVars">Optional environment variables from apphost.run.json or launchSettings.json.</param>
-    public Process Run(string socketPath, int hostPid, IReadOnlyDictionary<string, string>? launchSettingsEnvVars = null)
+    /// <param name="additionalArgs">Optional additional command-line arguments (e.g., for publish/deploy).</param>
+    public Process Run(string socketPath, int hostPid, IReadOnlyDictionary<string, string>? launchSettingsEnvVars = null, string[]? additionalArgs = null)
     {
         var assemblyPath = Path.Combine(BuildPath, ProjectDllName);
         var dotnetExe = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
@@ -391,6 +392,16 @@ internal sealed class ProjectModel
         };
         startInfo.ArgumentList.Add("exec");
         startInfo.ArgumentList.Add(assemblyPath);
+
+        // Add the separator and any additional arguments (for publish/deploy)
+        if (additionalArgs is { Length: > 0 })
+        {
+            startInfo.ArgumentList.Add("--");
+            foreach (var arg in additionalArgs)
+            {
+                startInfo.ArgumentList.Add(arg);
+            }
+        }
 
         // Pass environment variables for socket path and parent PID
         startInfo.Environment["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath;

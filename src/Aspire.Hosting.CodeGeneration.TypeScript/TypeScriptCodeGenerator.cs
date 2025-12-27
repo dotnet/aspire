@@ -170,7 +170,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
           return `[${values}]`;
         }
 
-        export async function createBuilder(args: string[] = []): Promise<DistributedApplicationBuilder> {
+        export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
             const distributedApplicationBuilder = new DistributedApplicationBuilder(args);
 
             console.log('🔌 Connecting to GenericAppHost...');
@@ -242,14 +242,23 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
               this._appProxy = new DotNetProxy(result.app as any);
             }
 
-            console.log("Application is running. Press Ctrl+C to stop...");
-
-            process.on("SIGINT", () => {
-              console.log("\nStopping application...");
+            // Wait for the connection to close (GenericAppHost exits when done)
+            // This handles both run mode (Ctrl+C) and publish mode (auto-exit)
+            await new Promise<void>((resolve) => {
+              // Handle Ctrl+C for graceful shutdown
+              process.on("SIGINT", () => {
+                console.log("\nStopping application...");
                 client.disconnect();
-                console.log(`👋 Disconnected from GenericAppHost`);
-              process.exit(0);
+                resolve();
+              });
+
+              // Handle connection close (GenericAppHost exited after publish)
+              client.onDisconnect(() => {
+                resolve();
+              });
             });
+
+            process.exit(0);
           }
         }
 
@@ -1475,6 +1484,11 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             if (argType.IsGenericType && argType.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
             {
                 argTypes.Add($"p{i}: {FormatJsType(model, argType)}");
+            }
+            // Skip generic types like IDictionary<K,V> - they're accessed via DotNetProxy
+            else if (argType.IsGenericType)
+            {
+                argTypes.Add($"p{i}: DotNetProxy");
             }
             // Register complex types for proxy wrapper generation
             else if (!IsSimpleType(model, argType) && !string.IsNullOrEmpty(typeName))

@@ -556,6 +556,77 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     }
 
     /// <inheritdoc />
+    public async Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken)
+    {
+        var effectiveAppHostFile = context.AppHostFile;
+        var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
+        var env = new Dictionary<string, string>(context.EnvironmentVariables);
+
+        // Check compatibility for project-based apphosts
+        if (!isSingleFileAppHost)
+        {
+            var compatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(
+                _runner,
+                _interactionService,
+                effectiveAppHostFile,
+                _telemetry,
+                context.WorkingDirectory,
+                cancellationToken);
+
+            if (!compatibilityCheck.IsCompatibleAppHost)
+            {
+                throw new AppHostIncompatibleException(
+                    $"The app host is not compatible. Aspire.Hosting version: {compatibilityCheck.AspireHostingVersion}",
+                    "Aspire.Hosting");
+            }
+
+            // Build the apphost
+            var buildOutputCollector = new OutputCollector();
+            var buildOptions = new DotNetCliRunnerInvocationOptions
+            {
+                StandardOutputCallback = buildOutputCollector.AppendOutput,
+                StandardErrorCallback = buildOutputCollector.AppendError,
+            };
+
+            var buildExitCode = await AppHostHelper.BuildAppHostAsync(
+                _runner,
+                _interactionService,
+                effectiveAppHostFile,
+                buildOptions,
+                context.WorkingDirectory,
+                cancellationToken);
+
+            if (buildExitCode != 0)
+            {
+                _interactionService.DisplayLines(buildOutputCollector.GetLines());
+                _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                return ExitCodeConstants.FailedToBuildArtifacts;
+            }
+        }
+
+        var runOptions = new DotNetCliRunnerInvocationOptions
+        {
+            NoLaunchProfile = true,
+            NoExtensionLaunch = true
+        };
+
+        if (isSingleFileAppHost)
+        {
+            ConfigureSingleFileEnvironment(effectiveAppHostFile, env);
+        }
+
+        return await _runner.RunAsync(
+            effectiveAppHostFile,
+            watch: false,
+            noBuild: true,
+            context.Arguments,
+            env,
+            context.BackchannelCompletionSource,
+            runOptions,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken)
     {
         var options = new DotNetCliRunnerInvocationOptions();
