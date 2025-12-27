@@ -267,7 +267,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
                 MessageBox = update.MessageBox
             });
 
-            Assert.Equal(result, (await resultTask.DefaultTimeout()).Data);
+            Assert.Equal(result, (await resultTask.GetResultAsync().DefaultTimeout()).Data);
         }
         else
         {
@@ -277,7 +277,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
                 Complete = new InteractionComplete()
             });
 
-            Assert.True((await resultTask.DefaultTimeout()).Canceled);
+            Assert.True((await resultTask.GetResultAsync().DefaultTimeout()).Canceled);
         }
 
         await CancelTokenAndAwaitTask(cts, task).DefaultTimeout();
@@ -382,7 +382,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             Complete = new InteractionComplete()
         });
 
-        var result = await resultTask.DefaultTimeout();
+        var result = await resultTask.GetResultAsync().DefaultTimeout();
         Assert.True(result.Canceled);
         Assert.Null(result.Data);
 
