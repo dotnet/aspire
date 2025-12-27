@@ -28,11 +28,10 @@ The polyglot apphost feature allows developers to write Aspire app hosts in non-
 1. **Reuse Existing Integrations** - All 100+ Aspire.Hosting.* packages work automatically
 2. **Native Language Experience** - Generated SDKs with idiomatic APIs
 3. **Consistent CLI Experience** - `aspire run`, `aspire add`, `aspire publish` work identically
-4. **Leverage .NET Ecosystem** - Container orchestration, service discovery, telemetry stay in .NET
 
 ## Architecture
 
-The CLI scaffolds a temporary .NET project (the AppHost server) that references the required Aspire.Hosting packages. Code generation reflects over these assemblies to produce a language-specific SDK. At runtime, the AppHost server starts a JSON-RPC server over Unix domain sockets, and the guest connects to send instructions. Each instruction (e.g., `AddRedis`, `WithEnvironment`) is executed by the `InstructionProcessor` against the real Aspire.Hosting APIs. Complex objects are registered in an `ObjectRegistry` and returned to the guest as proxies that can invoke methods remotely. An `OrphanDetector` monitors the CLI process and terminates the AppHost server if the parent dies.
+The CLI scaffolds the AppHost server project that references the required hosting integration packages. Code generation reflects over these assemblies to produce a language-specific SDK. At runtime, the AppHost server uses `Aspire.Hosting.RemoteHost` to expose a JSON-RPC server over Unix domain sockets. The guest connects and sends instructions (e.g., `AddRedis`, `WithEnvironment`) which are executed against the real Aspire.Hosting APIs.
 
 ```mermaid
 flowchart TB
@@ -44,10 +43,10 @@ flowchart TB
             Hosting --> Processor --> Server
         end
 
-        subgraph Guest["Guest (TypeScript)"]
-            SDK["Generated SDK<br/>(distributed-app.ts)"]
+        subgraph Guest["Guest Runtime"]
+            SDK["Generated SDK"]
             Client["RemoteAppHostClient<br/>(JSON-RPC)"]
-            UserCode["apphost.ts<br/>(User Code)"]
+            UserCode["User AppHost Code"]
             UserCode --> SDK --> Client
         end
 
@@ -57,7 +56,7 @@ flowchart TB
 
 ```mermaid
 sequenceDiagram
-    participant G as Guest (TypeScript)
+    participant G as Guest Runtime
     participant H as AppHost Server (.NET)
 
     G->>H: addRedis("cache")
@@ -100,7 +99,7 @@ This file stores the app host entry point and integration package references. It
 
 | Property | Description |
 |----------|-------------|
-| `appHostPath` | Relative path to the app host entry point (e.g., `apphost.ts`) |
+| `appHostPath` | Relative path to the app host entry point |
 | `packages` | Dictionary of Aspire.Hosting.* package references with versions |
 
 When you run `aspire add`, the CLI updates this file and regenerates the SDK to include the new integration APIs.
@@ -130,7 +129,7 @@ The CLI reads the `https` profile (or the first available profile) and passes th
 
 ### Startup Sequence
 
-1. **Detection**: `ProjectLocator` finds the guest entry point (e.g., `apphost.ts`)
+1. **Detection**: `ProjectLocator` finds the guest entry point
 2. **AppHost Server Preparation**:
    - CLI scaffolds a .NET project in `$TMPDIR/.aspire/hosts/<hash>/`
    - References `Aspire.AppHost.Sdk` and required hosting packages
@@ -145,20 +144,28 @@ The CLI reads the `https` profile (or the first available profile) and passes th
 5. **Guest Launch**: Guest runtime started with the entry point
 6. **Connection**: Guest connects to host over Unix domain socket
 
-### Shutdown Sequence
+### Shutdown Scenarios
 
-Shutdown can be triggered by:
+The system handles several shutdown scenarios to ensure clean termination:
 
-1. **User Interrupt (Ctrl+C)**: CLI receives signal, terminates child processes
-2. **CLI Death**: `OrphanDetector` in host monitors parent PID, terminates when parent dies
-3. **Connection Loss**: Guest detects disconnection and exits
-4. **Startup Failure**: Errors propagate back through JSON-RPC and terminate all processes
+| Scenario | Trigger | Behavior |
+|----------|---------|----------|
+| **Normal Exit** | Guest calls `run()` then user presses Ctrl+C | CLI receives SIGINT, terminates AppHost server gracefully, which stops all managed resources |
+| **Guest Completes** | Guest finishes execution (publish mode) | Guest disconnects, AppHost server completes pipeline and exits |
+| **User Interrupt** | Ctrl+C during startup or execution | CLI propagates signal to child processes, waits for graceful shutdown |
+| **CLI Crash** | CLI process dies unexpectedly | `OrphanDetector` in AppHost server monitors CLI's PID and terminates when parent dies |
+| **AppHost Server Crash** | AppHost server process dies | Guest detects JSON-RPC connection loss and exits with error |
+| **Guest Crash** | Guest process dies unexpectedly | AppHost server detects client disconnect; in run mode continues until Ctrl+C, in publish mode exits with error |
+| **Build Failure** | AppHost server fails to build | CLI reports error before any processes start |
+| **Connection Timeout** | Guest cannot connect to host | Guest retries with backoff, eventually exits with error if host is unreachable |
+
+The `OrphanDetector` is critical for preventing zombie processes. When the CLI starts the AppHost server, it passes its own PID via the `REMOTE_APP_HOST_PID` environment variable. The AppHost server periodically checks if this process is still alive and terminates itself if the parent has died. This handles cases where the CLI is killed with `kill -9` or crashes without cleanup.
 
 ---
 
 ## CLI Coordination
 
-The CLI uses the `IAppHostProject` interface to abstract language-specific behavior. Each supported app host type (`.NET`, `TypeScript`, etc.) has its own implementation, allowing CLI commands to work uniformly across languages.
+The CLI uses the `IAppHostProject` interface to abstract language-specific behavior. Each supported app host type has its own implementation, allowing CLI commands to work uniformly across languages.
 
 ```mermaid
 classDiagram
@@ -174,12 +181,12 @@ classDiagram
         .csproj / .cs files
     }
 
-    class TypeScriptAppHostProject {
-        apphost.ts
+    class PolyglotAppHostProject {
+        Guest language entry point
     }
 
     IAppHostProject <|.. DotNetAppHostProject
-    IAppHostProject <|.. TypeScriptAppHostProject
+    IAppHostProject <|.. PolyglotAppHostProject
 
     RunCommand --> IAppHostProject : RunAsync
     PipelineCommands --> IAppHostProject : PublishAsync
@@ -197,7 +204,7 @@ classDiagram
 For polyglot app hosts, `RunAsync` and `PublishAsync` follow the same pattern:
 
 1. **Start the AppHost server** - A .NET process running Aspire.Hosting that exposes a JSON-RPC server
-2. **Start the guest** - The TypeScript (or other language) process that connects and sends instructions
+2. **Start the guest** - The guest language process that connects and sends instructions
 3. **Guest defines resources** - Via JSON-RPC calls like `addRedis()`, `addPostgres()`
 4. **Guest calls `run()`** - Triggers orchestration (run mode) or pipeline execution (publish mode)
 

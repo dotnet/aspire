@@ -173,7 +173,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
             const distributedApplicationBuilder = new DistributedApplicationBuilder(args);
 
-            console.log('🔌 Connecting to GenericAppHost...');
+            console.log('🔌 Connecting to AppHost server...');
 
             while (true) {
               try {
