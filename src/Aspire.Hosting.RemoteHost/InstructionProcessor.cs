@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.RemoteHost;
 
@@ -795,28 +796,33 @@ internal sealed class InstructionProcessor : IAsyncDisposable
 
         try
         {
-            // Start the application in the background.
-            // NOTE: We use CancellationToken.None here because the app should run until
-            // explicitly stopped (via Ctrl+C or server shutdown), not until the RPC call completes.
-            // In run mode, RunAsync blocks until Ctrl+C. In publish mode, it completes after the pipeline.
+            // Start the application and wait for it to be ready.
+            // This will throw if there are configuration errors (e.g., missing dashboard env vars).
+            // The exception will propagate back to the TypeScript client via JSON-RPC.
+            await app.StartAsync(CancellationToken.None).ConfigureAwait(false);
+
+            // App started successfully. Now wait for shutdown in the background.
+            // NOTE: We use CancellationToken.None because the app should run until
+            // explicitly stopped (via Ctrl+C or server shutdown).
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await app.RunAsync(CancellationToken.None).ConfigureAwait(false);
-                    // Exit the process when the app stops running normally (Ctrl+C or publish complete)
+                    // Wait for shutdown signal (Ctrl+C or programmatic shutdown)
+                    await app.WaitForShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+
+                    // Exit the process when the app stops running normally
                     Environment.Exit(0);
                 }
                 catch (Exception ex)
                 {
-                    // Log the error and exit with failure code
-                    Console.WriteLine($"Application failed: {ex.Message}");
+                    Console.WriteLine($"Application shutdown error: {ex.Message}");
                     Environment.Exit(1);
                 }
             }, CancellationToken.None);
 
             // The app is now running in the background.
-            // When RunAsync completes, the process will exit.
+            // When shutdown is triggered, the process will exit.
 
             return new { success = true, builderName = instruction.BuilderName, status = "running", app = marshalledApp };
         }
