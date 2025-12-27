@@ -124,7 +124,17 @@ public class AzureAppServiceEnvironmentResource :
 
     private async Task PrintDashboardUrlAsync(PipelineStepContext context)
     {
-        var dashboardUri = await DashboardUriReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        string dashboardUri;
+
+        if (this.TryGetLastAnnotation<AzureAppServiceEnvironmentDashboardUriAnnotation>(out var dashboardUriAnnotation))
+        {
+            dashboardUri = dashboardUriAnnotation.DashboardUri;
+        }
+        else
+        {
+            var dashboardName = await DashboardNameReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+            dashboardUri = $"https://{dashboardName}.{AzureAppServiceWebSiteResource.AzureAppServiceDnsSuffixPublicCloud}";
+        }
 
         await context.ReportingStep.CompleteAsync(
             $"Dashboard available at [{dashboardUri}]({dashboardUri})",
@@ -146,6 +156,11 @@ public class AzureAppServiceEnvironmentResource :
     /// Gets the suffix added to each web app created in this App Service Environment.
     /// </summary>
     internal BicepOutputReference WebSiteSuffix => new("webSiteSuffix", this);
+
+    /// <summary>
+    /// Gets or sets the prefix used to identify environment resources.
+    /// </summary>
+    internal string EnvironmentPrefix { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
@@ -184,14 +199,19 @@ public class AzureAppServiceEnvironmentResource :
     internal string? DeploymentSlot { get; set; }
 
     /// <summary>
+    /// Enables or disables regional DNL host name for the App Service Environment.
+    /// </summary>
+    internal bool EnableRegionalDnlHostName { get; set; }
+
+    /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
-    /// Gets the URI of the App Service Environment dashboard.
+    /// Gets the name of the App Service Environment dashboard.
     /// </summary>
-    public BicepOutputReference DashboardUriReference => new("AZURE_APP_SERVICE_DASHBOARD_URI", this);
+    public BicepOutputReference DashboardNameReference => new("AZURE_APP_SERVICE_DASHBOARD_NAME_PREFIX", this);
 
     /// <summary>
     /// Gets the Application Insights Instrumentation Key.
@@ -234,7 +254,17 @@ public class AzureAppServiceEnvironmentResource :
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
-        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.azurewebsites.net");
+
+        if (!this.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+        {
+            throw new InvalidOperationException("Azure App Service Environment context annotation is missing.");
+        }
+
+        var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(resource);
+        bool isSlot = DeploymentSlot is not null || DeploymentSlotParameter is not null;
+        var hostName = context.GetWebsiteHostName(isSlot);
+
+        return ReferenceExpression.Create($"https://{hostName.Value}");
     }
 
     /// <inheritdoc/>
