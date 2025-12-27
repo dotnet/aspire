@@ -236,28 +236,16 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
             // Import from the generated module (created by 'aspire run' code generation)
             import { createBuilder } from './.modules/distributed-application.js';
 
-            async function main() {
-                console.log("Aspire TypeScript AppHost starting...");
+            // Create the distributed application builder
+            const builder = await createBuilder();
 
-                try {
-                    // Create the distributed application builder
-                    const builder = await createBuilder();
+            // Add your resources here, for example:
+            // const redis = await builder.addContainer("cache", "redis:latest");
+            // const postgres = await builder.addPostgres("db");
 
-                    // Add your resources here, for example:
-                    // const redis = await builder.addContainer("cache", "redis:latest");
-                    // const postgres = await builder.addPostgres("db");
-
-                    // Build and run the application
-                    const app = builder.build();
-                    await app.run();
-
-                } catch (error) {
-                    console.error("Application failed:", error);
-                    process.exit(1);
-                }
-            }
-
-            main();
+            // Build and run the application
+            const app = builder.build();
+            await app.run();
             """;
 
         await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
