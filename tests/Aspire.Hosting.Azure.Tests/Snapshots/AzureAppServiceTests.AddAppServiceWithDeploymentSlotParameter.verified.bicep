@@ -1,4 +1,4 @@
-@description('The location for the resource(s) to be deployed.')
+﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param deploymentSlot string
@@ -112,4 +112,13 @@ resource project1_website_slot_ra 'Microsoft.Authorization/roleAssignments@2022-
     principalType: 'ServicePrincipal'
   }
   scope: webappslot
+}
+
+resource slotConfigNames 'Microsoft.Web/sites/config@2025-03-01' = {
+  properties: {
+    appSettingNames: [
+      'OTEL_SERVICE_NAME'
+    ]
+  }
+  parent: webapp
 }
