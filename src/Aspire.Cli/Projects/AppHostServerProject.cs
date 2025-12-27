@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
@@ -26,11 +27,12 @@ internal interface IAppHostServerProjectFactory
 /// Factory implementation that creates AppHostServerProject instances with IPackagingService and IConfigurationService.
 /// </summary>
 internal sealed class AppHostServerProjectFactory(
+    IDotNetCliRunner dotNetCliRunner,
     IPackagingService packagingService,
     IConfigurationService configurationService,
     ILogger<AppHostServerProject> logger) : IAppHostServerProjectFactory
 {
-    public AppHostServerProject Create(string appPath) => new AppHostServerProject(appPath, packagingService, configurationService, logger);
+    public AppHostServerProject Create(string appPath) => new AppHostServerProject(appPath, dotNetCliRunner, packagingService, configurationService, logger);
 }
 
 /// <summary>
@@ -74,6 +76,7 @@ internal sealed class AppHostServerProject
     private const string AssemblyName = "AppHostServer";
     private readonly string _projectModelPath;
     private readonly string _appPath;
+    private readonly IDotNetCliRunner _dotNetCliRunner;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
     private readonly ILogger<AppHostServerProject> _logger;
@@ -82,14 +85,16 @@ internal sealed class AppHostServerProject
     /// Initializes a new instance of the AppHostServerProject class.
     /// </summary>
     /// <param name="appPath">Specifies the application path for the custom language.</param>
+    /// <param name="dotNetCliRunner">The .NET CLI runner for executing dotnet commands.</param>
     /// <param name="packagingService">The packaging service for channel resolution.</param>
     /// <param name="configurationService">The configuration service for reading global settings.</param>
     /// <param name="logger">The logger for diagnostic output.</param>
-    public AppHostServerProject(string appPath, IPackagingService packagingService, IConfigurationService configurationService, ILogger<AppHostServerProject> logger)
+    public AppHostServerProject(string appPath, IDotNetCliRunner dotNetCliRunner, IPackagingService packagingService, IConfigurationService configurationService, ILogger<AppHostServerProject> logger)
     {
         _appPath = Path.GetFullPath(appPath);
         _appPath = new Uri(_appPath).LocalPath;
         _appPath = OperatingSystem.IsWindows() ? _appPath.ToLowerInvariant() : _appPath;
+        _dotNetCliRunner = dotNetCliRunner;
         _packagingService = packagingService;
         _configurationService = configurationService;
         _logger = logger;
@@ -413,29 +418,23 @@ internal sealed class AppHostServerProject
     /// <summary>
     /// Restores and builds the project dependencies.
     /// </summary>
-    public async Task<bool> BuildAsync(IInteractionService interactionService)
+    /// <returns>A tuple containing the success status and an OutputCollector with build output.</returns>
+    public async Task<(bool Success, OutputCollector Output)> BuildAsync(IInteractionService interactionService, CancellationToken cancellationToken = default)
     {
-        var dotnetExe = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
+        var outputCollector = new OutputCollector();
+        var projectFile = new FileInfo(Path.Combine(_projectModelPath, ProjectFileName));
 
-        var startInfo = new ProcessStartInfo(dotnetExe)
+        var options = new DotNetCliRunnerInvocationOptions
         {
-            WorkingDirectory = _projectModelPath,
-            WindowStyle = ProcessWindowStyle.Minimized,
-            UseShellExecute = false,
-            CreateNoWindow = true
+            StandardOutputCallback = outputCollector.AppendOutput,
+            StandardErrorCallback = outputCollector.AppendError
         };
-        startInfo.ArgumentList.Add("build");
-        startInfo.ArgumentList.Add(ProjectFileName);
 
-        return await interactionService.ShowStatusAsync(
-            "Restoring external packages...",
-            () =>
-            {
-                using var process = Process.Start(startInfo);
-                process!.WaitForExit();
+        var exitCode = await interactionService.ShowStatusAsync(
+            ":hammer_and_wrench:  Building AppHost server...",
+            () => _dotNetCliRunner.BuildAsync(projectFile, options, cancellationToken));
 
-                return Task.FromResult(process.ExitCode == 0);
-            });
+        return (exitCode == 0, outputCollector);
     }
 
     /// <summary>

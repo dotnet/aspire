@@ -6,7 +6,9 @@ using System.Globalization;
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
@@ -31,6 +33,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private readonly IInteractionService _interactionService;
     private readonly IAppHostCliBackchannel _backchannel;
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
+    private readonly ICertificateService _certificateService;
+    private readonly IDotNetCliRunner _runner;
     private readonly IConfiguration _configuration;
     private readonly ILogger<TypeScriptAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
@@ -43,6 +47,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         IInteractionService interactionService,
         IAppHostCliBackchannel backchannel,
         IAppHostServerProjectFactory appHostServerProjectFactory,
+        ICertificateService certificateService,
+        IDotNetCliRunner runner,
         IConfiguration configuration,
         ILogger<TypeScriptAppHostProject> logger,
         TimeProvider? timeProvider = null)
@@ -50,6 +56,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         _interactionService = interactionService;
         _backchannel = backchannel;
         _appHostServerProjectFactory = appHostServerProjectFactory;
+        _certificateService = certificateService;
+        _runner = runner;
         _configuration = configuration;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
@@ -230,12 +238,23 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
         try
         {
-            // Step 1: Check if node_modules exists, run npm install if needed
+            // Step 1: Ensure certificates are trusted
+            try
+            {
+                await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            }
+            catch
+            {
+                context.BuildCompletionSource?.TrySetResult(false);
+                throw;
+            }
+
+            // Step 2: Check if node_modules exists, run npm install if needed
             var nodeModulesPath = Path.Combine(directory.FullName, "node_modules");
             if (!Directory.Exists(nodeModulesPath))
             {
                 var npmInstallResult = await _interactionService.ShowStatusAsync(
-                    ":package: Installing npm dependencies...",
+                    ":package:  Installing npm dependencies...",
                     () => RunNpmInstallAsync(directory, cancellationToken));
 
                 if (npmInstallResult != 0)
@@ -246,30 +265,31 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 }
             }
 
-            // Step 2: Get package references and build AppHost server FIRST (code gen needs assemblies)
+            // Step 3: Get package references and build AppHost server FIRST (code gen needs assemblies)
             var packages = GetPackageReferences(directory).ToList();
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var socketPath = appHostServerProject.GetSocketPath();
 
             // Create the AppHost server project files
             await _interactionService.ShowStatusAsync(
-                ":gear: Preparing AppHost server...",
+                ":gear:  Creating AppHost server project...",
                 () => appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken));
 
             // Build the AppHost server (must happen before code generation!)
-            var buildSuccess = await appHostServerProject.BuildAsync(_interactionService);
+            var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(_interactionService, cancellationToken);
             if (!buildSuccess)
             {
+                _interactionService.DisplayLines(buildOutput.GetLines());
                 _interactionService.DisplayError("Failed to build AppHost server.");
                 context.BuildCompletionSource?.TrySetResult(false);
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
-            // Step 3: Run code generation now that assemblies are built
+            // Step 4: Run code generation now that assemblies are built
             if (NeedsGeneration(directory.FullName, packages))
             {
                 await _interactionService.ShowStatusAsync(
-                    ":gear: Generating TypeScript SDK...",
+                    ":gear:  Generating TypeScript SDK...",
                     async () =>
                     {
                         await GenerateCodeAsync(
@@ -294,7 +314,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
             // Start the AppHost server process
-            _interactionService.DisplayMessage("rocket", "Starting AppHost server...");
             var currentPid = Environment.ProcessId;
             var (process, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars);
             appHostServerProcess = process;
@@ -316,8 +335,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            // Step 4: Execute the TypeScript apphost
-            _interactionService.DisplayMessage("rocket", "Starting TypeScript AppHost...");
+            // Step 5: Execute the TypeScript apphost
 
             // Pass the socket path to the TypeScript process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
@@ -669,7 +687,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             if (!Directory.Exists(nodeModulesPath))
             {
                 var npmInstallResult = await _interactionService.ShowStatusAsync(
-                    ":package: Installing npm dependencies...",
+                    ":package:  Installing npm dependencies...",
                     () => RunNpmInstallAsync(directory, cancellationToken));
 
                 if (npmInstallResult != 0)
@@ -686,13 +704,14 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             // Create the AppHost server project files
             await _interactionService.ShowStatusAsync(
-                ":gear: Preparing AppHost server...",
+                ":gear:  Creating AppHost server project...",
                 () => appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken));
 
             // Build the AppHost server
-            var buildSuccess = await appHostServerProject.BuildAsync(_interactionService);
+            var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(_interactionService, cancellationToken);
             if (!buildSuccess)
             {
+                _interactionService.DisplayLines(buildOutput.GetLines());
                 _interactionService.DisplayError("Failed to build AppHost server.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
@@ -701,7 +720,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             if (NeedsGeneration(directory.FullName, packages))
             {
                 await _interactionService.ShowStatusAsync(
-                    ":gear: Generating TypeScript SDK...",
+                    ":gear:  Generating TypeScript SDK...",
                     async () =>
                     {
                         await GenerateCodeAsync(
