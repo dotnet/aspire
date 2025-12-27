@@ -575,9 +575,12 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
             if (!compatibilityCheck.IsCompatibleAppHost)
             {
-                throw new AppHostIncompatibleException(
+                var exception = new AppHostIncompatibleException(
                     $"The app host is not compatible. Aspire.Hosting version: {compatibilityCheck.AspireHostingVersion}",
                     "Aspire.Hosting");
+                // Signal the backchannel completion source so the caller doesn't wait forever
+                context.BackchannelCompletionSource?.TrySetException(exception);
+                throw exception;
             }
 
             // Build the apphost
@@ -600,6 +603,9 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             {
                 _interactionService.DisplayLines(buildOutputCollector.GetLines());
                 _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                // Signal the backchannel completion source so the caller doesn't wait forever
+                context.BackchannelCompletionSource?.TrySetException(
+                    new InvalidOperationException("The app host build failed."));
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
         }
