@@ -790,3 +790,218 @@ try {
     // Error message: "redis.nonExistentMethod is not a function"
 }
 ```
+
+---
+
+## Publish Mode (Pipeline Commands)
+
+TypeScript apphosts support the full Aspire publish pipeline (`aspire publish`, `aspire deploy`, `aspire do`). The architecture ensures that both .NET and TypeScript apphosts share the same pipeline execution flow through `PipelineCommandBase`.
+
+### Development Mode
+
+When developing the polyglot apphost feature, set the `ASPIRE_REPO_ROOT` environment variable to point to your local Aspire repository:
+
+```bash
+export ASPIRE_REPO_ROOT=/path/to/aspire
+```
+
+This enables:
+- **Always regenerates TypeScript SDK** - Skips hash caching so code changes are immediately reflected
+- **Uses local build artifacts** - References assemblies from `artifacts/bin/` instead of NuGet packages
+- **Faster iteration** - No need to publish packages to test changes
+
+### Architecture
+
+```mermaid
+flowchart TB
+    subgraph CLI["Aspire CLI"]
+        PCB[PipelineCommandBase]
+        PCB -->|"IAppHostProject.PublishAsync(context)"| Factory
+        Factory[IAppHostProjectFactory]
+    end
+
+    Factory --> DotNet
+    Factory --> TypeScript
+
+    subgraph DotNet["DotNetAppHostProject"]
+        DN_Run["dotnet run &lt;args&gt;"]
+    end
+
+    subgraph TypeScript["TypeScriptAppHostProject"]
+        TS_Steps["1. Build GenericAppHost<br/>2. Generate TypeScript SDK<br/>3. Start GenericAppHost<br/>4. Run TypeScript app &lt;args&gt;"]
+    end
+
+    DN_Run --> DN_Process
+    TS_Steps --> GAH
+
+    subgraph DN_Process[".NET AppHost Process"]
+        DN_Publish["Publish Mode"]
+    end
+
+    subgraph GAH["GenericAppHost Process"]
+        GAH_Publish["Publish Mode"]
+    end
+
+    DN_Process <-->|"Backchannel<br/>(Progress Updates)"| CLI
+    GAH <-->|"Backchannel<br/>(Progress Updates)"| CLI
+```
+
+### IAppHostProject Interface
+
+The `IAppHostProject` interface abstracts apphost execution for both .NET and TypeScript:
+
+```csharp
+internal interface IAppHostProject
+{
+    Task<int> RunAsync(RunContext context, CancellationToken cancellationToken);
+    Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken);
+    Task<PackageAddResult> AddPackageAsync(string packageName, string? version, ...);
+    Task<ProjectValidationResult> ValidateAsync(FileInfo appHostFile, ...);
+}
+
+internal sealed class PublishContext
+{
+    public required FileInfo AppHostFile { get; init; }
+    public required AppHostType Type { get; init; }
+    public string? OutputPath { get; init; }
+    public IDictionary<string, string> EnvironmentVariables { get; init; }
+    public string[] Arguments { get; init; }  // --operation publish, etc.
+    public TaskCompletionSource<IAppHostCliBackchannel>? BackchannelCompletionSource { get; init; }
+    public required DirectoryInfo WorkingDirectory { get; init; }
+}
+```
+
+### How Publish Mode Works
+
+1. **CLI starts GenericAppHost** with `ASPIRE_BACKCHANNEL_PATH` environment variable
+   - GenericAppHost opens a backchannel server for progress reporting
+   - CLI connects to receive pipeline updates
+
+2. **CLI starts TypeScript app** with publish arguments
+   - Arguments like `--operation publish --step deploy` are passed to the TypeScript process
+   - These are forwarded to `createBuilder()` which passes them to the `CREATE_BUILDER` instruction
+
+3. **TypeScript app creates builder with args**
+   ```typescript
+   // createBuilder() defaults to process.argv.slice(2)
+   // So publish args are automatically forwarded
+   const builder = await createBuilder();
+
+   // Execution context is now set correctly:
+   const ctx = await builder.getExecutionContext();
+   console.log(await ctx.isPublishMode());  // true
+   console.log(await ctx.isRunMode());      // false
+   ```
+
+4. **TypeScript app defines resources and calls run()**
+   ```typescript
+   const redis = await builder.addContainer("redis", "redis:latest");
+   const app = builder.build();
+   await app.run();  // Sends RUN_BUILDER instruction
+   ```
+
+5. **GenericAppHost executes the publish pipeline**
+   - `InstructionProcessor` receives `RUN_BUILDER` instruction
+   - Calls `app.RunAsync()` which processes `--operation publish` args
+   - Pipeline steps execute and report progress via backchannel
+   - Calls `Environment.Exit(0)` when pipeline completes
+
+6. **TypeScript process detects disconnection and exits**
+   ```typescript
+   // In the generated run() method:
+   await new Promise<void>((resolve) => {
+       process.on("SIGINT", () => {
+           client.disconnect();
+           resolve();
+       });
+       client.onDisconnect(() => {
+           resolve();  // GenericAppHost exited
+       });
+   });
+   process.exit(0);
+   ```
+
+### Argument Flow
+
+```mermaid
+flowchart TD
+    A["CLI Command:<br/>aspire publish --step deploy"] --> B
+    B["TypeScript Args:<br/>[--operation, publish, --step, deploy]"] --> C
+    C["createBuilder():<br/>uses process.argv.slice(2)"] --> D
+    D["CREATE_BUILDER instruction:<br/>{ name, args, projectDirectory }"] --> E
+    E["DistributedApplication.CreateBuilder:<br/>new DistributedApplicationOptions { Args }"] --> F
+    F["ExecutionContext:<br/>IsPublishMode = true"]
+```
+
+### TypeScriptAppHostProject.PublishAsync Flow
+
+1. Build GenericAppHost project (if needed)
+2. Generate TypeScript SDK (if packages changed)
+3. Set `ASPIRE_BACKCHANNEL_PATH` environment variable for GenericAppHost
+4. Start GenericAppHost process via `dotnet exec`
+5. Start background task to connect to GenericAppHost's backchannel
+6. Execute TypeScript app with publish arguments via `npx tsx apphost.ts <args>`
+7. Wait for TypeScript app to complete
+8. Return exit code
+
+### Backchannel Integration
+
+The backchannel provides progress updates during pipeline execution:
+
+```mermaid
+flowchart LR
+    subgraph CLI["Aspire CLI"]
+        BC_Client["BackchannelClient"]
+        Status["ShowStatusAsync"]
+        Progress["Progress updates"]
+        Complete["Step completion"]
+    end
+
+    subgraph GAH["GenericAppHost"]
+        BC_Server["BackchannelServer"]
+        Pipeline["Pipeline steps"]
+        Updates["Status updates"]
+    end
+
+    BC_Client <-->|"Unix Socket<br/>(ASPIRE_BACKCHANNEL_PATH)"| BC_Server
+```
+
+For TypeScript apphosts, the backchannel is opened by GenericAppHost (not the TypeScript process) because GenericAppHost runs the actual Aspire.Hosting machinery.
+
+### Testing Publish Mode
+
+```bash
+# Navigate to TypeScript apphost
+cd playground/TypeScriptAppHost
+
+# Run publish
+aspire publish
+
+# Expected output:
+# ✅ Got ExecutionContext: isRunMode=false, isPublishMode=true
+# ✓ 2/2 steps succeeded
+# ✓ PIPELINE SUCCEEDED
+# Exit code: 0
+```
+
+### Deploy Command
+
+The deploy command works identically but adds `--step deploy`:
+
+```bash
+aspire deploy
+# Passes: --operation publish --step deploy
+
+aspire do <step-name>
+# Passes: --operation publish --step <step-name>
+```
+
+### Key Differences from Run Mode
+
+| Aspect | Run Mode | Publish Mode |
+|--------|----------|--------------|
+| Execution context | `IsRunMode = true` | `IsPublishMode = true` |
+| App lifecycle | Runs until Ctrl+C | Runs until pipeline completes |
+| Exit behavior | Manual termination | Auto-exit on completion |
+| Backchannel | Optional (dashboard URL) | Required (progress updates) |
+| TypeScript exit | Waits for SIGINT | Exits on disconnect |
