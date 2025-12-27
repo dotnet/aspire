@@ -1,89 +1,44 @@
 # Polyglot AppHost Support
 
-This document describes how the Aspire CLI supports non-.NET app hosts through a polyglot architecture. Currently, TypeScript is the supported guest language.
+This document describes how the Aspire CLI supports non-.NET app hosts. Currently, TypeScript is the supported guest language.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Process Lifecycle](#process-lifecycle)
+- [Type System and Marshalling](#type-system-and-marshalling)
+- [JSON-RPC Protocol](#json-rpc-protocol)
+- [Code Generation](#code-generation)
+- [Configuration](#configuration)
+- [Publish Mode](#publish-mode-pipeline-commands)
+- [Adding New Guest Languages](#adding-new-guest-languages)
 
 ## Overview
 
-The polyglot apphost feature allows developers to write Aspire app hosts in guest languages other than C#. The CLI detects the app host type based on entry point files (e.g., `apphost.ts`) and orchestrates the appropriate guest runtime.
+The polyglot apphost feature allows developers to write Aspire app hosts in TypeScript. The CLI detects `apphost.ts` and orchestrates the TypeScript runtime alongside a .NET GenericAppHost process.
 
 **Terminology:**
 - **Host**: The .NET GenericAppHost process running Aspire.Hosting
-- **Guest**: The language runtime (TypeScript) executing the user's apphost code
+- **Guest**: The TypeScript runtime executing the user's apphost code
 
-## Design Goals
-
-The architecture is designed around these key principles:
-
-1. **Reuse Existing Integrations**: All 100+ existing Aspire.Hosting.* NuGet packages work automatically with polyglot app hosts. No need to rewrite or port integrations - they're available immediately.
-
-2. **Native Language Experience**: Generated SDKs provide idiomatic APIs with instance methods (e.g., `builder.addRedis("cache")`) rather than function-based approaches.
-
-3. **Consistent CLI Experience**: Commands like `aspire run`, `aspire add`, and `aspire new` work identically regardless of the app host language. Developers don't need to learn different workflows.
-
-4. **Leverage .NET Ecosystem**: The heavy lifting (container orchestration, service discovery, health checks, telemetry) remains in .NET where the mature Aspire.Hosting libraries live. Guest languages focus on providing idiomatic APIs.
-
-This approach means that when a new Aspire integration is released (e.g., `Aspire.Hosting.Milvus`), it's immediately available to polyglot developers via `aspire add milvus` - no SDK updates required.
+**Design Goals:**
+1. **Reuse Existing Integrations** - All 100+ Aspire.Hosting.* packages work automatically
+2. **Native Language Experience** - Generated SDKs with idiomatic APIs (`builder.addRedis("cache")`)
+3. **Consistent CLI Experience** - `aspire run`, `aspire add`, `aspire publish` work identically
+4. **Leverage .NET Ecosystem** - Container orchestration, service discovery, telemetry stay in .NET
 
 ## Architecture
 
-```mermaid
-flowchart TB
-    subgraph CLI["Aspire CLI"]
-        RC[RunCommand]
-        AC[AddCommand]
-        TSP[TypeScriptAppHostProject]
-        PL[ProjectLocator]
-        PM[ProjectModel]
-        CGS[TypeScriptCodeGeneratorService]
-    end
+The CLI scaffolds a temporary .NET GenericAppHost project that references the required Aspire.Hosting packages. Code generation reflects over these assemblies to produce a TypeScript SDK in `.modules/`. At runtime, GenericAppHost starts a JSON-RPC server over Unix domain sockets, and the TypeScript guest connects to send instructions. Each instruction (e.g., `AddRedis`, `WithEnvironment`) is executed by the `InstructionProcessor` against the real Aspire.Hosting APIs. Complex objects are registered in an `ObjectRegistry` and returned to TypeScript as proxies that can invoke methods remotely. An `OrphanDetector` monitors the CLI process and terminates GenericAppHost if the parent dies.
 
-    subgraph CodeGen["Code Generation Library"]
-        ACG[Aspire.Hosting.CodeGeneration]
-        TSCG[Aspire.Hosting.CodeGeneration.TypeScript]
-        ALR[AssemblyLoaderContext]
-        AM[ApplicationModel]
-    end
+### Key Projects
 
-    subgraph GenericAppHost["GenericAppHost (.NET)"]
-        JRS[JsonRpcServer]
-        IP[InstructionProcessor]
-        OR[ObjectRegistry]
-        OD[OrphanDetector]
-        AH[Aspire.Hosting]
-    end
-
-    subgraph Guest["Guest (TypeScript)"]
-        TS[TypeScript AppHost]
-        Client[JSON-RPC Client]
-        Proxy[DotNetProxy]
-    end
-
-    RC --> PL
-    AC --> PL
-    PL -->|Detects apphost.ts| TSP
-    AC -->|Updates settings.json| CGS
-    TSP -->|1. Scaffolds & Builds| PM
-    PM -->|Creates| GenericAppHost
-    TSP -->|2. Runs code generation| CGS
-    CGS --> ACG
-    ACG --> ALR
-    ALR -->|Loads assemblies| AM
-    AM --> TSCG
-    TSCG -->|Generates .modules/| TS
-    TSP -->|3. Starts host via dotnet exec| JRS
-    TSP -->|4. Starts guest via npx tsx| TS
-
-    TS --> Client
-    Client <-->|Unix Domain Socket| JRS
-    JRS --> IP
-    IP -->|Executes Instructions| AH
-    IP -->|Marshals objects| OR
-    OR -->|Returns proxies| Client
-    Client --> Proxy
-
-    OD -->|Monitors CLI PID| CLI
-    OD -->|Terminates on parent death| GenericAppHost
-```
+| Project | Purpose |
+|---------|---------|
+| `Aspire.Hosting.CodeGeneration` | Reflection-based model building from Aspire.Hosting assemblies |
+| `Aspire.Hosting.CodeGeneration.TypeScript` | TypeScript SDK generator (produces `.modules/`) |
+| `Aspire.Hosting.RemoteHost` | JSON-RPC server, instruction processor, object registry |
 
 ## Process Lifecycle
 
@@ -795,213 +750,115 @@ try {
 
 ## Publish Mode (Pipeline Commands)
 
-TypeScript apphosts support the full Aspire publish pipeline (`aspire publish`, `aspire deploy`, `aspire do`). The architecture ensures that both .NET and TypeScript apphosts share the same pipeline execution flow through `PipelineCommandBase`.
+TypeScript apphosts support `aspire publish`, `aspire deploy`, and `aspire do` through the same `PipelineCommandBase` used by .NET apphosts.
 
 ### Development Mode
 
-When developing the polyglot apphost feature, set the `ASPIRE_REPO_ROOT` environment variable to point to your local Aspire repository:
+Set `ASPIRE_REPO_ROOT` to your local Aspire repository for development:
 
 ```bash
 export ASPIRE_REPO_ROOT=/path/to/aspire
 ```
 
-This enables:
-- **Always regenerates TypeScript SDK** - Skips hash caching so code changes are immediately reflected
-- **Uses local build artifacts** - References assemblies from `artifacts/bin/` instead of NuGet packages
-- **Faster iteration** - No need to publish packages to test changes
+This skips SDK caching and uses local build artifacts from `artifacts/bin/` instead of NuGet packages.
 
-### Architecture
+### How It Works
+
+`PipelineCommandBase` delegates to `IAppHostProject.PublishAsync()` which is implemented by both `DotNetAppHostProject` and `TypeScriptAppHostProject`. For TypeScript, the flow is:
+
+1. CLI starts GenericAppHost with `ASPIRE_BACKCHANNEL_PATH` for progress reporting
+2. CLI starts TypeScript app with publish args (`--operation publish --step deploy`)
+3. `createBuilder()` forwards `process.argv.slice(2)` to `CREATE_BUILDER` instruction
+4. GenericAppHost creates builder with args, setting `IsPublishMode = true`
+5. TypeScript calls `app.run()` which sends `RUN_BUILDER` instruction
+6. GenericAppHost runs the pipeline, reports progress via backchannel, then exits
+7. TypeScript detects disconnect and exits
+
+### Argument Flow
 
 ```mermaid
-flowchart TB
-    subgraph CLI["Aspire CLI"]
-        PCB[PipelineCommandBase]
-        PCB -->|"IAppHostProject.PublishAsync(context)"| Factory
-        Factory[IAppHostProjectFactory]
-    end
-
-    Factory --> DotNet
-    Factory --> TypeScript
-
-    subgraph DotNet["DotNetAppHostProject"]
-        DN_Run["dotnet run &lt;args&gt;"]
-    end
-
-    subgraph TypeScript["TypeScriptAppHostProject"]
-        TS_Steps["1. Build GenericAppHost<br/>2. Generate TypeScript SDK<br/>3. Start GenericAppHost<br/>4. Run TypeScript app &lt;args&gt;"]
-    end
-
-    DN_Run --> DN_Process
-    TS_Steps --> GAH
-
-    subgraph DN_Process[".NET AppHost Process"]
-        DN_Publish["Publish Mode"]
-    end
-
-    subgraph GAH["GenericAppHost Process"]
-        GAH_Publish["Publish Mode"]
-    end
-
-    DN_Process <-->|"Backchannel<br/>(Progress Updates)"| CLI
-    GAH <-->|"Backchannel<br/>(Progress Updates)"| CLI
+flowchart LR
+    A["aspire publish"] --> B["TypeScript process<br/>--operation publish"]
+    B --> C["createBuilder()<br/>process.argv.slice(2)"]
+    C --> D["CREATE_BUILDER<br/>{ args: [...] }"]
+    D --> E["IsPublishMode = true"]
 ```
 
-### IAppHostProject Interface
+### Run vs Publish
 
-The `IAppHostProject` interface abstracts apphost execution for both .NET and TypeScript:
+| Aspect | Run Mode | Publish Mode |
+|--------|----------|--------------|
+| Execution context | `IsRunMode = true` | `IsPublishMode = true` |
+| Lifecycle | Runs until Ctrl+C | Auto-exits on completion |
+| TypeScript exit | Waits for SIGINT | Exits on disconnect |
+
+---
+
+## Adding New Guest Languages
+
+The polyglot architecture is designed to support additional languages beyond TypeScript. The host-side infrastructure (`Aspire.Hosting.RemoteHost`) is language-agnostic—only the code generator and CLI integration are language-specific.
+
+### Components to Implement
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| Code Generator | `Aspire.Hosting.CodeGeneration.<Language>` | Generate idiomatic SDK from `ApplicationModel` |
+| CLI Project Handler | `Aspire.Cli/AppHostRunning/<Language>AppHostProject.cs` | Implement `IAppHostProject` for run/publish lifecycle |
+| Project Locator | `Aspire.Cli/Projects/ProjectLocator.cs` | Detect entry point file (e.g., `apphost.py`) |
+| Runtime Client | Embedded or generated | JSON-RPC client with proxy classes |
+
+### Code Generator
+
+Create `Aspire.Hosting.CodeGeneration.<Language>` implementing `ICodeGenerator`:
+
+```csharp
+public interface ICodeGenerator
+{
+    bool NeedsGeneration(string projectDirectory, IReadOnlyDictionary<string, string> packages);
+    Task GenerateAsync(string projectDirectory, IReadOnlyDictionary<string, string> packages, CancellationToken cancellationToken);
+}
+```
+
+The generator receives an `ApplicationModel` built by `Aspire.Hosting.CodeGeneration` and emits language-specific code. Key concerns:
+- Map .NET types to language equivalents
+- Generate builder classes with instance methods
+- Generate proxy wrappers for callback contexts
+- Emit JSON-RPC client infrastructure
+
+### CLI Integration
+
+Implement `IAppHostProject` for the new language:
 
 ```csharp
 internal interface IAppHostProject
 {
     Task<int> RunAsync(RunContext context, CancellationToken cancellationToken);
     Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken);
-    Task<PackageAddResult> AddPackageAsync(string packageName, string? version, ...);
-    Task<ProjectValidationResult> ValidateAsync(FileInfo appHostFile, ...);
-}
-
-internal sealed class PublishContext
-{
-    public required FileInfo AppHostFile { get; init; }
-    public required AppHostType Type { get; init; }
-    public string? OutputPath { get; init; }
-    public IDictionary<string, string> EnvironmentVariables { get; init; }
-    public string[] Arguments { get; init; }  // --operation publish, etc.
-    public TaskCompletionSource<IAppHostCliBackchannel>? BackchannelCompletionSource { get; init; }
-    public required DirectoryInfo WorkingDirectory { get; init; }
+    Task<PackageAddResult> AddPackageAsync(...);
+    Task<ProjectValidationResult> ValidateAsync(...);
 }
 ```
 
-### How Publish Mode Works
+Register in DI with a keyed service for the `AppHostType`:
 
-1. **CLI starts GenericAppHost** with `ASPIRE_BACKCHANNEL_PATH` environment variable
-   - GenericAppHost opens a backchannel server for progress reporting
-   - CLI connects to receive pipeline updates
-
-2. **CLI starts TypeScript app** with publish arguments
-   - Arguments like `--operation publish --step deploy` are passed to the TypeScript process
-   - These are forwarded to `createBuilder()` which passes them to the `CREATE_BUILDER` instruction
-
-3. **TypeScript app creates builder with args**
-   ```typescript
-   // createBuilder() defaults to process.argv.slice(2)
-   // So publish args are automatically forwarded
-   const builder = await createBuilder();
-
-   // Execution context is now set correctly:
-   const ctx = await builder.getExecutionContext();
-   console.log(await ctx.isPublishMode());  // true
-   console.log(await ctx.isRunMode());      // false
-   ```
-
-4. **TypeScript app defines resources and calls run()**
-   ```typescript
-   const redis = await builder.addContainer("redis", "redis:latest");
-   const app = builder.build();
-   await app.run();  // Sends RUN_BUILDER instruction
-   ```
-
-5. **GenericAppHost executes the publish pipeline**
-   - `InstructionProcessor` receives `RUN_BUILDER` instruction
-   - Calls `app.RunAsync()` which processes `--operation publish` args
-   - Pipeline steps execute and report progress via backchannel
-   - Calls `Environment.Exit(0)` when pipeline completes
-
-6. **TypeScript process detects disconnection and exits**
-   ```typescript
-   // In the generated run() method:
-   await new Promise<void>((resolve) => {
-       process.on("SIGINT", () => {
-           client.disconnect();
-           resolve();
-       });
-       client.onDisconnect(() => {
-           resolve();  // GenericAppHost exited
-       });
-   });
-   process.exit(0);
-   ```
-
-### Argument Flow
-
-```mermaid
-flowchart TD
-    A["CLI Command:<br/>aspire publish --step deploy"] --> B
-    B["TypeScript Args:<br/>[--operation, publish, --step, deploy]"] --> C
-    C["createBuilder():<br/>uses process.argv.slice(2)"] --> D
-    D["CREATE_BUILDER instruction:<br/>{ name, args, projectDirectory }"] --> E
-    E["DistributedApplication.CreateBuilder:<br/>new DistributedApplicationOptions { Args }"] --> F
-    F["ExecutionContext:<br/>IsPublishMode = true"]
+```csharp
+services.AddKeyedSingleton<IAppHostProject, PythonAppHostProject>(AppHostType.Python);
 ```
 
-### TypeScriptAppHostProject.PublishAsync Flow
+Update `ProjectLocator` to detect the new entry point file and return the appropriate `AppHostType`.
 
-1. Build GenericAppHost project (if needed)
-2. Generate TypeScript SDK (if packages changed)
-3. Set `ASPIRE_BACKCHANNEL_PATH` environment variable for GenericAppHost
-4. Start GenericAppHost process via `dotnet exec`
-5. Start background task to connect to GenericAppHost's backchannel
-6. Execute TypeScript app with publish arguments via `npx tsx apphost.ts <args>`
-7. Wait for TypeScript app to complete
-8. Return exit code
+### Runtime Client Requirements
 
-### Backchannel Integration
+The guest language needs a JSON-RPC client that:
+1. Connects to Unix domain socket (path from `REMOTE_APP_HOST_SOCKET_PATH`)
+2. Implements `vscode-jsonrpc` header-delimited message format
+3. Handles `invokeCallback` requests from host
+4. Wraps marshalled objects (`$id`, `$type`) in proxy classes
 
-The backchannel provides progress updates during pipeline execution:
+### Reusable Infrastructure
 
-```mermaid
-flowchart LR
-    subgraph CLI["Aspire CLI"]
-        BC_Client["BackchannelClient"]
-        Status["ShowStatusAsync"]
-        Progress["Progress updates"]
-        Complete["Step completion"]
-    end
-
-    subgraph GAH["GenericAppHost"]
-        BC_Server["BackchannelServer"]
-        Pipeline["Pipeline steps"]
-        Updates["Status updates"]
-    end
-
-    BC_Client <-->|"Unix Socket<br/>(ASPIRE_BACKCHANNEL_PATH)"| BC_Server
-```
-
-For TypeScript apphosts, the backchannel is opened by GenericAppHost (not the TypeScript process) because GenericAppHost runs the actual Aspire.Hosting machinery.
-
-### Testing Publish Mode
-
-```bash
-# Navigate to TypeScript apphost
-cd playground/TypeScriptAppHost
-
-# Run publish
-aspire publish
-
-# Expected output:
-# ✅ Got ExecutionContext: isRunMode=false, isPublishMode=true
-# ✓ 2/2 steps succeeded
-# ✓ PIPELINE SUCCEEDED
-# Exit code: 0
-```
-
-### Deploy Command
-
-The deploy command works identically but adds `--step deploy`:
-
-```bash
-aspire deploy
-# Passes: --operation publish --step deploy
-
-aspire do <step-name>
-# Passes: --operation publish --step <step-name>
-```
-
-### Key Differences from Run Mode
-
-| Aspect | Run Mode | Publish Mode |
-|--------|----------|--------------|
-| Execution context | `IsRunMode = true` | `IsPublishMode = true` |
-| App lifecycle | Runs until Ctrl+C | Runs until pipeline completes |
-| Exit behavior | Manual termination | Auto-exit on completion |
-| Backchannel | Optional (dashboard URL) | Required (progress updates) |
-| TypeScript exit | Waits for SIGINT | Exits on disconnect |
+These components work unchanged for any guest language:
+- `Aspire.Hosting.RemoteHost` - JSON-RPC server, instruction processor, object registry
+- `Aspire.Hosting.CodeGeneration` - Reflection-based model building
+- GenericAppHost scaffolding and build process
+- Backchannel for publish progress reporting
