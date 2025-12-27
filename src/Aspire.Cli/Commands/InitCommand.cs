@@ -596,6 +596,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                     "vscode-jsonrpc": "^8.2.0"
                   },
                   "devDependencies": {
+                    "tsx": "^4.19.0",
                     "typescript": "^5.3.0",
                     "@types/node": "^20.0.0"
                   }
@@ -603,6 +604,35 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 """;
 
             await File.WriteAllTextAsync(packageJsonPath, packageJsonContent, cancellationToken);
+        }
+
+        // Create apphost.run.json for dashboard/OTLP configuration
+        var apphostRunJsonPath = Path.Combine(directory.FullName, "apphost.run.json");
+        if (!File.Exists(apphostRunJsonPath))
+        {
+            // Generate random 5-digit ports (10000-65000)
+            var httpsPort = Random.Shared.Next(10000, 65000);
+            var httpPort = Random.Shared.Next(10000, 65000);
+            var otlpPort = Random.Shared.Next(10000, 65000);
+            var resourceServicePort = Random.Shared.Next(10000, 65000);
+
+            var apphostRunJsonContent = $$"""
+                {
+                  "profiles": {
+                    "https": {
+                      "applicationUrl": "https://localhost:{{httpsPort}};http://localhost:{{httpPort}}",
+                      "environmentVariables": {
+                        "ASPNETCORE_ENVIRONMENT": "Development",
+                        "DOTNET_ENVIRONMENT": "Development",
+                        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:{{otlpPort}}",
+                        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:{{resourceServicePort}}"
+                      }
+                    }
+                  }
+                }
+                """;
+
+            await File.WriteAllTextAsync(apphostRunJsonPath, apphostRunJsonContent, cancellationToken);
         }
     }
 

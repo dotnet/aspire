@@ -796,24 +796,27 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         try
         {
             // Start the application in the background.
-            // For run mode, it will block until Ctrl+C.
-            // For publish mode, it will complete when publish is done and then exit.
+            // NOTE: We use CancellationToken.None here because the app should run until
+            // explicitly stopped (via Ctrl+C or server shutdown), not until the RPC call completes.
+            // In run mode, RunAsync blocks until Ctrl+C. In publish mode, it completes after the pipeline.
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await app.RunAsync(cancellationToken).ConfigureAwait(false);
-                }
-                finally
-                {
-                    // When the app completes (e.g., publish mode), exit the process
-                    Console.WriteLine("Application completed, shutting down...");
+                    await app.RunAsync(CancellationToken.None).ConfigureAwait(false);
+                    // Exit the process when the app stops running normally (Ctrl+C or publish complete)
                     Environment.Exit(0);
                 }
-            }, cancellationToken);
+                catch (Exception ex)
+                {
+                    // Log the error and exit with failure code
+                    Console.WriteLine($"Application failed: {ex.Message}");
+                    Environment.Exit(1);
+                }
+            }, CancellationToken.None);
 
             // The app is now running in the background.
-            // When the server shuts down, DisposeAsync will stop all running apps.
+            // When RunAsync completes, the process will exit.
 
             return new { success = true, builderName = instruction.BuilderName, status = "running", app = marshalledApp };
         }
