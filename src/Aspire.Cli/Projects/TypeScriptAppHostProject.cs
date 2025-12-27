@@ -29,7 +29,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private readonly IInteractionService _interactionService;
     private readonly ICodeGenerator _codeGenerator;
     private readonly IAppHostCliBackchannel _backchannel;
-    private readonly IGenericAppHostProjectFactory _genericAppHostProjectFactory;
+    private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
     private readonly ILogger<TypeScriptAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
 
@@ -37,14 +37,14 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         IInteractionService interactionService,
         [FromKeyedServices(AppHostType.TypeScript)] ICodeGenerator codeGenerator,
         IAppHostCliBackchannel backchannel,
-        IGenericAppHostProjectFactory genericAppHostProjectFactory,
+        IAppHostServerProjectFactory appHostServerProjectFactory,
         ILogger<TypeScriptAppHostProject> logger,
         TimeProvider? timeProvider = null)
     {
         _interactionService = interactionService;
         _codeGenerator = codeGenerator;
         _backchannel = backchannel;
-        _genericAppHostProjectFactory = genericAppHostProjectFactory;
+        _appHostServerProjectFactory = appHostServerProjectFactory;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
@@ -87,7 +87,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
         _logger.LogDebug("Running TypeScript AppHost: {AppHostFile}", appHostFile.FullName);
 
-        Process? genericAppHostProcess = null;
+        Process? appHostServerProcess = null;
 
         try
         {
@@ -107,18 +107,18 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 }
             }
 
-            // Step 2: Get package references and build GenericAppHost FIRST (code gen needs assemblies)
+            // Step 2: Get package references and build AppHost server FIRST (code gen needs assemblies)
             var packages = GetPackageReferences(directory).ToList();
-            var genericAppHostProject = _genericAppHostProjectFactory.Create(directory.FullName);
-            var socketPath = genericAppHostProject.GetSocketPath();
+            var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+            var socketPath = appHostServerProject.GetSocketPath();
 
-            // Create the GenericAppHost project files
+            // Create the AppHost server project files
             await _interactionService.ShowStatusAsync(
                 ":gear: Preparing AppHost server...",
-                () => genericAppHostProject.CreateProjectFilesAsync(packages, cancellationToken));
+                () => appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken));
 
-            // Build the GenericAppHost (must happen before code generation!)
-            var buildSuccess = await genericAppHostProject.BuildAsync(_interactionService);
+            // Build the AppHost server (must happen before code generation!)
+            var buildSuccess = await appHostServerProject.BuildAsync(_interactionService);
             if (!buildSuccess)
             {
                 _interactionService.DisplayError("Failed to build AppHost server.");
@@ -147,29 +147,31 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Read launchSettings.json if it exists, or create defaults
             var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
 
-            // Generate a backchannel socket path for CLI to connect to GenericAppHost
+            // Generate a backchannel socket path for CLI to connect to AppHost server
             var backchannelSocketPath = GetBackchannelSocketPath();
 
-            // Pass the backchannel socket path to GenericAppHost so it opens a server for CLI communication
+            // Pass the backchannel socket path to AppHost server so it opens a server for CLI communication
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
-            // Start the GenericAppHost process
+            // Start the AppHost server process
             _interactionService.DisplayMessage("rocket", "Starting AppHost server...");
             var currentPid = Environment.ProcessId;
-            genericAppHostProcess = genericAppHostProject.Run(socketPath, currentPid, launchSettingsEnvVars);
+            var (process, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars);
+            appHostServerProcess = process;
 
             // The backchannel completion source is the contract with RunCommand
             // We signal this when the backchannel is ready, RunCommand uses it for UX
             var backchannelCompletionSource = context.BackchannelCompletionSource ?? new TaskCompletionSource<IAppHostCliBackchannel>();
 
             // Start connecting to the backchannel (for dashboard URLs, logs, etc.)
-            _ = StartBackchannelConnectionAsync(genericAppHostProcess, backchannelSocketPath, backchannelCompletionSource, cancellationToken);
+            _ = StartBackchannelConnectionAsync(appHostServerProcess, backchannelSocketPath, backchannelCompletionSource, cancellationToken);
 
             // Give the server a moment to start
             await Task.Delay(500, cancellationToken);
 
-            if (genericAppHostProcess.HasExited)
+            if (appHostServerProcess.HasExited)
             {
+                _interactionService.DisplayLines(appHostServerOutputCollector.GetLines());
                 _interactionService.DisplayError("AppHost server exited unexpectedly.");
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
@@ -183,7 +185,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath
             };
 
-            // Start TypeScript apphost - it will connect to GenericAppHost, define resources, then exit
+            // Start TypeScript apphost - it will connect to AppHost server, define resources, then exit
             var pendingTypeScript = ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken);
 
             // Wait for TypeScript to finish defining resources
@@ -193,10 +195,10 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 _logger.LogError("TypeScript apphost exited with code {ExitCode}", typeScriptExitCode);
             }
 
-            // Wait for the GenericAppHost to exit (Ctrl+C)
-            await genericAppHostProcess.WaitForExitAsync(cancellationToken);
+            // Wait for the AppHost server to exit (Ctrl+C)
+            await appHostServerProcess.WaitForExitAsync(cancellationToken);
 
-            return genericAppHostProcess.ExitCode;
+            return appHostServerProcess.ExitCode;
         }
         catch (OperationCanceledException)
         {
@@ -215,17 +217,17 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         }
         finally
         {
-            // Clean up the GenericAppHost process
-            if (genericAppHostProcess is not null && !genericAppHostProcess.HasExited)
+            // Clean up the AppHost server process
+            if (appHostServerProcess is not null && !appHostServerProcess.HasExited)
             {
                 try
                 {
-                    genericAppHostProcess.Kill(entireProcessTree: true);
-                    genericAppHostProcess.Dispose();
+                    appHostServerProcess.Kill(entireProcessTree: true);
+                    appHostServerProcess.Dispose();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogDebug(ex, "Error killing GenericAppHost process");
+                    _logger.LogDebug(ex, "Error killing AppHost server process");
                 }
             }
         }
@@ -234,8 +236,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private static IEnumerable<(string Name, string Version)> GetPackageReferences(DirectoryInfo directory)
     {
         // Always include the base Aspire.Hosting packages
-        yield return ("Aspire.Hosting", GenericAppHostProject.AspireHostVersion);
-        yield return ("Aspire.Hosting.AppHost", GenericAppHostProject.AspireHostVersion);
+        yield return ("Aspire.Hosting", AppHostServerProject.AspireHostVersion);
+        yield return ("Aspire.Hosting.AppHost", AppHostServerProject.AspireHostVersion);
 
         // Read additional packages from .aspire/settings.json
         var aspireConfig = AspireJsonConfiguration.Load(directory.FullName);
@@ -518,7 +520,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
         _logger.LogDebug("Publishing TypeScript AppHost: {AppHostFile}", appHostFile.FullName);
 
-        Process? genericAppHostProcess = null;
+        Process? appHostServerProcess = null;
 
         try
         {
@@ -537,18 +539,18 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 }
             }
 
-            // Step 2: Get package references and build GenericAppHost
+            // Step 2: Get package references and build AppHost server
             var packages = GetPackageReferences(directory).ToList();
-            var genericAppHostProject = _genericAppHostProjectFactory.Create(directory.FullName);
-            var jsonRpcSocketPath = genericAppHostProject.GetSocketPath();
+            var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+            var jsonRpcSocketPath = appHostServerProject.GetSocketPath();
 
-            // Create the GenericAppHost project files
+            // Create the AppHost server project files
             await _interactionService.ShowStatusAsync(
                 ":gear: Preparing AppHost server...",
-                () => genericAppHostProject.CreateProjectFilesAsync(packages, cancellationToken));
+                () => appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken));
 
-            // Build the GenericAppHost
-            var buildSuccess = await genericAppHostProject.BuildAsync(_interactionService);
+            // Build the AppHost server
+            var buildSuccess = await appHostServerProject.BuildAsync(_interactionService);
             if (!buildSuccess)
             {
                 _interactionService.DisplayError("Failed to build AppHost server.");
@@ -573,29 +575,31 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Read launchSettings.json if it exists
             var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
 
-            // Generate a backchannel socket path for CLI to connect to GenericAppHost
+            // Generate a backchannel socket path for CLI to connect to AppHost server
             var backchannelSocketPath = GetBackchannelSocketPath();
 
-            // Pass the backchannel socket path to GenericAppHost so it opens a server
+            // Pass the backchannel socket path to AppHost server so it opens a server
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
-            // Start the GenericAppHost process (it opens the backchannel for progress reporting)
+            // Start the AppHost server process (it opens the backchannel for progress reporting)
             var currentPid = Environment.ProcessId;
 
-            // GenericAppHost doesn't receive publish args - those go to the TypeScript app
-            genericAppHostProcess = genericAppHostProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars);
+            // AppHost server doesn't receive publish args - those go to the TypeScript app
+            var (process, appHostServerOutputCollector) = appHostServerProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars);
+            appHostServerProcess = process;
 
             // Start connecting to the backchannel
             if (context.BackchannelCompletionSource is not null)
             {
-                _ = StartBackchannelConnectionAsync(genericAppHostProcess, backchannelSocketPath, context.BackchannelCompletionSource, cancellationToken);
+                _ = StartBackchannelConnectionAsync(appHostServerProcess, backchannelSocketPath, context.BackchannelCompletionSource, cancellationToken);
             }
 
             // Give the server a moment to start
             await Task.Delay(500, cancellationToken);
 
-            if (genericAppHostProcess.HasExited)
+            if (appHostServerProcess.HasExited)
             {
+                _interactionService.DisplayLines(appHostServerOutputCollector.GetLines());
                 _interactionService.DisplayError("AppHost server exited unexpectedly.");
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
@@ -616,10 +620,10 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 return typeScriptExitCode;
             }
 
-            // Wait for the GenericAppHost to complete the publish pipeline
-            await genericAppHostProcess.WaitForExitAsync(cancellationToken);
+            // Wait for the AppHost server to complete the publish pipeline
+            await appHostServerProcess.WaitForExitAsync(cancellationToken);
 
-            return genericAppHostProcess.ExitCode;
+            return appHostServerProcess.ExitCode;
         }
         catch (OperationCanceledException)
         {
@@ -634,17 +638,17 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         }
         finally
         {
-            // Clean up the GenericAppHost process
-            if (genericAppHostProcess is not null && !genericAppHostProcess.HasExited)
+            // Clean up the AppHost server process
+            if (appHostServerProcess is not null && !appHostServerProcess.HasExited)
             {
                 try
                 {
-                    genericAppHostProcess.Kill(entireProcessTree: true);
-                    genericAppHostProcess.Dispose();
+                    appHostServerProcess.Kill(entireProcessTree: true);
+                    appHostServerProcess.Dispose();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogDebug(ex, "Error killing GenericAppHost process");
+                    _logger.LogDebug(ex, "Error killing AppHost server process");
                 }
             }
         }
@@ -663,7 +667,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     }
 
     /// <summary>
-    /// Starts connecting to the GenericAppHost's backchannel server.
+    /// Starts connecting to the AppHost server's backchannel server.
     /// </summary>
     private async Task StartBackchannelConnectionAsync(
         Process process,
@@ -674,22 +678,22 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         var startTime = DateTimeOffset.UtcNow;
         var connectionAttempts = 0;
 
-        _logger.LogDebug("Starting backchannel connection to GenericAppHost at {SocketPath}", socketPath);
+        _logger.LogDebug("Starting backchannel connection to AppHost server at {SocketPath}", socketPath);
 
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
-                _logger.LogTrace("Attempting to connect to GenericAppHost backchannel at {SocketPath} (attempt {Attempt})", socketPath, ++connectionAttempts);
+                _logger.LogTrace("Attempting to connect to AppHost server backchannel at {SocketPath} (attempt {Attempt})", socketPath, ++connectionAttempts);
                 await _backchannel.ConnectAsync(socketPath, cancellationToken).ConfigureAwait(false);
                 backchannelCompletionSource.SetResult(_backchannel);
-                _logger.LogDebug("Connected to GenericAppHost backchannel at {SocketPath}", socketPath);
+                _logger.LogDebug("Connected to AppHost server backchannel at {SocketPath}", socketPath);
                 return;
             }
             catch (SocketException ex) when (process.HasExited && process.ExitCode != 0)
             {
-                _logger.LogError("GenericAppHost process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
-                var backchannelException = new FailedToConnectBackchannelConnection($"GenericAppHost process has exited unexpectedly.", process, ex);
+                _logger.LogError("AppHost server process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
+                var backchannelException = new FailedToConnectBackchannelConnection($"AppHost server process has exited unexpectedly.", process, ex);
                 backchannelCompletionSource.SetException(backchannelException);
                 return;
             }
@@ -708,7 +712,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to connect to GenericAppHost backchannel");
+                _logger.LogError(ex, "Failed to connect to AppHost server backchannel");
                 backchannelCompletionSource.SetException(ex);
                 return;
             }
@@ -742,18 +746,18 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDirectory, CancellationToken cancellationToken)
     {
-        // For TypeScript projects, we use the GenericAppHost's path to compute the socket path
-        // The GenericAppHost is created in a subdirectory of the apphost.ts directory
+        // For TypeScript projects, we use the AppHost server's path to compute the socket path
+        // The AppHost server is created in a subdirectory of the apphost.ts directory
         var directory = appHostFile.Directory;
         if (directory is null)
         {
             return true; // No directory, nothing to check
         }
 
-        var genericAppHostProject = _genericAppHostProjectFactory.Create(directory.FullName);
-        var genericAppHostPath = genericAppHostProject.GetProjectFilePath();
+        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+        var genericAppHostPath = appHostServerProject.GetProjectFilePath();
 
-        // Compute socket path based on the GenericAppHost project path
+        // Compute socket path based on the AppHost server project path
         var auxiliarySocketPath = AppHostHelper.ComputeAuxiliarySocketPath(genericAppHostPath, homeDirectory.FullName);
 
         // Check if the socket file exists

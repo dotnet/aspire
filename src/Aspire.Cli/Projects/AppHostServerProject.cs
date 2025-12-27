@@ -10,37 +10,42 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Projects;
 
 /// <summary>
-/// Factory for creating GenericAppHostProject instances with required dependencies.
+/// Factory for creating AppHostServerProject instances with required dependencies.
 /// </summary>
-internal interface IGenericAppHostProjectFactory
+internal interface IAppHostServerProjectFactory
 {
-    GenericAppHostProject Create(string appPath);
+    AppHostServerProject Create(string appPath);
 }
 
 /// <summary>
-/// Factory implementation that creates GenericAppHostProject instances with IPackagingService and IConfigurationService.
+/// Factory implementation that creates AppHostServerProject instances with IPackagingService and IConfigurationService.
 /// </summary>
-internal sealed class GenericAppHostProjectFactory(
+internal sealed class AppHostServerProjectFactory(
     IPackagingService packagingService,
-    IConfigurationService configurationService) : IGenericAppHostProjectFactory
+    IConfigurationService configurationService,
+    ILogger<AppHostServerProject> logger) : IAppHostServerProjectFactory
 {
-    public GenericAppHostProject Create(string appPath) => new GenericAppHostProject(appPath, packagingService, configurationService);
+    public AppHostServerProject Create(string appPath) => new AppHostServerProject(appPath, packagingService, configurationService, logger);
 }
 
 /// <summary>
-/// Represents the dotnet project that is used to generate the GenericAppHost.
+/// Manages the AppHost server project that hosts the Aspire.Hosting runtime for polyglot apphosts.
+/// This project is dynamically generated and built to provide the .NET Aspire infrastructure
+/// (distributed application builder, resource management, dashboard, etc.) that polyglot apphosts
+/// (TypeScript, Python, etc.) connect to via JSON-RPC to define and manage their resources.
 /// </summary>
-internal sealed class GenericAppHostProject
+internal sealed class AppHostServerProject
 {
     private const string ProjectHashFileName = ".projecthash";
     private const string FolderPrefix = ".aspire";
     private const string AppsFolder = "hosts";
-    public const string ProjectFileName = "GenericAppHost.csproj";
-    private const string ProjectDllName = "GenericAppHost.dll";
+    public const string ProjectFileName = "AppHostServer.csproj";
+    private const string ProjectDllName = "AppHostServer.dll";
     private const string TargetFramework = "net9.0";
 
     public static string AspireHostVersion = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_VERSION") ?? GetEffectiveVersion();
@@ -66,25 +71,28 @@ internal sealed class GenericAppHostProject
     public static string? LocalAspirePath = Environment.GetEnvironmentVariable("ASPIRE_REPO_ROOT");
 
     public const string BuildFolder = "build";
-    private const string AssemblyName = "GenericAppHost";
+    private const string AssemblyName = "AppHostServer";
     private readonly string _projectModelPath;
     private readonly string _appPath;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
+    private readonly ILogger<AppHostServerProject> _logger;
 
     /// <summary>
-    /// Initializes a new instance of the GenericAppHostProject class.
+    /// Initializes a new instance of the AppHostServerProject class.
     /// </summary>
     /// <param name="appPath">Specifies the application path for the custom language.</param>
     /// <param name="packagingService">The packaging service for channel resolution.</param>
     /// <param name="configurationService">The configuration service for reading global settings.</param>
-    public GenericAppHostProject(string appPath, IPackagingService packagingService, IConfigurationService configurationService)
+    /// <param name="logger">The logger for diagnostic output.</param>
+    public AppHostServerProject(string appPath, IPackagingService packagingService, IConfigurationService configurationService, ILogger<AppHostServerProject> logger)
     {
         _appPath = Path.GetFullPath(appPath);
         _appPath = new Uri(_appPath).LocalPath;
         _appPath = OperatingSystem.IsWindows() ? _appPath.ToLowerInvariant() : _appPath;
         _packagingService = packagingService;
         _configurationService = configurationService;
+        _logger = logger;
 
         var pathHash = SHA256.HashData(Encoding.UTF8.GetBytes(_appPath));
         var pathDir = Convert.ToHexString(pathHash)[..12].ToLowerInvariant();
@@ -98,7 +106,7 @@ internal sealed class GenericAppHostProject
     public string BuildPath => Path.Combine(_projectModelPath, BuildFolder);
 
     /// <summary>
-    /// Gets the full path to the GenericAppHost project file.
+    /// Gets the full path to the AppHost server project file.
     /// </summary>
     public string GetProjectFilePath() => Path.Combine(_projectModelPath, ProjectFileName);
 
@@ -431,13 +439,14 @@ internal sealed class GenericAppHostProject
     }
 
     /// <summary>
-    /// Runs the GenericAppHost.
+    /// Runs the AppHost server.
     /// </summary>
     /// <param name="socketPath">The Unix domain socket path for JSON-RPC communication.</param>
     /// <param name="hostPid">The PID of the host process for orphan detection.</param>
     /// <param name="launchSettingsEnvVars">Optional environment variables from apphost.run.json or launchSettings.json.</param>
     /// <param name="additionalArgs">Optional additional command-line arguments (e.g., for publish/deploy).</param>
-    public Process Run(string socketPath, int hostPid, IReadOnlyDictionary<string, string>? launchSettingsEnvVars = null, string[]? additionalArgs = null)
+    /// <returns>A tuple containing the started process and an OutputCollector for capturing output.</returns>
+    public (Process Process, OutputCollector OutputCollector) Run(string socketPath, int hostPid, IReadOnlyDictionary<string, string>? launchSettingsEnvVars = null, string[]? additionalArgs = null)
     {
         var assemblyPath = Path.Combine(BuildPath, ProjectDllName);
         var dotnetExe = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
@@ -480,29 +489,30 @@ internal sealed class GenericAppHostProject
 
         var process = Process.Start(startInfo)!;
 
-        // Forward GenericAppHost output to console
+        // Collect output for error diagnostics (not displayed to user unless there's an error)
+        var outputCollector = new OutputCollector();
         process.OutputDataReceived += (sender, e) =>
         {
             if (e.Data is not null)
             {
-                Console.WriteLine(e.Data);
+                outputCollector.AppendOutput(e.Data);
             }
         };
         process.ErrorDataReceived += (sender, e) =>
         {
             if (e.Data is not null)
             {
-                Console.Error.WriteLine(e.Data);
+                outputCollector.AppendError(e.Data);
             }
         };
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        return process;
+        return (process, outputCollector);
     }
 
     /// <summary>
-    /// Gets the socket path for the GenericAppHost based on the app path.
+    /// Gets the socket path for the AppHost server based on the app path.
     /// </summary>
     public string GetSocketPath()
     {

@@ -19,18 +19,18 @@ internal sealed class TypeScriptCodeGeneratorService : ICodeGenerator
 
     private readonly ILogger<TypeScriptCodeGeneratorService> _logger;
     private readonly IConfiguration _configuration;
-    private readonly IGenericAppHostProjectFactory _genericAppHostProjectFactory;
+    private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
     private readonly CodeGeneratorService _codeGeneratorService;
     private readonly TypeScriptCodeGenerator _typeScriptGenerator;
 
     public TypeScriptCodeGeneratorService(
         ILogger<TypeScriptCodeGeneratorService> logger,
         IConfiguration configuration,
-        IGenericAppHostProjectFactory genericAppHostProjectFactory)
+        IAppHostServerProjectFactory appHostServerProjectFactory)
     {
         _logger = logger;
         _configuration = configuration;
-        _genericAppHostProjectFactory = genericAppHostProjectFactory;
+        _appHostServerProjectFactory = appHostServerProjectFactory;
         _codeGeneratorService = new CodeGeneratorService();
         _typeScriptGenerator = new TypeScriptCodeGenerator();
     }
@@ -48,8 +48,8 @@ internal sealed class TypeScriptCodeGeneratorService : ICodeGenerator
         _logger.LogDebug("Generating TypeScript code for {Count} packages", packagesList.Count);
 
         // Build assembly search paths
-        var genericAppHostProject = _genericAppHostProjectFactory.Create(appPath);
-        var searchPaths = BuildAssemblySearchPaths(genericAppHostProject.BuildPath);
+        var appHostServerProject = _appHostServerProjectFactory.Create(appPath);
+        var searchPaths = BuildAssemblySearchPaths(appHostServerProject.BuildPath);
 
         // Use the shared code generator service
         var fileCount = await _codeGeneratorService.GenerateAsync(
