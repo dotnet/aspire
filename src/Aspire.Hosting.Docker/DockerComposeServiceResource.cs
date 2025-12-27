@@ -2,17 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
 
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Docker.Resources.ServiceNodes;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Execution;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Docker;
@@ -352,46 +354,24 @@ public class DockerComposeServiceResource : Resource, IResourceWithParent<Docker
         var arguments = DockerComposeEnvironmentResource.GetDockerComposeArguments(context, environment);
         arguments += " ps --format json";
 
-        var outputLines = new List<string>();
+        var shell = context.Services.GetRequiredService<IVirtualShell>();
+        var commandLine = $"docker {arguments}";
+        var result = await shell
+            .Cd(outputPath)
+            .RunAsync(commandLine, ct: context.CancellationToken).ConfigureAwait(false);
 
-        var spec = new ProcessSpec("docker")
+        if (!string.IsNullOrEmpty(result.Stderr))
         {
-            Arguments = arguments,
-            WorkingDirectory = outputPath,
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true,
-            OnOutputData = output =>
-            {
-                if (!string.IsNullOrWhiteSpace(output))
-                {
-                    outputLines.Add(output);
-                }
-            },
-            OnErrorData = error =>
-            {
-                if (!string.IsNullOrWhiteSpace(error))
-                {
-                    context.Logger.LogDebug("docker compose ps (stderr): {Error}", error);
-                }
-            }
-        };
-
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(context.CancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                context.Logger.LogDebug("docker compose ps failed with exit code {ExitCode}", processResult.ExitCode);
-                return null;
-            }
+            context.Logger.LogDebug("docker compose ps (stderr): {Error}", result.Stderr);
         }
 
-        return outputLines;
+        if (result.ExitCode != 0)
+        {
+            context.Logger.LogDebug("docker compose ps failed with exit code {ExitCode}", result.ExitCode);
+            return null;
+        }
+
+        return result.StdoutLines.ToList();
     }
 
     /// <summary>

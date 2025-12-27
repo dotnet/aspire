@@ -1,12 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Python;
+using Aspire.Hosting.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -453,7 +456,7 @@ public static class PythonAppResourceBuilderExtensions
             }
 
             c.WithDockerfileBuilder(resource.WorkingDirectory,
-                context =>
+                async context =>
                 {
                     if (!context.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))
                     {
@@ -469,7 +472,8 @@ public static class PythonAppResourceBuilderExtensions
                     if (pythonVersion is null)
                     {
                         var virtualEnvironment = pythonEnvironmentAnnotation?.VirtualEnvironment;
-                        pythonVersion = PythonVersionDetector.DetectVersion(appDirectory, virtualEnvironment);
+                        var shell = context.Services.GetRequiredService<IVirtualShell>();
+                        pythonVersion = await PythonVersionDetector.DetectVersionAsync(appDirectory, virtualEnvironment, shell).ConfigureAwait(false);
                     }
 
                     // if we could not detect Python version, use the default

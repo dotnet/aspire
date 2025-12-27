@@ -3,13 +3,14 @@
 
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Execution;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -235,38 +236,21 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
                 context.Logger.LogDebug("Running docker compose up with arguments: {Arguments}", arguments);
 
-                var spec = new ProcessSpec("docker")
+                var shell = context.Services.GetRequiredService<IVirtualShell>();
+                var commandLine = $"docker {arguments}";
+                var result = await shell
+                    .Cd(outputPath)
+                    .RunAsync(commandLine, ct: context.CancellationToken).ConfigureAwait(false);
+
+                result.LogOutput(context.Logger, "docker compose up");
+
+                if (result.ExitCode != 0)
                 {
-                    Arguments = arguments,
-                    WorkingDirectory = outputPath,
-                    ThrowOnNonZeroReturnCode = false,
-                    InheritEnv = true,
-                    OnOutputData = output =>
-                    {
-                        context.Logger.LogDebug("docker compose up (stdout): {Output}", output);
-                    },
-                    OnErrorData = error =>
-                    {
-                        context.Logger.LogDebug("docker compose up (stderr): {Error}", error);
-                    },
-                };
-
-                var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-                await using (processDisposable)
+                    await deployTask.FailAsync($"docker compose up failed with exit code {result.ExitCode}", cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                }
+                else
                 {
-                    var processResult = await pendingProcessResult
-                        .WaitAsync(context.CancellationToken)
-                        .ConfigureAwait(false);
-
-                    if (processResult.ExitCode != 0)
-                    {
-                        await deployTask.FailAsync($"docker compose up failed with exit code {processResult.ExitCode}", cancellationToken: context.CancellationToken).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await deployTask.CompleteAsync($"Service **{Name}** is now running with Docker Compose locally", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
-                    }
+                    await deployTask.CompleteAsync($"Service **{Name}** is now running with Docker Compose locally", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -297,30 +281,21 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
                 context.Logger.LogDebug("Running docker compose down with arguments: {Arguments}", arguments);
 
-                var spec = new ProcessSpec("docker")
+                var shell = context.Services.GetRequiredService<IVirtualShell>();
+                var commandLine = $"docker {arguments}";
+                var result = await shell
+                    .Cd(outputPath)
+                    .RunAsync(commandLine, ct: context.CancellationToken).ConfigureAwait(false);
+
+                result.LogOutput(context.Logger, "docker compose down");
+
+                if (result.ExitCode != 0)
                 {
-                    Arguments = arguments,
-                    WorkingDirectory = outputPath,
-                    ThrowOnNonZeroReturnCode = false,
-                    InheritEnv = true
-                };
-
-                var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-                await using (processDisposable)
+                    await deployTask.FailAsync($"docker compose down failed with exit code {result.ExitCode}", cancellationToken: context.CancellationToken).ConfigureAwait(false);
+                }
+                else
                 {
-                    var processResult = await pendingProcessResult
-                        .WaitAsync(context.CancellationToken)
-                        .ConfigureAwait(false);
-
-                    if (processResult.ExitCode != 0)
-                    {
-                        await deployTask.FailAsync($"docker compose down failed with exit code {processResult.ExitCode}", cancellationToken: context.CancellationToken).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await deployTask.CompleteAsync($"Docker Compose shutdown complete for **{Name}**", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
-                    }
+                    await deployTask.CompleteAsync($"Docker Compose shutdown complete for **{Name}**", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)

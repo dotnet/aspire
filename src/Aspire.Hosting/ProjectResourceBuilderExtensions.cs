@@ -385,8 +385,9 @@ public static class ProjectResourceBuilderExtensions
             }
 
             // Validate .NET version
+            var dotnetSdkService = e.Services.GetRequiredService<IDotnetSdkService>();
             if (((IProjectMetadata)projectMetadata).IsFileBasedApp
-                && await DotnetSdkUtils.TryGetVersionAsync(Path.GetDirectoryName(projectPath)).ConfigureAwait(false) is { } version
+                && await dotnetSdkService.TryGetVersionAsync(Path.GetDirectoryName(projectPath)).ConfigureAwait(false) is { } version
                 && version.Major < 10)
             {
                 // File-based apps are only supported on .NET 10 or later

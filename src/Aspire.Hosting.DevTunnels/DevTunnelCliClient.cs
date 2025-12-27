@@ -1,19 +1,22 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aspire.Hosting.Execution;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.DevTunnels;
 
-internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTunnelClient
+internal sealed class DevTunnelCliClient(IConfiguration configuration, IVirtualShell shell) : IDevTunnelClient
 {
     private readonly int _maxCliAttempts = configuration.GetValue<int?>("ASPIRE_DEVTUNNEL_CLI_MAX_ATTEMPTS") ?? 3;
     private readonly TimeSpan _cliRetryOnErrorDelay = TimeSpan.FromSeconds(2);
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
-    private readonly DevTunnelCli _cli = new(DevTunnelCli.GetCliPath(configuration));
+    private readonly DevTunnelCli _cli = new(DevTunnelCli.GetCliPath(configuration), shell);
 
     public async Task<Version> GetVersionAsync(ILogger? logger = default, CancellationToken cancellationToken = default)
     {
