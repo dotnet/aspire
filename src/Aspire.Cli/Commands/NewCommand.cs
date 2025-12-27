@@ -33,6 +33,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
     private readonly ILanguageService _languageService;
+    private readonly IAppHostProjectFactory _projectFactory;
 
     /// <summary>
     /// NewCommand prefetches both template and CLI package metadata.
@@ -57,7 +58,8 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment,
-        ILanguageService languageService)
+        ILanguageService languageService,
+        IAppHostProjectFactory projectFactory)
         : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -69,6 +71,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(languageService);
+        ArgumentNullException.ThrowIfNull(projectFactory);
 
         _runner = runner;
         _nuGetPackageCache = nuGetPackageCache;
@@ -81,6 +84,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
         _languageService = languageService;
+        _projectFactory = projectFactory;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -150,12 +154,14 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         // Check if language is explicitly specified
         var explicitLanguage = parseResult.GetValue<string?>("--language");
 
-        // If language is TypeScript, create polyglot apphost
-        if (!string.IsNullOrWhiteSpace(explicitLanguage) &&
-            AppHostLanguageExtensions.TryParse(explicitLanguage, out var language) &&
-            language is AppHostLanguage.TypeScript)
+        // If a non-C# language is specified, create polyglot apphost
+        if (!string.IsNullOrWhiteSpace(explicitLanguage))
         {
-            return await CreatePolyglotProjectAsync(parseResult, language, cancellationToken);
+            var project = _projectFactory.GetProjectByLanguageId(explicitLanguage);
+            if (project is not null && project.LanguageId != KnownLanguageId.CSharp)
+            {
+                return await CreatePolyglotProjectAsync(parseResult, project, cancellationToken);
+            }
         }
 
         // For C# or unspecified language, use the existing template system
@@ -175,7 +181,7 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return templateResult.ExitCode;
     }
 
-    private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, AppHostLanguage language, CancellationToken cancellationToken)
+    private async Task<int> CreatePolyglotProjectAsync(ParseResult parseResult, IAppHostProject project, CancellationToken cancellationToken)
     {
         // Get project name
         var projectName = parseResult.GetValue<string>("--name");
@@ -204,15 +210,12 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var directory = new DirectoryInfo(outputPath);
 
         // Save language preference
-        await _languageService.SetLanguageAsync(language, isGlobal: false, cancellationToken);
+        await _languageService.SetLanguageAsync(project, isGlobal: false, cancellationToken);
 
-        // Create the apphost files
-        if (language == AppHostLanguage.TypeScript)
-        {
-            await CreateTypeScriptProjectAsync(directory, projectName, cancellationToken);
-        }
+        // Create the apphost files using the project handler
+        await project.ScaffoldAsync(directory, projectName, cancellationToken);
 
-        InteractionService.DisplaySuccess($"Created {language.GetDisplayName()} project at {outputPath}");
+        InteractionService.DisplaySuccess($"Created {project.DisplayName} project at {outputPath}");
         InteractionService.DisplayMessage("information", "Run 'aspire run' to start your AppHost.");
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
@@ -222,83 +225,6 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         return ExitCodeConstants.Success;
     }
-
-    private static async Task CreateTypeScriptProjectAsync(DirectoryInfo directory, string projectName, CancellationToken cancellationToken)
-    {
-        var appHostPath = Path.Combine(directory.FullName, "apphost.ts");
-        var packageJsonPath = Path.Combine(directory.FullName, "package.json");
-
-        // Create a TypeScript apphost that uses the generated Aspire SDK
-        var appHostContent = """
-            // Aspire TypeScript AppHost
-            // For more information, see: https://learn.microsoft.com/dotnet/aspire
-
-            // Import from the generated module (created by 'aspire run' code generation)
-            import { createBuilder } from './.modules/distributed-application.js';
-
-            // Create the distributed application builder
-            const builder = await createBuilder();
-
-            // Add your resources here, for example:
-            // const redis = await builder.addContainer("cache", "redis:latest");
-            // const postgres = await builder.addPostgres("db");
-
-            // Build and run the application
-            const app = builder.build();
-            await app.run();
-            """;
-
-        await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
-
-        var packageJsonContent = $$"""
-            {
-              "name": "{{projectName.ToLowerInvariant()}}",
-              "version": "1.0.0",
-              "type": "module",
-              "scripts": {
-                "start": "aspire run"
-              },
-              "dependencies": {
-                "vscode-jsonrpc": "^8.2.0"
-              },
-              "devDependencies": {
-                "tsx": "^4.19.0",
-                "typescript": "^5.3.0",
-                "@types/node": "^20.0.0"
-              }
-            }
-            """;
-
-        await File.WriteAllTextAsync(packageJsonPath, packageJsonContent, cancellationToken);
-
-        // Create apphost.run.json for dashboard/OTLP configuration
-        var apphostRunJsonPath = Path.Combine(directory.FullName, "apphost.run.json");
-
-        // Generate random 5-digit ports (10000-65000)
-        var httpsPort = Random.Shared.Next(10000, 65000);
-        var httpPort = Random.Shared.Next(10000, 65000);
-        var otlpPort = Random.Shared.Next(10000, 65000);
-        var resourceServicePort = Random.Shared.Next(10000, 65000);
-
-        var apphostRunJsonContent = $$"""
-            {
-              "profiles": {
-                "https": {
-                  "applicationUrl": "https://localhost:{{httpsPort}};http://localhost:{{httpPort}}",
-                  "environmentVariables": {
-                    "ASPNETCORE_ENVIRONMENT": "Development",
-                    "DOTNET_ENVIRONMENT": "Development",
-                    "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:{{otlpPort}}",
-                    "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:{{resourceServicePort}}"
-                  }
-                }
-              }
-            }
-            """;
-
-        await File.WriteAllTextAsync(apphostRunJsonPath, apphostRunJsonContent, cancellationToken);
-    }
-
 }
 
 internal interface INewCommandPrompter

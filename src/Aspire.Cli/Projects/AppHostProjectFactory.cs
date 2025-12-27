@@ -4,7 +4,7 @@
 namespace Aspire.Cli.Projects;
 
 /// <summary>
-/// Factory for getting AppHost projects based on the project type.
+/// Factory for getting AppHost projects based on the file being handled.
 /// </summary>
 internal sealed class AppHostProjectFactory : IAppHostProjectFactory
 {
@@ -16,15 +16,13 @@ internal sealed class AppHostProjectFactory : IAppHostProjectFactory
     }
 
     /// <inheritdoc />
-    public IAppHostProject GetProject(AppHostType type)
+    public IAppHostProject GetProject(FileInfo appHostFile)
     {
-        // Map single-file .cs apphosts to the same handler as project-based apphosts
-        var lookupType = type == AppHostType.DotNetSingleFile ? AppHostType.DotNetProject : type;
-        var project = _projects.FirstOrDefault(p => p.SupportedType == lookupType);
+        var project = _projects.FirstOrDefault(p => p.CanHandle(appHostFile));
 
         if (project is null)
         {
-            throw new NotSupportedException($"No handler available for AppHost type '{type}'.");
+            throw new NotSupportedException($"No handler available for AppHost file '{appHostFile.Name}'.");
         }
 
         return project;
@@ -33,51 +31,18 @@ internal sealed class AppHostProjectFactory : IAppHostProjectFactory
     /// <inheritdoc />
     public IAppHostProject? TryGetProject(FileInfo appHostFile)
     {
-        var type = DetectAppHostType(appHostFile);
-
-        if (type is null)
-        {
-            return null;
-        }
-
-        return _projects.FirstOrDefault(p => p.SupportedType == type.Value);
+        return _projects.FirstOrDefault(p => p.CanHandle(appHostFile));
     }
 
-    /// <summary>
-    /// Detects the AppHost type from the file.
-    /// </summary>
-    private static AppHostType? DetectAppHostType(FileInfo appHostFile)
+    /// <inheritdoc />
+    public IAppHostProject? GetProjectByLanguageId(string languageId)
     {
-        var extension = appHostFile.Extension.ToLowerInvariant();
-
-        return extension switch
-        {
-            ".csproj" or ".fsproj" or ".vbproj" => AppHostType.DotNetProject,
-            ".cs" => AppHostType.DotNetSingleFile,
-            ".ts" => AppHostType.TypeScript,
-            ".json" when appHostFile.Name.Equals("aspire.json", StringComparison.OrdinalIgnoreCase) => DetectFromAspireJson(appHostFile),
-            _ => null
-        };
+        return _projects.FirstOrDefault(p => p.LanguageId.Equals(languageId, StringComparison.OrdinalIgnoreCase));
     }
 
-    /// <summary>
-    /// Detects the AppHost type from an aspire.json file.
-    /// </summary>
-    private static AppHostType? DetectFromAspireJson(FileInfo aspireJsonFile)
+    /// <inheritdoc />
+    public IEnumerable<IAppHostProject> GetAllProjects()
     {
-        // Look for sibling apphost.ts file
-        var directory = aspireJsonFile.Directory;
-        if (directory is null)
-        {
-            return null;
-        }
-
-        if (File.Exists(Path.Combine(directory.FullName, "apphost.ts")))
-        {
-            return AppHostType.TypeScript;
-        }
-
-        // TODO: Parse aspire.json to check for language field
-        return null;
+        return _projects;
     }
 }

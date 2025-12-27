@@ -44,10 +44,7 @@ internal sealed class TestProjectLocator : IProjectLocator
             return new AppHostProjectSearchResult(null, []);
         }
 
-        return new AppHostProjectSearchResult(appHostFile, [appHostFile])
-        {
-            DetectedType = AppHostType.DotNetProject
-        };
+        return new AppHostProjectSearchResult(appHostFile, [appHostFile]);
     }
 
     public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)

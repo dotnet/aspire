@@ -126,10 +126,10 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         // Get the language selection (from command line, config, or prompt)
         var explicitLanguage = parseResult.GetValue<string?>("--language");
-        var selectedLanguage = await _languageService.GetOrPromptForLanguageAsync(explicitLanguage, saveSelection: true, cancellationToken);
+        var selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
 
         // For C#, we need the .NET SDK
-        if (selectedLanguage == AppHostLanguage.CSharp)
+        if (selectedProject.LanguageId == KnownLanguageId.CSharp)
         {
             if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
             {
@@ -144,12 +144,12 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         initContext.SelectedSolutionFile = await _solutionLocator.FindSolutionFileAsync(_executionContext.WorkingDirectory, cancellationToken);
 
         // For non-C# languages, skip solution detection and create polyglot apphost
-        if (selectedLanguage != AppHostLanguage.CSharp)
+        if (selectedProject.LanguageId != KnownLanguageId.CSharp)
         {
             InteractionService.DisplayEmptyLine();
-            InteractionService.DisplayMessage("information", $"Creating {selectedLanguage.GetDisplayName()} AppHost...");
+            InteractionService.DisplayMessage("information", $"Creating {selectedProject.DisplayName} AppHost...");
             InteractionService.DisplayEmptyLine();
-            return await CreatePolyglotAppHostAsync(selectedLanguage, cancellationToken);
+            return await CreatePolyglotAppHostAsync(selectedProject, cancellationToken);
         }
 
         if (initContext.SelectedSolutionFile is not null)
@@ -530,10 +530,10 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
     }
 
-    private async Task<int> CreatePolyglotAppHostAsync(AppHostLanguage language, CancellationToken cancellationToken)
+    private async Task<int> CreatePolyglotAppHostAsync(IAppHostProject project, CancellationToken cancellationToken)
     {
         var workingDirectory = _executionContext.WorkingDirectory;
-        var appHostFileName = language.GetAppHostFileName();
+        var appHostFileName = project.AppHostFileName;
         var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
 
         // Check if apphost already exists
@@ -543,97 +543,12 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             return ExitCodeConstants.Success;
         }
 
-        // Create the apphost file based on language
-        if (language == AppHostLanguage.TypeScript)
-        {
-            await CreateTypeScriptAppHostAsync(workingDirectory, cancellationToken);
-        }
+        // Create the apphost project using the project handler
+        await project.ScaffoldAsync(workingDirectory, projectName: null, cancellationToken);
 
         InteractionService.DisplaySuccess($"Created {appHostFileName}");
         InteractionService.DisplayMessage("information", $"Run 'aspire run' to start your AppHost.");
         return ExitCodeConstants.Success;
-    }
-
-    private static async Task CreateTypeScriptAppHostAsync(DirectoryInfo directory, CancellationToken cancellationToken)
-    {
-        var appHostPath = Path.Combine(directory.FullName, "apphost.ts");
-        var packageJsonPath = Path.Combine(directory.FullName, "package.json");
-
-        // Create a TypeScript apphost that uses the generated Aspire SDK
-        var appHostContent = """
-            // Aspire TypeScript AppHost
-            // For more information, see: https://learn.microsoft.com/dotnet/aspire
-
-            // Import from the generated module (created by 'aspire run' code generation)
-            import { createBuilder } from './.modules/distributed-application.js';
-
-            // Create the distributed application builder
-            const builder = await createBuilder();
-
-            // Add your resources here, for example:
-            // const redis = await builder.addContainer("cache", "redis:latest");
-            // const postgres = await builder.addPostgres("db");
-
-            // Build and run the application
-            const app = builder.build();
-            await app.run();
-            """;
-
-        await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
-
-        // Create package.json if it doesn't exist
-        if (!File.Exists(packageJsonPath))
-        {
-            var packageJsonContent = """
-                {
-                  "name": "aspire-apphost",
-                  "version": "1.0.0",
-                  "type": "module",
-                  "scripts": {
-                    "start": "aspire run"
-                  },
-                  "dependencies": {
-                    "vscode-jsonrpc": "^8.2.0"
-                  },
-                  "devDependencies": {
-                    "tsx": "^4.19.0",
-                    "typescript": "^5.3.0",
-                    "@types/node": "^20.0.0"
-                  }
-                }
-                """;
-
-            await File.WriteAllTextAsync(packageJsonPath, packageJsonContent, cancellationToken);
-        }
-
-        // Create apphost.run.json for dashboard/OTLP configuration
-        var apphostRunJsonPath = Path.Combine(directory.FullName, "apphost.run.json");
-        if (!File.Exists(apphostRunJsonPath))
-        {
-            // Generate random 5-digit ports (10000-65000)
-            var httpsPort = Random.Shared.Next(10000, 65000);
-            var httpPort = Random.Shared.Next(10000, 65000);
-            var otlpPort = Random.Shared.Next(10000, 65000);
-            var resourceServicePort = Random.Shared.Next(10000, 65000);
-
-            var apphostRunJsonContent = $$"""
-                {
-                  "profiles": {
-                    "https": {
-                      "applicationUrl": "https://localhost:{{httpsPort}};http://localhost:{{httpPort}}",
-                      "environmentVariables": {
-                        "ASPNETCORE_ENVIRONMENT": "Development",
-                        "DOTNET_ENVIRONMENT": "Development",
-                        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:{{otlpPort}}",
-                        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:{{resourceServicePort}}"
-                      }
-                    }
-                  }
-                }
-                """;
-
-            await File.WriteAllTextAsync(apphostRunJsonPath, apphostRunJsonContent, cancellationToken);
-        }
     }
 
     private async Task<int> CreateEmptyAppHostAsync(ParseResult parseResult, CancellationToken cancellationToken)

@@ -212,41 +212,6 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         return hasAspireJson || hasPackageJson;
     }
 
-    private static AppHostType? DetectAppHostTypeFromAspireJson(FileInfo aspireJsonFile)
-    {
-        // Look for sibling apphost.ts file
-        var directory = aspireJsonFile.Directory;
-        if (directory is null)
-        {
-            return null;
-        }
-
-        if (File.Exists(Path.Combine(directory.FullName, "apphost.ts")))
-        {
-            return AppHostType.TypeScript;
-        }
-
-        // TODO: Parse aspire.json to check for language field
-        return null;
-    }
-
-    /// <summary>
-    /// Detects the AppHost type from the file extension and content.
-    /// </summary>
-    internal static AppHostType? DetectAppHostType(FileInfo appHostFile)
-    {
-        var extension = appHostFile.Extension.ToLowerInvariant();
-
-        return extension switch
-        {
-            ".csproj" or ".fsproj" or ".vbproj" => AppHostType.DotNetProject,
-            ".cs" => AppHostType.DotNetSingleFile,
-            ".ts" => AppHostType.TypeScript,
-            ".json" when appHostFile.Name.Equals("aspire.json", StringComparison.OrdinalIgnoreCase) => DetectAppHostTypeFromAspireJson(appHostFile),
-            _ => null
-        };
-    }
-
     private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)
     {
         var searchDirectory = executionContext.WorkingDirectory;
@@ -445,7 +410,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     if (await IsValidSingleFileAppHostAsync(projectFile, cancellationToken))
                     {
                         logger.LogDebug("Using single-file apphost {ProjectFile}", projectFile.FullName);
-                        return new AppHostProjectSearchResult(projectFile, [projectFile]) { DetectedType = AppHostType.DotNetSingleFile };
+                        return new AppHostProjectSearchResult(projectFile, [projectFile]);
                     }
                     else if (projectFile.Directory is { } parentDirectory)
                     {
@@ -463,7 +428,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     if (IsValidTypeScriptAppHost(projectFile))
                     {
                         logger.LogDebug("Using TypeScript apphost {ProjectFile}", projectFile.FullName);
-                        return new AppHostProjectSearchResult(projectFile, [projectFile]) { DetectedType = AppHostType.TypeScript };
+                        return new AppHostProjectSearchResult(projectFile, [projectFile]);
                     }
                     else
                     {
@@ -474,7 +439,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 else if (s_supportedProjectFileExtensions.Contains(projectFile.Extension))
                 {
                     logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
-                    return new AppHostProjectSearchResult(projectFile, [projectFile]) { DetectedType = AppHostType.DotNetProject };
+                    return new AppHostProjectSearchResult(projectFile, [projectFile]);
                 }
                 // Reject other extensions
                 else
@@ -488,7 +453,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         if (projectFile is not null)
         {
-            return new AppHostProjectSearchResult(projectFile, [projectFile]) { DetectedType = DetectAppHostType(projectFile) };
+            return new AppHostProjectSearchResult(projectFile, [projectFile]);
         }
 
         logger.LogDebug("No project file specified, searching for *.csproj files in {CurrentDirectory}", executionContext.WorkingDirectory);
@@ -527,10 +492,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             await CreateSettingsFileAsync(selectedAppHost!, cancellationToken);
         }
 
-        return new AppHostProjectSearchResult(selectedAppHost, results.BuildableAppHost)
-        {
-            DetectedType = selectedAppHost is not null ? DetectAppHostType(selectedAppHost) : null
-        };
+        return new AppHostProjectSearchResult(selectedAppHost, results.BuildableAppHost);
     }
 
     public async Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken = default)
@@ -626,18 +588,7 @@ internal class ProjectLocatorException : System.Exception
     public ProjectLocatorException(string message) : base(message) { }
 }
 
-internal record AppHostProjectSearchResult(FileInfo? SelectedProjectFile, List<FileInfo> AllProjectFileCandidates)
-{
-    /// <summary>
-    /// Gets the detected type of the selected AppHost file.
-    /// </summary>
-    public AppHostType? DetectedType { get; init; }
-}
-
-/// <summary>
-/// Represents an AppHost candidate with its detected type.
-/// </summary>
-internal record AppHostCandidate(FileInfo File, AppHostType Type);
+internal record AppHostProjectSearchResult(FileInfo? SelectedProjectFile, List<FileInfo> AllProjectFileCandidates);
 
 internal enum MultipleAppHostProjectsFoundBehavior
 {

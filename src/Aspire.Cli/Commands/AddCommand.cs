@@ -85,11 +85,10 @@ internal sealed class AddCommand : BaseCommand
             }
 
             // Get the appropriate project handler
-            var detectedType = searchResult.DetectedType ?? AppHostType.DotNetProject;
-            var project = _projectFactory.GetProject(detectedType);
+            var project = _projectFactory.GetProject(effectiveAppHostProjectFile);
 
             // Check if the .NET SDK is available (only needed for .NET projects)
-            if (detectedType is AppHostType.DotNetProject or AppHostType.DotNetSingleFile)
+            if (project.LanguageId == KnownLanguageId.CSharp)
             {
                 if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
                 {

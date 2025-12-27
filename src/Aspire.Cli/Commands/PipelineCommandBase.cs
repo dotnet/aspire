@@ -134,8 +134,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            var appHostType = searchResult.DetectedType ?? AppHostType.DotNetProject;
-            var project = _projectFactory.GetProject(appHostType);
+            var project = _projectFactory.GetProject(effectiveAppHostFile);
 
             var env = new Dictionary<string, string>();
 
@@ -162,7 +161,6 @@ internal abstract class PipelineCommandBase : BaseCommand
             var publishContext = new PublishContext
             {
                 AppHostFile = effectiveAppHostFile,
-                Type = appHostType,
                 OutputPath = fullyQualifiedOutputPath,
                 EnvironmentVariables = env,
                 Arguments = GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens, parseResult),

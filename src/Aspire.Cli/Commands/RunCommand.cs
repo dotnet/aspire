@@ -134,14 +134,13 @@ internal sealed class RunCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            if (searchResult.DetectedType is null)
+            // Use the project factory to get the appropriate handler for the apphost file
+            var project = _projectFactory.TryGetProject(effectiveAppHostFile);
+            if (project is null)
             {
                 InteractionService.DisplayError("Unrecognized app host type.");
                 return ExitCodeConstants.FailedToFindProject;
             }
-
-            // Use the project factory to get the appropriate handler for the apphost type
-            var project = _projectFactory.GetProject(searchResult.DetectedType.Value);
 
             // Check for running instance if feature is enabled
             if (runningInstanceDetectionEnabled)
@@ -159,7 +158,6 @@ internal sealed class RunCommand : BaseCommand
             var context = new AppHostProjectContext
             {
                 AppHostFile = effectiveAppHostFile,
-                Type = searchResult.DetectedType.Value,
                 Watch = false,
                 Debug = parseResult.GetValue<bool>("--debug"),
                 NoBuild = false,

@@ -165,36 +165,59 @@ The `OrphanDetector` is critical for preventing zombie processes. When the CLI s
 
 ## CLI Coordination
 
-The CLI uses the `IAppHostProject` interface to abstract language-specific behavior. Each supported app host type has its own implementation, allowing CLI commands to work uniformly across languages.
+The CLI uses the `IAppHostProject` interface as the **single extension point** for language support. Each language implements this interface, which handles identity, detection, creation, and execution concerns. This design allows adding a new language by implementing one class and registering it in DI.
 
 ```mermaid
 classDiagram
     class IAppHostProject {
         <<interface>>
-        +RunAsync()
-        +PublishAsync()
-        +ValidateAsync()
-        +AddPackageAsync()
+        +LanguageId: string
+        +DisplayName: string
+        +DetectionPatterns: string[]
+        +AppHostFileName: string
+        +CanHandle(FileInfo): bool
+        +ScaffoldAsync(DirectoryInfo, string?, CancellationToken)
+        +RunAsync(AppHostProjectContext, CancellationToken)
+        +PublishAsync(PublishContext, CancellationToken)
+        +ValidateAsync(FileInfo, CancellationToken)
+        +AddPackageAsync(AddPackageContext, CancellationToken)
     }
 
     class DotNetAppHostProject {
-        .csproj / .cs files
+        LanguageId = "csharp"
+        DetectionPatterns = ["*.csproj", "apphost.cs"]
     }
 
-    class PolyglotAppHostProject {
-        Guest language entry point
+    class TypeScriptAppHostProject {
+        LanguageId = "typescript"
+        DetectionPatterns = ["apphost.ts"]
     }
 
     IAppHostProject <|.. DotNetAppHostProject
-    IAppHostProject <|.. PolyglotAppHostProject
+    IAppHostProject <|.. TypeScriptAppHostProject
 
+    InitCommand --> IAppHostProject : ScaffoldAsync
+    NewCommand --> IAppHostProject : ScaffoldAsync
     RunCommand --> IAppHostProject : RunAsync
     PipelineCommands --> IAppHostProject : PublishAsync
     AddCommand --> IAppHostProject : AddPackageAsync
 ```
 
+### Interface Responsibilities
+
+| Category | Members | Purpose |
+|----------|---------|---------|
+| **Identity** | `LanguageId`, `DisplayName` | Unique identifier for config storage, human-readable name for prompts |
+| **Detection** | `DetectionPatterns`, `CanHandle()` | File patterns for discovery, validation of specific files |
+| **Creation** | `AppHostFileName`, `ScaffoldAsync()` | Default filename, scaffolding new projects |
+| **Execution** | `RunAsync()`, `PublishAsync()`, `ValidateAsync()`, `AddPackageAsync()` | CLI command implementations |
+
+### CLI Command Mapping
+
 | CLI Command | IAppHostProject Method | Description |
 |-------------|------------------------|-------------|
+| `aspire init` | `ScaffoldAsync` | Create apphost in current directory |
+| `aspire new` | `ScaffoldAsync` | Create new project with apphost |
 | `aspire run` | `RunAsync` | Build and run in development mode |
 | `aspire publish` / `deploy` / `do` | `PublishAsync` | Build and run in publish mode |
 | `aspire add` | `AddPackageAsync` | Add an integration package |
@@ -499,38 +522,92 @@ main();
 
 ## Adding New Guest Languages
 
-The polyglot architecture supports additional languages. The host-side infrastructure (`Aspire.Hosting.RemoteHost`) is language-agnostic—only code generation and CLI integration are language-specific. To add a new language, implement `IAppHostProject`—this single interface handles all language-specific concerns including code generation.
+The polyglot architecture supports additional languages. The host-side infrastructure (`Aspire.Hosting.RemoteHost`) is language-agnostic—only code generation and CLI integration are language-specific.
+
+**Adding a new language requires only two steps:**
+1. Create a class implementing `IAppHostProject`
+2. Register it in DI
+
+### IAppHostProject Implementation
+
+The `IAppHostProject` interface is the **single extension point** for new languages. It consolidates all language-specific concerns:
+
+```csharp
+internal interface IAppHostProject
+{
+    /// <summary>
+    /// Gets the unique identifier for this language (e.g., "csharp", "typescript").
+    /// Used for configuration storage and CLI arguments.
+    /// </summary>
+    string LanguageId { get; }
+
+    /// <summary>
+    /// Gets the human-readable display name (e.g., "C# (.NET)", "TypeScript (Node.js)").
+    /// </summary>
+    string DisplayName { get; }
+
+    /// <summary>
+    /// Gets the file patterns to search for when detecting apphosts.
+    /// Examples: ["*.csproj", "*.fsproj", "apphost.cs"] or ["apphost.ts"]
+    /// </summary>
+    string[] DetectionPatterns { get; }
+
+    /// <summary>
+    /// Determines if this handler can process the given file.
+    /// Called after DetectionPatterns match to do deeper validation.
+    /// </summary>
+    bool CanHandle(FileInfo appHostFile);
+
+    /// <summary>
+    /// Gets the default apphost filename for this language (e.g., "apphost.cs", "apphost.ts").
+    /// </summary>
+    string AppHostFileName { get; }
+
+    /// <summary>
+    /// Creates a new apphost project in the specified directory.
+    /// </summary>
+    Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken ct);
+
+    /// <summary>
+    /// Runs the AppHost project.
+    /// </summary>
+    Task<int> RunAsync(AppHostProjectContext context, CancellationToken ct);
+
+    /// <summary>
+    /// Publishes the AppHost project.
+    /// </summary>
+    Task<int> PublishAsync(PublishContext context, CancellationToken ct);
+
+    /// <summary>
+    /// Validates that the AppHost file is compatible with this runner.
+    /// </summary>
+    Task<bool> ValidateAsync(FileInfo appHostFile, CancellationToken ct);
+
+    /// <summary>
+    /// Adds a package to the AppHost project.
+    /// </summary>
+    Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken ct);
+
+    /// <summary>
+    /// Checks for and handles any running instance of this AppHost.
+    /// </summary>
+    Task<bool> CheckAndHandleRunningInstanceAsync(FileInfo appHostFile, DirectoryInfo homeDir, CancellationToken ct);
+}
+```
+
+Register as an enumerable service:
+
+```csharp
+services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, MyLanguageAppHostProject>());
+```
 
 ### Components to Implement
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| AppHost Project | `Aspire.Cli/Projects/<Language>AppHostProject.cs` | Implement `IAppHostProject` with code generation |
+| AppHost Project | `Aspire.Cli/Projects/<Language>AppHostProject.cs` | Implement `IAppHostProject` |
 | Code Generator | `Aspire.Hosting.CodeGeneration.<Language>` | Generate idiomatic SDK from `ApplicationModel` |
-| Project Locator | `Aspire.Cli/Projects/ProjectLocator.cs` | Detect entry point file |
 | Runtime Client | Embedded or generated | JSON-RPC client with proxy classes |
-
-### IAppHostProject Implementation
-
-The `IAppHostProject` interface is the single extension point for new languages. Implement this interface to handle all CLI commands and integrate code generation:
-
-```csharp
-internal interface IAppHostProject
-{
-    AppHostType SupportedType { get; }
-
-    Task<int> RunAsync(AppHostProjectContext context, CancellationToken cancellationToken);
-    Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken);
-    Task<bool> ValidateAsync(FileInfo appHostFile, CancellationToken cancellationToken);
-    Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken);
-}
-```
-
-Register with a keyed service for the `AppHostType`:
-
-```csharp
-services.AddKeyedSingleton<IAppHostProject, PythonAppHostProject>(AppHostType.Python);
-```
 
 ### Code Generation
 

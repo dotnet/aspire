@@ -9,31 +9,33 @@ namespace Aspire.Cli.Projects;
 internal interface ILanguageService
 {
     /// <summary>
-    /// Gets the configured language from settings, or null if not set.
+    /// Gets the IAppHostProject matching the saved language config, or null if not configured.
     /// </summary>
-    Task<AppHostLanguage?> GetConfiguredLanguageAsync(CancellationToken cancellationToken = default);
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The configured project handler, or null if not set.</returns>
+    Task<IAppHostProject?> GetConfiguredProjectAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Sets the language in the configuration.
+    /// Saves the project's language ID to configuration.
     /// </summary>
-    /// <param name="language">The language to save.</param>
+    /// <param name="project">The project handler to save.</param>
     /// <param name="isGlobal">Whether to save to global settings.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task SetLanguageAsync(AppHostLanguage language, bool isGlobal = false, CancellationToken cancellationToken = default);
+    Task SetLanguageAsync(IAppHostProject project, bool isGlobal = false, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Prompts the user to select a language interactively.
+    /// Prompts the user to select from registered IAppHostProject implementations.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The selected language.</returns>
-    Task<AppHostLanguage> PromptForLanguageAsync(CancellationToken cancellationToken = default);
+    /// <returns>The selected project handler.</returns>
+    Task<IAppHostProject> PromptForProjectAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets the language to use, prompting if not already configured.
+    /// Gets the configured project or prompts, validating explicit language ID.
     /// </summary>
-    /// <param name="explicitLanguage">An explicitly specified language (e.g., from command line).</param>
+    /// <param name="explicitLanguageId">An explicitly specified language ID (e.g., from command line).</param>
     /// <param name="saveSelection">Whether to save the selection to config if prompted.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The language to use.</returns>
-    Task<AppHostLanguage> GetOrPromptForLanguageAsync(string? explicitLanguage = null, bool saveSelection = true, CancellationToken cancellationToken = default);
+    /// <returns>The project handler to use.</returns>
+    Task<IAppHostProject> GetOrPromptForProjectAsync(string? explicitLanguageId = null, bool saveSelection = true, CancellationToken cancellationToken = default);
 }

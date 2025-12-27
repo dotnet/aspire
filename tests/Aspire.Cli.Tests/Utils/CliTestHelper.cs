@@ -384,7 +384,9 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, ILanguageService> LanguageServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        return new TestLanguageService();
+        var projects = serviceProvider.GetServices<IAppHostProject>();
+        var defaultProject = projects.FirstOrDefault(p => p.LanguageId == KnownLanguageId.CSharp);
+        return new TestLanguageService { DefaultProject = defaultProject };
     };
 }
 

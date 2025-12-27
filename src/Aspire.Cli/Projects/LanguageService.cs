@@ -15,46 +15,46 @@ internal sealed class LanguageService : ILanguageService
 
     private readonly IConfigurationService _configurationService;
     private readonly IInteractionService _interactionService;
+    private readonly IAppHostProjectFactory _projectFactory;
 
     public LanguageService(
         IConfigurationService configurationService,
-        IInteractionService interactionService)
+        IInteractionService interactionService,
+        IAppHostProjectFactory projectFactory)
     {
         _configurationService = configurationService;
         _interactionService = interactionService;
+        _projectFactory = projectFactory;
     }
 
     /// <inheritdoc />
-    public async Task<AppHostLanguage?> GetConfiguredLanguageAsync(CancellationToken cancellationToken = default)
+    public async Task<IAppHostProject?> GetConfiguredProjectAsync(CancellationToken cancellationToken = default)
     {
-        var languageValue = await _configurationService.GetConfigurationAsync(LanguageConfigKey, cancellationToken);
+        var languageId = await _configurationService.GetConfigurationAsync(LanguageConfigKey, cancellationToken);
 
-        if (AppHostLanguageExtensions.TryParse(languageValue, out var language))
+        if (string.IsNullOrWhiteSpace(languageId))
         {
-            return language;
+            return null;
         }
 
-        return null;
+        return _projectFactory.GetProjectByLanguageId(languageId);
     }
 
     /// <inheritdoc />
-    public async Task SetLanguageAsync(AppHostLanguage language, bool isGlobal = false, CancellationToken cancellationToken = default)
+    public async Task SetLanguageAsync(IAppHostProject project, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
         await _configurationService.SetConfigurationAsync(
             LanguageConfigKey,
-            language.ToConfigValue(),
+            project.LanguageId,
             isGlobal,
             cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<AppHostLanguage> PromptForLanguageAsync(CancellationToken cancellationToken = default)
+    public async Task<IAppHostProject> PromptForProjectAsync(CancellationToken cancellationToken = default)
     {
-        var languages = new Dictionary<AppHostLanguage, string>
-        {
-            { AppHostLanguage.CSharp, AppHostLanguage.CSharp.GetDisplayName() },
-            { AppHostLanguage.TypeScript, AppHostLanguage.TypeScript.GetDisplayName() }
-        };
+        var projects = _projectFactory.GetAllProjects()
+            .ToDictionary(p => p, p => p.DisplayName);
 
         _interactionService.DisplayEmptyLine();
         _interactionService.DisplayMarkdown("""
@@ -67,7 +67,7 @@ internal sealed class LanguageService : ILanguageService
 
         var selected = await _interactionService.PromptForSelectionAsync(
             "Which language would you like to use?",
-            languages,
+            projects,
             kvp => kvp.Value,
             cancellationToken);
 
@@ -75,40 +75,42 @@ internal sealed class LanguageService : ILanguageService
     }
 
     /// <inheritdoc />
-    public async Task<AppHostLanguage> GetOrPromptForLanguageAsync(
-        string? explicitLanguage = null,
+    public async Task<IAppHostProject> GetOrPromptForProjectAsync(
+        string? explicitLanguageId = null,
         bool saveSelection = true,
         CancellationToken cancellationToken = default)
     {
         // If explicitly specified, use that
-        if (!string.IsNullOrWhiteSpace(explicitLanguage))
+        if (!string.IsNullOrWhiteSpace(explicitLanguageId))
         {
-            if (AppHostLanguageExtensions.TryParse(explicitLanguage, out var language))
+            var project = _projectFactory.GetProjectByLanguageId(explicitLanguageId);
+            if (project is not null)
             {
-                return language;
+                return project;
             }
 
-            _interactionService.DisplayError($"Unknown language: '{explicitLanguage}'. Valid options are: csharp, typescript, python");
-            throw new ArgumentException($"Unknown language: '{explicitLanguage}'", nameof(explicitLanguage));
+            var validLanguages = string.Join(", ", _projectFactory.GetAllProjects().Select(p => p.LanguageId));
+            _interactionService.DisplayError($"Unknown language: '{explicitLanguageId}'. Valid options are: {validLanguages}");
+            throw new ArgumentException($"Unknown language: '{explicitLanguageId}'", nameof(explicitLanguageId));
         }
 
         // Check if configured
-        var configuredLanguage = await GetConfiguredLanguageAsync(cancellationToken);
-        if (configuredLanguage.HasValue)
+        var configuredProject = await GetConfiguredProjectAsync(cancellationToken);
+        if (configuredProject is not null)
         {
-            return configuredLanguage.Value;
+            return configuredProject;
         }
 
         // Prompt for selection
-        var selectedLanguage = await PromptForLanguageAsync(cancellationToken);
+        var selectedProject = await PromptForProjectAsync(cancellationToken);
 
         // Save the selection
         if (saveSelection)
         {
-            await SetLanguageAsync(selectedLanguage, isGlobal: false, cancellationToken);
-            _interactionService.DisplayMessage("check_mark", $"Language preference saved to local settings: {selectedLanguage.GetDisplayName()}");
+            await SetLanguageAsync(selectedProject, isGlobal: false, cancellationToken);
+            _interactionService.DisplayMessage("check_mark", $"Language preference saved to local settings: {selectedProject.DisplayName}");
         }
 
-        return selectedLanguage;
+        return selectedProject;
     }
 }

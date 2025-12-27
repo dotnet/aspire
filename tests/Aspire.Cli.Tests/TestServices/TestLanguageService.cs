@@ -7,41 +7,57 @@ namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestLanguageService : ILanguageService
 {
-    public Func<CancellationToken, Task<AppHostLanguage?>>? GetConfiguredLanguageAsyncCallback { get; set; }
-    public Func<AppHostLanguage, bool, CancellationToken, Task>? SetLanguageAsyncCallback { get; set; }
-    public Func<CancellationToken, Task<AppHostLanguage>>? PromptForLanguageAsyncCallback { get; set; }
-    public Func<string?, bool, CancellationToken, Task<AppHostLanguage>>? GetOrPromptForLanguageAsyncCallback { get; set; }
+    public Func<CancellationToken, Task<IAppHostProject?>>? GetConfiguredProjectAsyncCallback { get; set; }
+    public Func<IAppHostProject, bool, CancellationToken, Task>? SetLanguageAsyncCallback { get; set; }
+    public Func<CancellationToken, Task<IAppHostProject>>? PromptForProjectAsyncCallback { get; set; }
+    public Func<string?, bool, CancellationToken, Task<IAppHostProject>>? GetOrPromptForProjectAsyncCallback { get; set; }
 
     /// <summary>
-    /// The default language to return when no callback is set.
+    /// The default project to return when no callback is set.
     /// </summary>
-    public AppHostLanguage DefaultLanguage { get; set; } = AppHostLanguage.CSharp;
+    public IAppHostProject? DefaultProject { get; set; }
 
-    public Task<AppHostLanguage?> GetConfiguredLanguageAsync(CancellationToken cancellationToken = default)
+    public Task<IAppHostProject?> GetConfiguredProjectAsync(CancellationToken cancellationToken = default)
     {
-        return GetConfiguredLanguageAsyncCallback is not null
-            ? GetConfiguredLanguageAsyncCallback(cancellationToken)
-            : Task.FromResult<AppHostLanguage?>(DefaultLanguage);
+        return GetConfiguredProjectAsyncCallback is not null
+            ? GetConfiguredProjectAsyncCallback(cancellationToken)
+            : Task.FromResult(DefaultProject);
     }
 
-    public Task SetLanguageAsync(AppHostLanguage language, bool isGlobal = false, CancellationToken cancellationToken = default)
+    public Task SetLanguageAsync(IAppHostProject project, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
         return SetLanguageAsyncCallback is not null
-            ? SetLanguageAsyncCallback(language, isGlobal, cancellationToken)
+            ? SetLanguageAsyncCallback(project, isGlobal, cancellationToken)
             : Task.CompletedTask;
     }
 
-    public Task<AppHostLanguage> PromptForLanguageAsync(CancellationToken cancellationToken = default)
+    public Task<IAppHostProject> PromptForProjectAsync(CancellationToken cancellationToken = default)
     {
-        return PromptForLanguageAsyncCallback is not null
-            ? PromptForLanguageAsyncCallback(cancellationToken)
-            : Task.FromResult(DefaultLanguage);
+        if (PromptForProjectAsyncCallback is not null)
+        {
+            return PromptForProjectAsyncCallback(cancellationToken);
+        }
+
+        if (DefaultProject is null)
+        {
+            throw new InvalidOperationException("No default project set and no callback provided");
+        }
+
+        return Task.FromResult(DefaultProject);
     }
 
-    public Task<AppHostLanguage> GetOrPromptForLanguageAsync(string? explicitLanguage = null, bool saveSelection = true, CancellationToken cancellationToken = default)
+    public Task<IAppHostProject> GetOrPromptForProjectAsync(string? explicitLanguageId = null, bool saveSelection = true, CancellationToken cancellationToken = default)
     {
-        return GetOrPromptForLanguageAsyncCallback is not null
-            ? GetOrPromptForLanguageAsyncCallback(explicitLanguage, saveSelection, cancellationToken)
-            : Task.FromResult(DefaultLanguage);
+        if (GetOrPromptForProjectAsyncCallback is not null)
+        {
+            return GetOrPromptForProjectAsyncCallback(explicitLanguageId, saveSelection, cancellationToken);
+        }
+
+        if (DefaultProject is null)
+        {
+            throw new InvalidOperationException("No default project set and no callback provided");
+        }
+
+        return Task.FromResult(DefaultProject);
     }
 }

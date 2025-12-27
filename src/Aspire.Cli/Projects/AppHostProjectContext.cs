@@ -17,11 +17,6 @@ internal sealed class AppHostProjectContext
     public required FileInfo AppHostFile { get; init; }
 
     /// <summary>
-    /// Gets the detected type of the AppHost.
-    /// </summary>
-    public required AppHostType Type { get; init; }
-
-    /// <summary>
     /// Gets whether to run in watch mode (hot reload).
     /// </summary>
     public bool Watch { get; init; }

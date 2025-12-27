@@ -33,6 +33,9 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     private readonly ILogger<DotNetAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
 
+    private static readonly string[] s_detectionPatterns = ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"];
+    private static readonly string[] s_projectExtensions = [".csproj", ".fsproj", ".vbproj"];
+
     public DotNetAppHostProject(
         IDotNetCliRunner runner,
         IInteractionService interactionService,
@@ -51,8 +54,93 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // IDENTITY
+    // ═══════════════════════════════════════════════════════════════
+
     /// <inheritdoc />
-    public AppHostType SupportedType => AppHostType.DotNetProject;
+    public string LanguageId => KnownLanguageId.CSharp;
+
+    /// <inheritdoc />
+    public string DisplayName => "C# (.NET)";
+
+    // ═══════════════════════════════════════════════════════════════
+    // DETECTION
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <inheritdoc />
+    public string[] DetectionPatterns => s_detectionPatterns;
+
+    /// <inheritdoc />
+    public bool CanHandle(FileInfo appHostFile)
+    {
+        var extension = appHostFile.Extension.ToLowerInvariant();
+
+        // Handle project files (.csproj, .fsproj, .vbproj)
+        if (s_projectExtensions.Contains(extension))
+        {
+            // We can handle any project file - ValidateAsync will do deeper validation
+            return true;
+        }
+
+        // Handle single-file apphosts (apphost.cs)
+        if (extension == ".cs" && appHostFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase))
+        {
+            // Check for #:sdk Aspire.AppHost.Sdk directive
+            return IsValidSingleFileAppHost(appHostFile);
+        }
+
+        return false;
+    }
+
+    private static bool IsValidSingleFileAppHost(FileInfo candidateFile)
+    {
+        // Check no sibling .csproj files exist
+        var siblingCsprojFiles = candidateFile.Directory!.EnumerateFiles("*.csproj", SearchOption.TopDirectoryOnly);
+        if (siblingCsprojFiles.Any())
+        {
+            return false;
+        }
+
+        // Check for #:sdk Aspire.AppHost.Sdk directive
+        try
+        {
+            using var reader = candidateFile.OpenText();
+            string? line;
+            while ((line = reader.ReadLine()) is not null)
+            {
+                var trimmedLine = line.TrimStart();
+                if (trimmedLine.StartsWith("#:sdk Aspire.AppHost.Sdk", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+            return false;
+        }
+
+        return false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CREATION
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <inheritdoc />
+    public string AppHostFileName => "apphost.cs";
+
+    /// <inheritdoc />
+    public Task ScaffoldAsync(DirectoryInfo directory, string? projectName, CancellationToken cancellationToken)
+    {
+        // C# projects use the template system, not direct scaffolding
+        throw new NotSupportedException("C# projects should be created using the template system via NewCommand.");
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EXECUTION
+    // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
     public async Task<bool> ValidateAsync(FileInfo appHostFile, CancellationToken cancellationToken)
