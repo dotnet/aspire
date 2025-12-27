@@ -748,6 +748,9 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
                     /** The .NET type name */
                     get $type(): string { return this._proxy.$type; }
+
+                    /** The object identifier for use in method calls */
+                    get $id(): string { return this._proxy.$id; }
                 """);
 
             // Generate typed property accessors
@@ -1037,10 +1040,25 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             foreach (var overload in overloads)
             {
                 var returnType = overload.ReturnType;
+                var jsReturnTypeName = FormatJsType(model, returnType);
 
                 // Skip methods that return primitive types or have out/ref parameters
                 if (IsPrimitiveReturnType(model, returnType) ||
                     overload.Parameters.Any(p => p.ParameterType.IsByRef))
+                {
+                    continue;
+                }
+
+                // Skip proxy-returning methods - they don't have internal methods and can't chain
+                var isProxyReturnType = jsReturnTypeName.EndsWith("Proxy", StringComparison.Ordinal);
+                if (isProxyReturnType)
+                {
+                    continue;
+                }
+
+                // Skip methods that don't return builder types - they can't chain
+                var isBuilderReturnType = jsReturnTypeName.EndsWith("Builder", StringComparison.Ordinal);
+                if (!isBuilderReturnType)
                 {
                     continue;
                 }
@@ -1051,7 +1069,6 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                 var preferredMethodName = methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
                     ?? methodNameAttribute?.FixedArguments?.ElementAtOrDefault(0)?.ToString()
                     ?? overload.Name;
-                var jsReturnTypeName = FormatJsType(model, returnType);
 
                 var methodName = model.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
                     ? CamelCase(mapping.GeneratedName)
@@ -1598,7 +1615,9 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         }
         else if (model.ModelTypes.Contains(p.ParameterType) && !p.ParameterType.IsEnum)
         {
-            result = $"{prefix}{p.Name}?.[_name]";
+            // Model types (non-enum) are always proxy types in TypeScript
+            // Proxy types use $id getter instead of [_name]
+            result = $"{prefix}{p.Name}?.$id";
         }
         else
         {
