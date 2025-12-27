@@ -217,6 +217,138 @@ public class DeploymentStateManagerTests
         Assert.Equal(0, parametersSection.Version);
     }
 
+    [Fact]
+    public async Task AcquireSectionAsync_WithNestedPath_ReturnsCorrectSection()
+    {
+        var stateManager = CreateFileDeploymentStateManager();
+
+        // First save a section at a nested path
+        var section = await stateManager.AcquireSectionAsync("TestParent:TestChild:TestGrandchild");
+        section.Data["key1"] = "value1";
+        await stateManager.SaveSectionAsync(section);
+
+        // Acquire the same nested section
+        var retrievedSection = await stateManager.AcquireSectionAsync("TestParent:TestChild:TestGrandchild");
+
+        Assert.Equal("TestParent:TestChild:TestGrandchild", retrievedSection.SectionName);
+        Assert.Equal("value1", retrievedSection.Data["key1"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task SaveSectionAsync_WithNestedPath_CreatesIntermediateObjects()
+    {
+        var sharedSha = Guid.NewGuid().ToString("N");
+        var stateManager = CreateFileDeploymentStateManager(sharedSha);
+
+        var section = await stateManager.AcquireSectionAsync("Parent:Child:Grandchild");
+        section.Data["nestedKey"] = "nestedValue";
+        await stateManager.SaveSectionAsync(section);
+
+        // Verify with a new state manager to ensure persistence
+        var verifyManager = CreateFileDeploymentStateManager(sharedSha);
+        var verifySection = await verifyManager.AcquireSectionAsync("Parent:Child:Grandchild");
+
+        Assert.Equal("nestedValue", verifySection.Data["nestedKey"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task NestedSections_CanBeModified_Independently()
+    {
+        var stateManager = CreateFileDeploymentStateManager();
+
+        var section1 = await stateManager.AcquireSectionAsync("Root:Branch1:Leaf");
+        var section2 = await stateManager.AcquireSectionAsync("Root:Branch2:Leaf");
+
+        section1.Data["key1"] = "value1";
+        section2.Data["key2"] = "value2";
+
+        await stateManager.SaveSectionAsync(section1);
+        await stateManager.SaveSectionAsync(section2);
+
+        var verify1 = await stateManager.AcquireSectionAsync("Root:Branch1:Leaf");
+        var verify2 = await stateManager.AcquireSectionAsync("Root:Branch2:Leaf");
+
+        Assert.Equal("value1", verify1.Data["key1"]?.GetValue<string>());
+        Assert.Equal("value2", verify2.Data["key2"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task NestedSections_CanBeModified_UsingSetValue()
+    {
+        var stateManager = CreateFileDeploymentStateManager();
+
+        var section = await stateManager.AcquireSectionAsync("Root:Branch1:Leaf");
+
+        section.SetValue("value1");
+
+        await stateManager.SaveSectionAsync(section);
+
+        var verify = await stateManager.AcquireSectionAsync("Root:Branch1:Leaf");
+
+        Assert.Equal("value1", verify.Data[""]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task NestedSection_VersionConflict_ThrowsException()
+    {
+        var stateManager = CreateFileDeploymentStateManager();
+
+        // Acquire and save first section
+        var section1 = await stateManager.AcquireSectionAsync("Parent:Child:Grandchild");
+        section1.Data["key1"] = "value1";
+        var oldVersion = section1.Version;
+        await stateManager.SaveSectionAsync(section1);
+
+        // Create a stale section reference
+        var oldSection = new DeploymentStateSection(section1.SectionName, section1.Data, oldVersion);
+
+        // Acquire and save again to increment version
+        var section2 = await stateManager.AcquireSectionAsync("Parent:Child:Grandchild");
+        section2.Data["key2"] = "value2";
+        await stateManager.SaveSectionAsync(section2);
+
+        // Try to save the old section - should throw due to version conflict
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await stateManager.SaveSectionAsync(oldSection));
+
+        Assert.Contains("Concurrency conflict detected in section 'Parent:Child:Grandchild'", exception.Message);
+    }
+
+    [Fact]
+    public async Task AcquireSectionAsync_WithNonexistentNestedPath_ReturnsEmptySection()
+    {
+        var stateManager = CreateFileDeploymentStateManager();
+
+        var section = await stateManager.AcquireSectionAsync("Nonexistent:Path:Here");
+
+        Assert.NotNull(section);
+        Assert.Equal("Nonexistent:Path:Here", section.SectionName);
+        Assert.Equal(0, section.Version);
+        Assert.NotNull(section.Data);
+        Assert.Empty(section.Data);
+    }
+
+    [Fact]
+    public async Task MixedTopLevelAndNestedSections_WorkCorrectly()
+    {
+        var stateManager = CreateFileDeploymentStateManager();
+
+        var topLevel = await stateManager.AcquireSectionAsync("TopLevel");
+        var nested = await stateManager.AcquireSectionAsync("Parent:Child");
+
+        topLevel.Data["topKey"] = "topValue";
+        nested.Data["nestedKey"] = "nestedValue";
+
+        await stateManager.SaveSectionAsync(topLevel);
+        await stateManager.SaveSectionAsync(nested);
+
+        var verifyTop = await stateManager.AcquireSectionAsync("TopLevel");
+        var verifyNested = await stateManager.AcquireSectionAsync("Parent:Child");
+
+        Assert.Equal("topValue", verifyTop.Data["topKey"]?.GetValue<string>());
+        Assert.Equal("nestedValue", verifyNested.Data["nestedKey"]?.GetValue<string>());
+    }
+
     private static FileDeploymentStateManager CreateFileDeploymentStateManager(string? sha = null)
     {
         // Use a unique SHA per test by default to avoid test interference,
