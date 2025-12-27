@@ -69,6 +69,10 @@ internal sealed class MockAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMon
 
     public AppHostAuxiliaryBackchannel? SelectedConnection => null;
 
+#pragma warning disable CS0067 // Event is never used
+    public event Action? SelectedAppHostChanged;
+#pragma warning restore CS0067
+
     public IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory)
     {
         // Return empty list by default (no in-scope AppHosts)

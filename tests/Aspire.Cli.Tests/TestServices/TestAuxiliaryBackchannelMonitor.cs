@@ -8,10 +8,24 @@ namespace Aspire.Cli.Tests.TestServices;
 internal sealed class TestAuxiliaryBackchannelMonitor : IAuxiliaryBackchannelMonitor
 {
     private readonly Dictionary<string, AppHostAuxiliaryBackchannel> _connections = new();
+    private string? _selectedAppHostPath;
 
     public IReadOnlyDictionary<string, AppHostAuxiliaryBackchannel> Connections => _connections;
 
-    public string? SelectedAppHostPath { get; set; }
+    public string? SelectedAppHostPath
+    {
+        get => _selectedAppHostPath;
+        set
+        {
+            if (_selectedAppHostPath != value)
+            {
+                _selectedAppHostPath = value;
+                SelectedAppHostChanged?.Invoke();
+            }
+        }
+    }
+
+    public event Action? SelectedAppHostChanged;
 
     public AppHostAuxiliaryBackchannel? SelectedConnection
     {

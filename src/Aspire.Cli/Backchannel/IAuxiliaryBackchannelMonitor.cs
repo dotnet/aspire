@@ -30,4 +30,9 @@ internal interface IAuxiliaryBackchannelMonitor
     /// <param name="workingDirectory">The working directory to check against.</param>
     /// <returns>A list of in-scope connections.</returns>
     IReadOnlyList<AppHostAuxiliaryBackchannel> GetConnectionsForWorkingDirectory(DirectoryInfo workingDirectory);
+
+    /// <summary>
+    /// Event raised when the selected AppHost changes.
+    /// </summary>
+    event Action? SelectedAppHostChanged;
 }
