@@ -89,6 +89,8 @@ internal sealed class UserSecretsManagerFactory
             _fileSystemService = fileSystemService;
         }
 
+        public bool IsAvailable => true;
+
         public string FilePath { get; }
 
         public bool TrySetSecret(string name, string value)

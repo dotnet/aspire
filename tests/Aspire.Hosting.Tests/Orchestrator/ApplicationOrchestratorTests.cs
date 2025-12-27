@@ -486,7 +486,8 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
                 CreateInteractionService(),
                 serviceProvider.GetRequiredService<ILogger<ParameterProcessor>>(),
                 executionContext,
-                deploymentStateManager: new MockDeploymentStateManager()),
+                deploymentStateManager: new MockDeploymentStateManager(),
+                userSecretsManager: UserSecrets.NoopUserSecretsManager.Instance),
             Options.Create(dashboardOptions ?? new()),
             serviceProvider.GetRequiredService<ILogger<ApplicationOrchestrator>>()
         );
