@@ -81,28 +81,7 @@ sequenceDiagram
 
 ## Configuration
 
-Polyglot app hosts use two configuration files to manage settings and dependencies.
-
-### .aspire/settings.json
-
-This file stores the app host entry point and integration package references. It is created when you run `aspire init` or `aspire add` in a polyglot project.
-
-```json
-{
-  "appHostPath": "../apphost.ts",
-  "packages": {
-    "Aspire.Hosting.Redis": "9.2.0",
-    "Aspire.Hosting.PostgreSQL": "9.2.0"
-  }
-}
-```
-
-| Property | Description |
-|----------|-------------|
-| `appHostPath` | Relative path to the app host entry point |
-| `packages` | Dictionary of Aspire.Hosting.* package references with versions |
-
-When you run `aspire add`, the CLI updates this file and regenerates the SDK to include the new integration APIs.
+Polyglot app hosts use configuration files to manage settings and dependencies.
 
 ### apphost.run.json
 
@@ -124,6 +103,21 @@ This file provides launch settings for the app host, similar to `launchSettings.
 ```
 
 The CLI reads the `https` profile (or the first available profile) and passes these settings to the AppHost server. If no `apphost.run.json` exists, default development URLs are used.
+
+### .aspire/settings.json
+
+This file stores integration package references for polyglot app hosts. It is created when you run `aspire add` to add an integration package.
+
+```json
+{
+  "packages": {
+    "Aspire.Hosting.Redis": "<version>",
+    "Aspire.Hosting.PostgreSQL": "<version>"
+  }
+}
+```
+
+When you run `aspire add`, the CLI updates this file and regenerates the SDK to include the new integration APIs.
 
 ## Process Lifecycle
 

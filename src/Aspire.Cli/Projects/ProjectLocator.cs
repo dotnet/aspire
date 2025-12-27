@@ -204,12 +204,11 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             return false;
         }
 
-        // For TypeScript, check for aspire.json or package.json with aspire dependencies
+        // For TypeScript, check for package.json
         var directory = candidateFile.Directory!;
-        var hasAspireJson = File.Exists(Path.Combine(directory.FullName, "aspire.json"));
         var hasPackageJson = File.Exists(Path.Combine(directory.FullName, "package.json"));
 
-        return hasAspireJson || hasPackageJson;
+        return hasPackageJson;
     }
 
     private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)

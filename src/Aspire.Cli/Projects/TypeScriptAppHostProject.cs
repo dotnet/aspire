@@ -90,12 +90,11 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             return false;
         }
 
-        // Check for aspire.json or package.json
+        // Check for package.json
         var directory = appHostFile.Directory!;
-        var hasAspireJson = File.Exists(Path.Combine(directory.FullName, "aspire.json"));
         var hasPackageJson = File.Exists(Path.Combine(directory.FullName, "package.json"));
 
-        return hasAspireJson || hasPackageJson;
+        return hasPackageJson;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -207,7 +206,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             return Task.FromResult(false);
         }
 
-        // Check for package.json or aspire.json in the same directory
+        // Check for package.json in the same directory
         var directory = appHostFile.Directory;
         if (directory is null)
         {
@@ -215,9 +214,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         }
 
         var hasPackageJson = File.Exists(Path.Combine(directory.FullName, "package.json"));
-        var hasAspireJson = File.Exists(Path.Combine(directory.FullName, "aspire.json"));
 
-        return Task.FromResult(hasPackageJson || hasAspireJson);
+        return Task.FromResult(hasPackageJson);
     }
 
     /// <inheritdoc />
