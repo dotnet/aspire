@@ -27,7 +27,6 @@ using Aspire.Cli.Utils.EnvironmentChecker;
 using Microsoft.Extensions.Logging.Abstractions;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Caching;
-using Aspire.Cli.AppHostRunning;
 using Aspire.Cli.CodeGeneration;
 
 namespace Aspire.Cli.Tests.Utils;
@@ -106,6 +105,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.AgentEnvironmentDetectorFactory);
         services.AddSingleton(options.GitRepositoryFactory);
         services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
+        services.AddSingleton<IGenericAppHostProjectFactory, GenericAppHostProjectFactory>();
         services.AddKeyedSingleton<ICodeGenerator, TypeScriptCodeGeneratorService>(AppHostType.TypeScript);
         services.AddSingleton(options.LanguageServiceFactory);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, DotNetAppHostProject>());

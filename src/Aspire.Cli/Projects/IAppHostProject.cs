@@ -2,9 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Projects;
 
-namespace Aspire.Cli.AppHostRunning;
+namespace Aspire.Cli.Projects;
 
 /// <summary>
 /// Context for adding a package to an AppHost project.

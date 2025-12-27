@@ -3,9 +3,8 @@
 
 using System.CommandLine;
 using Aspire.Cli.Backchannel;
-using Aspire.Cli.Projects;
 
-namespace Aspire.Cli.AppHostRunning;
+namespace Aspire.Cli.Projects;
 
 /// <summary>
 /// Context containing all information needed to run an AppHost.

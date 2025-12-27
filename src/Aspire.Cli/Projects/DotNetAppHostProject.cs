@@ -8,7 +8,6 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
@@ -18,7 +17,7 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using StreamJsonRpc;
 
-namespace Aspire.Cli.AppHostRunning;
+namespace Aspire.Cli.Projects;
 
 /// <summary>
 /// Handler for .NET AppHost projects (.csproj and single-file .cs).

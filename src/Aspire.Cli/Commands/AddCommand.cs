@@ -3,7 +3,6 @@
 
 using System.CommandLine;
 using System.Globalization;
-using Aspire.Cli.AppHostRunning;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;

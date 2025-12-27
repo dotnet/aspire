@@ -6,15 +6,35 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
 
-namespace Aspire.Cli.Rosetta;
+namespace Aspire.Cli.Projects;
+
+/// <summary>
+/// Factory for creating GenericAppHostProject instances with required dependencies.
+/// </summary>
+internal interface IGenericAppHostProjectFactory
+{
+    GenericAppHostProject Create(string appPath);
+}
+
+/// <summary>
+/// Factory implementation that creates GenericAppHostProject instances with IPackagingService and IConfigurationService.
+/// </summary>
+internal sealed class GenericAppHostProjectFactory(
+    IPackagingService packagingService,
+    IConfigurationService configurationService) : IGenericAppHostProjectFactory
+{
+    public GenericAppHostProject Create(string appPath) => new GenericAppHostProject(appPath, packagingService, configurationService);
+}
 
 /// <summary>
 /// Represents the dotnet project that is used to generate the GenericAppHost.
 /// </summary>
-internal sealed class ProjectModel
+internal sealed class GenericAppHostProject
 {
     private const string ProjectHashFileName = ".projecthash";
     private const string FolderPrefix = ".aspire";
@@ -49,16 +69,22 @@ internal sealed class ProjectModel
     private const string AssemblyName = "GenericAppHost";
     private readonly string _projectModelPath;
     private readonly string _appPath;
+    private readonly IPackagingService _packagingService;
+    private readonly IConfigurationService _configurationService;
 
     /// <summary>
-    /// Initializes a new instance of the ProjectModel class.
+    /// Initializes a new instance of the GenericAppHostProject class.
     /// </summary>
     /// <param name="appPath">Specifies the application path for the custom language.</param>
-    public ProjectModel(string appPath)
+    /// <param name="packagingService">The packaging service for channel resolution.</param>
+    /// <param name="configurationService">The configuration service for reading global settings.</param>
+    public GenericAppHostProject(string appPath, IPackagingService packagingService, IConfigurationService configurationService)
     {
         _appPath = Path.GetFullPath(appPath);
         _appPath = new Uri(_appPath).LocalPath;
         _appPath = OperatingSystem.IsWindows() ? _appPath.ToLowerInvariant() : _appPath;
+        _packagingService = packagingService;
+        _configurationService = configurationService;
 
         var pathHash = SHA256.HashData(Encoding.UTF8.GetBytes(_appPath));
         var pathDir = Convert.ToHexString(pathHash)[..12].ToLowerInvariant();
@@ -93,8 +119,9 @@ internal sealed class ProjectModel
     /// Scaffolds the project files.
     /// </summary>
     /// <param name="packages">The package references to include.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The full path to the project file.</returns>
-    public string CreateProjectFiles(IEnumerable<(string Name, string Version)> packages)
+    public async Task<string> CreateProjectFilesAsync(IEnumerable<(string Name, string Version)> packages, CancellationToken cancellationToken = default)
     {
         // Create Program.cs that starts the RemoteHost server
         var programCs = """
@@ -121,7 +148,7 @@ internal sealed class ProjectModel
 
         // Handle NuGet.config:
         // 1. If local package source is specified (dev scenario), create a config that includes it
-        // 2. Otherwise, copy user's NuGet.config if found (to respect their feeds/auth)
+        // 2. Otherwise, use NuGetConfigMerger to create/update config based on channel (same pattern as aspire new/init)
         var nugetConfigPath = Path.Combine(_projectModelPath, "NuGet.config");
         if (LocalPackagePath is not null)
         {
@@ -137,11 +164,38 @@ internal sealed class ProjectModel
         }
         else
         {
-            // Search for NuGet.config starting from user's project directory and walking up
+            // First, copy user's NuGet.config if it exists (to preserve private feeds/auth)
             var userNugetConfig = FindNuGetConfig(_appPath);
             if (userNugetConfig is not null)
             {
                 File.Copy(userNugetConfig, nugetConfigPath, overwrite: true);
+            }
+
+            // Get the appropriate channel from the packaging service (same logic as aspire new/init)
+            var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+
+            // Check for global channel setting (same as aspire new/init)
+            var configuredChannelName = await _configurationService.GetConfigurationAsync("channel", cancellationToken);
+
+            PackageChannel? channel;
+            if (!string.IsNullOrEmpty(configuredChannelName))
+            {
+                // Use the configured channel if specified
+                channel = channels.FirstOrDefault(c => string.Equals(c.Name, configuredChannelName, StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                // Fall back to first explicit channel (staging/PR)
+                channel = channels.FirstOrDefault(c => c.Type == PackageChannelType.Explicit);
+            }
+
+            // NuGetConfigMerger creates or updates the config with channel sources/mappings
+            if (channel is not null)
+            {
+                await NuGetConfigMerger.CreateOrUpdateAsync(
+                    new DirectoryInfo(_projectModelPath),
+                    channel,
+                    cancellationToken: cancellationToken);
             }
         }
 
@@ -488,18 +542,31 @@ internal sealed class ProjectModel
                 return null;
             }
 
-            // Find a config that's within the project directory tree (not global user config).
+            // Find a config that's in the project directory or a parent directory (not global user config).
             // Global configs (e.g., ~/.nuget/NuGet/NuGet.Config) will be found by dotnet anyway.
             var configPaths = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
             var workingDirFullPath = Path.GetFullPath(workingDirectory);
+
+            // Get user profile path to exclude global NuGet configs
+            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var globalNuGetPath = Path.Combine(userProfile, ".nuget");
 
             foreach (var configPath in configPaths)
             {
                 if (File.Exists(configPath))
                 {
                     var configFullPath = Path.GetFullPath(configPath);
-                    // Check if this config is within the project directory tree
-                    if (configFullPath.StartsWith(workingDirFullPath, StringComparison.OrdinalIgnoreCase))
+                    var configDir = Path.GetDirectoryName(configFullPath);
+
+                    // Skip global NuGet configs (they're in ~/.nuget)
+                    if (configFullPath.StartsWith(globalNuGetPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    // Check if the working directory is within or below the config's directory
+                    // (i.e., the config is in a parent directory of the project)
+                    if (configDir is not null && workingDirFullPath.StartsWith(configDir, StringComparison.OrdinalIgnoreCase))
                     {
                         return configPath;
                     }
@@ -534,4 +601,5 @@ internal sealed class ProjectModel
 
         return (os, arch);
     }
+
 }

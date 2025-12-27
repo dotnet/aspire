@@ -1,9 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Cli.Projects;
-
-namespace Aspire.Cli.AppHostRunning;
+namespace Aspire.Cli.Projects;
 
 /// <summary>
 /// Factory for getting AppHost projects based on the project type.

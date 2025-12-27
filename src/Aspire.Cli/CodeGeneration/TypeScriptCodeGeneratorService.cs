@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Projects;
-using Aspire.Cli.Rosetta;
 using Aspire.Hosting.CodeGeneration;
 using Aspire.Hosting.CodeGeneration.TypeScript;
 using Microsoft.Extensions.Configuration;
@@ -20,13 +19,18 @@ internal sealed class TypeScriptCodeGeneratorService : ICodeGenerator
 
     private readonly ILogger<TypeScriptCodeGeneratorService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IGenericAppHostProjectFactory _genericAppHostProjectFactory;
     private readonly CodeGeneratorService _codeGeneratorService;
     private readonly TypeScriptCodeGenerator _typeScriptGenerator;
 
-    public TypeScriptCodeGeneratorService(ILogger<TypeScriptCodeGeneratorService> logger, IConfiguration configuration)
+    public TypeScriptCodeGeneratorService(
+        ILogger<TypeScriptCodeGeneratorService> logger,
+        IConfiguration configuration,
+        IGenericAppHostProjectFactory genericAppHostProjectFactory)
     {
         _logger = logger;
         _configuration = configuration;
+        _genericAppHostProjectFactory = genericAppHostProjectFactory;
         _codeGeneratorService = new CodeGeneratorService();
         _typeScriptGenerator = new TypeScriptCodeGenerator();
     }
@@ -44,8 +48,8 @@ internal sealed class TypeScriptCodeGeneratorService : ICodeGenerator
         _logger.LogDebug("Generating TypeScript code for {Count} packages", packagesList.Count);
 
         // Build assembly search paths
-        var projectModel = new ProjectModel(appPath);
-        var searchPaths = BuildAssemblySearchPaths(projectModel.BuildPath);
+        var genericAppHostProject = _genericAppHostProjectFactory.Create(appPath);
+        var searchPaths = BuildAssemblySearchPaths(genericAppHostProject.BuildPath);
 
         // Use the shared code generator service
         var fileCount = await _codeGeneratorService.GenerateAsync(

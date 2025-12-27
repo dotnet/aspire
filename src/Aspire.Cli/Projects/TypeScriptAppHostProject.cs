@@ -8,13 +8,11 @@ using Aspire.Cli.Backchannel;
 using Aspire.Cli.CodeGeneration;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
-using Aspire.Cli.Projects;
-using Aspire.Cli.Rosetta;
 using Aspire.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Cli.AppHostRunning;
+namespace Aspire.Cli.Projects;
 
 /// <summary>
 /// Handler for TypeScript AppHost projects (apphost.ts).
@@ -24,17 +22,20 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private readonly IInteractionService _interactionService;
     private readonly ICodeGenerator _codeGenerator;
     private readonly IAppHostCliBackchannel _backchannel;
+    private readonly IGenericAppHostProjectFactory _genericAppHostProjectFactory;
     private readonly ILogger<TypeScriptAppHostProject> _logger;
 
     public TypeScriptAppHostProject(
         IInteractionService interactionService,
         [FromKeyedServices(AppHostType.TypeScript)] ICodeGenerator codeGenerator,
         IAppHostCliBackchannel backchannel,
+        IGenericAppHostProjectFactory genericAppHostProjectFactory,
         ILogger<TypeScriptAppHostProject> logger)
     {
         _interactionService = interactionService;
         _codeGenerator = codeGenerator;
         _backchannel = backchannel;
+        _genericAppHostProjectFactory = genericAppHostProjectFactory;
         _logger = logger;
     }
 
@@ -96,15 +97,15 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             // Step 2: Get package references and build GenericAppHost FIRST (code gen needs assemblies)
             var packages = GetPackageReferences(directory).ToList();
-            var projectModel = new ProjectModel(directory.FullName);
-            var socketPath = projectModel.GetSocketPath();
+            var genericAppHostProject = _genericAppHostProjectFactory.Create(directory.FullName);
+            var socketPath = genericAppHostProject.GetSocketPath();
 
             // Create the GenericAppHost project files
             _interactionService.DisplayMessage("gear", "Preparing GenericAppHost...");
-            projectModel.CreateProjectFiles(packages);
+            await genericAppHostProject.CreateProjectFilesAsync(packages, cancellationToken);
 
             // Build the GenericAppHost (must happen before code generation!)
-            var buildSuccess = await projectModel.BuildAsync(_interactionService);
+            var buildSuccess = await genericAppHostProject.BuildAsync(_interactionService);
             if (!buildSuccess)
             {
                 _interactionService.DisplayError("Failed to build GenericAppHost.");
@@ -132,7 +133,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Start the GenericAppHost process
             _interactionService.DisplayMessage("rocket", "Starting GenericAppHost...");
             var currentPid = Environment.ProcessId;
-            genericAppHostProcess = projectModel.Run(socketPath, currentPid, launchSettingsEnvVars);
+            genericAppHostProcess = genericAppHostProject.Run(socketPath, currentPid, launchSettingsEnvVars);
 
             // Give the server a moment to start
             await Task.Delay(500, cancellationToken);
@@ -188,8 +189,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private static IEnumerable<(string Name, string Version)> GetPackageReferences(DirectoryInfo directory)
     {
         // Always include the base Aspire.Hosting packages
-        yield return ("Aspire.Hosting", ProjectModel.AspireHostVersion);
-        yield return ("Aspire.Hosting.AppHost", ProjectModel.AspireHostVersion);
+        yield return ("Aspire.Hosting", GenericAppHostProject.AspireHostVersion);
+        yield return ("Aspire.Hosting.AppHost", GenericAppHostProject.AspireHostVersion);
 
         // Read additional packages from .aspire/settings.json
         var aspireConfig = AspireJsonConfiguration.Load(directory.FullName);
@@ -492,15 +493,15 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             // Step 2: Get package references and build GenericAppHost
             var packages = GetPackageReferences(directory).ToList();
-            var projectModel = new ProjectModel(directory.FullName);
-            var jsonRpcSocketPath = projectModel.GetSocketPath();
+            var genericAppHostProject = _genericAppHostProjectFactory.Create(directory.FullName);
+            var jsonRpcSocketPath = genericAppHostProject.GetSocketPath();
 
             // Create the GenericAppHost project files
             _interactionService.DisplayMessage("gear", "Preparing GenericAppHost...");
-            projectModel.CreateProjectFiles(packages);
+            await genericAppHostProject.CreateProjectFilesAsync(packages, cancellationToken);
 
             // Build the GenericAppHost
-            var buildSuccess = await projectModel.BuildAsync(_interactionService);
+            var buildSuccess = await genericAppHostProject.BuildAsync(_interactionService);
             if (!buildSuccess)
             {
                 _interactionService.DisplayError("Failed to build GenericAppHost.");
@@ -533,7 +534,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var currentPid = Environment.ProcessId;
 
             // GenericAppHost doesn't receive publish args - those go to the TypeScript app
-            genericAppHostProcess = projectModel.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars);
+            genericAppHostProcess = genericAppHostProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars);
 
             // Start connecting to the backchannel
             if (context.BackchannelCompletionSource is not null)
