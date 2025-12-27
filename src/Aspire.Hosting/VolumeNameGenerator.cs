@@ -28,8 +28,8 @@ public static class VolumeNameGenerator
         // Create volume name like "{Sanitize(appname).Lower()}-{sha256.Lower()}-postgres-data"
 
         // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar volume names
-        var safeApplicationName = Sanitize(builder.ApplicationBuilder.Environment.ApplicationName).ToLowerInvariant();
-        var applicationHash = builder.ApplicationBuilder.Configuration["AppHost:Sha256"]![..10].ToLowerInvariant();
+        var safeApplicationName = Sanitize(builder.ApplicationBuilder.AppHostEnvironment.ApplicationName).ToLowerInvariant();
+        var applicationHash = builder.ApplicationBuilder.AppHostEnvironment.DefaultHash[..10].ToLowerInvariant();
         var resourceName = builder.Resource.Name;
         return $"{safeApplicationName}-{applicationHash}-{resourceName}-{suffix}";
     }
