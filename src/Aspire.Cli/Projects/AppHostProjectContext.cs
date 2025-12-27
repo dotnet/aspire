@@ -58,8 +58,16 @@ internal sealed class AppHostProjectContext
 
     /// <summary>
     /// Gets the task completion source for the backchannel connection.
+    /// The project signals this when the backchannel is ready.
     /// </summary>
     public TaskCompletionSource<IAppHostCliBackchannel>? BackchannelCompletionSource { get; init; }
+
+    /// <summary>
+    /// Gets the task completion source for build completion.
+    /// The project signals this when the build/preparation phase is complete.
+    /// This allows RunCommand to coordinate status spinners.
+    /// </summary>
+    public TaskCompletionSource<bool>? BuildCompletionSource { get; init; }
 
     /// <summary>
     /// Gets the parse result from the command line.

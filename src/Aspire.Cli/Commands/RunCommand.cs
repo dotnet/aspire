@@ -152,8 +152,8 @@ internal sealed class RunCommand : BaseCommand
                 await project.CheckAndHandleRunningInstanceAsync(effectiveAppHostFile, ExecutionContext.HomeDirectory, cancellationToken);
             }
 
-            // The backchannel completion source is the contract between RunCommand and IAppHostProject
-            // The project signals this when the backchannel is ready, RunCommand uses it for UX
+            // The completion sources are the contract between RunCommand and IAppHostProject
+            var buildCompletionSource = new TaskCompletionSource<bool>();
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostCliBackchannel>();
 
             var context = new AppHostProjectContext
@@ -168,13 +168,22 @@ internal sealed class RunCommand : BaseCommand
                 EnvironmentVariables = new Dictionary<string, string>(),
                 UnmatchedTokens = parseResult.UnmatchedTokens.ToArray(),
                 WorkingDirectory = ExecutionContext.WorkingDirectory,
+                BuildCompletionSource = buildCompletionSource,
                 BackchannelCompletionSource = backchannelCompletionSource
             };
 
             // Start the project run as a pending task - we'll handle UX while it runs
             var pendingRun = project.RunAsync(context, cancellationToken);
 
-            // Wait for the backchannel to be established
+            // Wait for the build to complete first (project handles its own build status spinners)
+            var buildSuccess = await buildCompletionSource.Task.WaitAsync(cancellationToken);
+            if (!buildSuccess)
+            {
+                // Build failed, wait for the run task to complete and return its exit code
+                return await pendingRun;
+            }
+
+            // Now wait for the backchannel to be established
             var backchannel = await InteractionService.ShowStatusAsync(
                 isExtensionHost ? InteractionServiceStrings.BuildingAppHost : RunCommandStrings.ConnectingToAppHost,
                 async () => await backchannelCompletionSource.Task.WaitAsync(cancellationToken));

@@ -118,6 +118,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
                 {
                     _interactionService.DisplayLines(buildOutputCollector.GetLines());
                     _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                    context.BuildCompletionSource?.TrySetResult(false);
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
             }
@@ -134,8 +135,12 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
         if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
         {
+            context.BuildCompletionSource?.TrySetResult(false);
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
+
+        // Signal that build/preparation is complete
+        context.BuildCompletionSource?.TrySetResult(true);
 
         var runOptions = new DotNetCliRunnerInvocationOptions
         {

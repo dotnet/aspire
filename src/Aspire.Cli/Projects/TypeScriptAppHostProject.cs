@@ -95,12 +95,14 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var nodeModulesPath = Path.Combine(directory.FullName, "node_modules");
             if (!Directory.Exists(nodeModulesPath))
             {
-                _interactionService.DisplayMessage("package", "Installing npm dependencies...");
+                var npmInstallResult = await _interactionService.ShowStatusAsync(
+                    ":package: Installing npm dependencies...",
+                    () => RunNpmInstallAsync(directory, cancellationToken));
 
-                var npmInstallResult = await RunNpmInstallAsync(directory, cancellationToken);
                 if (npmInstallResult != 0)
                 {
                     _interactionService.DisplayError("Failed to install npm dependencies.");
+                    context.BuildCompletionSource?.TrySetResult(false);
                     return ExitCodeConstants.FailedToBuildArtifacts;
                 }
             }
@@ -111,28 +113,36 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var socketPath = genericAppHostProject.GetSocketPath();
 
             // Create the GenericAppHost project files
-            _interactionService.DisplayMessage("gear", "Preparing GenericAppHost...");
-            await genericAppHostProject.CreateProjectFilesAsync(packages, cancellationToken);
+            await _interactionService.ShowStatusAsync(
+                ":gear: Preparing AppHost server...",
+                () => genericAppHostProject.CreateProjectFilesAsync(packages, cancellationToken));
 
             // Build the GenericAppHost (must happen before code generation!)
             var buildSuccess = await genericAppHostProject.BuildAsync(_interactionService);
             if (!buildSuccess)
             {
-                _interactionService.DisplayError("Failed to build GenericAppHost.");
+                _interactionService.DisplayError("Failed to build AppHost server.");
+                context.BuildCompletionSource?.TrySetResult(false);
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
             // Step 3: Run code generation now that assemblies are built
-            // Note: We use DisplayMessage instead of ShowStatusAsync to avoid conflicts
-            // with RunCommand's ShowStatusAsync for backchannel waiting
             if (_codeGenerator.NeedsGeneration(directory.FullName, packages))
             {
-                _interactionService.DisplayMessage("gear", "Generating TypeScript SDK...");
-                await _codeGenerator.GenerateAsync(
-                    directory.FullName,
-                    packages,
-                    cancellationToken);
+                await _interactionService.ShowStatusAsync(
+                    ":gear: Generating TypeScript SDK...",
+                    async () =>
+                    {
+                        await _codeGenerator.GenerateAsync(
+                            directory.FullName,
+                            packages,
+                            cancellationToken);
+                        return true;
+                    });
             }
+
+            // Signal that build/preparation is complete
+            context.BuildCompletionSource?.TrySetResult(true);
 
             // Read launchSettings.json if it exists, or create defaults
             var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
@@ -144,7 +154,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
             // Start the GenericAppHost process
-            _interactionService.DisplayMessage("rocket", "Starting GenericAppHost...");
+            _interactionService.DisplayMessage("rocket", "Starting AppHost server...");
             var currentPid = Environment.ProcessId;
             genericAppHostProcess = genericAppHostProject.Run(socketPath, currentPid, launchSettingsEnvVars);
 
@@ -160,7 +170,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             if (genericAppHostProcess.HasExited)
             {
-                _interactionService.DisplayError("GenericAppHost process exited unexpectedly.");
+                _interactionService.DisplayError("AppHost server exited unexpectedly.");
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
@@ -512,9 +522,10 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var nodeModulesPath = Path.Combine(directory.FullName, "node_modules");
             if (!Directory.Exists(nodeModulesPath))
             {
-                _interactionService.DisplayMessage("package", "Installing npm dependencies...");
+                var npmInstallResult = await _interactionService.ShowStatusAsync(
+                    ":package: Installing npm dependencies...",
+                    () => RunNpmInstallAsync(directory, cancellationToken));
 
-                var npmInstallResult = await RunNpmInstallAsync(directory, cancellationToken);
                 if (npmInstallResult != 0)
                 {
                     _interactionService.DisplayError("Failed to install npm dependencies.");
@@ -528,27 +539,31 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var jsonRpcSocketPath = genericAppHostProject.GetSocketPath();
 
             // Create the GenericAppHost project files
-            _interactionService.DisplayMessage("gear", "Preparing GenericAppHost...");
-            await genericAppHostProject.CreateProjectFilesAsync(packages, cancellationToken);
+            await _interactionService.ShowStatusAsync(
+                ":gear: Preparing AppHost server...",
+                () => genericAppHostProject.CreateProjectFilesAsync(packages, cancellationToken));
 
             // Build the GenericAppHost
             var buildSuccess = await genericAppHostProject.BuildAsync(_interactionService);
             if (!buildSuccess)
             {
-                _interactionService.DisplayError("Failed to build GenericAppHost.");
+                _interactionService.DisplayError("Failed to build AppHost server.");
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
 
             // Step 3: Run code generation now that assemblies are built
-            // Note: We use DisplayMessage instead of ShowStatusAsync to avoid conflicts
-            // with PipelineCommandBase's ShowStatusAsync for backchannel waiting
             if (_codeGenerator.NeedsGeneration(directory.FullName, packages))
             {
-                _interactionService.DisplayMessage("gear", "Generating TypeScript SDK...");
-                await _codeGenerator.GenerateAsync(
-                    directory.FullName,
-                    packages,
-                    cancellationToken);
+                await _interactionService.ShowStatusAsync(
+                    ":gear: Generating TypeScript SDK...",
+                    async () =>
+                    {
+                        await _codeGenerator.GenerateAsync(
+                            directory.FullName,
+                            packages,
+                            cancellationToken);
+                        return true;
+                    });
             }
 
             // Read launchSettings.json if it exists
@@ -561,7 +576,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
             // Start the GenericAppHost process (it opens the backchannel for progress reporting)
-            _interactionService.DisplayMessage("rocket", "Starting GenericAppHost for publish...");
             var currentPid = Environment.ProcessId;
 
             // GenericAppHost doesn't receive publish args - those go to the TypeScript app
@@ -578,13 +592,9 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             if (genericAppHostProcess.HasExited)
             {
-                _interactionService.DisplayError("GenericAppHost process exited unexpectedly.");
+                _interactionService.DisplayError("AppHost server exited unexpectedly.");
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
-
-            // Step 4: Execute the TypeScript apphost
-            // This connects to GenericAppHost via JSON-RPC and defines resources
-            _interactionService.DisplayMessage("rocket", "Starting TypeScript AppHost for publish...");
 
             // Pass the socket path to the TypeScript process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
