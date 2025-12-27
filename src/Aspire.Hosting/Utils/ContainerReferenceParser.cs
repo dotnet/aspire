@@ -7,8 +7,14 @@ namespace Aspire.Hosting.Utils;
 /// <summary>
 /// Class to parse container references (e.g. "mcr.microsoft.com/dotnet/sdk:8.0")
 /// </summary>
-internal sealed partial class ContainerReferenceParser
+public sealed partial class ContainerReferenceParser
 {
+    /// <summary>
+    /// Parses a container reference string into its components.
+    /// </summary>
+    /// <param name="input">The container reference string to parse (e.g., "mcr.microsoft.com/dotnet/sdk:8.0").</param>
+    /// <returns>A <see cref="ContainerReference"/> containing the parsed components.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the input is invalid or cannot be parsed.</exception>
     public static ContainerReference Parse(string input)
     {
         if (string.IsNullOrEmpty(input))
@@ -40,6 +46,13 @@ internal sealed partial class ContainerReferenceParser
     private static partial Regex ImageNameRegex();
 }
 
-internal record struct ContainerReference(string? Registry, string Image, string? Tag, string? Digest)
+/// <summary>
+/// Represents a parsed container reference with its registry, image name, tag, and digest components.
+/// </summary>
+/// <param name="Registry">The registry hostname (e.g., "mcr.microsoft.com"), or null if not specified.</param>
+/// <param name="Image">The image name (e.g., "dotnet/sdk").</param>
+/// <param name="Tag">The image tag (e.g., "8.0"), or null if not specified.</param>
+/// <param name="Digest">The image digest, or null if not specified.</param>
+public record struct ContainerReference(string? Registry, string Image, string? Tag, string? Digest)
 {
 }
