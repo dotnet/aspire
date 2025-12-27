@@ -28,6 +28,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class AzureSqlDatabaseResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureSqlServerResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public AzureSqlDatabaseResource(string name, string databaseName, AzureSqlServerResource parent) : base(default!) { }

@@ -25,7 +25,7 @@ namespace Aspire.Hosting
 
         public Azure.BicepOutputReference NameOutputReference { get { throw null; } }
 
-        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+        public ApplicationModel.ReferenceExpression Uri { get { throw null; } }
 
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "ConnectionStringSecretOutput")]
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, "PrimaryAccessKeySecretOutput")]
@@ -77,6 +77,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Container = {ContainerName}")]
     public partial class AzureCosmosDBContainerResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureCosmosDBDatabaseResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IResourceWithAzureFunctionsConfig
     {
         public AzureCosmosDBContainerResource(string name, string containerName, System.Collections.Generic.IEnumerable<string> partitionKeyPaths, AzureCosmosDBDatabaseResource parent) : base(default!) { }
@@ -100,6 +101,7 @@ namespace Aspire.Hosting.Azure
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
 
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class AzureCosmosDBDatabaseResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureCosmosDBResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IResourceWithAzureFunctionsConfig
     {
         public AzureCosmosDBDatabaseResource(string name, string databaseName, AzureCosmosDBResource parent) : base(default!) { }
