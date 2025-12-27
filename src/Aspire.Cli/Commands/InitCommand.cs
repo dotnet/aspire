@@ -36,6 +36,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
     private readonly IConfigurationService _configurationService;
+    private readonly ILanguageService _languageService;
 
     /// <summary>
     /// InitCommand prefetches template package metadata.
@@ -58,9 +59,11 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment,
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment,
         IInteractionService interactionService,
-        IConfigurationService configurationService)
+        IConfigurationService configurationService,
+        ILanguageService languageService)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -73,6 +76,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(configurationService);
+        ArgumentNullException.ThrowIfNull(languageService);
 
         _runner = runner;
         _certificateService = certificateService;
@@ -87,6 +91,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
         _configurationService = configurationService;
+        _languageService = languageService;
 
         var sourceOption = new Option<string?>("--source", "-s");
         sourceOption.Description = NewCommandStrings.SourceArgumentDescription;
@@ -109,23 +114,43 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             Recursive = true
         };
         Options.Add(channelOption);
+
+        var languageOption = new Option<string?>("--language", "-l");
+        languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
+        Options.Add(languageOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
-        {
-            return ExitCodeConstants.SdkNotInstalled;
-        }
-
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
+
+        // Get the language selection (from command line, config, or prompt)
+        var explicitLanguage = parseResult.GetValue<string?>("--language");
+        var selectedLanguage = await _languageService.GetOrPromptForLanguageAsync(explicitLanguage, saveSelection: true, cancellationToken);
+
+        // For C#, we need the .NET SDK
+        if (selectedLanguage == AppHostLanguage.CSharp)
+        {
+            if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
+            {
+                return ExitCodeConstants.SdkNotInstalled;
+            }
+        }
 
         // Create the init context to build up a model of the operation
         var initContext = new InitContext();
 
         // Use SolutionLocator to find solution files, walking up the directory tree
         initContext.SelectedSolutionFile = await _solutionLocator.FindSolutionFileAsync(_executionContext.WorkingDirectory, cancellationToken);
+
+        // For non-C# languages, skip solution detection and create polyglot apphost
+        if (selectedLanguage != AppHostLanguage.CSharp)
+        {
+            InteractionService.DisplayEmptyLine();
+            InteractionService.DisplayMessage("information", $"Creating {selectedLanguage.GetDisplayName()} AppHost...");
+            InteractionService.DisplayEmptyLine();
+            return await CreatePolyglotAppHostAsync(selectedLanguage, cancellationToken);
+        }
 
         if (initContext.SelectedSolutionFile is not null)
         {
@@ -502,6 +527,112 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             {
                 Directory.Delete(tempProjectDir, recursive: true);
             }
+        }
+    }
+
+    private async Task<int> CreatePolyglotAppHostAsync(AppHostLanguage language, CancellationToken cancellationToken)
+    {
+        var workingDirectory = _executionContext.WorkingDirectory;
+        var appHostFileName = language.GetAppHostFileName();
+        var appHostPath = Path.Combine(workingDirectory.FullName, appHostFileName);
+
+        // Check if apphost already exists
+        if (File.Exists(appHostPath))
+        {
+            InteractionService.DisplayMessage("check_mark", $"{appHostFileName} already exists in this directory.");
+            return ExitCodeConstants.Success;
+        }
+
+        // Create the apphost file based on language
+        if (language == AppHostLanguage.TypeScript)
+        {
+            await CreateTypeScriptAppHostAsync(workingDirectory, cancellationToken);
+        }
+
+        InteractionService.DisplaySuccess($"Created {appHostFileName}");
+        InteractionService.DisplayMessage("information", $"Run 'aspire run' to start your AppHost.");
+        return ExitCodeConstants.Success;
+    }
+
+    private static async Task CreateTypeScriptAppHostAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    {
+        var appHostPath = Path.Combine(directory.FullName, "apphost.ts");
+        var packageJsonPath = Path.Combine(directory.FullName, "package.json");
+
+        // Create a TypeScript apphost that uses the generated Aspire SDK
+        var appHostContent = """
+            // Aspire TypeScript AppHost
+            // For more information, see: https://learn.microsoft.com/dotnet/aspire
+
+            // Import from the generated module (created by 'aspire run' code generation)
+            import { createBuilder } from './.modules/distributed-application.js';
+
+            // Create the distributed application builder
+            const builder = await createBuilder();
+
+            // Add your resources here, for example:
+            // const redis = await builder.addContainer("cache", "redis:latest");
+            // const postgres = await builder.addPostgres("db");
+
+            // Build and run the application
+            const app = builder.build();
+            await app.run();
+            """;
+
+        await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
+
+        // Create package.json if it doesn't exist
+        if (!File.Exists(packageJsonPath))
+        {
+            var packageJsonContent = """
+                {
+                  "name": "aspire-apphost",
+                  "version": "1.0.0",
+                  "type": "module",
+                  "scripts": {
+                    "start": "aspire run"
+                  },
+                  "dependencies": {
+                    "vscode-jsonrpc": "^8.2.0"
+                  },
+                  "devDependencies": {
+                    "tsx": "^4.19.0",
+                    "typescript": "^5.3.0",
+                    "@types/node": "^20.0.0"
+                  }
+                }
+                """;
+
+            await File.WriteAllTextAsync(packageJsonPath, packageJsonContent, cancellationToken);
+        }
+
+        // Create apphost.run.json for dashboard/OTLP configuration
+        var apphostRunJsonPath = Path.Combine(directory.FullName, "apphost.run.json");
+        if (!File.Exists(apphostRunJsonPath))
+        {
+            // Generate random 5-digit ports (10000-65000)
+            var httpsPort = Random.Shared.Next(10000, 65000);
+            var httpPort = Random.Shared.Next(10000, 65000);
+            var otlpPort = Random.Shared.Next(10000, 65000);
+            var resourceServicePort = Random.Shared.Next(10000, 65000);
+
+            var apphostRunJsonContent = $$"""
+                {
+                  "profiles": {
+                    "https": {
+                      "applicationUrl": "https://localhost:{{httpsPort}};http://localhost:{{httpPort}}",
+                      "environmentVariables": {
+                        "ASPNETCORE_ENVIRONMENT": "Development",
+                        "DOTNET_ENVIRONMENT": "Development",
+                        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:{{otlpPort}}",
+                        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:{{resourceServicePort}}"
+                      }
+                    }
+                  }
+                }
+                """;
+
+            await File.WriteAllTextAsync(apphostRunJsonPath, apphostRunJsonContent, cancellationToken);
         }
     }
 
