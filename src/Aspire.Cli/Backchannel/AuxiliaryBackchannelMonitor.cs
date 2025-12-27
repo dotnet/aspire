@@ -183,8 +183,14 @@ internal sealed class AuxiliaryBackchannelMonitor(
     {
         try
         {
+            // Support both "auxi.sock.*" (new) and "aux.sock.*" (old) for backward compatibility
+            // Note: "aux" is a reserved device name on Windows < 11, but we still scan for it
+            // to support connections from older CLI versions
+            // Using "aux*.sock.*" wildcard to match both patterns
             var currentFiles = new HashSet<string>(
-                Directory.GetFiles(_backchannelsDirectory, "aux.sock.*"),
+                Directory.Exists(_backchannelsDirectory)
+                    ? Directory.GetFiles(_backchannelsDirectory, "aux*.sock.*")
+                    : [],
                 StringComparer.OrdinalIgnoreCase);
 
             // Find new files (files that exist now but weren't known before)
@@ -343,6 +349,11 @@ internal sealed class AuxiliaryBackchannelMonitor(
     private static string? ExtractHashFromSocketPath(string socketPath)
     {
         var fileName = Path.GetFileName(socketPath);
+        // Support both "auxi.sock." (new) and "aux.sock." (old) for backward compatibility
+        if (fileName.StartsWith("auxi.sock.", StringComparison.Ordinal))
+        {
+            return fileName["auxi.sock.".Length..];
+        }
         if (fileName.StartsWith("aux.sock.", StringComparison.Ordinal))
         {
             return fileName["aux.sock.".Length..];
@@ -360,7 +371,9 @@ internal sealed class AuxiliaryBackchannelMonitor(
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            var changeToken = fileProvider.Watch("aux.sock.*");
+            // Watch for both "auxi.sock.*" (new) and "aux.sock.*" (old) patterns for backward compatibility
+            // Using "aux*.sock.*" wildcard to match both patterns
+            var changeToken = fileProvider.Watch("aux*.sock.*");
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             using var registration = changeToken.RegisterChangeCallback(state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), tcs);
