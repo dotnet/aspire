@@ -105,6 +105,10 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         var cancellationToken = state.CancellationToken;
         var resource = state.LatestEvent.Resource;
 
+        // Fire the ResourceStartedEvent before health check monitoring begins
+        var resourceStartedEvent = new ResourceStartedEvent(resource, services);
+        await eventing.PublishAsync(resourceStartedEvent, cancellationToken).ConfigureAwait(false);
+
         if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
         {
             // NOTE: If there are no health check annotations then there
