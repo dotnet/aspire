@@ -10,6 +10,7 @@ namespace Aspire.Hosting.Backchannel;
 #endif
 
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
 
 /// <summary>
 /// Represents the state of a resource reported via RPC.
@@ -264,6 +265,27 @@ internal sealed class DashboardMcpConnectionInfo
     /// Gets or sets the API token for authenticating with the Dashboard MCP server.
     /// </summary>
     public required string ApiToken { get; init; }
+}
+
+/// <summary>
+/// Represents a resource that exposes an MCP server and its available tools.
+/// </summary>
+internal sealed class ResourceMcpTool
+{
+    /// <summary>
+    /// Gets the resource name.
+    /// </summary>
+    public required string ResourceName { get; init; }
+
+    /// <summary>
+    /// Gets the MCP endpoint URL for the resource.
+    /// </summary>
+    public required string EndpointUrl { get; init; }
+
+    /// <summary>
+    /// Gets the tools exposed by the resource.
+    /// </summary>
+    public required Tool[] Tools { get; init; }
 }
 
 /// <summary>

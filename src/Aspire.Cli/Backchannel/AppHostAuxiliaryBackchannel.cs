@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
 using StreamJsonRpc;
 
 namespace Aspire.Cli.Backchannel;
@@ -120,7 +122,7 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
         // Connect to the Unix socket
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(SocketPath);
-        
+
         await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
 
         // Create JSON-RPC connection with proper formatter
@@ -210,6 +212,63 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
             cancellationToken).ConfigureAwait(false);
 
         return mcpInfo;
+    }
+
+    /// <summary>
+    /// Lists MCP tools for resources annotated as MCP servers in the AppHost application model.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An array of resources and their MCP tools.</returns>
+    public async Task<ResourceMcpTool[]> ListResourceMcpToolsAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_rpc is null)
+        {
+            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
+        }
+
+        _logger?.LogDebug("Requesting resource MCP tools list");
+
+        try
+        {
+            return await _rpc.InvokeWithCancellationAsync<ResourceMcpTool[]>(
+                "ListResourceMcpToolsAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (RemoteMethodNotFoundException ex)
+        {
+            _logger?.LogDebug(ex, "ListResourceMcpToolsAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Invokes an MCP tool on a resource via the AppHost.
+    /// </summary>
+    /// <param name="resourceName">The resource name.</param>
+    /// <param name="toolName">The tool name.</param>
+    /// <param name="arguments">Tool arguments.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A JSON representation of the MCP CallToolResult.</returns>
+    public async Task<CallToolResult> CallResourceMcpToolAsync(
+        string resourceName,
+        string toolName,
+        IReadOnlyDictionary<string, JsonElement>? arguments,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_rpc is null)
+        {
+            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
+        }
+
+        _logger?.LogDebug("Requesting AppHost to call MCP tool {ToolName} on resource {ResourceName}", toolName, resourceName);
+
+        return await _rpc.InvokeWithCancellationAsync<CallToolResult>(
+            "CallResourceMcpToolAsync",
+            [resourceName, toolName, arguments],
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

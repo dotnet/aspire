@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Aspire.Cli.Commands;
 using Spectre.Console;
 using StreamJsonRpc;
@@ -35,6 +36,9 @@ namespace Aspire.Cli.Backchannel;
 [JsonSerializable(typeof(AppHostProjectSearchResultPoco))]
 [JsonSerializable(typeof(DashboardMcpConnectionInfo))]
 [JsonSerializable(typeof(AppHostInformation))]
+[JsonSerializable(typeof(ResourceMcpTool))]
+[JsonSerializable(typeof(ResourceMcpTool[]))]
+[JsonSerializable(typeof(Dictionary<string, JsonElement>))]
 internal partial class BackchannelJsonSerializerContext : JsonSerializerContext
 {
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "Using the Json source generator.")]
@@ -42,7 +46,17 @@ internal partial class BackchannelJsonSerializerContext : JsonSerializerContext
     internal static SystemTextJsonFormatter CreateRpcMessageFormatter()
     {
         var formatter = new SystemTextJsonFormatter();
-        formatter.JsonSerializerOptions.TypeInfoResolver = Default;
+        formatter.JsonSerializerOptions = CreateJsonSerializerOptions();
         return formatter;
+    }
+
+    internal static JsonSerializerOptions CreateJsonSerializerOptions()
+    {
+        var options = new JsonSerializerOptions(ModelContextProtocol.McpJsonUtilities.DefaultOptions);
+        options.TypeInfoResolver = JsonTypeInfoResolver.Combine(
+            Default,
+            ModelContextProtocol.McpJsonUtilities.DefaultOptions.TypeInfoResolver
+        );
+        return options;
     }
 }

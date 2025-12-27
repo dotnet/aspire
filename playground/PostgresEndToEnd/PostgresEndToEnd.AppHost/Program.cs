@@ -4,7 +4,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var db1 = builder.AddAzurePostgresFlexibleServer("pg")
-                 .RunAsContainer()
+                 .RunAsContainer(x => x.WithPostgresMcp())
                  .AddDatabase("db1");
 
 // .NET 
