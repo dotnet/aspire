@@ -228,17 +228,36 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var appHostPath = Path.Combine(directory.FullName, "apphost.ts");
         var packageJsonPath = Path.Combine(directory.FullName, "package.json");
 
+        // Create a TypeScript apphost that uses the generated Aspire SDK
         var appHostContent = """
             // Aspire TypeScript AppHost
             // For more information, see: https://learn.microsoft.com/dotnet/aspire
 
-            console.log("Aspire TypeScript AppHost starting...");
+            // Import from the generated module (created by 'aspire run' code generation)
+            import { createBuilder } from './.modules/distributed-application.js';
 
-            // TODO: Add your distributed application configuration here
-            // This is a placeholder - full Aspire integration coming soon!
+            async function main() {
+                console.log("Aspire TypeScript AppHost starting...");
 
-            // Keep the process running
-            setInterval(() => {}, 1000);
+                try {
+                    // Create the distributed application builder
+                    const builder = await createBuilder();
+
+                    // Add your resources here, for example:
+                    // const redis = await builder.addContainer("cache", "redis:latest");
+                    // const postgres = await builder.addPostgres("db");
+
+                    // Build and run the application
+                    const app = builder.build();
+                    await app.run();
+
+                } catch (error) {
+                    console.error("Application failed:", error);
+                    process.exit(1);
+                }
+            }
+
+            main();
             """;
 
         await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
@@ -249,13 +268,14 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
               "version": "1.0.0",
               "type": "module",
               "scripts": {
-                "start": "npx tsx apphost.ts"
+                "start": "aspire run"
               },
               "dependencies": {
-                "tsx": "^4.7.0"
+                "vscode-jsonrpc": "^8.2.0"
               },
               "devDependencies": {
-                "typescript": "^5.3.0"
+                "typescript": "^5.3.0",
+                "@types/node": "^20.0.0"
               }
             }
             """;
