@@ -21,7 +21,7 @@ public class KafkaServerResource(string name) : ContainerResource(name), IResour
 
     /// <summary>
     /// Gets the primary endpoint for the Kafka broker. This endpoint is used for host processes to Kafka broker communication.
-    /// To connect to the Kafka broker from a host process, use <see cref="InternalEndpoint"/>.
+    /// To connect to the Kafka broker from a container, use <see cref="InternalEndpoint"/>.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
