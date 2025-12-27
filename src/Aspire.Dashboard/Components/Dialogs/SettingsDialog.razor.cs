@@ -18,6 +18,7 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     private List<CultureInfo> _languageOptions = null!;
     private CultureInfo? _selectedUiCulture;
     private bool _isExporting;
+    private bool _isImporting;
 
     private IDisposable? _themeChangedSubscription;
 
@@ -41,6 +42,9 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
 
     [Inject]
     public required TelemetryExportService TelemetryExportService { get; init; }
+
+    [Inject]
+    public required TelemetryImportService TelemetryImportService { get; init; }
 
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -129,6 +133,33 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
         finally
         {
             _isExporting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnInputFileProgressChange(FluentInputFileEventArgs args)
+    {
+        _isImporting = true;
+    }
+
+    private async Task OnInputFileCompleted(IEnumerable<FluentInputFileEventArgs> args)
+    {
+        try
+        {
+            var files = args.ToList();
+
+            foreach (var file in files)
+            {
+                if (file.LocalFile != null)
+                {
+                    using var fileStream = file.LocalFile.OpenRead();
+                    await TelemetryImportService.ImportAsync(file.Name, fileStream, CancellationToken.None);
+                }
+            }
+        }
+        finally
+        {
+            _isImporting = false;
             StateHasChanged();
         }
     }

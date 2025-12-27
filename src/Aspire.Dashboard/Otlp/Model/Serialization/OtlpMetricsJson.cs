@@ -6,18 +6,6 @@ using System.Text.Json.Serialization;
 namespace Aspire.Dashboard.Otlp.Model.Serialization;
 
 /// <summary>
-/// Represents the metrics data in OTLP JSON format.
-/// </summary>
-internal sealed class OtlpMetricsDataJson
-{
-    /// <summary>
-    /// An array of ResourceMetrics.
-    /// </summary>
-    [JsonPropertyName("resourceMetrics")]
-    public OtlpResourceMetricsJson[]? ResourceMetrics { get; set; }
-}
-
-/// <summary>
 /// Represents a collection of ScopeMetrics from a Resource.
 /// </summary>
 internal sealed class OtlpResourceMetricsJson
