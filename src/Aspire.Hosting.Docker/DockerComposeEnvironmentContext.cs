@@ -81,12 +81,15 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
                 throw new InvalidOperationException("Volume source and target must be set");
             }
 
-            var source = mount.Source;
-            var name = mount.Source;
+            // For Docker Compose, use RelativeSource if available (keeps paths relative to compose file),
+            // otherwise fallback to Source (resolved absolute path)
+            var sourceForCompose = mount.RelativeSource ?? mount.Source;
+            var source = sourceForCompose;
+            var name = sourceForCompose;
 
             // For bind mounts, create environment placeholders for the source path
             // Skip the docker socket which should be left as-is for portability
-            if (mount.Type == ContainerMountType.BindMount && !IsDockerSocket(mount.Source))
+            if (mount.Type == ContainerMountType.BindMount && !IsDockerSocket(sourceForCompose))
             {
                 // Create environment variable name: {RESOURCE_NAME}_BINDMOUNT_{INDEX}
                 var envVarName = $"{serviceResource.Name.ToUpperInvariant().Replace("-", "_").Replace(".", "_")}_BINDMOUNT_{bindMountIndex}";
@@ -97,12 +100,12 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
                 var placeholder = environment.AddEnvironmentVariable(
                     envVarName,
                     description: $"Bind mount source for {serviceResource.Name}:{mount.Target}",
-                    defaultValue: mount.Source,
+                    defaultValue: sourceForCompose,
                     source: mount,
                     resource: serviceResource.TargetResource);
 
                 // Log warning about host-specific path
-                logger.BindMountHostSpecificPath(serviceResource.Name, mount.Source, envVarName);
+                logger.BindMountHostSpecificPath(serviceResource.Name, sourceForCompose, envVarName);
 
                 // Use the placeholder in the compose file
                 source = placeholder;
