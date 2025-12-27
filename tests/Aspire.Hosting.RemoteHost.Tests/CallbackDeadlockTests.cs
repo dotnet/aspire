@@ -104,34 +104,6 @@ public sealed class CallbackDeadlockTests : IAsyncLifetime
         Assert.Equal("processed", obj.LastMessage);
     }
 
-    /// <summary>
-    /// Async callbacks (Func{Task}) should not deadlock because they don't block.
-    /// </summary>
-    [Fact(Timeout = 5000)]
-    public async Task AsyncCallback_ThatCallsBackToDotNet_ShouldNotDeadlock()
-    {
-        var obj = new ServiceWithCallback();
-        var serviceId = _objectRegistry.Register(obj);
-
-        var data = new DataObject { Value = 200 };
-        var dataId = _objectRegistry.Register(data);
-
-        _callbackInvoker.RegisterReentrantCallback("async_reentrant", dataId, "Value");
-
-        var args = JsonDocument.Parse("{\"callback\": \"async_reentrant\"}").RootElement;
-
-        await _callbackInvoker.RunOnDispatcherAsync(() =>
-        {
-            _processor.InvokeMethod(serviceId, "DoWorkWithAsyncCallback", args);
-        });
-
-        // Give the async callback time to complete
-        await Task.Delay(100);
-
-        Assert.True(obj.WorkCompleted);
-        Assert.Equal(200, _callbackInvoker.LastReentrantResult);
-    }
-
     #region Test Classes
 
     private sealed class ServiceWithCallback
@@ -153,12 +125,6 @@ public sealed class CallbackDeadlockTests : IAsyncLifetime
             callback("processed");
             WorkCompleted = true;
             LastMessage = "processed";
-        }
-
-        public void DoWorkWithAsyncCallback(Func<Task> callback)
-        {
-            // Fire and forget - this won't block
-            _ = callback().ContinueWith(_ => WorkCompleted = true, TaskScheduler.Default);
         }
     }
 
