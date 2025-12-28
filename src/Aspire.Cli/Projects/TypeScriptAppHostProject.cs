@@ -202,14 +202,14 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     /// <summary>
     /// Creates project files and builds the AppHost server.
     /// </summary>
-    private static async Task<(bool Success, OutputCollector Output)> BuildAppHostServerAsync(
+    private static async Task<(bool Success, OutputCollector Output, string? ChannelName)> BuildAppHostServerAsync(
         AppHostServerProject appHostServerProject,
         List<(string Name, string Version)> packages,
         CancellationToken cancellationToken)
     {
         var outputCollector = new OutputCollector();
 
-        await appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken);
+        var (_, channelName) = await appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken);
         var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
         if (!buildSuccess)
         {
@@ -219,7 +219,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             }
         }
 
-        return (buildSuccess, outputCollector);
+        return (buildSuccess, outputCollector, channelName);
     }
 
     /// <summary>
@@ -243,7 +243,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         var packages = GetPackageReferences(directory).ToList();
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
 
-        var (buildSuccess, buildOutput) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
+        var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
         if (!buildSuccess)
         {
             _interactionService.DisplayLines(buildOutput.GetLines());
@@ -328,15 +328,15 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                         var npmInstallResult = await RunNpmInstallAsync(directory, cancellationToken);
                         if (npmInstallResult != 0)
                         {
-                            return (Success: false, Output: new OutputCollector(), Error: "Failed to install npm dependencies.");
+                            return (Success: false, Output: new OutputCollector(), Error: "Failed to install npm dependencies.", ChannelName: (string?)null);
                         }
                     }
 
                     // Build the AppHost server
-                    var (buildSuccess, buildOutput) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
+                    var (buildSuccess, buildOutput, channelName) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
                     if (!buildSuccess)
                     {
-                        return (Success: false, Output: buildOutput, Error: "Failed to build app host.");
+                        return (Success: false, Output: buildOutput, Error: "Failed to build app host.", ChannelName: (string?)null);
                     }
 
                     // Generate TypeScript SDK if needed
@@ -349,8 +349,16 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                             cancellationToken);
                     }
 
-                    return (Success: true, Output: buildOutput, Error: (string?)null);
+                    return (Success: true, Output: buildOutput, Error: (string?)null, ChannelName: channelName);
                 });
+
+            // Save the channel to settings.json if available
+            if (buildResult.ChannelName is not null)
+            {
+                var config = AspireJsonConfiguration.Load(directory.FullName) ?? new AspireJsonConfiguration();
+                config.Channel = buildResult.ChannelName;
+                config.Save(directory.FullName);
+            }
 
             if (!buildResult.Success)
             {
@@ -786,7 +794,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var jsonRpcSocketPath = appHostServerProject.GetSocketPath();
 
             // Build the AppHost server
-            var (buildSuccess, buildOutput) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
+            var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
             if (!buildSuccess)
             {
                 _interactionService.DisplayLines(buildOutput.GetLines());

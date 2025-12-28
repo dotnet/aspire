@@ -137,8 +137,8 @@ internal sealed class AppHostServerProject
     /// </summary>
     /// <param name="packages">The package references to include.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The full path to the project file.</returns>
-    public async Task<string> CreateProjectFilesAsync(IEnumerable<(string Name, string Version)> packages, CancellationToken cancellationToken = default)
+    /// <returns>A tuple containing the full path to the project file and the channel name used (if any).</returns>
+    public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(IEnumerable<(string Name, string Version)> packages, CancellationToken cancellationToken = default)
     {
         // Create Program.cs that starts the RemoteHost server
         var programCs = """
@@ -167,6 +167,8 @@ internal sealed class AppHostServerProject
         // 1. If local package source is specified (dev scenario), create a config that includes it
         // 2. Otherwise, use NuGetConfigMerger to create/update config based on channel (same pattern as aspire new/init)
         var nugetConfigPath = Path.Combine(_projectModelPath, "NuGet.config");
+        string? channelName = null;
+
         if (LocalPackagePath is not null)
         {
             var nugetConfig = $"""
@@ -213,6 +215,9 @@ internal sealed class AppHostServerProject
                     new DirectoryInfo(_projectModelPath),
                     channel,
                     cancellationToken: cancellationToken);
+
+                // Track the channel name to return to caller
+                channelName = channel.Name;
             }
         }
 
@@ -419,7 +424,7 @@ internal sealed class AppHostServerProject
         var projectFileName = Path.Combine(_projectModelPath, ProjectFileName);
         doc.Save(projectFileName);
 
-        return projectFileName;
+        return (projectFileName, channelName);
     }
 
     /// <summary>

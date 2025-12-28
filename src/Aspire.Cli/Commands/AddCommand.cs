@@ -98,12 +98,28 @@ internal sealed class AddCommand : BaseCommand
 
             var source = parseResult.GetValue<string?>("--source");
 
+            // For non-.NET projects, read the channel from settings.json if available.
+            // Unlike .NET projects which have a nuget.config, polyglot apphosts store
+            // the channel in .aspire/settings.json during the build process.
+            string? configuredChannel = null;
+            if (project.LanguageId != KnownLanguageId.CSharp)
+            {
+                var settings = AspireJsonConfiguration.Load(effectiveAppHostProjectFile.Directory!.FullName);
+                configuredChannel = settings?.Channel;
+            }
+
             var packagesWithChannels = await InteractionService.ShowStatusAsync(
                 AddCommandStrings.SearchingForAspirePackages,
                 async () =>
                 {
                     // Get channels and find the implicit channel, similar to how templates are handled
                     var allChannels = await _packagingService.GetChannelsAsync(cancellationToken);
+
+                    // If a channel is configured in settings.json, use that specific channel
+                    if (!string.IsNullOrEmpty(configuredChannel))
+                    {
+                        allChannels = allChannels.Where(c => string.Equals(c.Name, configuredChannel, StringComparison.OrdinalIgnoreCase));
+                    }
 
                     // If there are hives (PR build directories), include all channels.
                     // Otherwise, only use the implicit/default channel to avoid prompting.

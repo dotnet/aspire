@@ -34,6 +34,13 @@ internal sealed class AspireJsonConfiguration
     public string? AppHostPath { get; set; }
 
     /// <summary>
+    /// The Aspire channel to use for package resolution (e.g., "stable", "preview", "staging").
+    /// Used by aspire add to determine which NuGet feed to use.
+    /// </summary>
+    [JsonPropertyName("channel")]
+    public string? Channel { get; set; }
+
+    /// <summary>
     /// Package references as an object literal (like npm's package.json).
     /// Key is package name, value is version.
     /// </summary>
