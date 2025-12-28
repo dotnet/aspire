@@ -977,6 +977,8 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
     private static void GenerateModelClasses(TextWriter textWriter, ApplicationModel model)
     {
+        // Only generate enums as TypeScript enums
+        // Non-enum model types are handled by *Proxy classes that wrap DotNetProxy
         foreach (var type in model.ModelTypes)
         {
             if (type.IsEnum)
@@ -988,17 +990,8 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                     }
                     """);
             }
-            else
-            {
-                textWriter.WriteLine();
-                textWriter.WriteLine($$"""
-                export class {{SanitizeClassName(type.Name)}} extends ReferenceClass {
-                  constructor(builder: DistributedApplicationBuilderBase) {
-                      super(builder, "{{type.Name}}", "{{CamelCase(type.Name)}}");
-                  }
-                }
-                """);
-            }
+            // Non-enum model types don't need ReferenceClass wrappers
+            // They're accessed via DotNetProxy or typed *Proxy wrapper classes
         }
     }
 
