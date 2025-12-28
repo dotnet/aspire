@@ -1,7 +1,7 @@
-﻿// RemoteAppHostClient.ts - Connects to the GenericAppHost via socket/named pipe
+// RemoteAppHostClient.ts - Connects to the GenericAppHost via socket/named pipe
 import * as net from 'net';
 import * as rpc from 'vscode-jsonrpc/node.js';
-import { AnyInstruction, InstructionResult, CallbackFunction, MarshalledObject } from './types.js';
+import { CallbackFunction, MarshalledObject } from './types.js';
 
 // Callback registry - maps callback IDs to functions
 const callbackRegistry = new Map<string, CallbackFunction>();
@@ -64,6 +64,14 @@ export class DotNetProxy {
     /** Get a cached property value (may be stale) */
     getCachedValue(propertyName: string): unknown {
         return this._data[propertyName];
+    }
+
+    /** Serialize for JSON-RPC transport - includes $id so .NET can resolve the reference */
+    toJSON() {
+        return {
+            $id: this._id,
+            $type: this._type
+        };
     }
 
     /** Invoke a method on the .NET object */
@@ -394,15 +402,22 @@ export class RemoteAppHostClient {
         return this.connection.sendRequest('ping');
     }
 
-    executeInstruction(instruction: AnyInstruction): Promise<InstructionResult> {
-        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
-        return this.connection.sendRequest('executeInstruction', JSON.stringify(instruction));
-    }
-
-    /** Invoke a method on a .NET object */
+    /** Invoke a method on a .NET object (instance methods only) */
     invokeMethod(objectId: string, methodName: string, args?: Record<string, unknown>): Promise<unknown> {
         if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
         return this.connection.sendRequest('invokeMethod', objectId, methodName, args ?? null);
+    }
+
+    /** Invoke a static method on a .NET type */
+    invokeStaticMethod(assemblyName: string, typeName: string, methodName: string, args?: Record<string, unknown>): Promise<unknown> {
+        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
+        return this.connection.sendRequest('invokeStaticMethod', assemblyName, typeName, methodName, args ?? null);
+    }
+
+    /** Create an instance of a .NET type */
+    createObject(assemblyName: string, typeName: string, args?: Record<string, unknown>): Promise<unknown> {
+        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
+        return this.connection.sendRequest('createObject', assemblyName, typeName, args ?? null);
     }
 
     /** Get a property from a .NET object */

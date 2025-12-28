@@ -1,7 +1,7 @@
 // RemoteAppHostClient.ts - Connects to the GenericAppHost via socket/named pipe
 import * as net from 'net';
 import * as rpc from 'vscode-jsonrpc/node.js';
-import { AnyInstruction, InstructionResult, CallbackFunction, MarshalledObject } from './types.js';
+import { CallbackFunction, MarshalledObject } from './types.js';
 
 // Callback registry - maps callback IDs to functions
 const callbackRegistry = new Map<string, CallbackFunction>();
@@ -400,11 +400,6 @@ export class RemoteAppHostClient {
     ping(): Promise<string> {
         if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
         return this.connection.sendRequest('ping');
-    }
-
-    executeInstruction(instruction: AnyInstruction): Promise<InstructionResult> {
-        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
-        return this.connection.sendRequest('executeInstruction', JSON.stringify(instruction));
     }
 
     /** Invoke a method on a .NET object (instance methods only) */

@@ -1,7 +1,6 @@
-﻿{
+{
   distributed-application.ts:
 import { RemoteAppHostClient, registerCallback, DotNetProxy, ListProxy, wrapIfProxy } from './RemoteAppHostClient.js';
-import { AnyInstruction, InvokeInstruction } from './types.js';
 
 // Get socket path from environment variable (set by aspire run)
 const socketPath = process.env.REMOTE_APP_HOST_SOCKET_PATH;
@@ -26,12 +25,12 @@ export async function createBuilder(args: string[] = process.argv.slice(2)): Pro
     }
 
     // Use static INVOKE to call DistributedApplication.CreateBuilder(options)
-    const result = await client.invokeMethod('', 'CreateBuilder', {
+    const result = await client.invokeStaticMethod('Aspire.Hosting', 'Aspire.Hosting.DistributedApplication', 'CreateBuilder', {
       options: {
         Args: args,
         ProjectDirectory: process.cwd()
       }
-    }, 'Aspire.Hosting', 'Aspire.Hosting.DistributedApplication');
+    });
 
     if (result && typeof result === 'object' && '$id' in result) {
       return new DistributedApplicationBuilder(new DotNetProxy(result as any));
@@ -467,7 +466,7 @@ export class DistributedApplicationBuilder extends DistributedApplicationBuilder
    */
   /** @internal */
   async _addTestRedisInternal(name: string, port?: number | null) : Promise<TestRedisResourceBuilder> {
-    const result = await this._proxy.invokeMethod('AddTestRedis', {name: name, port: port || null});
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'AddTestRedis', {builder: this._proxy, name: name, port: port || null});
     if (result && typeof result === 'object' && '$id' in result) {
         return new TestRedisResourceBuilder(new DotNetProxy(result as any));
     }
@@ -491,7 +490,7 @@ export class DistributedApplicationBuilder extends DistributedApplicationBuilder
    */
   /** @internal */
   async _addTestDatabaseInternal(name: string, databaseName?: string) : Promise<TestDatabaseResourceBuilder> {
-    const result = await this._proxy.invokeMethod('AddTestDatabase', {name: name, databaseName: databaseName || null});
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'AddTestDatabase', {builder: this._proxy, name: name, databaseName: databaseName || null});
     if (result && typeof result === 'object' && '$id' in result) {
         return new TestDatabaseResourceBuilder(new DotNetProxy(result as any));
     }
@@ -562,7 +561,7 @@ export class TestRedisResourceBuilder {
    */
   /** @internal */
   async _withPersistenceInternal(mode?: TestPersistenceMode) : Promise<TestRedisResourceBuilder> {
-    const result = await this._proxy.invokeMethod('WithPersistence', {mode: mode || null});
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithPersistence', {builder: this._proxy, mode: mode || null});
     if (result && typeof result === 'object' && '$id' in result) {
         return new TestRedisResourceBuilder(new DotNetProxy(result as any));
     }
@@ -585,7 +584,7 @@ export class TestRedisResourceBuilder {
    */
   /** @internal */
   async _withBuilderCallbackInternal(configure?: (p0: TestRedisResourceBuilder) => void | Promise<void>) : Promise<TestRedisResourceBuilder> {
-    const result = await this._proxy.invokeMethod('WithBuilderCallback', {configure: configure ? registerCallback((arg: DotNetProxy) => configure(new TestRedisResourceBuilder(arg))) : null});
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithBuilderCallback', {builder: this._proxy, configure: configure ? registerCallback((arg: DotNetProxy) => configure(new TestRedisResourceBuilder(arg))) : null});
     if (result && typeof result === 'object' && '$id' in result) {
         return new TestRedisResourceBuilder(new DotNetProxy(result as any));
     }
@@ -608,7 +607,7 @@ export class TestRedisResourceBuilder {
    */
   /** @internal */
   async _withCustomCallbackInternal(callback: (p0: TestCallbackContextProxy) => void | Promise<void>) : Promise<TestRedisResourceBuilder> {
-    const result = await this._proxy.invokeMethod('WithCustomCallback', {callback: registerCallback((arg: DotNetProxy) => callback(new TestCallbackContextProxy(arg)))});
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithCustomCallback', {builder: this._proxy, callback: registerCallback((arg: DotNetProxy) => callback(new TestCallbackContextProxy(arg)))});
     if (result && typeof result === 'object' && '$id' in result) {
         return new TestRedisResourceBuilder(new DotNetProxy(result as any));
     }
@@ -633,7 +632,7 @@ export class TestRedisResourceBuilder {
   /** @internal */
   async _withOptionalStringInternal(optionalArguments: WithOptionalStringArgs = new WithOptionalStringArgs()) : Promise<TestRedisResourceBuilder> {
     optionalArguments = Object.assign(new WithOptionalStringArgs(), optionalArguments);
-    const result = await this._proxy.invokeMethod('WithOptionalString', {value: optionalArguments?.value || null, enabled: optionalArguments?.enabled || null});
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithOptionalString', {builder: this._proxy, value: optionalArguments?.value || null, enabled: optionalArguments?.enabled || null});
     if (result && typeof result === 'object' && '$id' in result) {
         return new TestRedisResourceBuilder(new DotNetProxy(result as any));
     }
@@ -661,7 +660,7 @@ export class TestRedisResourceBuilder {
   /** @internal */
   async _withMultipleDefaultsInternal(optionalArguments: WithMultipleDefaultsArgs = new WithMultipleDefaultsArgs()) : Promise<TestRedisResourceBuilder> {
     optionalArguments = Object.assign(new WithMultipleDefaultsArgs(), optionalArguments);
-    const result = await this._proxy.invokeMethod('WithMultipleDefaults', {count: optionalArguments?.count || null, prefix: optionalArguments?.prefix || null, useUpperCase: optionalArguments?.useUpperCase || null, multiplier: optionalArguments?.multiplier || null});
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithMultipleDefaults', {builder: this._proxy, count: optionalArguments?.count || null, prefix: optionalArguments?.prefix || null, useUpperCase: optionalArguments?.useUpperCase || null, multiplier: optionalArguments?.multiplier || null});
     if (result && typeof result === 'object' && '$id' in result) {
         return new TestRedisResourceBuilder(new DotNetProxy(result as any));
     }
@@ -692,7 +691,7 @@ export class TestDatabaseResourceBuilder {
    */
   /** @internal */
   async _withCustomCallbackInternal(callback: (p0: TestCallbackContextProxy) => void | Promise<void>) : Promise<TestDatabaseResourceBuilder> {
-    const result = await this._proxy.invokeMethod('WithCustomCallback', {callback: registerCallback((arg: DotNetProxy) => callback(new TestCallbackContextProxy(arg)))});
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithCustomCallback', {builder: this._proxy, callback: registerCallback((arg: DotNetProxy) => callback(new TestCallbackContextProxy(arg)))});
     if (result && typeof result === 'object' && '$id' in result) {
         return new TestDatabaseResourceBuilder(new DotNetProxy(result as any));
     }
@@ -717,7 +716,7 @@ export class TestDatabaseResourceBuilder {
   /** @internal */
   async _withOptionalStringInternal(optionalArguments: WithOptionalStringArgs1 = new WithOptionalStringArgs1()) : Promise<TestDatabaseResourceBuilder> {
     optionalArguments = Object.assign(new WithOptionalStringArgs1(), optionalArguments);
-    const result = await this._proxy.invokeMethod('WithOptionalString', {value: optionalArguments?.value || null, enabled: optionalArguments?.enabled || null});
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithOptionalString', {builder: this._proxy, value: optionalArguments?.value || null, enabled: optionalArguments?.enabled || null});
     if (result && typeof result === 'object' && '$id' in result) {
         return new TestDatabaseResourceBuilder(new DotNetProxy(result as any));
     }
@@ -745,7 +744,7 @@ export class TestDatabaseResourceBuilder {
   /** @internal */
   async _withMultipleDefaultsInternal(optionalArguments: WithMultipleDefaultsArgs1 = new WithMultipleDefaultsArgs1()) : Promise<TestDatabaseResourceBuilder> {
     optionalArguments = Object.assign(new WithMultipleDefaultsArgs1(), optionalArguments);
-    const result = await this._proxy.invokeMethod('WithMultipleDefaults', {count: optionalArguments?.count || null, prefix: optionalArguments?.prefix || null, useUpperCase: optionalArguments?.useUpperCase || null, multiplier: optionalArguments?.multiplier || null});
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithMultipleDefaults', {builder: this._proxy, count: optionalArguments?.count || null, prefix: optionalArguments?.prefix || null, useUpperCase: optionalArguments?.useUpperCase || null, multiplier: optionalArguments?.multiplier || null});
     if (result && typeof result === 'object' && '$id' in result) {
         return new TestDatabaseResourceBuilder(new DotNetProxy(result as any));
     }
@@ -1038,7 +1037,7 @@ export class DictionaryProxy {
 // RemoteAppHostClient.ts - Connects to the GenericAppHost via socket/named pipe
 import * as net from 'net';
 import * as rpc from 'vscode-jsonrpc/node.js';
-import { AnyInstruction, InstructionResult, CallbackFunction, MarshalledObject } from './types.js';
+import { CallbackFunction, MarshalledObject } from './types.js';
 
 // Callback registry - maps callback IDs to functions
 const callbackRegistry = new Map<string, CallbackFunction>();
@@ -1101,6 +1100,14 @@ export class DotNetProxy {
     /** Get a cached property value (may be stale) */
     getCachedValue(propertyName: string): unknown {
         return this._data[propertyName];
+    }
+
+    /** Serialize for JSON-RPC transport - includes $id so .NET can resolve the reference */
+    toJSON() {
+        return {
+            $id: this._id,
+            $type: this._type
+        };
     }
 
     /** Invoke a method on the .NET object */
@@ -1431,15 +1438,22 @@ export class RemoteAppHostClient {
         return this.connection.sendRequest('ping');
     }
 
-    executeInstruction(instruction: AnyInstruction): Promise<InstructionResult> {
-        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
-        return this.connection.sendRequest('executeInstruction', JSON.stringify(instruction));
-    }
-
-    /** Invoke a method on a .NET object */
+    /** Invoke a method on a .NET object (instance methods only) */
     invokeMethod(objectId: string, methodName: string, args?: Record<string, unknown>): Promise<unknown> {
         if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
         return this.connection.sendRequest('invokeMethod', objectId, methodName, args ?? null);
+    }
+
+    /** Invoke a static method on a .NET type */
+    invokeStaticMethod(assemblyName: string, typeName: string, methodName: string, args?: Record<string, unknown>): Promise<unknown> {
+        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
+        return this.connection.sendRequest('invokeStaticMethod', assemblyName, typeName, methodName, args ?? null);
+    }
+
+    /** Create an instance of a .NET type */
+    createObject(assemblyName: string, typeName: string, args?: Record<string, unknown>): Promise<unknown> {
+        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
+        return this.connection.sendRequest('createObject', assemblyName, typeName, args ?? null);
     }
 
     /** Get a property from a .NET object */
@@ -1496,47 +1510,6 @@ export class RemoteAppHostClient {
 }
 ,
   types.ts:
-export interface Instruction {
-  name: string;
-}
-
-export interface CreateObjectInstruction extends Instruction {
-  name: 'CREATE_OBJECT';
-  typeName: string;
-  assemblyName?: string;
-  target: string;
-  args?: Record<string, any>;
-}
-
-export interface PragmaInstruction extends Instruction {
-  name: 'pragma';
-  type: string;
-  value: string;
-}
-
-export interface InvokeInstruction extends Instruction {
-  name: 'INVOKE';
-  source?: string;
-  target: string;
-  methodAssembly: string;
-  methodType: string;
-  methodName: string;
-  methodArgumentTypes?: string[];
-  metadataToken?: number;
-  args?: Record<string, any>;
-}
-
-export type AnyInstruction =
-  | CreateObjectInstruction
-  | PragmaInstruction
-  | InvokeInstruction;
-
-export interface InstructionResult {
-  success: boolean;
-  error?: string;
-  [key: string]: any;
-}
-
 /**
  * Type for callback functions that can be registered and invoked from .NET.
  */

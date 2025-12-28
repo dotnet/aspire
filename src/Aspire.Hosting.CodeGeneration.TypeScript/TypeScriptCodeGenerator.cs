@@ -80,7 +80,6 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         // Write the header with imports and utility functions
         writer.WriteLine($$"""
         import { RemoteAppHostClient, registerCallback, DotNetProxy, ListProxy, wrapIfProxy } from './RemoteAppHostClient.js';
-        import { AnyInstruction, InvokeInstruction } from './types.js';
 
         // Get socket path from environment variable (set by aspire run)
         const socketPath = process.env.REMOTE_APP_HOST_SOCKET_PATH;

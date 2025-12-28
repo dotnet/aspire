@@ -456,30 +456,26 @@ class ListProxy<T> {
     async set(index: number, value: T): Promise<void>;
     async count(): Promise<number>;
     async clear(): Promise<void>;
+    async contains(item: T): Promise<boolean>;
     async remove(item: T): Promise<boolean>;
     async removeAt(index: number): Promise<void>;
+    async insert(index: number, item: T): Promise<void>;
+    async dispose(): Promise<void>;
 }
 ```
 
 ### Generated Proxy Wrappers
 
-The code generator produces **specially generated proxy wrapper classes** for callback context types. These provide typed access to .NET objects passed into callbacks.
+The code generator produces typed proxy wrapper classes for common .NET types like `IConfiguration`, `IHostEnvironment`, and `IServiceProvider`. These provide typed access to .NET objects and wrap the underlying `DotNetProxy`:
 
-| Generated Proxy | .NET Type | Purpose |
-|-----------------|-----------|---------|
-| `EnvironmentCallbackContextProxy` | `EnvironmentCallbackContext` | Access `EnvironmentVariables` dictionary |
-| `CommandLineArgsCallbackContextProxy` | `CommandLineArgsCallbackContext` | Access `Args` list |
-| `EndpointReferenceProxy` | `EndpointReference` | Access endpoint metadata |
-
-Example generated proxy:
 ```typescript
-class EnvironmentCallbackContextProxy {
+class ConfigurationProxy {
     private _proxy: DotNetProxy;
     get proxy(): DotNetProxy { return this._proxy; }
 
-    async getEnvironmentVariables(): Promise<DotNetProxy>;
-    async getResource(): Promise<DotNetProxy>;
-    async getExecutionContext(): Promise<DotNetProxy>;
+    async get(key: string): Promise<string | null>;
+    async getSection(key: string): Promise<ConfigurationProxy>;
+    async getConnectionString(name: string): Promise<string | null>;
 }
 ```
 
@@ -498,17 +494,15 @@ const expr = refExpr`redis://${endpoint}`;
 ```typescript
 // apphost.ts
 import { createBuilder } from './.modules/distributed-application.js';
-import { EnvironmentCallbackContextProxy } from './.modules/distributed-application.js';
 
 const builder = await createBuilder();
 
 const redis = await builder.addRedis('cache');
+const postgres = await builder.addPostgres('db');
 
-// Callback receives typed proxy wrapper
-await redis.withEnvironmentCallback(async (context: EnvironmentCallbackContextProxy) => {
-    const envVars = await context.getEnvironmentVariables();
-    await envVars.set("REDIS_CONFIG", "custom-value");
-});
+const api = await builder.addProject('api', '../Api/Api.csproj')
+    .withReference(redis)
+    .withReference(postgres);
 
 const app = builder.build();
 await app.run();
