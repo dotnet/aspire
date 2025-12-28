@@ -674,7 +674,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         {
             if (e.Data is not null)
             {
-                Console.WriteLine(e.Data);
+                _logger.LogDebug("tsx({ProcessId}) {Identifier}: {Line}", process.Id, "stdout", e.Data);
             }
         };
 
@@ -682,7 +682,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         {
             if (e.Data is not null)
             {
-                Console.Error.WriteLine(e.Data);
+                _logger.LogDebug("tsx({ProcessId}) {Identifier}: {Line}", process.Id, "stderr", e.Data);
             }
         };
 
