@@ -200,6 +200,35 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     }
 
     /// <summary>
+    /// Creates project files and builds the AppHost server.
+    /// </summary>
+    private async Task<(bool Success, OutputCollector Output)> BuildAppHostServerAsync(
+        AppHostServerProject appHostServerProject,
+        List<(string Name, string Version)> packages,
+        CancellationToken cancellationToken)
+    {
+        var outputCollector = new OutputCollector();
+
+        var success = await _interactionService.ShowStatusAsync(
+            ":hammer_and_wrench:  Building AppHost server...",
+            async () =>
+            {
+                await appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken);
+                var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(cancellationToken);
+                if (!buildSuccess)
+                {
+                    foreach (var (_, line) in buildOutput.GetLines())
+                    {
+                        outputCollector.AppendOutput(line);
+                    }
+                }
+                return buildSuccess;
+            });
+
+        return (success, outputCollector);
+    }
+
+    /// <summary>
     /// Builds the AppHost server project and generates the TypeScript SDK.
     /// </summary>
     private async Task BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
@@ -223,11 +252,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         var packages = GetPackageReferences(directory).ToList();
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
 
-        await _interactionService.ShowStatusAsync(
-            ":gear:  Creating AppHost server project...",
-            () => appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken));
-
-        var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(_interactionService, cancellationToken);
+        var (buildSuccess, buildOutput) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
         if (!buildSuccess)
         {
             _interactionService.DisplayLines(buildOutput.GetLines());
@@ -323,13 +348,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var socketPath = appHostServerProject.GetSocketPath();
 
-            // Create the AppHost server project files
-            await _interactionService.ShowStatusAsync(
-                ":gear:  Creating AppHost server project...",
-                () => appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken));
-
             // Build the AppHost server (must happen before code generation!)
-            var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(_interactionService, cancellationToken);
+            var (buildSuccess, buildOutput) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
             if (!buildSuccess)
             {
                 _interactionService.DisplayLines(buildOutput.GetLines());
@@ -755,13 +775,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var jsonRpcSocketPath = appHostServerProject.GetSocketPath();
 
-            // Create the AppHost server project files
-            await _interactionService.ShowStatusAsync(
-                ":gear:  Creating AppHost server project...",
-                () => appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken));
-
             // Build the AppHost server
-            var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(_interactionService, cancellationToken);
+            var (buildSuccess, buildOutput) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
             if (!buildSuccess)
             {
                 _interactionService.DisplayLines(buildOutput.GetLines());

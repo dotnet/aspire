@@ -8,7 +8,6 @@ using System.Text;
 using System.Xml.Linq;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
-using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
@@ -419,7 +418,7 @@ internal sealed class AppHostServerProject
     /// Restores and builds the project dependencies.
     /// </summary>
     /// <returns>A tuple containing the success status and an OutputCollector with build output.</returns>
-    public async Task<(bool Success, OutputCollector Output)> BuildAsync(IInteractionService interactionService, CancellationToken cancellationToken = default)
+    public async Task<(bool Success, OutputCollector Output)> BuildAsync(CancellationToken cancellationToken = default)
     {
         var outputCollector = new OutputCollector();
         var projectFile = new FileInfo(Path.Combine(_projectModelPath, ProjectFileName));
@@ -430,9 +429,7 @@ internal sealed class AppHostServerProject
             StandardErrorCallback = outputCollector.AppendError
         };
 
-        var exitCode = await interactionService.ShowStatusAsync(
-            ":hammer_and_wrench:  Building AppHost server...",
-            () => _dotNetCliRunner.BuildAsync(projectFile, options, cancellationToken));
+        var exitCode = await _dotNetCliRunner.BuildAsync(projectFile, options, cancellationToken);
 
         return (exitCode == 0, outputCollector);
     }
