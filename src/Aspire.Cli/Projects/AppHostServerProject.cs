@@ -297,6 +297,9 @@ internal sealed class AppHostServerProject
                     <ItemGroup>
                         <PackageReference Include="StreamJsonRpc" Version="2.22.23" />
                     </ItemGroup>
+                    <!-- Disable Aspire SDK code generation - we don't need project metadata for the AppHost server -->
+                    <Target Name="_CSharpWriteHostProjectMetadataSources" />
+                    <Target Name="_CSharpWriteProjectMetadataSources" />
                 </Project>
                 """;
         }
@@ -392,6 +395,11 @@ internal sealed class AppHostServerProject
                     new XElement("ProjectReference",
                         new XAttribute("Include", remoteHostProject))));
             }
+
+            // Disable Aspire SDK code generation - we don't need project metadata for the AppHost server
+            // These must come after the imports to override the targets defined there
+            doc.Root!.Add(new XElement("Target", new XAttribute("Name", "_CSharpWriteHostProjectMetadataSources")));
+            doc.Root!.Add(new XElement("Target", new XAttribute("Name", "_CSharpWriteProjectMetadataSources")));
         }
         else
         {
