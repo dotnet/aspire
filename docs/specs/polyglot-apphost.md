@@ -243,19 +243,185 @@ Content-Length: 123\r\n
 {"jsonrpc":"2.0","id":1,"method":"ping","params":[]}
 ```
 
-### RPC Methods
+### RPC Methods (Guest → Host)
 
-| Method | Parameters | Description |
-|--------|------------|-------------|
-| `ping` | none | Health check, returns "pong" |
-| `executeInstruction` | `instructionJson: string` | Execute a typed instruction (see below) |
-| `invokeMethod` | `objectId, methodName, args?` | Call method on registered object |
-| `getProperty` | `objectId, propertyName` | Get property value |
-| `setProperty` | `objectId, propertyName, value` | Set property value |
-| `getIndexer` | `objectId, key` | Get indexed value (list or dict) |
-| `setIndexer` | `objectId, key, value` | Set indexed value |
-| `unregisterObject` | `objectId` | Release object from registry |
-| `invokeCallback` | `callbackId, args` | Host → Guest callback invocation |
+These methods are called by the guest to interact with the .NET host.
+
+#### `ping`
+
+Health check to verify connection.
+
+| | |
+|---|---|
+| **Parameters** | None |
+| **Returns** | `string` - Always `"pong"` |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":1,"method":"ping","params":[]}
+
+// Response
+{"jsonrpc":"2.0","id":1,"result":"pong"}
+```
+
+#### `executeInstruction`
+
+Execute a typed instruction against the Aspire.Hosting API. This is the primary method for building the application model.
+
+| | |
+|---|---|
+| **Parameters** | `instructionJson: string` - JSON-serialized instruction object |
+| **Returns** | `object?` - Marshalled result (often an object with `$id` for proxying) |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":2,"method":"executeInstruction","params":["{ \"name\": \"CREATE_BUILDER\", ... }"]}
+
+// Response
+{"jsonrpc":"2.0","id":2,"result":{"$id":"obj_1","$type":"DistributedApplicationBuilder"}}
+```
+
+#### `invokeMethod`
+
+Call an instance method on a registered object.
+
+| | |
+|---|---|
+| **Parameters** | `objectId: string` - Object ID from registry<br/>`methodName: string` - Method to invoke<br/>`args: object?` - Method arguments as JSON object |
+| **Returns** | `object?` - Method return value (marshalled) |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":3,"method":"invokeMethod","params":["obj_1","Build",null]}
+
+// Response
+{"jsonrpc":"2.0","id":3,"result":{"$id":"obj_2","$type":"DistributedApplication"}}
+```
+
+#### `getProperty`
+
+Get a property value from a registered object.
+
+| | |
+|---|---|
+| **Parameters** | `objectId: string` - Object ID from registry<br/>`propertyName: string` - Property name |
+| **Returns** | `object?` - Property value (marshalled) |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":4,"method":"getProperty","params":["obj_1","Name"]}
+
+// Response
+{"jsonrpc":"2.0","id":4,"result":"cache"}
+```
+
+#### `setProperty`
+
+Set a property value on a registered object.
+
+| | |
+|---|---|
+| **Parameters** | `objectId: string` - Object ID from registry<br/>`propertyName: string` - Property name<br/>`value: any` - New value |
+| **Returns** | `void` |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":5,"method":"setProperty","params":["obj_1","Name","new-cache"]}
+
+// Response
+{"jsonrpc":"2.0","id":5,"result":null}
+```
+
+#### `getIndexer`
+
+Get an indexed value from a collection (list or dictionary).
+
+| | |
+|---|---|
+| **Parameters** | `objectId: string` - Object ID from registry<br/>`key: string \| number` - Index or key |
+| **Returns** | `object?` - Value at index/key (marshalled) |
+
+```json
+// Request (dictionary)
+{"jsonrpc":"2.0","id":6,"method":"getIndexer","params":["obj_1","REDIS_URL"]}
+
+// Request (list)
+{"jsonrpc":"2.0","id":7,"method":"getIndexer","params":["obj_2",0]}
+```
+
+#### `setIndexer`
+
+Set an indexed value in a collection.
+
+| | |
+|---|---|
+| **Parameters** | `objectId: string` - Object ID from registry<br/>`key: string \| number` - Index or key<br/>`value: any` - Value to set |
+| **Returns** | `void` |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":8,"method":"setIndexer","params":["obj_1","MY_VAR","my-value"]}
+```
+
+#### `unregisterObject`
+
+Release an object from the registry when no longer needed.
+
+| | |
+|---|---|
+| **Parameters** | `objectId: string` - Object ID to release |
+| **Returns** | `void` |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":9,"method":"unregisterObject","params":["obj_1"]}
+```
+
+#### `getService`
+
+Get a service from a service provider (DI container).
+
+| | |
+|---|---|
+| **Parameters** | `serviceProviderObjectId: string` - ServiceProvider object ID<br/>`typeName: string` - Full type name of service |
+| **Returns** | `object?` - Service instance (marshalled), or `null` if not found |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":10,"method":"getService","params":["obj_1","Microsoft.Extensions.Logging.ILoggerFactory"]}
+```
+
+#### `getRequiredService`
+
+Get a required service from a service provider. Throws if not found.
+
+| | |
+|---|---|
+| **Parameters** | `serviceProviderObjectId: string` - ServiceProvider object ID<br/>`typeName: string` - Full type name of service |
+| **Returns** | `object` - Service instance (marshalled) |
+| **Errors** | Throws if service not registered |
+
+### RPC Methods (Host → Guest)
+
+These methods are called by the host to invoke callbacks registered by the guest.
+
+#### `invokeCallback`
+
+Invoke a callback function that was registered by the guest.
+
+| | |
+|---|---|
+| **Parameters** | `callbackId: string` - Callback ID (e.g., `"callback_1_1234567890"`)<br/>`args: object?` - Arguments to pass to callback |
+| **Returns** | `object?` - Callback return value |
+| **Timeout** | 60 seconds |
+
+```json
+// Request (Host → Guest)
+{"jsonrpc":"2.0","id":100,"method":"invokeCallback","params":["callback_1_1234567890",{"$id":"obj_5","$type":"EnvironmentCallbackContext"}]}
+
+// Response (Guest → Host)
+{"jsonrpc":"2.0","id":100,"result":null}
+```
 
 ### Instructions
 
