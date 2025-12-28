@@ -194,6 +194,59 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             await File.WriteAllTextAsync(apphostRunJsonPath, apphostRunJsonContent, cancellationToken);
         }
+
+        // Build the AppHost server and generate TypeScript SDK
+        await BuildAndGenerateSdkAsync(directory, cancellationToken);
+    }
+
+    /// <summary>
+    /// Builds the AppHost server project and generates the TypeScript SDK.
+    /// </summary>
+    private async Task BuildAndGenerateSdkAsync(DirectoryInfo directory, CancellationToken cancellationToken)
+    {
+        // Step 1: Run npm install if node_modules doesn't exist
+        var nodeModulesPath = Path.Combine(directory.FullName, "node_modules");
+        if (!Directory.Exists(nodeModulesPath))
+        {
+            var npmInstallResult = await _interactionService.ShowStatusAsync(
+                ":package:  Installing npm dependencies...",
+                () => RunNpmInstallAsync(directory, cancellationToken));
+
+            if (npmInstallResult != 0)
+            {
+                _interactionService.DisplayError("Failed to install npm dependencies.");
+                return;
+            }
+        }
+
+        // Step 2: Get package references and build AppHost server
+        var packages = GetPackageReferences(directory).ToList();
+        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+
+        await _interactionService.ShowStatusAsync(
+            ":gear:  Creating AppHost server project...",
+            () => appHostServerProject.CreateProjectFilesAsync(packages, cancellationToken));
+
+        var (buildSuccess, buildOutput) = await appHostServerProject.BuildAsync(_interactionService, cancellationToken);
+        if (!buildSuccess)
+        {
+            _interactionService.DisplayLines(buildOutput.GetLines());
+            _interactionService.DisplayError("Failed to build AppHost server.");
+            return;
+        }
+
+        // Step 3: Generate TypeScript SDK
+        await _interactionService.ShowStatusAsync(
+            ":gear:  Generating TypeScript SDK...",
+            async () =>
+            {
+                await GenerateCodeAsync(
+                    directory.FullName,
+                    appHostServerProject.BuildPath,
+                    packages,
+                    cancellationToken);
+                return true;
+            });
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -893,14 +946,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         config.AddOrUpdatePackage(context.PackageId, context.PackageVersion);
         config.Save(directory.FullName);
 
-        // Regenerate TypeScript SDK code
-        var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
-        var packages = GetPackageReferences(directory).ToList();
-        await GenerateCodeAsync(
-            directory.FullName,
-            appHostServerProject.BuildPath,
-            packages,
-            cancellationToken);
+        // Build and regenerate TypeScript SDK with the new package
+        await BuildAndGenerateSdkAsync(directory, cancellationToken);
 
         return true;
     }
