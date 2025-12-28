@@ -82,6 +82,18 @@ public static class TestExtensions
     {
         return builder;
     }
+
+    /// <summary>
+    /// Configures the resource with a builder callback.
+    /// This tests the Action&lt;IResourceBuilder&lt;T&gt;&gt; pattern.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithBuilderCallback(
+        this IResourceBuilder<TestRedisResource> builder,
+        Action<IResourceBuilder<TestRedisResource>>? configure = null)
+    {
+        configure?.Invoke(builder);
+        return builder;
+    }
 }
 
 /// <summary>

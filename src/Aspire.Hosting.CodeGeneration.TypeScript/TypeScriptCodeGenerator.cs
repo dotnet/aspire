@@ -77,10 +77,6 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
     private void GenerateDistributedApplicationContent(TextWriter writer, ApplicationModel model)
     {
-        var escapedAppPath = OperatingSystem.IsWindows()
-            ? model.AppPath.Replace("\\", "\\\\")
-            : model.AppPath;
-
         // Write the header with imports and utility functions
         writer.WriteLine($$"""
         import { RemoteAppHostClient, registerCallback, DotNetProxy, ListProxy, wrapIfProxy } from './RemoteAppHostClient.js';
@@ -94,85 +90,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
         const client = new RemoteAppHostClient(socketPath);
 
-        const _name = Symbol('_name');
-        let source: string = "";
-        let instructions: any[] = [];
-        let proxyCounter = 0;
-
-        function writeLine(code: string) {
-          source += code + '\n';
-        }
-
-        async function sendInstruction(instruction: AnyInstruction) {
-          instructions.push(instruction);
-          const result = await client.executeInstruction(instruction);
-          // Check for error responses (defensive - JSON-RPC errors will throw automatically)
-          if (result && typeof result === 'object' && 'success' in result && result.success === false) {
-            const errorMessage = 'error' in result ? String(result.error) : 'Unknown error';
-            throw new Error(`Instruction failed: ${errorMessage}`);
-          }
-          return result;
-        }
-
-        function capture(fn: () => void) : string {
-          var tmp = source;
-          source = "";
-          fn();
-          var result = source;
-          source = tmp;
-          return result;
-        }
-
-        function emitLinePragma() {
-          const err = new Error();
-          (Error as any).captureStackTrace?.(err, emitLinePragma);
-          const frame = err.stack?.split('\n')[2] || '';
-          const m = /\s+at\s+(?:.+\s\()?(.+):(\d+):(\d+)\)?/.exec(frame);
-          if (!m) return;
-          const [, file, line] = m;
-          writeLine(`#line ${line} "${file}"`);
-        }
-
-        function convertNullable<T>(value?: T): string {
-          if (value === null || value === undefined) {
-            return "default";
-          }
-          if (typeof value === 'string') {
-            return `"${value}"`;
-          } else if (Array.isArray(value)) {
-            return convertArray(value);
-          } else {
-            return `${value}`;
-          }
-        }
-
-        function convertArray<T>(array?: T[]): string {
-          if (!array) {
-            return "default";
-          }
-          if (array.length === 0) {
-            return "[]";
-          }
-          var values = array?.map((item) => {
-            if (typeof item === 'string') {
-              return `"${item}"`;
-            }
-            else if (Array.isArray(item)) {
-              return convertArray(item);
-            }
-            else if (item === null || item === undefined) {
-                return "null";
-            } else {
-              return item;
-            }
-          }).join(', ');
-
-          return `[${values}]`;
-        }
-
         export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
-            const distributedApplicationBuilder = new DistributedApplicationBuilder(args);
-
             console.log('🔌 Connecting to AppHost server...');
 
             while (true) {
@@ -187,35 +105,24 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             }
 
             // Use static INVOKE to call DistributedApplication.CreateBuilder(options)
-            const invokeInstruction: InvokeInstruction = {
-              name: 'INVOKE',
-              source: '',
-              target: distributedApplicationBuilder[_name],
-              methodAssembly: 'Aspire.Hosting',
-              methodType: 'Aspire.Hosting.DistributedApplication',
-              methodName: 'CreateBuilder',
-              args: {
-                options: {
-                  Args: args,
-                  ProjectDirectory: process.cwd()
-                }
+            const result = await client.invokeStaticMethod('Aspire.Hosting', 'Aspire.Hosting.DistributedApplication', 'CreateBuilder', {
+              options: {
+                Args: args,
+                ProjectDirectory: process.cwd()
               }
-            };
+            });
 
-            const result = await sendInstruction(invokeInstruction);
-
-            // Store the builder proxy for property access (Configuration, Environment, Services)
-            if (result && typeof result === 'object' && 'result' in result) {
-              distributedApplicationBuilder._setBuilderProxy(new DotNetProxy(result.result as any));
+            if (result && typeof result === 'object' && '$id' in result) {
+              return new DistributedApplicationBuilder(new DotNetProxy(result as any));
             }
 
-            return distributedApplicationBuilder;
+            throw new Error('Failed to create DistributedApplicationBuilder');
         }
 
         export class DistributedApplication {
           private _appProxy: DotNetProxy | null = null;
 
-          constructor(private builderName: string, private builderProxy: DotNetProxy | null) {
+          constructor(private builderProxy: DotNetProxy | null) {
           }
 
           /**
@@ -231,14 +138,6 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
           }
 
           async run() {
-            writeLine(`${this.builderName}.Build().Run();`);
-            writeLine('}');
-            writeLine('catch (Exception ex)');
-            writeLine('{');
-            writeLine('    Helpers.PrintException(ex);');
-            writeLine('    Environment.Exit(1);');
-            writeLine('}');
-
             // Build the application using invokeMethod
             const buildResult = await this.builderProxy?.invokeMethod('Build', {});
 
@@ -557,27 +456,12 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         }
 
         abstract class DistributedApplicationBuilderBase {
-          private _builderProxy: DotNetProxy | null = null;
-
-          constructor(private args: string[]) {
-            writeLine('try {');
-            this[_name] = `appBuilder${DistributedApplicationBuilderBase.index++}`;
-            writeLine('var options = new DistributedApplicationOptions');
-            writeLine('{');
-            writeLine('    Args = args ?? []')
-            writeLine('};');
-            writeLine('typeof(DistributedApplicationOptions).GetProperty("ProjectDirectory", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.SetValue(options, @"{{escapedAppPath}}");');
-            writeLine(`var ${this[_name]} = DistributedApplication.CreateBuilder(options);`);
-          }
-
-          /** @internal Sets the builder proxy for property access */
-          _setBuilderProxy(proxy: DotNetProxy) {
-            this._builderProxy = proxy;
+          constructor(protected _proxy: DotNetProxy) {
           }
 
           /** Gets the underlying builder proxy */
-          get builderProxy(): DotNetProxy | null {
-            return this._builderProxy;
+          get proxy(): DotNetProxy {
+            return this._proxy;
           }
 
           /**
@@ -585,10 +469,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
            * Use this to read configuration values before building the application.
            */
           async getConfiguration(): Promise<ConfigurationProxy> {
-            if (!this._builderProxy) {
-              throw new Error('Builder proxy not initialized');
-            }
-            const result = await this._builderProxy.getProperty('Configuration') as DotNetProxy;
+            const result = await this._proxy.getProperty('Configuration') as DotNetProxy;
             return new ConfigurationProxy(result);
           }
 
@@ -597,10 +478,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
            * Use this to check environment name, application name, etc.
            */
           async getEnvironment(): Promise<HostEnvironmentProxy> {
-            if (!this._builderProxy) {
-              throw new Error('Builder proxy not initialized');
-            }
-            const result = await this._builderProxy.getProperty('Environment') as DotNetProxy;
+            const result = await this._proxy.getProperty('Environment') as DotNetProxy;
             return new HostEnvironmentProxy(result);
           }
 
@@ -609,10 +487,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
            * Use this to check if running in run mode vs publish mode.
            */
           async getExecutionContext(): Promise<ExecutionContextProxy> {
-            if (!this._builderProxy) {
-              throw new Error('Builder proxy not initialized');
-            }
-            const result = await this._builderProxy.getProperty('ExecutionContext') as DotNetProxy;
+            const result = await this._proxy.getProperty('ExecutionContext') as DotNetProxy;
             return new ExecutionContextProxy(result);
           }
 
@@ -653,28 +528,12 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
            * Use this to register additional services before building.
            */
           async getServices(): Promise<DotNetProxy> {
-            if (!this._builderProxy) {
-              throw new Error('Builder proxy not initialized');
-            }
-            return await this._builderProxy.getProperty('Services') as DotNetProxy;
+            return await this._proxy.getProperty('Services') as DotNetProxy;
           }
 
           build() {
-            return new DistributedApplication(this[_name], this._builderProxy);
+            return new DistributedApplication(this._proxy);
           }
-
-          private [_name]: string;
-          private static index: number = 1;
-        }
-
-        abstract class ReferenceClass {
-          constructor(protected builder: DistributedApplicationBuilderBase, protected cstype: string, prefix: string) {
-            this[_name] = `${prefix}${ReferenceClass.index++}`;
-            writeLine(`${cstype} ${this[_name]};`);
-          }
-
-          private [_name]: string;
-          private static index: number = 1;
         }
         """);
 
@@ -682,16 +541,17 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         writer.WriteLine("export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {");
         foreach (var integration in model.IntegrationModels.Values)
         {
-            GenerateMethods(writer, model, integration.IDistributedApplicationBuilderExtensionMethods, "this");
+            GenerateMethods(writer, model, integration.IDistributedApplicationBuilderExtensionMethods);
         }
         writer.WriteLine("}");
 
         // Generate base resource builder classes and their thenable wrappers
         writer.WriteLine("""
-          export class IResourceWithConnectionStringBuilder extends ReferenceClass {
-            constructor(builder: DistributedApplicationBuilderBase) {
-              super(builder, "IResourceBuilder<IResourceWithConnectionString>", "resourceWithConnectionStringBuilder");
-            }
+          export class IResourceWithConnectionStringBuilder {
+            constructor(protected _proxy: DotNetProxy) {}
+
+            /** Gets the underlying proxy */
+            get proxy(): DotNetProxy { return this._proxy; }
           }
 
           /**
@@ -708,10 +568,11 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             }
           }
 
-          export class ResourceBuilder extends ReferenceClass {
-            constructor(builder: DistributedApplicationBuilderBase, cstype: string) {
-              super(builder, cstype, "resourceBuilder");
-            }
+          export class ResourceBuilder {
+            constructor(protected _proxy: DotNetProxy) {}
+
+            /** Gets the underlying proxy */
+            get proxy(): DotNetProxy { return this._proxy; }
           }
 
           /**
@@ -1240,18 +1101,19 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         var resourceName = SanitizeClassName(resourceModel.ResourceType.Name);
         textWriter.WriteLine();
         textWriter.WriteLine($$"""
-                export class {{resourceName}}Builder extends ReferenceClass {
-                  constructor(builder: DistributedApplicationBuilderBase, cstype: string = "IResourceBuilder<{{resourceModel.ResourceType.FullName}}>") {
-                      super(builder, cstype, "{{CamelCase(resourceName)}}Builder");
-                  }
+                export class {{resourceName}}Builder {
+                  constructor(protected _proxy: DotNetProxy) {}
+
+                  /** Gets the underlying proxy */
+                  get proxy(): DotNetProxy { return this._proxy; }
                 """);
 
-        GenerateMethods(textWriter, model, resourceModel.IResourceTypeBuilderExtensionsMethods, "this.builder");
+        GenerateMethods(textWriter, model, resourceModel.IResourceTypeBuilderExtensionsMethods);
 
         textWriter.WriteLine("}");
     }
 
-    private void GenerateMethods(TextWriter writer, ApplicationModel model, IEnumerable<RoMethod> extensionMethods, string ctorArgs)
+    private void GenerateMethods(TextWriter writer, ApplicationModel model, IEnumerable<RoMethod> extensionMethods)
     {
         foreach (var methodGroups in extensionMethods.GroupBy(m => m.Name))
         {
@@ -1306,7 +1168,6 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                 var shouldCreateArgsClass = optionalParameters.Length > 1;
 
                 var parameterList = string.Join(", ", orderedParameters.Select(p => FormatArgument(model, p)));
-                var csParameterList = string.Join(", ", parameters.Select(p => FormatCsArgument(model, p)));
                 var jsonParameterList = string.Join(", ", parameters.Select(p => FormatJsonArgument(model, p, prefix: shouldCreateArgsClass && optionalParameters.Contains(p) ? $"{optionalArgumentName}?." : "")));
 
                 string optionalArgsInitSnippet = "";
@@ -1385,21 +1246,6 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                     }
                     parameterList += $"{optionalArgumentName}: {parameterType} = new {parameterType}()";
 
-                    var csParameters = new List<string>();
-                    foreach (var parameter in parameters)
-                    {
-                        if (ParameterIsOptionalOrNullable(parameter))
-                        {
-                            csParameters.Add(FormatCsArgument(model, parameter, $"{optionalArgumentName}?."));
-                        }
-                        else
-                        {
-                            csParameters.Add(FormatCsArgument(model, parameter));
-                        }
-                    }
-
-                    csParameterList = string.Join(", ", csParameters);
-
                     optionalArgsInitSnippet = $$"""
 
                         {{optionalArgumentName}} = Object.assign(new {{parameterType}}(), {{optionalArgumentName}});
@@ -1423,26 +1269,16 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
                 if (isProxyReturnType)
                 {
-                    // For proxy types, use the marshalled result from sendInstruction (no thenable wrapper)
+                    // For proxy types, use invokeStaticMethod (extension method) and wrap result in proxy
+                    var methodAssemblyProxy = overload.DeclaringType?.DeclaringAssembly?.Name ?? "";
+                    var methodTypeNameProxy = overload.DeclaringType?.FullName ?? "";
+                    var extensionArgsProxy = $"builder: this._proxy, {jsonParameterList}";
+
                     writer.WriteLine($$"""
                       async {{methodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
-                        emitLinePragma();
-                        var tempTarget = `{{CamelCase(returnType.Name)}}${++proxyCounter}`;
-                        writeLine(`var ${tempTarget} = ${this[_name]}.{{overload.Name}}({{csParameterList}});`);
-                        const response = await sendInstruction({
-                            name: 'INVOKE',
-                            source: this[_name],
-                            target: tempTarget,
-                            methodAssembly: '{{overload.DeclaringType?.DeclaringAssembly.Name}}',
-                            methodType: '{{overload.DeclaringType?.FullName}}',
-                            methodName: '{{overload.Name}}',
-                            methodArgumentTypes: [{{string.Join(", ", overload.Parameters.Select(p => "'" + p.ParameterType.FullName + "'"))}}],
-                            metadataToken: {{overload.MetadataToken}},
-                            args: {{{jsonParameterList}}}
-                        });
-                        const marshalledResult = (response as any)?.result;
-                        if (marshalledResult && marshalledResult.$id) {
-                            return new {{jsReturnTypeName}}(new DotNetProxy(marshalledResult));
+                        const result = await client.invokeStaticMethod('{{methodAssemblyProxy}}', '{{methodTypeNameProxy}}', '{{overload.Name}}', {{{extensionArgsProxy}}});
+                        if (result && typeof result === 'object' && '$id' in result) {
+                            return new {{jsReturnTypeName}}(new DotNetProxy(result as any));
                         }
                         throw new Error('{{overload.Name}} did not return a marshalled object');
                       };
@@ -1454,25 +1290,22 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                     var internalMethodName = $"_{methodName}Internal";
                     var thenableReturnType = $"{jsReturnTypeName}Promise";
 
-                    // Generate internal async method
+                    // Get the extension method type info
+                    var methodAssembly = overload.DeclaringType?.DeclaringAssembly?.Name ?? "";
+                    var methodTypeName = overload.DeclaringType?.FullName ?? "";
+
+                    // Build args including the builder as first param (for extension methods)
+                    var extensionArgs = $"builder: this._proxy, {jsonParameterList}";
+
+                    // Generate internal async method using invokeStaticMethod for extension methods
                     writer.WriteLine($$"""
                       /** @internal */
                       async {{internalMethodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
-                        emitLinePragma();
-                        var result = new {{jsReturnTypeName}}({{ctorArgs}});
-                        writeLine(`${result[_name]} = ${this[_name]}.{{overload.Name}}({{csParameterList}});`);
-                        await sendInstruction({
-                            name: 'INVOKE',
-                            source: this[_name],
-                            target: result[_name],
-                            methodAssembly: '{{overload.DeclaringType?.DeclaringAssembly.Name}}',
-                            methodType: '{{overload.DeclaringType?.FullName}}',
-                            methodName: '{{overload.Name}}',
-                            methodArgumentTypes: [{{string.Join(", ", overload.Parameters.Select(p => "'" + p.ParameterType.FullName + "'"))}}],
-                            metadataToken: {{overload.MetadataToken}},
-                            args: {{{jsonParameterList}}}
-                        });
-                        return result;
+                        const result = await client.invokeStaticMethod('{{methodAssembly}}', '{{methodTypeName}}', '{{overload.Name}}', {{{extensionArgs}}});
+                        if (result && typeof result === 'object' && '$id' in result) {
+                            return new {{jsReturnTypeName}}(new DotNetProxy(result as any));
+                        }
+                        throw new Error('{{overload.Name}} did not return a marshalled object');
                       };
                     """);
 
@@ -1503,24 +1336,18 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                 }
                 else
                 {
-                    // For other types, use the existing async approach
+                    // For other types, use invokeStaticMethod for extension methods
+                    var methodAssembly2 = overload.DeclaringType?.DeclaringAssembly?.Name ?? "";
+                    var methodTypeName2 = overload.DeclaringType?.FullName ?? "";
+                    var extensionArgs2 = $"builder: this._proxy, {jsonParameterList}";
+
                     writer.WriteLine($$"""
                       async {{methodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
-                        emitLinePragma();
-                        var result = new {{jsReturnTypeName}}({{ctorArgs}});
-                        writeLine(`${result[_name]} = ${this[_name]}.{{overload.Name}}({{csParameterList}});`);
-                        await sendInstruction({
-                            name: 'INVOKE',
-                            source: this[_name],
-                            target: result[_name],
-                            methodAssembly: '{{overload.DeclaringType?.DeclaringAssembly.Name}}',
-                            methodType: '{{overload.DeclaringType?.FullName}}',
-                            methodName: '{{overload.Name}}',
-                            methodArgumentTypes: [{{string.Join(", ", overload.Parameters.Select(p => "'" + p.ParameterType.FullName + "'"))}}],
-                            metadataToken: {{overload.MetadataToken}},
-                            args: {{{jsonParameterList}}}
-                        });
-                        return result;
+                        const result = await client.invokeStaticMethod('{{methodAssembly2}}', '{{methodTypeName2}}', '{{overload.Name}}', {{{extensionArgs2}}});
+                        if (result && typeof result === 'object' && '$id' in result) {
+                            return new {{jsReturnTypeName}}(new DotNetProxy(result as any));
+                        }
+                        throw new Error('{{overload.Name}} did not return a marshalled object');
                       };
                     """);
                 }
@@ -1563,39 +1390,42 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
     {
         var actionType = model.WellKnownTypes.GetKnownType(typeof(Action<>));
 
-        // Handle Action<IResourceBuilder<T>> - these use inline capture, not JSON-RPC callbacks
-        // So we don't pass them in the args (the C# code is generated inline)
-        if (p.ParameterType.IsGenericType &&
-            p.ParameterType.GenericTypeDefinition == actionType &&
-            p.ParameterType.GetGenericArguments()[0] is { } genericArgument &&
-            genericArgument.IsGenericType &&
-            genericArgument.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
-        {
-            // This callback is handled by inline capture in FormatCsArgument, not via JSON-RPC
-            // Return null for this parameter in the args
-            return $"{p.Name}: null";
-        }
-
-        // Handle other delegate types - register callback and pass ID
+        // Handle delegate types - register callback and pass ID
         if (IsDelegateType(model, p.ParameterType))
         {
             // Register the callback and pass the callback ID to the server
             // The server will invoke it via JSON-RPC when the C# delegate is called
 
-            // Check if this is an Action<T> with a complex type that has a proxy wrapper
+            // Check if this is an Action<T> with a complex type or IResourceBuilder<T>
             if (p.ParameterType.IsGenericType &&
                 p.ParameterType.GenericTypeDefinition == actionType &&
-                p.ParameterType.GetGenericArguments()[0] is { } callbackArgType &&
-                !IsSimpleType(model, callbackArgType) &&
-                !callbackArgType.IsGenericType) // Skip generic types like IResourceBuilder<T>
+                p.ParameterType.GetGenericArguments()[0] is { } callbackArgType)
             {
-                var proxyTypeName = $"{callbackArgType.Name}Proxy";
-                // Wrap the callback to convert DotNetProxy to the expected proxy type
-                if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
+                // Handle Action<IResourceBuilder<T>> - wrap with the appropriate builder type
+                if (callbackArgType.IsGenericType &&
+                    callbackArgType.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
                 {
-                    return $"{p.Name}: {prefix}{p.Name} ? registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {proxyTypeName}(arg))) : null";
+                    var resourceType = callbackArgType.GetGenericArguments()[0];
+                    var builderTypeName = $"{SanitizeClassName(resourceType.Name)}Builder";
+
+                    if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
+                    {
+                        return $"{p.Name}: {prefix}{p.Name} ? registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {builderTypeName}(arg))) : null";
+                    }
+                    return $"{p.Name}: registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {builderTypeName}(arg)))";
                 }
-                return $"{p.Name}: registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {proxyTypeName}(arg)))";
+
+                // Handle Action<T> with a complex type that has a proxy wrapper
+                if (!IsSimpleType(model, callbackArgType) && !callbackArgType.IsGenericType)
+                {
+                    var proxyTypeName = $"{callbackArgType.Name}Proxy";
+                    // Wrap the callback to convert DotNetProxy to the expected proxy type
+                    if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
+                    {
+                        return $"{p.Name}: {prefix}{p.Name} ? registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {proxyTypeName}(arg))) : null";
+                    }
+                    return $"{p.Name}: registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {proxyTypeName}(arg)))";
+                }
             }
 
             if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
@@ -1608,9 +1438,10 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         var result = p.Name!;
         result += $": {prefix}{p.Name!}";
 
+        // For IResourceBuilder<T> parameters, pass the proxy reference
         if (p.ParameterType.IsGenericType && p.ParameterType.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
         {
-            result += "?.[_name]";
+            result += "?.proxy";
         }
 
         if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
@@ -1637,85 +1468,6 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         else
         {
             result += $": {FormatJsType(model, p.ParameterType)}";
-        }
-
-        return result;
-    }
-
-    private static string FormatCsArgument(ApplicationModel model, RoParameterInfo p) => FormatCsArgument(model, p, "");
-
-    private static string FormatCsArgument(ApplicationModel model, RoParameterInfo p, string prefix)
-    {
-        string result;
-
-        var actionType = model.WellKnownTypes.GetKnownType(typeof(Action<>));
-
-        // Handle Action<IResourceBuilder<T>> callbacks with inline capture
-        if (p.ParameterType.IsGenericType &&
-            p.ParameterType.GenericTypeDefinition == actionType &&
-            p.ParameterType.GetGenericArguments()[0] is { } genericArgument &&
-            genericArgument.IsGenericType &&
-            genericArgument.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
-        {
-            var resourceType = genericArgument.GetGenericArguments()[0];
-            var resourceName = SanitizeClassName(resourceType.Name);
-
-            return $$"""
-                ${ capture(() => {
-                        if ({{prefix}}{{p.Name}}) {
-                          writeLine('builder =>');
-                          writeLine('{');
-                          let r = new {{resourceName}}Builder(result.builder);
-                          writeLine(`${r[_name]} = builder;`);
-                          {{prefix}}{{p.Name}}(r);
-                          writeLine('}');
-                          } else { writeLine('builder => { }'); }
-                        }) }
-                """;
-        }
-        // Handle other delegate types (Action<T>, Func<T,R>, etc.) with bidirectional JSON-RPC callbacks
-        // For C# code generation, we use a placeholder since the actual callback is handled via JSON-RPC
-        else if (IsDelegateType(model, p.ParameterType))
-        {
-            // The actual callback invocation happens via JSON-RPC, not in the generated C# code
-            // Use null as placeholder in the C# code - the real callback is passed in instruction args
-            return "null /* callback handled via JSON-RPC */";
-        }
-        else if (p.ParameterType.IsGenericType && p.ParameterType.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
-        {
-            result = $"{prefix}{p.Name}?.[_name]";
-        }
-        else if (model.ModelTypes.Contains(p.ParameterType) && !p.ParameterType.IsEnum)
-        {
-            // Model types (non-enum) are always proxy types in TypeScript
-            // Proxy types use $id getter instead of [_name]
-            result = $"{prefix}{p.Name}?.$id";
-        }
-        else
-        {
-            result = $"{prefix}{p.Name}";
-        }
-
-        // Value conversion
-        if (p.ParameterType.IsArray)
-        {
-            result = $"${{convertArray({result})}}";
-        }
-        else if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
-        {
-            result = $"${{convertNullable({result})}}";
-        }
-        else if (p.ParameterType == model.WellKnownTypes.GetKnownType<string>())
-        {
-            result = $"\"${{{result}}}\"";
-        }
-        else if (p.ParameterType.IsEnum)
-        {
-            result = $"{p.ParameterType.Name}.${{{result}}}";
-        }
-        else
-        {
-            result = $"${{{result}}}";
         }
 
         return result;
@@ -1811,13 +1563,14 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             var argType = args[i];
             var typeName = argType.Name;
 
-            // Check if this is an IResourceBuilder<T> type - these use inline capture, not JSON-RPC callbacks
-            // So they should use the regular formatted type, not a proxy wrapper
+            // Check if this is an IResourceBuilder<T> type - use the builder class name
             if (argType.IsGenericType && argType.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType)
             {
-                argTypes.Add($"p{i}: {FormatJsType(model, argType)}");
+                var resourceType = argType.GetGenericArguments()[0];
+                var builderTypeName = $"{SanitizeClassName(resourceType.Name)}Builder";
+                argTypes.Add($"p{i}: {builderTypeName}");
             }
-            // Skip generic types like IDictionary<K,V> - they're accessed via DotNetProxy
+            // Skip other generic types like IDictionary<K,V> - they're accessed via DotNetProxy
             else if (argType.IsGenericType)
             {
                 argTypes.Add($"p{i}: DotNetProxy");

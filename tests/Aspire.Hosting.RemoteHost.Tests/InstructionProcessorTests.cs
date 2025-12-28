@@ -786,6 +786,217 @@ public class InstructionProcessorTests : IAsyncLifetime
 
     #endregion
 
+    #region CreateObject RPC Method Tests
+
+    [Fact]
+    public void CreateObjectRpc_CreatesInstanceWithNoArgs()
+    {
+        var assemblyName = typeof(SimpleTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(SimpleTestClass).FullName!;
+
+        var result = _processor.CreateObject(assemblyName, typeName, null);
+
+        Assert.IsType<Dictionary<string, object?>>(result);
+        var dict = (Dictionary<string, object?>)result!;
+        Assert.Equal("SimpleTestClass", dict["$type"]);
+        Assert.True(dict.ContainsKey("$id"));
+    }
+
+    [Fact]
+    public void CreateObjectRpc_CreatesInstanceWithConstructorArgs()
+    {
+        var assemblyName = typeof(TestClassWithArgs).Assembly.GetName().Name!;
+        var typeName = typeof(TestClassWithArgs).FullName!;
+        var args = JsonDocument.Parse("{\"name\": \"test-name\", \"value\": 42}").RootElement;
+
+        var result = _processor.CreateObject(assemblyName, typeName, args);
+
+        Assert.IsType<Dictionary<string, object?>>(result);
+        var dict = (Dictionary<string, object?>)result!;
+        var objectId = (string)dict["$id"]!;
+
+        // Verify properties were set correctly
+        var nameValue = _processor.GetProperty(objectId, "Name");
+        Assert.Equal("test-name", nameValue);
+
+        var valueValue = _processor.GetProperty(objectId, "Value");
+        Assert.Equal(42, valueValue);
+    }
+
+    [Fact]
+    public void CreateObjectRpc_UsesDefaultValuesForOptionalParameters()
+    {
+        var assemblyName = typeof(TestClassWithOptionalArgs).Assembly.GetName().Name!;
+        var typeName = typeof(TestClassWithOptionalArgs).FullName!;
+        var args = JsonDocument.Parse("{\"name\": \"required-name\"}").RootElement;
+
+        var result = _processor.CreateObject(assemblyName, typeName, args);
+
+        Assert.IsType<Dictionary<string, object?>>(result);
+        var dict = (Dictionary<string, object?>)result!;
+        var objectId = (string)dict["$id"]!;
+
+        // Verify default value was used
+        var valueValue = _processor.GetProperty(objectId, "Value");
+        Assert.Equal(100, valueValue);
+    }
+
+    [Fact]
+    public void CreateObjectRpc_ThrowsForUnknownAssembly()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _processor.CreateObject("NonExistent.Assembly", "SomeType", null));
+
+        Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public void CreateObjectRpc_ThrowsForUnknownType()
+    {
+        var assemblyName = typeof(SimpleTestClass).Assembly.GetName().Name!;
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _processor.CreateObject(assemblyName, "NonExistent.Type", null));
+
+        Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public void CreateObjectRpc_ThrowsForMissingRequiredArgs()
+    {
+        var assemblyName = typeof(TestClassWithArgs).Assembly.GetName().Name!;
+        var typeName = typeof(TestClassWithArgs).FullName!;
+        var args = JsonDocument.Parse("{}").RootElement;
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _processor.CreateObject(assemblyName, typeName, args));
+
+        Assert.Contains("not provided", ex.Message);
+    }
+
+    #endregion
+
+    #region InvokeStaticMethod Tests (Direct RPC Method)
+
+    [Fact]
+    public void InvokeStaticMethod_CallsStaticMethod()
+    {
+        var assemblyName = typeof(StaticTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticTestClass).FullName!;
+        var args = JsonDocument.Parse("{\"a\": 10, \"b\": 5}").RootElement;
+
+        var result = _processor.InvokeStaticMethod(assemblyName, typeName, "Add", args);
+
+        Assert.Equal(15, result);
+    }
+
+    [Fact]
+    public void InvokeStaticMethod_MarshallesComplexReturnValue()
+    {
+        var assemblyName = typeof(StaticTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticTestClass).FullName!;
+        var args = JsonDocument.Parse("{\"name\": \"test-object\"}").RootElement;
+
+        var result = _processor.InvokeStaticMethod(assemblyName, typeName, "CreateInstance", args);
+
+        Assert.IsType<Dictionary<string, object?>>(result);
+        var dict = (Dictionary<string, object?>)result!;
+        Assert.Equal("StaticTestClass", dict["$type"]);
+        Assert.True(dict.ContainsKey("$id"));
+    }
+
+    [Fact]
+    public void InvokeStaticMethod_ResolvesObjectReferences()
+    {
+        // Register an object and pass it as an argument
+        var existingObj = new TestObject { Value = 42 };
+        var objId = _objectRegistry.Register(existingObj);
+
+        var assemblyName = typeof(ExtensionMethodTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(ExtensionMethodTestClass).FullName!;
+        var args = JsonDocument.Parse($"{{\"obj\": {{\"$id\": \"{objId}\"}}, \"amount\": 10}}").RootElement;
+
+        var result = _processor.InvokeStaticMethod(assemblyName, typeName, "IncrementValue", args);
+
+        Assert.Equal(52, result);
+        Assert.Equal(52, existingObj.Value);
+    }
+
+    [Fact]
+    public void InvokeStaticMethod_HandlesGenericMethods()
+    {
+        // Register a generic IResourceBuilder<T>-like object
+        var container = new GenericContainer { Name = "my-container" };
+        var objId = _objectRegistry.Register(container);
+
+        var assemblyName = typeof(ExtensionMethodTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(ExtensionMethodTestClass).FullName!;
+        var args = JsonDocument.Parse($"{{\"builder\": {{\"$id\": \"{objId}\"}}, \"envName\": \"TEST_VAR\", \"envValue\": \"test-value\"}}").RootElement;
+
+        var result = _processor.InvokeStaticMethod(assemblyName, typeName, "WithEnvironment", args);
+
+        // The method returns the same object
+        Assert.IsType<Dictionary<string, object?>>(result);
+        Assert.Single(container.EnvironmentVariables);
+        Assert.Equal("test-value", container.EnvironmentVariables["TEST_VAR"]);
+    }
+
+    [Fact]
+    public void InvokeStaticMethod_ThrowsForUnknownAssembly()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _processor.InvokeStaticMethod("NonExistent.Assembly", "SomeType", "SomeMethod", null));
+
+        Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public void InvokeStaticMethod_ThrowsForUnknownType()
+    {
+        var assemblyName = typeof(StaticTestClass).Assembly.GetName().Name!;
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _processor.InvokeStaticMethod(assemblyName, "NonExistent.Type", "SomeMethod", null));
+
+        Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public void InvokeStaticMethod_ThrowsForUnknownMethod()
+    {
+        var assemblyName = typeof(StaticTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticTestClass).FullName!;
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _processor.InvokeStaticMethod(assemblyName, typeName, "NonExistentMethod", null));
+
+        Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public void InvokeStaticMethod_ResolvesOverloadByArgumentNames()
+    {
+        var assemblyName = typeof(StaticTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticTestClass).FullName!;
+
+        // Single arg - should use Format(string value)
+        var args1 = JsonDocument.Parse("{\"value\": \"hello\"}").RootElement;
+        var result1 = _processor.InvokeStaticMethod(assemblyName, typeName, "Format", args1);
+        Assert.Equal("[hello]", result1);
+
+        // Two args with count - should use Format(string value, int count)
+        var args2 = JsonDocument.Parse("{\"value\": \"x\", \"count\": 2}").RootElement;
+        var result2 = _processor.InvokeStaticMethod(assemblyName, typeName, "Format", args2);
+        Assert.Equal("[x][x]", result2);
+
+        // Three string args - should use Format(string value, string prefix, string suffix)
+        var args3 = JsonDocument.Parse("{\"value\": \"test\", \"prefix\": \"<\", \"suffix\": \">\"}").RootElement;
+        var result3 = _processor.InvokeStaticMethod(assemblyName, typeName, "Format", args3);
+        Assert.Equal("<test>", result3);
+    }
+
+    #endregion
+
     #region Callback Tests
 
     [Fact]
@@ -945,6 +1156,45 @@ public class InstructionProcessorTests : IAsyncLifetime
         public static int StaticInt { get; set; }
         public static string ReadOnlyStaticValue { get; } = "readonly";
         public static TestObject? ComplexStatic { get; set; }
+    }
+
+    /// <summary>
+    /// Test class simulating extension methods for testing InvokeStaticMethod with object references.
+    /// </summary>
+    public static class ExtensionMethodTestClass
+    {
+        // Simulates an extension method like: obj.IncrementValue(10)
+        public static int IncrementValue(TestObject obj, int amount)
+        {
+            obj.Value += amount;
+            return obj.Value;
+        }
+
+        // Simulates a generic extension method like: builder.WithEnvironment("KEY", "VALUE")
+        public static IGenericBuilder<T> WithEnvironment<T>(IGenericBuilder<T> builder, string envName, string envValue)
+            where T : class
+        {
+            builder.EnvironmentVariables[envName] = envValue;
+            return builder;
+        }
+    }
+
+    /// <summary>
+    /// Interface simulating IResourceBuilder for generic method tests.
+    /// </summary>
+    public interface IGenericBuilder<T> where T : class
+    {
+        string Name { get; }
+        Dictionary<string, string> EnvironmentVariables { get; }
+    }
+
+    /// <summary>
+    /// Concrete implementation for testing generic extension methods.
+    /// </summary>
+    public sealed class GenericContainer : IGenericBuilder<GenericContainer>
+    {
+        public string Name { get; set; } = "";
+        public Dictionary<string, string> EnvironmentVariables { get; } = new();
     }
 
     #endregion

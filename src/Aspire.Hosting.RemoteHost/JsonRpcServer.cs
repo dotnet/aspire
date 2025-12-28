@@ -34,32 +34,6 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
         _callbackInvoker.SetConnection(clientRpc);
     }
 
-    [JsonRpcMethod("executeInstruction")]
-    public async Task<object?> ExecuteInstructionAsync(string instructionJson)
-    {
-        try
-        {
-            return await _instructionProcessor.ExecuteInstructionAsync(instructionJson, _cts.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException ex)
-        {
-            Console.WriteLine("Instruction execution was cancelled");
-            throw new InvalidOperationException("Operation cancelled", ex);
-        }
-        catch (ObjectDisposedException ex)
-        {
-            Console.WriteLine("Instruction processor has been disposed");
-            throw new InvalidOperationException("Service is shutting down", ex);
-        }
-        catch (Exception ex)
-        {
-            // Log the error for server-side visibility, then re-throw so JSON-RPC
-            // properly propagates the error to the client
-            Console.WriteLine($"Error executing instruction: {ex.Message}");
-            throw;
-        }
-    }
-
     [JsonRpcMethod("ping")]
 #pragma warning disable CA1822 // Mark members as static - JSON-RPC methods must be instance methods
     public string Ping()
@@ -80,6 +54,34 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
         catch (Exception ex)
         {
             Console.WriteLine($"Error invoking method '{methodName}' on object '{objectId}': {ex.Message}");
+            throw;
+        }
+    }
+
+    [JsonRpcMethod("invokeStaticMethod")]
+    public object? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonElement? args)
+    {
+        try
+        {
+            return _instructionProcessor.InvokeStaticMethod(assemblyName, typeName, methodName, args);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error invoking static method '{typeName}.{methodName}': {ex.Message}");
+            throw;
+        }
+    }
+
+    [JsonRpcMethod("createObject")]
+    public object? CreateObject(string assemblyName, string typeName, JsonElement? args)
+    {
+        try
+        {
+            return _instructionProcessor.CreateObject(assemblyName, typeName, args);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating object '{typeName}': {ex.Message}");
             throw;
         }
     }

@@ -60,8 +60,8 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     public object? InvokeMethod(string objectId, string methodName, JsonElement? args)
     {
         var obj = _objectRegistry.Get(objectId);
-
         var type = obj.GetType();
+
         var methods = type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
             .Where(m => m.Name.Equals(methodName, StringComparison.OrdinalIgnoreCase))
             .ToList();
@@ -144,6 +144,295 @@ internal sealed class InstructionProcessor : IAsyncDisposable
 
         // Invoke the method
         var result = bestMethod.Invoke(obj, arguments);
+
+        // If result is a complex object, register it and return a proxy representation
+        if (result != null && !ObjectRegistry.IsSimpleType(result.GetType()))
+        {
+            return _objectRegistry.Marshal(result);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Creates an object instance. Called by TypeScript via JSON-RPC.
+    /// </summary>
+    public object? CreateObject(string assemblyName, string typeName, JsonElement? args)
+    {
+        // Load the assembly and get the type
+        var assembly = AppDomain.CurrentDomain.GetAssemblies()
+            .FirstOrDefault(a => a.GetName().Name?.Equals(assemblyName, StringComparison.OrdinalIgnoreCase) == true);
+
+        if (assembly == null)
+        {
+            try
+            {
+                assembly = System.Reflection.Assembly.Load(assemblyName);
+            }
+            catch (Exception)
+            {
+                throw new InvalidOperationException($"Assembly '{assemblyName}' not found");
+            }
+        }
+
+        var type = assembly.GetType(typeName)
+            ?? throw new InvalidOperationException($"Type '{typeName}' not found in assembly '{assemblyName}'");
+
+        // Parse arguments
+        var argDict = new Dictionary<string, JsonElement>();
+        if (args.HasValue && args.Value.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in args.Value.EnumerateObject())
+            {
+                argDict[prop.Name] = prop.Value;
+            }
+        }
+
+        // Find the best constructor matching the provided args
+        var constructors = type.GetConstructors();
+        System.Reflection.ConstructorInfo? bestConstructor = null;
+        var bestScore = int.MinValue;
+
+        foreach (var ctor in constructors)
+        {
+            var parameters = ctor.GetParameters();
+            var score = 0;
+
+            // Check if all provided args match parameter names
+            var paramNames = parameters.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var argName in argDict.Keys)
+            {
+                if (paramNames.Contains(argName))
+                {
+                    score += 10;
+                }
+            }
+
+            // Penalize for missing required parameters
+            foreach (var param in parameters)
+            {
+                if (!param.HasDefaultValue && !argDict.ContainsKey(param.Name!))
+                {
+                    score -= 100;
+                }
+            }
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestConstructor = ctor;
+            }
+        }
+
+        if (bestConstructor == null)
+        {
+            throw new InvalidOperationException($"No suitable constructor found for type '{typeName}'");
+        }
+
+        // Build argument array for the constructor
+        var ctorParameters = bestConstructor.GetParameters();
+        var arguments = new object?[ctorParameters.Length];
+
+        for (int i = 0; i < ctorParameters.Length; i++)
+        {
+            var param = ctorParameters[i];
+            if (argDict.TryGetValue(param.Name!, out var argValue))
+            {
+                arguments[i] = DeserializeArgument(argValue, param.ParameterType);
+            }
+            else if (param.HasDefaultValue)
+            {
+                arguments[i] = param.DefaultValue;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Required constructor argument '{param.Name}' not provided for type '{typeName}'");
+            }
+        }
+
+        // Create the instance
+        var instance = bestConstructor.Invoke(arguments);
+
+        // Marshal and return
+        return _objectRegistry.Marshal(instance);
+    }
+
+    /// <summary>
+    /// Invokes a static method on a type. Called by TypeScript via JSON-RPC.
+    /// </summary>
+    public object? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonElement? args)
+    {
+        // Load the assembly and get the type
+        // First try to find an already loaded assembly
+        var assembly = AppDomain.CurrentDomain.GetAssemblies()
+            .FirstOrDefault(a => a.GetName().Name?.Equals(assemblyName, StringComparison.OrdinalIgnoreCase) == true);
+
+        // If not found, try to load it
+        if (assembly == null)
+        {
+            try
+            {
+                assembly = System.Reflection.Assembly.Load(assemblyName);
+            }
+            catch (Exception)
+            {
+                throw new InvalidOperationException($"Assembly '{assemblyName}' not found");
+            }
+        }
+
+        var type = assembly.GetType(typeName)
+            ?? throw new InvalidOperationException($"Type '{typeName}' not found in assembly '{assemblyName}'");
+
+        var methods = type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(m => m.Name.Equals(methodName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (methods.Count == 0)
+        {
+            throw new InvalidOperationException($"Static method '{methodName}' not found on type '{typeName}'");
+        }
+
+        // Parse arguments
+        var argDict = new Dictionary<string, JsonElement>();
+        if (args.HasValue && args.Value.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in args.Value.EnumerateObject())
+            {
+                argDict[prop.Name] = prop.Value;
+            }
+        }
+
+        // Find best matching method based on argument count/names
+        System.Reflection.MethodInfo? bestMethod = null;
+        var bestScore = -1;
+
+        foreach (var method in methods)
+        {
+            var parameters = method.GetParameters();
+            var score = 0;
+
+            // Check if all provided args match parameter names
+            var paramNames = parameters.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var argName in argDict.Keys)
+            {
+                if (paramNames.Contains(argName))
+                {
+                    score += 10;
+                }
+            }
+
+            // Penalize for missing required parameters
+            foreach (var param in parameters)
+            {
+                if (!param.HasDefaultValue && !argDict.ContainsKey(param.Name!))
+                {
+                    score -= 100;
+                }
+            }
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestMethod = method;
+            }
+        }
+
+        if (bestMethod == null)
+        {
+            bestMethod = methods[0];
+        }
+
+        // Build argument array
+        var parameters2 = bestMethod.GetParameters();
+        var arguments = new object?[parameters2.Length];
+
+        for (int i = 0; i < parameters2.Length; i++)
+        {
+            var param = parameters2[i];
+            if (argDict.TryGetValue(param.Name!, out var argValue))
+            {
+                arguments[i] = DeserializeArgument(argValue, param.ParameterType);
+            }
+            else if (param.HasDefaultValue)
+            {
+                arguments[i] = param.DefaultValue;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Required argument '{param.Name}' not provided for static method '{methodName}'");
+            }
+        }
+
+        // Handle generic methods - infer type arguments from actual argument values
+        if (bestMethod.IsGenericMethodDefinition)
+        {
+            var genericArgs = bestMethod.GetGenericArguments();
+            var resolvedTypes = new Type[genericArgs.Length];
+
+            for (int i = 0; i < genericArgs.Length; i++)
+            {
+                var ga = genericArgs[i];
+
+                // Try to infer from parameters
+                for (int j = 0; j < parameters2.Length; j++)
+                {
+                    var paramType = parameters2[j].ParameterType;
+                    var argValue = arguments[j];
+
+                    if (argValue != null)
+                    {
+                        // Check if parameter type contains this generic argument
+                        if (paramType == ga)
+                        {
+                            resolvedTypes[i] = argValue.GetType();
+                            break;
+                        }
+                        else if (paramType.IsGenericType)
+                        {
+                            // Check generic type arguments
+                            var typeArgs = paramType.GetGenericArguments();
+                            for (int k = 0; k < typeArgs.Length; k++)
+                            {
+                                if (typeArgs[k] == ga)
+                                {
+                                    // Get corresponding type from actual argument
+                                    var argType = argValue.GetType();
+                                    if (argType.IsGenericType)
+                                    {
+                                        resolvedTypes[i] = argType.GetGenericArguments()[k];
+                                    }
+                                    else
+                                    {
+                                        // Try to find the generic interface
+                                        var iface = argType.GetInterfaces()
+                                            .FirstOrDefault(iface => iface.IsGenericType &&
+                                                iface.GetGenericTypeDefinition() == paramType.GetGenericTypeDefinition());
+                                        if (iface != null)
+                                        {
+                                            resolvedTypes[i] = iface.GetGenericArguments()[k];
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (resolvedTypes[i] != null)
+                    {
+                        break;
+                    }
+                }
+
+                // Fallback to object if we couldn't infer
+                resolvedTypes[i] ??= typeof(object);
+            }
+
+            bestMethod = bestMethod.MakeGenericMethod(resolvedTypes);
+        }
+
+        // Invoke the static method (null for static methods)
+        var result = bestMethod.Invoke(null, arguments);
 
         // If result is a complex object, register it and return a proxy representation
         if (result != null && !ObjectRegistry.IsSimpleType(result.GetType()))

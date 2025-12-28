@@ -11,85 +11,7 @@ if (!socketPath) {
 
 const client = new RemoteAppHostClient(socketPath);
 
-const _name = Symbol('_name');
-let source: string = "";
-let instructions: any[] = [];
-let proxyCounter = 0;
-
-function writeLine(code: string) {
-  source += code + '\n';
-}
-
-async function sendInstruction(instruction: AnyInstruction) {
-  instructions.push(instruction);
-  const result = await client.executeInstruction(instruction);
-  // Check for error responses (defensive - JSON-RPC errors will throw automatically)
-  if (result && typeof result === 'object' && 'success' in result && result.success === false) {
-    const errorMessage = 'error' in result ? String(result.error) : 'Unknown error';
-    throw new Error(`Instruction failed: ${errorMessage}`);
-  }
-  return result;
-}
-
-function capture(fn: () => void) : string {
-  var tmp = source;
-  source = "";
-  fn();
-  var result = source;
-  source = tmp;
-  return result;
-}
-
-function emitLinePragma() {
-  const err = new Error();
-  (Error as any).captureStackTrace?.(err, emitLinePragma);
-  const frame = err.stack?.split('\n')[2] || '';
-  const m = /\s+at\s+(?:.+\s\()?(.+):(\d+):(\d+)\)?/.exec(frame);
-  if (!m) return;
-  const [, file, line] = m;
-  writeLine(`#line ${line} "${file}"`);
-}
-
-function convertNullable<T>(value?: T): string {
-  if (value === null || value === undefined) {
-    return "default";
-  }
-  if (typeof value === 'string') {
-    return `"${value}"`;
-  } else if (Array.isArray(value)) {
-    return convertArray(value);
-  } else {
-    return `${value}`;
-  }
-}
-
-function convertArray<T>(array?: T[]): string {
-  if (!array) {
-    return "default";
-  }
-  if (array.length === 0) {
-    return "[]";
-  }
-  var values = array?.map((item) => {
-    if (typeof item === 'string') {
-      return `"${item}"`;
-    }
-    else if (Array.isArray(item)) {
-      return convertArray(item);
-    }
-    else if (item === null || item === undefined) {
-        return "null";
-    } else {
-      return item;
-    }
-  }).join(', ');
-
-  return `[${values}]`;
-}
-
 export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
-    const distributedApplicationBuilder = new DistributedApplicationBuilder(args);
-
     console.log('🔌 Connecting to AppHost server...');
 
     while (true) {
@@ -104,35 +26,24 @@ export async function createBuilder(args: string[] = process.argv.slice(2)): Pro
     }
 
     // Use static INVOKE to call DistributedApplication.CreateBuilder(options)
-    const invokeInstruction: InvokeInstruction = {
-      name: 'INVOKE',
-      source: '',
-      target: distributedApplicationBuilder[_name],
-      methodAssembly: 'Aspire.Hosting',
-      methodType: 'Aspire.Hosting.DistributedApplication',
-      methodName: 'CreateBuilder',
-      args: {
-        options: {
-          Args: args,
-          ProjectDirectory: process.cwd()
-        }
+    const result = await client.invokeMethod('', 'CreateBuilder', {
+      options: {
+        Args: args,
+        ProjectDirectory: process.cwd()
       }
-    };
+    }, 'Aspire.Hosting', 'Aspire.Hosting.DistributedApplication');
 
-    const result = await sendInstruction(invokeInstruction);
-
-    // Store the builder proxy for property access (Configuration, Environment, Services)
-    if (result && typeof result === 'object' && 'result' in result) {
-      distributedApplicationBuilder._setBuilderProxy(new DotNetProxy(result.result as any));
+    if (result && typeof result === 'object' && '$id' in result) {
+      return new DistributedApplicationBuilder(new DotNetProxy(result as any));
     }
 
-    return distributedApplicationBuilder;
+    throw new Error('Failed to create DistributedApplicationBuilder');
 }
 
 export class DistributedApplication {
   private _appProxy: DotNetProxy | null = null;
 
-  constructor(private builderName: string, private builderProxy: DotNetProxy | null) {
+  constructor(private builderProxy: DotNetProxy | null) {
   }
 
   /**
@@ -148,14 +59,6 @@ export class DistributedApplication {
   }
 
   async run() {
-    writeLine(`${this.builderName}.Build().Run();`);
-    writeLine('}');
-    writeLine('catch (Exception ex)');
-    writeLine('{');
-    writeLine('    Helpers.PrintException(ex);');
-    writeLine('    Environment.Exit(1);');
-    writeLine('}');
-
     // Build the application using invokeMethod
     const buildResult = await this.builderProxy?.invokeMethod('Build', {});
 
@@ -474,27 +377,12 @@ export class ServiceProviderProxy {
 }
 
 abstract class DistributedApplicationBuilderBase {
-  private _builderProxy: DotNetProxy | null = null;
-
-  constructor(private args: string[]) {
-    writeLine('try {');
-    this[_name] = `appBuilder${DistributedApplicationBuilderBase.index++}`;
-    writeLine('var options = new DistributedApplicationOptions');
-    writeLine('{');
-    writeLine('    Args = args ?? []')
-    writeLine('};');
-    writeLine('typeof(DistributedApplicationOptions).GetProperty("ProjectDirectory", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.SetValue(options, @"/test/app");');
-    writeLine(`var ${this[_name]} = DistributedApplication.CreateBuilder(options);`);
-  }
-
-  /** @internal Sets the builder proxy for property access */
-  _setBuilderProxy(proxy: DotNetProxy) {
-    this._builderProxy = proxy;
+  constructor(protected _proxy: DotNetProxy) {
   }
 
   /** Gets the underlying builder proxy */
-  get builderProxy(): DotNetProxy | null {
-    return this._builderProxy;
+  get proxy(): DotNetProxy {
+    return this._proxy;
   }
 
   /**
@@ -502,10 +390,7 @@ abstract class DistributedApplicationBuilderBase {
    * Use this to read configuration values before building the application.
    */
   async getConfiguration(): Promise<ConfigurationProxy> {
-    if (!this._builderProxy) {
-      throw new Error('Builder proxy not initialized');
-    }
-    const result = await this._builderProxy.getProperty('Configuration') as DotNetProxy;
+    const result = await this._proxy.getProperty('Configuration') as DotNetProxy;
     return new ConfigurationProxy(result);
   }
 
@@ -514,10 +399,7 @@ abstract class DistributedApplicationBuilderBase {
    * Use this to check environment name, application name, etc.
    */
   async getEnvironment(): Promise<HostEnvironmentProxy> {
-    if (!this._builderProxy) {
-      throw new Error('Builder proxy not initialized');
-    }
-    const result = await this._builderProxy.getProperty('Environment') as DotNetProxy;
+    const result = await this._proxy.getProperty('Environment') as DotNetProxy;
     return new HostEnvironmentProxy(result);
   }
 
@@ -526,10 +408,7 @@ abstract class DistributedApplicationBuilderBase {
    * Use this to check if running in run mode vs publish mode.
    */
   async getExecutionContext(): Promise<ExecutionContextProxy> {
-    if (!this._builderProxy) {
-      throw new Error('Builder proxy not initialized');
-    }
-    const result = await this._builderProxy.getProperty('ExecutionContext') as DotNetProxy;
+    const result = await this._proxy.getProperty('ExecutionContext') as DotNetProxy;
     return new ExecutionContextProxy(result);
   }
 
@@ -570,28 +449,12 @@ abstract class DistributedApplicationBuilderBase {
    * Use this to register additional services before building.
    */
   async getServices(): Promise<DotNetProxy> {
-    if (!this._builderProxy) {
-      throw new Error('Builder proxy not initialized');
-    }
-    return await this._builderProxy.getProperty('Services') as DotNetProxy;
+    return await this._proxy.getProperty('Services') as DotNetProxy;
   }
 
   build() {
-    return new DistributedApplication(this[_name], this._builderProxy);
+    return new DistributedApplication(this._proxy);
   }
-
-  private [_name]: string;
-  private static index: number = 1;
-}
-
-abstract class ReferenceClass {
-  constructor(protected builder: DistributedApplicationBuilderBase, protected cstype: string, prefix: string) {
-    this[_name] = `${prefix}${ReferenceClass.index++}`;
-    writeLine(`${cstype} ${this[_name]};`);
-  }
-
-  private [_name]: string;
-  private static index: number = 1;
 }
 export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {
 
@@ -604,21 +467,11 @@ export class DistributedApplicationBuilder extends DistributedApplicationBuilder
    */
   /** @internal */
   async _addTestRedisInternal(name: string, port?: number | null) : Promise<TestRedisResourceBuilder> {
-    emitLinePragma();
-    var result = new TestRedisResourceBuilder(this);
-    writeLine(`${result[_name]} = ${this[_name]}.AddTestRedis("${name}", ${convertNullable(port)});`);
-    await sendInstruction({
-        name: 'INVOKE',
-        source: this[_name],
-        target: result[_name],
-        methodAssembly: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests',
-        methodType: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions',
-        methodName: 'AddTestRedis',
-        methodArgumentTypes: ['Aspire.Hosting.IDistributedApplicationBuilder', 'System.String', 'System.Nullable<System.Int32>'],
-        metadataToken: 100663312,
-        args: {name: name, port: port || null}
-    });
-    return result;
+    const result = await this._proxy.invokeMethod('AddTestRedis', {name: name, port: port || null});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('AddTestRedis did not return a marshalled object');
   };
 
   /**
@@ -638,21 +491,11 @@ export class DistributedApplicationBuilder extends DistributedApplicationBuilder
    */
   /** @internal */
   async _addTestDatabaseInternal(name: string, databaseName?: string) : Promise<TestDatabaseResourceBuilder> {
-    emitLinePragma();
-    var result = new TestDatabaseResourceBuilder(this);
-    writeLine(`${result[_name]} = ${this[_name]}.AddTestDatabase("${name}", ${convertNullable(databaseName)});`);
-    await sendInstruction({
-        name: 'INVOKE',
-        source: this[_name],
-        target: result[_name],
-        methodAssembly: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests',
-        methodType: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions',
-        methodName: 'AddTestDatabase',
-        methodArgumentTypes: ['Aspire.Hosting.IDistributedApplicationBuilder', 'System.String', 'System.String'],
-        metadataToken: 100663313,
-        args: {name: name, databaseName: databaseName || null}
-    });
-    return result;
+    const result = await this._proxy.invokeMethod('AddTestDatabase', {name: name, databaseName: databaseName || null});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestDatabaseResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('AddTestDatabase did not return a marshalled object');
   };
 
   /**
@@ -663,10 +506,11 @@ export class DistributedApplicationBuilder extends DistributedApplicationBuilder
     return new TestDatabaseResourceBuilderPromise(this._addTestDatabaseInternal(name, databaseName));
   }
 }
-export class IResourceWithConnectionStringBuilder extends ReferenceClass {
-  constructor(builder: DistributedApplicationBuilderBase) {
-    super(builder, "IResourceBuilder<IResourceWithConnectionString>", "resourceWithConnectionStringBuilder");
-  }
+export class IResourceWithConnectionStringBuilder {
+  constructor(protected _proxy: DotNetProxy) {}
+
+  /** Gets the underlying proxy */
+  get proxy(): DotNetProxy { return this._proxy; }
 }
 
 /**
@@ -683,10 +527,11 @@ export class IResourceWithConnectionStringBuilderPromise implements PromiseLike<
   }
 }
 
-export class ResourceBuilder extends ReferenceClass {
-  constructor(builder: DistributedApplicationBuilderBase, cstype: string) {
-    super(builder, cstype, "resourceBuilder");
-  }
+export class ResourceBuilder {
+  constructor(protected _proxy: DotNetProxy) {}
+
+  /** Gets the underlying proxy */
+  get proxy(): DotNetProxy { return this._proxy; }
 }
 
 /**
@@ -703,10 +548,11 @@ export class ResourceBuilderPromise implements PromiseLike<ResourceBuilder> {
   }
 }
 
-export class TestRedisResourceBuilder extends ReferenceClass {
-  constructor(builder: DistributedApplicationBuilderBase, cstype: string = "IResourceBuilder<Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource>") {
-      super(builder, cstype, "testRedisResourceBuilder");
-  }
+export class TestRedisResourceBuilder {
+  constructor(protected _proxy: DotNetProxy) {}
+
+  /** Gets the underlying proxy */
+  get proxy(): DotNetProxy { return this._proxy; }
 
    /**
    * WithPersistence
@@ -716,21 +562,11 @@ export class TestRedisResourceBuilder extends ReferenceClass {
    */
   /** @internal */
   async _withPersistenceInternal(mode?: TestPersistenceMode) : Promise<TestRedisResourceBuilder> {
-    emitLinePragma();
-    var result = new TestRedisResourceBuilder(this.builder);
-    writeLine(`${result[_name]} = ${this[_name]}.WithPersistence(${convertNullable(mode)});`);
-    await sendInstruction({
-        name: 'INVOKE',
-        source: this[_name],
-        target: result[_name],
-        methodAssembly: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests',
-        methodType: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions',
-        methodName: 'WithPersistence',
-        methodArgumentTypes: ['Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource>', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestPersistenceMode'],
-        metadataToken: 100663314,
-        args: {mode: mode || null}
-    });
-    return result;
+    const result = await this._proxy.invokeMethod('WithPersistence', {mode: mode || null});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithPersistence did not return a marshalled object');
   };
 
   /**
@@ -742,6 +578,29 @@ export class TestRedisResourceBuilder extends ReferenceClass {
   }
 
    /**
+   * WithBuilderCallback
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithBuilderCallback(IResourceBuilder<TestRedisResource> builder, Action<IResourceBuilder<TestRedisResource>> configure)
+   * @param {(p0: TestRedisResourceBuilder) => void | Promise<void>} configure C# Type: Action<IResourceBuilder<TestRedisResource>>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withBuilderCallbackInternal(configure?: (p0: TestRedisResourceBuilder) => void | Promise<void>) : Promise<TestRedisResourceBuilder> {
+    const result = await this._proxy.invokeMethod('WithBuilderCallback', {configure: configure ? registerCallback((arg: DotNetProxy) => configure(new TestRedisResourceBuilder(arg))) : null});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithBuilderCallback did not return a marshalled object');
+  };
+
+  /**
+   * WithBuilderCallback (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithBuilderCallback(IResourceBuilder<TestRedisResource> builder, Action<IResourceBuilder<TestRedisResource>> configure)
+   */
+  withBuilderCallback(configure?: (p0: TestRedisResourceBuilder) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withBuilderCallbackInternal(configure));
+  }
+
+   /**
    * WithCustomCallback
    * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithCustomCallback<TestRedisResource>(IResourceBuilder<T> builder, Action<TestCallbackContext> callback)
    * @param {(p0: TestCallbackContextProxy) => void | Promise<void>} callback C# Type: Action<TestCallbackContext>
@@ -749,21 +608,11 @@ export class TestRedisResourceBuilder extends ReferenceClass {
    */
   /** @internal */
   async _withCustomCallbackInternal(callback: (p0: TestCallbackContextProxy) => void | Promise<void>) : Promise<TestRedisResourceBuilder> {
-    emitLinePragma();
-    var result = new TestRedisResourceBuilder(this.builder);
-    writeLine(`${result[_name]} = ${this[_name]}.WithCustomCallback(null /* callback handled via JSON-RPC */);`);
-    await sendInstruction({
-        name: 'INVOKE',
-        source: this[_name],
-        target: result[_name],
-        methodAssembly: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests',
-        methodType: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions',
-        methodName: 'WithCustomCallback',
-        methodArgumentTypes: ['Aspire.Hosting.ApplicationModel.IResourceBuilder<T>', 'System.Action<Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext>'],
-        metadataToken: 100663315,
-        args: {callback: registerCallback((arg: DotNetProxy) => callback(new TestCallbackContextProxy(arg)))}
-    });
-    return result;
+    const result = await this._proxy.invokeMethod('WithCustomCallback', {callback: registerCallback((arg: DotNetProxy) => callback(new TestCallbackContextProxy(arg)))});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithCustomCallback did not return a marshalled object');
   };
 
   /**
@@ -784,21 +633,11 @@ export class TestRedisResourceBuilder extends ReferenceClass {
   /** @internal */
   async _withOptionalStringInternal(optionalArguments: WithOptionalStringArgs = new WithOptionalStringArgs()) : Promise<TestRedisResourceBuilder> {
     optionalArguments = Object.assign(new WithOptionalStringArgs(), optionalArguments);
-    emitLinePragma();
-    var result = new TestRedisResourceBuilder(this.builder);
-    writeLine(`${result[_name]} = ${this[_name]}.WithOptionalString(${convertNullable(optionalArguments?.value)}, ${convertNullable(optionalArguments?.enabled)});`);
-    await sendInstruction({
-        name: 'INVOKE',
-        source: this[_name],
-        target: result[_name],
-        methodAssembly: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests',
-        methodType: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions',
-        methodName: 'WithOptionalString',
-        methodArgumentTypes: ['Aspire.Hosting.ApplicationModel.IResourceBuilder<T>', 'System.String', 'System.Boolean'],
-        metadataToken: 100663316,
-        args: {value: optionalArguments?.value || null, enabled: optionalArguments?.enabled || null}
-    });
-    return result;
+    const result = await this._proxy.invokeMethod('WithOptionalString', {value: optionalArguments?.value || null, enabled: optionalArguments?.enabled || null});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithOptionalString did not return a marshalled object');
   };
 
   /**
@@ -822,21 +661,11 @@ export class TestRedisResourceBuilder extends ReferenceClass {
   /** @internal */
   async _withMultipleDefaultsInternal(optionalArguments: WithMultipleDefaultsArgs = new WithMultipleDefaultsArgs()) : Promise<TestRedisResourceBuilder> {
     optionalArguments = Object.assign(new WithMultipleDefaultsArgs(), optionalArguments);
-    emitLinePragma();
-    var result = new TestRedisResourceBuilder(this.builder);
-    writeLine(`${result[_name]} = ${this[_name]}.WithMultipleDefaults(${convertNullable(optionalArguments?.count)}, ${convertNullable(optionalArguments?.prefix)}, ${convertNullable(optionalArguments?.useUpperCase)}, ${convertNullable(optionalArguments?.multiplier)});`);
-    await sendInstruction({
-        name: 'INVOKE',
-        source: this[_name],
-        target: result[_name],
-        methodAssembly: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests',
-        methodType: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions',
-        methodName: 'WithMultipleDefaults',
-        methodArgumentTypes: ['Aspire.Hosting.ApplicationModel.IResourceBuilder<T>', 'System.Int32', 'System.String', 'System.Boolean', 'System.Double'],
-        metadataToken: 100663317,
-        args: {count: optionalArguments?.count || null, prefix: optionalArguments?.prefix || null, useUpperCase: optionalArguments?.useUpperCase || null, multiplier: optionalArguments?.multiplier || null}
-    });
-    return result;
+    const result = await this._proxy.invokeMethod('WithMultipleDefaults', {count: optionalArguments?.count || null, prefix: optionalArguments?.prefix || null, useUpperCase: optionalArguments?.useUpperCase || null, multiplier: optionalArguments?.multiplier || null});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithMultipleDefaults did not return a marshalled object');
   };
 
   /**
@@ -849,10 +678,11 @@ export class TestRedisResourceBuilder extends ReferenceClass {
   }
 }
 
-export class TestDatabaseResourceBuilder extends ReferenceClass {
-  constructor(builder: DistributedApplicationBuilderBase, cstype: string = "IResourceBuilder<Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestDatabaseResource>") {
-      super(builder, cstype, "testDatabaseResourceBuilder");
-  }
+export class TestDatabaseResourceBuilder {
+  constructor(protected _proxy: DotNetProxy) {}
+
+  /** Gets the underlying proxy */
+  get proxy(): DotNetProxy { return this._proxy; }
 
    /**
    * WithCustomCallback
@@ -862,21 +692,11 @@ export class TestDatabaseResourceBuilder extends ReferenceClass {
    */
   /** @internal */
   async _withCustomCallbackInternal(callback: (p0: TestCallbackContextProxy) => void | Promise<void>) : Promise<TestDatabaseResourceBuilder> {
-    emitLinePragma();
-    var result = new TestDatabaseResourceBuilder(this.builder);
-    writeLine(`${result[_name]} = ${this[_name]}.WithCustomCallback(null /* callback handled via JSON-RPC */);`);
-    await sendInstruction({
-        name: 'INVOKE',
-        source: this[_name],
-        target: result[_name],
-        methodAssembly: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests',
-        methodType: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions',
-        methodName: 'WithCustomCallback',
-        methodArgumentTypes: ['Aspire.Hosting.ApplicationModel.IResourceBuilder<T>', 'System.Action<Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext>'],
-        metadataToken: 100663315,
-        args: {callback: registerCallback((arg: DotNetProxy) => callback(new TestCallbackContextProxy(arg)))}
-    });
-    return result;
+    const result = await this._proxy.invokeMethod('WithCustomCallback', {callback: registerCallback((arg: DotNetProxy) => callback(new TestCallbackContextProxy(arg)))});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestDatabaseResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithCustomCallback did not return a marshalled object');
   };
 
   /**
@@ -897,21 +717,11 @@ export class TestDatabaseResourceBuilder extends ReferenceClass {
   /** @internal */
   async _withOptionalStringInternal(optionalArguments: WithOptionalStringArgs1 = new WithOptionalStringArgs1()) : Promise<TestDatabaseResourceBuilder> {
     optionalArguments = Object.assign(new WithOptionalStringArgs1(), optionalArguments);
-    emitLinePragma();
-    var result = new TestDatabaseResourceBuilder(this.builder);
-    writeLine(`${result[_name]} = ${this[_name]}.WithOptionalString(${convertNullable(optionalArguments?.value)}, ${convertNullable(optionalArguments?.enabled)});`);
-    await sendInstruction({
-        name: 'INVOKE',
-        source: this[_name],
-        target: result[_name],
-        methodAssembly: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests',
-        methodType: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions',
-        methodName: 'WithOptionalString',
-        methodArgumentTypes: ['Aspire.Hosting.ApplicationModel.IResourceBuilder<T>', 'System.String', 'System.Boolean'],
-        metadataToken: 100663316,
-        args: {value: optionalArguments?.value || null, enabled: optionalArguments?.enabled || null}
-    });
-    return result;
+    const result = await this._proxy.invokeMethod('WithOptionalString', {value: optionalArguments?.value || null, enabled: optionalArguments?.enabled || null});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestDatabaseResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithOptionalString did not return a marshalled object');
   };
 
   /**
@@ -935,21 +745,11 @@ export class TestDatabaseResourceBuilder extends ReferenceClass {
   /** @internal */
   async _withMultipleDefaultsInternal(optionalArguments: WithMultipleDefaultsArgs1 = new WithMultipleDefaultsArgs1()) : Promise<TestDatabaseResourceBuilder> {
     optionalArguments = Object.assign(new WithMultipleDefaultsArgs1(), optionalArguments);
-    emitLinePragma();
-    var result = new TestDatabaseResourceBuilder(this.builder);
-    writeLine(`${result[_name]} = ${this[_name]}.WithMultipleDefaults(${convertNullable(optionalArguments?.count)}, ${convertNullable(optionalArguments?.prefix)}, ${convertNullable(optionalArguments?.useUpperCase)}, ${convertNullable(optionalArguments?.multiplier)});`);
-    await sendInstruction({
-        name: 'INVOKE',
-        source: this[_name],
-        target: result[_name],
-        methodAssembly: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests',
-        methodType: 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions',
-        methodName: 'WithMultipleDefaults',
-        methodArgumentTypes: ['Aspire.Hosting.ApplicationModel.IResourceBuilder<T>', 'System.Int32', 'System.String', 'System.Boolean', 'System.Double'],
-        metadataToken: 100663317,
-        args: {count: optionalArguments?.count || null, prefix: optionalArguments?.prefix || null, useUpperCase: optionalArguments?.useUpperCase || null, multiplier: optionalArguments?.multiplier || null}
-    });
-    return result;
+    const result = await this._proxy.invokeMethod('WithMultipleDefaults', {count: optionalArguments?.count || null, prefix: optionalArguments?.prefix || null, useUpperCase: optionalArguments?.useUpperCase || null, multiplier: optionalArguments?.multiplier || null});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestDatabaseResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithMultipleDefaults did not return a marshalled object');
   };
 
   /**
@@ -982,6 +782,15 @@ export class TestRedisResourceBuilderPromise implements PromiseLike<TestRedisRes
   withPersistence(mode?: TestPersistenceMode): TestRedisResourceBuilderPromise {
     return new TestRedisResourceBuilderPromise(
       this._promise.then(b => b._withPersistenceInternal(mode))
+    );
+  }
+
+  /**
+   * WithBuilderCallback (fluent chaining)
+   */
+  withBuilderCallback(configure?: (p0: TestRedisResourceBuilder) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withBuilderCallbackInternal(configure))
     );
   }
 
