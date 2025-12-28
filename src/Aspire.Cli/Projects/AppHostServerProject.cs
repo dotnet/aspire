@@ -344,7 +344,7 @@ internal sealed class AppHostServerProject
                 else
                 {
                     // Fallback to NuGet package if project not found
-                    Console.WriteLine($"Warning: Could not find local project for {pkg.Name}, falling back to NuGet");
+                    _logger.LogWarning("Could not find local project for {PackageName}, falling back to NuGet", pkg.Name);
                     otherPackages.Add(pkg);
                 }
             }
