@@ -1020,18 +1020,21 @@ internal sealed class InstructionProcessor : IAsyncDisposable
                     }
                     catch (Exception ex)
                     {
+                        // JSON deserialization failed - try to look up as a variable reference
                         if (jsonElement.ValueKind == JsonValueKind.String
                             && _variables.TryGetValue(jsonElement.GetString()!, out var varValue)
-                            && varValue != null
-                            )
+                            && varValue != null)
                         {
-                            // Check the type compatibility. This may be an error if the wrong extension method was picked by the code generation.
-                            if (!paramType.IsAssignableFrom(varValue.GetType()))
-                            {
-                                throw new InvalidOperationException($"Failed to convert argument '{paramName}' to type '{paramType}': {ex.Message}");
-                            }
-
+                            // Use the variable value directly - the method invocation will handle type checking.
+                            // Note: We don't do strict type checking here because IResourceBuilder<T> is invariant,
+                            // so IResourceBuilder<RedisResource> isn't assignable to IResourceBuilder<IResourceWithServiceDiscovery>
+                            // even when RedisResource implements IResourceWithServiceDiscovery.
                             arguments[i] = varValue;
+                        }
+                        else
+                        {
+                            // Not a variable reference - rethrow the original deserialization error
+                            throw new InvalidOperationException($"Failed to convert argument '{paramName}' to type '{paramType}': {ex.Message}", ex);
                         }
                     }
                 }

@@ -406,10 +406,32 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var pendingTypeScript = ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken);
 
             // Wait for TypeScript to finish defining resources
-            var typeScriptExitCode = await pendingTypeScript;
+            var (typeScriptExitCode, typeScriptOutput) = await pendingTypeScript;
             if (typeScriptExitCode != 0)
             {
                 _logger.LogError("TypeScript apphost exited with code {ExitCode}", typeScriptExitCode);
+
+                // Display the output from TypeScript (same pattern as DotNetCliRunner)
+                _interactionService.DisplayLines(typeScriptOutput.GetLines());
+
+                // Signal failure to RunCommand so it doesn't hang waiting for the backchannel
+                var error = new InvalidOperationException("The TypeScript apphost failed.");
+                context.BackchannelCompletionSource?.TrySetException(error);
+
+                // Kill the AppHost server since TypeScript failed
+                if (!appHostServerProcess.HasExited)
+                {
+                    try
+                    {
+                        appHostServerProcess.Kill(entireProcessTree: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Error killing AppHost server process after TypeScript failure");
+                    }
+                }
+
+                return typeScriptExitCode;
             }
 
             // Wait for the AppHost server to exit (Ctrl+C)
@@ -583,7 +605,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         return process.ExitCode;
     }
 
-    private async Task<int> ExecuteTypeScriptAppHostAsync(
+    private async Task<(int ExitCode, OutputCollector Output)> ExecuteTypeScriptAppHostAsync(
         FileInfo appHostFile,
         DirectoryInfo directory,
         IDictionary<string, string> environmentVariables,
@@ -621,7 +643,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             if (nodePath is null)
             {
                 _interactionService.DisplayError("node not found. Please install Node.js and ensure it is in your PATH.");
-                return ExitCodeConstants.FailedToDotnetRunAppHost;
+                return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
             }
 
             var jsFile = Path.ChangeExtension(appHostFile.FullName, ".js");
@@ -633,7 +655,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             {
                 _interactionService.DisplayError($"Compiled JavaScript file not found: {targetFile}");
                 _interactionService.DisplayMessage("info", "Try running 'npx tsc' to compile your TypeScript first.");
-                return ExitCodeConstants.FailedToBuildArtifacts;
+                return (ExitCodeConstants.FailedToBuildArtifacts, new OutputCollector());
             }
 
             startInfo = new ProcessStartInfo
@@ -656,11 +678,15 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
         using var process = new Process { StartInfo = startInfo };
 
+        // Capture output for error reporting (same pattern as DotNetCliRunner)
+        var outputCollector = new OutputCollector();
+
         process.OutputDataReceived += (sender, e) =>
         {
             if (e.Data is not null)
             {
                 _logger.LogDebug("tsx({ProcessId}) {Identifier}: {Line}", process.Id, "stdout", e.Data);
+                outputCollector.AppendOutput(e.Data);
             }
         };
 
@@ -669,6 +695,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             if (e.Data is not null)
             {
                 _logger.LogDebug("tsx({ProcessId}) {Identifier}: {Line}", process.Id, "stderr", e.Data);
+                outputCollector.AppendError(e.Data);
             }
         };
 
@@ -679,7 +706,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         try
         {
             await process.WaitForExitAsync(cancellationToken);
-            return process.ExitCode;
+            return (process.ExitCode, outputCollector);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -817,11 +844,32 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             // Execute the TypeScript apphost - this defines resources and triggers the publish
             // Pass the publish arguments to the TypeScript app (e.g., --operation publish --step deploy)
-            var typeScriptExitCode = await ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken, context.Arguments);
+            var (typeScriptExitCode, typeScriptOutput) = await ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken, context.Arguments);
 
             if (typeScriptExitCode != 0)
             {
                 _logger.LogError("TypeScript apphost exited with code {ExitCode}", typeScriptExitCode);
+
+                // Display the output from TypeScript (same pattern as DotNetCliRunner)
+                _interactionService.DisplayLines(typeScriptOutput.GetLines());
+
+                // Signal failure so callers don't hang waiting for the backchannel
+                var error = new InvalidOperationException("The TypeScript apphost failed.");
+                context.BackchannelCompletionSource?.TrySetException(error);
+
+                // Kill the AppHost server since TypeScript failed
+                if (!appHostServerProcess.HasExited)
+                {
+                    try
+                    {
+                        appHostServerProcess.Kill(entireProcessTree: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Error killing AppHost server process after TypeScript failure");
+                    }
+                }
+
                 return typeScriptExitCode;
             }
 
