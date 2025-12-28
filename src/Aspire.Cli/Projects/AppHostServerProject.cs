@@ -478,6 +478,8 @@ internal sealed class AppHostServerProject
         // Pass environment variables for socket path and parent PID
         startInfo.Environment["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath;
         startInfo.Environment["REMOTE_APP_HOST_PID"] = hostPid.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        // Pass the original apphost project directory so resources resolve paths correctly
+        startInfo.Environment["ASPIRE_PROJECT_DIRECTORY"] = _appPath;
 
         // Apply environment variables from apphost.run.json / launchSettings.json
         if (launchSettingsEnvVars != null)

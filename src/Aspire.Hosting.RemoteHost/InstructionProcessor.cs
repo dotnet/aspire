@@ -750,7 +750,9 @@ internal sealed class InstructionProcessor : IAsyncDisposable
 
         var options = new DistributedApplicationOptions
         {
-            Args = instruction.Args ?? []
+            Args = instruction.Args ?? [],
+            // Use the project directory from the instruction if provided, otherwise fall back to env variable
+            ProjectDirectory = instruction.ProjectDirectory ?? Environment.GetEnvironmentVariable("ASPIRE_PROJECT_DIRECTORY")
         };
 
         // Create the distributed application builder
