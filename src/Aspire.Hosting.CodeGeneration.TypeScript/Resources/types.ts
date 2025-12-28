@@ -2,16 +2,12 @@ export interface Instruction {
   name: string;
 }
 
-export interface CreateBuilderInstruction extends Instruction {
-  name: 'CREATE_BUILDER';
-  builderName: string;
-  args: string[];
-  projectDirectory: string;
-}
-
-export interface RunBuilderInstruction extends Instruction {
-  name: 'RUN_BUILDER';
-  builderName: string;
+export interface CreateObjectInstruction extends Instruction {
+  name: 'CREATE_OBJECT';
+  typeName: string;
+  assemblyName?: string;
+  target: string;
+  args?: Record<string, any>;
 }
 
 export interface PragmaInstruction extends Instruction {
@@ -20,29 +16,21 @@ export interface PragmaInstruction extends Instruction {
   value: string;
 }
 
-export interface DeclareInstruction extends Instruction {
-  name: 'DECLARE';
-  type: string;
-  varName: string;
-}
-
 export interface InvokeInstruction extends Instruction {
   name: 'INVOKE';
-  source: string;
+  source?: string;
   target: string;
   methodAssembly: string;
   methodType: string;
   methodName: string;
-  methodArgumentTypes: string[];
-  metadataToken: number;
-  args: Record<string, any>;
+  methodArgumentTypes?: string[];
+  metadataToken?: number;
+  args?: Record<string, any>;
 }
 
 export type AnyInstruction =
-  | CreateBuilderInstruction
-  | RunBuilderInstruction
+  | CreateObjectInstruction
   | PragmaInstruction
-  | DeclareInstruction
   | InvokeInstruction;
 
 export interface InstructionResult {

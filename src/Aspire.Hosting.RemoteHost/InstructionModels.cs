@@ -11,22 +11,19 @@ internal record Instruction
     public required string Name { get; init; }
 }
 
-internal sealed record CreateBuilderInstruction : Instruction
+internal sealed record CreateObjectInstruction : Instruction
 {
-    [JsonPropertyName("builderName")]
-    public required string BuilderName { get; init; }
+    [JsonPropertyName("typeName")]
+    public required string TypeName { get; init; }
+
+    [JsonPropertyName("assemblyName")]
+    public string? AssemblyName { get; init; }
+
+    [JsonPropertyName("target")]
+    public required string Target { get; init; }
 
     [JsonPropertyName("args")]
-    public string[] Args { get; init; } = Array.Empty<string>();
-
-    [JsonPropertyName("projectDirectory")]
-    public string? ProjectDirectory { get; init; }
-}
-
-internal sealed record RunBuilderInstruction : Instruction
-{
-    [JsonPropertyName("builderName")]
-    public required string BuilderName { get; init; }
+    public Dictionary<string, object>? Args { get; init; }
 }
 
 internal sealed record PragmaInstruction : Instruction
@@ -38,19 +35,13 @@ internal sealed record PragmaInstruction : Instruction
     public required string Value { get; init; }
 }
 
-internal sealed record DeclareInstruction : Instruction
-{
-    [JsonPropertyName("type")]
-    public required string Type { get; init; }
-
-    [JsonPropertyName("varName")]
-    public required string VarName { get; init; }
-}
-
 internal sealed record InvokeInstruction : Instruction
 {
+    /// <summary>
+    /// The source object ID for instance/extension methods. Null or empty for static methods.
+    /// </summary>
     [JsonPropertyName("source")]
-    public required string Source { get; init; }
+    public string? Source { get; init; }
 
     [JsonPropertyName("target")]
     public required string Target { get; init; }
@@ -73,3 +64,49 @@ internal sealed record InvokeInstruction : Instruction
     [JsonPropertyName("args")]
     public Dictionary<string, object> Args { get; init; } = new();
 }
+
+#region Instruction Results
+
+internal sealed record CreateObjectResult
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; init; }
+
+    [JsonPropertyName("target")]
+    public required string Target { get; init; }
+
+    [JsonPropertyName("result")]
+    public object? Result { get; init; }
+}
+
+internal sealed record PragmaResult
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; init; }
+
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("value")]
+    public required string Value { get; init; }
+}
+
+internal sealed record InvokeResult
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; init; }
+
+    [JsonPropertyName("source")]
+    public string? Source { get; init; }
+
+    [JsonPropertyName("target")]
+    public required string Target { get; init; }
+
+    [JsonPropertyName("methodName")]
+    public required string MethodName { get; init; }
+
+    [JsonPropertyName("result")]
+    public object? Result { get; init; }
+}
+
+#endregion

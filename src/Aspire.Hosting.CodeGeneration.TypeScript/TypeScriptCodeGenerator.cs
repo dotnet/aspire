@@ -84,7 +84,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         // Write the header with imports and utility functions
         writer.WriteLine($$"""
         import { RemoteAppHostClient, registerCallback, DotNetProxy, ListProxy, wrapIfProxy } from './RemoteAppHostClient.js';
-        import { AnyInstruction, CreateBuilderInstruction, RunBuilderInstruction } from './types.js';
+        import { AnyInstruction, InvokeInstruction } from './types.js';
 
         // Get socket path from environment variable (set by aspire run)
         const socketPath = process.env.REMOTE_APP_HOST_SOCKET_PATH;
@@ -186,18 +186,27 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
               }
             }
 
-            const createBuilderInstruction: CreateBuilderInstruction = {
-              name: 'CREATE_BUILDER',
-              builderName: distributedApplicationBuilder[_name],
-              projectDirectory: process.cwd(),
-              args: args
+            // Use static INVOKE to call DistributedApplication.CreateBuilder(options)
+            const invokeInstruction: InvokeInstruction = {
+              name: 'INVOKE',
+              source: '',
+              target: distributedApplicationBuilder[_name],
+              methodAssembly: 'Aspire.Hosting',
+              methodType: 'Aspire.Hosting.DistributedApplication',
+              methodName: 'CreateBuilder',
+              args: {
+                options: {
+                  Args: args,
+                  ProjectDirectory: process.cwd()
+                }
+              }
             };
 
-            const result = await sendInstruction(createBuilderInstruction);
+            const result = await sendInstruction(invokeInstruction);
 
             // Store the builder proxy for property access (Configuration, Environment, Services)
-            if (result && typeof result === 'object' && 'builder' in result) {
-              distributedApplicationBuilder._setBuilderProxy(new DotNetProxy(result.builder as any));
+            if (result && typeof result === 'object' && 'result' in result) {
+              distributedApplicationBuilder._setBuilderProxy(new DotNetProxy(result.result as any));
             }
 
             return distributedApplicationBuilder;
@@ -230,32 +239,45 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             writeLine('    Environment.Exit(1);');
             writeLine('}');
 
-            const runBuilderInstruction: RunBuilderInstruction = {
-                    name: 'RUN_BUILDER',
-                    builderName: this.builderName
-                };
-
-            const result = await sendInstruction(runBuilderInstruction);
+            // Build the application using invokeMethod
+            const buildResult = await this.builderProxy?.invokeMethod('Build', {});
 
             // Store the app proxy for service resolution
-            if (result && typeof result === 'object' && 'app' in result) {
-              this._appProxy = new DotNetProxy(result.app as any);
+            if (buildResult && typeof buildResult === 'object' && '$id' in buildResult) {
+              this._appProxy = new DotNetProxy(buildResult as any);
             }
 
-            // Wait for the connection to close (GenericAppHost exits when done)
-            // This handles both run mode (Ctrl+C) and publish mode (auto-exit)
+            // Run the application using invokeMethod
+            // This returns a Task that completes when the app stops
+            const runPromise = this._appProxy?.invokeMethod('RunAsync', {});
+
+            // Wait for either Ctrl+C, SIGTERM, or the connection to close
             await new Promise<void>((resolve) => {
-              // Handle Ctrl+C for graceful shutdown
-              process.on("SIGINT", () => {
+              const shutdown = async () => {
                 console.log("\nStopping application...");
+                try {
+                  // Try to stop the app gracefully
+                  await this._appProxy?.invokeMethod('StopAsync', {});
+                } catch {
+                  // Ignore errors during shutdown
+                }
                 client.disconnect();
                 resolve();
-              });
+              };
+
+              // Handle Ctrl+C for graceful shutdown
+              process.on("SIGINT", shutdown);
+
+              // Handle SIGTERM (sent by CLI on shutdown)
+              process.on("SIGTERM", shutdown);
 
               // Handle connection close (GenericAppHost exited after publish)
               client.onDisconnect(() => {
                 resolve();
               });
+
+              // Also resolve when runPromise completes
+              runPromise?.then(() => resolve()).catch(() => resolve());
             });
 
             process.exit(0);
@@ -488,11 +510,11 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
           /**
            * Gets a service of the specified type.
-           * @param typeName Type name - supports aliases or full names
+           * @param typeName Type name - full type name required
            * @returns The resolved service proxy or null if not found
            */
           async getService(typeName: string): Promise<DotNetProxy | null> {
-            const result = await client.getService(this._proxy.$id, typeName);
+            const result = await this._proxy.invokeMethod('GetService', { serviceType: typeName });
             if (result === null || result === undefined) {
               return null;
             }
@@ -501,11 +523,11 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
           /**
            * Gets a required service of the specified type.
-           * @param typeName Type name - supports aliases or full names
+           * @param typeName Type name - full type name required
            * @throws Error if the service is not found
            */
           async getRequiredService(typeName: string): Promise<DotNetProxy> {
-            const result = await client.getRequiredService(this._proxy.$id, typeName);
+            const result = await this._proxy.invokeMethod('GetRequiredService', { serviceType: typeName });
             return new DotNetProxy(result as any);
           }
 
@@ -513,7 +535,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
            * Gets the IConfiguration service.
            */
           async getConfiguration(): Promise<ConfigurationProxy> {
-            const result = await client.getRequiredService(this._proxy.$id, 'IConfiguration');
+            const result = await this._proxy.invokeMethod('GetRequiredService', { serviceType: 'Microsoft.Extensions.Configuration.IConfiguration' });
             return new ConfigurationProxy(new DotNetProxy(result as any));
           }
 
@@ -521,7 +543,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
            * Gets the IHostEnvironment service.
            */
           async getHostEnvironment(): Promise<HostEnvironmentProxy> {
-            const result = await client.getRequiredService(this._proxy.$id, 'IHostEnvironment');
+            const result = await this._proxy.invokeMethod('GetRequiredService', { serviceType: 'Microsoft.Extensions.Hosting.IHostEnvironment' });
             return new HostEnvironmentProxy(new DotNetProxy(result as any));
           }
 
@@ -529,7 +551,7 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
            * Gets the ILoggerFactory service.
            */
           async getLoggerFactory(): Promise<LoggerFactoryProxy> {
-            const result = await client.getRequiredService(this._proxy.$id, 'ILoggerFactory');
+            const result = await this._proxy.invokeMethod('GetRequiredService', { serviceType: 'Microsoft.Extensions.Logging.ILoggerFactory' });
             return new LoggerFactoryProxy(new DotNetProxy(result as any));
           }
         }

@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.Text.Json;
-using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.RemoteHost;
 
@@ -15,8 +14,6 @@ internal sealed class InstructionProcessor : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, object> _variables = new();
     private readonly ConcurrentDictionary<string, System.Reflection.Assembly> _assemblyCache = new();
-    private readonly List<DistributedApplication> _runningApps = new();
-    private readonly object _appsLock = new();
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true
@@ -25,8 +22,6 @@ internal sealed class InstructionProcessor : IAsyncDisposable
 
     private readonly ObjectRegistry _objectRegistry;
     private readonly ICallbackInvoker _callbackInvoker;
-
-    private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// Creates a new InstructionProcessor with the specified dependencies.
@@ -58,75 +53,6 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     {
         _objectRegistry.Unregister(objectId);
     }
-
-    #region Service Resolution
-
-    // Well-known types mapped to their actual Type objects for fast lookup
-    private static readonly Dictionary<string, Type> s_wellKnownTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["IConfiguration"] = typeof(Microsoft.Extensions.Configuration.IConfiguration),
-        ["IHostEnvironment"] = typeof(Microsoft.Extensions.Hosting.IHostEnvironment),
-        ["ILoggerFactory"] = typeof(Microsoft.Extensions.Logging.ILoggerFactory),
-    };
-
-    /// <summary>
-    /// Resolves a service from an IServiceProvider by type name.
-    /// Supports well-known type aliases (e.g., "IConfiguration") or assembly-qualified type names.
-    /// </summary>
-    public object? GetService(string serviceProviderObjectId, string typeName)
-    {
-        var serviceProvider = _objectRegistry.Get(serviceProviderObjectId) as IServiceProvider
-            ?? throw new InvalidOperationException($"Object '{serviceProviderObjectId}' is not an IServiceProvider");
-
-        var type = ResolveType(typeName)
-            ?? throw new InvalidOperationException($"Type '{typeName}' not found. Use a well-known alias (IConfiguration, IHostEnvironment, ILoggerFactory) or an assembly-qualified type name.");
-
-        var service = serviceProvider.GetService(type);
-        if (service != null && !ObjectRegistry.IsSimpleType(service.GetType()))
-        {
-            return _objectRegistry.Marshal(service);
-        }
-        return service;
-    }
-
-    /// <summary>
-    /// Resolves a required service from an IServiceProvider by type name.
-    /// Throws if the service is not found.
-    /// </summary>
-    public object? GetRequiredService(string serviceProviderObjectId, string typeName)
-    {
-        var serviceProvider = _objectRegistry.Get(serviceProviderObjectId) as IServiceProvider
-            ?? throw new InvalidOperationException($"Object '{serviceProviderObjectId}' is not an IServiceProvider");
-
-        var type = ResolveType(typeName)
-            ?? throw new InvalidOperationException($"Type '{typeName}' not found. Use a well-known alias (IConfiguration, IHostEnvironment, ILoggerFactory) or an assembly-qualified type name.");
-
-        var service = serviceProvider.GetService(type)
-            ?? throw new InvalidOperationException($"Required service of type '{typeName}' was not found in the service provider.");
-
-        if (!ObjectRegistry.IsSimpleType(service.GetType()))
-        {
-            return _objectRegistry.Marshal(service);
-        }
-        return service;
-    }
-
-    /// <summary>
-    /// Resolves a type by name. Supports well-known aliases or assembly-qualified type names.
-    /// </summary>
-    private static Type? ResolveType(string typeName)
-    {
-        // Check for well-known type alias first (fast path)
-        if (s_wellKnownTypes.TryGetValue(typeName, out var knownType))
-        {
-            return knownType;
-        }
-
-        // For everything else, require assembly-qualified name
-        return Type.GetType(typeName);
-    }
-
-    #endregion
 
     /// <summary>
     /// Invokes a method on a registered object. Called by TypeScript via JSON-RPC.
@@ -724,122 +650,138 @@ internal sealed class InstructionProcessor : IAsyncDisposable
 
     #region Instruction Execution
 
-    public async Task<object?> ExecuteInstructionAsync(string instructionJson, CancellationToken cancellationToken = default)
+    public Task<object?> ExecuteInstructionAsync(string instructionJson, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
 
         using var jsonDocument = JsonDocument.Parse(instructionJson);
         var instructionName = jsonDocument.RootElement.GetProperty("name").GetString();
 
-        return instructionName switch
+        var result = instructionName switch
         {
-            "CREATE_BUILDER" => await ExecuteCreateBuilderAsync(instructionJson, cancellationToken).ConfigureAwait(false),
-            "RUN_BUILDER" => await ExecuteRunBuilderAsync(instructionJson, cancellationToken).ConfigureAwait(false),
+            "CREATE_OBJECT" => ExecuteCreateObject(instructionJson),
             "pragma" => ExecutePragma(instructionJson),
             "INVOKE" => ExecuteInvoke(instructionJson),
             _ => throw new NotSupportedException($"Instruction '{instructionName}' is not supported")
         };
+
+        return Task.FromResult<object?>(result);
     }
 
-    private Task<object> ExecuteCreateBuilderAsync(string instructionJson, CancellationToken cancellationToken)
+    private object ExecuteCreateObject(string instructionJson)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        var instruction = JsonSerializer.Deserialize<CreateObjectInstruction>(instructionJson, _jsonOptions)
+            ?? throw new InvalidOperationException("Failed to deserialize CREATE_OBJECT instruction");
 
-        var instruction = JsonSerializer.Deserialize<CreateBuilderInstruction>(instructionJson, _jsonOptions)
-            ?? throw new InvalidOperationException("Failed to deserialize CREATE_BUILDER instruction");
+        // Resolve the type
+        Type? type = null;
 
-        var options = new DistributedApplicationOptions
+        if (!string.IsNullOrEmpty(instruction.AssemblyName))
         {
-            Args = instruction.Args ?? [],
-            // Use the project directory from the instruction if provided, otherwise fall back to env variable
-            ProjectDirectory = instruction.ProjectDirectory ?? Environment.GetEnvironmentVariable("ASPIRE_PROJECT_DIRECTORY")
-        };
-
-        // Create the distributed application builder
-        var builder = DistributedApplication.CreateBuilder(options);
-
-        // Store the builder in the variables dictionary (thread-safe)
-        _variables[instruction.BuilderName] = builder;
-
-        // Register the builder in the ObjectRegistry so it can be accessed via proxy
-        // This enables access to Configuration, Environment, Services properties
-        var marshalledBuilder = _objectRegistry.Marshal(builder);
-
-        return Task.FromResult<object>(new { success = true, builderName = instruction.BuilderName, builder = marshalledBuilder });
-    }
-
-    private async Task<object> ExecuteRunBuilderAsync(string instructionJson, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var instruction = JsonSerializer.Deserialize<RunBuilderInstruction>(instructionJson, _jsonOptions)
-            ?? throw new InvalidOperationException("Failed to deserialize RUN_BUILDER instruction");
-
-        if (!_variables.TryGetValue(instruction.BuilderName, out var builderObj) ||
-            builderObj is not IDistributedApplicationBuilder builder)
-        {
-            throw new InvalidOperationException($"Builder '{instruction.BuilderName}' not found or is not a valid builder");
+            // Load assembly and get type from it
+            var assembly = _assemblyCache.GetOrAdd(instruction.AssemblyName, System.Reflection.Assembly.Load);
+            type = assembly.GetType(instruction.TypeName);
         }
-
-        // Build and start the application
-        var app = builder.Build();
-
-        // Store the app so we can access it later for shutdown (thread-safe)
-        _variables[$"{instruction.BuilderName}_app"] = app;
-
-        // Register the app in the ObjectRegistry for property access (Services, etc.)
-        var marshalledApp = _objectRegistry.Marshal(app);
-
-        // Track the app for graceful shutdown
-        lock (_appsLock)
+        else
         {
-            _runningApps.Add(app);
-        }
+            // Try to resolve from already loaded assemblies or by assembly-qualified name
+            type = Type.GetType(instruction.TypeName);
 
-        try
-        {
-            // Start the application and wait for it to be ready.
-            // This will throw if there are configuration errors (e.g., missing dashboard env vars).
-            // The exception will propagate back to the TypeScript client via JSON-RPC.
-            await app.StartAsync(CancellationToken.None).ConfigureAwait(false);
-
-            // App started successfully. Now wait for shutdown in the background.
-            // NOTE: We use CancellationToken.None because the app should run until
-            // explicitly stopped (via Ctrl+C or server shutdown).
-            _ = Task.Run(async () =>
+            // If not found, search in cached assemblies
+            if (type == null)
             {
-                try
+                foreach (var cachedAssembly in _assemblyCache.Values)
                 {
-                    // Wait for shutdown signal (Ctrl+C or programmatic shutdown)
-                    await app.WaitForShutdownAsync(CancellationToken.None).ConfigureAwait(false);
-
-                    // Exit the process when the app stops running normally
-                    Environment.Exit(0);
+                    type = cachedAssembly.GetType(instruction.TypeName);
+                    if (type != null)
+                    {
+                        break;
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Application shutdown error: {ex.Message}");
-                    Environment.Exit(1);
-                }
-            }, CancellationToken.None);
-
-            // The app is now running in the background.
-            // When shutdown is triggered, the process will exit.
-
-            return new { success = true, builderName = instruction.BuilderName, status = "running", app = marshalledApp };
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Application startup failed: {ex.Message}");
-
-            // Remove from tracking since it failed to start
-            lock (_appsLock)
-            {
-                _runningApps.Remove(app);
             }
-
-            throw; // Re-throw to propagate error back to client
         }
+
+        if (type == null)
+        {
+            throw new InvalidOperationException($"Type '{instruction.TypeName}' not found" +
+                (instruction.AssemblyName != null ? $" in assembly '{instruction.AssemblyName}'" : ""));
+        }
+
+        // Find the best constructor matching the provided args
+        var constructors = type.GetConstructors();
+        System.Reflection.ConstructorInfo? bestConstructor = null;
+        var bestScore = int.MinValue;
+
+        var argDict = instruction.Args ?? new Dictionary<string, object>();
+        var providedArgNames = argDict.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var ctor in constructors)
+        {
+            var parameters = ctor.GetParameters();
+            var paramNames = parameters.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // Score based on matching argument names
+            var matchingArgs = providedArgNames.Count(paramNames.Contains!);
+            var missingRequiredArgs = parameters.Count(p => !p.HasDefaultValue && !providedArgNames.Contains(p.Name!));
+
+            var score = matchingArgs * 10 - missingRequiredArgs * 100;
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestConstructor = ctor;
+            }
+        }
+
+        if (bestConstructor == null)
+        {
+            throw new InvalidOperationException($"No suitable constructor found for type '{instruction.TypeName}'");
+        }
+
+        // Build argument array for the constructor
+        var ctorParameters = bestConstructor.GetParameters();
+        var arguments = new object?[ctorParameters.Length];
+
+        for (int i = 0; i < ctorParameters.Length; i++)
+        {
+            var param = ctorParameters[i];
+            if (argDict.TryGetValue(param.Name!, out var argValue))
+            {
+                if (argValue is JsonElement jsonElement)
+                {
+                    arguments[i] = DeserializeArgument(jsonElement, param.ParameterType);
+                }
+                else
+                {
+                    arguments[i] = argValue;
+                }
+            }
+            else if (param.HasDefaultValue)
+            {
+                arguments[i] = param.DefaultValue;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Required constructor argument '{param.Name}' not provided for type '{instruction.TypeName}'");
+            }
+        }
+
+        // Create the instance
+        var instance = bestConstructor.Invoke(arguments);
+
+        // Store in variables dictionary
+        _variables[instruction.Target] = instance;
+
+        // Marshal and return
+        var marshalledResult = _objectRegistry.Marshal(instance);
+
+        return new CreateObjectResult
+        {
+            Success = true,
+            Target = instruction.Target,
+            Result = marshalledResult
+        };
     }
 
     private object ExecutePragma(string instructionJson)
@@ -850,7 +792,12 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         // For now, just acknowledge the pragma instruction
         Console.WriteLine($"Pragma: {instruction.Type} = {instruction.Value}");
 
-        return new { success = true, type = instruction.Type, value = instruction.Value };
+        return new PragmaResult
+        {
+            Success = true,
+            Type = instruction.Type,
+            Value = instruction.Value
+        };
     }
 
     private object ExecuteInvoke(string instructionJson)
@@ -858,10 +805,17 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         var instruction = JsonSerializer.Deserialize<InvokeInstruction>(instructionJson, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to deserialize INVOKE instruction");
 
-        // Get the source object from variables (thread-safe)
-        if (!_variables.TryGetValue(instruction.Source, out var sourceObj))
+        // Determine if this is a static method call (no source) or extension/instance method call
+        var isStaticCall = string.IsNullOrEmpty(instruction.Source);
+        object? sourceObj = null;
+
+        if (!isStaticCall)
         {
-            throw new InvalidOperationException($"Source variable '{instruction.Source}' not found");
+            // Get the source object from variables (thread-safe)
+            if (!_variables.TryGetValue(instruction.Source!, out sourceObj))
+            {
+                throw new InvalidOperationException($"Source variable '{instruction.Source}' not found");
+            }
         }
 
         // Load the assembly (cached)
@@ -882,92 +836,121 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         // Fall back to finding by name if metadata token is 0 or not found
         if (method == null)
         {
-            var sourceType = sourceObj.GetType();
             var providedArgNames = instruction.Args.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // Find all methods with the matching name
-            // First, check if any method has a PolyglotMethodNameAttribute that matches
-            // This allows polyglot SDKs to use unique names for overloads
-            var candidateMethods = type.GetMethods()
-                .Where(m => m.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false))
-                .Where(m =>
-                {
-                    // Check for PolyglotMethodNameAttribute first (using reflection to avoid type dependency)
-                    var polyglotAttr = m.GetCustomAttributesData()
-                        .FirstOrDefault(a => a.AttributeType.Name == "PolyglotMethodNameAttribute");
+            if (isStaticCall)
+            {
+                // For static calls, find static methods (not extension methods) by name
+                var candidateMethods = type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                    .Where(m => !m.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false))
+                    .Where(m => m.Name == instruction.MethodName)
+                    .ToList();
 
-                    if (polyglotAttr != null)
+                // Score candidates by argument matching
+                method = candidateMethods
+                    .Select(m =>
                     {
-                        // Get the MethodName from the constructor argument
-                        var methodName = polyglotAttr.ConstructorArguments.FirstOrDefault().Value as string;
-                        if (methodName != null)
+                        var parameters = m.GetParameters();
+                        var methodParamNames = parameters.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                        var matchingArgs = providedArgNames.Count(methodParamNames.Contains!);
+                        var missingRequiredArgs = parameters.Count(p => !p.HasDefaultValue && !providedArgNames.Contains(p.Name!));
+                        var score = matchingArgs * 10 - missingRequiredArgs * 100;
+                        return (Method: m, Score: score);
+                    })
+                    .OrderByDescending(x => x.Score)
+                    .ThenBy(x => x.Method.GetParameters().Length)
+                    .Select(x => x.Method)
+                    .FirstOrDefault();
+            }
+            else
+            {
+                // For extension method calls, use existing logic
+                var sourceType = sourceObj!.GetType();
+
+                // Find all methods with the matching name
+                // First, check if any method has a PolyglotMethodNameAttribute that matches
+                // This allows polyglot SDKs to use unique names for overloads
+                var candidateMethods = type.GetMethods()
+                    .Where(m => m.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false))
+                    .Where(m =>
+                    {
+                        // Check for PolyglotMethodNameAttribute first (using reflection to avoid type dependency)
+                        var polyglotAttr = m.GetCustomAttributesData()
+                            .FirstOrDefault(a => a.AttributeType.Name == "PolyglotMethodNameAttribute");
+
+                        if (polyglotAttr != null)
                         {
-                            // Match by polyglot name (case-insensitive)
-                            return string.Equals(methodName, instruction.MethodName, StringComparison.OrdinalIgnoreCase);
+                            // Get the MethodName from the constructor argument
+                            var methodName = polyglotAttr.ConstructorArguments.FirstOrDefault().Value as string;
+                            if (methodName != null)
+                            {
+                                // Match by polyglot name (case-insensitive)
+                                return string.Equals(methodName, instruction.MethodName, StringComparison.OrdinalIgnoreCase);
+                            }
                         }
+
+                        // Fall back to C# method name
+                        return m.Name == instruction.MethodName;
+                    })
+                    .ToList();
+
+                // Score each candidate based on argument name matching and source type compatibility
+                var scoredCandidates = new List<(System.Reflection.MethodInfo Method, int Score, bool SourceTypeMatches)>();
+
+                foreach (var candidate in candidateMethods)
+                {
+                    var parameters = candidate.GetParameters();
+                    if (parameters.Length == 0)
+                    {
+                        continue;
                     }
 
-                    // Fall back to C# method name
-                    return m.Name == instruction.MethodName;
-                })
-                .ToList();
+                    // Check if the source type matches the first parameter (extension method target)
+                    var firstParamType = parameters[0].ParameterType;
+                    var sourceTypeMatches = false;
 
-            // Score each candidate based on argument name matching and source type compatibility
-            var scoredCandidates = new List<(System.Reflection.MethodInfo Method, int Score, bool SourceTypeMatches)>();
+                    if (firstParamType.IsGenericType)
+                    {
+                        var genericTypeDef = firstParamType.GetGenericTypeDefinition();
+                        var sourceInterfaces = sourceType.GetInterfaces();
+                        sourceTypeMatches = sourceInterfaces.Any(iface =>
+                            iface.IsGenericType && iface.GetGenericTypeDefinition() == genericTypeDef);
+                    }
+                    else
+                    {
+                        sourceTypeMatches = firstParamType.IsAssignableFrom(sourceType);
+                    }
 
-            foreach (var candidate in candidateMethods)
-            {
-                var parameters = candidate.GetParameters();
-                if (parameters.Length == 0)
-                {
-                    continue;
+                    if (!sourceTypeMatches)
+                    {
+                        continue;
+                    }
+
+                    // Score based on how many provided argument names match method parameter names
+                    // Skip the first parameter (this) for extension methods
+                    var methodParamNames = parameters.Skip(1).Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var matchingArgs = providedArgNames.Count(methodParamNames.Contains);
+                    var missingRequiredArgs = parameters.Skip(1).Count(p => !p.HasDefaultValue && !providedArgNames.Contains(p.Name!));
+
+                    // Higher score = better match
+                    // Penalize methods that have required arguments we didn't provide
+                    var score = matchingArgs * 10 - missingRequiredArgs * 100;
+
+                    scoredCandidates.Add((candidate, score, sourceTypeMatches));
                 }
 
-                // Check if the source type matches the first parameter (extension method target)
-                var firstParamType = parameters[0].ParameterType;
-                var sourceTypeMatches = false;
+                // Pick the best scoring method
+                method = scoredCandidates
+                    .OrderByDescending(x => x.Score)
+                    .ThenBy(x => x.Method.GetParameters().Length) // Prefer simpler methods if tied
+                    .Select(x => x.Method)
+                    .FirstOrDefault();
 
-                if (firstParamType.IsGenericType)
+                if (method == null && candidateMethods.Count > 0)
                 {
-                    var genericTypeDef = firstParamType.GetGenericTypeDefinition();
-                    var sourceInterfaces = sourceType.GetInterfaces();
-                    sourceTypeMatches = sourceInterfaces.Any(iface =>
-                        iface.IsGenericType && iface.GetGenericTypeDefinition() == genericTypeDef);
+                    // Just use the first candidate if we couldn't find a perfect match
+                    method = candidateMethods[0];
                 }
-                else
-                {
-                    sourceTypeMatches = firstParamType.IsAssignableFrom(sourceType);
-                }
-
-                if (!sourceTypeMatches)
-                {
-                    continue;
-                }
-
-                // Score based on how many provided argument names match method parameter names
-                // Skip the first parameter (this) for extension methods
-                var methodParamNames = parameters.Skip(1).Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var matchingArgs = providedArgNames.Count(methodParamNames.Contains);
-                var missingRequiredArgs = parameters.Skip(1).Count(p => !p.HasDefaultValue && !providedArgNames.Contains(p.Name!));
-
-                // Higher score = better match
-                // Penalize methods that have required arguments we didn't provide
-                var score = matchingArgs * 10 - missingRequiredArgs * 100;
-
-                scoredCandidates.Add((candidate, score, sourceTypeMatches));
-            }
-
-            // Pick the best scoring method
-            method = scoredCandidates
-                .OrderByDescending(x => x.Score)
-                .ThenBy(x => x.Method.GetParameters().Length) // Prefer simpler methods if tied
-                .Select(x => x.Method)
-                .FirstOrDefault();
-
-            if (method == null && candidateMethods.Count > 0)
-            {
-                // Just use the first candidate if we couldn't find a perfect match
-                method = candidateMethods[0];
             }
         }
 
@@ -1097,70 +1080,33 @@ internal sealed class InstructionProcessor : IAsyncDisposable
         // Marshal the result so TypeScript can use it as a DotNetProxy
         var marshalledResult = result != null ? _objectRegistry.Marshal(result) : null;
 
-        return new {
-            success = true,
-            source = instruction.Source,
-            target = instruction.Target,
-            methodName = instruction.MethodName,
-            result = marshalledResult
+        return new InvokeResult
+        {
+            Success = true,
+            Source = instruction.Source,
+            Target = instruction.Target,
+            MethodName = instruction.MethodName,
+            Result = marshalledResult
         };
     }
 
     #endregion
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         if (_disposed)
         {
-            return;
+            return ValueTask.CompletedTask;
         }
 
         _disposed = true;
 
-        // Get a copy of the running apps to stop
-        List<DistributedApplication> appsToStop;
-        lock (_appsLock)
-        {
-            appsToStop = new List<DistributedApplication>(_runningApps);
-            _runningApps.Clear();
-        }
-
-        Console.WriteLine($"Stopping {appsToStop.Count} running application(s)...");
-
-        // Stop all running applications gracefully with timeout
-        foreach (var app in appsToStop)
-        {
-            try
-            {
-                Console.WriteLine("Stopping DistributedApplication...");
-
-                // Use a timeout to prevent hanging indefinitely
-                using var cts = new CancellationTokenSource(s_shutdownTimeout);
-                try
-                {
-                    await app.StopAsync(cts.Token).ConfigureAwait(false);
-                    Console.WriteLine("DistributedApplication stopped.");
-                }
-                catch (OperationCanceledException)
-                {
-                    Console.WriteLine($"Warning: DistributedApplication stop timed out after {s_shutdownTimeout.TotalSeconds}s");
-                }
-
-                // Dispose the app to clean up resources (no timeout - dispose should be quick)
-                await app.DisposeAsync().ConfigureAwait(false);
-                Console.WriteLine("DistributedApplication disposed.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error stopping application: {ex.Message}");
-            }
-        }
-
-        // Clear all variables
+        // Clear all variables and caches
         _variables.Clear();
         _assemblyCache.Clear();
         _objectRegistry.Clear();
 
         Console.WriteLine("InstructionProcessor disposed.");
+        return ValueTask.CompletedTask;
     }
 }

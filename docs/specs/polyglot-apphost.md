@@ -59,15 +59,16 @@ sequenceDiagram
     participant G as Guest Runtime
     participant H as AppHost Server (.NET)
 
-    G->>H: addRedis("cache")
-    H-->>G: { $id: "obj_1" }
+    G->>H: executeInstruction(INVOKE CreateBuilder)
+    H-->>G: { $id: "builder" }
 
-    G->>H: withEnvironment(callback)
-    H->>G: invokeCallback(args)
-    G-->>H: callback result
+    G->>H: executeInstruction(INVOKE AddRedis)
+    H-->>G: { $id: "redis" }
 
-    G->>H: build()
-    G->>H: run()
+    G->>H: invokeMethod("Build")
+    H-->>G: { $id: "app" }
+
+    G->>H: invokeMethod("RunAsync")
     H-->>G: orchestration started
 ```
 
@@ -233,6 +234,27 @@ In **run mode**, the AppHost server runs until interrupted (Ctrl+C). In **publis
 
 Communication between the guest and host uses JSON-RPC 2.0 over Unix domain sockets (or named pipes on Windows).
 
+### Design Philosophy: Generic .NET Remoting
+
+The JSON-RPC server in `Aspire.Hosting.RemoteHost` is designed as a **generic .NET remoting layer**. The RPC surface provides fundamental .NET operations:
+
+| RPC Method | .NET Concept |
+|------------|--------------|
+| `invokeMethod` | Call any instance method |
+| `getProperty` / `setProperty` | Property access |
+| `getIndexer` / `setIndexer` | Indexer access (lists, dictionaries) |
+| `unregisterObject` | Release object reference |
+
+The instruction system adds capabilities that require assembly/type resolution:
+
+| Instruction | Purpose |
+|-------------|---------|
+| `CREATE_OBJECT` | Instantiate any .NET type via constructor |
+| `INVOKE` | Call static methods or extension methods |
+| `pragma` | Directives and hints |
+
+This design means the protocol can invoke **any .NET API** - not just Aspire.Hosting methods. The guest SDK is generated from reflection over the actual .NET assemblies, so new integrations automatically get type-safe APIs without protocol changes.
+
 ### Transport Layer
 
 The protocol uses **header-delimited messages** matching the `vscode-jsonrpc` format:
@@ -266,7 +288,7 @@ Health check to verify connection.
 
 #### `executeInstruction`
 
-Execute a typed instruction against the Aspire.Hosting API. This is the primary method for building the application model.
+Execute a typed instruction for operations requiring assembly/type resolution (object creation, static methods, extension methods).
 
 | | |
 |---|---|
@@ -275,10 +297,10 @@ Execute a typed instruction against the Aspire.Hosting API. This is the primary 
 
 ```json
 // Request
-{"jsonrpc":"2.0","id":2,"method":"executeInstruction","params":["{ \"name\": \"CREATE_BUILDER\", ... }"]}
+{"jsonrpc":"2.0","id":2,"method":"executeInstruction","params":["{ \"name\": \"CREATE_OBJECT\", ... }"]}
 
 // Response
-{"jsonrpc":"2.0","id":2,"result":{"$id":"obj_1","$type":"DistributedApplicationBuilder"}}
+{"jsonrpc":"2.0","id":2,"result":{"success":true,"target":"builder","result":{"$id":"obj_1","$type":"DistributedApplicationBuilder"}}}
 ```
 
 #### `invokeMethod`
@@ -377,30 +399,6 @@ Release an object from the registry when no longer needed.
 {"jsonrpc":"2.0","id":9,"method":"unregisterObject","params":["obj_1"]}
 ```
 
-#### `getService`
-
-Get a service from a service provider (DI container).
-
-| | |
-|---|---|
-| **Parameters** | `serviceProviderObjectId: string` - ServiceProvider object ID<br/>`typeName: string` - Full type name of service |
-| **Returns** | `object?` - Service instance (marshalled), or `null` if not found |
-
-```json
-// Request
-{"jsonrpc":"2.0","id":10,"method":"getService","params":["obj_1","Microsoft.Extensions.Logging.ILoggerFactory"]}
-```
-
-#### `getRequiredService`
-
-Get a required service from a service provider. Throws if not found.
-
-| | |
-|---|---|
-| **Parameters** | `serviceProviderObjectId: string` - ServiceProvider object ID<br/>`typeName: string` - Full type name of service |
-| **Returns** | `object` - Service instance (marshalled) |
-| **Errors** | Throws if service not registered |
-
 ### RPC Methods (Host → Guest)
 
 These methods are called by the host to invoke callbacks registered by the guest.
@@ -425,20 +423,27 @@ Invoke a callback function that was registered by the guest.
 
 ### Instructions
 
-Instructions are the primary way to interact with the Aspire.Hosting API:
+Instructions are sent via `executeInstruction` to interact with the Aspire.Hosting API. The protocol uses a minimal set of generic instructions:
 
-**CREATE_BUILDER** - Create a DistributedApplicationBuilder
+**CREATE_OBJECT** - Instantiate any .NET type
 ```json
 {
-    "name": "CREATE_BUILDER",
-    "builderName": "builder",
-    "args": ["--operation", "run"],
-    "projectDirectory": "/path/to/project"
+    "name": "CREATE_OBJECT",
+    "typeName": "Aspire.Hosting.DistributedApplicationBuilder",
+    "assemblyName": "Aspire.Hosting",
+    "target": "builder",
+    "args": {
+        "options": {
+            "Args": ["--operation", "run"],
+            "ProjectDirectory": "/path/to/project"
+        }
+    }
 }
 ```
 
-**INVOKE** - Call a method on a registered object
+**INVOKE** - Call extension methods or static methods (methods requiring assembly/type resolution)
 ```json
+// Extension method call (source is the object to invoke on)
 {
     "name": "INVOKE",
     "source": "builder",
@@ -450,15 +455,33 @@ Instructions are the primary way to interact with the Aspire.Hosting API:
     "metadataToken": 123456,
     "args": { "name": "cache" }
 }
-```
 
-**RUN_BUILDER** - Build and run the application
-```json
+// Static method call (source is null/empty)
 {
-    "name": "RUN_BUILDER",
-    "builderName": "builder"
+    "name": "INVOKE",
+    "source": "",
+    "target": "builder",
+    "methodAssembly": "Aspire.Hosting",
+    "methodType": "Aspire.Hosting.DistributedApplication",
+    "methodName": "CreateBuilder",
+    "args": { "options": { "Args": [], "ProjectDirectory": "/path" } }
 }
 ```
+
+**pragma** - Directives and hints
+```json
+{
+    "name": "pragma",
+    "type": "line",
+    "value": "42 \"apphost.ts\""
+}
+```
+
+> **Note:** Instance methods like `Build()` and `RunAsync()` are called via the `invokeMethod` RPC method, not instructions. Instructions are needed for:
+> - **`CREATE_OBJECT`**: Object instantiation via constructor
+> - **`INVOKE`**: Static or extension methods requiring assembly/type resolution
+>
+> The TypeScript SDK uses static `INVOKE` to call `DistributedApplication.CreateBuilder()`, matching the standard C# API pattern.
 
 ### Callback Mechanism
 
@@ -808,3 +831,34 @@ export ASPIRE_REPO_ROOT=/path/to/aspire
 This:
 - Skips SDK caching (always regenerates)
 - Uses local build artifacts from `artifacts/bin/` instead of NuGet packages
+
+---
+
+## Challenges and Limitations
+
+The generic .NET remoting approach is powerful but presents challenges when exposing the full .NET type system to guest languages. The .NET type system is very rich, and not all features translate cleanly across language boundaries.
+
+### Known Challenges
+
+| Challenge | Description | Status |
+|-----------|-------------|--------|
+| **Generic methods** | Methods like `GetRequiredService<T>()` require runtime type specification | TBD |
+| **Overload resolution** | .NET supports complex overloading (by type, ref/out, params) that may be ambiguous over JSON | Partial - resolved by argument names |
+| **Delegate variance** | Covariant/contravariant delegates don't map to most languages | TBD |
+| **ref/out parameters** | By-reference parameters are currently skipped in code generation | Skipped |
+| **Span/Memory types** | Stack-allocated types cannot be marshalled | Not supported |
+| **Async enumerable** | `IAsyncEnumerable<T>` streaming requires special handling | TBD |
+| **Disposable patterns** | Guest languages may not have deterministic disposal | Manual via `unregisterObject` |
+| **Exception mapping** | .NET exception hierarchy doesn't map to guest languages | Flattened to error messages |
+| **Threading model** | .NET async/await semantics differ from guest language models | JSON-RPC serializes calls |
+
+### Planned Restrictions
+
+To ensure a reliable and predictable API surface, restrictions will be added to control which .NET features are exposed over the RPC protocol. These may include:
+
+- **Attribute-based opt-in/opt-out** for methods and types
+- **Curated API surface** limiting exposure to well-known patterns
+- **Type allow/deny lists** for marshalling
+- **Parameter type restrictions** (e.g., no `Span<T>`, no by-ref)
+
+The specific restrictions are **TBD** and will evolve based on real-world usage patterns.

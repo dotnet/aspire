@@ -435,18 +435,6 @@ export class RemoteAppHostClient {
         return this.connection.sendRequest('unregisterObject', objectId);
     }
 
-    /** Get a service from an IServiceProvider by type name */
-    getService(serviceProviderObjectId: string, typeName: string): Promise<unknown> {
-        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
-        return this.connection.sendRequest('getService', serviceProviderObjectId, typeName);
-    }
-
-    /** Get a required service from an IServiceProvider by type name */
-    getRequiredService(serviceProviderObjectId: string, typeName: string): Promise<unknown> {
-        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
-        return this.connection.sendRequest('getRequiredService', serviceProviderObjectId, typeName);
-    }
-
     disconnect(): void {
         globalClient = null;
         try { this.connection?.dispose(); } finally { this.connection = null; }

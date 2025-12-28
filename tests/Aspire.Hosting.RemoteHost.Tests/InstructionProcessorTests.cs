@@ -321,6 +321,333 @@ public class InstructionProcessorTests : IAsyncLifetime
 
     #endregion
 
+    #region ExecuteInstruction Tests (CREATE_OBJECT)
+
+    [Fact]
+    public async Task CreateObject_CreatesInstanceWithNoArgs()
+    {
+        var instruction = """
+            {
+                "name": "CREATE_OBJECT",
+                "typeName": "Aspire.Hosting.RemoteHost.Tests.InstructionProcessorTests+SimpleTestClass, Aspire.Hosting.RemoteHost.Tests",
+                "target": "obj1"
+            }
+            """;
+
+        var result = await _processor.ExecuteInstructionAsync(instruction);
+
+        var createResult = Assert.IsType<CreateObjectResult>(result);
+        Assert.True(createResult.Success);
+        Assert.Equal("obj1", createResult.Target);
+    }
+
+    [Fact]
+    public async Task CreateObject_CreatesInstanceWithConstructorArgs()
+    {
+        var instruction = """
+            {
+                "name": "CREATE_OBJECT",
+                "typeName": "Aspire.Hosting.RemoteHost.Tests.InstructionProcessorTests+TestClassWithArgs, Aspire.Hosting.RemoteHost.Tests",
+                "target": "obj1",
+                "args": {
+                    "name": "test-name",
+                    "value": 42
+                }
+            }
+            """;
+
+        var result = await _processor.ExecuteInstructionAsync(instruction);
+
+        var createResult = Assert.IsType<CreateObjectResult>(result);
+        Assert.True(createResult.Success);
+
+        // Verify the object was created with correct args by accessing its properties
+        var marshalledResult = (Dictionary<string, object?>)createResult.Result!;
+        var objectId = (string)marshalledResult["$id"]!;
+
+        var nameValue = _processor.GetProperty(objectId, "Name");
+        Assert.Equal("test-name", nameValue);
+
+        var valueValue = _processor.GetProperty(objectId, "Value");
+        Assert.Equal(42, valueValue);
+    }
+
+    [Fact]
+    public async Task CreateObject_UsesDefaultValuesForOptionalParameters()
+    {
+        var instruction = """
+            {
+                "name": "CREATE_OBJECT",
+                "typeName": "Aspire.Hosting.RemoteHost.Tests.InstructionProcessorTests+TestClassWithOptionalArgs, Aspire.Hosting.RemoteHost.Tests",
+                "target": "obj1",
+                "args": {
+                    "name": "required-name"
+                }
+            }
+            """;
+
+        var result = await _processor.ExecuteInstructionAsync(instruction);
+
+        var createResult = Assert.IsType<CreateObjectResult>(result);
+        Assert.True(createResult.Success);
+
+        // Verify the optional value got its default
+        var marshalledResult = (Dictionary<string, object?>)createResult.Result!;
+        var objectId = (string)marshalledResult["$id"]!;
+
+        var valueValue = _processor.GetProperty(objectId, "Value");
+        Assert.Equal(100, valueValue); // Default value
+    }
+
+    [Fact]
+    public async Task CreateObject_ThrowsForUnknownType()
+    {
+        var instruction = """
+            {
+                "name": "CREATE_OBJECT",
+                "typeName": "NonExistent.Type.That.DoesNotExist",
+                "target": "obj1"
+            }
+            """;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _processor.ExecuteInstructionAsync(instruction));
+
+        Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public async Task CreateObject_ThrowsForMissingRequiredArgs()
+    {
+        var instruction = """
+            {
+                "name": "CREATE_OBJECT",
+                "typeName": "Aspire.Hosting.RemoteHost.Tests.InstructionProcessorTests+TestClassWithArgs, Aspire.Hosting.RemoteHost.Tests",
+                "target": "obj1",
+                "args": {}
+            }
+            """;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _processor.ExecuteInstructionAsync(instruction));
+
+        Assert.Contains("not provided", ex.Message);
+    }
+
+    [Fact]
+    public async Task CreateObject_RegistersObjectForLaterUse()
+    {
+        var instruction = """
+            {
+                "name": "CREATE_OBJECT",
+                "typeName": "Aspire.Hosting.RemoteHost.Tests.InstructionProcessorTests+SimpleTestClass, Aspire.Hosting.RemoteHost.Tests",
+                "target": "myObject"
+            }
+            """;
+
+        var result = await _processor.ExecuteInstructionAsync(instruction);
+
+        var createResult = Assert.IsType<CreateObjectResult>(result);
+        var marshalledResult = (Dictionary<string, object?>)createResult.Result!;
+        var objectId = (string)marshalledResult["$id"]!;
+
+        // Verify the object is in the registry
+        var registeredObj = _objectRegistry.Get(objectId);
+        Assert.NotNull(registeredObj);
+        Assert.IsType<SimpleTestClass>(registeredObj);
+    }
+
+    [Fact]
+    public async Task UnsupportedInstruction_Throws()
+    {
+        var instruction = """
+            {
+                "name": "UNKNOWN_INSTRUCTION"
+            }
+            """;
+
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() =>
+            _processor.ExecuteInstructionAsync(instruction));
+
+        Assert.Contains("UNKNOWN_INSTRUCTION", ex.Message);
+        Assert.Contains("not supported", ex.Message);
+    }
+
+    #endregion
+
+    #region INVOKE Static Method Tests
+
+    [Fact]
+    public async Task Invoke_StaticMethod_CallsMethodWithoutSource()
+    {
+        // Call a static method without a source object
+        var instruction = $$"""
+            {
+                "name": "INVOKE",
+                "source": "",
+                "target": "result",
+                "methodAssembly": "{{typeof(StaticTestClass).Assembly.GetName().Name}}",
+                "methodType": "{{typeof(StaticTestClass).FullName}}",
+                "methodName": "CreateInstance",
+                "args": {
+                    "name": "test-name"
+                }
+            }
+            """;
+
+        var result = await _processor.ExecuteInstructionAsync(instruction);
+
+        var invokeResult = Assert.IsType<InvokeResult>(result);
+        Assert.True(invokeResult.Success);
+        Assert.True(string.IsNullOrEmpty(invokeResult.Source)); // Static method - no source
+        Assert.Equal("result", invokeResult.Target);
+
+        // Verify the result was registered and is correct
+        var marshalledResult = (Dictionary<string, object?>)invokeResult.Result!;
+        var objectId = (string)marshalledResult["$id"]!;
+
+        var nameValue = _processor.GetProperty(objectId, "Name");
+        Assert.Equal("test-name", nameValue);
+    }
+
+    [Fact]
+    public async Task Invoke_StaticMethod_WithNullSource()
+    {
+        // Call a static method with null source (same as empty)
+        var instruction = $$"""
+            {
+                "name": "INVOKE",
+                "target": "result",
+                "methodAssembly": "{{typeof(StaticTestClass).Assembly.GetName().Name}}",
+                "methodType": "{{typeof(StaticTestClass).FullName}}",
+                "methodName": "Add",
+                "args": {
+                    "a": 5,
+                    "b": 3
+                }
+            }
+            """;
+
+        var result = await _processor.ExecuteInstructionAsync(instruction);
+
+        var invokeResult = Assert.IsType<InvokeResult>(result);
+        Assert.True(invokeResult.Success);
+        // Primitives like int are marshalled too
+        var marshalledResult = (Dictionary<string, object?>)invokeResult.Result!;
+        var objectId = (string)marshalledResult["$id"]!;
+        var actualValue = _objectRegistry.Get(objectId);
+        Assert.Equal(8, actualValue);
+    }
+
+    [Fact]
+    public async Task Invoke_StaticMethod_ThrowsForUnknownMethod()
+    {
+        var instruction = $$"""
+            {
+                "name": "INVOKE",
+                "source": "",
+                "target": "result",
+                "methodAssembly": "{{typeof(StaticTestClass).Assembly.GetName().Name}}",
+                "methodType": "{{typeof(StaticTestClass).FullName}}",
+                "methodName": "NonExistentMethod",
+                "args": {}
+            }
+            """;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _processor.ExecuteInstructionAsync(instruction));
+
+        Assert.Contains("NonExistentMethod", ex.Message);
+        Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public async Task Invoke_StaticMethod_ResolvesOverloadByArgumentNames_SingleArg()
+    {
+        // Should resolve to Format(string value) - one argument
+        var instruction = $$"""
+            {
+                "name": "INVOKE",
+                "target": "result",
+                "methodAssembly": "{{typeof(StaticTestClass).Assembly.GetName().Name}}",
+                "methodType": "{{typeof(StaticTestClass).FullName}}",
+                "methodName": "Format",
+                "args": {
+                    "value": "test"
+                }
+            }
+            """;
+
+        var result = await _processor.ExecuteInstructionAsync(instruction);
+
+        var invokeResult = Assert.IsType<InvokeResult>(result);
+        Assert.True(invokeResult.Success);
+        // Result is marshalled - for strings, get the object and verify via registry
+        var marshalledResult = (Dictionary<string, object?>)invokeResult.Result!;
+        var objectId = (string)marshalledResult["$id"]!;
+        var actualValue = _objectRegistry.Get(objectId);
+        Assert.Equal("[test]", actualValue);
+    }
+
+    [Fact]
+    public async Task Invoke_StaticMethod_ResolvesOverloadByArgumentNames_TwoArgs()
+    {
+        // Should resolve to Format(string value, int count) - two arguments
+        var instruction = $$"""
+            {
+                "name": "INVOKE",
+                "target": "result",
+                "methodAssembly": "{{typeof(StaticTestClass).Assembly.GetName().Name}}",
+                "methodType": "{{typeof(StaticTestClass).FullName}}",
+                "methodName": "Format",
+                "args": {
+                    "value": "x",
+                    "count": 3
+                }
+            }
+            """;
+
+        var result = await _processor.ExecuteInstructionAsync(instruction);
+
+        var invokeResult = Assert.IsType<InvokeResult>(result);
+        Assert.True(invokeResult.Success);
+        var marshalledResult = (Dictionary<string, object?>)invokeResult.Result!;
+        var objectId = (string)marshalledResult["$id"]!;
+        var actualValue = _objectRegistry.Get(objectId);
+        Assert.Equal("[x][x][x]", actualValue);
+    }
+
+    [Fact]
+    public async Task Invoke_StaticMethod_ResolvesOverloadByArgumentNames_ThreeArgs()
+    {
+        // Should resolve to Format(string value, string prefix, string suffix)
+        var instruction = $$"""
+            {
+                "name": "INVOKE",
+                "target": "result",
+                "methodAssembly": "{{typeof(StaticTestClass).Assembly.GetName().Name}}",
+                "methodType": "{{typeof(StaticTestClass).FullName}}",
+                "methodName": "Format",
+                "args": {
+                    "value": "hello",
+                    "prefix": "<<",
+                    "suffix": ">>"
+                }
+            }
+            """;
+
+        var result = await _processor.ExecuteInstructionAsync(instruction);
+
+        var invokeResult = Assert.IsType<InvokeResult>(result);
+        Assert.True(invokeResult.Success);
+        var marshalledResult = (Dictionary<string, object?>)invokeResult.Result!;
+        var objectId = (string)marshalledResult["$id"]!;
+        var actualValue = _objectRegistry.Get(objectId);
+        Assert.Equal("<<hello>>", actualValue);
+    }
+
+    #endregion
+
     #region Callback Tests
 
     [Fact]
@@ -361,6 +688,77 @@ public class InstructionProcessorTests : IAsyncLifetime
     #endregion
 
     #region Test Classes
+
+    // Classes for CREATE_OBJECT tests
+    public sealed class SimpleTestClass
+    {
+        public string Name { get; set; } = "default";
+    }
+
+    public sealed class TestClassWithArgs
+    {
+        public string Name { get; }
+        public int Value { get; }
+
+        public TestClassWithArgs(string name, int value)
+        {
+            Name = name;
+            Value = value;
+        }
+    }
+
+    public sealed class TestClassWithOptionalArgs
+    {
+        public string Name { get; }
+        public int Value { get; }
+
+        public TestClassWithOptionalArgs(string name, int value = 100)
+        {
+            Name = name;
+            Value = value;
+        }
+    }
+
+    /// <summary>
+    /// Test class with static methods for testing INVOKE without source.
+    /// </summary>
+    public sealed class StaticTestClass
+    {
+        public string Name { get; }
+
+        private StaticTestClass(string name)
+        {
+            Name = name;
+        }
+
+        // Static factory method
+        public static StaticTestClass CreateInstance(string name)
+        {
+            return new StaticTestClass(name);
+        }
+
+        // Simple static method returning primitive
+        public static int Add(int a, int b)
+        {
+            return a + b;
+        }
+
+        // Overloaded static methods
+        public static string Format(string value)
+        {
+            return $"[{value}]";
+        }
+
+        public static string Format(string value, int count)
+        {
+            return string.Concat(Enumerable.Repeat($"[{value}]", count));
+        }
+
+        public static string Format(string value, string prefix, string suffix)
+        {
+            return $"{prefix}{value}{suffix}";
+        }
+    }
 
     private sealed class TestObject
     {
