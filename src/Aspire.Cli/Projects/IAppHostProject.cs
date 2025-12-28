@@ -6,6 +6,33 @@ using Aspire.Cli.Backchannel;
 namespace Aspire.Cli.Projects;
 
 /// <summary>
+/// Context for updating packages in an AppHost project.
+/// </summary>
+internal sealed class UpdatePackagesContext
+{
+    /// <summary>
+    /// Gets or sets the AppHost file.
+    /// </summary>
+    public required FileInfo AppHostFile { get; init; }
+
+    /// <summary>
+    /// Gets or sets the package channel to update to.
+    /// </summary>
+    public required Packaging.PackageChannel Channel { get; init; }
+}
+
+/// <summary>
+/// Result of updating packages in an AppHost project.
+/// </summary>
+internal sealed class UpdatePackagesResult
+{
+    /// <summary>
+    /// Gets or sets whether any updates were applied.
+    /// </summary>
+    public bool UpdatesApplied { get; init; }
+}
+
+/// <summary>
 /// Context for adding a package to an AppHost project.
 /// </summary>
 internal sealed class AddPackageContext
@@ -143,6 +170,14 @@ internal interface IAppHostProject
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>True if the package was added successfully; otherwise, false.</returns>
     Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Updates packages in the AppHost project to the latest versions.
+    /// </summary>
+    /// <param name="context">The context containing update information.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The result of the update operation.</returns>
+    Task<UpdatePackagesResult> UpdatePackagesAsync(UpdatePackagesContext context, CancellationToken cancellationToken);
 
     /// <summary>
     /// Checks for and handles any running instance of this AppHost.

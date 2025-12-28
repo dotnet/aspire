@@ -10,6 +10,7 @@ using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
@@ -17,6 +18,7 @@ using Aspire.Hosting.CodeGeneration;
 using Aspire.Hosting.CodeGeneration.TypeScript;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Semver;
 
 namespace Aspire.Cli.Projects;
 
@@ -35,6 +37,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private readonly IAppHostServerProjectFactory _appHostServerProjectFactory;
     private readonly ICertificateService _certificateService;
     private readonly IDotNetCliRunner _runner;
+    private readonly IPackagingService _packagingService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<TypeScriptAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
@@ -49,6 +52,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         IAppHostServerProjectFactory appHostServerProjectFactory,
         ICertificateService certificateService,
         IDotNetCliRunner runner,
+        IPackagingService packagingService,
         IConfiguration configuration,
         ILogger<TypeScriptAppHostProject> logger,
         TimeProvider? timeProvider = null)
@@ -58,6 +62,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         _appHostServerProjectFactory = appHostServerProjectFactory;
         _certificateService = certificateService;
         _runner = runner;
+        _packagingService = packagingService;
         _configuration = configuration;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
@@ -998,6 +1003,92 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         await BuildAndGenerateSdkAsync(directory, cancellationToken);
 
         return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<UpdatePackagesResult> UpdatePackagesAsync(UpdatePackagesContext context, CancellationToken cancellationToken)
+    {
+        var directory = context.AppHostFile.Directory;
+        if (directory is null)
+        {
+            return new UpdatePackagesResult { UpdatesApplied = false };
+        }
+
+        // Read current packages from .aspire/settings.json
+        var config = AspireJsonConfiguration.Load(directory.FullName);
+        if (config?.Packages is null || config.Packages.Count == 0)
+        {
+            _interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
+            return new UpdatePackagesResult { UpdatesApplied = false };
+        }
+
+        // Find updates for each package
+        var updates = await _interactionService.ShowStatusAsync(
+            UpdateCommandStrings.AnalyzingProjectStatus,
+            async () =>
+            {
+                var packageUpdates = new List<(string PackageId, string CurrentVersion, string NewVersion)>();
+
+                foreach (var (packageId, currentVersion) in config.Packages)
+                {
+                    try
+                    {
+                        var packages = await context.Channel.GetPackagesAsync(packageId, directory, cancellationToken);
+                        var latestPackage = packages
+                            .Where(p => SemVersion.TryParse(p.Version, SemVersionStyles.Strict, out _))
+                            .OrderByDescending(p => SemVersion.Parse(p.Version, SemVersionStyles.Strict), SemVersion.PrecedenceComparer)
+                            .FirstOrDefault();
+
+                        if (latestPackage is not null && latestPackage.Version != currentVersion)
+                        {
+                            packageUpdates.Add((packageId, currentVersion, latestPackage.Version));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to check for updates to package {PackageId}", packageId);
+                    }
+                }
+
+                return packageUpdates;
+            });
+
+        if (updates.Count == 0)
+        {
+            _interactionService.DisplayMessage("check_mark", UpdateCommandStrings.ProjectUpToDateMessage);
+            return new UpdatePackagesResult { UpdatesApplied = false };
+        }
+
+        // Display pending updates
+        _interactionService.DisplayEmptyLine();
+        foreach (var (packageId, currentVersion, newVersion) in updates)
+        {
+            _interactionService.DisplayMessage("package", $"[bold yellow]{packageId}[/] [bold green]{currentVersion}[/] to [bold green]{newVersion}[/]");
+        }
+        _interactionService.DisplayEmptyLine();
+
+        // Confirm with user
+        if (!await _interactionService.ConfirmAsync(UpdateCommandStrings.PerformUpdatesPrompt, true, cancellationToken))
+        {
+            return new UpdatePackagesResult { UpdatesApplied = false };
+        }
+
+        // Apply updates to settings.json
+        foreach (var (packageId, _, newVersion) in updates)
+        {
+            config.AddOrUpdatePackage(packageId, newVersion);
+        }
+        config.Save(directory.FullName);
+
+        // Rebuild and regenerate TypeScript SDK with updated packages
+        _interactionService.DisplayEmptyLine();
+        _interactionService.DisplaySubtleMessage("Regenerating TypeScript SDK with updated packages...");
+        await BuildAndGenerateSdkAsync(directory, cancellationToken);
+
+        _interactionService.DisplayEmptyLine();
+        _interactionService.DisplaySuccess(UpdateCommandStrings.UpdateSuccessfulMessage);
+
+        return new UpdatePackagesResult { UpdatesApplied = true };
     }
 
     /// <inheritdoc />

@@ -32,6 +32,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     private readonly IFeatures _features;
     private readonly ILogger<DotNetAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
+    private readonly IProjectUpdater _projectUpdater;
 
     private static readonly string[] s_detectionPatterns = ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"];
     private static readonly string[] s_projectExtensions = [".csproj", ".fsproj", ".vbproj"];
@@ -42,6 +43,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         ICertificateService certificateService,
         AspireCliTelemetry telemetry,
         IFeatures features,
+        IProjectUpdater projectUpdater,
         ILogger<DotNetAppHostProject> logger,
         TimeProvider? timeProvider = null)
     {
@@ -50,6 +52,7 @@ internal sealed class DotNetAppHostProject : IAppHostProject
         _certificateService = certificateService;
         _telemetry = telemetry;
         _features = features;
+        _projectUpdater = projectUpdater;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
@@ -379,6 +382,13 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             cancellationToken);
 
         return result == 0;
+    }
+
+    /// <inheritdoc />
+    public async Task<UpdatePackagesResult> UpdatePackagesAsync(UpdatePackagesContext context, CancellationToken cancellationToken)
+    {
+        var result = await _projectUpdater.UpdateProjectAsync(context.AppHostFile, context.Channel, cancellationToken);
+        return new UpdatePackagesResult { UpdatesApplied = result.UpdatedApplied };
     }
 
     /// <inheritdoc />
