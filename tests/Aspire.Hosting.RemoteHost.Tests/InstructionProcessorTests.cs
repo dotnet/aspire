@@ -648,6 +648,144 @@ public class InstructionProcessorTests : IAsyncLifetime
 
     #endregion
 
+    #region GetStaticProperty Tests
+
+    [Fact]
+    public void GetStaticProperty_ReturnsStaticPropertyValue()
+    {
+        var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticPropertyTestClass).FullName!;
+
+        // Reset to known state
+        StaticPropertyTestClass.StaticValue = "test-value";
+
+        var result = _processor.GetStaticProperty(assemblyName, typeName, "StaticValue");
+
+        Assert.Equal("test-value", result);
+    }
+
+    [Fact]
+    public void GetStaticProperty_ReturnsReadOnlyStaticProperty()
+    {
+        var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticPropertyTestClass).FullName!;
+
+        var result = _processor.GetStaticProperty(assemblyName, typeName, "ReadOnlyStaticValue");
+
+        Assert.Equal("readonly", result);
+    }
+
+    [Fact]
+    public void GetStaticProperty_MarshallesComplexValue()
+    {
+        var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticPropertyTestClass).FullName!;
+
+        // Reset to known state
+        StaticPropertyTestClass.ComplexStatic = new TestObject { Name = "complex-static" };
+
+        var result = _processor.GetStaticProperty(assemblyName, typeName, "ComplexStatic");
+
+        Assert.IsType<Dictionary<string, object?>>(result);
+        var dict = (Dictionary<string, object?>)result!;
+        Assert.Equal("TestObject", dict["$type"]);
+    }
+
+    [Fact]
+    public void GetStaticProperty_ThrowsForUnknownType()
+    {
+        // Use the same assembly but a non-existent type
+        var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _processor.GetStaticProperty(assemblyName, "NonExistent.Type.That.DoesNotExist", "SomeProperty"));
+
+        Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public void GetStaticProperty_ThrowsForUnknownProperty()
+    {
+        var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticPropertyTestClass).FullName!;
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _processor.GetStaticProperty(assemblyName, typeName, "NonExistentProperty"));
+
+        Assert.Contains("NonExistentProperty", ex.Message);
+        Assert.Contains("not found", ex.Message);
+    }
+
+    #endregion
+
+    #region SetStaticProperty Tests
+
+    [Fact]
+    public void SetStaticProperty_SetsStaticPropertyValue()
+    {
+        var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticPropertyTestClass).FullName!;
+        var value = JsonDocument.Parse("\"new-value\"").RootElement;
+
+        _processor.SetStaticProperty(assemblyName, typeName, "StaticValue", value);
+
+        Assert.Equal("new-value", StaticPropertyTestClass.StaticValue);
+    }
+
+    [Fact]
+    public void SetStaticProperty_SetsIntStaticProperty()
+    {
+        var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticPropertyTestClass).FullName!;
+        var value = JsonDocument.Parse("42").RootElement;
+
+        _processor.SetStaticProperty(assemblyName, typeName, "StaticInt", value);
+
+        Assert.Equal(42, StaticPropertyTestClass.StaticInt);
+    }
+
+    [Fact]
+    public void SetStaticProperty_ThrowsForReadOnlyProperty()
+    {
+        var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticPropertyTestClass).FullName!;
+        var value = JsonDocument.Parse("\"value\"").RootElement;
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _processor.SetStaticProperty(assemblyName, typeName, "ReadOnlyStaticValue", value));
+
+        Assert.Contains("read-only", ex.Message);
+    }
+
+    [Fact]
+    public void SetStaticProperty_ThrowsForUnknownType()
+    {
+        // Use the same assembly but a non-existent type
+        var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
+        var value = JsonDocument.Parse("\"value\"").RootElement;
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _processor.SetStaticProperty(assemblyName, "NonExistent.Type.That.DoesNotExist", "SomeProperty", value));
+
+        Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public void SetStaticProperty_ThrowsForUnknownProperty()
+    {
+        var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
+        var typeName = typeof(StaticPropertyTestClass).FullName!;
+        var value = JsonDocument.Parse("\"value\"").RootElement;
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _processor.SetStaticProperty(assemblyName, typeName, "NonExistentProperty", value));
+
+        Assert.Contains("NonExistentProperty", ex.Message);
+        Assert.Contains("not found", ex.Message);
+    }
+
+    #endregion
+
     #region Callback Tests
 
     [Fact]
@@ -760,7 +898,7 @@ public class InstructionProcessorTests : IAsyncLifetime
         }
     }
 
-    private sealed class TestObject
+    public sealed class TestObject
     {
         public string? Name { get; set; }
         public int Value { get; set; }
@@ -796,6 +934,17 @@ public class InstructionProcessorTests : IAsyncLifetime
     private sealed class TestObjectWithNested
     {
         public TestObject? Nested { get; set; }
+    }
+
+    /// <summary>
+    /// Test class with static properties for testing GetStaticProperty/SetStaticProperty.
+    /// </summary>
+    public sealed class StaticPropertyTestClass
+    {
+        public static string? StaticValue { get; set; } = "default";
+        public static int StaticInt { get; set; }
+        public static string ReadOnlyStaticValue { get; } = "readonly";
+        public static TestObject? ComplexStatic { get; set; }
     }
 
     #endregion

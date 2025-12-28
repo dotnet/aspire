@@ -241,7 +241,8 @@ The JSON-RPC server in `Aspire.Hosting.RemoteHost` is designed as a **generic .N
 | RPC Method | .NET Concept |
 |------------|--------------|
 | `invokeMethod` | Call any instance method |
-| `getProperty` / `setProperty` | Property access |
+| `getProperty` / `setProperty` | Instance property access |
+| `getStaticProperty` / `setStaticProperty` | Static property access |
 | `getIndexer` / `setIndexer` | Indexer access (lists, dictionaries) |
 | `unregisterObject` | Release object reference |
 
@@ -397,6 +398,40 @@ Release an object from the registry when no longer needed.
 ```json
 // Request
 {"jsonrpc":"2.0","id":9,"method":"unregisterObject","params":["obj_1"]}
+```
+
+#### `getStaticProperty`
+
+Get a static property value from a .NET type.
+
+| | |
+|---|---|
+| **Parameters** | `assemblyName: string` - Assembly containing the type<br/>`typeName: string` - Fully qualified type name<br/>`propertyName: string` - Static property name |
+| **Returns** | `object?` - Property value (marshalled if complex type) |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":10,"method":"getStaticProperty","params":["Aspire.Hosting","Aspire.Hosting.DistributedApplication","SomeStaticProperty"]}
+
+// Response
+{"jsonrpc":"2.0","id":10,"result":"property-value"}
+```
+
+#### `setStaticProperty`
+
+Set a static property value on a .NET type.
+
+| | |
+|---|---|
+| **Parameters** | `assemblyName: string` - Assembly containing the type<br/>`typeName: string` - Fully qualified type name<br/>`propertyName: string` - Static property name<br/>`value: any` - New value |
+| **Returns** | `void` |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":11,"method":"setStaticProperty","params":["Aspire.Hosting","Aspire.Hosting.DistributedApplication","SomeStaticProperty","new-value"]}
+
+// Response
+{"jsonrpc":"2.0","id":11,"result":null}
 ```
 
 ### RPC Methods (Host → Guest)

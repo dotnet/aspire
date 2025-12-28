@@ -756,6 +756,10 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         // These provide typed wrappers around DotNetProxy with property accessors
         foreach (var (typeName, roType) in _proxyTypesByName)
         {
+            // Collect static properties to generate static accessors
+            var staticProperties = roType.Properties.Where(p => p.IsStatic).ToList();
+            var instanceProperties = roType.Properties.Where(p => !p.IsStatic).ToList();
+
             writer.WriteLine();
             writer.WriteLine($$"""
                 /**
@@ -775,8 +779,61 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                     get $id(): string { return this._proxy.$id; }
                 """);
 
-            // Generate typed property accessors
-            foreach (var property in roType.Properties)
+            // Generate static property accessors first
+            foreach (var property in staticProperties)
+            {
+                var jsReturnType = GetProxyReturnType(model, property.PropertyType);
+                var needsWrapper = jsReturnType.EndsWith("Proxy", StringComparison.Ordinal) && jsReturnType != "DotNetProxy";
+
+                if (property.CanRead)
+                {
+                    if (needsWrapper)
+                    {
+                        writer.WriteLine($$"""
+
+                            /**
+                             * Gets the static {{property.Name}} property
+                             * @returns Promise<{{jsReturnType}}>
+                             */
+                            static async get{{property.Name}}(client: RemoteAppHostClient): Promise<{{jsReturnType}}> {
+                                const result = await client.getStaticProperty("{{roType.DeclaringAssembly.Name}}", "{{roType.FullName}}", "{{property.Name}}");
+                                return new {{jsReturnType}}(wrapIfProxy(result) as DotNetProxy);
+                            }
+                        """);
+                    }
+                    else
+                    {
+                        writer.WriteLine($$"""
+
+                            /**
+                             * Gets the static {{property.Name}} property
+                             * @returns Promise<{{jsReturnType}}>
+                             */
+                            static async get{{property.Name}}(client: RemoteAppHostClient): Promise<{{jsReturnType}}> {
+                                const result = await client.getStaticProperty("{{roType.DeclaringAssembly.Name}}", "{{roType.FullName}}", "{{property.Name}}");
+                                return wrapIfProxy(result) as {{jsReturnType}};
+                            }
+                        """);
+                    }
+                }
+
+                if (property.CanWrite)
+                {
+                    var jsParamType = GetSimpleJsType(model, property.PropertyType);
+                    writer.WriteLine($$"""
+
+                        /**
+                         * Sets the static {{property.Name}} property
+                         */
+                        static async set{{property.Name}}(client: RemoteAppHostClient, value: {{jsParamType}}): Promise<void> {
+                            await client.setStaticProperty("{{roType.DeclaringAssembly.Name}}", "{{roType.FullName}}", "{{property.Name}}", value);
+                        }
+                    """);
+                }
+            }
+
+            // Generate typed instance property accessors
+            foreach (var property in instanceProperties)
             {
                 var jsReturnType = GetProxyReturnType(model, property.PropertyType);
                 // Only wrap with typed proxies - DotNetProxy is the base class and doesn't need wrapping

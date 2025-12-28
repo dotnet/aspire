@@ -158,6 +158,38 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
 
     #endregion
 
+    #region Static Members
+
+    [JsonRpcMethod("getStaticProperty")]
+    public object? GetStaticProperty(string assemblyName, string typeName, string propertyName)
+    {
+        try
+        {
+            return _instructionProcessor.GetStaticProperty(assemblyName, typeName, propertyName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting static property '{typeName}.{propertyName}': {ex.Message}");
+            throw;
+        }
+    }
+
+    [JsonRpcMethod("setStaticProperty")]
+    public void SetStaticProperty(string assemblyName, string typeName, string propertyName, JsonElement value)
+    {
+        try
+        {
+            _instructionProcessor.SetStaticProperty(assemblyName, typeName, propertyName, value);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error setting static property '{typeName}.{propertyName}': {ex.Message}");
+            throw;
+        }
+    }
+
+    #endregion
+
     public async ValueTask DisposeAsync()
     {
         // Cancel any in-flight operations

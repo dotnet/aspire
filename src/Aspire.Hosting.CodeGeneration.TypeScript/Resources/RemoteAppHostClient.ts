@@ -435,6 +435,18 @@ export class RemoteAppHostClient {
         return this.connection.sendRequest('unregisterObject', objectId);
     }
 
+    /** Get a static property from a .NET type */
+    getStaticProperty(assemblyName: string, typeName: string, propertyName: string): Promise<unknown> {
+        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
+        return this.connection.sendRequest('getStaticProperty', assemblyName, typeName, propertyName);
+    }
+
+    /** Set a static property on a .NET type */
+    setStaticProperty(assemblyName: string, typeName: string, propertyName: string, value: unknown): Promise<void> {
+        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
+        return this.connection.sendRequest('setStaticProperty', assemblyName, typeName, propertyName, value);
+    }
+
     disconnect(): void {
         globalClient = null;
         try { this.connection?.dispose(); } finally { this.connection = null; }

@@ -13,6 +13,7 @@ public class RoPropertyInfo
     public required RoType DeclaringType { get; init; }
     public bool CanRead { get; init; }
     public bool CanWrite { get; init; }
+    public bool IsStatic { get; init; }
 
-    public override string ToString() => $"{PropertyType.Name} {Name}";
+    public override string ToString() => $"{(IsStatic ? "static " : "")}{PropertyType.Name} {Name}";
 }

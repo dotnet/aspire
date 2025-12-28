@@ -315,20 +315,27 @@ public sealed class RoDefinitionType : RoType
                 var propertyDef = _reader.GetPropertyDefinition(propertyHandle);
                 var accessors = propertyDef.GetAccessors();
 
-                // Check if getter is public
+                // Check if getter is public and static
                 var hasPublicGetter = false;
                 var hasPublicSetter = false;
+                var isStatic = false;
 
                 if (!accessors.Getter.IsNil)
                 {
                     var getterDef = _reader.GetMethodDefinition(accessors.Getter);
                     hasPublicGetter = (getterDef.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public;
+                    isStatic = (getterDef.Attributes & MethodAttributes.Static) != 0;
                 }
 
                 if (!accessors.Setter.IsNil)
                 {
                     var setterDef = _reader.GetMethodDefinition(accessors.Setter);
                     hasPublicSetter = (setterDef.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public;
+                    // If there's a setter but no getter, check static on setter
+                    if (accessors.Getter.IsNil)
+                    {
+                        isStatic = (setterDef.Attributes & MethodAttributes.Static) != 0;
+                    }
                 }
 
                 // Skip if neither getter nor setter is public
@@ -356,7 +363,8 @@ public sealed class RoDefinitionType : RoType
                     PropertyType = propertyType,
                     DeclaringType = this,
                     CanRead = hasPublicGetter,
-                    CanWrite = hasPublicSetter
+                    CanWrite = hasPublicSetter,
+                    IsStatic = isStatic
                 });
             }
             catch

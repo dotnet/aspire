@@ -205,6 +205,62 @@ internal sealed class InstructionProcessor : IAsyncDisposable
     }
 
     /// <summary>
+    /// Gets a static property value from a type. Called by TypeScript via JSON-RPC.
+    /// </summary>
+    public object? GetStaticProperty(string assemblyName, string typeName, string propertyName)
+    {
+        var type = ResolveType(assemblyName, typeName);
+        if (type == null)
+        {
+            throw new InvalidOperationException($"Type '{typeName}' not found in assembly '{assemblyName}'");
+        }
+
+        var property = type.GetProperty(propertyName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.IgnoreCase);
+
+        if (property == null)
+        {
+            throw new InvalidOperationException($"Static property '{propertyName}' not found on type '{type.Name}'");
+        }
+
+        var value = property.GetValue(null);
+
+        // If value is a complex object, register it and return a proxy representation
+        if (value != null && !ObjectRegistry.IsSimpleType(value.GetType()))
+        {
+            return _objectRegistry.Marshal(value);
+        }
+
+        return value;
+    }
+
+    /// <summary>
+    /// Sets a static property value on a type. Called by TypeScript via JSON-RPC.
+    /// </summary>
+    public void SetStaticProperty(string assemblyName, string typeName, string propertyName, JsonElement value)
+    {
+        var type = ResolveType(assemblyName, typeName);
+        if (type == null)
+        {
+            throw new InvalidOperationException($"Type '{typeName}' not found in assembly '{assemblyName}'");
+        }
+
+        var property = type.GetProperty(propertyName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.IgnoreCase);
+
+        if (property == null)
+        {
+            throw new InvalidOperationException($"Static property '{propertyName}' not found on type '{type.Name}'");
+        }
+
+        if (!property.CanWrite)
+        {
+            throw new InvalidOperationException($"Static property '{propertyName}' is read-only");
+        }
+
+        var deserializedValue = DeserializeArgument(value, property.PropertyType);
+        property.SetValue(null, deserializedValue);
+    }
+
+    /// <summary>
     /// Gets an item from an indexer (e.g., dictionary[key]). Called by TypeScript via JSON-RPC.
     /// </summary>
     public object? GetIndexer(string objectId, JsonElement key)
@@ -1088,6 +1144,45 @@ internal sealed class InstructionProcessor : IAsyncDisposable
             MethodName = instruction.MethodName,
             Result = marshalledResult
         };
+    }
+
+    #endregion
+
+    #region Type Resolution
+
+    /// <summary>
+    /// Resolves a type from an assembly name and type name.
+    /// </summary>
+    private Type? ResolveType(string? assemblyName, string typeName)
+    {
+        Type? type = null;
+
+        if (!string.IsNullOrEmpty(assemblyName))
+        {
+            // Load assembly and get type from it
+            var assembly = _assemblyCache.GetOrAdd(assemblyName, System.Reflection.Assembly.Load);
+            type = assembly.GetType(typeName);
+        }
+        else
+        {
+            // Try to resolve from already loaded assemblies or by assembly-qualified name
+            type = Type.GetType(typeName);
+
+            // If not found, search in cached assemblies
+            if (type == null)
+            {
+                foreach (var cachedAssembly in _assemblyCache.Values)
+                {
+                    type = cachedAssembly.GetType(typeName);
+                    if (type != null)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return type;
     }
 
     #endregion
