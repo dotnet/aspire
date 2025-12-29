@@ -42,20 +42,6 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         return files;
     }
 
-    /// <inheritdoc />
-    public Dictionary<string, string> GenerateIntegration(IntegrationModel integration)
-    {
-        // Integration methods are included in the main distributed-application.ts
-        return [];
-    }
-
-    /// <inheritdoc />
-    public Dictionary<string, string> GenerateResource(ResourceModel resource)
-    {
-        // Resource classes are included in the main distributed-application.ts
-        return [];
-    }
-
     /// <summary>
     /// Gets the package.json template content.
     /// </summary>

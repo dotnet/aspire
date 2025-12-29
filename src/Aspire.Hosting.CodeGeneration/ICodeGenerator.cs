@@ -21,18 +21,4 @@ public interface ICodeGenerator
     /// <param name="model">The application model to generate from.</param>
     /// <returns>A dictionary of file paths to file contents.</returns>
     Dictionary<string, string> GenerateDistributedApplication(ApplicationModel model);
-
-    /// <summary>
-    /// Generates code for a specific integration package.
-    /// </summary>
-    /// <param name="integration">The integration model.</param>
-    /// <returns>A dictionary of file paths to file contents.</returns>
-    Dictionary<string, string> GenerateIntegration(IntegrationModel integration);
-
-    /// <summary>
-    /// Generates code for a specific resource type.
-    /// </summary>
-    /// <param name="resource">The resource model.</param>
-    /// <returns>A dictionary of file paths to file contents.</returns>
-    Dictionary<string, string> GenerateResource(ResourceModel resource);
 }

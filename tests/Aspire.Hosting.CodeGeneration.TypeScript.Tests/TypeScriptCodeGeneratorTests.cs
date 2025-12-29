@@ -68,42 +68,6 @@ public class TypeScriptCodeGeneratorTests
     }
 
     [Fact]
-    public async Task GenerateIntegration_WithTestTypes_GeneratesCorrectOutput()
-    {
-        // Arrange
-        using var model = CreateApplicationModelFromTestAssembly();
-        var integrationModel = model.IntegrationModels.Values.First();
-
-        // Act
-        var files = _generator.GenerateIntegration(integrationModel);
-
-        // Assert
-        await Verify(files)
-            .UseFileName("GeneratedIntegration");
-    }
-
-    [Fact]
-    public async Task GenerateResource_WithTestRedisResource_GeneratesCorrectOutput()
-    {
-        // Arrange
-        using var model = CreateApplicationModelFromTestAssembly();
-        var resourceModel = model.ResourceModels.Values.FirstOrDefault();
-
-        // Skip if no resources found
-        if (resourceModel is null)
-        {
-            return;
-        }
-
-        // Act
-        var files = _generator.GenerateResource(resourceModel);
-
-        // Assert
-        await Verify(files)
-            .UseFileName("GeneratedResource");
-    }
-
-    [Fact]
     public void RoType_Methods_ReturnsExpectedMethodsForConfigurationManager()
     {
         // Arrange
