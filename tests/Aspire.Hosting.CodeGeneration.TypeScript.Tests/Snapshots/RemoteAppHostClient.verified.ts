@@ -1,4 +1,4 @@
-// RemoteAppHostClient.ts - Connects to the GenericAppHost via socket/named pipe
+﻿// RemoteAppHostClient.ts - Connects to the GenericAppHost via socket/named pipe
 import * as net from 'net';
 import * as rpc from 'vscode-jsonrpc/node.js';
 import { CallbackFunction, MarshalledObject } from './types.js';
@@ -13,12 +13,50 @@ let globalClient: RemoteAppHostClient | null = null;
 /**
  * Register a callback function that can be invoked from the .NET side.
  * Returns a callback ID that should be passed to methods accepting callbacks.
+ *
+ * Supports both single-argument and multi-argument callbacks:
+ * - Single arg: `(context: SomeType) => void`
+ * - Multi arg: `(p0: string, p1: number) => boolean`
+ *
+ * .NET passes arguments as an object `{ p0: value0, p1: value1, ... }` which
+ * this function automatically unpacks for multi-parameter callbacks.
  */
-export function registerCallback<TArgs = unknown, TResult = void>(
-    callback: (args: TArgs) => TResult | Promise<TResult>
+export function registerCallback<TResult = void>(
+    callback: (...args: any[]) => TResult | Promise<TResult>
 ): string {
     const callbackId = `callback_${++callbackIdCounter}_${Date.now()}`;
-    callbackRegistry.set(callbackId, callback as CallbackFunction);
+
+    // Wrap the callback to handle .NET's argument format
+    const wrapper: CallbackFunction = async (args: unknown) => {
+        // .NET sends args as object { p0, p1, ... } - extract to array for multi-param callbacks
+        if (args && typeof args === 'object' && !Array.isArray(args)) {
+            const argObj = args as Record<string, unknown>;
+            const argArray: unknown[] = [];
+
+            // Check for positional parameters (p0, p1, p2, ...)
+            for (let i = 0; ; i++) {
+                const key = `p${i}`;
+                if (key in argObj) {
+                    argArray.push(wrapIfProxy(argObj[key]));
+                } else {
+                    break;
+                }
+            }
+
+            if (argArray.length > 0) {
+                // Multi-parameter callback - spread the args
+                return await callback(...argArray);
+            }
+
+            // Single complex object parameter - wrap proxies and pass as-is
+            return await callback(wrapIfProxy(args));
+        }
+
+        // Null/undefined or primitive - pass as single arg
+        return await callback(wrapIfProxy(args));
+    };
+
+    callbackRegistry.set(callbackId, wrapper);
     return callbackId;
 }
 
@@ -368,10 +406,8 @@ export class RemoteAppHostClient {
                             throw new Error(`Callback not found: ${callbackId}`);
                         }
                         try {
-                            // Wrap marshalled objects in proxies
-                            const wrappedArgs = wrapIfProxy(args);
-                            // Always await in case the callback is async
-                            return await Promise.resolve(callback(wrappedArgs));
+                            // The registered wrapper handles arg unpacking and proxy wrapping
+                            return await Promise.resolve(callback(args));
                         } catch (error) {
                             const message = error instanceof Error ? error.message : String(error);
                             throw new Error(`Callback execution failed: ${message}`);
