@@ -252,46 +252,23 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     }
 
     /// <inheritdoc />
-    protected override void EmitMethod(RoMethod method, IReadOnlyList<ParameterInfo> parameters, MethodContext context)
+    protected override void EmitProxyMethod(MethodOverload overload, bool isStatic)
     {
-        // Skip property accessors
-        if (method.Name.StartsWith("get_") || method.Name.StartsWith("set_"))
-        {
-            return;
-        }
-
-        switch (context)
-        {
-            case MethodContext.ProxyInstance:
-                EmitProxyInstanceMethod(method, parameters);
-                break;
-            case MethodContext.ProxyStatic:
-                EmitProxyStaticMethod(method, parameters);
-                break;
-            case MethodContext.BuilderExtension:
-            case MethodContext.ResourceExtension:
-                EmitExtensionMethod(method, context);
-                break;
-        }
-    }
-
-    private void EmitProxyInstanceMethod(RoMethod method, IReadOnlyList<ParameterInfo> parameters)
-    {
-        var baseName = CamelCase(method.Name);
-        var methodName = GetUniqueMethodName(baseName);
+        var method = overload.Method;
+        var methodName = overload.UniqueName;
 
         // Get parameters
         var paramsList = new List<string>();
         var argsForObject = new List<string>();
 
-        foreach (var param in parameters)
+        foreach (var param in method.Parameters)
         {
-            var jsType = FormatJsType(Model, method.Parameters.First(p => p.Name == param.Name).ParameterType);
+            var jsType = FormatJsType(Model, param.ParameterType);
             var paramName = CamelCase(param.Name);
             paramsList.Add($"{paramName}: {jsType}");
 
             // Check if this parameter is a callback type
-            if (param.IsCallback)
+            if (IsDelegateType(Model, param.ParameterType))
             {
                 argsForObject.Add($"{paramName}: registerCallback({paramName})");
             }
@@ -310,90 +287,55 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
         var jsReturnType = FormatJsType(Model, returnType);
         var isVoid = returnType.Name == "Void";
 
-        var returnExpr = isVoid
-            ? $"await this._proxy.invokeMethod('{method.Name}', {argsObjectStr});"
-            : $"return await this._proxy.invokeMethod('{method.Name}', {argsObjectStr}) as {jsReturnType};";
-
-        Writer.WriteLine($$"""
-
-          async {{methodName}}({{paramsStr}}): Promise<{{(isVoid ? "void" : jsReturnType)}}> {
-            {{returnExpr}}
-          }
-        """);
-    }
-
-    private void EmitProxyStaticMethod(RoMethod method, IReadOnlyList<ParameterInfo> parameters)
-    {
-        var baseName = CamelCase(method.Name);
-        var methodName = GetUniqueMethodName(baseName);
-
-        // Get parameters
-        var paramsList = new List<string>();
-        var argsForObject = new List<string>();
-
-        foreach (var param in parameters)
+        if (isStatic)
         {
-            var jsType = FormatJsType(Model, method.Parameters.First(p => p.Name == param.Name).ParameterType);
-            var paramName = CamelCase(param.Name);
-            paramsList.Add($"{paramName}: {jsType}");
+            var declaringType = method.DeclaringType!;
+            var clientParam = paramsList.Count > 0 ? "client: RemoteAppHostClient, " : "client: RemoteAppHostClient";
+            var returnExpr = isVoid
+                ? $"await client.invokeStaticMethod('{declaringType.Namespace}', '{declaringType.Name}', '{method.Name}', {argsObjectStr});"
+                : $"return await client.invokeStaticMethod('{declaringType.Namespace}', '{declaringType.Name}', '{method.Name}', {argsObjectStr}) as {jsReturnType};";
 
-            if (param.IsCallback)
-            {
-                argsForObject.Add($"{paramName}: registerCallback({paramName})");
-            }
-            else
-            {
-                argsForObject.Add(paramName);
-            }
+            Writer.WriteLine($$"""
+
+              static async {{methodName}}({{clientParam}}{{paramsStr}}): Promise<{{(isVoid ? "void" : jsReturnType)}}> {
+                {{returnExpr}}
+              }
+            """);
         }
+        else
+        {
+            var returnExpr = isVoid
+                ? $"await this._proxy.invokeMethod('{method.Name}', {argsObjectStr});"
+                : $"return await this._proxy.invokeMethod('{method.Name}', {argsObjectStr}) as {jsReturnType};";
 
-        var paramsStr = string.Join(", ", paramsList);
-        var argsObjectStr = argsForObject.Count > 0
-            ? $"{{ {string.Join(", ", argsForObject)} }}"
-            : "{}";
+            Writer.WriteLine($$"""
 
-        var returnType = method.ReturnType;
-        var jsReturnType = FormatJsType(Model, returnType);
-        var isVoid = returnType.Name == "Void";
-        var declaringType = method.DeclaringType!;
-
-        var clientParam = paramsList.Count > 0 ? "client: RemoteAppHostClient, " : "client: RemoteAppHostClient";
-        var returnExpr = isVoid
-            ? $"await client.invokeStaticMethod('{declaringType.Namespace}', '{declaringType.Name}', '{method.Name}', {argsObjectStr});"
-            : $"return await client.invokeStaticMethod('{declaringType.Namespace}', '{declaringType.Name}', '{method.Name}', {argsObjectStr}) as {jsReturnType};";
-
-        Writer.WriteLine($$"""
-
-          static async {{methodName}}({{clientParam}}{{paramsStr}}): Promise<{{(isVoid ? "void" : jsReturnType)}}> {
-            {{returnExpr}}
-          }
-        """);
+              async {{methodName}}({{paramsStr}}): Promise<{{(isVoid ? "void" : jsReturnType)}}> {
+                {{returnExpr}}
+              }
+            """);
+        }
     }
 
-    private void EmitExtensionMethod(RoMethod overload, MethodContext _)
+    /// <inheritdoc />
+    protected override void EmitExtensionMethod(MethodOverload overload)
     {
-        var returnType = overload.ReturnType;
+        var method = overload.Method;
+        var returnType = method.ReturnType;
 
         // Skip methods that return primitive types or have out/ref parameters
         if (IsPrimitiveReturnType(Model, returnType) ||
-            overload.Parameters.Any(p => p.ParameterType.IsByRef))
+            method.Parameters.Any(p => p.ParameterType.IsByRef))
         {
             return;
         }
 
-        var methodNameAttribute = overload.GetCustomAttributes()
-            .FirstOrDefault(attr => attr.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
-
-        var methodName = CamelCase(
-            methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
-            ?? methodNameAttribute?.FixedArguments?.ElementAtOrDefault(0)?.ToString()
-            ?? overload.Name);
-
-        methodName = GetUniqueMethodName(methodName);
+        // UniqueName is already camelCase and disambiguated by base class
+        var methodName = overload.UniqueName;
 
         var jsReturnTypeName = FormatJsType(Model, returnType);
 
-        var parameters = overload.Parameters.Skip(1); // Skip the first parameter (this)
+        var parameters = method.Parameters.Skip(1); // Skip the first parameter (this)
 
         bool ParameterIsOptionalOrNullable(RoParameterInfo p) => p.IsOptional || Model.WellKnownTypes.IsNullableOfT(p.ParameterType);
 
@@ -401,7 +343,7 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
         const string optionalArgumentName = "optionalArguments";
 
-        var optionalParameters = overload.Parameters.Skip(1).Where(ParameterIsOptionalOrNullable).ToArray();
+        var optionalParameters = method.Parameters.Skip(1).Where(ParameterIsOptionalOrNullable).ToArray();
         var shouldCreateArgsClass = optionalParameters.Length > 1;
 
         var parameterList = string.Join(", ", orderedParameters.Select(p => FormatArgument(Model, p)));
@@ -411,14 +353,14 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
         if (shouldCreateArgsClass)
         {
-            var parameterType = $"{overload.Name}Args";
+            var parameterType = $"{method.Name}Args";
 
-            if (!_overloadParameterClassByMethod.TryGetValue(overload, out var overloadParameterClass))
+            if (!_overloadParameterClassByMethod.TryGetValue(method, out var overloadParameterClass))
             {
                 var k = 1;
                 while (_overloadParameterClassByName.ContainsKey(parameterType))
                 {
-                    parameterType = $"{overload.Name}Args{k++}";
+                    parameterType = $"{method.Name}Args{k++}";
                 }
 
                 overloadParameterClass = $$"""
@@ -470,7 +412,7 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
                 overloadParameterClass += "\n    }";
                 overloadParameterClass += "\n}";
 
-                _overloadParameterClassByMethod[overload] = overloadParameterClass;
+                _overloadParameterClassByMethod[method] = overloadParameterClass;
                 _overloadParameterClassByName[parameterType] = overloadParameterClass;
             }
 
@@ -491,8 +433,8 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
         Writer.WriteLine($$"""
 
            /**
-           * {{overload.Name}}
-           * @remarks C# Definition: {{FormatMethodSignature(overload)}}
+           * {{method.Name}}
+           * @remarks C# Definition: {{FormatMethodSignature(method)}}
            {{string.Join("\n   ", parameters.Select(p => $"* @param {{{FormatJsType(Model, p.ParameterType)}}} {p.Name} C# Type: {PrettyPrintCSharpType(p.ParameterType)}"))}}
            * @returns {{{jsReturnTypeName}}} C# Type: {{PrettyPrintCSharpType(returnType)}}
            */
@@ -505,17 +447,17 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
         if (isProxyReturnType)
         {
             // For proxy types, use invokeStaticMethod (extension method) and wrap result in proxy
-            var methodAssemblyProxy = overload.DeclaringType?.DeclaringAssembly?.Name ?? "";
-            var methodTypeNameProxy = overload.DeclaringType?.FullName ?? "";
+            var methodAssemblyProxy = method.DeclaringType?.DeclaringAssembly?.Name ?? "";
+            var methodTypeNameProxy = method.DeclaringType?.FullName ?? "";
             var extensionArgsProxy = $"builder: this._proxy, {jsonParameterList}";
 
             Writer.WriteLine($$"""
               async {{methodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
-                const result = await client.invokeStaticMethod('{{methodAssemblyProxy}}', '{{methodTypeNameProxy}}', '{{overload.Name}}', {{{extensionArgsProxy}}});
+                const result = await client.invokeStaticMethod('{{methodAssemblyProxy}}', '{{methodTypeNameProxy}}', '{{method.Name}}', {{{extensionArgsProxy}}});
                 if (result && typeof result === 'object' && '$id' in result) {
                     return new {{jsReturnTypeName}}(new DotNetProxy(result as any));
                 }
-                throw new Error('{{overload.Name}} did not return a marshalled object');
+                throw new Error('{{method.Name}} did not return a marshalled object');
               };
             """);
         }
@@ -526,8 +468,8 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
             var thenableReturnType = $"{jsReturnTypeName}Promise";
 
             // Get the extension method type info
-            var methodAssembly = overload.DeclaringType?.DeclaringAssembly?.Name ?? "";
-            var methodTypeName = overload.DeclaringType?.FullName ?? "";
+            var methodAssembly = method.DeclaringType?.DeclaringAssembly?.Name ?? "";
+            var methodTypeName = method.DeclaringType?.FullName ?? "";
 
             // Build args including the builder as first param (for extension methods)
             var extensionArgs = $"builder: this._proxy, {jsonParameterList}";
@@ -536,11 +478,11 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
             Writer.WriteLine($$"""
               /** @internal */
               async {{internalMethodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
-                const result = await client.invokeStaticMethod('{{methodAssembly}}', '{{methodTypeName}}', '{{overload.Name}}', {{{extensionArgs}}});
+                const result = await client.invokeStaticMethod('{{methodAssembly}}', '{{methodTypeName}}', '{{method.Name}}', {{{extensionArgs}}});
                 if (result && typeof result === 'object' && '$id' in result) {
                     return new {{jsReturnTypeName}}(new DotNetProxy(result as any));
                 }
-                throw new Error('{{overload.Name}} did not return a marshalled object');
+                throw new Error('{{method.Name}} did not return a marshalled object');
               };
             """);
 
@@ -561,8 +503,8 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
             Writer.WriteLine($$"""
 
               /**
-               * {{overload.Name}} (fluent chaining)
-               * @remarks C# Definition: {{FormatMethodSignature(overload)}}
+               * {{method.Name}} (fluent chaining)
+               * @remarks C# Definition: {{FormatMethodSignature(method)}}
                */
               {{methodName}}({{parameterList}}): {{thenableReturnType}} {{{optionalArgsInitSnippet}}
                 return new {{thenableReturnType}}(this.{{internalMethodName}}({{argsList}}));
@@ -572,8 +514,8 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
         else
         {
             // For other types, use invokeStaticMethod for extension methods
-            var methodAssembly2 = overload.DeclaringType?.DeclaringAssembly?.Name ?? "";
-            var methodTypeName2 = overload.DeclaringType?.FullName ?? "";
+            var methodAssembly2 = method.DeclaringType?.DeclaringAssembly?.Name ?? "";
+            var methodTypeName2 = method.DeclaringType?.FullName ?? "";
             var extensionArgs2 = $"builder: this._proxy, {jsonParameterList}";
 
             // For primitive/unknown types (any, string, etc.), return the proxy directly
@@ -583,11 +525,11 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
             Writer.WriteLine($$"""
               async {{methodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
-                const result = await client.invokeStaticMethod('{{methodAssembly2}}', '{{methodTypeName2}}', '{{overload.Name}}', {{{extensionArgs2}}});
+                const result = await client.invokeStaticMethod('{{methodAssembly2}}', '{{methodTypeName2}}', '{{method.Name}}', {{{extensionArgs2}}});
                 if (result && typeof result === 'object' && '$id' in result) {
                     {{returnStatement}}
                 }
-                throw new Error('{{overload.Name}} did not return a marshalled object');
+                throw new Error('{{method.Name}} did not return a marshalled object');
               };
             """);
         }
@@ -1094,6 +1036,9 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     {
         return char.ToLowerInvariant(methodName[0]) + methodName.Substring(1);
     }
+
+    /// <inheritdoc />
+    protected override string FormatMethodName(string name) => CamelCase(name);
 
     private static string FormatJsonArgument(ApplicationModel model, RoParameterInfo p, string prefix)
     {

@@ -82,16 +82,13 @@ public enum PropertyContext
 }
 
 /// <summary>
-/// Information about a method parameter for code generation.
+/// Represents a method with its disambiguated name for code generation.
+/// The base class handles grouping overloads and assigning unique names.
 /// </summary>
-/// <param name="Name">The parameter name.</param>
-/// <param name="Type">The formatted type string for the target language.</param>
-/// <param name="IsCallback">Whether this parameter is a delegate/callback type.</param>
-/// <param name="IsOptional">Whether this parameter is optional.</param>
-/// <param name="DefaultValue">The default value expression, if any.</param>
-public record ParameterInfo(
-    string Name,
-    string Type,
-    bool IsCallback,
-    bool IsOptional = false,
-    string? DefaultValue = null);
+/// <param name="Method">The method metadata.</param>
+/// <param name="UniqueName">The disambiguated method name (e.g., "addRedis", "addRedis2").</param>
+/// <param name="OverloadIndex">Zero-based index within the overload group.</param>
+public record MethodOverload(
+    RoMethod Method,
+    string UniqueName,
+    int OverloadIndex);

@@ -29,11 +29,6 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// </summary>
     protected HashSet<string> EmittedTypes { get; } = [];
 
-    /// <summary>
-    /// Tracks method name usage for overload disambiguation.
-    /// </summary>
-    protected Dictionary<string, int> MethodOverloadIndexes { get; } = [];
-
     /// <inheritdoc />
     public abstract string Language { get; }
 
@@ -121,8 +116,6 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <inheritdoc />
     public virtual void VisitProxyType(RoType type, ProxyTypeModel proxyModel)
     {
-        ResetMethodOverloadIndexes();
-
         // Emit the proxy class start
         EmitProxyClassStart(type, proxyModel);
 
@@ -132,19 +125,19 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
             VisitProperty(property, PropertyContext.ProxyProperty);
         }
 
-        // Visit instance methods
-        foreach (var method in proxyModel.Methods)
+        // Visit instance methods (base class handles grouping and disambiguation)
+        foreach (var overload in GetMethodOverloads(proxyModel.Methods))
         {
-            VisitMethod(method, MethodContext.ProxyInstance);
+            EmitProxyMethod(overload, isStatic: false);
         }
 
         // Emit helper methods (language-specific)
         EmitProxyHelperMethods(proxyModel);
 
         // Visit static methods
-        foreach (var method in proxyModel.StaticMethods)
+        foreach (var overload in GetMethodOverloads(proxyModel.StaticMethods))
         {
-            VisitMethod(method, MethodContext.ProxyStatic);
+            EmitProxyMethod(overload, isStatic: true);
         }
 
         // Emit the proxy class end
@@ -154,25 +147,23 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <inheritdoc />
     public virtual void VisitIntegration(IntegrationModel integration)
     {
-        // Emit methods from this integration onto the builder
-        foreach (var method in integration.IDistributedApplicationBuilderExtensionMethods)
+        // Emit methods from this integration onto the builder (base class handles grouping)
+        foreach (var overload in GetMethodOverloads(integration.IDistributedApplicationBuilderExtensionMethods))
         {
-            VisitMethod(method, MethodContext.BuilderExtension);
+            EmitExtensionMethod(overload);
         }
     }
 
     /// <inheritdoc />
     public virtual void VisitResource(ResourceModel resource)
     {
-        ResetMethodOverloadIndexes();
-
         // Emit the resource builder class start
         EmitResourceBuilderClassStart(resource);
 
-        // Visit extension methods on this resource type
-        foreach (var method in resource.IResourceTypeBuilderExtensionsMethods)
+        // Visit extension methods on this resource type (base class handles grouping)
+        foreach (var overload in GetMethodOverloads(resource.IResourceTypeBuilderExtensionsMethods))
         {
-            VisitMethod(method, MethodContext.ResourceExtension);
+            EmitExtensionMethod(overload);
         }
 
         // Emit the resource builder class end
@@ -182,24 +173,8 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <inheritdoc />
     public virtual void VisitMethod(RoMethod method, MethodContext context)
     {
-        // Skip property accessors
-        if (method.Name.StartsWith("get_") || method.Name.StartsWith("set_"))
-        {
-            return;
-        }
-
-        // Collect parameter info
-        var parameters = method.Parameters
-            .Select((p, index) => new ParameterInfo(
-                p.Name ?? $"arg{index}",
-                FormatType(p.ParameterType),
-                IsDelegateType(Model, p.ParameterType),
-                p.IsOptional,
-                null))
-            .ToList();
-
-        // Emit the method
-        EmitMethod(method, parameters, context);
+        // This method is kept for interface compatibility but traversal now uses
+        // GetMethodOverloads + EmitProxyMethod/EmitExtensionMethod directly
     }
 
     /// <inheritdoc />
@@ -258,8 +233,11 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>Emit the end of a resource builder class.</summary>
     protected virtual void EmitResourceBuilderClassEnd(ResourceModel resource) { }
 
-    /// <summary>Emit a method.</summary>
-    protected virtual void EmitMethod(RoMethod method, IReadOnlyList<ParameterInfo> parameters, MethodContext context) { }
+    /// <summary>Emit a proxy method (instance or static). UniqueName is already disambiguated.</summary>
+    protected virtual void EmitProxyMethod(MethodOverload overload, bool isStatic) { }
+
+    /// <summary>Emit an extension method (on builder or resource). UniqueName is already disambiguated.</summary>
+    protected virtual void EmitExtensionMethod(MethodOverload overload) { }
 
     /// <summary>Emit a property.</summary>
     protected virtual void EmitProperty(RoPropertyInfo property, PropertyContext context) { }
@@ -267,31 +245,56 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>Format a type for the target language.</summary>
     protected virtual string FormatType(RoType type) => type.Name;
 
+    /// <summary>Format a method name for the target language (e.g., camelCase, snake_case).</summary>
+    protected virtual string FormatMethodName(string name) => name;
+
     // === Shared utility methods ===
 
     /// <summary>
-    /// Gets a unique method name, appending a suffix for overloads.
+    /// Groups methods by name and assigns unique disambiguated names.
+    /// Handles overloads by appending numeric suffixes (e.g., "addRedis", "addRedis2").
+    /// Filters out property accessors (get_/set_).
     /// </summary>
-    protected string GetUniqueMethodName(string baseName)
+    protected IEnumerable<MethodOverload> GetMethodOverloads(IEnumerable<RoMethod> methods)
     {
-        if (MethodOverloadIndexes.TryGetValue(baseName, out var index))
+        // Filter out property accessors and group by method name
+        var groups = methods
+            .Where(m => !m.Name.StartsWith("get_") && !m.Name.StartsWith("set_"))
+            .GroupBy(GetMethodBaseName);
+
+        foreach (var group in groups)
         {
-            MethodOverloadIndexes[baseName] = index + 1;
-            return $"{baseName}{index + 1}";
-        }
-        else
-        {
-            MethodOverloadIndexes[baseName] = 0;
-            return baseName;
+            // Sort overloads by parameter count for consistent ordering
+            var overloads = group.OrderBy(m => m.Parameters.Count).ToList();
+
+            for (var i = 0; i < overloads.Count; i++)
+            {
+                var baseName = FormatMethodName(group.Key);
+                var uniqueName = i == 0 ? baseName : $"{baseName}{i + 1}";
+                yield return new MethodOverload(overloads[i], uniqueName, i);
+            }
         }
     }
 
     /// <summary>
-    /// Resets the method overload index tracking. Call this at the start of each class.
+    /// Gets the base method name, checking for PolyglotMethodNameAttribute.
     /// </summary>
-    protected void ResetMethodOverloadIndexes()
+    protected virtual string GetMethodBaseName(RoMethod method)
     {
-        MethodOverloadIndexes.Clear();
+        var attr = method.GetCustomAttributes()
+            .FirstOrDefault(a => a.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
+
+        if (attr != null)
+        {
+            var name = attr.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
+                ?? attr.FixedArguments?.ElementAtOrDefault(0)?.ToString();
+            if (!string.IsNullOrEmpty(name))
+            {
+                return name;
+            }
+        }
+
+        return method.Name;
     }
 
     /// <summary>
