@@ -821,6 +821,10 @@ export class TestDatabaseResourceBuilder {
   }
 }
 
+export enum TestPersistenceMode {
+  None = "None", Volume = "Volume", Bind = "Bind"
+}
+
 /**
  * Thenable wrapper for TestRedisResourceBuilder that enables fluent chaining.
  * Usage: await builder.addX("name").withY().withZ();
@@ -921,10 +925,6 @@ export class TestDatabaseResourceBuilderPromise implements PromiseLike<TestDatab
       this._promise.then(b => b._withMultipleDefaultsInternal(optionalArguments))
     );
   }
-}
-
-export enum TestPersistenceMode {
-  None = "None", Volume = "Volume", Bind = "Bind"
 }
 export class WithOptionalStringArgs {
       public value?: string;
