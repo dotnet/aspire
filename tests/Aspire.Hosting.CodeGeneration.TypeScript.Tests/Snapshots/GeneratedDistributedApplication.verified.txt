@@ -642,6 +642,52 @@ export class TestRedisResourceBuilder {
   }
 
    /**
+   * WithCircularCallback
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithCircularCallback(IResourceBuilder<TestRedisResource> builder, Action<IResourceBuilder<TestRedisResource>> configure)
+   * @param {(p0: TestRedisResourceBuilder) => void | Promise<void>} configure C# Type: Action<IResourceBuilder<TestRedisResource>>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withCircularCallbackInternal(configure: (p0: TestRedisResourceBuilder) => void | Promise<void>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithCircularCallback', {builder: this._proxy, configure: registerCallback((arg: DotNetProxy) => configure(new TestRedisResourceBuilder(arg)))});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithCircularCallback did not return a marshalled object');
+  };
+
+  /**
+   * WithCircularCallback (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithCircularCallback(IResourceBuilder<TestRedisResource> builder, Action<IResourceBuilder<TestRedisResource>> configure)
+   */
+  withCircularCallback(configure: (p0: TestRedisResourceBuilder) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withCircularCallbackInternal(configure));
+  }
+
+   /**
+   * WithNestedCallback
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithNestedCallback(IResourceBuilder<TestRedisResource> builder, Action<Action<IResourceBuilder<TestRedisResource>>> outerConfigure)
+   * @param {(p0: DotNetProxy) => void | Promise<void>} outerConfigure C# Type: Action<Action<IResourceBuilder<TestRedisResource>>>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withNestedCallbackInternal(outerConfigure: (p0: DotNetProxy) => void | Promise<void>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithNestedCallback', {builder: this._proxy, outerConfigure: registerCallback(outerConfigure)});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithNestedCallback did not return a marshalled object');
+  };
+
+  /**
+   * WithNestedCallback (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithNestedCallback(IResourceBuilder<TestRedisResource> builder, Action<Action<IResourceBuilder<TestRedisResource>>> outerConfigure)
+   */
+  withNestedCallback(outerConfigure: (p0: DotNetProxy) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withNestedCallbackInternal(outerConfigure));
+  }
+
+   /**
    * WithCustomCallback
    * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithCustomCallback<TestRedisResource>(IResourceBuilder<T> builder, Action<TestCallbackContext> callback)
    * @param {(p0: TestCallbackContextProxy) => void | Promise<void>} callback C# Type: Action<TestCallbackContext>
@@ -757,6 +803,24 @@ export class TestRedisResourceBuilderPromise implements PromiseLike<TestRedisRes
   asConnectionString(): IResourceWithConnectionStringBuilderPromise {
     return new IResourceWithConnectionStringBuilderPromise(
       this._promise.then(b => b._asConnectionStringInternal())
+    );
+  }
+
+  /**
+   * WithCircularCallback (fluent chaining)
+   */
+  withCircularCallback(configure: (p0: TestRedisResourceBuilder) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withCircularCallbackInternal(configure))
+    );
+  }
+
+  /**
+   * WithNestedCallback (fluent chaining)
+   */
+  withNestedCallback(outerConfigure: (p0: DotNetProxy) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withNestedCallbackInternal(outerConfigure))
     );
   }
 

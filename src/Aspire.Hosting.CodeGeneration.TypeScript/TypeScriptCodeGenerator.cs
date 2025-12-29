@@ -1077,10 +1077,15 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
             return proxyModel.ProxyClassName;
         }
 
+        // For IResourceBuilder<T>, generate TypeBuilder
+        // Discovery phase already ensured all referenced types are known
+        if (model.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var resourceType))
+        {
+            return $"{resourceType.Name}Builder";
+        }
+
         return type switch
         {
-            // For IResourceBuilder<T>, generate TypeBuilder (model provides concrete resources)
-            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType => $"{type.GetGenericArguments()[0].Name}Builder",
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Nullable<>)) => FormatJsType(model, type.GetGenericArguments()[0]) + " | null",
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(List<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Dictionary<,>)) => "Map<any, any>",

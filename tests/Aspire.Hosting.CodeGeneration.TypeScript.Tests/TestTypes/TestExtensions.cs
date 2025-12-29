@@ -105,6 +105,29 @@ public static class TestExtensions
         // Cast to interface builder
         return builder;
     }
+
+    /// <summary>
+    /// Tests circular type reference: Action takes IResourceBuilder which has methods that take Actions.
+    /// This ensures the queue-based discovery handles cycles correctly.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithCircularCallback(
+        this IResourceBuilder<TestRedisResource> builder,
+        Action<IResourceBuilder<TestRedisResource>> configure)
+    {
+        configure?.Invoke(builder);
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests nested circular references: Action&lt;Action&lt;IResourceBuilder&gt;&gt;.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithNestedCallback(
+        this IResourceBuilder<TestRedisResource> builder,
+        Action<Action<IResourceBuilder<TestRedisResource>>> outerConfigure)
+    {
+        outerConfigure?.Invoke(_ => { });
+        return builder;
+    }
 }
 
 /// <summary>

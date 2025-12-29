@@ -29,6 +29,12 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// </summary>
     protected HashSet<string> EmittedTypes { get; } = [];
 
+    /// <summary>
+    /// Tracks resource types that are referenced (e.g., in method return types) and need builder classes.
+    /// Used to ensure all referenced types have their classes emitted.
+    /// </summary>
+    protected HashSet<RoType> ReferencedBuilderTypes { get; } = [];
+
     /// <inheritdoc />
     public abstract string Language { get; }
 
@@ -62,6 +68,11 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <inheritdoc />
     public virtual void VisitApplicationModel(ApplicationModel model)
     {
+        // === PHASE 1: DISCOVERY ===
+        // Walk the model to discover all types that need to be emitted
+        DiscoverReferencedTypes(model);
+
+        // === PHASE 2: EMISSION ===
         // 1. Emit header (imports, client setup)
         EmitHeader();
 
@@ -92,7 +103,14 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
         EmitBaseResourceBuilderClasses();
 
         // 9. Visit and emit resource-specific builder classes
-        foreach (var resource in model.ResourceModels.Values)
+        // Include both model resources and discovered referenced types
+        var allResources = model.ResourceModels.Values
+            .Concat(ReferencedBuilderTypes
+                .Where(t => !model.ResourceModels.ContainsKey(t))
+                .Select(t => new ResourceModel { ResourceType = t }))
+            .ToList();
+
+        foreach (var resource in allResources)
         {
             VisitResource(resource);
         }
@@ -102,6 +120,87 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
 
         // 11. Emit any additional classes (parameter classes, callback proxies, etc.)
         EmitAdditionalClasses();
+    }
+
+    /// <summary>
+    /// Discovery phase: walks the model to find all types that need builder classes.
+    /// This runs before emission so all types are known upfront.
+    /// Uses a queue-based approach to avoid stack overflow on deep type graphs.
+    /// </summary>
+    protected virtual void DiscoverReferencedTypes(ApplicationModel model)
+    {
+        var visited = new HashSet<RoType>();
+        var queue = new Queue<RoType>();
+
+        // Seed the queue with types from all methods
+        foreach (var integration in model.IntegrationModels.Values)
+        {
+            foreach (var method in integration.IDistributedApplicationBuilderExtensionMethods)
+            {
+                EnqueueTypesFromMethod(method, queue);
+            }
+        }
+
+        foreach (var resource in model.ResourceModels.Values)
+        {
+            foreach (var method in resource.IResourceTypeBuilderExtensionsMethods)
+            {
+                EnqueueTypesFromMethod(method, queue);
+            }
+        }
+
+        // Process the queue until empty
+        while (queue.Count > 0)
+        {
+            var type = queue.Dequeue();
+
+            // Skip if already visited
+            if (!visited.Add(type))
+            {
+                continue;
+            }
+
+            // Check if this is IResourceBuilder<T>
+            if (model.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var resourceType))
+            {
+                // Skip generic type parameters (e.g., T in IResourceBuilder<T>)
+                if (!resourceType.IsGenericParameter)
+                {
+                    ReferencedBuilderTypes.Add(resourceType);
+                }
+            }
+
+            // Check delegate types (e.g., Action<IResourceBuilder<T>>)
+            if (IsDelegateType(model, type))
+            {
+                var invokeMethod = type.GetMethod("Invoke");
+                if (invokeMethod != null)
+                {
+                    EnqueueTypesFromMethod(invokeMethod, queue);
+                }
+            }
+
+            // Enqueue generic arguments
+            if (type.IsGenericType)
+            {
+                foreach (var arg in type.GetGenericArguments())
+                {
+                    queue.Enqueue(arg);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Enqueues all types from a method's signature for discovery.
+    /// </summary>
+    private static void EnqueueTypesFromMethod(RoMethod method, Queue<RoType> queue)
+    {
+        queue.Enqueue(method.ReturnType);
+        foreach (var param in method.Parameters)
+        {
+            queue.Enqueue(param.ParameterType);
+        }
     }
 
     /// <inheritdoc />
