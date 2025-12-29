@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.CodeGeneration.Models.Types;
 
 namespace Aspire.Hosting.CodeGeneration.Models;
@@ -14,9 +13,8 @@ public sealed class ApplicationModel : IDisposable
     public required HashSet<RoType> ModelTypes { get; init; }
     public required string AppPath { get; init; }
     public required IWellKnownTypes WellKnownTypes { get; init; }
+    public required DistributedApplicationBuilderModel BuilderModel { get; init; }
 
-    // Custom method names
-    public List<Mapping> MethodMappings = [];
     private bool _disposedValue;
 
     public static ApplicationModel Create(IEnumerable<IntegrationModel> integrationModels, string appPath, AssemblyLoaderContext assemblyLoaderContext)
@@ -48,7 +46,8 @@ public sealed class ApplicationModel : IDisposable
             }
         }
 
-        var stringType = knownTypes.GetKnownType(typeof(string));
+        // Create the builder model from reflection
+        var builderModel = DistributedApplicationBuilderModelFactory.Create(knownTypes);
 
         return new ApplicationModel
         {
@@ -56,18 +55,10 @@ public sealed class ApplicationModel : IDisposable
             ResourceModels = resourceModels,
             ModelTypes = modelTypes,
             AppPath = appPath,
-            MethodMappings = [
-                new("WithEnvironment", [stringType, stringType], "WithEnvironmentString"),
-            ],
             WellKnownTypes = knownTypes,
-            AssemblyLoaderContext = assemblyLoaderContext
+            AssemblyLoaderContext = assemblyLoaderContext,
+            BuilderModel = builderModel
         };
-    }
-
-    public bool TryGetMapping(string methodName, RoType[] parameterTypes, [NotNullWhen(true)] out Mapping? mapping)
-    {
-        mapping = MethodMappings.FirstOrDefault(x => x.MethodName == methodName && x.ParameterTypes.SequenceEqual(parameterTypes));
-        return mapping != null;
     }
 
     private void Dispose(bool disposing)

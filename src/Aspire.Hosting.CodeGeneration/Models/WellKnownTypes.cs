@@ -43,6 +43,16 @@ public sealed class WellKnownTypes : IWellKnownTypes
         _aspireHostingAssembly.GetType("Aspire.Hosting.IDistributedApplicationBuilder") ??
         throw new InvalidOperationException("IDistributedApplicationBuilder type not found.");
 
+    public RoType DistributedApplicationType =>
+        _aspireHostingAssembly.GetType("Aspire.Hosting.DistributedApplication") ??
+        throw new InvalidOperationException("DistributedApplication type not found.");
+
+    public RoType DistributedApplicationExecutionContextType =>
+        _aspireHostingAssembly.GetType("Aspire.Hosting.DistributedApplicationExecutionContext") ??
+        throw new InvalidOperationException("DistributedApplicationExecutionContext type not found.");
+
+    public AssemblyLoaderContext AssemblyLoaderContext => _assemblyLoaderContext;
+
     public bool TryGetResourceBuilderTypeArgument(RoType resourceBuilderType, [NotNullWhen(true)] out RoType? resourceType)
     {
         if (!resourceBuilderType.IsGenericType)

@@ -15,6 +15,13 @@ public interface IWellKnownTypes
     public RoType IResourceWithConnectionStringType { get; }
     public RoType IResourceBuilderType { get; }
     public RoType IDistributedApplicationBuilderType { get; }
+    public RoType DistributedApplicationType { get; }
+    public RoType DistributedApplicationExecutionContextType { get; }
+
+    /// <summary>
+    /// Gets the assembly loader context for looking up types from loaded assemblies.
+    /// </summary>
+    public AssemblyLoaderContext AssemblyLoaderContext { get; }
 }
 
 public static class WellKnownTypesExtensions

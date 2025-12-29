@@ -24,6 +24,18 @@ public abstract class RoType : IEquatable<RoType>
 
     public abstract string Name { get; }
     public abstract string FullName { get; }
+
+    /// <summary>
+    /// Gets the namespace of the current type.
+    /// </summary>
+    public virtual string Namespace
+    {
+        get
+        {
+            var lastDot = FullName.LastIndexOf('.');
+            return lastDot > 0 ? FullName[..lastDot] : string.Empty;
+        }
+    }
     public virtual bool IsAbstract { get; protected set; }
     public virtual bool IsPublic { get; protected set; }
     public virtual bool IsByRef { get; protected set; }

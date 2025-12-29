@@ -295,6 +295,12 @@ public sealed class RoDefinitionType : RoType
                 continue; // skip property accessors
             }
 
+            // Skip methods with special names (constructors, operators, etc.)
+            if ((attributes & MethodAttributes.SpecialName) != 0)
+            {
+                continue;
+            }
+
             // Create RoMethodInfo instance - all metadata extraction happens in constructor
             var method = new RoDefinitionMethod(methodHandle, this);
             methods.Add(method);

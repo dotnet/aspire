@@ -77,8 +77,8 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
     private void GenerateDistributedApplicationContent(TextWriter writer, ApplicationModel model)
     {
-        // Write the header with imports and utility functions
-        writer.WriteLine($$"""
+        // Write the header with imports
+        writer.WriteLine("""
         import { RemoteAppHostClient, registerCallback, DotNetProxy, ListProxy, wrapIfProxy } from './RemoteAppHostClient.js';
 
         // Get socket path from environment variable (set by aspire run)
@@ -88,453 +88,19 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         }
 
         const client = new RemoteAppHostClient(socketPath);
-
-        export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
-            console.log('🔌 Connecting to AppHost server...');
-
-            while (true) {
-              try {
-                await client.connect();
-                await client.ping();
-                console.log('✅ Connected successfully!');
-                break;
-              } catch (error) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-              }
-            }
-
-            // Use static INVOKE to call DistributedApplication.CreateBuilder(options)
-            const result = await client.invokeStaticMethod('Aspire.Hosting', 'Aspire.Hosting.DistributedApplication', 'CreateBuilder', {
-              options: {
-                Args: args,
-                ProjectDirectory: process.cwd()
-              }
-            });
-
-            if (result && typeof result === 'object' && '$id' in result) {
-              return new DistributedApplicationBuilder(new DotNetProxy(result as any));
-            }
-
-            throw new Error('Failed to create DistributedApplicationBuilder');
-        }
-
-        export class DistributedApplication {
-          private _appProxy: DotNetProxy | null = null;
-
-          constructor(private builderProxy: DotNetProxy | null) {
-          }
-
-          /**
-           * Gets the Services property (IServiceProvider).
-           * Use this to resolve services after the application is built and running.
-           */
-          async getServices(): Promise<ServiceProviderProxy> {
-            if (!this._appProxy) {
-              throw new Error('Application not yet running. Call run() first.');
-            }
-            const services = await this._appProxy.getProperty('Services') as DotNetProxy;
-            return new ServiceProviderProxy(services);
-          }
-
-          async run() {
-            // Build the application using invokeMethod
-            const buildResult = await this.builderProxy?.invokeMethod('Build', {});
-
-            // Store the app proxy for service resolution
-            if (buildResult && typeof buildResult === 'object' && '$id' in buildResult) {
-              this._appProxy = new DotNetProxy(buildResult as any);
-            }
-
-            // Run the application using invokeMethod
-            // This returns a Task that completes when the app stops
-            const runPromise = this._appProxy?.invokeMethod('RunAsync', {});
-
-            // Wait for either Ctrl+C, SIGTERM, or the connection to close
-            await new Promise<void>((resolve) => {
-              const shutdown = async () => {
-                console.log("\nStopping application...");
-                try {
-                  // Try to stop the app gracefully
-                  await this._appProxy?.invokeMethod('StopAsync', {});
-                } catch {
-                  // Ignore errors during shutdown
-                }
-                client.disconnect();
-                resolve();
-              };
-
-              // Handle Ctrl+C for graceful shutdown
-              process.on("SIGINT", shutdown);
-
-              // Handle SIGTERM (sent by CLI on shutdown)
-              process.on("SIGTERM", shutdown);
-
-              // Handle connection close (GenericAppHost exited after publish)
-              client.onDisconnect(() => {
-                resolve();
-              });
-
-              // Also resolve when runPromise completes
-              runPromise?.then(() => resolve()).catch(() => resolve());
-            });
-
-            process.exit(0);
-          }
-        }
-
-        /**
-         * Strongly-typed proxy for IConfiguration.
-         * Provides natural access to configuration values.
-         */
-        export class ConfigurationProxy {
-          constructor(private _proxy: DotNetProxy) {}
-
-          /** Get the underlying proxy for advanced operations */
-          get proxy(): DotNetProxy { return this._proxy; }
-
-          /**
-           * Gets a configuration value by key.
-           * @param key The configuration key (e.g., "Logging:LogLevel:Default")
-           */
-          async get(key: string): Promise<string | null> {
-            const result = await this._proxy.getIndexer(key);
-            return result as string | null;
-          }
-
-          /**
-           * Gets a configuration section.
-           * @param key The section key
-           */
-          async getSection(key: string): Promise<ConfigurationProxy> {
-            const result = await this._proxy.invokeMethod('GetSection', { key });
-            return new ConfigurationProxy(result as DotNetProxy);
-          }
-
-          /**
-           * Gets a connection string by name.
-           * @param name The connection string name
-           */
-          async getConnectionString(name: string): Promise<string | null> {
-            const result = await this._proxy.invokeMethod('GetConnectionString', { name });
-            return result as string | null;
-          }
-
-          /**
-           * Gets the key of this configuration section.
-           */
-          async getKey(): Promise<string> {
-            return await this._proxy.getProperty('Key') as string;
-          }
-
-          /**
-           * Gets the path of this configuration section.
-           */
-          async getPath(): Promise<string> {
-            return await this._proxy.getProperty('Path') as string;
-          }
-
-          /**
-           * Gets the value of this configuration section.
-           */
-          async getValue(): Promise<string | null> {
-            return await this._proxy.getProperty('Value') as string | null;
-          }
-        }
-
-        /**
-         * Strongly-typed proxy for IHostEnvironment.
-         * Provides natural access to environment information.
-         */
-        export class HostEnvironmentProxy {
-          constructor(private _proxy: DotNetProxy) {}
-
-          /** Get the underlying proxy for advanced operations */
-          get proxy(): DotNetProxy { return this._proxy; }
-
-          /**
-           * Gets the name of the environment (e.g., "Development", "Production").
-           */
-          async getEnvironmentName(): Promise<string> {
-            return await this._proxy.getProperty('EnvironmentName') as string;
-          }
-
-          /**
-           * Gets the name of the application.
-           */
-          async getApplicationName(): Promise<string> {
-            return await this._proxy.getProperty('ApplicationName') as string;
-          }
-
-          /**
-           * Gets the content root path.
-           */
-          async getContentRootPath(): Promise<string> {
-            return await this._proxy.getProperty('ContentRootPath') as string;
-          }
-
-          /**
-           * Checks if the environment is Development.
-           */
-          async isDevelopment(): Promise<boolean> {
-            const envName = await this.getEnvironmentName();
-            return envName === 'Development';
-          }
-
-          /**
-           * Checks if the environment is Production.
-           */
-          async isProduction(): Promise<boolean> {
-            const envName = await this.getEnvironmentName();
-            return envName === 'Production';
-          }
-
-          /**
-           * Checks if the environment is Staging.
-           */
-          async isStaging(): Promise<boolean> {
-            const envName = await this.getEnvironmentName();
-            return envName === 'Staging';
-          }
-
-          /**
-           * Checks if the environment matches the specified name.
-           */
-          async isEnvironment(environmentName: string): Promise<boolean> {
-            const envName = await this.getEnvironmentName();
-            return envName.toLowerCase() === environmentName.toLowerCase();
-          }
-        }
-
-        /**
-         * Strongly-typed proxy for DistributedApplicationExecutionContext.
-         * Provides access to execution context information.
-         */
-        export class ExecutionContextProxy {
-          constructor(private _proxy: DotNetProxy) {}
-
-          /** Get the underlying proxy for advanced operations */
-          get proxy(): DotNetProxy { return this._proxy; }
-
-          /**
-           * Checks if the application is running in run mode.
-           */
-          async isRunMode(): Promise<boolean> {
-            return await this._proxy.getProperty('IsRunMode') as boolean;
-          }
-
-          /**
-           * Checks if the application is running in publish mode.
-           */
-          async isPublishMode(): Promise<boolean> {
-            return await this._proxy.getProperty('IsPublishMode') as boolean;
-          }
-
-          /**
-           * Gets the operation being performed (Run or Publish).
-           */
-          async getOperation(): Promise<string> {
-            return await this._proxy.getProperty('Operation') as string;
-          }
-        }
-
-        /**
-         * Strongly-typed proxy for ILoggerFactory.
-         * Provides natural access to logging functionality.
-         */
-        export class LoggerFactoryProxy {
-          constructor(private _proxy: DotNetProxy) {}
-
-          /** Get the underlying proxy for advanced operations */
-          get proxy(): DotNetProxy { return this._proxy; }
-
-          /**
-           * Creates a logger with the specified category name.
-           * @param categoryName The category name for the logger
-           */
-          async createLogger(categoryName: string): Promise<LoggerProxy> {
-            const result = await this._proxy.invokeMethod('CreateLogger', { categoryName });
-            return new LoggerProxy(result as DotNetProxy);
-          }
-        }
-
-        /**
-         * Strongly-typed proxy for ILogger.
-         * Provides natural logging methods.
-         */
-        export class LoggerProxy {
-          constructor(private _proxy: DotNetProxy) {}
-
-          /** Get the underlying proxy for advanced operations */
-          get proxy(): DotNetProxy { return this._proxy; }
-
-          /**
-           * Logs an informational message.
-           */
-          async logInformation(message: string): Promise<void> {
-            await this._proxy.invokeMethod('Log', { logLevel: 2, message });
-          }
-
-          /**
-           * Logs a warning message.
-           */
-          async logWarning(message: string): Promise<void> {
-            await this._proxy.invokeMethod('Log', { logLevel: 3, message });
-          }
-
-          /**
-           * Logs an error message.
-           */
-          async logError(message: string): Promise<void> {
-            await this._proxy.invokeMethod('Log', { logLevel: 4, message });
-          }
-
-          /**
-           * Logs a debug message.
-           */
-          async logDebug(message: string): Promise<void> {
-            await this._proxy.invokeMethod('Log', { logLevel: 1, message });
-          }
-        }
-
-        /**
-         * Proxy for IServiceProvider to resolve services after build.
-         * Supports well-known type aliases (e.g., "IConfiguration") and full type names.
-         */
-        export class ServiceProviderProxy {
-          constructor(private _proxy: DotNetProxy) {}
-
-          /** Get the underlying proxy for advanced operations */
-          get proxy(): DotNetProxy { return this._proxy; }
-
-          /**
-           * Gets a service of the specified type.
-           * @param typeName Type name - full type name required
-           * @returns The resolved service proxy or null if not found
-           */
-          async getService(typeName: string): Promise<DotNetProxy | null> {
-            const result = await this._proxy.invokeMethod('GetService', { serviceType: typeName });
-            if (result === null || result === undefined) {
-              return null;
-            }
-            return new DotNetProxy(result as any);
-          }
-
-          /**
-           * Gets a required service of the specified type.
-           * @param typeName Type name - full type name required
-           * @throws Error if the service is not found
-           */
-          async getRequiredService(typeName: string): Promise<DotNetProxy> {
-            const result = await this._proxy.invokeMethod('GetRequiredService', { serviceType: typeName });
-            return new DotNetProxy(result as any);
-          }
-
-          /**
-           * Gets the IConfiguration service.
-           */
-          async getConfiguration(): Promise<ConfigurationProxy> {
-            const result = await this._proxy.invokeMethod('GetRequiredService', { serviceType: 'Microsoft.Extensions.Configuration.IConfiguration' });
-            return new ConfigurationProxy(new DotNetProxy(result as any));
-          }
-
-          /**
-           * Gets the IHostEnvironment service.
-           */
-          async getHostEnvironment(): Promise<HostEnvironmentProxy> {
-            const result = await this._proxy.invokeMethod('GetRequiredService', { serviceType: 'Microsoft.Extensions.Hosting.IHostEnvironment' });
-            return new HostEnvironmentProxy(new DotNetProxy(result as any));
-          }
-
-          /**
-           * Gets the ILoggerFactory service.
-           */
-          async getLoggerFactory(): Promise<LoggerFactoryProxy> {
-            const result = await this._proxy.invokeMethod('GetRequiredService', { serviceType: 'Microsoft.Extensions.Logging.ILoggerFactory' });
-            return new LoggerFactoryProxy(new DotNetProxy(result as any));
-          }
-        }
-
-        abstract class DistributedApplicationBuilderBase {
-          constructor(protected _proxy: DotNetProxy) {
-          }
-
-          /** Gets the underlying builder proxy */
-          get proxy(): DotNetProxy {
-            return this._proxy;
-          }
-
-          /**
-           * Gets the Configuration property (ConfigurationManager).
-           * Use this to read configuration values before building the application.
-           */
-          async getConfiguration(): Promise<ConfigurationProxy> {
-            const result = await this._proxy.getProperty('Configuration') as DotNetProxy;
-            return new ConfigurationProxy(result);
-          }
-
-          /**
-           * Gets the Environment property (IHostEnvironment).
-           * Use this to check environment name, application name, etc.
-           */
-          async getEnvironment(): Promise<HostEnvironmentProxy> {
-            const result = await this._proxy.getProperty('Environment') as DotNetProxy;
-            return new HostEnvironmentProxy(result);
-          }
-
-          /**
-           * Gets the ExecutionContext property (DistributedApplicationExecutionContext).
-           * Use this to check if running in run mode vs publish mode.
-           */
-          async getExecutionContext(): Promise<ExecutionContextProxy> {
-            const result = await this._proxy.getProperty('ExecutionContext') as DotNetProxy;
-            return new ExecutionContextProxy(result);
-          }
-
-          /**
-           * Checks if the application is running in the Development environment.
-           */
-          async isDevelopment(): Promise<boolean> {
-            const env = await this.getEnvironment();
-            return await env.isDevelopment();
-          }
-
-          /**
-           * Checks if the application is running in the Production environment.
-           */
-          async isProduction(): Promise<boolean> {
-            const env = await this.getEnvironment();
-            return await env.isProduction();
-          }
-
-          /**
-           * Checks if the execution context is in run mode (vs publish mode).
-           */
-          async isRunMode(): Promise<boolean> {
-            const ctx = await this.getExecutionContext();
-            return await ctx.isRunMode();
-          }
-
-          /**
-           * Checks if the execution context is in publish mode.
-           */
-          async isPublishMode(): Promise<boolean> {
-            const ctx = await this.getExecutionContext();
-            return await ctx.isPublishMode();
-          }
-
-          /**
-           * Gets the Services property (IServiceCollection).
-           * Use this to register additional services before building.
-           */
-          async getServices(): Promise<DotNetProxy> {
-            return await this._proxy.getProperty('Services') as DotNetProxy;
-          }
-
-          build() {
-            return new DistributedApplication(this._proxy);
-          }
-        }
         """);
+
+        // Generate createBuilder() function using reflection
+        GenerateCreateBuilderFunction(writer, model);
+
+        // Generate DistributedApplication class using reflection
+        GenerateDistributedApplicationClass(writer, model);
+
+        // Generate proxy classes from BuilderModel.ProxyTypes
+        GenerateBuilderProxyClasses(writer, model);
+
+        // Generate DistributedApplicationBuilderBase using reflection
+        GenerateBuilderBaseClass(writer, model);
 
         // Generate DistributedApplicationBuilder class with methods from all integrations
         writer.WriteLine("export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {");
@@ -998,13 +564,10 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                 var methodNameAttribute = overload.GetCustomAttributes()
                     .FirstOrDefault(attr => attr.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
 
-                var preferredMethodName = methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
+                var methodName = CamelCase(
+                    methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
                     ?? methodNameAttribute?.FixedArguments?.ElementAtOrDefault(0)?.ToString()
-                    ?? overload.Name;
-
-                var methodName = model.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
-                    ? CamelCase(mapping.GeneratedName)
-                    : CamelCase(preferredMethodName);
+                    ?? overload.Name);
 
                 if (indexes.TryGetValue(methodName, out var index))
                 {
@@ -1134,16 +697,14 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                 var methodNameAttribute = overload.GetCustomAttributes()
                     .FirstOrDefault(attr => attr.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
 
-                var preferredMethodName = methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
+                var methodName = CamelCase(
+                    methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
                     ?? methodNameAttribute?.FixedArguments?.ElementAtOrDefault(0)?.ToString()
-                    ?? overload.Name;
+                    ?? overload.Name);
+
                 var jsReturnTypeName = FormatJsType(model, returnType);
 
                 var parameterTypes = new List<string>();
-
-                var methodName = model.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
-                    ? CamelCase(mapping.GeneratedName)
-                    : CamelCase(preferredMethodName);
 
                 if (indexes.TryGetValue(methodName, out var index))
                 {
@@ -1340,11 +901,16 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                     var methodTypeName2 = overload.DeclaringType?.FullName ?? "";
                     var extensionArgs2 = $"builder: this._proxy, {jsonParameterList}";
 
+                    // For primitive/unknown types (any, string, etc.), return the proxy directly
+                    var returnStatement = IsPrimitiveJsType(jsReturnTypeName)
+                        ? "return new DotNetProxy(result as any);"
+                        : $"return new {jsReturnTypeName}(new DotNetProxy(result as any));";
+
                     writer.WriteLine($$"""
                       async {{methodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
                         const result = await client.invokeStaticMethod('{{methodAssembly2}}', '{{methodTypeName2}}', '{{overload.Name}}', {{{extensionArgs2}}});
                         if (result && typeof result === 'object' && '$id' in result) {
-                            return new {{jsReturnTypeName}}(new DotNetProxy(result as any));
+                            {{returnStatement}}
                         }
                         throw new Error('{{overload.Name}} did not return a marshalled object');
                       };
@@ -1409,7 +975,8 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
 
                     if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
                     {
-                        return $"{p.Name}: {prefix}{p.Name} ? registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {builderTypeName}(arg))) : null";
+                        // Use non-null assertion (!) inside callback since we check existence with ternary
+                        return $"{p.Name}: {prefix}{p.Name} ? registerCallback((arg: DotNetProxy) => {prefix}{p.Name}!(new {builderTypeName}(arg))) : null";
                     }
                     return $"{p.Name}: registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {builderTypeName}(arg)))";
                 }
@@ -1421,7 +988,8 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
                     // Wrap the callback to convert DotNetProxy to the expected proxy type
                     if (p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType))
                     {
-                        return $"{p.Name}: {prefix}{p.Name} ? registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {proxyTypeName}(arg))) : null";
+                        // Use non-null assertion (!) inside callback since we check existence with ternary
+                        return $"{p.Name}: {prefix}{p.Name} ? registerCallback((arg: DotNetProxy) => {prefix}{p.Name}!(new {proxyTypeName}(arg))) : null";
                     }
                     return $"{p.Name}: registerCallback((arg: DotNetProxy) => {prefix}{p.Name}(new {proxyTypeName}(arg)))";
                 }
@@ -1625,8 +1193,22 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
         return false;
     }
 
+    /// <summary>
+    /// Checks if a JS type name is a primitive type that cannot be instantiated with 'new'.
+    /// </summary>
+    private static bool IsPrimitiveJsType(string jsTypeName)
+    {
+        return jsTypeName is "any" or "string" or "number" or "boolean" or "void" or "unknown" or "never";
+    }
+
     private string FormatJsType(ApplicationModel model, RoType type)
     {
+        // Check if this type has a proxy wrapper
+        if (model.BuilderModel.ProxyTypes.TryGetValue(type, out var proxyModel))
+        {
+            return proxyModel.ProxyClassName;
+        }
+
         return type switch
         {
             { IsGenericType: true } when model.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var t) && t == model.WellKnownTypes.IResourceWithConnectionStringType => "IResourceWithConnectionStringBuilder",
@@ -1666,22 +1248,311 @@ public sealed class TypeScriptCodeGenerator : ICodeGenerator
             { } when type == model.WellKnownTypes.GetKnownType(typeof(DateTimeOffset)) => "Date",
             { } when type.IsEnum => type.Name,
             { IsGenericParameter: true } => "any", // Generic type parameters like T, TBuilder
-            // All other non-primitive types get a proxy wrapper
-            { } when model.ModelTypes.Contains(type) => RegisterProxyType(type),
             _ => "any"
         };
     }
 
+    #region Reflection-based Generation Methods
+
     /// <summary>
-    /// Registers a type for proxy wrapper generation and returns the proxy type name.
+    /// Generates the createBuilder() function using reflected type information.
     /// </summary>
-    private string RegisterProxyType(RoType type)
+    private static void GenerateCreateBuilderFunction(TextWriter writer, ApplicationModel model)
     {
-        var typeName = type.Name;
-        if (_proxyTypes.Add(typeName))
-        {
-            _proxyTypesByName[typeName] = type;
+        var appType = model.WellKnownTypes.DistributedApplicationType;
+        var assemblyName = appType.DeclaringAssembly?.Name ?? "Aspire.Hosting";
+        var typeName = appType.FullName;
+
+        writer.WriteLine($$"""
+
+        export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
+            console.log('Connecting to AppHost server...');
+
+            while (true) {
+              try {
+                await client.connect();
+                await client.ping();
+                console.log('Connected successfully!');
+                break;
+              } catch (error) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
+
+            const result = await client.invokeStaticMethod('{{assemblyName}}', '{{typeName}}', 'CreateBuilder', {
+              options: {
+                Args: args,
+                ProjectDirectory: process.cwd()
+              }
+            });
+
+            if (result && typeof result === 'object' && '$id' in result) {
+              return new DistributedApplicationBuilder(new DotNetProxy(result as any));
+            }
+
+            throw new Error('Failed to create DistributedApplicationBuilder');
         }
-        return $"{typeName}Proxy";
+        """);
     }
+
+    /// <summary>
+    /// Generates the DistributedApplication class using reflected type information.
+    /// </summary>
+    private void GenerateDistributedApplicationClass(TextWriter writer, ApplicationModel model)
+    {
+        writer.WriteLine("""
+
+        export class DistributedApplication {
+          private _appProxy: DotNetProxy | null = null;
+
+          constructor(private builderProxy: DotNetProxy | null) {
+          }
+
+          async run() {
+            // Build the application using invokeMethod
+            const buildResult = await this.builderProxy?.invokeMethod('Build', {});
+
+            // Store the app proxy for service resolution
+            if (buildResult && typeof buildResult === 'object' && '$id' in buildResult) {
+              this._appProxy = new DotNetProxy(buildResult as any);
+            }
+
+            // Run the application using invokeMethod
+            const runPromise = this._appProxy?.invokeMethod('RunAsync', {});
+
+            // Wait for either Ctrl+C, SIGTERM, or the connection to close
+            await new Promise<void>((resolve) => {
+              const shutdown = async () => {
+                console.log("\nStopping application...");
+                try {
+                  await this._appProxy?.invokeMethod('StopAsync', {});
+                } catch {
+                  // Ignore errors during shutdown
+                }
+                client.disconnect();
+                resolve();
+              };
+
+              process.on("SIGINT", shutdown);
+              process.on("SIGTERM", shutdown);
+
+              client.onDisconnect(() => {
+                resolve();
+              });
+
+              runPromise?.then(() => resolve()).catch(() => resolve());
+            });
+
+            process.exit(0);
+          }
+        """);
+
+        // Generate property accessors from reflected ApplicationProperties
+        foreach (var prop in model.BuilderModel.ApplicationProperties)
+        {
+            var jsReturnType = FormatJsType(model, prop.PropertyType);
+            var methodName = $"get{prop.Name}";
+
+            writer.WriteLine($$"""
+
+              async {{CamelCase(methodName)}}(): Promise<{{jsReturnType}}> {
+                if (!this._appProxy) {
+                  throw new Error('Application not yet running. Call run() first.');
+                }
+                const result = await this._appProxy.getProperty('{{prop.Name}}');
+                return result as {{jsReturnType}};
+              }
+            """);
+        }
+
+        writer.WriteLine("}");
+    }
+
+    /// <summary>
+    /// Generates proxy classes from the BuilderModel.ProxyTypes.
+    /// </summary>
+    private void GenerateBuilderProxyClasses(TextWriter writer, ApplicationModel model)
+    {
+        foreach (var (type, proxyModel) in model.BuilderModel.ProxyTypes)
+        {
+            writer.WriteLine();
+            writer.WriteLine($$"""
+                /**
+                 * Proxy for {{type.Name}}.
+                 */
+                export class {{proxyModel.ProxyClassName}} {
+                  constructor(private _proxy: DotNetProxy) {}
+
+                  get proxy(): DotNetProxy { return this._proxy; }
+                """);
+
+            // Generate property accessors from reflection
+            foreach (var prop in proxyModel.Properties.Where(p => !p.IsStatic))
+            {
+                var jsType = FormatJsType(model, prop.PropertyType);
+
+                writer.WriteLine($$"""
+
+                  async get{{prop.Name}}(): Promise<{{jsType}}> {
+                    const result = await this._proxy.getProperty('{{prop.Name}}');
+                    return result as {{jsType}};
+                  }
+                """);
+            }
+
+            // Generate instance methods
+            foreach (var method in proxyModel.Methods)
+            {
+                EmitProxyInstanceMethod(writer, model, method);
+            }
+
+            // Generate helper methods
+            foreach (var helper in proxyModel.HelperMethods)
+            {
+                var paramsStr = string.Join(", ", helper.Parameters.Select(p => $"{p.Name}: {p.Type}"));
+
+                writer.WriteLine($$"""
+
+                  /**
+                   * {{helper.Documentation ?? helper.Name}}
+                   */
+                  async {{CamelCase(helper.Name)}}({{paramsStr}}): Promise<{{helper.ReturnType}}> {
+                    {{helper.Body}}
+                  }
+                """);
+            }
+
+            // Generate static methods
+            foreach (var method in proxyModel.StaticMethods)
+            {
+                EmitProxyStaticMethod(writer, model, type, method);
+            }
+
+            writer.WriteLine("}");
+        }
+    }
+
+    private void EmitProxyInstanceMethod(TextWriter writer, ApplicationModel model, RoMethod method)
+    {
+        var methodName = CamelCase(method.Name);
+
+        // Skip property getters/setters
+        if (method.Name.StartsWith("get_") || method.Name.StartsWith("set_"))
+        {
+            return;
+        }
+
+        // Get parameters (skip 'this' for extension methods)
+        var parameters = method.Parameters;
+        var paramsList = new List<string>();
+        var argsForCall = new List<string>();
+
+        foreach (var param in parameters)
+        {
+            var jsType = FormatJsType(model, param.ParameterType);
+            paramsList.Add($"{CamelCase(param.Name)}: {jsType}");
+            argsForCall.Add(CamelCase(param.Name));
+        }
+
+        var paramsStr = string.Join(", ", paramsList);
+        var argsStr = string.Join(", ", argsForCall);
+
+        var returnType = method.ReturnType;
+        var jsReturnType = FormatJsType(model, returnType);
+        var isVoid = returnType.Name == "Void";
+
+        writer.WriteLine($$"""
+
+          async {{methodName}}({{paramsStr}}): Promise<{{(isVoid ? "void" : jsReturnType)}}> {
+            {{(isVoid ? "" : "return ")}}await this._proxy.invokeMethod('{{method.Name}}'{{(argsStr.Length > 0 ? $", {argsStr}" : "")}});
+          }
+        """);
+    }
+
+    private void EmitProxyStaticMethod(TextWriter writer, ApplicationModel model, RoType declaringType, RoMethod method)
+    {
+        var methodName = CamelCase(method.Name);
+
+        // Get parameters
+        var parameters = method.Parameters;
+        var paramsList = new List<string>();
+        var argsForCall = new List<string>();
+
+        foreach (var param in parameters)
+        {
+            var jsType = FormatJsType(model, param.ParameterType);
+            paramsList.Add($"{CamelCase(param.Name)}: {jsType}");
+            argsForCall.Add(CamelCase(param.Name));
+        }
+
+        var paramsStr = string.Join(", ", paramsList);
+        var argsStr = string.Join(", ", argsForCall);
+
+        var returnType = method.ReturnType;
+        var jsReturnType = FormatJsType(model, returnType);
+        var isVoid = returnType.Name == "Void";
+
+        // Static method needs client parameter for invoking
+        var clientParam = paramsList.Count > 0 ? "client: RemoteAppHostClient, " : "client: RemoteAppHostClient";
+
+        writer.WriteLine($$"""
+
+          static async {{methodName}}({{clientParam}}{{paramsStr}}): Promise<{{(isVoid ? "void" : jsReturnType)}}> {
+            {{(isVoid ? "" : "return ")}}await client.invokeStaticMethod('{{declaringType.Namespace}}', '{{declaringType.Name}}', '{{method.Name}}'{{(argsStr.Length > 0 ? $", {argsStr}" : "")}});
+          }
+        """);
+    }
+
+    /// <summary>
+    /// Generates the DistributedApplicationBuilderBase class from reflected properties.
+    /// </summary>
+    private void GenerateBuilderBaseClass(TextWriter writer, ApplicationModel model)
+    {
+        writer.WriteLine("""
+
+        abstract class DistributedApplicationBuilderBase {
+          constructor(protected _proxy: DotNetProxy) {}
+
+          get proxy(): DotNetProxy { return this._proxy; }
+        """);
+
+        // Generate property accessors from reflected BuilderProperties
+        foreach (var prop in model.BuilderModel.BuilderProperties)
+        {
+            // Check if this property type has a proxy wrapper
+            if (model.BuilderModel.ProxyTypes.TryGetValue(prop.PropertyType, out var proxyModel))
+            {
+                writer.WriteLine($$"""
+
+              async get{{prop.Name}}(): Promise<{{proxyModel.ProxyClassName}}> {
+                const result = await this._proxy.getProperty('{{prop.Name}}') as DotNetProxy;
+                return new {{proxyModel.ProxyClassName}}(result);
+              }
+            """);
+            }
+            else
+            {
+                var jsType = FormatJsType(model, prop.PropertyType);
+
+                writer.WriteLine($$"""
+
+              async get{{prop.Name}}(): Promise<{{jsType}}> {
+                const result = await this._proxy.getProperty('{{prop.Name}}');
+                return result as {{jsType}};
+              }
+            """);
+            }
+        }
+
+        // Generate build() method
+        writer.WriteLine("""
+
+          build() {
+            return new DistributedApplication(this._proxy);
+          }
+        }
+        """);
+    }
+
+    #endregion
 }

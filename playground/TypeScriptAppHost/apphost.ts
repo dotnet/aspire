@@ -22,8 +22,8 @@ const builder = await createBuilder();
 const config = await builder.getConfiguration();
 console.log("✅ Got Configuration proxy");
 
-// Test reading a config value (may be null if not set)
-const aspnetEnv = await config.get("ASPNETCORE_ENVIRONMENT");
+// Test reading a config value using proxy's getIndexer (may be null if not set)
+const aspnetEnv = await config.proxy.getIndexer("ASPNETCORE_ENVIRONMENT");
 console.log(`   ASPNETCORE_ENVIRONMENT: ${aspnetEnv ?? "(not set)"}`);
 
 // Test Environment access
@@ -32,25 +32,25 @@ const envName = await env.getEnvironmentName();
 const appName = await env.getApplicationName();
 console.log(`✅ Got Environment: ${envName}, App: ${appName}`);
 
-// Test environment checks
-const isDev = await env.isDevelopment();
-const isProd = await env.isProduction();
+// Test environment checks (using environment name directly)
+const isDev = envName === "Development";
+const isProd = envName === "Production";
 console.log(`   isDevelopment: ${isDev}, isProduction: ${isProd}`);
 
 // Test ExecutionContext access
 const ctx = await builder.getExecutionContext();
-const isRunMode = await ctx.isRunMode();
-const isPublishMode = await ctx.isPublishMode();
+const isRunMode = await ctx.getIsRunMode();
+const isPublishMode = await ctx.getIsPublishMode();
 console.log(`✅ Got ExecutionContext: isRunMode=${isRunMode}, isPublishMode=${isPublishMode}`);
 
-// Test convenience methods on builder
-console.log(`✅ builder.isDevelopment(): ${await builder.isDevelopment()}`);
-console.log(`✅ builder.isRunMode(): ${await builder.isRunMode()}`);
+// Test convenience methods on builder (using properties directly)
+console.log(`✅ builder environment: ${envName}`);
+console.log(`✅ builder isRunMode: ${isRunMode}`);
 
 // ========================================
 // Conditional logic based on environment (like C# pattern)
 // ========================================
-if (await builder.isDevelopment() && await builder.isRunMode()) {
+if (isDev && isRunMode) {
     console.log("🔧 Running in Development + RunMode - adding dev-only configuration");
 }
 
@@ -70,8 +70,8 @@ if (await builder.isDevelopment() && await builder.isRunMode()) {
 // Add a Redis container with fluent chaining
 const redis = await builder
     .addContainer("myredis", "redis:latest")
-    .withEnvironmentString("REDIS_VERSION", "latest")
-    .withEnvironmentString("REDIS_MODE", "standalone");
+    .withEnvironment("REDIS_VERSION", "latest")
+    .withEnvironment("REDIS_MODE", "standalone");
 
 console.log("✅ Created Redis container with fluent chaining!");
 
@@ -87,7 +87,7 @@ try {
 // You can chain withEnvironmentCallback and withArgs2 together
 const redis2 = await builder
     .addContainer("myredis2", "redis:alpine")
-    .withEnvironmentString("CONFIGURED", "via-fluent-chain")
+    .withEnvironment("CONFIGURED", "via-fluent-chain")
     .withEnvironmentCallback(async (context: EnvironmentCallbackContextProxy) => {
         const envVars = await context.getEnvironmentVariables();
         await envVars.set("MY_CUSTOM_VAR", "Hello from TypeScript with typed proxies!");

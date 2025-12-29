@@ -103,6 +103,61 @@ public class TypeScriptCodeGeneratorTests
             .UseFileName("GeneratedResource");
     }
 
+    [Fact]
+    public void RoType_Methods_ReturnsExpectedMethodsForConfigurationManager()
+    {
+        // Arrange
+        using var model = CreateApplicationModelFromTestAssembly();
+        var configType = model.BuilderModel.ProxyTypes.Keys
+            .FirstOrDefault(t => t.Name == "ConfigurationManager");
+
+        Assert.NotNull(configType);
+
+        // Act
+        var methodNames = configType.Methods.Select(m => m.Name).Order().ToArray();
+
+        // Assert
+        Assert.Equal(["Dispose", "GetChildren", "GetSection"], methodNames);
+    }
+
+    [Fact]
+    public void BuilderModel_ProxyTypes_DiscoverNestedPropertyTypes()
+    {
+        // Arrange
+        using var model = CreateApplicationModelFromTestAssembly();
+
+        // Act
+        var proxyTypeNames = model.BuilderModel.ProxyTypes.Values
+            .Select(p => p.ProxyClassName)
+            .ToHashSet();
+
+        // Assert - verify top-level framework types
+        Assert.Contains("ConfigurationManagerProxy", proxyTypeNames);
+        Assert.Contains("HostEnvironmentProxy", proxyTypeNames);
+        Assert.Contains("ServiceProviderProxy", proxyTypeNames);
+
+        // Assert - verify nested types discovered recursively
+        Assert.Contains("FileProviderProxy", proxyTypeNames);           // From IHostEnvironment.ContentRootFileProvider
+        Assert.Contains("TempFileSystemServiceProxy", proxyTypeNames);  // Discovered recursively
+    }
+
+    [Fact]
+    public void RoType_Methods_ReturnsExpectedMethodsForServiceProvider()
+    {
+        // Arrange
+        using var model = CreateApplicationModelFromTestAssembly();
+        var serviceProviderType = model.BuilderModel.ProxyTypes.Keys
+            .FirstOrDefault(t => t.Name == "IServiceProvider");
+
+        Assert.NotNull(serviceProviderType);
+
+        // Act
+        var methodNames = serviceProviderType.Methods.Select(m => m.Name).Order().ToArray();
+
+        // Assert
+        Assert.Equal(["GetService"], methodNames);
+    }
+
     private static Aspire.Hosting.CodeGeneration.Models.ApplicationModel CreateApplicationModelFromTestAssembly()
     {
         // Get the path to this test assembly
@@ -113,10 +168,13 @@ public class TypeScriptCodeGeneratorTests
         var hostingAssemblyPath = typeof(Aspire.Hosting.DistributedApplication).Assembly.Location;
         var hostingAssemblyDir = Path.GetDirectoryName(hostingAssemblyPath)!;
 
+        // Need Microsoft.Extensions.Hosting for IHost type used by DistributedApplication
+        var extensionsHostingDir = Path.GetDirectoryName(typeof(Microsoft.Extensions.Hosting.IHost).Assembly.Location)!;
+
         // Get the runtime assemblies directory for core types
         var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
 
-        var assemblyPaths = new[] { testAssemblyDir, hostingAssemblyDir, runtimeDir };
+        var assemblyPaths = new[] { testAssemblyDir, hostingAssemblyDir, extensionsHostingDir, runtimeDir };
 
         // Load the test assembly using AssemblyLoaderContext
         var context = new AssemblyLoaderContext();
