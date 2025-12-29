@@ -518,9 +518,13 @@ public class ParameterProcessorTests
         // Assert - Should have 2 inputs (parameter + disabled save checkbox)
         Assert.Equal(2, inputsInteraction.Inputs.Count);
         Assert.Equal("param1", inputsInteraction.Inputs[0].Label);
-        Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, inputsInteraction.Inputs[1].Label);
-        Assert.Equal(InputType.Boolean, inputsInteraction.Inputs[1].InputType);
-        Assert.True(inputsInteraction.Inputs[1].Disabled); // Should be disabled when user secrets not available
+        
+        var saveCheckbox = inputsInteraction.Inputs["RememberParameters"];
+        Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, saveCheckbox.Label);
+        Assert.Equal(InputType.Boolean, saveCheckbox.InputType);
+        Assert.True(saveCheckbox.Disabled); // Should be disabled when user secrets not available
+        Assert.Equal(InteractionStrings.ParametersInputsRememberDescriptionNotConfigured, saveCheckbox.Description);
+        Assert.True(saveCheckbox.EnableDescriptionMarkdown);
     }
 
     [Fact]
@@ -551,9 +555,13 @@ public class ParameterProcessorTests
         // Assert - Should have 2 inputs (parameter + enabled save checkbox)
         Assert.Equal(2, inputsInteraction.Inputs.Count);
         Assert.Equal("param1", inputsInteraction.Inputs[0].Label);
-        Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, inputsInteraction.Inputs[1].Label);
-        Assert.Equal(InputType.Boolean, inputsInteraction.Inputs[1].InputType);
-        Assert.False(inputsInteraction.Inputs[1].Disabled); // Should be enabled when user secrets are available
+        
+        var saveCheckbox = inputsInteraction.Inputs["RememberParameters"];
+        Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, saveCheckbox.Label);
+        Assert.Equal(InputType.Boolean, saveCheckbox.InputType);
+        Assert.False(saveCheckbox.Disabled); // Should be enabled when user secrets are available
+        Assert.Null(saveCheckbox.Description); // No description when enabled
+        Assert.True(saveCheckbox.EnableDescriptionMarkdown);
     }
 
     [Fact]
