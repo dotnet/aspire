@@ -160,7 +160,7 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/usersecrets) for future use..
+        ///   Looks up a localized string similar to Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use..
         /// </summary>
         internal static string ParametersInputsMessage {
             get {

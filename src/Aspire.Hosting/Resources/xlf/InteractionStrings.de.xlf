@@ -58,8 +58,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsMessage">
-        <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/usersecrets) for future use.</source>
-        <target state="needs-review-translation">Geben Sie Werte für die nicht aufgelösten Parameter an. Parameter können zur zukünftigen Verwendung in [Benutzergeheimnisse](https://aka.ms/aspire/usersecrets) gespeichert werden.</target>
+        <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.</source>
+        <target state="needs-review-translation">Geben Sie Werte für die nicht aufgelösten Parameter an. Parameter können zur zukünftigen Verwendung in [Benutzergeheimnisse](https://aka.ms/aspire/user-secrets) gespeichert werden.</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="ParametersInputsMessagePublishMode">
