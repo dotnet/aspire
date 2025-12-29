@@ -270,7 +270,9 @@ public sealed class ParameterProcessor(
                             Name = "RememberParameters",
                             InputType = InputType.Boolean,
                             Label = InteractionStrings.ParametersInputsRememberLabel,
-                            Description = InteractionStrings.ParametersInputsRememberDescription,
+                            Description = userSecretsManager.IsAvailable 
+                                ? InteractionStrings.ParametersInputsRememberDescription 
+                                : InteractionStrings.ParametersInputsRememberDescriptionNotConfigured,
                             Disabled = !userSecretsManager.IsAvailable
                         };
                         inputs.Add(saveParameters);
