@@ -44,6 +44,12 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
             return null;
         }
 
+        // Don't generate proxies for Task/Task<T> - they're formatted as Promise<T>
+        if (IsTaskType(Model, type))
+        {
+            return null;
+        }
+
         // Don't generate proxies for interfaces (except IResource types)
         if (type.IsInterface && !Model.WellKnownTypes.IResourceType.IsAssignableFrom(type))
         {
@@ -59,6 +65,50 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
         // Other complex types are callback proxies
         return $"{type.Name}Proxy";
+    }
+
+    /// <summary>
+    /// Checks if a type is Task or Task&lt;T&gt;.
+    /// </summary>
+    private static bool IsTaskType(ApplicationModel model, RoType type)
+    {
+        var taskType = model.WellKnownTypes.GetKnownType(typeof(Task));
+        if (type == taskType)
+        {
+            return true;
+        }
+
+        if (type.IsGenericType)
+        {
+            var taskOfTType = model.WellKnownTypes.GetKnownType(typeof(Task<>));
+            return type.GenericTypeDefinition == taskOfTType;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Unwraps Task types for method return type formatting.
+    /// Task → void, Task&lt;T&gt; → T, other → as-is.
+    /// </summary>
+    private static RoType UnwrapTaskType(ApplicationModel model, RoType type)
+    {
+        var taskType = model.WellKnownTypes.GetKnownType(typeof(Task));
+        if (type == taskType)
+        {
+            return model.WellKnownTypes.GetKnownType(typeof(void));
+        }
+
+        if (type.IsGenericType)
+        {
+            var taskOfTType = model.WellKnownTypes.GetKnownType(typeof(Task<>));
+            if (type.GenericTypeDefinition == taskOfTType)
+            {
+                return type.GetGenericArguments()[0];
+            }
+        }
+
+        return type;
     }
 
     /// <inheritdoc />
@@ -491,7 +541,9 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
         // UniqueName is already camelCase and disambiguated by base class
         var methodName = overload.UniqueName;
 
-        var jsReturnTypeName = FormatJsType(Model, returnType);
+        // Unwrap Task<T> to T since async methods already return Promise
+        var unwrappedReturnType = UnwrapTaskType(Model, returnType);
+        var jsReturnTypeName = FormatJsType(Model, unwrappedReturnType);
 
         // Buffer methods that return builders for thenable class generation
         var isBuilderReturnType = jsReturnTypeName.EndsWith("Builder", StringComparison.Ordinal);
@@ -763,7 +815,9 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
         var method = overload.Method;
         var methodName = overload.UniqueName; // Already camelCase and disambiguated
 
-        var jsReturnTypeName = FormatJsType(Model, method.ReturnType);
+        // Unwrap Task<T> to T since async methods already return Promise
+        var unwrappedReturnType = UnwrapTaskType(Model, method.ReturnType);
+        var jsReturnTypeName = FormatJsType(Model, unwrappedReturnType);
         var returnThenableClassName = $"{jsReturnTypeName}Promise";
 
         var parameters = method.Parameters.Skip(1); // Skip the first parameter (this)
@@ -944,56 +998,63 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     }
 
     /// <summary>
-    /// Formats a delegate type (Action or Func) as a TypeScript function signature.
+    /// Formats a delegate type as a TypeScript function signature.
+    /// For generic Action/Func, uses type arguments directly.
+    /// For custom delegates, inspects the Invoke method.
     /// </summary>
     private string FormatDelegateType(ApplicationModel model, RoType delegateType)
     {
-        var args = delegateType.GetGenericArguments();
-
-        // For Func<..., TResult>, the last generic argument is the return type
-        // For Action<...>, all arguments are parameters and return type is void
-        var isFuncType = IsFuncType(model, delegateType);
-
-        if (isFuncType && args.Count > 0)
+        // For generic Action/Func, use type arguments directly
+        if (delegateType.IsGenericType && delegateType.GenericTypeDefinition is { } genericDef)
         {
-            // All arguments except last are parameters, last is return type
-            var paramTypes = args.Take(args.Count - 1).Select((arg, i) => $"p{i}: {FormatJsType(model, arg)}");
-            var returnType = FormatJsReturnType(model, args[args.Count - 1]);
-            return $"({string.Join(", ", paramTypes)}) => {returnType}";
-        }
-        else
-        {
-            // Action - all arguments are parameters
-            var paramTypes = args.Select((arg, i) => $"p{i}: {FormatJsType(model, arg)}");
-            return $"({string.Join(", ", paramTypes)}) => void | Promise<void>";
-        }
-    }
+            var name = genericDef.Name;
+            var typeArgs = delegateType.GetGenericArguments();
 
-    /// <summary>
-    /// Checks if a type is a Func delegate type.
-    /// </summary>
-    private static bool IsFuncType(ApplicationModel model, RoType type)
-    {
-        if (!type.IsGenericType)
-        {
-            return false;
-        }
-
-        var genericDef = type.GenericTypeDefinition;
-        var funcTypes = new[]
-        {
-            typeof(Func<>), typeof(Func<,>), typeof(Func<,,>), typeof(Func<,,,>), typeof(Func<,,,,>)
-        };
-
-        foreach (var funcType in funcTypes)
-        {
-            if (genericDef == model.WellKnownTypes.GetKnownType(funcType))
+            // Action<T1, T2, ...>: all type args are parameters, return void
+            if (name.StartsWith("Action`", StringComparison.Ordinal))
             {
-                return true;
+                var paramTypes = typeArgs.Select((arg, i) => $"p{i}: {FormatJsType(model, arg)}");
+                return $"({string.Join(", ", paramTypes)}) => void | Promise<void>";
+            }
+
+            // Func<T1, T2, ..., TResult>: last type arg is return, rest are parameters
+            if (name.StartsWith("Func`", StringComparison.Ordinal) && typeArgs.Count > 0)
+            {
+                var paramTypeArgs = typeArgs.Take(typeArgs.Count - 1);
+                var returnTypeArg = typeArgs[typeArgs.Count - 1];
+                var paramTypes = paramTypeArgs.Select((arg, i) => $"p{i}: {FormatJsType(model, arg)}");
+                var formattedReturnType = FormatJsReturnType(model, returnTypeArg);
+                return $"({string.Join(", ", paramTypes)}) => {formattedReturnType}";
             }
         }
 
-        return false;
+        // Non-generic Action
+        if (delegateType == model.WellKnownTypes.GetKnownType(typeof(Action)))
+        {
+            return "() => void | Promise<void>";
+        }
+
+        // For custom delegates, try to get the Invoke method
+        var invokeMethod = GetDelegateInvokeMethod(delegateType);
+        if (invokeMethod is null)
+        {
+            return "(...args: any[]) => any";
+        }
+
+        var parameters = invokeMethod.Parameters;
+        var paramTypesFromMethod = parameters.Select((p, i) => $"p{i}: {FormatJsType(model, p.ParameterType)}");
+        var returnType = invokeMethod.ReturnType;
+        var voidType = model.WellKnownTypes.GetKnownType(typeof(void));
+
+        if (returnType == voidType)
+        {
+            return $"({string.Join(", ", paramTypesFromMethod)}) => void | Promise<void>";
+        }
+        else
+        {
+            var formattedReturnType = FormatJsReturnType(model, returnType);
+            return $"({string.Join(", ", paramTypesFromMethod)}) => {formattedReturnType}";
+        }
     }
 
     /// <summary>

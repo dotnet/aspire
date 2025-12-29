@@ -536,47 +536,58 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     }
 
     /// <summary>
-    /// Checks if a type is a delegate type (Action, Func, etc.)
+    /// Checks if a type is a delegate type (Action, Func, custom delegates, etc.)
     /// </summary>
     protected static bool IsDelegateType(ApplicationModel model, RoType type)
     {
-        // Check for Action (no generic args)
+        // For constructed generic types like Func<T, TResult>, check the generic type definition's name
+        if (type.IsGenericType && type.GenericTypeDefinition is { } genericDef)
+        {
+            // Check for Action and Func by name pattern (Action`N or Func`N)
+            var name = genericDef.Name;
+            if (name.StartsWith("Action`", StringComparison.Ordinal) ||
+                name.StartsWith("Func`", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            // For other generic delegates, check if the definition inherits from Delegate
+            var delegateType = model.WellKnownTypes.GetKnownType(typeof(Delegate));
+            return genericDef.IsAssignableTo(delegateType);
+        }
+
+        // Non-generic Action
         if (type == model.WellKnownTypes.GetKnownType(typeof(Action)))
         {
             return true;
         }
 
-        // Check for generic Action<T>, Action<T1, T2>, etc.
-        if (type.IsGenericType)
+        // For non-generic types, check inheritance from Delegate
+        var delegateBaseType = model.WellKnownTypes.GetKnownType(typeof(Delegate));
+        return type.IsAssignableTo(delegateBaseType);
+    }
+
+    /// <summary>
+    /// Gets the Invoke method for a delegate type.
+    /// Returns null for generic Action/Func types (use type arguments instead).
+    /// </summary>
+    protected static RoMethod? GetDelegateInvokeMethod(RoType delegateType)
+    {
+        // For generic Action/Func, we can't load the Invoke method from the definition
+        // because it has unresolved generic parameter types (!0, !1, etc.)
+        // The caller should use GetGenericArguments() instead
+        if (delegateType.IsGenericType && delegateType.GenericTypeDefinition is { } genericDef)
         {
-            var genericDef = type.GenericTypeDefinition;
-            var actionTypes = new[]
+            var name = genericDef.Name;
+            if (name.StartsWith("Action`", StringComparison.Ordinal) ||
+                name.StartsWith("Func`", StringComparison.Ordinal))
             {
-                typeof(Action<>), typeof(Action<,>), typeof(Action<,,>), typeof(Action<,,,>)
-            };
-            var funcTypes = new[]
-            {
-                typeof(Func<>), typeof(Func<,>), typeof(Func<,,>), typeof(Func<,,,>), typeof(Func<,,,,>)
-            };
-
-            foreach (var actionType in actionTypes)
-            {
-                if (genericDef == model.WellKnownTypes.GetKnownType(actionType))
-                {
-                    return true;
-                }
-            }
-
-            foreach (var funcType in funcTypes)
-            {
-                if (genericDef == model.WellKnownTypes.GetKnownType(funcType))
-                {
-                    return true;
-                }
+                return null;
             }
         }
 
-        return false;
+        // For non-generic delegates or custom delegates, try to get the Invoke method
+        return delegateType.GetMethod("Invoke");
     }
 
     /// <summary>

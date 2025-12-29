@@ -213,12 +213,12 @@ export class DistributedApplicationEventingProxy {
     await this._proxy.invokeMethod('Unsubscribe', { subscription });
   }
 
-  async publishAsync(event: any, cancellationToken: CancellationTokenProxy): Promise<TaskProxy> {
-    return await this._proxy.invokeMethod('PublishAsync', { event, cancellationToken }) as TaskProxy;
+  async publishAsync(event: any, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return await this._proxy.invokeMethod('PublishAsync', { event, cancellationToken }) as any;
   }
 
-  async publishAsync2(event: any, dispatchBehavior: EventDispatchBehavior, cancellationToken: CancellationTokenProxy): Promise<TaskProxy> {
-    return await this._proxy.invokeMethod('PublishAsync', { event, dispatchBehavior, cancellationToken }) as TaskProxy;
+  async publishAsync2(event: any, dispatchBehavior: EventDispatchBehavior, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return await this._proxy.invokeMethod('PublishAsync', { event, dispatchBehavior, cancellationToken }) as any;
   }
 }
 
@@ -285,8 +285,8 @@ export class DistributedApplicationPipelineProxy {
     await this._proxy.invokeMethod('AddPipelineConfiguration', { callback: registerCallback(callback) });
   }
 
-  async executeAsync(context: any): Promise<TaskProxy> {
-    return await this._proxy.invokeMethod('ExecuteAsync', { context }) as TaskProxy;
+  async executeAsync(context: any): Promise<any> {
+    return await this._proxy.invokeMethod('ExecuteAsync', { context }) as any;
   }
 }
 
@@ -325,8 +325,8 @@ export class UserSecretsManagerProxy {
     await this._proxy.invokeMethod('GetOrSetSecret', { configuration, name, valueGenerator: registerCallback(valueGenerator) });
   }
 
-  async saveStateAsync(state: any, cancellationToken: CancellationTokenProxy): Promise<TaskProxy> {
-    return await this._proxy.invokeMethod('SaveStateAsync', { state, cancellationToken }) as TaskProxy;
+  async saveStateAsync(state: any, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return await this._proxy.invokeMethod('SaveStateAsync', { state, cancellationToken }) as any;
   }
 }
 
@@ -351,8 +351,8 @@ export class ResourceNotificationServiceProxy {
 
   get proxy(): DotNetProxy { return this._proxy; }
 
-  async waitForResourceAsync(resourceName: string, targetState: string, cancellationToken: CancellationTokenProxy): Promise<TaskProxy> {
-    return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, targetState, cancellationToken }) as TaskProxy;
+  async waitForResourceAsync(resourceName: string, targetState: string, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, targetState, cancellationToken }) as any;
   }
 
   async waitForResourceAsync2(resourceName: string, targetStates: Array<string>, cancellationToken: CancellationTokenProxy): Promise<any> {
@@ -371,8 +371,8 @@ export class ResourceNotificationServiceProxy {
     return await this._proxy.invokeMethod('WaitForResourceHealthyAsync', { resourceName, waitBehavior, cancellationToken }) as any;
   }
 
-  async waitForDependenciesAsync(resource: any, cancellationToken: CancellationTokenProxy): Promise<TaskProxy> {
-    return await this._proxy.invokeMethod('WaitForDependenciesAsync', { resource, cancellationToken }) as TaskProxy;
+  async waitForDependenciesAsync(resource: any, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return await this._proxy.invokeMethod('WaitForDependenciesAsync', { resource, cancellationToken }) as any;
   }
 
   async tryGetCurrentState(resourceId: string, resourceEvent: ResourceEventProxy): Promise<boolean> {
@@ -383,12 +383,12 @@ export class ResourceNotificationServiceProxy {
     return await this._proxy.invokeMethod('WatchAsync', { cancellationToken }) as any;
   }
 
-  async publishUpdateAsync(resource: any, stateFactory: (p0: CustomResourceSnapshotProxy) => CustomResourceSnapshotProxy | Promise<CustomResourceSnapshotProxy>): Promise<TaskProxy> {
-    return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, stateFactory: registerCallback(stateFactory) }) as TaskProxy;
+  async publishUpdateAsync(resource: any, stateFactory: (p0: CustomResourceSnapshotProxy) => CustomResourceSnapshotProxy | Promise<CustomResourceSnapshotProxy>): Promise<any> {
+    return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, stateFactory: registerCallback(stateFactory) }) as any;
   }
 
-  async publishUpdateAsync2(resource: any, resourceId: string, stateFactory: (p0: CustomResourceSnapshotProxy) => CustomResourceSnapshotProxy | Promise<CustomResourceSnapshotProxy>): Promise<TaskProxy> {
-    return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, resourceId, stateFactory: registerCallback(stateFactory) }) as TaskProxy;
+  async publishUpdateAsync2(resource: any, resourceId: string, stateFactory: (p0: CustomResourceSnapshotProxy) => CustomResourceSnapshotProxy | Promise<CustomResourceSnapshotProxy>): Promise<any> {
+    return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, resourceId, stateFactory: registerCallback(stateFactory) }) as any;
   }
 
   async dispose(): Promise<void> {
@@ -1083,6 +1083,121 @@ export class TestRedisResourceBuilder {
   }
 
    /**
+   * WithSimpleCallback
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithSimpleCallback(IResourceBuilder<TestRedisResource> builder, Action callback)
+   * @param {() => void | Promise<void>} callback C# Type: Action
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withSimpleCallbackInternal(callback: () => void | Promise<void>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithSimpleCallback', {builder: this._proxy, callback: registerCallback(callback)});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithSimpleCallback did not return a marshalled object');
+  };
+
+  /**
+   * WithSimpleCallback (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithSimpleCallback(IResourceBuilder<TestRedisResource> builder, Action callback)
+   */
+  withSimpleCallback(callback: () => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withSimpleCallbackInternal(callback));
+  }
+
+   /**
+   * WithValueProvider
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithValueProvider(IResourceBuilder<TestRedisResource> builder, Func<String> valueProvider)
+   * @param {() => string | Promise<string>} valueProvider C# Type: Func<String>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withValueProviderInternal(valueProvider: () => string | Promise<string>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithValueProvider', {builder: this._proxy, valueProvider: registerCallback(valueProvider)});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithValueProvider did not return a marshalled object');
+  };
+
+  /**
+   * WithValueProvider (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithValueProvider(IResourceBuilder<TestRedisResource> builder, Func<String> valueProvider)
+   */
+  withValueProvider(valueProvider: () => string | Promise<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withValueProviderInternal(valueProvider));
+  }
+
+   /**
+   * WithAsyncValueProvider
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithAsyncValueProvider(IResourceBuilder<TestRedisResource> builder, Func<Task<String>> asyncValueProvider)
+   * @param {() => Promise<string>} asyncValueProvider C# Type: Func<Task<String>>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withAsyncValueProviderInternal(asyncValueProvider: () => Promise<string>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithAsyncValueProvider', {builder: this._proxy, asyncValueProvider: registerCallback(asyncValueProvider)});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithAsyncValueProvider did not return a marshalled object');
+  };
+
+  /**
+   * WithAsyncValueProvider (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithAsyncValueProvider(IResourceBuilder<TestRedisResource> builder, Func<Task<String>> asyncValueProvider)
+   */
+  withAsyncValueProvider(asyncValueProvider: () => Promise<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withAsyncValueProviderInternal(asyncValueProvider));
+  }
+
+   /**
+   * WithQuadCallback
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithQuadCallback(IResourceBuilder<TestRedisResource> builder, Action<String, Int32, Boolean, Double> callback)
+   * @param {(p0: string, p1: number, p2: boolean, p3: number) => void | Promise<void>} callback C# Type: Action<String, Int32, Boolean, Double>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withQuadCallbackInternal(callback: (p0: string, p1: number, p2: boolean, p3: number) => void | Promise<void>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithQuadCallback', {builder: this._proxy, callback: registerCallback(callback)});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithQuadCallback did not return a marshalled object');
+  };
+
+  /**
+   * WithQuadCallback (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithQuadCallback(IResourceBuilder<TestRedisResource> builder, Action<String, Int32, Boolean, Double> callback)
+   */
+  withQuadCallback(callback: (p0: string, p1: number, p2: boolean, p3: number) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withQuadCallbackInternal(callback));
+  }
+
+   /**
+   * WithQuadTransform
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithQuadTransform(IResourceBuilder<TestRedisResource> builder, Func<String, Int32, Boolean, Double, String> transform)
+   * @param {(p0: string, p1: number, p2: boolean, p3: number) => string | Promise<string>} transform C# Type: Func<String, Int32, Boolean, Double, String>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withQuadTransformInternal(transform: (p0: string, p1: number, p2: boolean, p3: number) => string | Promise<string>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithQuadTransform', {builder: this._proxy, transform: registerCallback(transform)});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithQuadTransform did not return a marshalled object');
+  };
+
+  /**
+   * WithQuadTransform (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithQuadTransform(IResourceBuilder<TestRedisResource> builder, Func<String, Int32, Boolean, Double, String> transform)
+   */
+  withQuadTransform(transform: (p0: string, p1: number, p2: boolean, p3: number) => string | Promise<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withQuadTransformInternal(transform));
+  }
+
+   /**
    * WithCustomCallback
    * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithCustomCallback<TestRedisResource>(IResourceBuilder<T> builder, Action<TestCallbackContext> callback)
    * @param {(p0: TestCallbackContextProxy) => void | Promise<void>} callback C# Type: Action<TestCallbackContext>
@@ -1373,6 +1488,51 @@ export class TestRedisResourceBuilderPromise implements PromiseLike<TestRedisRes
   }
 
   /**
+   * WithSimpleCallback (fluent chaining)
+   */
+  withSimpleCallback(callback: () => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withSimpleCallbackInternal(callback))
+    );
+  }
+
+  /**
+   * WithValueProvider (fluent chaining)
+   */
+  withValueProvider(valueProvider: () => string | Promise<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withValueProviderInternal(valueProvider))
+    );
+  }
+
+  /**
+   * WithAsyncValueProvider (fluent chaining)
+   */
+  withAsyncValueProvider(asyncValueProvider: () => Promise<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withAsyncValueProviderInternal(asyncValueProvider))
+    );
+  }
+
+  /**
+   * WithQuadCallback (fluent chaining)
+   */
+  withQuadCallback(callback: (p0: string, p1: number, p2: boolean, p3: number) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withQuadCallbackInternal(callback))
+    );
+  }
+
+  /**
+   * WithQuadTransform (fluent chaining)
+   */
+  withQuadTransform(transform: (p0: string, p1: number, p2: boolean, p3: number) => string | Promise<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withQuadTransformInternal(transform))
+    );
+  }
+
+  /**
    * WithCustomCallback (fluent chaining)
    */
   withCustomCallback(callback: (p0: TestCallbackContextProxy) => void | Promise<void>): TestRedisResourceBuilderPromise {
@@ -1602,159 +1762,6 @@ export class CancellationTokenProxy {
     async getWaitHandle(): Promise<any> {
         const result = await this._proxy.getProperty("WaitHandle");
         return result as any;
-    }
-
-    /**
-     * Gets a property value from the .NET object (generic fallback)
-     * @param propertyName The property name
-     */
-    async getProperty<T = unknown>(propertyName: string): Promise<T> {
-        const result = await this._proxy.getProperty(propertyName);
-        return result as T;
-    }
-
-    /**
-     * Sets a property value on the .NET object (generic fallback)
-     * @param propertyName The property name
-     * @param value The value to set
-     */
-    async setProperty(propertyName: string, value: unknown): Promise<void> {
-        await this._proxy.setProperty(propertyName, value);
-    }
-
-    /**
-     * Invokes a method on the .NET object (generic fallback)
-     * @param methodName The method name
-     * @param args The method arguments
-     */
-    async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
-        const result = await this._proxy.invokeMethod(methodName, args);
-        return result as T;
-    }
-}
-
-/**
- * Typed proxy wrapper for Task
- * Provides typed access to .NET object properties via JSON-RPC
- */
-export class TaskProxy {
-    constructor(private _proxy: DotNetProxy) {}
-
-    /** Get the underlying proxy for advanced operations */
-    get proxy(): DotNetProxy { return this._proxy; }
-
-    /** The .NET type name */
-    get $type(): string { return this._proxy.$type; }
-
-    /** The object identifier for use in method calls */
-    get $id(): string { return this._proxy.$id; }
-
-    /**
-     * Gets the static CurrentId property
-     * @returns Promise<number | null>
-     */
-    static async getCurrentId(client: RemoteAppHostClient): Promise<number | null> {
-        const result = await client.getStaticProperty("System.Private.CoreLib", "System.Threading.Tasks.Task", "CurrentId");
-        return wrapIfProxy(result) as number | null;
-    }
-
-    /**
-     * Gets the static Factory property
-     * @returns Promise<any>
-     */
-    static async getFactory(client: RemoteAppHostClient): Promise<any> {
-        const result = await client.getStaticProperty("System.Private.CoreLib", "System.Threading.Tasks.Task", "Factory");
-        return wrapIfProxy(result) as any;
-    }
-
-    /**
-     * Gets the static CompletedTask property
-     * @returns Promise<TaskProxy>
-     */
-    static async getCompletedTask(client: RemoteAppHostClient): Promise<TaskProxy> {
-        const result = await client.getStaticProperty("System.Private.CoreLib", "System.Threading.Tasks.Task", "CompletedTask");
-        return new TaskProxy(wrapIfProxy(result) as DotNetProxy);
-    }
-
-    /**
-     * Gets the Id property
-     * @returns Promise<number>
-     */
-    async getId(): Promise<number> {
-        const result = await this._proxy.getProperty("Id");
-        return result as number;
-    }
-
-    /**
-     * Gets the Exception property
-     * @returns Promise<any>
-     */
-    async getException(): Promise<any> {
-        const result = await this._proxy.getProperty("Exception");
-        return result as any;
-    }
-
-    /**
-     * Gets the Status property
-     * @returns Promise<TaskStatus>
-     */
-    async getStatus(): Promise<TaskStatus> {
-        const result = await this._proxy.getProperty("Status");
-        return result as TaskStatus;
-    }
-
-    /**
-     * Gets the IsCanceled property
-     * @returns Promise<boolean>
-     */
-    async getIsCanceled(): Promise<boolean> {
-        const result = await this._proxy.getProperty("IsCanceled");
-        return result as boolean;
-    }
-
-    /**
-     * Gets the IsCompleted property
-     * @returns Promise<boolean>
-     */
-    async getIsCompleted(): Promise<boolean> {
-        const result = await this._proxy.getProperty("IsCompleted");
-        return result as boolean;
-    }
-
-    /**
-     * Gets the IsCompletedSuccessfully property
-     * @returns Promise<boolean>
-     */
-    async getIsCompletedSuccessfully(): Promise<boolean> {
-        const result = await this._proxy.getProperty("IsCompletedSuccessfully");
-        return result as boolean;
-    }
-
-    /**
-     * Gets the CreationOptions property
-     * @returns Promise<TaskCreationOptions>
-     */
-    async getCreationOptions(): Promise<TaskCreationOptions> {
-        const result = await this._proxy.getProperty("CreationOptions");
-        return result as TaskCreationOptions;
-    }
-
-    /**
-     * Gets the AsyncState property
-     * @returns Promise<any>
-     */
-    async getAsyncState(): Promise<any> {
-        const result = await this._proxy.getProperty("AsyncState");
-        return result as any;
-    }
-
-    /**
-     * Gets the IsFaulted property
-     * @returns Promise<boolean>
-     */
-    async getIsFaulted(): Promise<boolean> {
-        const result = await this._proxy.getProperty("IsFaulted");
-        return result as boolean;
     }
 
     /**
@@ -2423,51 +2430,6 @@ export class TestCallbackContextProxy {
     async setValue(value: number): Promise<void> {
         await this._proxy.setProperty("Value", value);
     }
-
-    /**
-     * Gets a property value from the .NET object (generic fallback)
-     * @param propertyName The property name
-     */
-    async getProperty<T = unknown>(propertyName: string): Promise<T> {
-        const result = await this._proxy.getProperty(propertyName);
-        return result as T;
-    }
-
-    /**
-     * Sets a property value on the .NET object (generic fallback)
-     * @param propertyName The property name
-     * @param value The value to set
-     */
-    async setProperty(propertyName: string, value: unknown): Promise<void> {
-        await this._proxy.setProperty(propertyName, value);
-    }
-
-    /**
-     * Invokes a method on the .NET object (generic fallback)
-     * @param methodName The method name
-     * @param args The method arguments
-     */
-    async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
-        const result = await this._proxy.invokeMethod(methodName, args);
-        return result as T;
-    }
-}
-
-/**
- * Typed proxy wrapper for Task<Boolean>
- * Provides typed access to .NET object properties via JSON-RPC
- */
-export class Task<Boolean>Proxy {
-    constructor(private _proxy: DotNetProxy) {}
-
-    /** Get the underlying proxy for advanced operations */
-    get proxy(): DotNetProxy { return this._proxy; }
-
-    /** The .NET type name */
-    get $type(): string { return this._proxy.$type; }
-
-    /** The object identifier for use in method calls */
-    get $id(): string { return this._proxy.$id; }
 
     /**
      * Gets a property value from the .NET object (generic fallback)

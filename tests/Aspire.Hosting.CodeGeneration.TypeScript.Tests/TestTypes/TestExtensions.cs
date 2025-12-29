@@ -305,6 +305,61 @@ public static class TestExtensions
     {
         return builder;
     }
+
+    // ===== Additional Delegate Edge Cases =====
+
+    /// <summary>
+    /// Tests non-generic Action (no parameters).
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithSimpleCallback(
+        this IResourceBuilder<TestRedisResource> builder,
+        Action callback)
+    {
+        callback?.Invoke();
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests Func with no parameters (just return type).
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithValueProvider(
+        this IResourceBuilder<TestRedisResource> builder,
+        Func<string> valueProvider)
+    {
+        valueProvider?.Invoke();
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests Func with no parameters returning Task (async factory).
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithAsyncValueProvider(
+        this IResourceBuilder<TestRedisResource> builder,
+        Func<Task<string>> asyncValueProvider)
+    {
+        asyncValueProvider?.Invoke();
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests Action with 4 parameters (higher arity).
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithQuadCallback(
+        this IResourceBuilder<TestRedisResource> builder,
+        Action<string, int, bool, double> callback)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests Func with 4 parameters plus return (higher arity).
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithQuadTransform(
+        this IResourceBuilder<TestRedisResource> builder,
+        Func<string, int, bool, double, string> transform)
+    {
+        return builder;
+    }
 }
 
 /// <summary>
