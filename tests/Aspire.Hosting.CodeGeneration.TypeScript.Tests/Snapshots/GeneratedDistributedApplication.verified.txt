@@ -107,6 +107,23 @@ export class DistributedApplication {
   }
 }
 
+export enum EventDispatchBehavior {
+  BlockingSequential = "BlockingSequential",
+  BlockingConcurrent = "BlockingConcurrent",
+  NonBlockingSequential = "NonBlockingSequential",
+  NonBlockingConcurrent = "NonBlockingConcurrent"
+}
+
+export enum DistributedApplicationOperation {
+  Run = "Run",
+  Publish = "Publish"
+}
+
+export enum WaitBehavior {
+  WaitOnResourceUnavailable = "WaitOnResourceUnavailable",
+  StopOnResourceUnavailable = "StopOnResourceUnavailable"
+}
+
 /**
  * Proxy for ConfigurationManager.
  */
@@ -126,15 +143,15 @@ export class ConfigurationManagerProxy {
   }
 
   async getSection(key: string): Promise<any> {
-    return await this._proxy.invokeMethod('GetSection', key);
+    return await this._proxy.invokeMethod('GetSection', { key }) as any;
   }
 
   async getChildren(): Promise<any> {
-    return await this._proxy.invokeMethod('GetChildren');
+    return await this._proxy.invokeMethod('GetChildren', {}) as any;
   }
 
   async dispose(): Promise<void> {
-    await this._proxy.invokeMethod('Dispose');
+    await this._proxy.invokeMethod('Dispose', {});
   }
 }
 
@@ -185,23 +202,23 @@ export class DistributedApplicationEventingProxy {
   get proxy(): DotNetProxy { return this._proxy; }
 
   async subscribe(callback: any): Promise<any> {
-    return await this._proxy.invokeMethod('Subscribe', callback);
+    return await this._proxy.invokeMethod('Subscribe', { callback: registerCallback(callback) }) as any;
   }
 
-  async subscribe(resource: any, callback: any): Promise<any> {
-    return await this._proxy.invokeMethod('Subscribe', resource, callback);
+  async subscribe1(resource: any, callback: any): Promise<any> {
+    return await this._proxy.invokeMethod('Subscribe', { resource, callback: registerCallback(callback) }) as any;
   }
 
   async unsubscribe(subscription: any): Promise<void> {
-    await this._proxy.invokeMethod('Unsubscribe', subscription);
+    await this._proxy.invokeMethod('Unsubscribe', { subscription });
   }
 
   async publishAsync(event: any, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('PublishAsync', event, cancellationToken);
+    return await this._proxy.invokeMethod('PublishAsync', { event, cancellationToken }) as any;
   }
 
-  async publishAsync(event: any, dispatchBehavior: EventDispatchBehavior, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('PublishAsync', event, dispatchBehavior, cancellationToken);
+  async publishAsync1(event: any, dispatchBehavior: EventDispatchBehavior, cancellationToken: any): Promise<any> {
+    return await this._proxy.invokeMethod('PublishAsync', { event, dispatchBehavior, cancellationToken }) as any;
   }
 }
 
@@ -257,19 +274,19 @@ export class DistributedApplicationPipelineProxy {
   get proxy(): DotNetProxy { return this._proxy; }
 
   async addStep(name: string, action: any, dependsOn: any, requiredBy: any): Promise<void> {
-    await this._proxy.invokeMethod('AddStep', name, action, dependsOn, requiredBy);
+    await this._proxy.invokeMethod('AddStep', { name, action: registerCallback(action), dependsOn, requiredBy });
   }
 
-  async addStep(step: any): Promise<void> {
-    await this._proxy.invokeMethod('AddStep', step);
+  async addStep1(step: any): Promise<void> {
+    await this._proxy.invokeMethod('AddStep', { step });
   }
 
   async addPipelineConfiguration(callback: any): Promise<void> {
-    await this._proxy.invokeMethod('AddPipelineConfiguration', callback);
+    await this._proxy.invokeMethod('AddPipelineConfiguration', { callback: registerCallback(callback) });
   }
 
   async executeAsync(context: any): Promise<any> {
-    return await this._proxy.invokeMethod('ExecuteAsync', context);
+    return await this._proxy.invokeMethod('ExecuteAsync', { context }) as any;
   }
 }
 
@@ -301,15 +318,15 @@ export class UserSecretsManagerProxy {
   }
 
   async trySetSecret(name: string, value: string): Promise<boolean> {
-    return await this._proxy.invokeMethod('TrySetSecret', name, value);
+    return await this._proxy.invokeMethod('TrySetSecret', { name, value }) as boolean;
   }
 
   async getOrSetSecret(configuration: any, name: string, valueGenerator: any): Promise<void> {
-    await this._proxy.invokeMethod('GetOrSetSecret', configuration, name, valueGenerator);
+    await this._proxy.invokeMethod('GetOrSetSecret', { configuration, name, valueGenerator: registerCallback(valueGenerator) });
   }
 
   async saveStateAsync(state: any, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('SaveStateAsync', state, cancellationToken);
+    return await this._proxy.invokeMethod('SaveStateAsync', { state, cancellationToken }) as any;
   }
 }
 
@@ -322,7 +339,7 @@ export class ServiceProviderProxy {
   get proxy(): DotNetProxy { return this._proxy; }
 
   async getService(serviceType: any): Promise<any> {
-    return await this._proxy.invokeMethod('GetService', serviceType);
+    return await this._proxy.invokeMethod('GetService', { serviceType }) as any;
   }
 }
 
@@ -335,47 +352,47 @@ export class ResourceNotificationServiceProxy {
   get proxy(): DotNetProxy { return this._proxy; }
 
   async waitForResourceAsync(resourceName: string, targetState: string, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('WaitForResourceAsync', resourceName, targetState, cancellationToken);
+    return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, targetState, cancellationToken }) as any;
   }
 
-  async waitForResourceAsync(resourceName: string, targetStates: any, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('WaitForResourceAsync', resourceName, targetStates, cancellationToken);
+  async waitForResourceAsync1(resourceName: string, targetStates: any, cancellationToken: any): Promise<any> {
+    return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, targetStates, cancellationToken }) as any;
   }
 
   async waitForResourceHealthyAsync(resourceName: string, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('WaitForResourceHealthyAsync', resourceName, cancellationToken);
+    return await this._proxy.invokeMethod('WaitForResourceHealthyAsync', { resourceName, cancellationToken }) as any;
   }
 
-  async waitForResourceHealthyAsync(resourceName: string, waitBehavior: WaitBehavior, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('WaitForResourceHealthyAsync', resourceName, waitBehavior, cancellationToken);
+  async waitForResourceHealthyAsync1(resourceName: string, waitBehavior: WaitBehavior, cancellationToken: any): Promise<any> {
+    return await this._proxy.invokeMethod('WaitForResourceHealthyAsync', { resourceName, waitBehavior, cancellationToken }) as any;
   }
 
   async waitForDependenciesAsync(resource: any, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('WaitForDependenciesAsync', resource, cancellationToken);
+    return await this._proxy.invokeMethod('WaitForDependenciesAsync', { resource, cancellationToken }) as any;
   }
 
-  async waitForResourceAsync(resourceName: string, predicate: any, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('WaitForResourceAsync', resourceName, predicate, cancellationToken);
+  async waitForResourceAsync2(resourceName: string, predicate: any, cancellationToken: any): Promise<any> {
+    return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, predicate: registerCallback(predicate), cancellationToken }) as any;
   }
 
   async tryGetCurrentState(resourceId: string, resourceEvent: any): Promise<boolean> {
-    return await this._proxy.invokeMethod('TryGetCurrentState', resourceId, resourceEvent);
+    return await this._proxy.invokeMethod('TryGetCurrentState', { resourceId, resourceEvent }) as boolean;
   }
 
   async watchAsync(cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('WatchAsync', cancellationToken);
+    return await this._proxy.invokeMethod('WatchAsync', { cancellationToken }) as any;
   }
 
   async publishUpdateAsync(resource: any, resourceId: string, stateFactory: any): Promise<any> {
-    return await this._proxy.invokeMethod('PublishUpdateAsync', resource, resourceId, stateFactory);
+    return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, resourceId, stateFactory: registerCallback(stateFactory) }) as any;
   }
 
-  async publishUpdateAsync(resource: any, stateFactory: any): Promise<any> {
-    return await this._proxy.invokeMethod('PublishUpdateAsync', resource, stateFactory);
+  async publishUpdateAsync1(resource: any, stateFactory: any): Promise<any> {
+    return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, stateFactory: registerCallback(stateFactory) }) as any;
   }
 
   async dispose(): Promise<void> {
-    await this._proxy.invokeMethod('Dispose');
+    await this._proxy.invokeMethod('Dispose', {});
   }
 }
 
@@ -388,11 +405,11 @@ export class ResourceCommandServiceProxy {
   get proxy(): DotNetProxy { return this._proxy; }
 
   async executeCommandAsync(resourceId: string, commandName: string, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('ExecuteCommandAsync', resourceId, commandName, cancellationToken);
+    return await this._proxy.invokeMethod('ExecuteCommandAsync', { resourceId, commandName, cancellationToken }) as any;
   }
 
-  async executeCommandAsync(resource: any, commandName: string, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('ExecuteCommandAsync', resource, commandName, cancellationToken);
+  async executeCommandAsync1(resource: any, commandName: string, cancellationToken: any): Promise<any> {
+    return await this._proxy.invokeMethod('ExecuteCommandAsync', { resource, commandName, cancellationToken }) as any;
   }
 }
 
@@ -405,15 +422,15 @@ export class FileProviderProxy {
   get proxy(): DotNetProxy { return this._proxy; }
 
   async getFileInfo(subpath: string): Promise<any> {
-    return await this._proxy.invokeMethod('GetFileInfo', subpath);
+    return await this._proxy.invokeMethod('GetFileInfo', { subpath }) as any;
   }
 
   async getDirectoryContents(subpath: string): Promise<any> {
-    return await this._proxy.invokeMethod('GetDirectoryContents', subpath);
+    return await this._proxy.invokeMethod('GetDirectoryContents', { subpath }) as any;
   }
 
   async watch(filter: string): Promise<any> {
-    return await this._proxy.invokeMethod('Watch', filter);
+    return await this._proxy.invokeMethod('Watch', { filter }) as any;
   }
 }
 
@@ -426,11 +443,11 @@ export class TempFileSystemServiceProxy {
   get proxy(): DotNetProxy { return this._proxy; }
 
   async createTempSubdirectory(prefix: string): Promise<any> {
-    return await this._proxy.invokeMethod('CreateTempSubdirectory', prefix);
+    return await this._proxy.invokeMethod('CreateTempSubdirectory', { prefix }) as any;
   }
 
   async createTempFile(fileName: string): Promise<any> {
-    return await this._proxy.invokeMethod('CreateTempFile', fileName);
+    return await this._proxy.invokeMethod('CreateTempFile', { fileName }) as any;
   }
 }
 
