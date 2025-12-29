@@ -149,12 +149,6 @@ internal sealed class RunCommand : BaseCommand
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
 
-            // Initialize user secrets if the project doesn't have a user secrets ID configured
-            if (!isSingleFileAppHost)
-            {
-                await EnsureUserSecretsInitializedAsync(effectiveAppHostFile, cancellationToken);
-            }
-
             var env = new Dictionary<string, string>();
 
             var debug = parseResult.GetValue<bool>("--debug");
@@ -619,82 +613,5 @@ internal sealed class RunCommand : BaseCommand
 
         // Timeout reached
         return false;
-    }
-
-    private async Task EnsureUserSecretsInitializedAsync(FileInfo projectFile, CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Check if the project file has a UserSecretsId element
-            var projectContent = await File.ReadAllTextAsync(projectFile.FullName, cancellationToken).ConfigureAwait(false);
-            
-            // Use XDocument to properly parse the XML and check for UserSecretsId
-            var doc = System.Xml.Linq.XDocument.Parse(projectContent);
-            var hasUserSecretsId = doc.Descendants().Any(e => e.Name.LocalName == "UserSecretsId");
-            
-            // If the project already has a UserSecretsId, we don't need to do anything
-            if (hasUserSecretsId)
-            {
-                return;
-            }
-
-            // Run 'dotnet user-secrets init' to add a UserSecretsId to the project
-            _logger.LogDebug("Initializing user secrets for project {ProjectFile}", projectFile.FullName);
-            
-            var startInfo = new ProcessStartInfo("dotnet")
-            {
-                WorkingDirectory = projectFile.Directory?.FullName ?? Directory.GetCurrentDirectory(),
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-            
-            startInfo.ArgumentList.Add("user-secrets");
-            startInfo.ArgumentList.Add("init");
-            startInfo.ArgumentList.Add("--project");
-            startInfo.ArgumentList.Add(projectFile.FullName);
-
-            using var process = new Process { StartInfo = startInfo };
-            process.Start();
-            
-            // Add a timeout to prevent indefinite hanging
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
-            
-            try
-            {
-                await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-            {
-                // Timeout occurred - try to kill the process
-                try
-                {
-                    process.Kill();
-                }
-                catch
-                {
-                    // Ignore any errors when trying to kill the process
-                }
-                _logger.LogWarning("Timeout while initializing user secrets for project {ProjectFile}", projectFile.FullName);
-                return;
-            }
-
-            if (process.ExitCode == 0)
-            {
-                _logger.LogDebug("Successfully initialized user secrets for project {ProjectFile}", projectFile.FullName);
-            }
-            else
-            {
-                _logger.LogWarning("Failed to initialize user secrets for project {ProjectFile}. Exit code: {ExitCode}", projectFile.FullName, process.ExitCode);
-            }
-        }
-        catch (Exception ex)
-        {
-            // Don't fail the entire run if we can't initialize user secrets
-            // Just log a warning and continue
-            _logger.LogWarning(ex, "Exception while trying to initialize user secrets for project {ProjectFile}", projectFile.FullName);
-        }
     }
 }

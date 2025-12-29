@@ -142,6 +142,9 @@
   <data name="ParametersInputsRememberLabel" xml:space="preserve">
     <value>Save to user secrets</value>
   </data>
+  <data name="ParametersInputsRememberDescription" xml:space="preserve">
+    <value>Requires a UserSecretsId to be configured in the AppHost project file. Run 'dotnet user-secrets init' in the AppHost directory to configure.</value>
+  </data>
   <data name="ParametersInputsTitle" xml:space="preserve">
     <value>Set unresolved parameters</value>
   </data>
