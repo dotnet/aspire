@@ -128,6 +128,183 @@ public static class TestExtensions
         outerConfigure?.Invoke(_ => { });
         return builder;
     }
+
+    // ===== Edge Case Tests =====
+
+    /// <summary>
+    /// Tests async delegate callback: Func&lt;T, Task&gt;.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithAsyncCallback(
+        this IResourceBuilder<TestRedisResource> builder,
+        Func<TestCallbackContext, Task> asyncCallback)
+    {
+        asyncCallback?.Invoke(new TestCallbackContext());
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests async delegate with return value: Func&lt;T, Task&lt;TResult&gt;&gt;.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithAsyncCallbackWithResult(
+        this IResourceBuilder<TestRedisResource> builder,
+        Func<TestCallbackContext, Task<bool>> asyncCallback)
+    {
+        asyncCallback?.Invoke(new TestCallbackContext());
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests async builder callback: Func&lt;IResourceBuilder&lt;T&gt;, Task&gt;.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithAsyncBuilderCallback(
+        this IResourceBuilder<TestRedisResource> builder,
+        Func<IResourceBuilder<TestRedisResource>, Task> asyncConfigure)
+    {
+        asyncConfigure?.Invoke(builder);
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests array parameter.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithTags(
+        this IResourceBuilder<TestRedisResource> builder,
+        string[] tags)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests List&lt;T&gt; parameter.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithLabels(
+        this IResourceBuilder<TestRedisResource> builder,
+        List<string> labels)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests Dictionary parameter.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithMetadata(
+        this IResourceBuilder<TestRedisResource> builder,
+        Dictionary<string, string> metadata)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests IEnumerable&lt;T&gt; parameter.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithItems(
+        this IResourceBuilder<TestRedisResource> builder,
+        IEnumerable<string> items)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests nullable value type parameter.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithTimeout(
+        this IResourceBuilder<TestRedisResource> builder,
+        int? timeoutSeconds = null)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests multiple nullable value types.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithLimits(
+        this IResourceBuilder<TestRedisResource> builder,
+        int? maxConnections = null,
+        double? memoryLimitMb = null,
+        bool? enableLogging = null)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests TimeSpan parameter (common .NET type).
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithExpiry(
+        this IResourceBuilder<TestRedisResource> builder,
+        TimeSpan expiry)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests nullable TimeSpan parameter.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithOptionalExpiry(
+        this IResourceBuilder<TestRedisResource> builder,
+        TimeSpan? expiry = null)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests multi-type-parameter callback: Func&lt;T1, T2, TResult&gt;.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithTransform(
+        this IResourceBuilder<TestRedisResource> builder,
+        Func<string, int, string> transform)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests Action with multiple parameters.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithMultiParamCallback(
+        this IResourceBuilder<TestRedisResource> builder,
+        Action<string, int, bool> callback)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests KeyValuePair parameter.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithSetting(
+        this IResourceBuilder<TestRedisResource> builder,
+        KeyValuePair<string, string> setting)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests Tuple parameter.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithEndpointMapping(
+        this IResourceBuilder<TestRedisResource> builder,
+        (string name, int port) endpoint)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests Uri parameter.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithProxyUrl(
+        this IResourceBuilder<TestRedisResource> builder,
+        Uri proxyUrl)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests array of complex types.
+    /// </summary>
+    public static IResourceBuilder<TestRedisResource> WithCallbackContexts(
+        this IResourceBuilder<TestRedisResource> builder,
+        TestCallbackContext[] contexts)
+    {
+        return builder;
+    }
 }
 
 /// <summary>

@@ -146,8 +146,8 @@ export class ConfigurationManagerProxy {
     return await this._proxy.invokeMethod('GetSection', { key }) as any;
   }
 
-  async getChildren(): Promise<any> {
-    return await this._proxy.invokeMethod('GetChildren', {}) as any;
+  async getChildren(): Promise<Array<any>> {
+    return await this._proxy.invokeMethod('GetChildren', {}) as Array<any>;
   }
 
   async dispose(): Promise<void> {
@@ -201,11 +201,11 @@ export class DistributedApplicationEventingProxy {
 
   get proxy(): DotNetProxy { return this._proxy; }
 
-  async subscribe(callback: any): Promise<any> {
+  async subscribe(callback: (p0: any, p1: CancellationTokenProxy) => Promise<void>): Promise<any> {
     return await this._proxy.invokeMethod('Subscribe', { callback: registerCallback(callback) }) as any;
   }
 
-  async subscribe2(resource: any, callback: any): Promise<any> {
+  async subscribe2(resource: any, callback: (p0: any, p1: CancellationTokenProxy) => Promise<void>): Promise<any> {
     return await this._proxy.invokeMethod('Subscribe', { resource, callback: registerCallback(callback) }) as any;
   }
 
@@ -277,11 +277,11 @@ export class DistributedApplicationPipelineProxy {
     await this._proxy.invokeMethod('AddStep', { step });
   }
 
-  async addStep2(name: string, action: any, dependsOn: any, requiredBy: any): Promise<void> {
+  async addStep2(name: string, action: (p0: PipelineStepContextProxy) => Promise<void>, dependsOn: any, requiredBy: any): Promise<void> {
     await this._proxy.invokeMethod('AddStep', { name, action: registerCallback(action), dependsOn, requiredBy });
   }
 
-  async addPipelineConfiguration(callback: any): Promise<void> {
+  async addPipelineConfiguration(callback: (p0: PipelineConfigurationContextProxy) => Promise<void>): Promise<void> {
     await this._proxy.invokeMethod('AddPipelineConfiguration', { callback: registerCallback(callback) });
   }
 
@@ -321,7 +321,7 @@ export class UserSecretsManagerProxy {
     return await this._proxy.invokeMethod('TrySetSecret', { name, value }) as boolean;
   }
 
-  async getOrSetSecret(configuration: any, name: string, valueGenerator: any): Promise<void> {
+  async getOrSetSecret(configuration: any, name: string, valueGenerator: () => string | Promise<string>): Promise<void> {
     await this._proxy.invokeMethod('GetOrSetSecret', { configuration, name, valueGenerator: registerCallback(valueGenerator) });
   }
 
@@ -355,11 +355,11 @@ export class ResourceNotificationServiceProxy {
     return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, targetState, cancellationToken }) as TaskProxy;
   }
 
-  async waitForResourceAsync2(resourceName: string, targetStates: any, cancellationToken: CancellationTokenProxy): Promise<any> {
+  async waitForResourceAsync2(resourceName: string, targetStates: Array<string>, cancellationToken: CancellationTokenProxy): Promise<any> {
     return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, targetStates, cancellationToken }) as any;
   }
 
-  async waitForResourceAsync3(resourceName: string, predicate: any, cancellationToken: CancellationTokenProxy): Promise<any> {
+  async waitForResourceAsync3(resourceName: string, predicate: (p0: ResourceEventProxy) => boolean | Promise<boolean>, cancellationToken: CancellationTokenProxy): Promise<any> {
     return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, predicate: registerCallback(predicate), cancellationToken }) as any;
   }
 
@@ -383,11 +383,11 @@ export class ResourceNotificationServiceProxy {
     return await this._proxy.invokeMethod('WatchAsync', { cancellationToken }) as any;
   }
 
-  async publishUpdateAsync(resource: any, stateFactory: any): Promise<TaskProxy> {
+  async publishUpdateAsync(resource: any, stateFactory: (p0: CustomResourceSnapshotProxy) => CustomResourceSnapshotProxy | Promise<CustomResourceSnapshotProxy>): Promise<TaskProxy> {
     return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, stateFactory: registerCallback(stateFactory) }) as TaskProxy;
   }
 
-  async publishUpdateAsync2(resource: any, resourceId: string, stateFactory: any): Promise<TaskProxy> {
+  async publishUpdateAsync2(resource: any, resourceId: string, stateFactory: (p0: CustomResourceSnapshotProxy) => CustomResourceSnapshotProxy | Promise<CustomResourceSnapshotProxy>): Promise<TaskProxy> {
     return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, resourceId, stateFactory: registerCallback(stateFactory) }) as TaskProxy;
   }
 
@@ -688,6 +688,401 @@ export class TestRedisResourceBuilder {
   }
 
    /**
+   * WithAsyncCallback
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithAsyncCallback(IResourceBuilder<TestRedisResource> builder, Func<TestCallbackContext, Task> asyncCallback)
+   * @param {(p0: TestCallbackContextProxy) => Promise<void>} asyncCallback C# Type: Func<TestCallbackContext, Task>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withAsyncCallbackInternal(asyncCallback: (p0: TestCallbackContextProxy) => Promise<void>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithAsyncCallback', {builder: this._proxy, asyncCallback: registerCallback(asyncCallback)});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithAsyncCallback did not return a marshalled object');
+  };
+
+  /**
+   * WithAsyncCallback (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithAsyncCallback(IResourceBuilder<TestRedisResource> builder, Func<TestCallbackContext, Task> asyncCallback)
+   */
+  withAsyncCallback(asyncCallback: (p0: TestCallbackContextProxy) => Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withAsyncCallbackInternal(asyncCallback));
+  }
+
+   /**
+   * WithAsyncCallbackWithResult
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithAsyncCallbackWithResult(IResourceBuilder<TestRedisResource> builder, Func<TestCallbackContext, Task<Boolean>> asyncCallback)
+   * @param {(p0: TestCallbackContextProxy) => Promise<boolean>} asyncCallback C# Type: Func<TestCallbackContext, Task<Boolean>>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withAsyncCallbackWithResultInternal(asyncCallback: (p0: TestCallbackContextProxy) => Promise<boolean>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithAsyncCallbackWithResult', {builder: this._proxy, asyncCallback: registerCallback(asyncCallback)});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithAsyncCallbackWithResult did not return a marshalled object');
+  };
+
+  /**
+   * WithAsyncCallbackWithResult (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithAsyncCallbackWithResult(IResourceBuilder<TestRedisResource> builder, Func<TestCallbackContext, Task<Boolean>> asyncCallback)
+   */
+  withAsyncCallbackWithResult(asyncCallback: (p0: TestCallbackContextProxy) => Promise<boolean>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withAsyncCallbackWithResultInternal(asyncCallback));
+  }
+
+   /**
+   * WithAsyncBuilderCallback
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithAsyncBuilderCallback(IResourceBuilder<TestRedisResource> builder, Func<IResourceBuilder<TestRedisResource>, Task> asyncConfigure)
+   * @param {(p0: TestRedisResourceBuilder) => Promise<void>} asyncConfigure C# Type: Func<IResourceBuilder<TestRedisResource>, Task>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withAsyncBuilderCallbackInternal(asyncConfigure: (p0: TestRedisResourceBuilder) => Promise<void>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithAsyncBuilderCallback', {builder: this._proxy, asyncConfigure: registerCallback(asyncConfigure)});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithAsyncBuilderCallback did not return a marshalled object');
+  };
+
+  /**
+   * WithAsyncBuilderCallback (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithAsyncBuilderCallback(IResourceBuilder<TestRedisResource> builder, Func<IResourceBuilder<TestRedisResource>, Task> asyncConfigure)
+   */
+  withAsyncBuilderCallback(asyncConfigure: (p0: TestRedisResourceBuilder) => Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withAsyncBuilderCallbackInternal(asyncConfigure));
+  }
+
+   /**
+   * WithTags
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithTags(IResourceBuilder<TestRedisResource> builder, String[] tags)
+   * @param {Array<string>} tags C# Type: String[]
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withTagsInternal(tags: Array<string>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithTags', {builder: this._proxy, tags: tags});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithTags did not return a marshalled object');
+  };
+
+  /**
+   * WithTags (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithTags(IResourceBuilder<TestRedisResource> builder, String[] tags)
+   */
+  withTags(tags: Array<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withTagsInternal(tags));
+  }
+
+   /**
+   * WithLabels
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithLabels(IResourceBuilder<TestRedisResource> builder, List<String> labels)
+   * @param {Array<string>} labels C# Type: List<String>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withLabelsInternal(labels: Array<string>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithLabels', {builder: this._proxy, labels: labels});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithLabels did not return a marshalled object');
+  };
+
+  /**
+   * WithLabels (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithLabels(IResourceBuilder<TestRedisResource> builder, List<String> labels)
+   */
+  withLabels(labels: Array<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withLabelsInternal(labels));
+  }
+
+   /**
+   * WithMetadata
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithMetadata(IResourceBuilder<TestRedisResource> builder, Dictionary<String, String> metadata)
+   * @param {Map<string, string>} metadata C# Type: Dictionary<String, String>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withMetadataInternal(metadata: Map<string, string>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithMetadata', {builder: this._proxy, metadata: metadata});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithMetadata did not return a marshalled object');
+  };
+
+  /**
+   * WithMetadata (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithMetadata(IResourceBuilder<TestRedisResource> builder, Dictionary<String, String> metadata)
+   */
+  withMetadata(metadata: Map<string, string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withMetadataInternal(metadata));
+  }
+
+   /**
+   * WithItems
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithItems(IResourceBuilder<TestRedisResource> builder, IEnumerable<String> items)
+   * @param {Array<string>} items C# Type: IEnumerable<String>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withItemsInternal(items: Array<string>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithItems', {builder: this._proxy, items: items});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithItems did not return a marshalled object');
+  };
+
+  /**
+   * WithItems (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithItems(IResourceBuilder<TestRedisResource> builder, IEnumerable<String> items)
+   */
+  withItems(items: Array<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withItemsInternal(items));
+  }
+
+   /**
+   * WithTimeout
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithTimeout(IResourceBuilder<TestRedisResource> builder, Nullable<Int32> timeoutSeconds)
+   * @param {number | null} timeoutSeconds C# Type: Nullable<Int32>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withTimeoutInternal(timeoutSeconds?: number | null) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithTimeout', {builder: this._proxy, timeoutSeconds: timeoutSeconds || null});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithTimeout did not return a marshalled object');
+  };
+
+  /**
+   * WithTimeout (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithTimeout(IResourceBuilder<TestRedisResource> builder, Nullable<Int32> timeoutSeconds)
+   */
+  withTimeout(timeoutSeconds?: number | null): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withTimeoutInternal(timeoutSeconds));
+  }
+
+   /**
+   * WithLimits
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithLimits(IResourceBuilder<TestRedisResource> builder, Nullable<Int32> maxConnections, Nullable<Double> memoryLimitMb, Nullable<Boolean> enableLogging)
+   * @param {number | null} maxConnections C# Type: Nullable<Int32>
+   * @param {number | null} memoryLimitMb C# Type: Nullable<Double>
+   * @param {boolean | null} enableLogging C# Type: Nullable<Boolean>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withLimitsInternal(optionalArguments: WithLimitsArgs = new WithLimitsArgs()) : Promise<TestRedisResourceBuilder> {
+    optionalArguments = Object.assign(new WithLimitsArgs(), optionalArguments);
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithLimits', {builder: this._proxy, maxConnections: optionalArguments?.maxConnections || null, memoryLimitMb: optionalArguments?.memoryLimitMb || null, enableLogging: optionalArguments?.enableLogging || null});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithLimits did not return a marshalled object');
+  };
+
+  /**
+   * WithLimits (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithLimits(IResourceBuilder<TestRedisResource> builder, Nullable<Int32> maxConnections, Nullable<Double> memoryLimitMb, Nullable<Boolean> enableLogging)
+   */
+  withLimits(optionalArguments: WithLimitsArgs = new WithLimitsArgs()): TestRedisResourceBuilderPromise {
+    optionalArguments = Object.assign(new WithLimitsArgs(), optionalArguments);
+    return new TestRedisResourceBuilderPromise(this._withLimitsInternal(optionalArguments));
+  }
+
+   /**
+   * WithExpiry
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithExpiry(IResourceBuilder<TestRedisResource> builder, TimeSpan expiry)
+   * @param {number} expiry C# Type: TimeSpan
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withExpiryInternal(expiry: number) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithExpiry', {builder: this._proxy, expiry: expiry});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithExpiry did not return a marshalled object');
+  };
+
+  /**
+   * WithExpiry (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithExpiry(IResourceBuilder<TestRedisResource> builder, TimeSpan expiry)
+   */
+  withExpiry(expiry: number): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withExpiryInternal(expiry));
+  }
+
+   /**
+   * WithOptionalExpiry
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithOptionalExpiry(IResourceBuilder<TestRedisResource> builder, Nullable<TimeSpan> expiry)
+   * @param {number | null} expiry C# Type: Nullable<TimeSpan>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withOptionalExpiryInternal(expiry?: number | null) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithOptionalExpiry', {builder: this._proxy, expiry: expiry || null});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithOptionalExpiry did not return a marshalled object');
+  };
+
+  /**
+   * WithOptionalExpiry (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithOptionalExpiry(IResourceBuilder<TestRedisResource> builder, Nullable<TimeSpan> expiry)
+   */
+  withOptionalExpiry(expiry?: number | null): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withOptionalExpiryInternal(expiry));
+  }
+
+   /**
+   * WithTransform
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithTransform(IResourceBuilder<TestRedisResource> builder, Func<String, Int32, String> transform)
+   * @param {(p0: string, p1: number) => string | Promise<string>} transform C# Type: Func<String, Int32, String>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withTransformInternal(transform: (p0: string, p1: number) => string | Promise<string>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithTransform', {builder: this._proxy, transform: registerCallback(transform)});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithTransform did not return a marshalled object');
+  };
+
+  /**
+   * WithTransform (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithTransform(IResourceBuilder<TestRedisResource> builder, Func<String, Int32, String> transform)
+   */
+  withTransform(transform: (p0: string, p1: number) => string | Promise<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withTransformInternal(transform));
+  }
+
+   /**
+   * WithMultiParamCallback
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithMultiParamCallback(IResourceBuilder<TestRedisResource> builder, Action<String, Int32, Boolean> callback)
+   * @param {(p0: string, p1: number, p2: boolean) => void | Promise<void>} callback C# Type: Action<String, Int32, Boolean>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withMultiParamCallbackInternal(callback: (p0: string, p1: number, p2: boolean) => void | Promise<void>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithMultiParamCallback', {builder: this._proxy, callback: registerCallback(callback)});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithMultiParamCallback did not return a marshalled object');
+  };
+
+  /**
+   * WithMultiParamCallback (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithMultiParamCallback(IResourceBuilder<TestRedisResource> builder, Action<String, Int32, Boolean> callback)
+   */
+  withMultiParamCallback(callback: (p0: string, p1: number, p2: boolean) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withMultiParamCallbackInternal(callback));
+  }
+
+   /**
+   * WithSetting
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithSetting(IResourceBuilder<TestRedisResource> builder, KeyValuePair<String, String> setting)
+   * @param {any} setting C# Type: KeyValuePair<String, String>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withSettingInternal(setting: any) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithSetting', {builder: this._proxy, setting: setting});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithSetting did not return a marshalled object');
+  };
+
+  /**
+   * WithSetting (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithSetting(IResourceBuilder<TestRedisResource> builder, KeyValuePair<String, String> setting)
+   */
+  withSetting(setting: any): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withSettingInternal(setting));
+  }
+
+   /**
+   * WithEndpointMapping
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithEndpointMapping(IResourceBuilder<TestRedisResource> builder, ValueTuple<String, Int32> endpoint)
+   * @param {any} endpoint C# Type: ValueTuple<String, Int32>
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withEndpointMappingInternal(endpoint: any) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithEndpointMapping', {builder: this._proxy, endpoint: endpoint});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithEndpointMapping did not return a marshalled object');
+  };
+
+  /**
+   * WithEndpointMapping (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithEndpointMapping(IResourceBuilder<TestRedisResource> builder, ValueTuple<String, Int32> endpoint)
+   */
+  withEndpointMapping(endpoint: any): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withEndpointMappingInternal(endpoint));
+  }
+
+   /**
+   * WithProxyUrl
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithProxyUrl(IResourceBuilder<TestRedisResource> builder, Uri proxyUrl)
+   * @param {string} proxyUrl C# Type: Uri
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withProxyUrlInternal(proxyUrl: string) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithProxyUrl', {builder: this._proxy, proxyUrl: proxyUrl});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithProxyUrl did not return a marshalled object');
+  };
+
+  /**
+   * WithProxyUrl (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithProxyUrl(IResourceBuilder<TestRedisResource> builder, Uri proxyUrl)
+   */
+  withProxyUrl(proxyUrl: string): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withProxyUrlInternal(proxyUrl));
+  }
+
+   /**
+   * WithCallbackContexts
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithCallbackContexts(IResourceBuilder<TestRedisResource> builder, TestCallbackContext[] contexts)
+   * @param {Array<TestCallbackContextProxy>} contexts C# Type: TestCallbackContext[]
+   * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
+   */
+  /** @internal */
+  async _withCallbackContextsInternal(contexts: Array<TestCallbackContextProxy>) : Promise<TestRedisResourceBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithCallbackContexts', {builder: this._proxy, contexts: contexts});
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new TestRedisResourceBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('WithCallbackContexts did not return a marshalled object');
+  };
+
+  /**
+   * WithCallbackContexts (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithCallbackContexts(IResourceBuilder<TestRedisResource> builder, TestCallbackContext[] contexts)
+   */
+  withCallbackContexts(contexts: Array<TestCallbackContextProxy>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(this._withCallbackContextsInternal(contexts));
+  }
+
+   /**
    * WithCustomCallback
    * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithCustomCallback<TestRedisResource>(IResourceBuilder<T> builder, Action<TestCallbackContext> callback)
    * @param {(p0: TestCallbackContextProxy) => void | Promise<void>} callback C# Type: Action<TestCallbackContext>
@@ -821,6 +1216,159 @@ export class TestRedisResourceBuilderPromise implements PromiseLike<TestRedisRes
   withNestedCallback(outerConfigure: (p0: (p0: TestRedisResourceBuilder) => void | Promise<void>) => void | Promise<void>): TestRedisResourceBuilderPromise {
     return new TestRedisResourceBuilderPromise(
       this._promise.then(b => b._withNestedCallbackInternal(outerConfigure))
+    );
+  }
+
+  /**
+   * WithAsyncCallback (fluent chaining)
+   */
+  withAsyncCallback(asyncCallback: (p0: TestCallbackContextProxy) => Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withAsyncCallbackInternal(asyncCallback))
+    );
+  }
+
+  /**
+   * WithAsyncCallbackWithResult (fluent chaining)
+   */
+  withAsyncCallbackWithResult(asyncCallback: (p0: TestCallbackContextProxy) => Promise<boolean>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withAsyncCallbackWithResultInternal(asyncCallback))
+    );
+  }
+
+  /**
+   * WithAsyncBuilderCallback (fluent chaining)
+   */
+  withAsyncBuilderCallback(asyncConfigure: (p0: TestRedisResourceBuilder) => Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withAsyncBuilderCallbackInternal(asyncConfigure))
+    );
+  }
+
+  /**
+   * WithTags (fluent chaining)
+   */
+  withTags(tags: Array<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withTagsInternal(tags))
+    );
+  }
+
+  /**
+   * WithLabels (fluent chaining)
+   */
+  withLabels(labels: Array<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withLabelsInternal(labels))
+    );
+  }
+
+  /**
+   * WithMetadata (fluent chaining)
+   */
+  withMetadata(metadata: Map<string, string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withMetadataInternal(metadata))
+    );
+  }
+
+  /**
+   * WithItems (fluent chaining)
+   */
+  withItems(items: Array<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withItemsInternal(items))
+    );
+  }
+
+  /**
+   * WithTimeout (fluent chaining)
+   */
+  withTimeout(timeoutSeconds?: number | null): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withTimeoutInternal(timeoutSeconds))
+    );
+  }
+
+  /**
+   * WithLimits (fluent chaining)
+   */
+  withLimits(optionalArguments?: WithLimitsArgs): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withLimitsInternal(optionalArguments))
+    );
+  }
+
+  /**
+   * WithExpiry (fluent chaining)
+   */
+  withExpiry(expiry: number): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withExpiryInternal(expiry))
+    );
+  }
+
+  /**
+   * WithOptionalExpiry (fluent chaining)
+   */
+  withOptionalExpiry(expiry?: number | null): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withOptionalExpiryInternal(expiry))
+    );
+  }
+
+  /**
+   * WithTransform (fluent chaining)
+   */
+  withTransform(transform: (p0: string, p1: number) => string | Promise<string>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withTransformInternal(transform))
+    );
+  }
+
+  /**
+   * WithMultiParamCallback (fluent chaining)
+   */
+  withMultiParamCallback(callback: (p0: string, p1: number, p2: boolean) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withMultiParamCallbackInternal(callback))
+    );
+  }
+
+  /**
+   * WithSetting (fluent chaining)
+   */
+  withSetting(setting: any): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withSettingInternal(setting))
+    );
+  }
+
+  /**
+   * WithEndpointMapping (fluent chaining)
+   */
+  withEndpointMapping(endpoint: any): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withEndpointMappingInternal(endpoint))
+    );
+  }
+
+  /**
+   * WithProxyUrl (fluent chaining)
+   */
+  withProxyUrl(proxyUrl: string): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withProxyUrlInternal(proxyUrl))
+    );
+  }
+
+  /**
+   * WithCallbackContexts (fluent chaining)
+   */
+  withCallbackContexts(contexts: Array<TestCallbackContextProxy>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withCallbackContextsInternal(contexts))
     );
   }
 
@@ -1902,6 +2450,60 @@ export class TestCallbackContextProxy {
     async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
         const result = await this._proxy.invokeMethod(methodName, args);
         return result as T;
+    }
+}
+
+/**
+ * Typed proxy wrapper for Task<Boolean>
+ * Provides typed access to .NET object properties via JSON-RPC
+ */
+export class Task<Boolean>Proxy {
+    constructor(private _proxy: DotNetProxy) {}
+
+    /** Get the underlying proxy for advanced operations */
+    get proxy(): DotNetProxy { return this._proxy; }
+
+    /** The .NET type name */
+    get $type(): string { return this._proxy.$type; }
+
+    /** The object identifier for use in method calls */
+    get $id(): string { return this._proxy.$id; }
+
+    /**
+     * Gets a property value from the .NET object (generic fallback)
+     * @param propertyName The property name
+     */
+    async getProperty<T = unknown>(propertyName: string): Promise<T> {
+        const result = await this._proxy.getProperty(propertyName);
+        return result as T;
+    }
+
+    /**
+     * Sets a property value on the .NET object (generic fallback)
+     * @param propertyName The property name
+     * @param value The value to set
+     */
+    async setProperty(propertyName: string, value: unknown): Promise<void> {
+        await this._proxy.setProperty(propertyName, value);
+    }
+
+    /**
+     * Invokes a method on the .NET object (generic fallback)
+     * @param methodName The method name
+     * @param args The method arguments
+     */
+    async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
+        const result = await this._proxy.invokeMethod(methodName, args);
+        return result as T;
+    }
+}
+export class WithLimitsArgs {
+      public maxConnections?: number | null;
+      public memoryLimitMb?: number | null;
+      public enableLogging?: boolean | null;
+
+    constructor(args: Partial<WithLimitsArgs> = {}) {
+      Object.assign(this, args);
     }
 }
 export class WithOptionalStringArgs {

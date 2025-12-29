@@ -944,13 +944,97 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     }
 
     /// <summary>
-    /// Formats an Action delegate type as a TypeScript function signature.
+    /// Formats a delegate type (Action or Func) as a TypeScript function signature.
     /// </summary>
-    private string FormatActionType(ApplicationModel model, RoType actionType)
+    private string FormatDelegateType(ApplicationModel model, RoType delegateType)
     {
-        var args = actionType.GetGenericArguments();
-        var argTypes = args.Select((arg, i) => $"p{i}: {FormatJsType(model, arg)}");
-        return $"({string.Join(", ", argTypes)}) => void | Promise<void>";
+        var args = delegateType.GetGenericArguments();
+
+        // For Func<..., TResult>, the last generic argument is the return type
+        // For Action<...>, all arguments are parameters and return type is void
+        var isFuncType = IsFuncType(model, delegateType);
+
+        if (isFuncType && args.Count > 0)
+        {
+            // All arguments except last are parameters, last is return type
+            var paramTypes = args.Take(args.Count - 1).Select((arg, i) => $"p{i}: {FormatJsType(model, arg)}");
+            var returnType = FormatJsReturnType(model, args[args.Count - 1]);
+            return $"({string.Join(", ", paramTypes)}) => {returnType}";
+        }
+        else
+        {
+            // Action - all arguments are parameters
+            var paramTypes = args.Select((arg, i) => $"p{i}: {FormatJsType(model, arg)}");
+            return $"({string.Join(", ", paramTypes)}) => void | Promise<void>";
+        }
+    }
+
+    /// <summary>
+    /// Checks if a type is a Func delegate type.
+    /// </summary>
+    private static bool IsFuncType(ApplicationModel model, RoType type)
+    {
+        if (!type.IsGenericType)
+        {
+            return false;
+        }
+
+        var genericDef = type.GenericTypeDefinition;
+        var funcTypes = new[]
+        {
+            typeof(Func<>), typeof(Func<,>), typeof(Func<,,>), typeof(Func<,,,>), typeof(Func<,,,,>)
+        };
+
+        foreach (var funcType in funcTypes)
+        {
+            if (genericDef == model.WellKnownTypes.GetKnownType(funcType))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Formats the return type for a Func delegate, handling Task/Task&lt;T&gt; specially.
+    /// </summary>
+    private string FormatJsReturnType(ApplicationModel model, RoType returnType)
+    {
+        var taskType = model.WellKnownTypes.GetKnownType(typeof(Task));
+        var taskOfTType = model.WellKnownTypes.GetKnownType(typeof(Task<>));
+
+        // Task -> Promise<void>
+        if (returnType == taskType)
+        {
+            return "Promise<void>";
+        }
+
+        // Task<T> -> Promise<T>
+        if (returnType.IsGenericType && returnType.GenericTypeDefinition == taskOfTType)
+        {
+            var innerType = returnType.GetGenericArguments()[0];
+            return $"Promise<{FormatJsType(model, innerType)}>";
+        }
+
+        // Regular return type - allow sync or async
+        var formatted = FormatJsType(model, returnType);
+        return $"{formatted} | Promise<{formatted}>";
+    }
+
+    /// <summary>
+    /// Formats a Dictionary type as a TypeScript Map with proper generic types.
+    /// </summary>
+    private string FormatDictionaryType(ApplicationModel model, RoType dictType)
+    {
+        var args = dictType.GetGenericArguments();
+        if (args.Count == 2)
+        {
+            var keyType = FormatJsType(model, args[0]);
+            var valueType = FormatJsType(model, args[1]);
+            return $"Map<{keyType}, {valueType}>";
+        }
+        return "Map<any, any>";
     }
 
     /// <summary>
@@ -985,16 +1069,22 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
             return proxyModel.ProxyClassName;
         }
 
+        // Handle delegate types (Action, Func, etc.) before the switch
+        if (IsDelegateType(model, type))
+        {
+            return FormatDelegateType(model, type);
+        }
+
         return type switch
         {
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Nullable<>)) => FormatJsType(model, type.GetGenericArguments()[0]) + " | null",
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(List<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
-            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Dictionary<,>)) => "Map<any, any>",
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Dictionary<,>)) => FormatDictionaryType(model, type),
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IList<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(ICollection<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IReadOnlyList<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IReadOnlyCollection<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
-            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Action<>)) => FormatActionType(model, type),
+            { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(IEnumerable<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",
             { } when type.IsArray => $"Array<{FormatJsType(model, type.GetElementType() ?? model.WellKnownTypes.GetKnownType(typeof(object)))}>",
             { } when type == model.WellKnownTypes.GetKnownType(typeof(char)) => "string",
             { } when type == model.WellKnownTypes.GetKnownType(typeof(string)) => "string",
