@@ -17,10 +17,6 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     private readonly Dictionary<RoMethod, string> _argsClassNameByMethod = [];
     private readonly Dictionary<string, string> _argsClassDefinitions = [];
 
-    // Types that need proxy wrapper classes (all complex types get proxies)
-    private readonly HashSet<string> _proxyTypes = [];
-    private readonly Dictionary<string, RoType> _proxyTypesByName = [];
-
     // Thenable method buffer - populated during EmitExtensionMethod, emitted at class end
     private readonly List<MethodOverload> _thenableMethodBuffer = [];
     private ResourceModel? _currentResource;
@@ -30,6 +26,40 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
     /// <inheritdoc />
     protected override string MainFileName => "distributed-application.ts";
+
+    // === Type naming overrides ===
+
+    /// <inheritdoc />
+    protected override string? GetGeneratedTypeName(RoType type)
+    {
+        // Don't generate proxies for primitives - they map to native TS types
+        if (IsSimpleType(Model, type))
+        {
+            return null;
+        }
+
+        // Don't generate proxies for delegate types - they're formatted as function types
+        if (IsDelegateType(Model, type))
+        {
+            return null;
+        }
+
+        // Don't generate proxies for interfaces (except IResource types)
+        if (type.IsInterface && !Model.WellKnownTypes.IResourceType.IsAssignableFrom(type))
+        {
+            return null;
+        }
+
+        // Resource types get Builder suffix
+        if (Model.ResourceModels.ContainsKey(type) ||
+            Model.WellKnownTypes.IResourceType.IsAssignableFrom(type))
+        {
+            return $"{SanitizeClassName(type.Name)}Builder";
+        }
+
+        // Other complex types are callback proxies
+        return $"{type.Name}Proxy";
+    }
 
     /// <inheritdoc />
     protected override void AddEmbeddedResources(Dictionary<string, string> files)
@@ -126,7 +156,174 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     protected override void EmitAdditionalClasses()
     {
         GenerateParameterClasses(Writer);
-        GenerateCallbackProxyClasses(Writer, Model);
+    }
+
+    /// <inheritdoc />
+    protected override void EmitCallbackProxyType(RoType proxyType)
+    {
+        var typeName = proxyType.Name;
+
+        // Collect static properties to generate static accessors
+        var staticProperties = proxyType.Properties.Where(p => p.IsStatic).ToList();
+        var instanceProperties = proxyType.Properties.Where(p => !p.IsStatic).ToList();
+
+        Writer.WriteLine();
+        Writer.WriteLine($$"""
+            /**
+             * Typed proxy wrapper for {{typeName}}
+             * Provides typed access to .NET object properties via JSON-RPC
+             */
+            export class {{typeName}}Proxy {
+                constructor(private _proxy: DotNetProxy) {}
+
+                /** Get the underlying proxy for advanced operations */
+                get proxy(): DotNetProxy { return this._proxy; }
+
+                /** The .NET type name */
+                get $type(): string { return this._proxy.$type; }
+
+                /** The object identifier for use in method calls */
+                get $id(): string { return this._proxy.$id; }
+            """);
+
+        // Generate static property accessors first
+        foreach (var property in staticProperties)
+        {
+            var jsReturnType = FormatJsType(Model, property.PropertyType);
+            var needsWrapper = GeneratedTypeNames.ContainsKey(property.PropertyType);
+
+            if (property.CanRead)
+            {
+                if (needsWrapper)
+                {
+                    Writer.WriteLine($$"""
+
+                        /**
+                         * Gets the static {{property.Name}} property
+                         * @returns Promise<{{jsReturnType}}>
+                         */
+                        static async get{{property.Name}}(client: RemoteAppHostClient): Promise<{{jsReturnType}}> {
+                            const result = await client.getStaticProperty("{{proxyType.DeclaringAssembly.Name}}", "{{proxyType.FullName}}", "{{property.Name}}");
+                            return new {{jsReturnType}}(wrapIfProxy(result) as DotNetProxy);
+                        }
+                    """);
+                }
+                else
+                {
+                    Writer.WriteLine($$"""
+
+                        /**
+                         * Gets the static {{property.Name}} property
+                         * @returns Promise<{{jsReturnType}}>
+                         */
+                        static async get{{property.Name}}(client: RemoteAppHostClient): Promise<{{jsReturnType}}> {
+                            const result = await client.getStaticProperty("{{proxyType.DeclaringAssembly.Name}}", "{{proxyType.FullName}}", "{{property.Name}}");
+                            return wrapIfProxy(result) as {{jsReturnType}};
+                        }
+                    """);
+                }
+            }
+
+            if (property.CanWrite)
+            {
+                var jsParamType = FormatJsType(Model, property.PropertyType);
+                Writer.WriteLine($$"""
+
+                    /**
+                     * Sets the static {{property.Name}} property
+                     */
+                    static async set{{property.Name}}(client: RemoteAppHostClient, value: {{jsParamType}}): Promise<void> {
+                        await client.setStaticProperty("{{proxyType.DeclaringAssembly.Name}}", "{{proxyType.FullName}}", "{{property.Name}}", value);
+                    }
+                """);
+            }
+        }
+
+        // Generate typed instance property accessors
+        foreach (var property in instanceProperties)
+        {
+            var jsReturnType = FormatJsType(Model, property.PropertyType);
+            var needsWrapper = GeneratedTypeNames.ContainsKey(property.PropertyType);
+
+            if (property.CanRead)
+            {
+                if (needsWrapper)
+                {
+                    Writer.WriteLine($$"""
+
+                        /**
+                         * Gets the {{property.Name}} property
+                         * @returns Promise<{{jsReturnType}}>
+                         */
+                        async get{{property.Name}}(): Promise<{{jsReturnType}}> {
+                            const result = await this._proxy.getProperty("{{property.Name}}");
+                            return new {{jsReturnType}}(result as DotNetProxy);
+                        }
+                    """);
+                }
+                else
+                {
+                    Writer.WriteLine($$"""
+
+                        /**
+                         * Gets the {{property.Name}} property
+                         * @returns Promise<{{jsReturnType}}>
+                         */
+                        async get{{property.Name}}(): Promise<{{jsReturnType}}> {
+                            const result = await this._proxy.getProperty("{{property.Name}}");
+                            return result as {{jsReturnType}};
+                        }
+                    """);
+                }
+            }
+
+            if (property.CanWrite)
+            {
+                var jsParamType = FormatJsType(Model, property.PropertyType);
+                Writer.WriteLine($$"""
+
+                    /**
+                     * Sets the {{property.Name}} property
+                     */
+                    async set{{property.Name}}(value: {{jsParamType}}): Promise<void> {
+                        await this._proxy.setProperty("{{property.Name}}", value);
+                    }
+                """);
+            }
+        }
+
+        // Add generic fallback methods for accessing any property/method
+        Writer.WriteLine($$"""
+
+                /**
+                 * Gets a property value from the .NET object (generic fallback)
+                 * @param propertyName The property name
+                 */
+                async getProperty<T = unknown>(propertyName: string): Promise<T> {
+                    const result = await this._proxy.getProperty(propertyName);
+                    return result as T;
+                }
+
+                /**
+                 * Sets a property value on the .NET object (generic fallback)
+                 * @param propertyName The property name
+                 * @param value The value to set
+                 */
+                async setProperty(propertyName: string, value: unknown): Promise<void> {
+                    await this._proxy.setProperty(propertyName, value);
+                }
+
+                /**
+                 * Invokes a method on the .NET object (generic fallback)
+                 * @param methodName The method name
+                 * @param args The method arguments
+                 */
+                async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
+                    const result = await this._proxy.invokeMethod(methodName, args);
+                    return result as T;
+                }
+            }
+            """);
     }
 
     // Use base class traversal for VisitBuilderModel, VisitIntegration, VisitResource
@@ -509,282 +706,6 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
         }
     }
 
-    private void GenerateCallbackProxyClasses(TextWriter writer, ApplicationModel model)
-    {
-        // Generate proxy wrapper classes for callback parameter types
-        // These provide typed wrappers around DotNetProxy with property accessors
-        foreach (var (typeName, roType) in _proxyTypesByName)
-        {
-            // Collect static properties to generate static accessors
-            var staticProperties = roType.Properties.Where(p => p.IsStatic).ToList();
-            var instanceProperties = roType.Properties.Where(p => !p.IsStatic).ToList();
-
-            writer.WriteLine();
-            writer.WriteLine($$"""
-                /**
-                 * Typed proxy wrapper for {{typeName}}
-                 * Provides typed access to .NET object properties via JSON-RPC
-                 */
-                export class {{typeName}}Proxy {
-                    constructor(private _proxy: DotNetProxy) {}
-
-                    /** Get the underlying proxy for advanced operations */
-                    get proxy(): DotNetProxy { return this._proxy; }
-
-                    /** The .NET type name */
-                    get $type(): string { return this._proxy.$type; }
-
-                    /** The object identifier for use in method calls */
-                    get $id(): string { return this._proxy.$id; }
-                """);
-
-            // Generate static property accessors first
-            foreach (var property in staticProperties)
-            {
-                var jsReturnType = GetProxyReturnType(model, property.PropertyType);
-                var needsWrapper = jsReturnType.EndsWith("Proxy", StringComparison.Ordinal) && jsReturnType != "DotNetProxy";
-
-                if (property.CanRead)
-                {
-                    if (needsWrapper)
-                    {
-                        writer.WriteLine($$"""
-
-                            /**
-                             * Gets the static {{property.Name}} property
-                             * @returns Promise<{{jsReturnType}}>
-                             */
-                            static async get{{property.Name}}(client: RemoteAppHostClient): Promise<{{jsReturnType}}> {
-                                const result = await client.getStaticProperty("{{roType.DeclaringAssembly.Name}}", "{{roType.FullName}}", "{{property.Name}}");
-                                return new {{jsReturnType}}(wrapIfProxy(result) as DotNetProxy);
-                            }
-                        """);
-                    }
-                    else
-                    {
-                        writer.WriteLine($$"""
-
-                            /**
-                             * Gets the static {{property.Name}} property
-                             * @returns Promise<{{jsReturnType}}>
-                             */
-                            static async get{{property.Name}}(client: RemoteAppHostClient): Promise<{{jsReturnType}}> {
-                                const result = await client.getStaticProperty("{{roType.DeclaringAssembly.Name}}", "{{roType.FullName}}", "{{property.Name}}");
-                                return wrapIfProxy(result) as {{jsReturnType}};
-                            }
-                        """);
-                    }
-                }
-
-                if (property.CanWrite)
-                {
-                    var jsParamType = GetSimpleJsType(model, property.PropertyType);
-                    writer.WriteLine($$"""
-
-                        /**
-                         * Sets the static {{property.Name}} property
-                         */
-                        static async set{{property.Name}}(client: RemoteAppHostClient, value: {{jsParamType}}): Promise<void> {
-                            await client.setStaticProperty("{{roType.DeclaringAssembly.Name}}", "{{roType.FullName}}", "{{property.Name}}", value);
-                        }
-                    """);
-                }
-            }
-
-            // Generate typed instance property accessors
-            foreach (var property in instanceProperties)
-            {
-                var jsReturnType = GetProxyReturnType(model, property.PropertyType);
-                // Only wrap with typed proxies - DotNetProxy is the base class and doesn't need wrapping
-                var needsWrapper = jsReturnType.EndsWith("Proxy", StringComparison.Ordinal) && jsReturnType != "DotNetProxy";
-
-                if (property.CanRead)
-                {
-                    if (needsWrapper)
-                    {
-                        writer.WriteLine($$"""
-
-                            /**
-                             * Gets the {{property.Name}} property
-                             * @returns Promise<{{jsReturnType}}>
-                             */
-                            async get{{property.Name}}(): Promise<{{jsReturnType}}> {
-                                const result = await this._proxy.getProperty("{{property.Name}}");
-                                return new {{jsReturnType}}(result as DotNetProxy);
-                            }
-                        """);
-                    }
-                    else
-                    {
-                        writer.WriteLine($$"""
-
-                            /**
-                             * Gets the {{property.Name}} property
-                             * @returns Promise<{{jsReturnType}}>
-                             */
-                            async get{{property.Name}}(): Promise<{{jsReturnType}}> {
-                                const result = await this._proxy.getProperty("{{property.Name}}");
-                                return result as {{jsReturnType}};
-                            }
-                        """);
-                    }
-                }
-
-                if (property.CanWrite)
-                {
-                    var jsParamType = GetSimpleJsType(model, property.PropertyType);
-                    writer.WriteLine($$"""
-
-                        /**
-                         * Sets the {{property.Name}} property
-                         */
-                        async set{{property.Name}}(value: {{jsParamType}}): Promise<void> {
-                            await this._proxy.setProperty("{{property.Name}}", value);
-                        }
-                    """);
-                }
-            }
-
-            // Add generic fallback methods for accessing any property/method
-            writer.WriteLine($$"""
-
-                    /**
-                     * Gets a property value from the .NET object (generic fallback)
-                     * @param propertyName The property name
-                     */
-                    async getProperty<T = unknown>(propertyName: string): Promise<T> {
-                        const result = await this._proxy.getProperty(propertyName);
-                        return result as T;
-                    }
-
-                    /**
-                     * Sets a property value on the .NET object (generic fallback)
-                     * @param propertyName The property name
-                     * @param value The value to set
-                     */
-                    async setProperty(propertyName: string, value: unknown): Promise<void> {
-                        await this._proxy.setProperty(propertyName, value);
-                    }
-
-                    /**
-                     * Gets an indexed value (e.g., dictionary[key])
-                     */
-                    async getIndexer<T = unknown>(key: string | number): Promise<T> {
-                        const result = await this._proxy.getIndexer(key);
-                        return result as T;
-                    }
-
-                    /**
-                     * Sets an indexed value (e.g., dictionary[key] = value)
-                     */
-                    async setIndexer(key: string | number, value: unknown): Promise<void> {
-                        await this._proxy.setIndexer(key, value);
-                    }
-
-                    /**
-                     * Invokes a method on the .NET object
-                     */
-                    async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
-                        const result = await this._proxy.invokeMethod(methodName, args);
-                        return result as T;
-                    }
-
-                    /**
-                     * Releases the proxy reference
-                     */
-                    async dispose(): Promise<void> {
-                        await this._proxy.dispose();
-                    }
-                }
-                """);
-        }
-
-        // Generate a DictionaryProxy for generic dictionary access
-        writer.WriteLine($$"""
-
-            /**
-             * Generic dictionary proxy for IDictionary<string, object> access
-             */
-            export class DictionaryProxy {
-                constructor(private _proxy: DotNetProxy) {}
-
-                /** Get the underlying proxy for advanced operations */
-                get proxy(): DotNetProxy { return this._proxy; }
-
-                async get<T = unknown>(key: string): Promise<T> {
-                    const result = await this._proxy.getIndexer(key);
-                    return result as T;
-                }
-
-                async set(key: string, value: unknown): Promise<void> {
-                    await this._proxy.setIndexer(key, value);
-                }
-
-                async dispose(): Promise<void> {
-                    await this._proxy.dispose();
-                }
-            }
-            """);
-    }
-
-    private string GetProxyReturnType(ApplicationModel model, RoType propertyType)
-    {
-        // Check if this is a known proxy type
-        if (_proxyTypesByName.ContainsKey(propertyType.Name))
-        {
-            return $"{propertyType.Name}Proxy";
-        }
-
-        // Dictionary types
-        if (IsDictionaryType(model, propertyType))
-        {
-            return "DictionaryProxy";
-        }
-
-        // List types
-        if (IsListType(model, propertyType))
-        {
-            return "ListProxy";
-        }
-
-        // Simple types return as-is
-        if (IsSimpleType(model, propertyType))
-        {
-            return GetSimpleJsType(model, propertyType);
-        }
-
-        // Complex types return DotNetProxy
-        return "DotNetProxy";
-    }
-
-    private static string GetSimpleJsType(ApplicationModel model, RoType type)
-    {
-        if (type == model.WellKnownTypes.GetKnownType(typeof(string)))
-        {
-            return "string";
-        }
-
-        if (type == model.WellKnownTypes.GetKnownType(typeof(bool)))
-        {
-            return "boolean";
-        }
-
-        if (type == model.WellKnownTypes.GetKnownType(typeof(int)) ||
-            type == model.WellKnownTypes.GetKnownType(typeof(long)) ||
-            type == model.WellKnownTypes.GetKnownType(typeof(double)) ||
-            type == model.WellKnownTypes.GetKnownType(typeof(float)))
-        {
-            return "number";
-        }
-
-        if (type.IsEnum)
-        {
-            return "string";
-        }
-
-        return "unknown";
-    }
-
     private static void GenerateModelClasses(TextWriter textWriter, ApplicationModel model)
     {
         // Only generate enums as TypeScript enums
@@ -1023,46 +944,12 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     }
 
     /// <summary>
-    /// Formats an Action delegate type and registers its argument type for proxy generation.
+    /// Formats an Action delegate type as a TypeScript function signature.
     /// </summary>
     private string FormatActionType(ApplicationModel model, RoType actionType)
     {
         var args = actionType.GetGenericArguments();
-        var argTypes = new List<string>();
-
-        for (int i = 0; i < args.Count; i++)
-        {
-            var argType = args[i];
-            var typeName = argType.Name;
-
-            // Check if this is an IResourceBuilder<T> type - use the builder class name
-            if (IsResourceBuilderType(model, argType))
-            {
-                var resourceType = GetResourceBuilderResourceType(argType)!;
-                var builderTypeName = $"{SanitizeClassName(resourceType.Name)}Builder";
-                argTypes.Add($"p{i}: {builderTypeName}");
-            }
-            // Skip other generic types like IDictionary<K,V> - they're accessed via DotNetProxy
-            else if (argType.IsGenericType)
-            {
-                argTypes.Add($"p{i}: DotNetProxy");
-            }
-            // Register complex types for proxy wrapper generation
-            else if (!IsSimpleType(model, argType) && !string.IsNullOrEmpty(typeName))
-            {
-                if (_proxyTypes.Add(typeName))
-                {
-                    _proxyTypesByName[typeName] = argType;
-                }
-                // Use the proxy wrapper type name
-                argTypes.Add($"p{i}: {typeName}Proxy");
-            }
-            else
-            {
-                argTypes.Add($"p{i}: {FormatJsType(model, argType)}");
-            }
-        }
-
+        var argTypes = args.Select((arg, i) => $"p{i}: {FormatJsType(model, arg)}");
         return $"({string.Join(", ", argTypes)}) => void | Promise<void>";
     }
 
@@ -1076,17 +963,26 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
     private string FormatJsType(ApplicationModel model, RoType type)
     {
-        // Check if this type has a proxy wrapper
+        // Check our tracked type mappings first (populated during discovery)
+        if (GeneratedTypeNames.TryGetValue(type, out var mappedName))
+        {
+            return mappedName;
+        }
+
+        // Check if this is IResourceBuilder<T> and look up T in GeneratedTypeNames
+        if (IsResourceBuilderType(model, type))
+        {
+            var resourceType = GetResourceBuilderResourceType(type);
+            if (resourceType != null && GeneratedTypeNames.TryGetValue(resourceType, out var builderName))
+            {
+                return builderName;
+            }
+        }
+
+        // Check if this type has a proxy wrapper (from BuilderModel)
         if (model.BuilderModel.ProxyTypes.TryGetValue(type, out var proxyModel))
         {
             return proxyModel.ProxyClassName;
-        }
-
-        // For IResourceBuilder<T>, generate TypeBuilder
-        // Discovery phase already ensured all referenced types are known
-        if (model.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var resourceType))
-        {
-            return $"{resourceType.Name}Builder";
         }
 
         return type switch

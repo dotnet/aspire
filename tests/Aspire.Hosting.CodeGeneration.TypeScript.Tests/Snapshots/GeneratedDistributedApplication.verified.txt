@@ -213,12 +213,12 @@ export class DistributedApplicationEventingProxy {
     await this._proxy.invokeMethod('Unsubscribe', { subscription });
   }
 
-  async publishAsync(event: any, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('PublishAsync', { event, cancellationToken }) as any;
+  async publishAsync(event: any, cancellationToken: CancellationTokenProxy): Promise<TaskProxy> {
+    return await this._proxy.invokeMethod('PublishAsync', { event, cancellationToken }) as TaskProxy;
   }
 
-  async publishAsync2(event: any, dispatchBehavior: EventDispatchBehavior, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('PublishAsync', { event, dispatchBehavior, cancellationToken }) as any;
+  async publishAsync2(event: any, dispatchBehavior: EventDispatchBehavior, cancellationToken: CancellationTokenProxy): Promise<TaskProxy> {
+    return await this._proxy.invokeMethod('PublishAsync', { event, dispatchBehavior, cancellationToken }) as TaskProxy;
   }
 }
 
@@ -285,8 +285,8 @@ export class DistributedApplicationPipelineProxy {
     await this._proxy.invokeMethod('AddPipelineConfiguration', { callback: registerCallback(callback) });
   }
 
-  async executeAsync(context: any): Promise<any> {
-    return await this._proxy.invokeMethod('ExecuteAsync', { context }) as any;
+  async executeAsync(context: any): Promise<TaskProxy> {
+    return await this._proxy.invokeMethod('ExecuteAsync', { context }) as TaskProxy;
   }
 }
 
@@ -325,8 +325,8 @@ export class UserSecretsManagerProxy {
     await this._proxy.invokeMethod('GetOrSetSecret', { configuration, name, valueGenerator: registerCallback(valueGenerator) });
   }
 
-  async saveStateAsync(state: any, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('SaveStateAsync', { state, cancellationToken }) as any;
+  async saveStateAsync(state: any, cancellationToken: CancellationTokenProxy): Promise<TaskProxy> {
+    return await this._proxy.invokeMethod('SaveStateAsync', { state, cancellationToken }) as TaskProxy;
   }
 }
 
@@ -351,44 +351,44 @@ export class ResourceNotificationServiceProxy {
 
   get proxy(): DotNetProxy { return this._proxy; }
 
-  async waitForResourceAsync(resourceName: string, targetState: string, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, targetState, cancellationToken }) as any;
+  async waitForResourceAsync(resourceName: string, targetState: string, cancellationToken: CancellationTokenProxy): Promise<TaskProxy> {
+    return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, targetState, cancellationToken }) as TaskProxy;
   }
 
-  async waitForResourceAsync2(resourceName: string, targetStates: any, cancellationToken: any): Promise<any> {
+  async waitForResourceAsync2(resourceName: string, targetStates: any, cancellationToken: CancellationTokenProxy): Promise<any> {
     return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, targetStates, cancellationToken }) as any;
   }
 
-  async waitForResourceAsync3(resourceName: string, predicate: any, cancellationToken: any): Promise<any> {
+  async waitForResourceAsync3(resourceName: string, predicate: any, cancellationToken: CancellationTokenProxy): Promise<any> {
     return await this._proxy.invokeMethod('WaitForResourceAsync', { resourceName, predicate: registerCallback(predicate), cancellationToken }) as any;
   }
 
-  async waitForResourceHealthyAsync(resourceName: string, cancellationToken: any): Promise<any> {
+  async waitForResourceHealthyAsync(resourceName: string, cancellationToken: CancellationTokenProxy): Promise<any> {
     return await this._proxy.invokeMethod('WaitForResourceHealthyAsync', { resourceName, cancellationToken }) as any;
   }
 
-  async waitForResourceHealthyAsync2(resourceName: string, waitBehavior: WaitBehavior, cancellationToken: any): Promise<any> {
+  async waitForResourceHealthyAsync2(resourceName: string, waitBehavior: WaitBehavior, cancellationToken: CancellationTokenProxy): Promise<any> {
     return await this._proxy.invokeMethod('WaitForResourceHealthyAsync', { resourceName, waitBehavior, cancellationToken }) as any;
   }
 
-  async waitForDependenciesAsync(resource: any, cancellationToken: any): Promise<any> {
-    return await this._proxy.invokeMethod('WaitForDependenciesAsync', { resource, cancellationToken }) as any;
+  async waitForDependenciesAsync(resource: any, cancellationToken: CancellationTokenProxy): Promise<TaskProxy> {
+    return await this._proxy.invokeMethod('WaitForDependenciesAsync', { resource, cancellationToken }) as TaskProxy;
   }
 
-  async tryGetCurrentState(resourceId: string, resourceEvent: any): Promise<boolean> {
+  async tryGetCurrentState(resourceId: string, resourceEvent: ResourceEventProxy): Promise<boolean> {
     return await this._proxy.invokeMethod('TryGetCurrentState', { resourceId, resourceEvent }) as boolean;
   }
 
-  async watchAsync(cancellationToken: any): Promise<any> {
+  async watchAsync(cancellationToken: CancellationTokenProxy): Promise<any> {
     return await this._proxy.invokeMethod('WatchAsync', { cancellationToken }) as any;
   }
 
-  async publishUpdateAsync(resource: any, stateFactory: any): Promise<any> {
-    return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, stateFactory: registerCallback(stateFactory) }) as any;
+  async publishUpdateAsync(resource: any, stateFactory: any): Promise<TaskProxy> {
+    return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, stateFactory: registerCallback(stateFactory) }) as TaskProxy;
   }
 
-  async publishUpdateAsync2(resource: any, resourceId: string, stateFactory: any): Promise<any> {
-    return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, resourceId, stateFactory: registerCallback(stateFactory) }) as any;
+  async publishUpdateAsync2(resource: any, resourceId: string, stateFactory: any): Promise<TaskProxy> {
+    return await this._proxy.invokeMethod('PublishUpdateAsync', { resource, resourceId, stateFactory: registerCallback(stateFactory) }) as TaskProxy;
   }
 
   async dispose(): Promise<void> {
@@ -404,11 +404,11 @@ export class ResourceCommandServiceProxy {
 
   get proxy(): DotNetProxy { return this._proxy; }
 
-  async executeCommandAsync(resourceId: string, commandName: string, cancellationToken: any): Promise<any> {
+  async executeCommandAsync(resourceId: string, commandName: string, cancellationToken: CancellationTokenProxy): Promise<any> {
     return await this._proxy.invokeMethod('ExecuteCommandAsync', { resourceId, commandName, cancellationToken }) as any;
   }
 
-  async executeCommandAsync2(resource: any, commandName: string, cancellationToken: any): Promise<any> {
+  async executeCommandAsync2(resource: any, commandName: string, cancellationToken: CancellationTokenProxy): Promise<any> {
     return await this._proxy.invokeMethod('ExecuteCommandAsync', { resource, commandName, cancellationToken }) as any;
   }
 }
@@ -667,11 +667,11 @@ export class TestRedisResourceBuilder {
    /**
    * WithNestedCallback
    * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithNestedCallback(IResourceBuilder<TestRedisResource> builder, Action<Action<IResourceBuilder<TestRedisResource>>> outerConfigure)
-   * @param {(p0: DotNetProxy) => void | Promise<void>} outerConfigure C# Type: Action<Action<IResourceBuilder<TestRedisResource>>>
+   * @param {(p0: (p0: TestRedisResourceBuilder) => void | Promise<void>) => void | Promise<void>} outerConfigure C# Type: Action<Action<IResourceBuilder<TestRedisResource>>>
    * @returns {TestRedisResourceBuilder} C# Type: IResourceBuilder<TestRedisResource>
    */
   /** @internal */
-  async _withNestedCallbackInternal(outerConfigure: (p0: DotNetProxy) => void | Promise<void>) : Promise<TestRedisResourceBuilder> {
+  async _withNestedCallbackInternal(outerConfigure: (p0: (p0: TestRedisResourceBuilder) => void | Promise<void>) => void | Promise<void>) : Promise<TestRedisResourceBuilder> {
     const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'WithNestedCallback', {builder: this._proxy, outerConfigure: registerCallback(outerConfigure)});
     if (result && typeof result === 'object' && '$id' in result) {
         return new TestRedisResourceBuilder(new DotNetProxy(result as any));
@@ -683,7 +683,7 @@ export class TestRedisResourceBuilder {
    * WithNestedCallback (fluent chaining)
    * @remarks C# Definition: IResourceBuilder<TestRedisResource> WithNestedCallback(IResourceBuilder<TestRedisResource> builder, Action<Action<IResourceBuilder<TestRedisResource>>> outerConfigure)
    */
-  withNestedCallback(outerConfigure: (p0: DotNetProxy) => void | Promise<void>): TestRedisResourceBuilderPromise {
+  withNestedCallback(outerConfigure: (p0: (p0: TestRedisResourceBuilder) => void | Promise<void>) => void | Promise<void>): TestRedisResourceBuilderPromise {
     return new TestRedisResourceBuilderPromise(this._withNestedCallbackInternal(outerConfigure));
   }
 
@@ -818,7 +818,7 @@ export class TestRedisResourceBuilderPromise implements PromiseLike<TestRedisRes
   /**
    * WithNestedCallback (fluent chaining)
    */
-  withNestedCallback(outerConfigure: (p0: DotNetProxy) => void | Promise<void>): TestRedisResourceBuilderPromise {
+  withNestedCallback(outerConfigure: (p0: (p0: TestRedisResourceBuilder) => void | Promise<void>) => void | Promise<void>): TestRedisResourceBuilderPromise {
     return new TestRedisResourceBuilderPromise(
       this._promise.then(b => b._withNestedCallbackInternal(outerConfigure))
     );
@@ -1003,50 +1003,828 @@ export class IResourceWithConnectionStringBuilderPromise implements PromiseLike<
 export enum TestPersistenceMode {
   None = "None", Volume = "Volume", Bind = "Bind"
 }
-export class WithOptionalStringArgs {
-      public value?: string;
-      public enabled?: boolean;
 
-    constructor(args: Partial<WithOptionalStringArgs> = {}) {
-      this.enabled  = true;
-      Object.assign(this, args);
+/**
+ * Typed proxy wrapper for CancellationToken
+ * Provides typed access to .NET object properties via JSON-RPC
+ */
+export class CancellationTokenProxy {
+    constructor(private _proxy: DotNetProxy) {}
+
+    /** Get the underlying proxy for advanced operations */
+    get proxy(): DotNetProxy { return this._proxy; }
+
+    /** The .NET type name */
+    get $type(): string { return this._proxy.$type; }
+
+    /** The object identifier for use in method calls */
+    get $id(): string { return this._proxy.$id; }
+
+    /**
+     * Gets the static None property
+     * @returns Promise<CancellationTokenProxy>
+     */
+    static async getNone(client: RemoteAppHostClient): Promise<CancellationTokenProxy> {
+        const result = await client.getStaticProperty("System.Private.CoreLib", "System.Threading.CancellationToken", "None");
+        return new CancellationTokenProxy(wrapIfProxy(result) as DotNetProxy);
+    }
+
+    /**
+     * Gets the IsCancellationRequested property
+     * @returns Promise<boolean>
+     */
+    async getIsCancellationRequested(): Promise<boolean> {
+        const result = await this._proxy.getProperty("IsCancellationRequested");
+        return result as boolean;
+    }
+
+    /**
+     * Gets the CanBeCanceled property
+     * @returns Promise<boolean>
+     */
+    async getCanBeCanceled(): Promise<boolean> {
+        const result = await this._proxy.getProperty("CanBeCanceled");
+        return result as boolean;
+    }
+
+    /**
+     * Gets the WaitHandle property
+     * @returns Promise<any>
+     */
+    async getWaitHandle(): Promise<any> {
+        const result = await this._proxy.getProperty("WaitHandle");
+        return result as any;
+    }
+
+    /**
+     * Gets a property value from the .NET object (generic fallback)
+     * @param propertyName The property name
+     */
+    async getProperty<T = unknown>(propertyName: string): Promise<T> {
+        const result = await this._proxy.getProperty(propertyName);
+        return result as T;
+    }
+
+    /**
+     * Sets a property value on the .NET object (generic fallback)
+     * @param propertyName The property name
+     * @param value The value to set
+     */
+    async setProperty(propertyName: string, value: unknown): Promise<void> {
+        await this._proxy.setProperty(propertyName, value);
+    }
+
+    /**
+     * Invokes a method on the .NET object (generic fallback)
+     * @param methodName The method name
+     * @param args The method arguments
+     */
+    async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
+        const result = await this._proxy.invokeMethod(methodName, args);
+        return result as T;
     }
 }
-export class WithMultipleDefaultsArgs {
-      public count?: number;
-      public prefix?: string;
-      public useUpperCase?: boolean;
-      public multiplier?: number;
 
-    constructor(args: Partial<WithMultipleDefaultsArgs> = {}) {
-      this.count  = 10;
-      this.prefix  = "item";
-      this.useUpperCase  = false;
-      this.multiplier  = 1.5;
-      Object.assign(this, args);
+/**
+ * Typed proxy wrapper for Task
+ * Provides typed access to .NET object properties via JSON-RPC
+ */
+export class TaskProxy {
+    constructor(private _proxy: DotNetProxy) {}
+
+    /** Get the underlying proxy for advanced operations */
+    get proxy(): DotNetProxy { return this._proxy; }
+
+    /** The .NET type name */
+    get $type(): string { return this._proxy.$type; }
+
+    /** The object identifier for use in method calls */
+    get $id(): string { return this._proxy.$id; }
+
+    /**
+     * Gets the static CurrentId property
+     * @returns Promise<number | null>
+     */
+    static async getCurrentId(client: RemoteAppHostClient): Promise<number | null> {
+        const result = await client.getStaticProperty("System.Private.CoreLib", "System.Threading.Tasks.Task", "CurrentId");
+        return wrapIfProxy(result) as number | null;
+    }
+
+    /**
+     * Gets the static Factory property
+     * @returns Promise<any>
+     */
+    static async getFactory(client: RemoteAppHostClient): Promise<any> {
+        const result = await client.getStaticProperty("System.Private.CoreLib", "System.Threading.Tasks.Task", "Factory");
+        return wrapIfProxy(result) as any;
+    }
+
+    /**
+     * Gets the static CompletedTask property
+     * @returns Promise<TaskProxy>
+     */
+    static async getCompletedTask(client: RemoteAppHostClient): Promise<TaskProxy> {
+        const result = await client.getStaticProperty("System.Private.CoreLib", "System.Threading.Tasks.Task", "CompletedTask");
+        return new TaskProxy(wrapIfProxy(result) as DotNetProxy);
+    }
+
+    /**
+     * Gets the Id property
+     * @returns Promise<number>
+     */
+    async getId(): Promise<number> {
+        const result = await this._proxy.getProperty("Id");
+        return result as number;
+    }
+
+    /**
+     * Gets the Exception property
+     * @returns Promise<any>
+     */
+    async getException(): Promise<any> {
+        const result = await this._proxy.getProperty("Exception");
+        return result as any;
+    }
+
+    /**
+     * Gets the Status property
+     * @returns Promise<TaskStatus>
+     */
+    async getStatus(): Promise<TaskStatus> {
+        const result = await this._proxy.getProperty("Status");
+        return result as TaskStatus;
+    }
+
+    /**
+     * Gets the IsCanceled property
+     * @returns Promise<boolean>
+     */
+    async getIsCanceled(): Promise<boolean> {
+        const result = await this._proxy.getProperty("IsCanceled");
+        return result as boolean;
+    }
+
+    /**
+     * Gets the IsCompleted property
+     * @returns Promise<boolean>
+     */
+    async getIsCompleted(): Promise<boolean> {
+        const result = await this._proxy.getProperty("IsCompleted");
+        return result as boolean;
+    }
+
+    /**
+     * Gets the IsCompletedSuccessfully property
+     * @returns Promise<boolean>
+     */
+    async getIsCompletedSuccessfully(): Promise<boolean> {
+        const result = await this._proxy.getProperty("IsCompletedSuccessfully");
+        return result as boolean;
+    }
+
+    /**
+     * Gets the CreationOptions property
+     * @returns Promise<TaskCreationOptions>
+     */
+    async getCreationOptions(): Promise<TaskCreationOptions> {
+        const result = await this._proxy.getProperty("CreationOptions");
+        return result as TaskCreationOptions;
+    }
+
+    /**
+     * Gets the AsyncState property
+     * @returns Promise<any>
+     */
+    async getAsyncState(): Promise<any> {
+        const result = await this._proxy.getProperty("AsyncState");
+        return result as any;
+    }
+
+    /**
+     * Gets the IsFaulted property
+     * @returns Promise<boolean>
+     */
+    async getIsFaulted(): Promise<boolean> {
+        const result = await this._proxy.getProperty("IsFaulted");
+        return result as boolean;
+    }
+
+    /**
+     * Gets a property value from the .NET object (generic fallback)
+     * @param propertyName The property name
+     */
+    async getProperty<T = unknown>(propertyName: string): Promise<T> {
+        const result = await this._proxy.getProperty(propertyName);
+        return result as T;
+    }
+
+    /**
+     * Sets a property value on the .NET object (generic fallback)
+     * @param propertyName The property name
+     * @param value The value to set
+     */
+    async setProperty(propertyName: string, value: unknown): Promise<void> {
+        await this._proxy.setProperty(propertyName, value);
+    }
+
+    /**
+     * Invokes a method on the .NET object (generic fallback)
+     * @param methodName The method name
+     * @param args The method arguments
+     */
+    async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
+        const result = await this._proxy.invokeMethod(methodName, args);
+        return result as T;
     }
 }
-export class WithOptionalStringArgs1 {
-      public value?: string;
-      public enabled?: boolean;
 
-    constructor(args: Partial<WithOptionalStringArgs1> = {}) {
-      this.enabled  = true;
-      Object.assign(this, args);
+/**
+ * Typed proxy wrapper for PipelineStepContext
+ * Provides typed access to .NET object properties via JSON-RPC
+ */
+export class PipelineStepContextProxy {
+    constructor(private _proxy: DotNetProxy) {}
+
+    /** Get the underlying proxy for advanced operations */
+    get proxy(): DotNetProxy { return this._proxy; }
+
+    /** The .NET type name */
+    get $type(): string { return this._proxy.$type; }
+
+    /** The object identifier for use in method calls */
+    get $id(): string { return this._proxy.$id; }
+
+    /**
+     * Gets the PipelineContext property
+     * @returns Promise<any>
+     */
+    async getPipelineContext(): Promise<any> {
+        const result = await this._proxy.getProperty("PipelineContext");
+        return result as any;
+    }
+
+    /**
+     * Sets the PipelineContext property
+     */
+    async setPipelineContext(value: any): Promise<void> {
+        await this._proxy.setProperty("PipelineContext", value);
+    }
+
+    /**
+     * Gets the ReportingStep property
+     * @returns Promise<any>
+     */
+    async getReportingStep(): Promise<any> {
+        const result = await this._proxy.getProperty("ReportingStep");
+        return result as any;
+    }
+
+    /**
+     * Sets the ReportingStep property
+     */
+    async setReportingStep(value: any): Promise<void> {
+        await this._proxy.setProperty("ReportingStep", value);
+    }
+
+    /**
+     * Gets the Model property
+     * @returns Promise<any>
+     */
+    async getModel(): Promise<any> {
+        const result = await this._proxy.getProperty("Model");
+        return result as any;
+    }
+
+    /**
+     * Gets the ExecutionContext property
+     * @returns Promise<DistributedApplicationExecutionContextProxy>
+     */
+    async getExecutionContext(): Promise<DistributedApplicationExecutionContextProxy> {
+        const result = await this._proxy.getProperty("ExecutionContext");
+        return result as DistributedApplicationExecutionContextProxy;
+    }
+
+    /**
+     * Gets the Services property
+     * @returns Promise<ServiceProviderProxy>
+     */
+    async getServices(): Promise<ServiceProviderProxy> {
+        const result = await this._proxy.getProperty("Services");
+        return result as ServiceProviderProxy;
+    }
+
+    /**
+     * Gets the Logger property
+     * @returns Promise<any>
+     */
+    async getLogger(): Promise<any> {
+        const result = await this._proxy.getProperty("Logger");
+        return result as any;
+    }
+
+    /**
+     * Gets the CancellationToken property
+     * @returns Promise<CancellationTokenProxy>
+     */
+    async getCancellationToken(): Promise<CancellationTokenProxy> {
+        const result = await this._proxy.getProperty("CancellationToken");
+        return new CancellationTokenProxy(result as DotNetProxy);
+    }
+
+    /**
+     * Gets a property value from the .NET object (generic fallback)
+     * @param propertyName The property name
+     */
+    async getProperty<T = unknown>(propertyName: string): Promise<T> {
+        const result = await this._proxy.getProperty(propertyName);
+        return result as T;
+    }
+
+    /**
+     * Sets a property value on the .NET object (generic fallback)
+     * @param propertyName The property name
+     * @param value The value to set
+     */
+    async setProperty(propertyName: string, value: unknown): Promise<void> {
+        await this._proxy.setProperty(propertyName, value);
+    }
+
+    /**
+     * Invokes a method on the .NET object (generic fallback)
+     * @param methodName The method name
+     * @param args The method arguments
+     */
+    async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
+        const result = await this._proxy.invokeMethod(methodName, args);
+        return result as T;
     }
 }
-export class WithMultipleDefaultsArgs1 {
-      public count?: number;
-      public prefix?: string;
-      public useUpperCase?: boolean;
-      public multiplier?: number;
 
-    constructor(args: Partial<WithMultipleDefaultsArgs1> = {}) {
-      this.count  = 10;
-      this.prefix  = "item";
-      this.useUpperCase  = false;
-      this.multiplier  = 1.5;
-      Object.assign(this, args);
+/**
+ * Typed proxy wrapper for PipelineConfigurationContext
+ * Provides typed access to .NET object properties via JSON-RPC
+ */
+export class PipelineConfigurationContextProxy {
+    constructor(private _proxy: DotNetProxy) {}
+
+    /** Get the underlying proxy for advanced operations */
+    get proxy(): DotNetProxy { return this._proxy; }
+
+    /** The .NET type name */
+    get $type(): string { return this._proxy.$type; }
+
+    /** The object identifier for use in method calls */
+    get $id(): string { return this._proxy.$id; }
+
+    /**
+     * Gets the Services property
+     * @returns Promise<ServiceProviderProxy>
+     */
+    async getServices(): Promise<ServiceProviderProxy> {
+        const result = await this._proxy.getProperty("Services");
+        return result as ServiceProviderProxy;
+    }
+
+    /**
+     * Sets the Services property
+     */
+    async setServices(value: ServiceProviderProxy): Promise<void> {
+        await this._proxy.setProperty("Services", value);
+    }
+
+    /**
+     * Gets the Steps property
+     * @returns Promise<Array<any>>
+     */
+    async getSteps(): Promise<Array<any>> {
+        const result = await this._proxy.getProperty("Steps");
+        return result as Array<any>;
+    }
+
+    /**
+     * Sets the Steps property
+     */
+    async setSteps(value: Array<any>): Promise<void> {
+        await this._proxy.setProperty("Steps", value);
+    }
+
+    /**
+     * Gets the Model property
+     * @returns Promise<any>
+     */
+    async getModel(): Promise<any> {
+        const result = await this._proxy.getProperty("Model");
+        return result as any;
+    }
+
+    /**
+     * Sets the Model property
+     */
+    async setModel(value: any): Promise<void> {
+        await this._proxy.setProperty("Model", value);
+    }
+
+    /**
+     * Gets a property value from the .NET object (generic fallback)
+     * @param propertyName The property name
+     */
+    async getProperty<T = unknown>(propertyName: string): Promise<T> {
+        const result = await this._proxy.getProperty(propertyName);
+        return result as T;
+    }
+
+    /**
+     * Sets a property value on the .NET object (generic fallback)
+     * @param propertyName The property name
+     * @param value The value to set
+     */
+    async setProperty(propertyName: string, value: unknown): Promise<void> {
+        await this._proxy.setProperty(propertyName, value);
+    }
+
+    /**
+     * Invokes a method on the .NET object (generic fallback)
+     * @param methodName The method name
+     * @param args The method arguments
+     */
+    async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
+        const result = await this._proxy.invokeMethod(methodName, args);
+        return result as T;
+    }
+}
+
+/**
+ * Typed proxy wrapper for ResourceEvent
+ * Provides typed access to .NET object properties via JSON-RPC
+ */
+export class ResourceEventProxy {
+    constructor(private _proxy: DotNetProxy) {}
+
+    /** Get the underlying proxy for advanced operations */
+    get proxy(): DotNetProxy { return this._proxy; }
+
+    /** The .NET type name */
+    get $type(): string { return this._proxy.$type; }
+
+    /** The object identifier for use in method calls */
+    get $id(): string { return this._proxy.$id; }
+
+    /**
+     * Gets the Resource property
+     * @returns Promise<any>
+     */
+    async getResource(): Promise<any> {
+        const result = await this._proxy.getProperty("Resource");
+        return result as any;
+    }
+
+    /**
+     * Gets the ResourceId property
+     * @returns Promise<string>
+     */
+    async getResourceId(): Promise<string> {
+        const result = await this._proxy.getProperty("ResourceId");
+        return result as string;
+    }
+
+    /**
+     * Gets the Snapshot property
+     * @returns Promise<CustomResourceSnapshotProxy>
+     */
+    async getSnapshot(): Promise<CustomResourceSnapshotProxy> {
+        const result = await this._proxy.getProperty("Snapshot");
+        return new CustomResourceSnapshotProxy(result as DotNetProxy);
+    }
+
+    /**
+     * Gets a property value from the .NET object (generic fallback)
+     * @param propertyName The property name
+     */
+    async getProperty<T = unknown>(propertyName: string): Promise<T> {
+        const result = await this._proxy.getProperty(propertyName);
+        return result as T;
+    }
+
+    /**
+     * Sets a property value on the .NET object (generic fallback)
+     * @param propertyName The property name
+     * @param value The value to set
+     */
+    async setProperty(propertyName: string, value: unknown): Promise<void> {
+        await this._proxy.setProperty(propertyName, value);
+    }
+
+    /**
+     * Invokes a method on the .NET object (generic fallback)
+     * @param methodName The method name
+     * @param args The method arguments
+     */
+    async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
+        const result = await this._proxy.invokeMethod(methodName, args);
+        return result as T;
+    }
+}
+
+/**
+ * Typed proxy wrapper for CustomResourceSnapshot
+ * Provides typed access to .NET object properties via JSON-RPC
+ */
+export class CustomResourceSnapshotProxy {
+    constructor(private _proxy: DotNetProxy) {}
+
+    /** Get the underlying proxy for advanced operations */
+    get proxy(): DotNetProxy { return this._proxy; }
+
+    /** The .NET type name */
+    get $type(): string { return this._proxy.$type; }
+
+    /** The object identifier for use in method calls */
+    get $id(): string { return this._proxy.$id; }
+
+    /**
+     * Gets the ResourceType property
+     * @returns Promise<string>
+     */
+    async getResourceType(): Promise<string> {
+        const result = await this._proxy.getProperty("ResourceType");
+        return result as string;
+    }
+
+    /**
+     * Sets the ResourceType property
+     */
+    async setResourceType(value: string): Promise<void> {
+        await this._proxy.setProperty("ResourceType", value);
+    }
+
+    /**
+     * Gets the Properties property
+     * @returns Promise<any>
+     */
+    async getProperties(): Promise<any> {
+        const result = await this._proxy.getProperty("Properties");
+        return result as any;
+    }
+
+    /**
+     * Sets the Properties property
+     */
+    async setProperties(value: any): Promise<void> {
+        await this._proxy.setProperty("Properties", value);
+    }
+
+    /**
+     * Gets the CreationTimeStamp property
+     * @returns Promise<Date | null>
+     */
+    async getCreationTimeStamp(): Promise<Date | null> {
+        const result = await this._proxy.getProperty("CreationTimeStamp");
+        return result as Date | null;
+    }
+
+    /**
+     * Sets the CreationTimeStamp property
+     */
+    async setCreationTimeStamp(value: Date | null): Promise<void> {
+        await this._proxy.setProperty("CreationTimeStamp", value);
+    }
+
+    /**
+     * Gets the StartTimeStamp property
+     * @returns Promise<Date | null>
+     */
+    async getStartTimeStamp(): Promise<Date | null> {
+        const result = await this._proxy.getProperty("StartTimeStamp");
+        return result as Date | null;
+    }
+
+    /**
+     * Sets the StartTimeStamp property
+     */
+    async setStartTimeStamp(value: Date | null): Promise<void> {
+        await this._proxy.setProperty("StartTimeStamp", value);
+    }
+
+    /**
+     * Gets the StopTimeStamp property
+     * @returns Promise<Date | null>
+     */
+    async getStopTimeStamp(): Promise<Date | null> {
+        const result = await this._proxy.getProperty("StopTimeStamp");
+        return result as Date | null;
+    }
+
+    /**
+     * Sets the StopTimeStamp property
+     */
+    async setStopTimeStamp(value: Date | null): Promise<void> {
+        await this._proxy.setProperty("StopTimeStamp", value);
+    }
+
+    /**
+     * Gets the State property
+     * @returns Promise<any>
+     */
+    async getState(): Promise<any> {
+        const result = await this._proxy.getProperty("State");
+        return result as any;
+    }
+
+    /**
+     * Sets the State property
+     */
+    async setState(value: any): Promise<void> {
+        await this._proxy.setProperty("State", value);
+    }
+
+    /**
+     * Gets the ExitCode property
+     * @returns Promise<number | null>
+     */
+    async getExitCode(): Promise<number | null> {
+        const result = await this._proxy.getProperty("ExitCode");
+        return result as number | null;
+    }
+
+    /**
+     * Sets the ExitCode property
+     */
+    async setExitCode(value: number | null): Promise<void> {
+        await this._proxy.setProperty("ExitCode", value);
+    }
+
+    /**
+     * Gets the HealthStatus property
+     * @returns Promise<HealthStatus | null>
+     */
+    async getHealthStatus(): Promise<HealthStatus | null> {
+        const result = await this._proxy.getProperty("HealthStatus");
+        return result as HealthStatus | null;
+    }
+
+    /**
+     * Gets the HealthReports property
+     * @returns Promise<any>
+     */
+    async getHealthReports(): Promise<any> {
+        const result = await this._proxy.getProperty("HealthReports");
+        return result as any;
+    }
+
+    /**
+     * Gets the EnvironmentVariables property
+     * @returns Promise<any>
+     */
+    async getEnvironmentVariables(): Promise<any> {
+        const result = await this._proxy.getProperty("EnvironmentVariables");
+        return result as any;
+    }
+
+    /**
+     * Sets the EnvironmentVariables property
+     */
+    async setEnvironmentVariables(value: any): Promise<void> {
+        await this._proxy.setProperty("EnvironmentVariables", value);
+    }
+
+    /**
+     * Gets the Urls property
+     * @returns Promise<any>
+     */
+    async getUrls(): Promise<any> {
+        const result = await this._proxy.getProperty("Urls");
+        return result as any;
+    }
+
+    /**
+     * Sets the Urls property
+     */
+    async setUrls(value: any): Promise<void> {
+        await this._proxy.setProperty("Urls", value);
+    }
+
+    /**
+     * Gets the Volumes property
+     * @returns Promise<any>
+     */
+    async getVolumes(): Promise<any> {
+        const result = await this._proxy.getProperty("Volumes");
+        return result as any;
+    }
+
+    /**
+     * Sets the Volumes property
+     */
+    async setVolumes(value: any): Promise<void> {
+        await this._proxy.setProperty("Volumes", value);
+    }
+
+    /**
+     * Gets the Commands property
+     * @returns Promise<any>
+     */
+    async getCommands(): Promise<any> {
+        const result = await this._proxy.getProperty("Commands");
+        return result as any;
+    }
+
+    /**
+     * Sets the Commands property
+     */
+    async setCommands(value: any): Promise<void> {
+        await this._proxy.setProperty("Commands", value);
+    }
+
+    /**
+     * Gets the Relationships property
+     * @returns Promise<any>
+     */
+    async getRelationships(): Promise<any> {
+        const result = await this._proxy.getProperty("Relationships");
+        return result as any;
+    }
+
+    /**
+     * Sets the Relationships property
+     */
+    async setRelationships(value: any): Promise<void> {
+        await this._proxy.setProperty("Relationships", value);
+    }
+
+    /**
+     * Gets the IsHidden property
+     * @returns Promise<boolean>
+     */
+    async getIsHidden(): Promise<boolean> {
+        const result = await this._proxy.getProperty("IsHidden");
+        return result as boolean;
+    }
+
+    /**
+     * Sets the IsHidden property
+     */
+    async setIsHidden(value: boolean): Promise<void> {
+        await this._proxy.setProperty("IsHidden", value);
+    }
+
+    /**
+     * Gets the IconName property
+     * @returns Promise<string>
+     */
+    async getIconName(): Promise<string> {
+        const result = await this._proxy.getProperty("IconName");
+        return result as string;
+    }
+
+    /**
+     * Sets the IconName property
+     */
+    async setIconName(value: string): Promise<void> {
+        await this._proxy.setProperty("IconName", value);
+    }
+
+    /**
+     * Gets the IconVariant property
+     * @returns Promise<IconVariant | null>
+     */
+    async getIconVariant(): Promise<IconVariant | null> {
+        const result = await this._proxy.getProperty("IconVariant");
+        return result as IconVariant | null;
+    }
+
+    /**
+     * Sets the IconVariant property
+     */
+    async setIconVariant(value: IconVariant | null): Promise<void> {
+        await this._proxy.setProperty("IconVariant", value);
+    }
+
+    /**
+     * Gets a property value from the .NET object (generic fallback)
+     * @param propertyName The property name
+     */
+    async getProperty<T = unknown>(propertyName: string): Promise<T> {
+        const result = await this._proxy.getProperty(propertyName);
+        return result as T;
+    }
+
+    /**
+     * Sets a property value on the .NET object (generic fallback)
+     * @param propertyName The property name
+     * @param value The value to set
+     */
+    async setProperty(propertyName: string, value: unknown): Promise<void> {
+        await this._proxy.setProperty(propertyName, value);
+    }
+
+    /**
+     * Invokes a method on the .NET object (generic fallback)
+     * @param methodName The method name
+     * @param args The method arguments
+     */
+    async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
+        const result = await this._proxy.invokeMethod(methodName, args);
+        return result as T;
     }
 }
 
@@ -1117,56 +1895,59 @@ export class TestCallbackContextProxy {
     }
 
     /**
-     * Gets an indexed value (e.g., dictionary[key])
-     */
-    async getIndexer<T = unknown>(key: string | number): Promise<T> {
-        const result = await this._proxy.getIndexer(key);
-        return result as T;
-    }
-
-    /**
-     * Sets an indexed value (e.g., dictionary[key] = value)
-     */
-    async setIndexer(key: string | number, value: unknown): Promise<void> {
-        await this._proxy.setIndexer(key, value);
-    }
-
-    /**
-     * Invokes a method on the .NET object
+     * Invokes a method on the .NET object (generic fallback)
+     * @param methodName The method name
+     * @param args The method arguments
      */
     async invokeMethod<T = unknown>(methodName: string, args?: Record<string, unknown>): Promise<T> {
         const result = await this._proxy.invokeMethod(methodName, args);
         return result as T;
     }
+}
+export class WithOptionalStringArgs {
+      public value?: string;
+      public enabled?: boolean;
 
-    /**
-     * Releases the proxy reference
-     */
-    async dispose(): Promise<void> {
-        await this._proxy.dispose();
+    constructor(args: Partial<WithOptionalStringArgs> = {}) {
+      this.enabled  = true;
+      Object.assign(this, args);
     }
 }
+export class WithMultipleDefaultsArgs {
+      public count?: number;
+      public prefix?: string;
+      public useUpperCase?: boolean;
+      public multiplier?: number;
 
-/**
- * Generic dictionary proxy for IDictionary<string, object> access
- */
-export class DictionaryProxy {
-    constructor(private _proxy: DotNetProxy) {}
-
-    /** Get the underlying proxy for advanced operations */
-    get proxy(): DotNetProxy { return this._proxy; }
-
-    async get<T = unknown>(key: string): Promise<T> {
-        const result = await this._proxy.getIndexer(key);
-        return result as T;
+    constructor(args: Partial<WithMultipleDefaultsArgs> = {}) {
+      this.count  = 10;
+      this.prefix  = "item";
+      this.useUpperCase  = false;
+      this.multiplier  = 1.5;
+      Object.assign(this, args);
     }
+}
+export class WithOptionalStringArgs1 {
+      public value?: string;
+      public enabled?: boolean;
 
-    async set(key: string, value: unknown): Promise<void> {
-        await this._proxy.setIndexer(key, value);
+    constructor(args: Partial<WithOptionalStringArgs1> = {}) {
+      this.enabled  = true;
+      Object.assign(this, args);
     }
+}
+export class WithMultipleDefaultsArgs1 {
+      public count?: number;
+      public prefix?: string;
+      public useUpperCase?: boolean;
+      public multiplier?: number;
 
-    async dispose(): Promise<void> {
-        await this._proxy.dispose();
+    constructor(args: Partial<WithMultipleDefaultsArgs1> = {}) {
+      this.count  = 10;
+      this.prefix  = "item";
+      this.useUpperCase  = false;
+      this.multiplier  = 1.5;
+      Object.assign(this, args);
     }
 }
 ,

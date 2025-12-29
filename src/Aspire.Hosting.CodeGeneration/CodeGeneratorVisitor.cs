@@ -35,6 +35,12 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// </summary>
     protected HashSet<RoType> ReferencedTypes { get; } = [];
 
+    /// <summary>
+    /// Maps discovered types to their generated class names.
+    /// Populated during discovery, used during emission.
+    /// </summary>
+    protected Dictionary<RoType, string> GeneratedTypeNames { get; } = [];
+
     /// <inheritdoc />
     public abstract string Language { get; }
 
@@ -103,15 +109,11 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
         EmitBaseResourceBuilderClasses();
 
         // 9. Visit and emit resource-specific builder classes
-        // Include both model resources and discovered IResourceBuilder<T> types
-        var discoveredResourceTypes = ReferencedTypes
-            .Where(t => model.WellKnownTypes.TryGetResourceBuilderTypeArgument(t, out _))
-            .Select(t =>
-            {
-                model.WellKnownTypes.TryGetResourceBuilderTypeArgument(t, out var resourceType);
-                return resourceType!;
-            })
-            .Where(t => !t.IsGenericParameter && !model.ResourceModels.ContainsKey(t));
+        // Include both model resources and discovered resource types from GeneratedTypeNames
+        var discoveredResourceTypes = GeneratedTypeNames.Keys
+            .Where(t => !model.ResourceModels.ContainsKey(t) &&
+                        (model.WellKnownTypes.IResourceType.IsAssignableFrom(t) ||
+                         model.ResourceModels.ContainsKey(t)));
 
         var allResources = model.ResourceModels.Values
             .Concat(discoveredResourceTypes.Select(t => new ResourceModel { ResourceType = t }))
@@ -125,7 +127,10 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
         // 10. Emit model classes (enums from integrations)
         EmitModelClasses();
 
-        // 11. Emit any additional classes (parameter classes, callback proxies, etc.)
+        // 11. Emit callback proxy types
+        EmitCallbackProxyTypes();
+
+        // 12. Emit any additional classes (parameter classes, etc.)
         EmitAdditionalClasses();
     }
 
@@ -183,18 +188,37 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
             }
 
             // Skip generic type parameters (e.g., T in IResourceBuilder<T>)
-            if (!type.IsGenericParameter)
+            if (type.IsGenericParameter)
             {
-                ReferencedTypes.Add(type);
+                continue;
+            }
+
+            ReferencedTypes.Add(type);
+
+            // Track IResourceBuilder<T> - the T needs a builder class
+            if (model.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var resourceType))
+            {
+                if (!resourceType.IsGenericParameter)
+                {
+                    RegisterGeneratedType(resourceType);
+                }
             }
 
             // Check delegate types (e.g., Action<IResourceBuilder<T>>)
-            if (IsDelegateType(model, type))
+            // For Action<T1, T2, ...>, the generic arguments are the callback parameter types
+            if (IsDelegateType(model, type) && type.IsGenericType)
             {
-                var invokeMethod = type.GetMethod("Invoke");
-                if (invokeMethod != null)
+                foreach (var arg in type.GetGenericArguments())
                 {
-                    EnqueueTypesFromMethod(invokeMethod, queue);
+                    // Register callback parameter types for proxy generation
+                    // GetGeneratedTypeName will filter what types actually get proxies
+                    if (!arg.IsGenericParameter)
+                    {
+                        RegisterGeneratedType(arg);
+                    }
+
+                    // Enqueue for further processing
+                    queue.Enqueue(arg);
                 }
             }
 
@@ -300,6 +324,31 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
         EmitProperty(property, context);
     }
 
+    // === Virtual methods for type naming (override in derived classes) ===
+
+    /// <summary>
+    /// Gets the generated class name for a .NET type.
+    /// Called during discovery to populate GeneratedTypeNames.
+    /// Return null if no class should be generated for this type.
+    /// </summary>
+    protected virtual string? GetGeneratedTypeName(RoType type) => null;
+
+    /// <summary>
+    /// Registers a type that needs a generated class.
+    /// Calls GetGeneratedTypeName to get the language-specific name.
+    /// </summary>
+    protected void RegisterGeneratedType(RoType type)
+    {
+        if (!GeneratedTypeNames.ContainsKey(type))
+        {
+            var typeName = GetGeneratedTypeName(type);
+            if (typeName != null)
+            {
+                GeneratedTypeNames[type] = typeName;
+            }
+        }
+    }
+
     // === Virtual methods for language-specific emission (override in derived classes) ===
 
     /// <summary>Emit file header (imports, client initialization).</summary>
@@ -342,7 +391,22 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>Emit model classes (enums from integrations).</summary>
     protected virtual void EmitModelClasses() { }
 
-    /// <summary>Emit additional classes (parameter classes, callback proxies, etc.).</summary>
+    /// <summary>Emit a single callback proxy type.</summary>
+    protected virtual void EmitCallbackProxyType(RoType proxyType) { }
+
+    /// <summary>Emit all discovered callback proxy types (calls EmitCallbackProxyType for each).</summary>
+    protected virtual void EmitCallbackProxyTypes()
+    {
+        // Callback proxy types are those in GeneratedTypeNames that are NOT resource types
+        foreach (var type in GeneratedTypeNames.Keys
+            .Where(t => !Model.WellKnownTypes.IResourceType.IsAssignableFrom(t) &&
+                        !Model.ResourceModels.ContainsKey(t)))
+        {
+            EmitCallbackProxyType(type);
+        }
+    }
+
+    /// <summary>Emit additional classes (parameter classes, etc.).</summary>
     protected virtual void EmitAdditionalClasses() { }
 
     /// <summary>Add embedded resource files to the output.</summary>
