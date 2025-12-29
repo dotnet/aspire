@@ -517,7 +517,9 @@ public class ParameterProcessorTests
 
         // Assert - Should have 2 inputs (parameter + disabled save checkbox)
         Assert.Equal(2, inputsInteraction.Inputs.Count);
-        Assert.Equal("param1", inputsInteraction.Inputs[0].Label);
+        
+        var paramInput = inputsInteraction.Inputs["param1"];
+        Assert.Equal("param1", paramInput.Label);
         
         var saveCheckbox = inputsInteraction.Inputs["RememberParameters"];
         Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, saveCheckbox.Label);
@@ -554,7 +556,9 @@ public class ParameterProcessorTests
 
         // Assert - Should have 2 inputs (parameter + enabled save checkbox)
         Assert.Equal(2, inputsInteraction.Inputs.Count);
-        Assert.Equal("param1", inputsInteraction.Inputs[0].Label);
+        
+        var paramInput = inputsInteraction.Inputs["param1"];
+        Assert.Equal("param1", paramInput.Label);
         
         var saveCheckbox = inputsInteraction.Inputs["RememberParameters"];
         Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, saveCheckbox.Label);
