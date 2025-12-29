@@ -30,10 +30,10 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     protected HashSet<string> EmittedTypes { get; } = [];
 
     /// <summary>
-    /// Tracks resource types that are referenced (e.g., in method return types) and need builder classes.
-    /// Used to ensure all referenced types have their classes emitted.
+    /// Tracks all types that are referenced in method signatures and properties.
+    /// The code generator can filter by type kind (enum, interface, etc.) as needed.
     /// </summary>
-    protected HashSet<RoType> ReferencedBuilderTypes { get; } = [];
+    protected HashSet<RoType> ReferencedTypes { get; } = [];
 
     /// <inheritdoc />
     public abstract string Language { get; }
@@ -82,8 +82,8 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
         // 3. Emit DistributedApplication class
         EmitDistributedApplicationClass();
 
-        // 4. Emit enums used by proxy classes
-        EmitBuilderEnums();
+        // 4. Emit discovered enum types
+        EmitEnumTypes();
 
         // 5. Visit and emit proxy classes
         VisitBuilderModel(model.BuilderModel);
@@ -103,11 +103,18 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
         EmitBaseResourceBuilderClasses();
 
         // 9. Visit and emit resource-specific builder classes
-        // Include both model resources and discovered referenced types
+        // Include both model resources and discovered IResourceBuilder<T> types
+        var discoveredResourceTypes = ReferencedTypes
+            .Where(t => model.WellKnownTypes.TryGetResourceBuilderTypeArgument(t, out _))
+            .Select(t =>
+            {
+                model.WellKnownTypes.TryGetResourceBuilderTypeArgument(t, out var resourceType);
+                return resourceType!;
+            })
+            .Where(t => !t.IsGenericParameter && !model.ResourceModels.ContainsKey(t));
+
         var allResources = model.ResourceModels.Values
-            .Concat(ReferencedBuilderTypes
-                .Where(t => !model.ResourceModels.ContainsKey(t))
-                .Select(t => new ResourceModel { ResourceType = t }))
+            .Concat(discoveredResourceTypes.Select(t => new ResourceModel { ResourceType = t }))
             .ToList();
 
         foreach (var resource in allResources)
@@ -123,7 +130,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     }
 
     /// <summary>
-    /// Discovery phase: walks the model to find all types that need builder classes.
+    /// Discovery phase: walks the model to find all types that need to be emitted.
     /// This runs before emission so all types are known upfront.
     /// Uses a queue-based approach to avoid stack overflow on deep type graphs.
     /// </summary>
@@ -132,7 +139,21 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
         var visited = new HashSet<RoType>();
         var queue = new Queue<RoType>();
 
-        // Seed the queue with types from all methods
+        // Seed the queue with types from proxy properties and methods
+        foreach (var (_, proxyModel) in model.BuilderModel.ProxyTypes)
+        {
+            foreach (var prop in proxyModel.Properties)
+            {
+                queue.Enqueue(prop.PropertyType);
+            }
+
+            foreach (var method in proxyModel.Methods.Concat(proxyModel.StaticMethods))
+            {
+                EnqueueTypesFromMethod(method, queue);
+            }
+        }
+
+        // Seed the queue with types from integration methods
         foreach (var integration in model.IntegrationModels.Values)
         {
             foreach (var method in integration.IDistributedApplicationBuilderExtensionMethods)
@@ -141,6 +162,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
             }
         }
 
+        // Seed the queue with types from resource methods
         foreach (var resource in model.ResourceModels.Values)
         {
             foreach (var method in resource.IResourceTypeBuilderExtensionsMethods)
@@ -160,14 +182,10 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
                 continue;
             }
 
-            // Check if this is IResourceBuilder<T>
-            if (model.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var resourceType))
+            // Skip generic type parameters (e.g., T in IResourceBuilder<T>)
+            if (!type.IsGenericParameter)
             {
-                // Skip generic type parameters (e.g., T in IResourceBuilder<T>)
-                if (!resourceType.IsGenericParameter)
-                {
-                    ReferencedBuilderTypes.Add(resourceType);
-                }
+                ReferencedTypes.Add(type);
             }
 
             // Check delegate types (e.g., Action<IResourceBuilder<T>>)
@@ -180,7 +198,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
                 }
             }
 
-            // Enqueue generic arguments
+            // Enqueue generic arguments (includes Nullable<T> underlying type)
             if (type.IsGenericType)
             {
                 foreach (var arg in type.GetGenericArguments())
@@ -293,8 +311,21 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>Emit the DistributedApplication class.</summary>
     protected virtual void EmitDistributedApplicationClass() { }
 
-    /// <summary>Emit enum definitions used by proxy classes.</summary>
-    protected virtual void EmitBuilderEnums() { }
+    /// <summary>Emit a single enum type.</summary>
+    protected virtual void EmitEnumType(RoType enumType) { }
+
+    /// <summary>Emit all discovered enum types (calls EmitEnumType for each).</summary>
+    protected virtual void EmitEnumTypes()
+    {
+        foreach (var type in ReferencedTypes.Where(t => t.IsEnum))
+        {
+            // Skip if already in ModelTypes (will be generated by EmitModelClasses)
+            if (!Model.ModelTypes.Contains(type))
+            {
+                EmitEnumType(type);
+            }
+        }
+    }
 
     /// <summary>Emit the builder base class (DistributedApplicationBuilderBase).</summary>
     protected virtual void EmitBuilderBaseClass() { }
