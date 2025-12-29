@@ -92,3 +92,41 @@ public record MethodOverload(
     RoMethod Method,
     string UniqueName,
     int OverloadIndex);
+
+/// <summary>
+/// Context for a method parameter during code generation.
+/// </summary>
+/// <param name="Name">The formatted parameter name for the target language.</param>
+/// <param name="Type">The formatted type name for the target language.</param>
+/// <param name="OriginalType">The original .NET parameter type.</param>
+/// <param name="IsCallback">Whether this parameter is a delegate/callback type.</param>
+/// <param name="Original">The original parameter metadata.</param>
+public record MethodParameterContext(
+    string Name,
+    string Type,
+    RoType OriginalType,
+    bool IsCallback,
+    RoParameterInfo Original);
+
+/// <summary>
+/// Context for proxy method generation containing all information needed to emit the method.
+/// </summary>
+/// <param name="MethodName">The disambiguated, formatted method name.</param>
+/// <param name="OriginalMethodName">The original .NET method name (for RPC calls).</param>
+/// <param name="Parameters">The formatted parameters.</param>
+/// <param name="ReturnType">The formatted return type.</param>
+/// <param name="OriginalReturnType">The original .NET return type.</param>
+/// <param name="IsVoid">Whether the method returns void.</param>
+/// <param name="IsStatic">Whether this is a static method.</param>
+/// <param name="DeclaringType">The type that declares this method (for static invocation).</param>
+/// <param name="Overload">The original method overload information.</param>
+public record ProxyMethodContext(
+    string MethodName,
+    string OriginalMethodName,
+    IReadOnlyList<MethodParameterContext> Parameters,
+    string ReturnType,
+    RoType OriginalReturnType,
+    bool IsVoid,
+    bool IsStatic,
+    RoType? DeclaringType,
+    MethodOverload Overload);

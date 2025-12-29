@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using System.Reflection;
 using Aspire.Hosting.CodeGeneration.Models;
 using Aspire.Hosting.CodeGeneration.Models.Types;
@@ -14,13 +13,17 @@ namespace Aspire.Hosting.CodeGeneration.TypeScript;
 /// </summary>
 public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 {
-    // Custom record-like classes that contain the overload parameters
-    private readonly Dictionary<RoMethod, string> _overloadParameterClassByMethod = [];
-    private readonly Dictionary<string, string> _overloadParameterClassByName = [];
+    // Args class tracking - maps method to class name, and class name to definition
+    private readonly Dictionary<RoMethod, string> _argsClassNameByMethod = [];
+    private readonly Dictionary<string, string> _argsClassDefinitions = [];
 
     // Types that need proxy wrapper classes (all complex types get proxies)
     private readonly HashSet<string> _proxyTypes = [];
     private readonly Dictionary<string, RoType> _proxyTypesByName = [];
+
+    // Thenable method buffer - populated during EmitExtensionMethod, emitted at class end
+    private readonly List<MethodOverload> _thenableMethodBuffer = [];
+    private ResourceModel? _currentResource;
 
     /// <inheritdoc />
     public override string Language => "TypeScript";
@@ -109,54 +112,6 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     }
 
     /// <inheritdoc />
-    protected override void EmitBaseResourceBuilderClasses()
-    {
-        Writer.WriteLine("""
-          export class IResourceWithConnectionStringBuilder {
-            constructor(protected _proxy: DotNetProxy) {}
-
-            /** Gets the underlying proxy */
-            get proxy(): DotNetProxy { return this._proxy; }
-          }
-
-          /**
-           * Thenable wrapper for IResourceWithConnectionStringBuilder that enables fluent chaining.
-           */
-          export class IResourceWithConnectionStringBuilderPromise implements PromiseLike<IResourceWithConnectionStringBuilder> {
-            constructor(private _promise: Promise<IResourceWithConnectionStringBuilder>) {}
-
-            then<TResult1 = IResourceWithConnectionStringBuilder, TResult2 = never>(
-              onfulfilled?: ((value: IResourceWithConnectionStringBuilder) => TResult1 | PromiseLike<TResult1>) | null,
-              onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
-            ): PromiseLike<TResult1 | TResult2> {
-              return this._promise.then(onfulfilled, onrejected);
-            }
-          }
-
-          export class ResourceBuilder {
-            constructor(protected _proxy: DotNetProxy) {}
-
-            /** Gets the underlying proxy */
-            get proxy(): DotNetProxy { return this._proxy; }
-          }
-
-          /**
-           * Thenable wrapper for ResourceBuilder that enables fluent chaining.
-           */
-          export class ResourceBuilderPromise implements PromiseLike<ResourceBuilder> {
-            constructor(private _promise: Promise<ResourceBuilder>) {}
-
-            then<TResult1 = ResourceBuilder, TResult2 = never>(
-              onfulfilled?: ((value: ResourceBuilder) => TResult1 | PromiseLike<TResult1>) | null,
-              onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
-            ): PromiseLike<TResult1 | TResult2> {
-              return this._promise.then(onfulfilled, onrejected);
-            }
-          }
-          """);
-    }
-
-    /// <inheritdoc />
     protected override void EmitModelClasses()
     {
         GenerateModelClasses(Writer, Model);
@@ -165,8 +120,6 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     /// <inheritdoc />
     protected override void EmitAdditionalClasses()
     {
-        // Generate thenable builder classes for fluent chaining (after all resources)
-        GenerateThenableBuilderClasses(Writer, Model);
         GenerateParameterClasses(Writer);
         GenerateCallbackProxyClasses(Writer, Model);
     }
@@ -217,6 +170,9 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     /// <inheritdoc />
     protected override void EmitResourceBuilderClassStart(ResourceModel resource)
     {
+        _currentResource = resource;
+        _thenableMethodBuffer.Clear();
+
         var resourceName = SanitizeClassName(resource.ResourceType.Name);
         Writer.WriteLine();
         Writer.WriteLine($$"""
@@ -232,6 +188,10 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     protected override void EmitResourceBuilderClassEnd(ResourceModel resource)
     {
         Writer.WriteLine("}");
+
+        // Emit the thenable wrapper class with buffered methods
+        EmitThenableBuilderClass(resource, _thenableMethodBuffer);
+        _currentResource = null;
     }
 
     /// <inheritdoc />
@@ -252,69 +212,65 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     }
 
     /// <inheritdoc />
-    protected override void EmitProxyMethod(MethodOverload overload, bool isStatic)
+    protected override string FormatParameterName(string name) => CamelCase(name);
+
+    /// <inheritdoc />
+    protected override void EmitProxyMethodStart(ProxyMethodContext context)
     {
-        var method = overload.Method;
-        var methodName = overload.UniqueName;
+        var paramsStr = string.Join(", ", context.Parameters.Select(p => $"{p.Name}: {p.Type}"));
+        var returnType = context.IsVoid ? "void" : context.ReturnType;
 
-        // Get parameters
-        var paramsList = new List<string>();
-        var argsForObject = new List<string>();
-
-        foreach (var param in method.Parameters)
+        Writer.WriteLine();
+        if (context.IsStatic)
         {
-            var jsType = FormatJsType(Model, param.ParameterType);
-            var paramName = CamelCase(param.Name);
-            paramsList.Add($"{paramName}: {jsType}");
-
-            // Check if this parameter is a callback type
-            if (IsDelegateType(Model, param.ParameterType))
-            {
-                argsForObject.Add($"{paramName}: registerCallback({paramName})");
-            }
-            else
-            {
-                argsForObject.Add(paramName);
-            }
-        }
-
-        var paramsStr = string.Join(", ", paramsList);
-        var argsObjectStr = argsForObject.Count > 0
-            ? $"{{ {string.Join(", ", argsForObject)} }}"
-            : "{}";
-
-        var returnType = method.ReturnType;
-        var jsReturnType = FormatJsType(Model, returnType);
-        var isVoid = returnType.Name == "Void";
-
-        if (isStatic)
-        {
-            var declaringType = method.DeclaringType!;
-            var clientParam = paramsList.Count > 0 ? "client: RemoteAppHostClient, " : "client: RemoteAppHostClient";
-            var returnExpr = isVoid
-                ? $"await client.invokeStaticMethod('{declaringType.Namespace}', '{declaringType.Name}', '{method.Name}', {argsObjectStr});"
-                : $"return await client.invokeStaticMethod('{declaringType.Namespace}', '{declaringType.Name}', '{method.Name}', {argsObjectStr}) as {jsReturnType};";
-
-            Writer.WriteLine($$"""
-
-              static async {{methodName}}({{clientParam}}{{paramsStr}}): Promise<{{(isVoid ? "void" : jsReturnType)}}> {
-                {{returnExpr}}
-              }
-            """);
+            var clientParam = context.Parameters.Count > 0 ? "client: RemoteAppHostClient, " : "client: RemoteAppHostClient";
+            Writer.WriteLine($"  static async {context.MethodName}({clientParam}{paramsStr}): Promise<{returnType}> {{");
         }
         else
         {
-            var returnExpr = isVoid
-                ? $"await this._proxy.invokeMethod('{method.Name}', {argsObjectStr});"
-                : $"return await this._proxy.invokeMethod('{method.Name}', {argsObjectStr}) as {jsReturnType};";
-
-            Writer.WriteLine($$"""
-
-              async {{methodName}}({{paramsStr}}): Promise<{{(isVoid ? "void" : jsReturnType)}}> {
-                {{returnExpr}}
-              }
-            """);
+            Writer.WriteLine($"  async {context.MethodName}({paramsStr}): Promise<{returnType}> {{");
         }
+    }
+
+    /// <inheritdoc />
+    protected override void EmitProxyMethodBody(ProxyMethodContext context)
+    {
+        // Build args object, wrapping callbacks with registerCallback
+        var args = context.Parameters.Select(p =>
+            p.IsCallback ? $"{p.Name}: registerCallback({p.Name})" : p.Name);
+        var argsStr = context.Parameters.Count > 0
+            ? $"{{ {string.Join(", ", args)} }}"
+            : "{}";
+
+        if (context.IsStatic)
+        {
+            var declaringType = context.DeclaringType!;
+            if (context.IsVoid)
+            {
+                Writer.WriteLine($"    await client.invokeStaticMethod('{declaringType.Namespace}', '{declaringType.Name}', '{context.OriginalMethodName}', {argsStr});");
+            }
+            else
+            {
+                Writer.WriteLine($"    return await client.invokeStaticMethod('{declaringType.Namespace}', '{declaringType.Name}', '{context.OriginalMethodName}', {argsStr}) as {context.ReturnType};");
+            }
+        }
+        else
+        {
+            if (context.IsVoid)
+            {
+                Writer.WriteLine($"    await this._proxy.invokeMethod('{context.OriginalMethodName}', {argsStr});");
+            }
+            else
+            {
+                Writer.WriteLine($"    return await this._proxy.invokeMethod('{context.OriginalMethodName}', {argsStr}) as {context.ReturnType};");
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void EmitProxyMethodEnd(ProxyMethodContext context)
+    {
+        Writer.WriteLine("  }");
     }
 
     /// <inheritdoc />
@@ -335,6 +291,13 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
         var jsReturnTypeName = FormatJsType(Model, returnType);
 
+        // Buffer methods that return builders for thenable class generation
+        var isBuilderReturnType = jsReturnTypeName.EndsWith("Builder", StringComparison.Ordinal);
+        if (_currentResource != null && isBuilderReturnType)
+        {
+            _thenableMethodBuffer.Add(overload);
+        }
+
         var parameters = method.Parameters.Skip(1); // Skip the first parameter (this)
 
         bool ParameterIsOptionalOrNullable(RoParameterInfo p) => p.IsOptional || Model.WellKnownTypes.IsNullableOfT(p.ParameterType);
@@ -353,30 +316,29 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
         if (shouldCreateArgsClass)
         {
-            var parameterType = $"{method.Name}Args";
-
-            if (!_overloadParameterClassByMethod.TryGetValue(method, out var overloadParameterClass))
+            if (!_argsClassNameByMethod.TryGetValue(method, out var parameterType))
             {
+                parameterType = $"{method.Name}Args";
                 var k = 1;
-                while (_overloadParameterClassByName.ContainsKey(parameterType))
+                while (_argsClassDefinitions.ContainsKey(parameterType))
                 {
                     parameterType = $"{method.Name}Args{k++}";
                 }
 
-                overloadParameterClass = $$"""
+                var classDefinition = $$"""
                 export class {{parameterType}} {
                 """;
 
                 foreach (var p in optionalParameters)
                 {
-                    overloadParameterClass += $"\n      public {p.Name}?: {FormatJsType(Model, p.ParameterType)};";
+                    classDefinition += $"\n      public {p.Name}?: {FormatJsType(Model, p.ParameterType)};";
                 }
 
-                overloadParameterClass += "\n";
+                classDefinition += "\n";
 
                 static bool HasDefaultValue(RoParameterInfo p) => p.RawDefaultValue != null && p.RawDefaultValue != DBNull.Value && p.RawDefaultValue != System.Reflection.Missing.Value;
 
-                overloadParameterClass += $$"""
+                classDefinition += $$"""
 
                     constructor(args: Partial<{{parameterType}}> = {}) {
                 """;
@@ -404,16 +366,16 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
                             defaultValue += $" = {p.RawDefaultValue}";
                         }
 
-                        overloadParameterClass += $"\n      this.{p.Name} {defaultValue};";
+                        classDefinition += $"\n      this.{p.Name} {defaultValue};";
                     }
                 }
 
-                overloadParameterClass += "\n      Object.assign(this, args);";
-                overloadParameterClass += "\n    }";
-                overloadParameterClass += "\n}";
+                classDefinition += "\n      Object.assign(this, args);";
+                classDefinition += "\n    }";
+                classDefinition += "\n}";
 
-                _overloadParameterClassByMethod[method] = overloadParameterClass;
-                _overloadParameterClassByName[parameterType] = overloadParameterClass;
+                _argsClassNameByMethod[method] = parameterType;
+                _argsClassDefinitions[parameterType] = classDefinition;
             }
 
             parameterList = string.Join(", ", parameters.Except(optionalParameters).Select(p => FormatArgument(Model, p)));
@@ -442,7 +404,6 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
         // Method body - different for proxy types vs builder types
         var isProxyReturnType = jsReturnTypeName.EndsWith("Proxy", StringComparison.Ordinal);
-        var isBuilderReturnType = jsReturnTypeName.EndsWith("Builder", StringComparison.Ordinal);
 
         if (isProxyReturnType)
         {
@@ -537,9 +498,9 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
     private void GenerateParameterClasses(TextWriter writer)
     {
-        foreach (var overloadParameterType in _overloadParameterClassByMethod.Values)
+        foreach (var classDefinition in _argsClassDefinitions.Values)
         {
-            writer.WriteLine(overloadParameterType);
+            writer.WriteLine(classDefinition);
         }
     }
 
@@ -839,22 +800,14 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
         }
     }
 
-    private void GenerateThenableBuilderClasses(TextWriter textWriter, ApplicationModel model)
+    private void EmitThenableBuilderClass(ResourceModel resource, IReadOnlyList<MethodOverload> methodOverloads)
     {
-        foreach (var resourceModel in model.ResourceModels.Values)
-        {
-            EmitThenableBuilderClass(textWriter, model, resourceModel);
-        }
-    }
-
-    private void EmitThenableBuilderClass(TextWriter textWriter, ApplicationModel model, ResourceModel resourceModel)
-    {
-        var resourceName = SanitizeClassName(resourceModel.ResourceType.Name);
+        var resourceName = SanitizeClassName(resource.ResourceType.Name);
         var builderClassName = $"{resourceName}Builder";
         var thenableClassName = $"{resourceName}BuilderPromise";
 
-        textWriter.WriteLine();
-        textWriter.WriteLine($$"""
+        Writer.WriteLine();
+        Writer.WriteLine($$"""
             /**
              * Thenable wrapper for {{builderClassName}} that enables fluent chaining.
              * Usage: await builder.addX("name").withY().withZ();
@@ -870,140 +823,73 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
               }
             """);
 
-        // Generate fluent methods that chain onto the promise
-        GenerateThenableMethods(textWriter, model, resourceModel.IResourceTypeBuilderExtensionsMethods, thenableClassName);
+        // Generate fluent methods using pre-computed overloads
+        foreach (var overload in methodOverloads)
+        {
+            EmitThenableMethod(overload);
+        }
 
-        textWriter.WriteLine("}");
+        Writer.WriteLine("}");
     }
 
-    private void GenerateThenableMethods(TextWriter writer, ApplicationModel model, IEnumerable<RoMethod> extensionMethods, string thenableClassName)
+    private void EmitThenableMethod(MethodOverload overload)
     {
-        foreach (var methodGroups in extensionMethods.GroupBy(m => m.Name))
+        var method = overload.Method;
+        var methodName = overload.UniqueName; // Already camelCase and disambiguated
+
+        var jsReturnTypeName = FormatJsType(Model, method.ReturnType);
+        var returnThenableClassName = $"{jsReturnTypeName}Promise";
+
+        var parameters = method.Parameters.Skip(1); // Skip the first parameter (this)
+        bool ParameterIsOptionalOrNullable(RoParameterInfo p) => p.IsOptional || Model.WellKnownTypes.IsNullableOfT(p.ParameterType);
+
+        var orderedParameters = parameters.OrderBy(p => p.IsOptional ? 1 : 0).ThenBy(p => Model.WellKnownTypes.IsNullableOfT(p.ParameterType) ? 1 : 0);
+
+        const string optionalArgumentName = "optionalArguments";
+        var optionalParameters = method.Parameters.Skip(1).Where(ParameterIsOptionalOrNullable).ToArray();
+        var shouldCreateArgsClass = optionalParameters.Length > 1;
+
+        var parameterList = string.Join(", ", orderedParameters.Select(p => FormatArgument(Model, p)));
+
+        if (shouldCreateArgsClass)
         {
-            var indexes = new Dictionary<string, int>();
-            var overloads = methodGroups.OrderBy(m => m.Parameters.Count).ToArray();
+            // Use the same Args class name that was created during EmitExtensionMethod
+            var parameterType = _argsClassNameByMethod.GetValueOrDefault(method, $"{method.Name}Args");
 
-            foreach (var overload in overloads)
+            parameterList = string.Join(", ", parameters.Except(optionalParameters).Select(p => FormatArgument(Model, p)));
+            if (parameterList.Length > 0)
             {
-                var returnType = overload.ReturnType;
-                var jsReturnTypeName = FormatJsType(model, returnType);
-
-                // Skip methods that return primitive types or have out/ref parameters
-                if (IsPrimitiveReturnType(model, returnType) ||
-                    overload.Parameters.Any(p => p.ParameterType.IsByRef))
-                {
-                    continue;
-                }
-
-                // Skip proxy-returning methods - they don't have internal methods and can't chain
-                var isProxyReturnType = jsReturnTypeName.EndsWith("Proxy", StringComparison.Ordinal);
-                if (isProxyReturnType)
-                {
-                    continue;
-                }
-
-                // Skip methods that don't return builder types - they can't chain
-                var isBuilderReturnType = jsReturnTypeName.EndsWith("Builder", StringComparison.Ordinal);
-                if (!isBuilderReturnType)
-                {
-                    continue;
-                }
-
-                var methodNameAttribute = overload.GetCustomAttributes()
-                    .FirstOrDefault(attr => attr.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
-
-                var methodName = CamelCase(
-                    methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
-                    ?? methodNameAttribute?.FixedArguments?.ElementAtOrDefault(0)?.ToString()
-                    ?? overload.Name);
-
-                if (indexes.TryGetValue(methodName, out var index))
-                {
-                    indexes[methodName] = index + 1;
-                    methodName = $"{methodName}{(index + 1).ToString(CultureInfo.InvariantCulture)}";
-                }
-                else
-                {
-                    indexes[methodName] = 0;
-                }
-
-                var parameters = overload.Parameters.Skip(1); // Skip the first parameter (this)
-                bool ParameterIsOptionalOrNullable(RoParameterInfo p) => p.IsOptional || model.WellKnownTypes.IsNullableOfT(p.ParameterType);
-
-                var orderedParameters = parameters.OrderBy(p => p.IsOptional ? 1 : 0).ThenBy(p => model.WellKnownTypes.IsNullableOfT(p.ParameterType) ? 1 : 0);
-
-                const string optionalArgumentName = "optionalArguments";
-                var optionalParameters = overload.Parameters.Skip(1).Where(ParameterIsOptionalOrNullable).ToArray();
-                var shouldCreateArgsClass = optionalParameters.Length > 1;
-
-                var parameterList = string.Join(", ", orderedParameters.Select(p => FormatArgument(model, p)));
-
-                if (shouldCreateArgsClass)
-                {
-                    var parameterType = $"{overload.Name}Args";
-                    if (!_overloadParameterClassByMethod.ContainsKey(overload))
-                    {
-                        var k = 1;
-                        while (_overloadParameterClassByName.ContainsKey(parameterType))
-                        {
-                            parameterType = $"{overload.Name}Args{k++}";
-                        }
-                    }
-                    else
-                    {
-                        // Find the existing parameter type name
-                        foreach (var (method, _) in _overloadParameterClassByMethod)
-                        {
-                            if (method == overload)
-                            {
-                                break;
-                            }
-                        }
-                    }
-
-                    parameterList = string.Join(", ", parameters.Except(optionalParameters).Select(p => FormatArgument(model, p)));
-                    if (parameterList.Length > 0)
-                    {
-                        parameterList += ", ";
-                    }
-                    parameterList += $"{optionalArgumentName}?: {parameterType}";
-                }
-
-                // Determine the return thenable type name
-                var returnThenableClassName = thenableClassName;
-                if (jsReturnTypeName.EndsWith("Builder", StringComparison.Ordinal) && !jsReturnTypeName.EndsWith("Proxy", StringComparison.Ordinal))
-                {
-                    returnThenableClassName = $"{jsReturnTypeName}Promise";
-                }
-
-                // Build the argument list for the internal method call
-                string thenableArgsList;
-                if (shouldCreateArgsClass)
-                {
-                    var requiredArgs = string.Join(", ", parameters.Except(optionalParameters).Select(p => p.Name));
-                    thenableArgsList = requiredArgs.Length > 0
-                        ? $"{requiredArgs}, {optionalArgumentName}"
-                        : optionalArgumentName;
-                }
-                else
-                {
-                    thenableArgsList = string.Join(", ", parameters.Select(p => p.Name));
-                }
-
-                // Generate fluent method that chains onto the promise
-                writer.WriteLine($$"""
-
-                  /**
-                   * {{overload.Name}} (fluent chaining)
-                   */
-                  {{methodName}}({{parameterList}}): {{returnThenableClassName}} {
-                    return new {{returnThenableClassName}}(
-                      this._promise.then(b => b._{{methodName}}Internal({{thenableArgsList}}))
-                    );
-                  }
-                """);
+                parameterList += ", ";
             }
+            parameterList += $"{optionalArgumentName}?: {parameterType}";
         }
+
+        // Build the argument list for the internal method call
+        string thenableArgsList;
+        if (shouldCreateArgsClass)
+        {
+            var requiredArgs = string.Join(", ", parameters.Except(optionalParameters).Select(p => p.Name));
+            thenableArgsList = requiredArgs.Length > 0
+                ? $"{requiredArgs}, {optionalArgumentName}"
+                : optionalArgumentName;
+        }
+        else
+        {
+            thenableArgsList = string.Join(", ", parameters.Select(p => p.Name));
+        }
+
+        // Generate fluent method that chains onto the promise
+        Writer.WriteLine($$"""
+
+          /**
+           * {{method.Name}} (fluent chaining)
+           */
+          {{methodName}}({{parameterList}}): {{returnThenableClassName}} {
+            return new {{returnThenableClassName}}(
+              this._promise.then(b => b._{{methodName}}Internal({{thenableArgsList}}))
+            );
+          }
+        """);
     }
 
     private static string FormatMethodSignature(RoMethod method)
@@ -1039,6 +925,9 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
     /// <inheritdoc />
     protected override string FormatMethodName(string name) => CamelCase(name);
+
+    /// <inheritdoc />
+    protected override string FormatType(RoType type) => FormatJsType(Model, type);
 
     private static string FormatJsonArgument(ApplicationModel model, RoParameterInfo p, string prefix)
     {
@@ -1190,8 +1079,7 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
         return type switch
         {
-            { IsGenericType: true } when model.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var t) && t == model.WellKnownTypes.IResourceWithConnectionStringType => "IResourceWithConnectionStringBuilder",
-            { IsGenericType: true } when model.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var t) && t.IsInterface => "ResourceBuilder",
+            // For IResourceBuilder<T>, generate TypeBuilder (model provides concrete resources)
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType => $"{type.GetGenericArguments()[0].Name}Builder",
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Nullable<>)) => FormatJsType(model, type.GetGenericArguments()[0]) + " | null",
             { IsGenericType: true } when type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(List<>)) => $"Array<{FormatJsType(model, type.GetGenericArguments()[0])}>",

@@ -565,47 +565,6 @@ export class DistributedApplicationBuilder extends DistributedApplicationBuilder
     return new TestDatabaseResourceBuilderPromise(this._addTestDatabaseInternal(name, databaseName));
   }
 }
-export class IResourceWithConnectionStringBuilder {
-  constructor(protected _proxy: DotNetProxy) {}
-
-  /** Gets the underlying proxy */
-  get proxy(): DotNetProxy { return this._proxy; }
-}
-
-/**
- * Thenable wrapper for IResourceWithConnectionStringBuilder that enables fluent chaining.
- */
-export class IResourceWithConnectionStringBuilderPromise implements PromiseLike<IResourceWithConnectionStringBuilder> {
-  constructor(private _promise: Promise<IResourceWithConnectionStringBuilder>) {}
-
-  then<TResult1 = IResourceWithConnectionStringBuilder, TResult2 = never>(
-    onfulfilled?: ((value: IResourceWithConnectionStringBuilder) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
-  ): PromiseLike<TResult1 | TResult2> {
-    return this._promise.then(onfulfilled, onrejected);
-  }
-}
-
-export class ResourceBuilder {
-  constructor(protected _proxy: DotNetProxy) {}
-
-  /** Gets the underlying proxy */
-  get proxy(): DotNetProxy { return this._proxy; }
-}
-
-/**
- * Thenable wrapper for ResourceBuilder that enables fluent chaining.
- */
-export class ResourceBuilderPromise implements PromiseLike<ResourceBuilder> {
-  constructor(private _promise: Promise<ResourceBuilder>) {}
-
-  then<TResult1 = ResourceBuilder, TResult2 = never>(
-    onfulfilled?: ((value: ResourceBuilder) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
-  ): PromiseLike<TResult1 | TResult2> {
-    return this._promise.then(onfulfilled, onrejected);
-  }
-}
 
 export class TestRedisResourceBuilder {
   constructor(protected _proxy: DotNetProxy) {}
@@ -657,6 +616,29 @@ export class TestRedisResourceBuilder {
    */
   withBuilderCallback(configure?: (p0: TestRedisResourceBuilder) => void | Promise<void>): TestRedisResourceBuilderPromise {
     return new TestRedisResourceBuilderPromise(this._withBuilderCallbackInternal(configure));
+  }
+
+   /**
+   * AsConnectionString
+   * @remarks C# Definition: IResourceBuilder<IResourceWithConnectionString> AsConnectionString(IResourceBuilder<TestRedisResource> builder)
+   
+   * @returns {IResourceWithConnectionStringBuilder} C# Type: IResourceBuilder<IResourceWithConnectionString>
+   */
+  /** @internal */
+  async _asConnectionStringInternal() : Promise<IResourceWithConnectionStringBuilder> {
+    const result = await client.invokeStaticMethod('Aspire.Hosting.CodeGeneration.TypeScript.Tests', 'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestExtensions', 'AsConnectionString', {builder: this._proxy, });
+    if (result && typeof result === 'object' && '$id' in result) {
+        return new IResourceWithConnectionStringBuilder(new DotNetProxy(result as any));
+    }
+    throw new Error('AsConnectionString did not return a marshalled object');
+  };
+
+  /**
+   * AsConnectionString (fluent chaining)
+   * @remarks C# Definition: IResourceBuilder<IResourceWithConnectionString> AsConnectionString(IResourceBuilder<TestRedisResource> builder)
+   */
+  asConnectionString(): IResourceWithConnectionStringBuilderPromise {
+    return new IResourceWithConnectionStringBuilderPromise(this._asConnectionStringInternal());
   }
 
    /**
@@ -734,6 +716,75 @@ export class TestRedisResourceBuilder {
   withMultipleDefaults(optionalArguments: WithMultipleDefaultsArgs = new WithMultipleDefaultsArgs()): TestRedisResourceBuilderPromise {
     optionalArguments = Object.assign(new WithMultipleDefaultsArgs(), optionalArguments);
     return new TestRedisResourceBuilderPromise(this._withMultipleDefaultsInternal(optionalArguments));
+  }
+}
+
+/**
+ * Thenable wrapper for TestRedisResourceBuilder that enables fluent chaining.
+ * Usage: await builder.addX("name").withY().withZ();
+ */
+export class TestRedisResourceBuilderPromise implements PromiseLike<TestRedisResourceBuilder> {
+  constructor(private _promise: Promise<TestRedisResourceBuilder>) {}
+
+  then<TResult1 = TestRedisResourceBuilder, TResult2 = never>(
+    onfulfilled?: ((value: TestRedisResourceBuilder) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * WithPersistence (fluent chaining)
+   */
+  withPersistence(mode?: TestPersistenceMode): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withPersistenceInternal(mode))
+    );
+  }
+
+  /**
+   * WithBuilderCallback (fluent chaining)
+   */
+  withBuilderCallback(configure?: (p0: TestRedisResourceBuilder) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withBuilderCallbackInternal(configure))
+    );
+  }
+
+  /**
+   * AsConnectionString (fluent chaining)
+   */
+  asConnectionString(): IResourceWithConnectionStringBuilderPromise {
+    return new IResourceWithConnectionStringBuilderPromise(
+      this._promise.then(b => b._asConnectionStringInternal())
+    );
+  }
+
+  /**
+   * WithCustomCallback (fluent chaining)
+   */
+  withCustomCallback(callback: (p0: TestCallbackContextProxy) => void | Promise<void>): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withCustomCallbackInternal(callback))
+    );
+  }
+
+  /**
+   * WithOptionalString (fluent chaining)
+   */
+  withOptionalString(optionalArguments?: WithOptionalStringArgs): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withOptionalStringInternal(optionalArguments))
+    );
+  }
+
+  /**
+   * WithMultipleDefaults (fluent chaining)
+   */
+  withMultipleDefaults(optionalArguments?: WithMultipleDefaultsArgs): TestRedisResourceBuilderPromise {
+    return new TestRedisResourceBuilderPromise(
+      this._promise.then(b => b._withMultipleDefaultsInternal(optionalArguments))
+    );
   }
 }
 
@@ -821,70 +872,6 @@ export class TestDatabaseResourceBuilder {
   }
 }
 
-export enum TestPersistenceMode {
-  None = "None", Volume = "Volume", Bind = "Bind"
-}
-
-/**
- * Thenable wrapper for TestRedisResourceBuilder that enables fluent chaining.
- * Usage: await builder.addX("name").withY().withZ();
- */
-export class TestRedisResourceBuilderPromise implements PromiseLike<TestRedisResourceBuilder> {
-  constructor(private _promise: Promise<TestRedisResourceBuilder>) {}
-
-  then<TResult1 = TestRedisResourceBuilder, TResult2 = never>(
-    onfulfilled?: ((value: TestRedisResourceBuilder) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
-  ): PromiseLike<TResult1 | TResult2> {
-    return this._promise.then(onfulfilled, onrejected);
-  }
-
-  /**
-   * WithPersistence (fluent chaining)
-   */
-  withPersistence(mode?: TestPersistenceMode): TestRedisResourceBuilderPromise {
-    return new TestRedisResourceBuilderPromise(
-      this._promise.then(b => b._withPersistenceInternal(mode))
-    );
-  }
-
-  /**
-   * WithBuilderCallback (fluent chaining)
-   */
-  withBuilderCallback(configure?: (p0: TestRedisResourceBuilder) => void | Promise<void>): TestRedisResourceBuilderPromise {
-    return new TestRedisResourceBuilderPromise(
-      this._promise.then(b => b._withBuilderCallbackInternal(configure))
-    );
-  }
-
-  /**
-   * WithCustomCallback (fluent chaining)
-   */
-  withCustomCallback(callback: (p0: TestCallbackContextProxy) => void | Promise<void>): TestRedisResourceBuilderPromise {
-    return new TestRedisResourceBuilderPromise(
-      this._promise.then(b => b._withCustomCallbackInternal(callback))
-    );
-  }
-
-  /**
-   * WithOptionalString (fluent chaining)
-   */
-  withOptionalString(optionalArguments?: WithOptionalStringArgs): TestRedisResourceBuilderPromise {
-    return new TestRedisResourceBuilderPromise(
-      this._promise.then(b => b._withOptionalStringInternal(optionalArguments))
-    );
-  }
-
-  /**
-   * WithMultipleDefaults (fluent chaining)
-   */
-  withMultipleDefaults(optionalArguments?: WithMultipleDefaultsArgs): TestRedisResourceBuilderPromise {
-    return new TestRedisResourceBuilderPromise(
-      this._promise.then(b => b._withMultipleDefaultsInternal(optionalArguments))
-    );
-  }
-}
-
 /**
  * Thenable wrapper for TestDatabaseResourceBuilder that enables fluent chaining.
  * Usage: await builder.addX("name").withY().withZ();
@@ -911,7 +898,7 @@ export class TestDatabaseResourceBuilderPromise implements PromiseLike<TestDatab
   /**
    * WithOptionalString (fluent chaining)
    */
-  withOptionalString(optionalArguments?: WithOptionalStringArgs): TestDatabaseResourceBuilderPromise {
+  withOptionalString(optionalArguments?: WithOptionalStringArgs1): TestDatabaseResourceBuilderPromise {
     return new TestDatabaseResourceBuilderPromise(
       this._promise.then(b => b._withOptionalStringInternal(optionalArguments))
     );
@@ -920,11 +907,37 @@ export class TestDatabaseResourceBuilderPromise implements PromiseLike<TestDatab
   /**
    * WithMultipleDefaults (fluent chaining)
    */
-  withMultipleDefaults(optionalArguments?: WithMultipleDefaultsArgs): TestDatabaseResourceBuilderPromise {
+  withMultipleDefaults(optionalArguments?: WithMultipleDefaultsArgs1): TestDatabaseResourceBuilderPromise {
     return new TestDatabaseResourceBuilderPromise(
       this._promise.then(b => b._withMultipleDefaultsInternal(optionalArguments))
     );
   }
+}
+
+export class IResourceWithConnectionStringBuilder {
+  constructor(protected _proxy: DotNetProxy) {}
+
+  /** Gets the underlying proxy */
+  get proxy(): DotNetProxy { return this._proxy; }
+}
+
+/**
+ * Thenable wrapper for IResourceWithConnectionStringBuilder that enables fluent chaining.
+ * Usage: await builder.addX("name").withY().withZ();
+ */
+export class IResourceWithConnectionStringBuilderPromise implements PromiseLike<IResourceWithConnectionStringBuilder> {
+  constructor(private _promise: Promise<IResourceWithConnectionStringBuilder>) {}
+
+  then<TResult1 = IResourceWithConnectionStringBuilder, TResult2 = never>(
+    onfulfilled?: ((value: IResourceWithConnectionStringBuilder) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+}
+
+export enum TestPersistenceMode {
+  None = "None", Volume = "Volume", Bind = "Bind"
 }
 export class WithOptionalStringArgs {
       public value?: string;

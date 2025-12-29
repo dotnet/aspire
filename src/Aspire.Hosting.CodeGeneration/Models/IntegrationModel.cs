@@ -135,7 +135,7 @@ public sealed class IntegrationModel
 
     public void DiscoverModelClasses(List<RoMethod> methods, HashSet<RoType> modelTypes)
     {
-        // Collect classes for types that are used as return types or arguments in the extension methods which 
+        // Collect classes for types that are used as return types or arguments in the extension methods which
         // are not IResourceBuilder<T>.
 
         void ScanMethod(RoMethod method)
@@ -159,6 +159,17 @@ public sealed class IntegrationModel
                 if (type.IsAssignableTo(WellKnownTypes.GetKnownType<Delegate>()) && type.GetMethod("Invoke") is { } invokeMethod)
                 {
                     ScanMethod(invokeMethod);
+                    continue;
+                }
+
+                // Check for IResourceBuilder<T> where T is an interface - need builder classes for these
+                if (WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var resourceType) && resourceType.IsInterface)
+                {
+                    // Add interface types as resources so they get builder classes generated
+                    if (!Resources.ContainsKey(resourceType))
+                    {
+                        Resources.Add(resourceType, new ResourceModel { ResourceType = resourceType });
+                    }
                     continue;
                 }
 

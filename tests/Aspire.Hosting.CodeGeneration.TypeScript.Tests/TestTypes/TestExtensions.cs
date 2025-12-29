@@ -94,6 +94,17 @@ public static class TestExtensions
         configure?.Invoke(builder);
         return builder;
     }
+
+    /// <summary>
+    /// Returns the resource as IResourceWithConnectionString builder.
+    /// This tests that interface types are discovered and get builder classes generated.
+    /// </summary>
+    public static IResourceBuilder<IResourceWithConnectionString> AsConnectionString(
+        this IResourceBuilder<TestRedisResource> builder)
+    {
+        // Cast to interface builder
+        return builder;
+    }
 }
 
 /// <summary>

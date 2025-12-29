@@ -206,7 +206,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>Emit the end of the DistributedApplicationBuilder class.</summary>
     protected virtual void EmitBuilderClassEnd() { }
 
-    /// <summary>Emit base resource builder classes (ResourceBuilder, etc.).</summary>
+    /// <summary>Emit base resource builder classes.</summary>
     protected virtual void EmitBaseResourceBuilderClasses() { }
 
     /// <summary>Emit model classes (enums from integrations).</summary>
@@ -233,8 +233,49 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>Emit the end of a resource builder class.</summary>
     protected virtual void EmitResourceBuilderClassEnd(ResourceModel resource) { }
 
-    /// <summary>Emit a proxy method (instance or static). UniqueName is already disambiguated.</summary>
-    protected virtual void EmitProxyMethod(MethodOverload overload, bool isStatic) { }
+    /// <summary>
+    /// Emit a proxy method (instance or static). Base implementation walks the method
+    /// and calls smaller hooks. Override for full control.
+    /// </summary>
+    protected virtual void EmitProxyMethod(MethodOverload overload, bool isStatic)
+    {
+        var method = overload.Method;
+
+        // Build parameter contexts
+        var parameters = method.Parameters.Select(p => new MethodParameterContext(
+            Name: FormatParameterName(p.Name),
+            Type: FormatType(p.ParameterType),
+            OriginalType: p.ParameterType,
+            IsCallback: IsDelegateType(Model, p.ParameterType),
+            Original: p
+        )).ToList();
+
+        var returnType = method.ReturnType;
+        var context = new ProxyMethodContext(
+            MethodName: overload.UniqueName,
+            OriginalMethodName: method.Name,
+            Parameters: parameters,
+            ReturnType: FormatType(returnType),
+            OriginalReturnType: returnType,
+            IsVoid: returnType.Name == "Void",
+            IsStatic: isStatic,
+            DeclaringType: method.DeclaringType,
+            Overload: overload
+        );
+
+        EmitProxyMethodStart(context);
+        EmitProxyMethodBody(context);
+        EmitProxyMethodEnd(context);
+    }
+
+    /// <summary>Emit the method signature (async foo(...): Promise&lt;T&gt; {).</summary>
+    protected virtual void EmitProxyMethodStart(ProxyMethodContext context) { }
+
+    /// <summary>Emit the method body (the invocation logic).</summary>
+    protected virtual void EmitProxyMethodBody(ProxyMethodContext context) { }
+
+    /// <summary>Emit the method end (closing brace).</summary>
+    protected virtual void EmitProxyMethodEnd(ProxyMethodContext context) { }
 
     /// <summary>Emit an extension method (on builder or resource). UniqueName is already disambiguated.</summary>
     protected virtual void EmitExtensionMethod(MethodOverload overload) { }
@@ -247,6 +288,9 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
 
     /// <summary>Format a method name for the target language (e.g., camelCase, snake_case).</summary>
     protected virtual string FormatMethodName(string name) => name;
+
+    /// <summary>Format a parameter name for the target language.</summary>
+    protected virtual string FormatParameterName(string name) => name;
 
     // === Shared utility methods ===
 

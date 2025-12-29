@@ -22,16 +22,22 @@ public sealed class ApplicationModel : IDisposable
         var knownTypes = integrationModels.Any() ? integrationModels.FirstOrDefault()?.WellKnownTypes! : new WellKnownTypes(assemblyLoaderContext);
 
         var integrationModelsLookup = integrationModels.ToDictionary(x => x.AssemblyName);
-        var resourceModels = integrationModels.SelectMany(x => x.Resources).ToDictionary(x => x.Key, x => x.Value);
 
-        // Discover extension methods for each resource model across all integrations. This needs to be done after all integrations are loaded.
-        foreach (var rm in resourceModels.Values)
+        // Get initial resources from integrations (concrete types implementing IResource)
+        var initialResources = integrationModels.SelectMany(x => x.Resources).ToDictionary(x => x.Key, x => x.Value);
+
+        // Discover extension methods for each resource model across all integrations.
+        // This may discover interface types used in IResourceBuilder<T> which get added to integration.Resources.
+        foreach (var rm in initialResources.Values)
         {
             foreach (var integrationModel in integrationModels)
             {
                 rm.DiscoverOpenGenericExtensionMethods(integrationModel);
             }
         }
+
+        // Re-aggregate resources after discovery (includes interface types discovered above)
+        var resourceModels = integrationModels.SelectMany(x => x.Resources).ToDictionary(x => x.Key, x => x.Value);
 
         // Discover all model types across all integrations
         var modelTypes = new HashSet<RoType>();
