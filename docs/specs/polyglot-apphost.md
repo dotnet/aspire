@@ -14,6 +14,7 @@ This document describes how the Aspire CLI supports non-.NET app hosts. Currentl
 - [Process Lifecycle](#process-lifecycle)
 - [Configuration](#configuration)
 - [Adding New Guest Languages](#adding-new-guest-languages)
+- [Code Generator Architecture](#code-generator-architecture)
 - [Development Mode](#development-mode)
 - [Challenges and Limitations](#challenges-and-limitations)
 
@@ -667,6 +668,108 @@ These components work unchanged for any guest language:
 - `Aspire.Hosting.RemoteHost` - JSON-RPC server, method dispatcher, object registry
 - `Aspire.Hosting.CodeGeneration` - Reflection-based model building
 - AppHost server scaffolding and build process
+
+---
+
+## Code Generator Architecture
+
+The code generation system uses a **visitor pattern** with a shared base class that handles language-agnostic concerns, allowing new guest languages to be added with minimal effort.
+
+### CodeGeneratorVisitor Base Class
+
+`CodeGeneratorVisitor` in `Aspire.Hosting.CodeGeneration` provides shared logic:
+
+| Concern | What the Base Class Handles |
+|---------|----------------------------|
+| **Type Discovery** | Queue-based traversal of all referenced types |
+| **Overload Disambiguation** | Generates unique names (`add`, `add2`, `add3`) for overloaded methods |
+| **Delegate Detection** | Identifies `Action<T>`, `Func<T>` parameters for callback generation |
+| **Collection Handling** | Detects `IList<T>`, `IDictionary<K,V>`, nullable types |
+| **Two-Phase Emission** | Discovery phase then emission phase (prevents forward reference issues) |
+
+Language implementations override abstract methods for syntax-specific concerns:
+
+```csharp
+public abstract class CodeGeneratorVisitor : ICodeGenerator
+{
+    // Language implementations override these
+    protected abstract string FormatType(RoType type);           // string vs str
+    protected abstract string FormatMethodName(string name);     // camelCase vs snake_case
+    protected abstract void EmitMethod(...);                     // Syntax emission
+    protected abstract void EmitProxyClass(...);                 // Class structure
+}
+```
+
+### TypeScript Implementation
+
+`TypeScriptCodeGenerator` extends the base visitor with TypeScript-specific formatting:
+
+| Base Class Method | TypeScript Override |
+|-------------------|---------------------|
+| `FormatType(string)` | `"string"` |
+| `FormatType(int)` | `"number"` |
+| `FormatMethodName("AddRedis")` | `"addRedis"` (camelCase) |
+| `EmitProxyClass` | `class FooProxy { ... }` with braces |
+
+### Adding a New Language (Example: Python)
+
+To add Python support, create `PythonCodeGenerator : CodeGeneratorVisitor`:
+
+```csharp
+public class PythonCodeGenerator : CodeGeneratorVisitor
+{
+    protected override string FormatType(RoType type)
+    {
+        if (type == typeof(string)) return "str";
+        if (type == typeof(int)) return "int";
+        if (type == typeof(bool)) return "bool";
+        return "Any";
+    }
+
+    protected override string FormatMethodName(string name) =>
+        ToSnakeCase(name);  // add_redis instead of addRedis
+
+    protected override void EmitProxyClass(string name, ...)
+    {
+        Writer.WriteLine($"class {name}:");
+        Writer.WriteLine($"    def __init__(self, proxy):");
+        // ... indentation-based syntax
+    }
+}
+```
+
+The base class handles all the complex logic (type traversal, overload resolution, callback detection), so a new language implementation is primarily formatting and syntax.
+
+### Thenable Pattern for Fluent Async
+
+The TypeScript generator produces `*ProxyPromise` wrapper classes that enable fluent async chaining. This pattern can be adapted to other languages with similar async models:
+
+```typescript
+// Without thenable pattern (multiple awaits):
+const env = await builder.getEnvironment();
+const name = await env.getEnvironmentName();
+
+// With thenable pattern (single await, fluent chain):
+const name = await builder.getEnvironment().getEnvironmentName();
+```
+
+The pattern wraps a `Promise<Proxy>` and forwards method calls through the promise:
+
+```typescript
+class EnvironmentProxyPromise implements PromiseLike<EnvironmentProxy> {
+  constructor(private _promise: Promise<EnvironmentProxy>) {}
+
+  // PromiseLike implementation
+  then<T1, T2>(onFulfilled?, onRejected?): PromiseLike<T1 | T2> {
+    return this._promise.then(onFulfilled, onRejected);
+  }
+
+  // Fluent method - chains through the promise
+  getEnvironmentName(): Promise<string> {
+    return this._promise.then(p => p.getEnvironmentName());
+  }
+}
+```
 
 ---
 
