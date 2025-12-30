@@ -205,6 +205,15 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure..
+        /// </summary>
+        internal static string ParametersInputsRememberDescriptionNotConfigured {
+            get {
+                return ResourceManager.GetString("ParametersInputsRememberDescriptionNotConfigured", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Set unresolved parameters.
         /// </summary>
         internal static string ParametersInputsTitle {

@@ -77,6 +77,11 @@
         <target state="translated">Enregistrer</target>
         <note />
       </trans-unit>
+      <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
+        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure.</source>
+        <target state="new">Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
         <source>Save to user secrets</source>
         <target state="translated">Enregistrer dans les secrets utilisateur</target>
