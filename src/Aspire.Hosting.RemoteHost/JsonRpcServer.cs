@@ -9,16 +9,15 @@ namespace Aspire.Hosting.RemoteHost;
 
 internal sealed class RemoteAppHostService : IAsyncDisposable
 {
-    private readonly ObjectRegistry _objectRegistry;
+    private readonly RpcOperations _operations;
     private readonly JsonRpcCallbackInvoker _callbackInvoker;
-    private readonly InstructionProcessor _instructionProcessor;
     private readonly CancellationTokenSource _cts = new();
 
     public RemoteAppHostService()
     {
-        _objectRegistry = new ObjectRegistry();
+        var objectRegistry = new ObjectRegistry();
         _callbackInvoker = new JsonRpcCallbackInvoker();
-        _instructionProcessor = new InstructionProcessor(_objectRegistry, _callbackInvoker);
+        _operations = new RpcOperations(objectRegistry, _callbackInvoker);
     }
 
     /// <summary>
@@ -46,117 +45,35 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
 
     [JsonRpcMethod("invokeMethod")]
     public object? InvokeMethod(string objectId, string methodName, JsonElement? args)
-    {
-        try
-        {
-            return _instructionProcessor.InvokeMethod(objectId, methodName, args);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error invoking method '{methodName}' on object '{objectId}': {ex.Message}");
-            throw;
-        }
-    }
+        => _operations.InvokeMethod(objectId, methodName, args);
 
     [JsonRpcMethod("invokeStaticMethod")]
     public object? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonElement? args)
-    {
-        try
-        {
-            return _instructionProcessor.InvokeStaticMethod(assemblyName, typeName, methodName, args);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error invoking static method '{typeName}.{methodName}': {ex.Message}");
-            throw;
-        }
-    }
+        => _operations.InvokeStaticMethod(assemblyName, typeName, methodName, args);
 
     [JsonRpcMethod("createObject")]
     public object? CreateObject(string assemblyName, string typeName, JsonElement? args)
-    {
-        try
-        {
-            return _instructionProcessor.CreateObject(assemblyName, typeName, args);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error creating object '{typeName}': {ex.Message}");
-            throw;
-        }
-    }
+        => _operations.CreateObject(assemblyName, typeName, args);
 
     [JsonRpcMethod("getProperty")]
     public object? GetProperty(string objectId, string propertyName)
-    {
-        try
-        {
-            return _instructionProcessor.GetProperty(objectId, propertyName);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error getting property '{propertyName}' on object '{objectId}': {ex.Message}");
-            throw;
-        }
-    }
+        => _operations.GetProperty(objectId, propertyName);
 
     [JsonRpcMethod("setProperty")]
-    public void SetProperty(string objectId, string propertyName, System.Text.Json.JsonElement value)
-    {
-        try
-        {
-            _instructionProcessor.SetProperty(objectId, propertyName, value);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error setting property '{propertyName}' on object '{objectId}': {ex.Message}");
-            throw;
-        }
-    }
+    public void SetProperty(string objectId, string propertyName, JsonElement value)
+        => _operations.SetProperty(objectId, propertyName, value);
 
     [JsonRpcMethod("getIndexer")]
     public object? GetIndexer(string objectId, JsonElement key)
-    {
-        try
-        {
-            // Use the JsonElement version which handles both dictionaries and list indexers
-            return _instructionProcessor.GetIndexer(objectId, key);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error getting indexer '{key}' on object '{objectId}': {ex.Message}");
-            throw;
-        }
-    }
+        => _operations.GetIndexer(objectId, key);
 
     [JsonRpcMethod("setIndexer")]
     public void SetIndexer(string objectId, JsonElement key, JsonElement value)
-    {
-        try
-        {
-            // Use the JsonElement version which handles both dictionaries and list indexers
-            _instructionProcessor.SetIndexer(objectId, key, value);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error setting indexer '{key}' on object '{objectId}': {ex.Message}");
-            throw;
-        }
-    }
+        => _operations.SetIndexer(objectId, key, value);
 
     [JsonRpcMethod("unregisterObject")]
     public void UnregisterObject(string objectId)
-    {
-        try
-        {
-            _instructionProcessor.UnregisterObject(objectId);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error unregistering object '{objectId}': {ex.Message}");
-            throw;
-        }
-    }
+        => _operations.UnregisterObject(objectId);
 
     #endregion
 
@@ -164,41 +81,19 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
 
     [JsonRpcMethod("getStaticProperty")]
     public object? GetStaticProperty(string assemblyName, string typeName, string propertyName)
-    {
-        try
-        {
-            return _instructionProcessor.GetStaticProperty(assemblyName, typeName, propertyName);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error getting static property '{typeName}.{propertyName}': {ex.Message}");
-            throw;
-        }
-    }
+        => _operations.GetStaticProperty(assemblyName, typeName, propertyName);
 
     [JsonRpcMethod("setStaticProperty")]
     public void SetStaticProperty(string assemblyName, string typeName, string propertyName, JsonElement value)
-    {
-        try
-        {
-            _instructionProcessor.SetStaticProperty(assemblyName, typeName, propertyName, value);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error setting static property '{typeName}.{propertyName}': {ex.Message}");
-            throw;
-        }
-    }
+        => _operations.SetStaticProperty(assemblyName, typeName, propertyName, value);
 
     #endregion
 
     public async ValueTask DisposeAsync()
     {
-        // Cancel any in-flight operations
         _cts.Cancel();
         _cts.Dispose();
-
-        await _instructionProcessor.DisposeAsync().ConfigureAwait(false);
+        await _operations.DisposeAsync().ConfigureAwait(false);
     }
 }
 

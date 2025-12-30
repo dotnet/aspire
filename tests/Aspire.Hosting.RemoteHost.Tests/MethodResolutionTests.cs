@@ -10,20 +10,20 @@ public class MethodResolutionTests : IAsyncLifetime
 {
     private readonly ObjectRegistry _objectRegistry;
     private readonly TestCallbackInvoker _callbackInvoker;
-    private readonly InstructionProcessor _processor;
+    private readonly RpcOperations _operations;
 
     public MethodResolutionTests()
     {
         _objectRegistry = new ObjectRegistry();
         _callbackInvoker = new TestCallbackInvoker();
-        _processor = new InstructionProcessor(_objectRegistry, _callbackInvoker);
+        _operations = new RpcOperations(_objectRegistry, _callbackInvoker);
     }
 
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
     public async ValueTask DisposeAsync()
     {
-        await _processor.DisposeAsync();
+        await _operations.DisposeAsync();
     }
 
     #region Overload Resolution Tests
@@ -36,12 +36,12 @@ public class MethodResolutionTests : IAsyncLifetime
 
         // Call with 'name' argument - should select Method(string name)
         var args1 = JsonDocument.Parse("{\"name\": \"test\"}").RootElement;
-        _processor.InvokeMethod(id, "Method", args1);
+        _operations.InvokeMethod(id, "Method", args1);
         Assert.Equal("name:test", obj.LastCall);
 
         // Call with 'value' argument - should select Method(int value)
         var args2 = JsonDocument.Parse("{\"value\": 42}").RootElement;
-        _processor.InvokeMethod(id, "Method", args2);
+        _operations.InvokeMethod(id, "Method", args2);
         Assert.Equal("value:42", obj.LastCall);
     }
 
@@ -53,7 +53,7 @@ public class MethodResolutionTests : IAsyncLifetime
 
         // Call with both 'name' and 'value' - should select Method(string name, int value)
         var args = JsonDocument.Parse("{\"name\": \"test\", \"value\": 42}").RootElement;
-        _processor.InvokeMethod(id, "Method", args);
+        _operations.InvokeMethod(id, "Method", args);
         Assert.Equal("name:test,value:42", obj.LastCall);
     }
 
@@ -66,7 +66,7 @@ public class MethodResolutionTests : IAsyncLifetime
         // Call with only 'name' - should prefer Method(string name) over Method(string name, int value)
         // because the latter has a required 'value' parameter
         var args = JsonDocument.Parse("{\"name\": \"test\"}").RootElement;
-        _processor.InvokeMethod(id, "Method", args);
+        _operations.InvokeMethod(id, "Method", args);
         Assert.Equal("name:test", obj.LastCall);
     }
 
@@ -78,7 +78,7 @@ public class MethodResolutionTests : IAsyncLifetime
 
         // Call MethodWithOptional with only required arg
         var args = JsonDocument.Parse("{\"required\": \"hello\"}").RootElement;
-        _processor.InvokeMethod(id, "MethodWithOptional", args);
+        _operations.InvokeMethod(id, "MethodWithOptional", args);
         Assert.Equal("required:hello,optional:default_value", obj.LastCall);
     }
 
@@ -90,7 +90,7 @@ public class MethodResolutionTests : IAsyncLifetime
 
         // Call MethodWithOptional with both args
         var args = JsonDocument.Parse("{\"required\": \"hello\", \"optional\": \"custom\"}").RootElement;
-        _processor.InvokeMethod(id, "MethodWithOptional", args);
+        _operations.InvokeMethod(id, "MethodWithOptional", args);
         Assert.Equal("required:hello,optional:custom", obj.LastCall);
     }
 
@@ -103,10 +103,10 @@ public class MethodResolutionTests : IAsyncLifetime
         // Call with different casing
         var args = JsonDocument.Parse("{\"name\": \"test\"}").RootElement;
 
-        _processor.InvokeMethod(id, "METHOD", args);
+        _operations.InvokeMethod(id, "METHOD", args);
         Assert.Equal("name:test", obj.LastCall);
 
-        _processor.InvokeMethod(id, "method", args);
+        _operations.InvokeMethod(id, "method", args);
         Assert.Equal("name:test", obj.LastCall);
     }
 
@@ -121,7 +121,7 @@ public class MethodResolutionTests : IAsyncLifetime
         var id = _objectRegistry.Register(obj);
 
         var args = JsonDocument.Parse("{\"value\": 42}").RootElement;
-        _processor.InvokeMethod(id, "TakeInt", args);
+        _operations.InvokeMethod(id, "TakeInt", args);
         Assert.Equal(42, obj.IntValue);
     }
 
@@ -132,7 +132,7 @@ public class MethodResolutionTests : IAsyncLifetime
         var id = _objectRegistry.Register(obj);
 
         var args = JsonDocument.Parse("{\"value\": 9999999999}").RootElement;
-        _processor.InvokeMethod(id, "TakeLong", args);
+        _operations.InvokeMethod(id, "TakeLong", args);
         Assert.Equal(9999999999L, obj.LongValue);
     }
 
@@ -143,7 +143,7 @@ public class MethodResolutionTests : IAsyncLifetime
         var id = _objectRegistry.Register(obj);
 
         var args = JsonDocument.Parse("{\"value\": 3.14}").RootElement;
-        _processor.InvokeMethod(id, "TakeDouble", args);
+        _operations.InvokeMethod(id, "TakeDouble", args);
         Assert.Equal(3.14, obj.DoubleValue, precision: 2);
     }
 
@@ -154,7 +154,7 @@ public class MethodResolutionTests : IAsyncLifetime
         var id = _objectRegistry.Register(obj);
 
         var args = JsonDocument.Parse("{\"value\": true}").RootElement;
-        _processor.InvokeMethod(id, "TakeBool", args);
+        _operations.InvokeMethod(id, "TakeBool", args);
         Assert.True(obj.BoolValue);
     }
 
@@ -165,7 +165,7 @@ public class MethodResolutionTests : IAsyncLifetime
         var id = _objectRegistry.Register(obj);
 
         var args = JsonDocument.Parse("{\"value\": \"hello world\"}").RootElement;
-        _processor.InvokeMethod(id, "TakeString", args);
+        _operations.InvokeMethod(id, "TakeString", args);
         Assert.Equal("hello world", obj.StringValue);
     }
 
@@ -176,7 +176,7 @@ public class MethodResolutionTests : IAsyncLifetime
         var id = _objectRegistry.Register(obj);
 
         var args = JsonDocument.Parse("{\"value\": 42}").RootElement;
-        _processor.InvokeMethod(id, "TakeNullableInt", args);
+        _operations.InvokeMethod(id, "TakeNullableInt", args);
         Assert.Equal(42, obj.NullableIntValue);
     }
 
@@ -188,7 +188,7 @@ public class MethodResolutionTests : IAsyncLifetime
         obj.NullableIntValue = 999; // Set initial value
 
         var args = JsonDocument.Parse("{\"value\": null}").RootElement;
-        _processor.InvokeMethod(id, "TakeNullableInt", args);
+        _operations.InvokeMethod(id, "TakeNullableInt", args);
         Assert.Null(obj.NullableIntValue);
     }
 
@@ -204,7 +204,7 @@ public class MethodResolutionTests : IAsyncLifetime
 
         // Pass the proxy reference as an argument
         var args = JsonDocument.Parse($"{{\"value\": {{\"$id\": \"{refId}\"}}}}").RootElement;
-        _processor.InvokeMethod(id, "TakeObject", args);
+        _operations.InvokeMethod(id, "TakeObject", args);
 
         Assert.Same(refObj, obj.ObjectValue);
     }
@@ -220,7 +220,7 @@ public class MethodResolutionTests : IAsyncLifetime
         var id = _objectRegistry.Register(obj);
 
         var args = JsonDocument.Parse("{\"value\": {\"Name\": \"test\", \"Count\": 5}}").RootElement;
-        _processor.InvokeMethod(id, "TakeComplexArg", args);
+        _operations.InvokeMethod(id, "TakeComplexArg", args);
 
         Assert.NotNull(obj.ComplexValue);
         Assert.Equal("test", obj.ComplexValue!.Name);
@@ -234,7 +234,7 @@ public class MethodResolutionTests : IAsyncLifetime
         var id = _objectRegistry.Register(obj);
 
         var args = JsonDocument.Parse("{\"values\": [1, 2, 3, 4, 5]}").RootElement;
-        _processor.InvokeMethod(id, "TakeIntArray", args);
+        _operations.InvokeMethod(id, "TakeIntArray", args);
 
         Assert.NotNull(obj.IntArrayValue);
         Assert.Equal([1, 2, 3, 4, 5], obj.IntArrayValue);
@@ -247,7 +247,7 @@ public class MethodResolutionTests : IAsyncLifetime
         var id = _objectRegistry.Register(obj);
 
         var args = JsonDocument.Parse("{\"values\": [\"a\", \"b\", \"c\"]}").RootElement;
-        _processor.InvokeMethod(id, "TakeStringArray", args);
+        _operations.InvokeMethod(id, "TakeStringArray", args);
 
         Assert.NotNull(obj.StringArrayValue);
         Assert.Equal(["a", "b", "c"], obj.StringArrayValue);

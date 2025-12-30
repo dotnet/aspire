@@ -10,20 +10,20 @@ public class CallbackProxyTests : IAsyncLifetime
 {
     private readonly ObjectRegistry _objectRegistry;
     private readonly TestCallbackInvoker _callbackInvoker;
-    private readonly InstructionProcessor _processor;
+    private readonly RpcOperations _operations;
 
     public CallbackProxyTests()
     {
         _objectRegistry = new ObjectRegistry();
         _callbackInvoker = new TestCallbackInvoker();
-        _processor = new InstructionProcessor(_objectRegistry, _callbackInvoker);
+        _operations = new RpcOperations(_objectRegistry, _callbackInvoker);
     }
 
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
     public async ValueTask DisposeAsync()
     {
-        await _processor.DisposeAsync();
+        await _operations.DisposeAsync();
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class CallbackProxyTests : IAsyncLifetime
         // Register the callback ID as an argument
         var args = JsonDocument.Parse("{\"callback\": \"cb_action\"}").RootElement;
 
-        _processor.InvokeMethod(id, "TakeAction", args);
+        _operations.InvokeMethod(id, "TakeAction", args);
 
         // The callback should have been invoked
         Assert.Single(_callbackInvoker.Invocations);
@@ -50,7 +50,7 @@ public class CallbackProxyTests : IAsyncLifetime
 
         var args = JsonDocument.Parse("{\"callback\": \"cb_action_t\"}").RootElement;
 
-        _processor.InvokeMethod(id, "TakeActionWithArg", args);
+        _operations.InvokeMethod(id, "TakeActionWithArg", args);
 
         Assert.Single(_callbackInvoker.Invocations);
         Assert.Equal("cb_action_t", _callbackInvoker.Invocations[0].CallbackId);
@@ -65,7 +65,7 @@ public class CallbackProxyTests : IAsyncLifetime
 
         var args = JsonDocument.Parse("{\"callback\": \"cb_func_task\"}").RootElement;
 
-        _processor.InvokeMethod(id, "TakeFuncTask", args);
+        _operations.InvokeMethod(id, "TakeFuncTask", args);
 
         // Give async callback time to complete
         await Task.Delay(50);
@@ -82,7 +82,7 @@ public class CallbackProxyTests : IAsyncLifetime
 
         var args = JsonDocument.Parse("{\"callback\": \"cb_func_t_task\"}").RootElement;
 
-        _processor.InvokeMethod(id, "TakeFuncWithArgTask", args);
+        _operations.InvokeMethod(id, "TakeFuncWithArgTask", args);
 
         await Task.Delay(50);
 
@@ -104,7 +104,7 @@ public class CallbackProxyTests : IAsyncLifetime
 
         var args = JsonDocument.Parse("{\"callback\": \"cb_func_result\"}").RootElement;
 
-        _processor.InvokeMethod(id, "TakeFuncWithResult", args);
+        _operations.InvokeMethod(id, "TakeFuncWithResult", args);
 
         Assert.Single(_callbackInvoker.Invocations);
         Assert.Equal(42, obj.LastResult);
@@ -115,7 +115,7 @@ public class CallbackProxyTests : IAsyncLifetime
     {
         var complexArg = new CallbackArg { Name = "test", Value = 123 };
 
-        await _processor.InvokeCallbackAsync("test_cb", complexArg);
+        await _operations.InvokeCallbackAsync("test_cb", complexArg);
 
         Assert.Single(_callbackInvoker.Invocations);
         var args = _callbackInvoker.Invocations[0].Args as Dictionary<string, object?>;
@@ -128,7 +128,7 @@ public class CallbackProxyTests : IAsyncLifetime
     [Fact]
     public async Task InvokeCallbackAsync_PassesPrimitivesDirectly()
     {
-        await _processor.InvokeCallbackAsync("test_cb", "simple_string");
+        await _operations.InvokeCallbackAsync("test_cb", "simple_string");
 
         Assert.Single(_callbackInvoker.Invocations);
         Assert.Equal("simple_string", _callbackInvoker.Invocations[0].Args);
@@ -137,7 +137,7 @@ public class CallbackProxyTests : IAsyncLifetime
     [Fact]
     public async Task InvokeCallbackAsync_HandlesNullArgs()
     {
-        await _processor.InvokeCallbackAsync("test_cb", null);
+        await _operations.InvokeCallbackAsync("test_cb", null);
 
         Assert.Single(_callbackInvoker.Invocations);
         Assert.Null(_callbackInvoker.Invocations[0].Args);
@@ -148,7 +148,7 @@ public class CallbackProxyTests : IAsyncLifetime
     {
         _callbackInvoker.RegisterHandler("typed_cb", "result_value");
 
-        var result = await _processor.InvokeCallbackAsync<string>("typed_cb", null);
+        var result = await _operations.InvokeCallbackAsync<string>("typed_cb", null);
 
         Assert.Equal("result_value", result);
     }

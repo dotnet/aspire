@@ -19,16 +19,16 @@ public sealed class CallbackDeadlockTests : IAsyncLifetime
 {
     private readonly ObjectRegistry _objectRegistry;
     private readonly SimulatedRpcCallbackInvoker _callbackInvoker;
-    private readonly InstructionProcessor _processor;
+    private readonly RpcOperations _operations;
 
     public CallbackDeadlockTests()
     {
         _objectRegistry = new ObjectRegistry();
         _callbackInvoker = new SimulatedRpcCallbackInvoker();
-        _processor = new InstructionProcessor(_objectRegistry, _callbackInvoker);
+        _operations = new RpcOperations(_objectRegistry, _callbackInvoker);
 
-        // Give the callback invoker access to the processor so it can simulate callbacks that call back to .NET
-        _callbackInvoker.Processor = _processor;
+        // Give the callback invoker access to the operations so it can simulate callbacks that call back to .NET
+        _callbackInvoker.Operations = _operations;
         _callbackInvoker.ObjectRegistry = _objectRegistry;
     }
 
@@ -36,7 +36,7 @@ public sealed class CallbackDeadlockTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        await _processor.DisposeAsync();
+        await _operations.DisposeAsync();
     }
 
     /// <summary>
@@ -71,7 +71,7 @@ public sealed class CallbackDeadlockTests : IAsyncLifetime
             // 3. action() blocks waiting for callback response (GetAwaiter().GetResult())
             // 4. Callback handler tries to call GetProperty(dataId, "Value")
             // 5. But we're on the dispatcher thread, blocked in step 3 - DEADLOCK
-            _processor.InvokeMethod(serviceId, "DoWorkWithCallback", args);
+            _operations.InvokeMethod(serviceId, "DoWorkWithCallback", args);
         });
 
         // If we get here, no deadlock occurred
@@ -97,7 +97,7 @@ public sealed class CallbackDeadlockTests : IAsyncLifetime
 
         await _callbackInvoker.RunOnDispatcherAsync(() =>
         {
-            _processor.InvokeMethod(serviceId, "DoWorkWithCallbackArg", args);
+            _operations.InvokeMethod(serviceId, "DoWorkWithCallbackArg", args);
         });
 
         Assert.True(obj.WorkCompleted);
@@ -147,7 +147,7 @@ internal sealed class SimulatedRpcCallbackInvoker : ICallbackInvoker
 {
     private readonly Dictionary<string, (string ObjectId, string PropertyName)> _reentrantCallbacks = new();
 
-    public InstructionProcessor? Processor { get; set; }
+    public RpcOperations? Operations { get; set; }
     public ObjectRegistry? ObjectRegistry { get; set; }
     public object? LastReentrantResult { get; private set; }
     public bool IsConnected => true;
@@ -171,7 +171,7 @@ internal sealed class SimulatedRpcCallbackInvoker : ICallbackInvoker
             // This simulates TypeScript calling back to .NET during the callback
             // With Task.Run in the callback proxy, this runs on a thread pool thread
             // and doesn't block the original caller
-            LastReentrantResult = Processor?.GetProperty(reentrant.ObjectId, reentrant.PropertyName);
+            LastReentrantResult = Operations?.GetProperty(reentrant.ObjectId, reentrant.PropertyName);
         }
 
         return default!;
