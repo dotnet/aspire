@@ -387,7 +387,9 @@ Errors follow the JSON-RPC 2.0 error format:
 |------|------------|---------|
 | Null | `null` | `null` |
 | Primitive | raw value | `"hello"`, `42`, `true` |
-| Object ref | `{ "$id": "...", "$type": "..." }` | `{ "$id": "obj_1", "$type": "MyType" }` |
+| Primitive array/list | `[...]` | `[1, 2, 3]`, `["a", "b"]` |
+| Primitive dictionary | `{...}` | `{"key": "value", "count": 42}` |
+| Complex object | `{ "$id": "...", "$type": "..." }` | `{ "$id": "obj_1", "$type": "MyType" }` |
 
 ---
 
@@ -398,8 +400,24 @@ The polyglot architecture bridges two type systems: the host (.NET) and the gues
 ### Design Principles
 
 1. **Primitives pass directly**: Strings, numbers, booleans serialize as JSON primitives
-2. **Complex objects become proxies**: Non-primitive types are registered in the host and accessed via JSON-RPC calls
-3. **Callbacks are bidirectional**: Guest can register callbacks that the host invokes
+2. **Primitive collections pass directly**: Arrays/lists of primitives become JSON arrays; string-keyed dictionaries of primitives become JSON objects
+3. **Complex objects become proxies**: Non-primitive types are registered in the host and accessed via JSON-RPC calls
+4. **Callbacks are bidirectional**: Guest can register callbacks that the host invokes
+
+### Simple Types (Primitives)
+
+The following .NET types are considered "simple" and serialize directly to JSON values without object registry:
+
+| Category | .NET Types |
+|----------|------------|
+| Strings | `string`, `char` |
+| Numbers | `int`, `long`, `short`, `byte`, `float`, `double`, `decimal` |
+| Boolean | `bool` |
+| Date/Time | `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`, `TimeOnly` |
+| Identifiers | `Guid`, `Uri` |
+| Enums | Any `enum` type |
+
+Collections of these types (`T[]`, `List<T>`, `Dictionary<string, T>`) are also serialized directly.
 
 ### Object Registry
 
@@ -436,12 +454,36 @@ The `ObjectRegistry` in the host maintains a `ConcurrentDictionary<string, objec
 
 #### Host → Guest
 
-| .NET Type | Guest Type | Notes |
-|-----------|------------|-------|
-| Primitives | string/number/boolean | Direct |
+| .NET Type | JSON Output | Notes |
+|-----------|-------------|-------|
+| Primitives (`string`, `int`, `bool`, etc.) | raw value | Direct JSON primitive |
 | `DateTime`, `Guid` | string | ISO 8601 / string format |
 | Enums | string | Enum name |
-| Complex objects | Proxy | Marshalled with `$id` |
+| `T[]`, `List<T>` (primitive T) | `[...]` | JSON array of primitives |
+| `Dictionary<string, T>` (primitive T) | `{...}` | JSON object (no `$id`/`$type`) |
+| Complex objects | `{ "$id", "$type" }` | Marshalled with registry ID |
+
+**Output Examples:**
+
+```json
+// Primitive string
+"hello"
+
+// Primitive number
+42
+
+// Array of integers (int[])
+[1, 2, 3, 4, 5]
+
+// List of strings (List<string>)
+["alpha", "beta", "gamma"]
+
+// Dictionary with string keys and primitive values (Dictionary<string, int>)
+{"one": 1, "two": 2, "three": 3}
+
+// Complex object (registered in ObjectRegistry)
+{"$id": "obj_5", "$type": "IResourceBuilder<RedisResource>"}
+```
 
 ### ReferenceExpression
 

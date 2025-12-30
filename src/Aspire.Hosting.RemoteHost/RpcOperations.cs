@@ -459,7 +459,7 @@ internal sealed class RpcOperations : IAsyncDisposable
 
     /// <summary>
     /// Converts a .NET result to its JSON representation.
-    /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
+    /// Returns: null | JsonValue (primitive) | JsonArray (primitive array) | JsonObject (primitive dict or object ref)
     /// </summary>
     private JsonNode? MarshalResult(object? result)
     {
@@ -476,17 +476,61 @@ internal sealed class RpcOperations : IAsyncDisposable
             return JsonValue.Create(result);
         }
 
+        // Arrays of primitives -> JsonArray
+        if (type.IsArray)
+        {
+            var elementType = type.GetElementType()!;
+            if (ObjectRegistry.IsSimpleType(elementType))
+            {
+                var jsonArray = new JsonArray();
+                foreach (var item in (Array)result)
+                {
+                    jsonArray.Add(JsonValue.Create(item));
+                }
+                return jsonArray;
+            }
+        }
+
+        // IList<T> where T is primitive -> JsonArray
+        if (result is System.Collections.IList list && type.IsGenericType)
+        {
+            var genericArgs = type.GetGenericArguments();
+            if (genericArgs.Length == 1 && ObjectRegistry.IsSimpleType(genericArgs[0]))
+            {
+                var jsonArray = new JsonArray();
+                foreach (var item in list)
+                {
+                    jsonArray.Add(item == null ? null : JsonValue.Create(item));
+                }
+                return jsonArray;
+            }
+        }
+
+        // IDictionary<string, T> where T is primitive -> JsonObject (plain)
+        if (result is System.Collections.IDictionary dict && type.IsGenericType)
+        {
+            var genericArgs = type.GetGenericArguments();
+            if (genericArgs.Length == 2 && genericArgs[0] == typeof(string) && ObjectRegistry.IsSimpleType(genericArgs[1]))
+            {
+                var jsonObj = new JsonObject();
+                foreach (System.Collections.DictionaryEntry entry in dict)
+                {
+                    var key = (string)entry.Key;
+                    jsonObj[key] = entry.Value == null ? null : JsonValue.Create(entry.Value);
+                }
+                return jsonObj;
+            }
+        }
+
         // Complex objects -> JsonObject { "$id", "$type" }
         var objectId = _objectRegistry.Register(result);
         var marshalled = MarshalledObject.Create(objectId, type);
 
-        var jsonObj = new JsonObject
+        return new JsonObject
         {
             ["$id"] = marshalled.Id,
             ["$type"] = marshalled.Type
         };
-
-        return jsonObj;
     }
 
     private static bool IsDelegateType(Type type)

@@ -76,6 +76,83 @@ public class RpcOperationsTests : IAsyncLifetime
     }
 
     [Fact]
+    public void InvokeMethod_ReturnsPrimitiveArrayAsJsonArray()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var result = _operations.InvokeMethod(id, "GetIntArray", null);
+
+        var jsonArray = Assert.IsType<JsonArray>(result);
+        Assert.Equal(5, jsonArray.Count);
+        Assert.Equal(1, jsonArray[0]!.GetValue<int>());
+        Assert.Equal(2, jsonArray[1]!.GetValue<int>());
+        Assert.Equal(5, jsonArray[4]!.GetValue<int>());
+    }
+
+    [Fact]
+    public void InvokeMethod_ReturnsStringArrayAsJsonArray()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var result = _operations.InvokeMethod(id, "GetStringArray", null);
+
+        var jsonArray = Assert.IsType<JsonArray>(result);
+        Assert.Equal(3, jsonArray.Count);
+        Assert.Equal("alpha", jsonArray[0]!.GetValue<string>());
+        Assert.Equal("beta", jsonArray[1]!.GetValue<string>());
+        Assert.Equal("gamma", jsonArray[2]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void InvokeMethod_ReturnsPrimitiveListAsJsonArray()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var result = _operations.InvokeMethod(id, "GetIntList", null);
+
+        var jsonArray = Assert.IsType<JsonArray>(result);
+        Assert.Equal(3, jsonArray.Count);
+        Assert.Equal(10, jsonArray[0]!.GetValue<int>());
+        Assert.Equal(20, jsonArray[1]!.GetValue<int>());
+        Assert.Equal(30, jsonArray[2]!.GetValue<int>());
+    }
+
+    [Fact]
+    public void InvokeMethod_ReturnsPrimitiveDictionaryAsJsonObject()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var result = _operations.InvokeMethod(id, "GetStringIntDictionary", null);
+
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        Assert.False(jsonObj.ContainsKey("$id")); // Not a marshalled object
+        Assert.False(jsonObj.ContainsKey("$type"));
+        Assert.Equal(3, jsonObj.Count);
+        Assert.Equal(1, jsonObj["one"]!.GetValue<int>());
+        Assert.Equal(2, jsonObj["two"]!.GetValue<int>());
+        Assert.Equal(3, jsonObj["three"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public void InvokeMethod_ReturnsStringDictionaryAsJsonObject()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var result = _operations.InvokeMethod(id, "GetStringStringDictionary", null);
+
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        Assert.False(jsonObj.ContainsKey("$id")); // Not a marshalled object
+        Assert.Equal(2, jsonObj.Count);
+        Assert.Equal("value1", jsonObj["key1"]!.GetValue<string>());
+        Assert.Equal("value2", jsonObj["key2"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void InvokeMethod_ThrowsForUnknownObject()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
@@ -755,6 +832,31 @@ public class RpcOperationsTests : IAsyncLifetime
         public int GetValue()
         {
             return Value;
+        }
+
+        public int[] GetIntArray()
+        {
+            return [1, 2, 3, 4, 5];
+        }
+
+        public string[] GetStringArray()
+        {
+            return ["alpha", "beta", "gamma"];
+        }
+
+        public List<int> GetIntList()
+        {
+            return [10, 20, 30];
+        }
+
+        public Dictionary<string, int> GetStringIntDictionary()
+        {
+            return new() { ["one"] = 1, ["two"] = 2, ["three"] = 3 };
+        }
+
+        public Dictionary<string, string> GetStringStringDictionary()
+        {
+            return new() { ["key1"] = "value1", ["key2"] = "value2" };
         }
 
         public TestObject GetSelf()
