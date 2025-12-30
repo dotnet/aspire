@@ -21,6 +21,10 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     private readonly List<MethodOverload> _thenableMethodBuffer = [];
     private ResourceModel? _currentResource;
 
+    // Proxy thenable tracking - buffer current proxy's methods/properties for thenable generation
+    private ProxyTypeModel? _currentProxyModel;
+    private readonly List<(string MethodName, string InternalMethodName, string ParameterList, string ArgsList, string ReturnType, bool ReturnsProxy)> _proxyThenableMethodBuffer = [];
+
     /// <inheritdoc />
     public override string Language => "TypeScript";
 
@@ -381,6 +385,9 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     /// <inheritdoc />
     protected override void EmitProxyClassStart(RoType type, ProxyTypeModel proxyModel)
     {
+        _currentProxyModel = proxyModel;
+        _proxyThenableMethodBuffer.Clear();
+
         Writer.WriteLine();
         Writer.WriteLine($$"""
             /**
@@ -417,6 +424,71 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     protected override void EmitProxyClassEnd(RoType type, ProxyTypeModel proxyModel)
     {
         Writer.WriteLine("}");
+
+        // Emit the thenable wrapper class for fluent chaining
+        EmitProxyThenableClass(proxyModel);
+        _currentProxyModel = null;
+    }
+
+    /// <summary>
+    /// Emits a thenable wrapper class for a proxy type that enables fluent async chaining.
+    /// </summary>
+    private void EmitProxyThenableClass(ProxyTypeModel proxyModel)
+    {
+        var proxyClassName = proxyModel.ProxyClassName;
+        var thenableClassName = $"{proxyClassName}Promise";
+
+        Writer.WriteLine();
+        Writer.WriteLine($$"""
+            /**
+             * Thenable wrapper for {{proxyClassName}} that enables fluent async chaining.
+             * Usage: await someMethod().propertyOrMethod().anotherMethod();
+             */
+            export class {{thenableClassName}} implements PromiseLike<{{proxyClassName}}> {
+              constructor(private _promise: Promise<{{proxyClassName}}>) {}
+
+              then<TResult1 = {{proxyClassName}}, TResult2 = never>(
+                onfulfilled?: ((value: {{proxyClassName}}) => TResult1 | PromiseLike<TResult1>) | null,
+                onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+              ): PromiseLike<TResult1 | TResult2> {
+                return this._promise.then(onfulfilled, onrejected);
+              }
+            """);
+
+        // Generate fluent methods for all buffered methods/properties
+        foreach (var (methodName, internalMethodName, parameterList, argsList, returnType, returnsProxy) in _proxyThenableMethodBuffer)
+        {
+            if (returnsProxy)
+            {
+                // Returns a proxy type - chain to its thenable wrapper
+                Writer.WriteLine($$"""
+
+              /**
+               * {{methodName}} (fluent chaining)
+               */
+              {{methodName}}({{parameterList}}): {{returnType}}Promise {
+                return new {{returnType}}Promise(
+                  this._promise.then(p => p.{{internalMethodName}}({{argsList}}))
+                );
+              }
+            """);
+            }
+            else
+            {
+                // Returns a primitive - wrap in Promise via .then()
+                Writer.WriteLine($$"""
+
+              /**
+               * {{methodName}} (fluent chaining)
+               */
+              {{methodName}}({{parameterList}}): Promise<{{returnType}}> {
+                return this._promise.then(p => p.{{internalMethodName}}({{argsList}}));
+              }
+            """);
+            }
+        }
+
+        Writer.WriteLine("}");
     }
 
     /// <inheritdoc />
@@ -452,15 +524,53 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
         if (context == PropertyContext.ProxyProperty)
         {
             var jsType = FormatJsType(Model, property.PropertyType);
+            var methodName = $"get{property.Name}";
+            var returnsProxy = IsProxyType(property.PropertyType);
 
-            Writer.WriteLine($$"""
+            if (returnsProxy && Model.BuilderModel.ProxyTypes.TryGetValue(property.PropertyType, out var proxyModel))
+            {
+                var thenableClassName = $"{proxyModel.ProxyClassName}Promise";
 
-              async get{{property.Name}}(): Promise<{{jsType}}> {
+                // Return thenable wrapper for fluent chaining
+                Writer.WriteLine($$"""
+
+              {{methodName}}(): {{thenableClassName}} {
+                return new {{thenableClassName}}(
+                  (async () => {
+                    const result = await this._proxy.getProperty('{{property.Name}}') as DotNetProxy;
+                    return new {{proxyModel.ProxyClassName}}(result);
+                  })()
+                );
+              }
+            """);
+            }
+            else
+            {
+                // Primitive types - return Promise directly
+                Writer.WriteLine($$"""
+
+              async {{methodName}}(): Promise<{{jsType}}> {
                 const result = await this._proxy.getProperty('{{property.Name}}');
                 return result as {{jsType}};
               }
             """);
+            }
+
+            // Buffer for thenable class generation
+            if (_currentProxyModel != null)
+            {
+                _proxyThenableMethodBuffer.Add((methodName, methodName, "", "", jsType, returnsProxy));
+            }
         }
+    }
+
+    /// <summary>
+    /// Checks if a type is a proxy type (has a generated proxy wrapper).
+    /// </summary>
+    private bool IsProxyType(RoType type)
+    {
+        // Check if this type has a proxy class in the model
+        return Model.BuilderModel.ProxyTypes.ContainsKey(type);
     }
 
     /// <inheritdoc />
@@ -523,6 +633,16 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
     protected override void EmitProxyMethodEnd(ProxyMethodContext context)
     {
         Writer.WriteLine("  }");
+
+        // Buffer non-static, non-void methods for thenable class generation
+        if (_currentProxyModel != null && !context.IsStatic && !context.IsVoid)
+        {
+            var paramsStr = string.Join(", ", context.Parameters.Select(p => $"{p.Name}: {p.Type}"));
+            var argsStr = string.Join(", ", context.Parameters.Select(p => p.Name));
+            var returnsProxy = IsProxyType(context.OriginalReturnType);
+
+            _proxyThenableMethodBuffer.Add((context.MethodName, context.MethodName, paramsStr, argsStr, context.ReturnType, returnsProxy));
+        }
     }
 
     /// <inheritdoc />
@@ -1311,11 +1431,18 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
             // Check if this property type has a proxy wrapper
             if (model.BuilderModel.ProxyTypes.TryGetValue(prop.PropertyType, out var proxyModel))
             {
+                var thenableClassName = $"{proxyModel.ProxyClassName}Promise";
+
+                // Return thenable wrapper for fluent chaining
                 writer.WriteLine($$"""
 
-              async get{{prop.Name}}(): Promise<{{proxyModel.ProxyClassName}}> {
-                const result = await this._proxy.getProperty('{{prop.Name}}') as DotNetProxy;
-                return new {{proxyModel.ProxyClassName}}(result);
+              get{{prop.Name}}(): {{thenableClassName}} {
+                return new {{thenableClassName}}(
+                  (async () => {
+                    const result = await this._proxy.getProperty('{{prop.Name}}') as DotNetProxy;
+                    return new {{proxyModel.ProxyClassName}}(result);
+                  })()
+                );
               }
             """);
             }

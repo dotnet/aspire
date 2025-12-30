@@ -124,6 +124,17 @@ export enum WaitBehavior {
   StopOnResourceUnavailable = "StopOnResourceUnavailable"
 }
 
+export enum HealthStatus {
+  Unhealthy = "Unhealthy",
+  Degraded = "Degraded",
+  Healthy = "Healthy"
+}
+
+export enum IconVariant {
+  Regular = "Regular",
+  Filled = "Filled"
+}
+
 /**
  * Proxy for ConfigurationManager.
  */
@@ -156,6 +167,49 @@ export class ConfigurationManagerProxy {
 }
 
 /**
+ * Thenable wrapper for ConfigurationManagerProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class ConfigurationManagerProxyPromise implements PromiseLike<ConfigurationManagerProxy> {
+  constructor(private _promise: Promise<ConfigurationManagerProxy>) {}
+
+  then<TResult1 = ConfigurationManagerProxy, TResult2 = never>(
+    onfulfilled?: ((value: ConfigurationManagerProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * getItem (fluent chaining)
+   */
+  getItem(): Promise<string> {
+    return this._promise.then(p => p.getItem());
+  }
+
+  /**
+   * getSources (fluent chaining)
+   */
+  getSources(): Promise<Array<any>> {
+    return this._promise.then(p => p.getSources());
+  }
+
+  /**
+   * getSection (fluent chaining)
+   */
+  getSection(key: string): Promise<any> {
+    return this._promise.then(p => p.getSection(key));
+  }
+
+  /**
+   * getChildren (fluent chaining)
+   */
+  getChildren(): Promise<Array<any>> {
+    return this._promise.then(p => p.getChildren());
+  }
+}
+
+/**
  * Proxy for IHostEnvironment.
  */
 export class HostEnvironmentProxy {
@@ -178,9 +232,58 @@ export class HostEnvironmentProxy {
     return result as string;
   }
 
-  async getContentRootFileProvider(): Promise<FileProviderProxy> {
-    const result = await this._proxy.getProperty('ContentRootFileProvider');
-    return result as FileProviderProxy;
+  getContentRootFileProvider(): FileProviderProxyPromise {
+    return new FileProviderProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('ContentRootFileProvider') as DotNetProxy;
+        return new FileProviderProxy(result);
+      })()
+    );
+  }
+}
+
+/**
+ * Thenable wrapper for HostEnvironmentProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class HostEnvironmentProxyPromise implements PromiseLike<HostEnvironmentProxy> {
+  constructor(private _promise: Promise<HostEnvironmentProxy>) {}
+
+  then<TResult1 = HostEnvironmentProxy, TResult2 = never>(
+    onfulfilled?: ((value: HostEnvironmentProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * getEnvironmentName (fluent chaining)
+   */
+  getEnvironmentName(): Promise<string> {
+    return this._promise.then(p => p.getEnvironmentName());
+  }
+
+  /**
+   * getApplicationName (fluent chaining)
+   */
+  getApplicationName(): Promise<string> {
+    return this._promise.then(p => p.getApplicationName());
+  }
+
+  /**
+   * getContentRootPath (fluent chaining)
+   */
+  getContentRootPath(): Promise<string> {
+    return this._promise.then(p => p.getContentRootPath());
+  }
+
+  /**
+   * getContentRootFileProvider (fluent chaining)
+   */
+  getContentRootFileProvider(): FileProviderProxyPromise {
+    return new FileProviderProxyPromise(
+      this._promise.then(p => p.getContentRootFileProvider())
+    );
   }
 }
 
@@ -191,6 +294,21 @@ export class ServiceCollectionProxy {
   constructor(private _proxy: DotNetProxy) {}
 
   get proxy(): DotNetProxy { return this._proxy; }
+}
+
+/**
+ * Thenable wrapper for ServiceCollectionProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class ServiceCollectionProxyPromise implements PromiseLike<ServiceCollectionProxy> {
+  constructor(private _promise: Promise<ServiceCollectionProxy>) {}
+
+  then<TResult1 = ServiceCollectionProxy, TResult2 = never>(
+    onfulfilled?: ((value: ServiceCollectionProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
 }
 
 /**
@@ -223,6 +341,49 @@ export class DistributedApplicationEventingProxy {
 }
 
 /**
+ * Thenable wrapper for DistributedApplicationEventingProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class DistributedApplicationEventingProxyPromise implements PromiseLike<DistributedApplicationEventingProxy> {
+  constructor(private _promise: Promise<DistributedApplicationEventingProxy>) {}
+
+  then<TResult1 = DistributedApplicationEventingProxy, TResult2 = never>(
+    onfulfilled?: ((value: DistributedApplicationEventingProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * subscribe (fluent chaining)
+   */
+  subscribe(callback: (p0: any, p1: CancellationTokenProxy) => Promise<void>): Promise<any> {
+    return this._promise.then(p => p.subscribe(callback));
+  }
+
+  /**
+   * subscribe2 (fluent chaining)
+   */
+  subscribe2(resource: any, callback: (p0: any, p1: CancellationTokenProxy) => Promise<void>): Promise<any> {
+    return this._promise.then(p => p.subscribe2(resource, callback));
+  }
+
+  /**
+   * publishAsync (fluent chaining)
+   */
+  publishAsync(event: any, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.publishAsync(event, cancellationToken));
+  }
+
+  /**
+   * publishAsync2 (fluent chaining)
+   */
+  publishAsync2(event: any, dispatchBehavior: EventDispatchBehavior, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.publishAsync2(event, dispatchBehavior, cancellationToken));
+  }
+}
+
+/**
  * Proxy for DistributedApplicationExecutionContext.
  */
 export class DistributedApplicationExecutionContextProxy {
@@ -240,9 +401,13 @@ export class DistributedApplicationExecutionContextProxy {
     return result as DistributedApplicationOperation;
   }
 
-  async getServiceProvider(): Promise<ServiceProviderProxy> {
-    const result = await this._proxy.getProperty('ServiceProvider');
-    return result as ServiceProviderProxy;
+  getServiceProvider(): ServiceProviderProxyPromise {
+    return new ServiceProviderProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('ServiceProvider') as DotNetProxy;
+        return new ServiceProviderProxy(result);
+      })()
+    );
   }
 
   async getIsPublishMode(): Promise<boolean> {
@@ -257,12 +422,79 @@ export class DistributedApplicationExecutionContextProxy {
 }
 
 /**
+ * Thenable wrapper for DistributedApplicationExecutionContextProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class DistributedApplicationExecutionContextProxyPromise implements PromiseLike<DistributedApplicationExecutionContextProxy> {
+  constructor(private _promise: Promise<DistributedApplicationExecutionContextProxy>) {}
+
+  then<TResult1 = DistributedApplicationExecutionContextProxy, TResult2 = never>(
+    onfulfilled?: ((value: DistributedApplicationExecutionContextProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * getPublisherName (fluent chaining)
+   */
+  getPublisherName(): Promise<string> {
+    return this._promise.then(p => p.getPublisherName());
+  }
+
+  /**
+   * getOperation (fluent chaining)
+   */
+  getOperation(): Promise<DistributedApplicationOperation> {
+    return this._promise.then(p => p.getOperation());
+  }
+
+  /**
+   * getServiceProvider (fluent chaining)
+   */
+  getServiceProvider(): ServiceProviderProxyPromise {
+    return new ServiceProviderProxyPromise(
+      this._promise.then(p => p.getServiceProvider())
+    );
+  }
+
+  /**
+   * getIsPublishMode (fluent chaining)
+   */
+  getIsPublishMode(): Promise<boolean> {
+    return this._promise.then(p => p.getIsPublishMode());
+  }
+
+  /**
+   * getIsRunMode (fluent chaining)
+   */
+  getIsRunMode(): Promise<boolean> {
+    return this._promise.then(p => p.getIsRunMode());
+  }
+}
+
+/**
  * Proxy for IResourceCollection.
  */
 export class ResourceCollectionProxy {
   constructor(private _proxy: DotNetProxy) {}
 
   get proxy(): DotNetProxy { return this._proxy; }
+}
+
+/**
+ * Thenable wrapper for ResourceCollectionProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class ResourceCollectionProxyPromise implements PromiseLike<ResourceCollectionProxy> {
+  constructor(private _promise: Promise<ResourceCollectionProxy>) {}
+
+  then<TResult1 = ResourceCollectionProxy, TResult2 = never>(
+    onfulfilled?: ((value: ResourceCollectionProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
 }
 
 /**
@@ -291,6 +523,28 @@ export class DistributedApplicationPipelineProxy {
 }
 
 /**
+ * Thenable wrapper for DistributedApplicationPipelineProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class DistributedApplicationPipelineProxyPromise implements PromiseLike<DistributedApplicationPipelineProxy> {
+  constructor(private _promise: Promise<DistributedApplicationPipelineProxy>) {}
+
+  then<TResult1 = DistributedApplicationPipelineProxy, TResult2 = never>(
+    onfulfilled?: ((value: DistributedApplicationPipelineProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * executeAsync (fluent chaining)
+   */
+  executeAsync(context: any): Promise<any> {
+    return this._promise.then(p => p.executeAsync(context));
+  }
+}
+
+/**
  * Proxy for IFileSystemService.
  */
 export class FileSystemServiceProxy {
@@ -298,9 +552,37 @@ export class FileSystemServiceProxy {
 
   get proxy(): DotNetProxy { return this._proxy; }
 
-  async getTempDirectory(): Promise<TempFileSystemServiceProxy> {
-    const result = await this._proxy.getProperty('TempDirectory');
-    return result as TempFileSystemServiceProxy;
+  getTempDirectory(): TempFileSystemServiceProxyPromise {
+    return new TempFileSystemServiceProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('TempDirectory') as DotNetProxy;
+        return new TempFileSystemServiceProxy(result);
+      })()
+    );
+  }
+}
+
+/**
+ * Thenable wrapper for FileSystemServiceProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class FileSystemServiceProxyPromise implements PromiseLike<FileSystemServiceProxy> {
+  constructor(private _promise: Promise<FileSystemServiceProxy>) {}
+
+  then<TResult1 = FileSystemServiceProxy, TResult2 = never>(
+    onfulfilled?: ((value: FileSystemServiceProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * getTempDirectory (fluent chaining)
+   */
+  getTempDirectory(): TempFileSystemServiceProxyPromise {
+    return new TempFileSystemServiceProxyPromise(
+      this._promise.then(p => p.getTempDirectory())
+    );
   }
 }
 
@@ -331,6 +613,42 @@ export class UserSecretsManagerProxy {
 }
 
 /**
+ * Thenable wrapper for UserSecretsManagerProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class UserSecretsManagerProxyPromise implements PromiseLike<UserSecretsManagerProxy> {
+  constructor(private _promise: Promise<UserSecretsManagerProxy>) {}
+
+  then<TResult1 = UserSecretsManagerProxy, TResult2 = never>(
+    onfulfilled?: ((value: UserSecretsManagerProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * getFilePath (fluent chaining)
+   */
+  getFilePath(): Promise<string> {
+    return this._promise.then(p => p.getFilePath());
+  }
+
+  /**
+   * trySetSecret (fluent chaining)
+   */
+  trySetSecret(name: string, value: string): Promise<boolean> {
+    return this._promise.then(p => p.trySetSecret(name, value));
+  }
+
+  /**
+   * saveStateAsync (fluent chaining)
+   */
+  saveStateAsync(state: any, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.saveStateAsync(state, cancellationToken));
+  }
+}
+
+/**
  * Proxy for IServiceProvider.
  */
 export class ServiceProviderProxy {
@@ -340,6 +658,28 @@ export class ServiceProviderProxy {
 
   async getService(serviceType: any): Promise<any> {
     return await this._proxy.invokeMethod('GetService', { serviceType }) as any;
+  }
+}
+
+/**
+ * Thenable wrapper for ServiceProviderProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class ServiceProviderProxyPromise implements PromiseLike<ServiceProviderProxy> {
+  constructor(private _promise: Promise<ServiceProviderProxy>) {}
+
+  then<TResult1 = ServiceProviderProxy, TResult2 = never>(
+    onfulfilled?: ((value: ServiceProviderProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * getService (fluent chaining)
+   */
+  getService(serviceType: any): Promise<any> {
+    return this._promise.then(p => p.getService(serviceType));
   }
 }
 
@@ -397,6 +737,91 @@ export class ResourceNotificationServiceProxy {
 }
 
 /**
+ * Thenable wrapper for ResourceNotificationServiceProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class ResourceNotificationServiceProxyPromise implements PromiseLike<ResourceNotificationServiceProxy> {
+  constructor(private _promise: Promise<ResourceNotificationServiceProxy>) {}
+
+  then<TResult1 = ResourceNotificationServiceProxy, TResult2 = never>(
+    onfulfilled?: ((value: ResourceNotificationServiceProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * waitForResourceAsync (fluent chaining)
+   */
+  waitForResourceAsync(resourceName: string, targetState: string, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.waitForResourceAsync(resourceName, targetState, cancellationToken));
+  }
+
+  /**
+   * waitForResourceAsync2 (fluent chaining)
+   */
+  waitForResourceAsync2(resourceName: string, targetStates: Array<string>, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.waitForResourceAsync2(resourceName, targetStates, cancellationToken));
+  }
+
+  /**
+   * waitForResourceAsync3 (fluent chaining)
+   */
+  waitForResourceAsync3(resourceName: string, predicate: (p0: ResourceEventProxy) => boolean | Promise<boolean>, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.waitForResourceAsync3(resourceName, predicate, cancellationToken));
+  }
+
+  /**
+   * waitForResourceHealthyAsync (fluent chaining)
+   */
+  waitForResourceHealthyAsync(resourceName: string, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.waitForResourceHealthyAsync(resourceName, cancellationToken));
+  }
+
+  /**
+   * waitForResourceHealthyAsync2 (fluent chaining)
+   */
+  waitForResourceHealthyAsync2(resourceName: string, waitBehavior: WaitBehavior, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.waitForResourceHealthyAsync2(resourceName, waitBehavior, cancellationToken));
+  }
+
+  /**
+   * waitForDependenciesAsync (fluent chaining)
+   */
+  waitForDependenciesAsync(resource: any, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.waitForDependenciesAsync(resource, cancellationToken));
+  }
+
+  /**
+   * tryGetCurrentState (fluent chaining)
+   */
+  tryGetCurrentState(resourceId: string, resourceEvent: ResourceEventProxy): Promise<boolean> {
+    return this._promise.then(p => p.tryGetCurrentState(resourceId, resourceEvent));
+  }
+
+  /**
+   * watchAsync (fluent chaining)
+   */
+  watchAsync(cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.watchAsync(cancellationToken));
+  }
+
+  /**
+   * publishUpdateAsync (fluent chaining)
+   */
+  publishUpdateAsync(resource: any, stateFactory: (p0: CustomResourceSnapshotProxy) => CustomResourceSnapshotProxy | Promise<CustomResourceSnapshotProxy>): Promise<any> {
+    return this._promise.then(p => p.publishUpdateAsync(resource, stateFactory));
+  }
+
+  /**
+   * publishUpdateAsync2 (fluent chaining)
+   */
+  publishUpdateAsync2(resource: any, resourceId: string, stateFactory: (p0: CustomResourceSnapshotProxy) => CustomResourceSnapshotProxy | Promise<CustomResourceSnapshotProxy>): Promise<any> {
+    return this._promise.then(p => p.publishUpdateAsync2(resource, resourceId, stateFactory));
+  }
+}
+
+/**
  * Proxy for ResourceCommandService.
  */
 export class ResourceCommandServiceProxy {
@@ -410,6 +835,35 @@ export class ResourceCommandServiceProxy {
 
   async executeCommandAsync2(resource: any, commandName: string, cancellationToken: CancellationTokenProxy): Promise<any> {
     return await this._proxy.invokeMethod('ExecuteCommandAsync', { resource, commandName, cancellationToken }) as any;
+  }
+}
+
+/**
+ * Thenable wrapper for ResourceCommandServiceProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class ResourceCommandServiceProxyPromise implements PromiseLike<ResourceCommandServiceProxy> {
+  constructor(private _promise: Promise<ResourceCommandServiceProxy>) {}
+
+  then<TResult1 = ResourceCommandServiceProxy, TResult2 = never>(
+    onfulfilled?: ((value: ResourceCommandServiceProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * executeCommandAsync (fluent chaining)
+   */
+  executeCommandAsync(resourceId: string, commandName: string, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.executeCommandAsync(resourceId, commandName, cancellationToken));
+  }
+
+  /**
+   * executeCommandAsync2 (fluent chaining)
+   */
+  executeCommandAsync2(resource: any, commandName: string, cancellationToken: CancellationTokenProxy): Promise<any> {
+    return this._promise.then(p => p.executeCommandAsync2(resource, commandName, cancellationToken));
   }
 }
 
@@ -435,6 +889,42 @@ export class FileProviderProxy {
 }
 
 /**
+ * Thenable wrapper for FileProviderProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class FileProviderProxyPromise implements PromiseLike<FileProviderProxy> {
+  constructor(private _promise: Promise<FileProviderProxy>) {}
+
+  then<TResult1 = FileProviderProxy, TResult2 = never>(
+    onfulfilled?: ((value: FileProviderProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * getFileInfo (fluent chaining)
+   */
+  getFileInfo(subpath: string): Promise<any> {
+    return this._promise.then(p => p.getFileInfo(subpath));
+  }
+
+  /**
+   * getDirectoryContents (fluent chaining)
+   */
+  getDirectoryContents(subpath: string): Promise<any> {
+    return this._promise.then(p => p.getDirectoryContents(subpath));
+  }
+
+  /**
+   * watch (fluent chaining)
+   */
+  watch(filter: string): Promise<any> {
+    return this._promise.then(p => p.watch(filter));
+  }
+}
+
+/**
  * Proxy for ITempFileSystemService.
  */
 export class TempFileSystemServiceProxy {
@@ -451,14 +941,47 @@ export class TempFileSystemServiceProxy {
   }
 }
 
+/**
+ * Thenable wrapper for TempFileSystemServiceProxy that enables fluent async chaining.
+ * Usage: await someMethod().propertyOrMethod().anotherMethod();
+ */
+export class TempFileSystemServiceProxyPromise implements PromiseLike<TempFileSystemServiceProxy> {
+  constructor(private _promise: Promise<TempFileSystemServiceProxy>) {}
+
+  then<TResult1 = TempFileSystemServiceProxy, TResult2 = never>(
+    onfulfilled?: ((value: TempFileSystemServiceProxy) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._promise.then(onfulfilled, onrejected);
+  }
+
+  /**
+   * createTempSubdirectory (fluent chaining)
+   */
+  createTempSubdirectory(prefix: string): Promise<any> {
+    return this._promise.then(p => p.createTempSubdirectory(prefix));
+  }
+
+  /**
+   * createTempFile (fluent chaining)
+   */
+  createTempFile(fileName: string): Promise<any> {
+    return this._promise.then(p => p.createTempFile(fileName));
+  }
+}
+
 abstract class DistributedApplicationBuilderBase {
   constructor(protected _proxy: DotNetProxy) {}
 
   get proxy(): DotNetProxy { return this._proxy; }
 
-  async getConfiguration(): Promise<ConfigurationManagerProxy> {
-    const result = await this._proxy.getProperty('Configuration') as DotNetProxy;
-    return new ConfigurationManagerProxy(result);
+  getConfiguration(): ConfigurationManagerProxyPromise {
+    return new ConfigurationManagerProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('Configuration') as DotNetProxy;
+        return new ConfigurationManagerProxy(result);
+      })()
+    );
   }
 
   async getAppHostDirectory(): Promise<string> {
@@ -471,44 +994,76 @@ abstract class DistributedApplicationBuilderBase {
     return result as any;
   }
 
-  async getEnvironment(): Promise<HostEnvironmentProxy> {
-    const result = await this._proxy.getProperty('Environment') as DotNetProxy;
-    return new HostEnvironmentProxy(result);
+  getEnvironment(): HostEnvironmentProxyPromise {
+    return new HostEnvironmentProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('Environment') as DotNetProxy;
+        return new HostEnvironmentProxy(result);
+      })()
+    );
   }
 
-  async getServices(): Promise<ServiceCollectionProxy> {
-    const result = await this._proxy.getProperty('Services') as DotNetProxy;
-    return new ServiceCollectionProxy(result);
+  getServices(): ServiceCollectionProxyPromise {
+    return new ServiceCollectionProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('Services') as DotNetProxy;
+        return new ServiceCollectionProxy(result);
+      })()
+    );
   }
 
-  async getEventing(): Promise<DistributedApplicationEventingProxy> {
-    const result = await this._proxy.getProperty('Eventing') as DotNetProxy;
-    return new DistributedApplicationEventingProxy(result);
+  getEventing(): DistributedApplicationEventingProxyPromise {
+    return new DistributedApplicationEventingProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('Eventing') as DotNetProxy;
+        return new DistributedApplicationEventingProxy(result);
+      })()
+    );
   }
 
-  async getExecutionContext(): Promise<DistributedApplicationExecutionContextProxy> {
-    const result = await this._proxy.getProperty('ExecutionContext') as DotNetProxy;
-    return new DistributedApplicationExecutionContextProxy(result);
+  getExecutionContext(): DistributedApplicationExecutionContextProxyPromise {
+    return new DistributedApplicationExecutionContextProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('ExecutionContext') as DotNetProxy;
+        return new DistributedApplicationExecutionContextProxy(result);
+      })()
+    );
   }
 
-  async getResources(): Promise<ResourceCollectionProxy> {
-    const result = await this._proxy.getProperty('Resources') as DotNetProxy;
-    return new ResourceCollectionProxy(result);
+  getResources(): ResourceCollectionProxyPromise {
+    return new ResourceCollectionProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('Resources') as DotNetProxy;
+        return new ResourceCollectionProxy(result);
+      })()
+    );
   }
 
-  async getPipeline(): Promise<DistributedApplicationPipelineProxy> {
-    const result = await this._proxy.getProperty('Pipeline') as DotNetProxy;
-    return new DistributedApplicationPipelineProxy(result);
+  getPipeline(): DistributedApplicationPipelineProxyPromise {
+    return new DistributedApplicationPipelineProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('Pipeline') as DotNetProxy;
+        return new DistributedApplicationPipelineProxy(result);
+      })()
+    );
   }
 
-  async getFileSystemService(): Promise<FileSystemServiceProxy> {
-    const result = await this._proxy.getProperty('FileSystemService') as DotNetProxy;
-    return new FileSystemServiceProxy(result);
+  getFileSystemService(): FileSystemServiceProxyPromise {
+    return new FileSystemServiceProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('FileSystemService') as DotNetProxy;
+        return new FileSystemServiceProxy(result);
+      })()
+    );
   }
 
-  async getUserSecretsManager(): Promise<UserSecretsManagerProxy> {
-    const result = await this._proxy.getProperty('UserSecretsManager') as DotNetProxy;
-    return new UserSecretsManagerProxy(result);
+  getUserSecretsManager(): UserSecretsManagerProxyPromise {
+    return new UserSecretsManagerProxyPromise(
+      (async () => {
+        const result = await this._proxy.getProperty('UserSecretsManager') as DotNetProxy;
+        return new UserSecretsManagerProxy(result);
+      })()
+    );
   }
 
   build() {

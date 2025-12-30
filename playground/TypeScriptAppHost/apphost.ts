@@ -5,7 +5,6 @@
 import {
     createBuilder,
     EnvironmentCallbackContextProxy,
-    CommandLineArgsCallbackContextProxy,
 } from './.modules/distributed-application.js';
 import { refExpr } from './.modules/RemoteAppHostClient.js';
 
@@ -15,33 +14,37 @@ console.log("Aspire TypeScript AppHost starting...");
 const builder = await createBuilder();
 
 // ========================================
-// Test strongly-typed builder properties
+// Test strongly-typed builder properties with NEW thenable API!
 // ========================================
 
-// Test Configuration access
-const config = await builder.getConfiguration();
-console.log("✅ Got Configuration proxy");
+// NEW: Fluent chaining through getEnvironment() -> getEnvironmentName()
+// Instead of:
+//   const env = await builder.getEnvironment();
+//   const envName = await env.getEnvironmentName();
+// You can now write:
+const envName = await builder.getEnvironment().getEnvironmentName();
+const appName = await builder.getEnvironment().getApplicationName();
+console.log(`✅ Got Environment: ${envName}, App: ${appName} (via fluent chain!)`);
 
-// Test reading a config value using proxy's getIndexer (may be null if not set)
-const aspnetEnv = await config.proxy.getIndexer("ASPNETCORE_ENVIRONMENT");
-console.log(`   ASPNETCORE_ENVIRONMENT: ${aspnetEnv ?? "(not set)"}`);
-
-// Test Environment access
-const env = await builder.getEnvironment();
-const envName = await env.getEnvironmentName();
-const appName = await env.getApplicationName();
-console.log(`✅ Got Environment: ${envName}, App: ${appName}`);
-
-// Test environment checks (using environment name directly)
+// Test environment checks
 const isDev = envName === "Development";
 const isProd = envName === "Production";
 console.log(`   isDevelopment: ${isDev}, isProduction: ${isProd}`);
 
-// Test ExecutionContext access
-const ctx = await builder.getExecutionContext();
-const isRunMode = await ctx.getIsRunMode();
-const isPublishMode = await ctx.getIsPublishMode();
-console.log(`✅ Got ExecutionContext: isRunMode=${isRunMode}, isPublishMode=${isPublishMode}`);
+// NEW: Fluent chaining through getExecutionContext() -> properties
+const isRunMode = await builder.getExecutionContext().getIsRunMode();
+const isPublishMode = await builder.getExecutionContext().getIsPublishMode();
+console.log(`✅ Got ExecutionContext: isRunMode=${isRunMode}, isPublishMode=${isPublishMode} (via fluent chain!)`);
+
+// Configuration still works the same way (for indexer access)
+const config = await builder.getConfiguration();
+console.log("✅ Got Configuration proxy");
+const aspnetEnv = await config.proxy.getIndexer("ASPNETCORE_ENVIRONMENT");
+console.log(`   ASPNETCORE_ENVIRONMENT: ${aspnetEnv ?? "(not set)"}`);
+
+// You can also get a full proxy if needed for multiple operations
+const env = await builder.getEnvironment();
+console.log(`✅ Environment proxy type: ${env.proxy.$type}`);
 
 // Test convenience methods on builder (using properties directly)
 console.log(`✅ builder environment: ${envName}`);
@@ -84,7 +87,7 @@ try {
 }
 
 // Callbacks are also chainable!
-// You can chain withEnvironmentCallback and withArgs2 together
+// You can chain withEnvironmentCallback together with other methods
 const redis2 = await builder
     .addContainer("myredis2", "redis:alpine")
     .withEnvironment("CONFIGURED", "via-fluent-chain")
@@ -93,29 +96,10 @@ const redis2 = await builder
         await envVars.set("MY_CUSTOM_VAR", "Hello from TypeScript with typed proxies!");
         await envVars.set("REDIS_CONFIG", "configured-via-typescript");
         console.log("Environment variables configured via TypeScript callback!");
-    })
-    .withArgs2(async (context: CommandLineArgsCallbackContextProxy) => {
-        const args = await context.getArgs();
 
-        await args.add("--maxmemory");
-        await args.add("256mb");
-        await args.add("--maxmemory-policy");
-        await args.add("allkeys-lru");
-
-        const count = await args.count();
-        console.log(`Command line args configured: ${count} arguments added!`);
-
-        // Test list indexer
-        const firstArg = await args.get(0);
-        console.log(`✅ List get(0) works: "${firstArg}"`);
-
-        await args.set(1, "512mb");
-        const updatedArg = await args.get(1);
-        console.log(`✅ List set(1) works: "${updatedArg}"`);
-
-        // Test re-entrant callback
+        // Test re-entrant callback - get the resource from inside the callback
         const resource = await context.getResource();
-        console.log(`✅ Re-entrant callback works! Got resource: ${resource.$type}`);
+        console.log(`✅ Re-entrant callback works! Got resource: ${resource.proxy.$type}`);
     });
 
 console.log("✅ Created Redis2 container with fluent chaining including callbacks!");

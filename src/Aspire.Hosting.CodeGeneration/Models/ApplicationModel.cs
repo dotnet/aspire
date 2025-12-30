@@ -24,7 +24,10 @@ public sealed class ApplicationModel : IDisposable
         var integrationModelsLookup = integrationModels.ToDictionary(x => x.AssemblyName);
 
         // Get initial resources from integrations (concrete types implementing IResource)
-        var initialResources = integrationModels.SelectMany(x => x.Resources).ToDictionary(x => x.Key, x => x.Value);
+        // Use DistinctBy to handle potential duplicates across integrations
+        var initialResources = integrationModels.SelectMany(x => x.Resources)
+            .DistinctBy(x => x.Key)
+            .ToDictionary(x => x.Key, x => x.Value);
 
         // Discover extension methods for each resource model across all integrations.
         // This may discover interface types used in IResourceBuilder<T> which get added to integration.Resources.
@@ -37,7 +40,10 @@ public sealed class ApplicationModel : IDisposable
         }
 
         // Re-aggregate resources after discovery (includes interface types discovered above)
-        var resourceModels = integrationModels.SelectMany(x => x.Resources).ToDictionary(x => x.Key, x => x.Value);
+        // Use DistinctBy to handle interface types discovered in multiple integrations
+        var resourceModels = integrationModels.SelectMany(x => x.Resources)
+            .DistinctBy(x => x.Key)
+            .ToDictionary(x => x.Key, x => x.Value);
 
         // Discover all model types across all integrations
         var modelTypes = new HashSet<RoType>();

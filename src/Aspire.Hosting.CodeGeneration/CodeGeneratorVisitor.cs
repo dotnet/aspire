@@ -231,6 +231,33 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
                 }
             }
         }
+
+        // Second pass: discover types from callback proxy properties
+        // When callback types are registered, we need to also discover their property types
+        foreach (var (callbackType, _) in GeneratedTypeNames)
+        {
+            foreach (var prop in callbackType.Properties.Where(p => p.CanRead && !p.IsStatic))
+            {
+                if (!visited.Contains(prop.PropertyType))
+                {
+                    visited.Add(prop.PropertyType);
+                    ReferencedTypes.Add(prop.PropertyType);
+
+                    // Also process generic arguments (e.g., Nullable<T>)
+                    if (prop.PropertyType.IsGenericType)
+                    {
+                        foreach (var arg in prop.PropertyType.GetGenericArguments())
+                        {
+                            if (!visited.Contains(arg))
+                            {
+                                visited.Add(arg);
+                                ReferencedTypes.Add(arg);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>
