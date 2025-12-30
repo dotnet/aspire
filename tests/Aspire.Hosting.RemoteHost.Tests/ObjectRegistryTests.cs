@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace Aspire.Hosting.RemoteHost.Tests;
@@ -174,14 +174,14 @@ public class ObjectRegistryTests
     {
         var registry = new ObjectRegistry();
 
-        Assert.Equal("hello", registry.ResolveValue(JsonDocument.Parse("\"hello\"").RootElement));
+        Assert.Equal("hello", registry.ResolveValue(JsonNode.Parse("\"hello\"")));
         // JSON numbers parse as long if they fit
-        var numResult = registry.ResolveValue(JsonDocument.Parse("42").RootElement);
+        var numResult = registry.ResolveValue(JsonNode.Parse("42"));
         Assert.True(numResult is long or int or double);
         Assert.Equal(42L, Convert.ToInt64(numResult, System.Globalization.CultureInfo.InvariantCulture));
-        Assert.Equal(true, registry.ResolveValue(JsonDocument.Parse("true").RootElement));
-        Assert.Equal(false, registry.ResolveValue(JsonDocument.Parse("false").RootElement));
-        Assert.Null(registry.ResolveValue(JsonDocument.Parse("null").RootElement));
+        Assert.Equal(true, registry.ResolveValue(JsonNode.Parse("true")));
+        Assert.Equal(false, registry.ResolveValue(JsonNode.Parse("false")));
+        Assert.Null(registry.ResolveValue(JsonNode.Parse("null")));
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public class ObjectRegistryTests
         var obj = new TestClass { Name = "test" };
         var id = registry.Register(obj);
 
-        var json = JsonDocument.Parse($"{{\"$id\": \"{id}\"}}").RootElement;
+        var json = JsonNode.Parse($"{{\"$id\": \"{id}\"}}");
         var resolved = registry.ResolveValue(json);
 
         Assert.Same(obj, resolved);

@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace Aspire.Hosting.RemoteHost.Tests;
@@ -59,7 +59,7 @@ public sealed class CallbackDeadlockTests : IAsyncLifetime
         // Configure the callback to call back to .NET when invoked
         _callbackInvoker.RegisterReentrantCallback("reentrant_callback", dataId, "Value");
 
-        var args = JsonDocument.Parse("{\"callback\": \"reentrant_callback\"}").RootElement;
+        var args = JsonNode.Parse("{\"callback\": \"reentrant_callback\"}") as JsonObject;
 
         // Run the method invocation on the dispatcher thread to simulate real RPC behavior
         // In real StreamJsonRpc, the method handler runs on the RPC dispatcher thread
@@ -93,7 +93,7 @@ public sealed class CallbackDeadlockTests : IAsyncLifetime
 
         _callbackInvoker.RegisterReentrantCallback("reentrant_callback_t", dataId, "Value");
 
-        var args = JsonDocument.Parse("{\"callback\": \"reentrant_callback_t\"}").RootElement;
+        var args = JsonNode.Parse("{\"callback\": \"reentrant_callback_t\"}") as JsonObject;
 
         await _callbackInvoker.RunOnDispatcherAsync(() =>
         {

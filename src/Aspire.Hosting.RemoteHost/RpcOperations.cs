@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace Aspire.Hosting.RemoteHost;
@@ -40,7 +41,7 @@ internal sealed class RpcOperations : IAsyncDisposable
     /// <summary>
     /// Creates an object instance.
     /// </summary>
-    public object? CreateObject(string assemblyName, string typeName, JsonElement? args)
+    public object? CreateObject(string assemblyName, string typeName, JsonObject? args)
     {
         var type = _typeResolver.ResolveType(assemblyName, typeName);
         var argDict = MethodResolver.ParseArgs(args);
@@ -72,7 +73,7 @@ internal sealed class RpcOperations : IAsyncDisposable
     /// <summary>
     /// Invokes a method on a registered object.
     /// </summary>
-    public object? InvokeMethod(string objectId, string methodName, JsonElement? args)
+    public object? InvokeMethod(string objectId, string methodName, JsonObject? args)
     {
         var obj = _objectRegistry.Get(objectId);
         var type = obj.GetType();
@@ -113,7 +114,7 @@ internal sealed class RpcOperations : IAsyncDisposable
     /// <summary>
     /// Sets a property value on a registered object.
     /// </summary>
-    public void SetProperty(string objectId, string propertyName, JsonElement value)
+    public void SetProperty(string objectId, string propertyName, JsonNode? value)
     {
         var obj = _objectRegistry.Get(objectId);
         var type = obj.GetType();
@@ -136,14 +137,14 @@ internal sealed class RpcOperations : IAsyncDisposable
     /// <summary>
     /// Gets an indexed value from a registered object (list or dictionary).
     /// </summary>
-    public object? GetIndexer(string objectId, JsonElement key)
+    public object? GetIndexer(string objectId, JsonNode key)
     {
         var obj = _objectRegistry.Get(objectId);
 
         // Handle dictionaries
         if (obj is System.Collections.IDictionary dict)
         {
-            var keyValue = key.ValueKind == JsonValueKind.String ? key.GetString() : key.ToString();
+            var keyValue = key is JsonValue v ? v.GetValue<object>()?.ToString() : key.ToString();
             if (dict.Contains(keyValue!))
             {
                 return MarshalResult(dict[keyValue!]);
@@ -155,13 +156,13 @@ internal sealed class RpcOperations : IAsyncDisposable
         if (obj is System.Collections.IList list)
         {
             int index;
-            if (key.ValueKind == JsonValueKind.Number)
+            if (key is JsonValue jsonValue && jsonValue.TryGetValue<int>(out var intValue))
             {
-                index = key.GetInt32();
+                index = intValue;
             }
             else
             {
-                var keyString = key.GetString()!;
+                var keyString = key.ToString();
                 if (!int.TryParse(keyString, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out index))
                 {
                     throw new InvalidOperationException($"Cannot convert key '{keyString}' to integer index for list");
@@ -182,14 +183,14 @@ internal sealed class RpcOperations : IAsyncDisposable
     /// <summary>
     /// Sets an indexed value on a registered object (list or dictionary).
     /// </summary>
-    public void SetIndexer(string objectId, JsonElement key, JsonElement value)
+    public void SetIndexer(string objectId, JsonNode key, JsonNode? value)
     {
         var obj = _objectRegistry.Get(objectId);
 
         // Handle dictionaries
         if (obj is System.Collections.IDictionary dict)
         {
-            var keyValue = key.ValueKind == JsonValueKind.String ? key.GetString() : key.ToString();
+            var keyValue = key is JsonValue v ? v.GetValue<object>()?.ToString() : key.ToString();
             var resolvedValue = _objectRegistry.ResolveValue(value);
             dict[keyValue!] = resolvedValue;
             return;
@@ -198,9 +199,15 @@ internal sealed class RpcOperations : IAsyncDisposable
         // Handle lists
         if (obj is System.Collections.IList list)
         {
-            var index = key.ValueKind == JsonValueKind.Number
-                ? key.GetInt32()
-                : int.Parse(key.GetString()!, System.Globalization.CultureInfo.InvariantCulture);
+            int index;
+            if (key is JsonValue jsonValue && jsonValue.TryGetValue<int>(out var intValue))
+            {
+                index = intValue;
+            }
+            else
+            {
+                index = int.Parse(key.ToString(), System.Globalization.CultureInfo.InvariantCulture);
+            }
 
             if (index < 0 || index >= list.Count)
             {
@@ -233,7 +240,7 @@ internal sealed class RpcOperations : IAsyncDisposable
     /// <summary>
     /// Invokes a static method on a type.
     /// </summary>
-    public object? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonElement? args)
+    public object? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonObject? args)
     {
         var type = _typeResolver.ResolveType(assemblyName, typeName);
         var argDict = MethodResolver.ParseArgs(args);
@@ -278,7 +285,7 @@ internal sealed class RpcOperations : IAsyncDisposable
     /// <summary>
     /// Sets a static property value on a type.
     /// </summary>
-    public void SetStaticProperty(string assemblyName, string typeName, string propertyName, JsonElement value)
+    public void SetStaticProperty(string assemblyName, string typeName, string propertyName, JsonNode? value)
     {
         var type = _typeResolver.ResolveType(assemblyName, typeName);
 
@@ -301,7 +308,7 @@ internal sealed class RpcOperations : IAsyncDisposable
 
     #region Helpers
 
-    private object?[] BuildArgumentArray(MethodBase method, IReadOnlyDictionary<string, JsonElement> args)
+    private object?[] BuildArgumentArray(MethodBase method, IReadOnlyDictionary<string, JsonNode?> args)
     {
         var parameters = method.GetParameters();
         var arguments = new object?[parameters.Length];
@@ -326,37 +333,35 @@ internal sealed class RpcOperations : IAsyncDisposable
         return arguments;
     }
 
-    private object? DeserializeArgument(JsonElement element, Type targetType)
+    private object? DeserializeArgument(JsonNode? node, Type targetType)
     {
-        // Handle object references (proxied objects from TypeScript)
-        if (element.ValueKind == JsonValueKind.Object && element.TryGetProperty("$id", out var idProp))
+        if (node == null)
         {
-            var refId = idProp.GetString();
+            return null;
+        }
+
+        // Handle object references (proxied objects)
+        if (node is JsonObject obj && obj.TryGetPropertyValue("$id", out var idNode))
+        {
+            var refId = idNode?.GetValue<string>();
             if (refId != null && _objectRegistry.TryGet(refId, out var refObj))
             {
                 return refObj;
             }
         }
 
-        // Handle ReferenceExpression from TypeScript
-        if (element.ValueKind == JsonValueKind.Object &&
-            element.TryGetProperty("$referenceExpression", out var refExprMarker) &&
-            refExprMarker.GetBoolean() &&
+        // Handle ReferenceExpression
+        if (node is JsonObject refExprObj &&
+            refExprObj.TryGetPropertyValue("$referenceExpression", out var refExprMarker) &&
+            refExprMarker?.GetValue<bool>() == true &&
             targetType.FullName == "Aspire.Hosting.ApplicationModel.ReferenceExpression")
         {
-            return DeserializeReferenceExpression(element);
-        }
-
-        // Handle null
-        if (element.ValueKind == JsonValueKind.Null)
-        {
-            return null;
+            return DeserializeReferenceExpression(refExprObj);
         }
 
         // Handle callback parameters (delegate type with string callbackId)
-        if (IsDelegateType(targetType) && element.ValueKind == JsonValueKind.String)
+        if (IsDelegateType(targetType) && node is JsonValue strValue && strValue.TryGetValue<string>(out var callbackId))
         {
-            var callbackId = element.GetString()!;
             var proxy = _callbackProxyFactory.CreateProxy(callbackId, targetType);
             if (proxy != null)
             {
@@ -364,53 +369,55 @@ internal sealed class RpcOperations : IAsyncDisposable
             }
         }
 
-        // Handle primitives
-        if (targetType == typeof(string))
+        // Handle primitives via JsonValue
+        if (node is JsonValue value)
         {
-            return element.GetString();
-        }
-        if (targetType == typeof(int) || targetType == typeof(int?))
-        {
-            return element.GetInt32();
-        }
-        if (targetType == typeof(long) || targetType == typeof(long?))
-        {
-            return element.GetInt64();
-        }
-        if (targetType == typeof(double) || targetType == typeof(double?))
-        {
-            return element.GetDouble();
-        }
-        if (targetType == typeof(bool) || targetType == typeof(bool?))
-        {
-            return element.GetBoolean();
+            if (targetType == typeof(string))
+            {
+                return value.GetValue<string>();
+            }
+            if (targetType == typeof(int) || targetType == typeof(int?))
+            {
+                return value.GetValue<int>();
+            }
+            if (targetType == typeof(long) || targetType == typeof(long?))
+            {
+                return value.GetValue<long>();
+            }
+            if (targetType == typeof(double) || targetType == typeof(double?))
+            {
+                return value.GetValue<double>();
+            }
+            if (targetType == typeof(bool) || targetType == typeof(bool?))
+            {
+                return value.GetValue<bool>();
+            }
         }
 
         // Handle arrays
-        if (targetType.IsArray && element.ValueKind == JsonValueKind.Array)
+        if (targetType.IsArray && node is JsonArray arr)
         {
             var elementType = targetType.GetElementType()!;
-            var items = element.EnumerateArray().ToList();
-            var array = Array.CreateInstance(elementType, items.Count);
-            for (var i = 0; i < items.Count; i++)
+            var array = Array.CreateInstance(elementType, arr.Count);
+            for (var i = 0; i < arr.Count; i++)
             {
-                array.SetValue(DeserializeArgument(items[i], elementType), i);
+                array.SetValue(DeserializeArgument(arr[i], elementType), i);
             }
             return array;
         }
 
         // Fall back to JSON deserialization
-        return JsonSerializer.Deserialize(element.GetRawText(), targetType, _jsonOptions);
+        return JsonSerializer.Deserialize(node.ToJsonString(), targetType, _jsonOptions);
     }
 
-    private object DeserializeReferenceExpression(JsonElement element)
+    private object DeserializeReferenceExpression(JsonObject jsonObj)
     {
-        if (!element.TryGetProperty("format", out var formatElement))
+        if (!jsonObj.TryGetPropertyValue("format", out var formatNode))
         {
             throw new InvalidOperationException("Invalid ReferenceExpression format: missing 'format' property");
         }
 
-        var format = formatElement.GetString() ?? "";
+        var format = formatNode?.GetValue<string>() ?? "";
 
         // Use ReferenceExpressionBuilder to construct the expression
         var builder = new Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder();
@@ -511,7 +518,7 @@ internal sealed class RpcOperations : IAsyncDisposable
     /// <summary>
     /// Sets an indexed value using a string key.
     /// </summary>
-    public void SetIndexerByStringKey(string objectId, string key, JsonElement value)
+    public void SetIndexerByStringKey(string objectId, string key, JsonNode? value)
     {
         var obj = _objectRegistry.Get(objectId);
 

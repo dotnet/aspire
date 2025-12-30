@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace Aspire.Hosting.RemoteHost.Tests;
@@ -44,7 +44,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var obj = new TestObject();
         var id = _objectRegistry.Register(obj);
-        var args = JsonDocument.Parse("{\"value\": 42}").RootElement;
+        var args = JsonNode.Parse("{\"value\": 42}") as JsonObject;
 
         _operations.InvokeMethod(id, "SetValue", args);
 
@@ -174,7 +174,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var obj = new TestObject();
         var id = _objectRegistry.Register(obj);
-        var value = JsonDocument.Parse("\"new value\"").RootElement;
+        var value = JsonNode.Parse("\"new value\"");
 
         _operations.SetProperty(id, "Name", value);
 
@@ -186,7 +186,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var obj = new TestObject();
         var id = _objectRegistry.Register(obj);
-        var value = JsonDocument.Parse("42").RootElement;
+        var value = JsonNode.Parse("42");
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             _operations.SetProperty(id, "ReadOnlyValue", value));
@@ -203,7 +203,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var list = new List<string> { "first", "second", "third" };
         var id = _objectRegistry.Register(list);
-        var index = JsonDocument.Parse("1").RootElement;
+        var index = JsonNode.Parse("1")!;
 
         var result = _operations.GetIndexer(id, index);
 
@@ -215,7 +215,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var dict = new Dictionary<string, int> { ["key1"] = 10, ["key2"] = 20 };
         var id = _objectRegistry.Register(dict);
-        var key = JsonDocument.Parse("\"key2\"").RootElement;
+        var key = JsonNode.Parse("\"key2\"")!;
 
         var result = _operations.GetIndexer(id, key);
 
@@ -227,7 +227,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var list = new List<TestObject> { new() { Name = "item1" } };
         var id = _objectRegistry.Register(list);
-        var index = JsonDocument.Parse("0").RootElement;
+        var index = JsonNode.Parse("0")!;
 
         var result = _operations.GetIndexer(id, index);
 
@@ -241,7 +241,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var list = new List<string> { "only" };
         var id = _objectRegistry.Register(list);
-        var index = JsonDocument.Parse("5").RootElement;
+        var index = JsonNode.Parse("5")!;
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             _operations.GetIndexer(id, index));
@@ -252,7 +252,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var dict = new Dictionary<string, int> { ["key1"] = 10 };
         var id = _objectRegistry.Register(dict);
-        var key = JsonDocument.Parse("\"nonexistent\"").RootElement;
+        var key = JsonNode.Parse("\"nonexistent\"")!;
 
         var result = _operations.GetIndexer(id, key);
 
@@ -268,8 +268,8 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var list = new List<string> { "first", "second" };
         var id = _objectRegistry.Register(list);
-        var index = JsonDocument.Parse("0").RootElement;
-        var value = JsonDocument.Parse("\"updated\"").RootElement;
+        var index = JsonNode.Parse("0")!;
+        var value = JsonNode.Parse("\"updated\"");
 
         _operations.SetIndexer(id, index, value);
 
@@ -281,8 +281,8 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var dict = new Dictionary<string, object?> { ["key1"] = "old" };
         var id = _objectRegistry.Register(dict);
-        var key = JsonDocument.Parse("\"key1\"").RootElement;
-        var value = JsonDocument.Parse("\"new\"").RootElement;
+        var key = JsonNode.Parse("\"key1\"")!;
+        var value = JsonNode.Parse("\"new\"");
 
         _operations.SetIndexer(id, key, value);
 
@@ -294,8 +294,8 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var dict = new Dictionary<string, object?>();
         var id = _objectRegistry.Register(dict);
-        var key = JsonDocument.Parse("\"newkey\"").RootElement;
-        var value = JsonDocument.Parse("\"newvalue\"").RootElement;
+        var key = JsonNode.Parse("\"newkey\"")!;
+        var value = JsonNode.Parse("\"newvalue\"");
 
         _operations.SetIndexer(id, key, value);
 
@@ -311,8 +311,8 @@ public class RpcOperationsTests : IAsyncLifetime
         var refObj = new TestObject { Name = "referenced" };
         var refId = _objectRegistry.Register(refObj);
 
-        var key = JsonDocument.Parse("\"mykey\"").RootElement;
-        var value = JsonDocument.Parse($"{{\"$id\": \"{refId}\"}}").RootElement;
+        var key = JsonNode.Parse("\"mykey\"")!;
+        var value = JsonNode.Parse($"{{\"$id\": \"{refId}\"}}");
 
         _operations.SetIndexer(dictId, key, value);
 
@@ -398,7 +398,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
         var typeName = typeof(StaticPropertyTestClass).FullName!;
-        var value = JsonDocument.Parse("\"new-value\"").RootElement;
+        var value = JsonNode.Parse("\"new-value\"");
 
         _operations.SetStaticProperty(assemblyName, typeName, "StaticValue", value);
 
@@ -410,7 +410,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
         var typeName = typeof(StaticPropertyTestClass).FullName!;
-        var value = JsonDocument.Parse("42").RootElement;
+        var value = JsonNode.Parse("42");
 
         _operations.SetStaticProperty(assemblyName, typeName, "StaticInt", value);
 
@@ -422,7 +422,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
         var typeName = typeof(StaticPropertyTestClass).FullName!;
-        var value = JsonDocument.Parse("\"value\"").RootElement;
+        var value = JsonNode.Parse("\"value\"");
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             _operations.SetStaticProperty(assemblyName, typeName, "ReadOnlyStaticValue", value));
@@ -435,7 +435,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         // Use the same assembly but a non-existent type
         var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
-        var value = JsonDocument.Parse("\"value\"").RootElement;
+        var value = JsonNode.Parse("\"value\"");
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             _operations.SetStaticProperty(assemblyName, "NonExistent.Type.That.DoesNotExist", "SomeProperty", value));
@@ -448,7 +448,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var assemblyName = typeof(StaticPropertyTestClass).Assembly.GetName().Name!;
         var typeName = typeof(StaticPropertyTestClass).FullName!;
-        var value = JsonDocument.Parse("\"value\"").RootElement;
+        var value = JsonNode.Parse("\"value\"");
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             _operations.SetStaticProperty(assemblyName, typeName, "NonExistentProperty", value));
@@ -480,7 +480,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var assemblyName = typeof(TestClassWithArgs).Assembly.GetName().Name!;
         var typeName = typeof(TestClassWithArgs).FullName!;
-        var args = JsonDocument.Parse("{\"name\": \"test-name\", \"value\": 42}").RootElement;
+        var args = JsonNode.Parse("{\"name\": \"test-name\", \"value\": 42}") as JsonObject;
 
         var result = _operations.CreateObject(assemblyName, typeName, args);
 
@@ -501,7 +501,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var assemblyName = typeof(TestClassWithOptionalArgs).Assembly.GetName().Name!;
         var typeName = typeof(TestClassWithOptionalArgs).FullName!;
-        var args = JsonDocument.Parse("{\"name\": \"required-name\"}").RootElement;
+        var args = JsonNode.Parse("{\"name\": \"required-name\"}") as JsonObject;
 
         var result = _operations.CreateObject(assemblyName, typeName, args);
 
@@ -539,7 +539,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var assemblyName = typeof(TestClassWithArgs).Assembly.GetName().Name!;
         var typeName = typeof(TestClassWithArgs).FullName!;
-        var args = JsonDocument.Parse("{}").RootElement;
+        var args = JsonNode.Parse("{}") as JsonObject;
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             _operations.CreateObject(assemblyName, typeName, args));
@@ -556,7 +556,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var assemblyName = typeof(StaticTestClass).Assembly.GetName().Name!;
         var typeName = typeof(StaticTestClass).FullName!;
-        var args = JsonDocument.Parse("{\"a\": 10, \"b\": 5}").RootElement;
+        var args = JsonNode.Parse("{\"a\": 10, \"b\": 5}") as JsonObject;
 
         var result = _operations.InvokeStaticMethod(assemblyName, typeName, "Add", args);
 
@@ -568,7 +568,7 @@ public class RpcOperationsTests : IAsyncLifetime
     {
         var assemblyName = typeof(StaticTestClass).Assembly.GetName().Name!;
         var typeName = typeof(StaticTestClass).FullName!;
-        var args = JsonDocument.Parse("{\"name\": \"test-object\"}").RootElement;
+        var args = JsonNode.Parse("{\"name\": \"test-object\"}") as JsonObject;
 
         var result = _operations.InvokeStaticMethod(assemblyName, typeName, "CreateInstance", args);
 
@@ -587,7 +587,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var assemblyName = typeof(ExtensionMethodTestClass).Assembly.GetName().Name!;
         var typeName = typeof(ExtensionMethodTestClass).FullName!;
-        var args = JsonDocument.Parse($"{{\"obj\": {{\"$id\": \"{objId}\"}}, \"amount\": 10}}").RootElement;
+        var args = JsonNode.Parse($"{{\"obj\": {{\"$id\": \"{objId}\"}}, \"amount\": 10}}") as JsonObject;
 
         var result = _operations.InvokeStaticMethod(assemblyName, typeName, "IncrementValue", args);
 
@@ -604,7 +604,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var assemblyName = typeof(ExtensionMethodTestClass).Assembly.GetName().Name!;
         var typeName = typeof(ExtensionMethodTestClass).FullName!;
-        var args = JsonDocument.Parse($"{{\"builder\": {{\"$id\": \"{objId}\"}}, \"envName\": \"TEST_VAR\", \"envValue\": \"test-value\"}}").RootElement;
+        var args = JsonNode.Parse($"{{\"builder\": {{\"$id\": \"{objId}\"}}, \"envName\": \"TEST_VAR\", \"envValue\": \"test-value\"}}") as JsonObject;
 
         var result = _operations.InvokeStaticMethod(assemblyName, typeName, "WithEnvironment", args);
 
@@ -653,17 +653,17 @@ public class RpcOperationsTests : IAsyncLifetime
         var typeName = typeof(StaticTestClass).FullName!;
 
         // Single arg - should use Format(string value)
-        var args1 = JsonDocument.Parse("{\"value\": \"hello\"}").RootElement;
+        var args1 = JsonNode.Parse("{\"value\": \"hello\"}") as JsonObject;
         var result1 = _operations.InvokeStaticMethod(assemblyName, typeName, "Format", args1);
         Assert.Equal("[hello]", result1);
 
         // Two args with count - should use Format(string value, int count)
-        var args2 = JsonDocument.Parse("{\"value\": \"x\", \"count\": 2}").RootElement;
+        var args2 = JsonNode.Parse("{\"value\": \"x\", \"count\": 2}") as JsonObject;
         var result2 = _operations.InvokeStaticMethod(assemblyName, typeName, "Format", args2);
         Assert.Equal("[x][x]", result2);
 
         // Three string args - should use Format(string value, string prefix, string suffix)
-        var args3 = JsonDocument.Parse("{\"value\": \"test\", \"prefix\": \"<\", \"suffix\": \">\"}").RootElement;
+        var args3 = JsonNode.Parse("{\"value\": \"test\", \"prefix\": \"<\", \"suffix\": \">\"}") as JsonObject;
         var result3 = _operations.InvokeStaticMethod(assemblyName, typeName, "Format", args3);
         Assert.Equal("<test>", result3);
     }

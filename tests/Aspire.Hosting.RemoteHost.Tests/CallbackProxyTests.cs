@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace Aspire.Hosting.RemoteHost.Tests;
@@ -33,7 +33,7 @@ public class CallbackProxyTests : IAsyncLifetime
         var id = _objectRegistry.Register(obj);
 
         // Register the callback ID as an argument
-        var args = JsonDocument.Parse("{\"callback\": \"cb_action\"}").RootElement;
+        var args = JsonNode.Parse("{\"callback\": \"cb_action\"}") as JsonObject;
 
         _operations.InvokeMethod(id, "TakeAction", args);
 
@@ -48,7 +48,7 @@ public class CallbackProxyTests : IAsyncLifetime
         var obj = new ObjectWithCallbacks();
         var id = _objectRegistry.Register(obj);
 
-        var args = JsonDocument.Parse("{\"callback\": \"cb_action_t\"}").RootElement;
+        var args = JsonNode.Parse("{\"callback\": \"cb_action_t\"}") as JsonObject;
 
         _operations.InvokeMethod(id, "TakeActionWithArg", args);
 
@@ -63,7 +63,7 @@ public class CallbackProxyTests : IAsyncLifetime
         var obj = new ObjectWithCallbacks();
         var id = _objectRegistry.Register(obj);
 
-        var args = JsonDocument.Parse("{\"callback\": \"cb_func_task\"}").RootElement;
+        var args = JsonNode.Parse("{\"callback\": \"cb_func_task\"}") as JsonObject;
 
         _operations.InvokeMethod(id, "TakeFuncTask", args);
 
@@ -80,7 +80,7 @@ public class CallbackProxyTests : IAsyncLifetime
         var obj = new ObjectWithCallbacks();
         var id = _objectRegistry.Register(obj);
 
-        var args = JsonDocument.Parse("{\"callback\": \"cb_func_t_task\"}").RootElement;
+        var args = JsonNode.Parse("{\"callback\": \"cb_func_t_task\"}") as JsonObject;
 
         _operations.InvokeMethod(id, "TakeFuncWithArgTask", args);
 
@@ -102,7 +102,7 @@ public class CallbackProxyTests : IAsyncLifetime
         // Register a handler that returns a value
         _callbackInvoker.RegisterHandler("cb_func_result", 42);
 
-        var args = JsonDocument.Parse("{\"callback\": \"cb_func_result\"}").RootElement;
+        var args = JsonNode.Parse("{\"callback\": \"cb_func_result\"}") as JsonObject;
 
         _operations.InvokeMethod(id, "TakeFuncWithResult", args);
 

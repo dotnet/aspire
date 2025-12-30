@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using StreamJsonRpc;
 
 namespace Aspire.Hosting.RemoteHost;
@@ -44,15 +44,15 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     #region Object Marshalling
 
     [JsonRpcMethod("invokeMethod")]
-    public object? InvokeMethod(string objectId, string methodName, JsonElement? args)
+    public object? InvokeMethod(string objectId, string methodName, JsonObject? args)
         => _operations.InvokeMethod(objectId, methodName, args);
 
     [JsonRpcMethod("invokeStaticMethod")]
-    public object? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonElement? args)
+    public object? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonObject? args)
         => _operations.InvokeStaticMethod(assemblyName, typeName, methodName, args);
 
     [JsonRpcMethod("createObject")]
-    public object? CreateObject(string assemblyName, string typeName, JsonElement? args)
+    public object? CreateObject(string assemblyName, string typeName, JsonObject? args)
         => _operations.CreateObject(assemblyName, typeName, args);
 
     [JsonRpcMethod("getProperty")]
@@ -60,15 +60,15 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
         => _operations.GetProperty(objectId, propertyName);
 
     [JsonRpcMethod("setProperty")]
-    public void SetProperty(string objectId, string propertyName, JsonElement value)
+    public void SetProperty(string objectId, string propertyName, JsonNode? value)
         => _operations.SetProperty(objectId, propertyName, value);
 
     [JsonRpcMethod("getIndexer")]
-    public object? GetIndexer(string objectId, JsonElement key)
+    public object? GetIndexer(string objectId, JsonNode key)
         => _operations.GetIndexer(objectId, key);
 
     [JsonRpcMethod("setIndexer")]
-    public void SetIndexer(string objectId, JsonElement key, JsonElement value)
+    public void SetIndexer(string objectId, JsonNode key, JsonNode? value)
         => _operations.SetIndexer(objectId, key, value);
 
     [JsonRpcMethod("unregisterObject")]
@@ -84,7 +84,7 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
         => _operations.GetStaticProperty(assemblyName, typeName, propertyName);
 
     [JsonRpcMethod("setStaticProperty")]
-    public void SetStaticProperty(string assemblyName, string typeName, string propertyName, JsonElement value)
+    public void SetStaticProperty(string assemblyName, string typeName, string propertyName, JsonNode? value)
         => _operations.SetStaticProperty(assemblyName, typeName, propertyName, value);
 
     #endregion

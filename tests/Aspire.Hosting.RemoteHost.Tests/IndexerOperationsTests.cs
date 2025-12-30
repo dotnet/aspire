@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace Aspire.Hosting.RemoteHost.Tests;
@@ -36,7 +36,7 @@ public class IndexerOperationsTests : IAsyncLifetime
 
         for (int i = 0; i < list.Count; i++)
         {
-            var index = JsonDocument.Parse($"{i}").RootElement;
+            var index = JsonNode.Parse($"{i}")!;
             var result = _operations.GetIndexer(id, index);
             Assert.Equal(list[i], result);
         }
@@ -48,7 +48,7 @@ public class IndexerOperationsTests : IAsyncLifetime
         var list = new List<string> { "alpha", "beta", "gamma" };
         var id = _objectRegistry.Register(list);
 
-        var index = JsonDocument.Parse("1").RootElement;
+        var index = JsonNode.Parse("1")!;
         var result = _operations.GetIndexer(id, index);
 
         Assert.Equal("beta", result);
@@ -64,7 +64,7 @@ public class IndexerOperationsTests : IAsyncLifetime
         };
         var id = _objectRegistry.Register(items);
 
-        var index = JsonDocument.Parse("0").RootElement;
+        var index = JsonNode.Parse("0")!;
         var result = _operations.GetIndexer(id, index);
 
         Assert.IsType<Dictionary<string, object?>>(result);
@@ -78,7 +78,7 @@ public class IndexerOperationsTests : IAsyncLifetime
     {
         var list = new List<string> { "only" };
         var id = _objectRegistry.Register(list);
-        var index = JsonDocument.Parse("-1").RootElement;
+        var index = JsonNode.Parse("-1")!;
 
         Assert.Throws<ArgumentOutOfRangeException>(() => _operations.GetIndexer(id, index));
     }
@@ -88,7 +88,7 @@ public class IndexerOperationsTests : IAsyncLifetime
     {
         var list = new List<string> { "a", "b" };
         var id = _objectRegistry.Register(list);
-        var index = JsonDocument.Parse("10").RootElement;
+        var index = JsonNode.Parse("10")!;
 
         Assert.Throws<ArgumentOutOfRangeException>(() => _operations.GetIndexer(id, index));
     }
@@ -98,7 +98,7 @@ public class IndexerOperationsTests : IAsyncLifetime
     {
         var list = new List<string> { "item" };
         var id = _objectRegistry.Register(list);
-        var index = JsonDocument.Parse("\"notanumber\"").RootElement;
+        var index = JsonNode.Parse("\"notanumber\"")!;
 
         Assert.Throws<InvalidOperationException>(() => _operations.GetIndexer(id, index));
     }
@@ -109,8 +109,8 @@ public class IndexerOperationsTests : IAsyncLifetime
         var list = new List<int> { 1, 2, 3 };
         var id = _objectRegistry.Register(list);
 
-        var index = JsonDocument.Parse("1").RootElement;
-        var value = JsonDocument.Parse("999").RootElement;
+        var index = JsonNode.Parse("1")!;
+        var value = JsonNode.Parse("999");
 
         _operations.SetIndexer(id, index, value);
 
@@ -123,8 +123,8 @@ public class IndexerOperationsTests : IAsyncLifetime
         var list = new List<string?> { "old1", "old2" };
         var id = _objectRegistry.Register(list);
 
-        var index = JsonDocument.Parse("0").RootElement;
-        var value = JsonDocument.Parse("\"new_value\"").RootElement;
+        var index = JsonNode.Parse("0")!;
+        var value = JsonNode.Parse("\"new_value\"");
 
         _operations.SetIndexer(id, index, value);
 
@@ -140,8 +140,8 @@ public class IndexerOperationsTests : IAsyncLifetime
         var refObj = new ComplexItem { Name = "referenced", Value = 42 };
         var refId = _objectRegistry.Register(refObj);
 
-        var index = JsonDocument.Parse("0").RootElement;
-        var value = JsonDocument.Parse($"{{\"$id\": \"{refId}\"}}").RootElement;
+        var index = JsonNode.Parse("0")!;
+        var value = JsonNode.Parse($"{{\"$id\": \"{refId}\"}}");
 
         _operations.SetIndexer(id, index, value);
 
@@ -163,7 +163,7 @@ public class IndexerOperationsTests : IAsyncLifetime
         };
         var id = _objectRegistry.Register(dict);
 
-        var key = JsonDocument.Parse("\"two\"").RootElement;
+        var key = JsonNode.Parse("\"two\"")!;
         var result = _operations.GetIndexer(id, key);
 
         Assert.Equal(2, result);
@@ -175,7 +175,7 @@ public class IndexerOperationsTests : IAsyncLifetime
         var dict = new Dictionary<string, int> { ["exists"] = 1 };
         var id = _objectRegistry.Register(dict);
 
-        var key = JsonDocument.Parse("\"missing\"").RootElement;
+        var key = JsonNode.Parse("\"missing\"")!;
         var result = _operations.GetIndexer(id, key);
 
         Assert.Null(result);
@@ -190,7 +190,7 @@ public class IndexerOperationsTests : IAsyncLifetime
         };
         var id = _objectRegistry.Register(dict);
 
-        var key = JsonDocument.Parse("\"item\"").RootElement;
+        var key = JsonNode.Parse("\"item\"")!;
         var result = _operations.GetIndexer(id, key);
 
         Assert.IsType<Dictionary<string, object?>>(result);
@@ -205,8 +205,8 @@ public class IndexerOperationsTests : IAsyncLifetime
         var dict = new Dictionary<string, object?>();
         var id = _objectRegistry.Register(dict);
 
-        var key = JsonDocument.Parse("\"newkey\"").RootElement;
-        var value = JsonDocument.Parse("\"newvalue\"").RootElement;
+        var key = JsonNode.Parse("\"newkey\"")!;
+        var value = JsonNode.Parse("\"newvalue\"");
 
         _operations.SetIndexer(id, key, value);
 
@@ -219,8 +219,8 @@ public class IndexerOperationsTests : IAsyncLifetime
         var dict = new Dictionary<string, object?> { ["key"] = "old" };
         var id = _objectRegistry.Register(dict);
 
-        var key = JsonDocument.Parse("\"key\"").RootElement;
-        var value = JsonDocument.Parse("\"new\"").RootElement;
+        var key = JsonNode.Parse("\"key\"")!;
+        var value = JsonNode.Parse("\"new\"");
 
         _operations.SetIndexer(id, key, value);
 
@@ -234,8 +234,8 @@ public class IndexerOperationsTests : IAsyncLifetime
         var id = _objectRegistry.Register(dict);
 
         // Numeric keys get converted to string
-        var key = JsonDocument.Parse("123").RootElement;
-        var value = JsonDocument.Parse("\"value\"").RootElement;
+        var key = JsonNode.Parse("123")!;
+        var value = JsonNode.Parse("\"value\"");
 
         _operations.SetIndexer(id, key, value);
 
@@ -251,8 +251,8 @@ public class IndexerOperationsTests : IAsyncLifetime
         var refObj = new ComplexItem { Name = "ref", Value = 999 };
         var refId = _objectRegistry.Register(refObj);
 
-        var key = JsonDocument.Parse("\"mykey\"").RootElement;
-        var value = JsonDocument.Parse($"{{\"$id\": \"{refId}\"}}").RootElement;
+        var key = JsonNode.Parse("\"mykey\"")!;
+        var value = JsonNode.Parse($"{{\"$id\": \"{refId}\"}}");
 
         _operations.SetIndexer(id, key, value);
 
@@ -269,7 +269,7 @@ public class IndexerOperationsTests : IAsyncLifetime
         var dict = new Dictionary<string, object?>();
         var id = _objectRegistry.Register(dict);
 
-        var value = JsonDocument.Parse("\"value\"").RootElement;
+        var value = JsonNode.Parse("\"value\"");
         _operations.SetIndexerByStringKey(id, "key", value);
 
         Assert.Equal("value", dict["key"]);
@@ -281,7 +281,7 @@ public class IndexerOperationsTests : IAsyncLifetime
         var list = new List<object?> { null, null, null };
         var id = _objectRegistry.Register(list);
 
-        var value = JsonDocument.Parse("\"middle\"").RootElement;
+        var value = JsonNode.Parse("\"middle\"");
         _operations.SetIndexerByStringKey(id, "1", value);
 
         Assert.Equal("middle", list[1]);
@@ -297,7 +297,7 @@ public class IndexerOperationsTests : IAsyncLifetime
         var refId = _objectRegistry.Register(refObj);
 
         // Pass an object with $id to simulate proxy reference
-        var value = JsonDocument.Parse($"{{\"$id\": \"{refId}\"}}").RootElement;
+        var value = JsonNode.Parse($"{{\"$id\": \"{refId}\"}}");
         _operations.SetIndexerByStringKey(id, "key", value);
 
         Assert.Same(refObj, dict["key"]);
@@ -344,7 +344,7 @@ public class IndexerOperationsTests : IAsyncLifetime
     {
         var list = new List<string>();
         var id = _objectRegistry.Register(list);
-        var index = JsonDocument.Parse("0").RootElement;
+        var index = JsonNode.Parse("0")!;
 
         Assert.Throws<ArgumentOutOfRangeException>(() => _operations.GetIndexer(id, index));
     }
@@ -354,7 +354,7 @@ public class IndexerOperationsTests : IAsyncLifetime
     {
         var obj = new ComplexItem { Name = "not indexable" };
         var id = _objectRegistry.Register(obj);
-        var index = JsonDocument.Parse("0").RootElement;
+        var index = JsonNode.Parse("0")!;
 
         Assert.Throws<InvalidOperationException>(() => _operations.GetIndexer(id, index));
     }
@@ -364,8 +364,8 @@ public class IndexerOperationsTests : IAsyncLifetime
     {
         var obj = new ComplexItem { Name = "not indexable" };
         var id = _objectRegistry.Register(obj);
-        var index = JsonDocument.Parse("0").RootElement;
-        var value = JsonDocument.Parse("\"value\"").RootElement;
+        var index = JsonNode.Parse("0")!;
+        var value = JsonNode.Parse("\"value\"");
 
         Assert.Throws<InvalidOperationException>(() => _operations.SetIndexer(id, index, value));
     }

@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Aspire.Hosting.RemoteHost;
 
@@ -110,31 +110,52 @@ internal sealed class ObjectRegistry
     }
 
     /// <summary>
-    /// Resolves a JSON element that might be a proxy reference (with $id) to the actual .NET object.
+    /// Resolves a JSON node that might be a proxy reference (with $id) to the actual .NET object.
     /// </summary>
-    /// <param name="element">The JSON element to resolve.</param>
+    /// <param name="node">The JSON node to resolve.</param>
     /// <returns>The resolved value (either the referenced object or the primitive value).</returns>
-    public object? ResolveValue(JsonElement element)
+    public object? ResolveValue(JsonNode? node)
     {
-        // Check if it's a proxy reference (object with $id)
-        if (element.ValueKind == JsonValueKind.Object && element.TryGetProperty("$id", out var idProp))
+        if (node == null)
         {
-            var refId = idProp.GetString();
+            return null;
+        }
+
+        // Check if it's a proxy reference (object with $id)
+        if (node is JsonObject obj && obj.TryGetPropertyValue("$id", out var idNode))
+        {
+            var refId = idNode?.GetValue<string>();
             if (!string.IsNullOrEmpty(refId) && TryGet(refId, out var refObj))
             {
                 return refObj;
             }
         }
 
-        // Handle primitives
-        return element.ValueKind switch
+        // Handle primitives via JsonValue
+        if (node is JsonValue value)
         {
-            JsonValueKind.String => element.GetString(),
-            JsonValueKind.Number => element.TryGetInt64(out var l) ? l : element.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Null => null,
-            _ => element.GetRawText() // fallback
-        };
+            // Try to get the actual underlying value
+            if (value.TryGetValue<string>(out var str))
+            {
+                return str;
+            }
+            if (value.TryGetValue<bool>(out var b))
+            {
+                return b;
+            }
+            if (value.TryGetValue<long>(out var l))
+            {
+                return l;
+            }
+            if (value.TryGetValue<double>(out var d))
+            {
+                return d;
+            }
+            // Fallback
+            return value.GetValue<object>();
+        }
+
+        // For arrays/objects without $id, return the node itself
+        return node;
     }
 }

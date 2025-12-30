@@ -3,7 +3,7 @@
 
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Aspire.Hosting.RemoteHost;
 
@@ -22,7 +22,7 @@ internal sealed class MethodResolver
     /// <returns>The best matching method, or null if no suitable match is found.</returns>
     public static MethodInfo? FindBestMethod(
         IEnumerable<MethodInfo> candidates,
-        IReadOnlyDictionary<string, JsonElement> args,
+        IReadOnlyDictionary<string, JsonNode?> args,
         int skipParameters = 0)
     {
         return candidates
@@ -42,7 +42,7 @@ internal sealed class MethodResolver
     /// <returns>The best matching constructor, or null if no suitable match is found.</returns>
     public static ConstructorInfo? FindBestConstructor(
         Type type,
-        IReadOnlyDictionary<string, JsonElement> args)
+        IReadOnlyDictionary<string, JsonNode?> args)
     {
         return type.GetConstructors()
             .Select(c => (Ctor: c, Score: ScoreMethod(c, args, 0)))
@@ -59,7 +59,7 @@ internal sealed class MethodResolver
     /// <param name="args">The arguments provided by the caller.</param>
     /// <param name="skipParameters">Number of parameters to skip when scoring.</param>
     /// <returns>The score (higher is better).</returns>
-    public static int ScoreMethod(MethodBase method, IReadOnlyDictionary<string, JsonElement> args, int skipParameters = 0)
+    public static int ScoreMethod(MethodBase method, IReadOnlyDictionary<string, JsonNode?> args, int skipParameters = 0)
     {
         var parameters = method.GetParameters().Skip(skipParameters).ToList();
         var paramNames = parameters.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -231,17 +231,17 @@ internal sealed class MethodResolver
     /// <summary>
     /// Parses JSON arguments into a dictionary.
     /// </summary>
-    /// <param name="args">The JSON element containing arguments.</param>
+    /// <param name="args">The JSON object containing arguments.</param>
     /// <returns>A dictionary of argument names to values.</returns>
-    public static IReadOnlyDictionary<string, JsonElement> ParseArgs(JsonElement? args)
+    public static IReadOnlyDictionary<string, JsonNode?> ParseArgs(JsonObject? args)
     {
-        var result = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+        var result = new Dictionary<string, JsonNode?>(StringComparer.OrdinalIgnoreCase);
 
-        if (args.HasValue && args.Value.ValueKind == JsonValueKind.Object)
+        if (args != null)
         {
-            foreach (var prop in args.Value.EnumerateObject())
+            foreach (var prop in args)
             {
-                result[prop.Name] = prop.Value;
+                result[prop.Key] = prop.Value;
             }
         }
 
