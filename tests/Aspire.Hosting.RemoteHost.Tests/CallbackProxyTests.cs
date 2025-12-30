@@ -110,48 +110,6 @@ public class CallbackProxyTests : IAsyncLifetime
         Assert.Equal(42, obj.LastResult);
     }
 
-    [Fact]
-    public async Task InvokeCallbackAsync_MarshallesComplexArguments()
-    {
-        var complexArg = new CallbackArg { Name = "test", Value = 123 };
-
-        await _operations.InvokeCallbackAsync("test_cb", complexArg);
-
-        Assert.Single(_callbackInvoker.Invocations);
-        var args = _callbackInvoker.Invocations[0].Args as Dictionary<string, object?>;
-        Assert.NotNull(args);
-        Assert.Contains("CallbackArg", args["$type"]!.ToString());
-        Assert.True(args.ContainsKey("$id"));
-    }
-
-    [Fact]
-    public async Task InvokeCallbackAsync_PassesPrimitivesDirectly()
-    {
-        await _operations.InvokeCallbackAsync("test_cb", "simple_string");
-
-        Assert.Single(_callbackInvoker.Invocations);
-        Assert.Equal("simple_string", _callbackInvoker.Invocations[0].Args);
-    }
-
-    [Fact]
-    public async Task InvokeCallbackAsync_HandlesNullArgs()
-    {
-        await _operations.InvokeCallbackAsync("test_cb", null);
-
-        Assert.Single(_callbackInvoker.Invocations);
-        Assert.Null(_callbackInvoker.Invocations[0].Args);
-    }
-
-    [Fact]
-    public async Task InvokeCallbackAsync_ReturnsTypedResult()
-    {
-        _callbackInvoker.RegisterHandler("typed_cb", "result_value");
-
-        var result = await _operations.InvokeCallbackAsync<string>("typed_cb", null);
-
-        Assert.Equal("result_value", result);
-    }
-
     #region Test Classes
 
     private sealed class ObjectWithCallbacks

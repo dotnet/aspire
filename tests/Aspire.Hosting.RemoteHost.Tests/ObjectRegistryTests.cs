@@ -197,40 +197,6 @@ public class ObjectRegistryTests
         Assert.Same(obj, resolved);
     }
 
-    [Fact]
-    public void ResolveValueObject_ResolvesProxyFromDictionary()
-    {
-        var registry = new ObjectRegistry();
-        var obj = new TestClass { Name = "test" };
-        var id = registry.Register(obj);
-
-        var dict = new Dictionary<string, object?> { ["$id"] = id };
-        var resolved = registry.ResolveValueObject(dict);
-
-        Assert.Same(obj, resolved);
-    }
-
-    [Fact]
-    public void ResolveValueObject_ReturnsNullForNull()
-    {
-        var registry = new ObjectRegistry();
-
-        var resolved = registry.ResolveValueObject(null);
-
-        Assert.Null(resolved);
-    }
-
-    [Fact]
-    public void ResolveValueObject_ReturnsValueForNonProxy()
-    {
-        var registry = new ObjectRegistry();
-        var value = "just a string";
-
-        var resolved = registry.ResolveValueObject(value);
-
-        Assert.Equal(value, resolved);
-    }
-
     private sealed class TestClass
     {
         public string? Name { get; set; }

@@ -269,7 +269,8 @@ public class IndexerOperationsTests : IAsyncLifetime
         var dict = new Dictionary<string, object?>();
         var id = _objectRegistry.Register(dict);
 
-        _operations.SetIndexerByStringKey(id, "key", "value");
+        var value = JsonDocument.Parse("\"value\"").RootElement;
+        _operations.SetIndexerByStringKey(id, "key", value);
 
         Assert.Equal("value", dict["key"]);
     }
@@ -280,7 +281,8 @@ public class IndexerOperationsTests : IAsyncLifetime
         var list = new List<object?> { null, null, null };
         var id = _objectRegistry.Register(list);
 
-        _operations.SetIndexerByStringKey(id, "1", "middle");
+        var value = JsonDocument.Parse("\"middle\"").RootElement;
+        _operations.SetIndexerByStringKey(id, "1", value);
 
         Assert.Equal("middle", list[1]);
     }
@@ -294,8 +296,9 @@ public class IndexerOperationsTests : IAsyncLifetime
         var refObj = new ComplexItem { Name = "ref", Value = 1 };
         var refId = _objectRegistry.Register(refObj);
 
-        // Pass a dictionary with $id to simulate proxy reference
-        _operations.SetIndexerByStringKey(id, "key", new Dictionary<string, object?> { ["$id"] = refId });
+        // Pass an object with $id to simulate proxy reference
+        var value = JsonDocument.Parse($"{{\"$id\": \"{refId}\"}}").RootElement;
+        _operations.SetIndexerByStringKey(id, "key", value);
 
         Assert.Same(refObj, dict["key"]);
     }

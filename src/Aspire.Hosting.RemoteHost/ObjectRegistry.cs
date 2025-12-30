@@ -137,35 +137,4 @@ internal sealed class ObjectRegistry
             _ => element.GetRawText() // fallback
         };
     }
-
-    /// <summary>
-    /// Resolves a value that might be a proxy reference (with $id) to the actual .NET object.
-    /// </summary>
-    /// <param name="value">The value to resolve.</param>
-    /// <returns>The resolved value.</returns>
-    public object? ResolveValueObject(object? value)
-    {
-        if (value == null)
-        {
-            return null;
-        }
-
-        // Check if it's a dictionary with $id (a proxy reference)
-        if (value is System.Collections.IDictionary dict && dict.Contains("$id"))
-        {
-            var refId = dict["$id"]?.ToString();
-            if (!string.IsNullOrEmpty(refId) && TryGet(refId, out var refObj))
-            {
-                return refObj;
-            }
-        }
-
-        // Check if it's a JsonElement
-        if (value is JsonElement jsonElement)
-        {
-            return ResolveValue(jsonElement);
-        }
-
-        return value;
-    }
 }

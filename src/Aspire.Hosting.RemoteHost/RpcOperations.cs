@@ -511,14 +511,14 @@ internal sealed class RpcOperations : IAsyncDisposable
     /// <summary>
     /// Sets an indexed value using a string key.
     /// </summary>
-    public void SetIndexerByStringKey(string objectId, string key, object? value)
+    public void SetIndexerByStringKey(string objectId, string key, JsonElement value)
     {
         var obj = _objectRegistry.Get(objectId);
 
         // Handle dictionaries
         if (obj is System.Collections.IDictionary dict)
         {
-            var resolvedValue = _objectRegistry.ResolveValueObject(value);
+            var resolvedValue = _objectRegistry.ResolveValue(value);
             dict[key] = resolvedValue;
             return;
         }
@@ -533,34 +533,12 @@ internal sealed class RpcOperations : IAsyncDisposable
                 throw new ArgumentOutOfRangeException(nameof(key), $"Index {index} is out of range for list with {list.Count} items");
             }
 
-            var resolvedValue = _objectRegistry.ResolveValueObject(value);
+            var resolvedValue = _objectRegistry.ResolveValue(value);
             list[index] = resolvedValue;
             return;
         }
 
         throw new InvalidOperationException($"Object '{objectId}' does not support indexing");
-    }
-
-    #endregion
-
-    #region Callback Invocation
-
-    /// <summary>
-    /// Invokes a callback on the remote client.
-    /// </summary>
-    public Task InvokeCallbackAsync(string callbackId, object? args, CancellationToken cancellationToken = default)
-    {
-        var marshalledArgs = MarshalResult(args);
-        return _callbackInvoker.InvokeAsync(callbackId, marshalledArgs, cancellationToken);
-    }
-
-    /// <summary>
-    /// Invokes a callback on the remote client and returns a typed result.
-    /// </summary>
-    public Task<TResult> InvokeCallbackAsync<TResult>(string callbackId, object? args, CancellationToken cancellationToken = default)
-    {
-        var marshalledArgs = MarshalResult(args);
-        return _callbackInvoker.InvokeAsync<TResult>(callbackId, marshalledArgs, cancellationToken);
     }
 
     #endregion
