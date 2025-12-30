@@ -92,6 +92,9 @@ internal sealed class RpcOperations : IAsyncDisposable
         var arguments = BuildArgumentArray(method, argDict);
         var result = method.Invoke(obj, arguments);
 
+        // Await async results before marshalling
+        result = UnwrapAsyncResult(result);
+
         return MarshalResult(result);
     }
 
@@ -267,6 +270,10 @@ internal sealed class RpcOperations : IAsyncDisposable
         }
 
         var result = method.Invoke(null, arguments);
+
+        // Await async results before marshalling
+        result = UnwrapAsyncResult(result);
+
         return MarshalResult(result);
     }
 
@@ -371,6 +378,22 @@ internal sealed class RpcOperations : IAsyncDisposable
             {
                 return proxy;
             }
+        }
+
+        // Handle CancellationToken: { "$cancellationToken": "ct_N" }
+        if (targetType == typeof(CancellationToken))
+        {
+            var tokenRef = CancellationTokenRef.FromJsonNode(node);
+            if (tokenRef != null)
+            {
+                if (_callbackProxyFactory.CancellationTokenRegistry.TryGetToken(tokenRef.TokenId, out var token))
+                {
+                    return token;
+                }
+                throw new InvalidOperationException($"CancellationToken '{tokenRef.TokenId}' not found in registry");
+            }
+            // If no token ref provided, return CancellationToken.None
+            return CancellationToken.None;
         }
 
         // Handle primitives via JsonValue
@@ -675,6 +698,48 @@ internal sealed class RpcOperations : IAsyncDisposable
     }
 
     /// <summary>
+    /// Awaits async results (Task, Task&lt;T&gt;, ValueTask, ValueTask&lt;T&gt;) and returns the unwrapped result.
+    /// For void-returning async methods (Task, ValueTask), returns null.
+    /// </summary>
+    private static object? UnwrapAsyncResult(object? result)
+    {
+        return result switch
+        {
+            null => null,
+            Task task => WaitForTask(task),
+            ValueTask vt => WaitForValueTask(vt),
+            _ when IsValueTaskOfT(result, out var asTask) => WaitForTask(asTask!),
+            _ => result
+        };
+
+        static object? WaitForTask(Task task)
+        {
+            task.GetAwaiter().GetResult();
+            return task.GetType().IsGenericType
+                ? task.GetType().GetProperty("Result")!.GetValue(task)
+                : null;
+        }
+
+        static object? WaitForValueTask(ValueTask vt)
+        {
+            vt.GetAwaiter().GetResult();
+            return null;
+        }
+
+        static bool IsValueTaskOfT(object obj, out Task? task)
+        {
+            var type = obj.GetType();
+            if (type.IsValueType && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
+            {
+                task = (Task)type.GetMethod("AsTask")!.Invoke(obj, null)!;
+                return true;
+            }
+            task = null;
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Validates that a type can be deserialized as a POCO.
     /// Throws NotSupportedException for types that cannot be instantiated from JSON.
     /// </summary>
@@ -848,10 +913,32 @@ internal sealed class RpcOperations : IAsyncDisposable
 
     #endregion
 
+    /// <summary>
+    /// Creates a new CancellationToken that the guest can pass to host methods.
+    /// Returns: { "$cancellationToken": "ct_N" }
+    /// </summary>
+    public JsonObject CreateCancellationToken()
+    {
+        var (tokenId, _) = _callbackProxyFactory.CancellationTokenRegistry.Create();
+        return new CancellationTokenRef { TokenId = tokenId }.ToJsonObject();
+    }
+
+    /// <summary>
+    /// Cancels a CancellationToken by its ID.
+    /// Called by the guest to signal cancellation to the host.
+    /// </summary>
+    /// <param name="tokenId">The token ID (e.g., "ct_1").</param>
+    /// <returns>True if the token was found and cancelled, false otherwise.</returns>
+    public bool CancelToken(string tokenId)
+    {
+        return _callbackProxyFactory.CancellationTokenRegistry.Cancel(tokenId);
+    }
+
     public ValueTask DisposeAsync()
     {
         _typeResolver.Clear();
         _objectRegistry.Clear();
+        _callbackProxyFactory.Dispose();
         return ValueTask.CompletedTask;
     }
 }

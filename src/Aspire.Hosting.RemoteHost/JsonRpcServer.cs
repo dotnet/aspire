@@ -75,6 +75,14 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     public void UnregisterObject(string objectId)
         => _operations.UnregisterObject(objectId);
 
+    [JsonRpcMethod("createCancellationToken")]
+    public JsonObject CreateCancellationToken()
+        => _operations.CreateCancellationToken();
+
+    [JsonRpcMethod("cancel")]
+    public bool Cancel(string cancellationTokenId)
+        => _operations.CancelToken(cancellationTokenId);
+
     #endregion
 
     #region Static Members

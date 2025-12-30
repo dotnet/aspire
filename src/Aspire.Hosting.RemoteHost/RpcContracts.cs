@@ -46,6 +46,54 @@ internal sealed class ObjectRef
 }
 
 /// <summary>
+/// Reference to a CancellationToken that can be cancelled by the guest.
+/// JSON shape: { "$cancellationToken": "ct_123" }
+/// </summary>
+internal sealed class CancellationTokenRef
+{
+    /// <summary>
+    /// The cancellation token identifier.
+    /// </summary>
+    [JsonPropertyName("$cancellationToken")]
+    public required string TokenId { get; init; }
+
+    /// <summary>
+    /// Creates a CancellationTokenRef from a JSON node if it contains a $cancellationToken property.
+    /// </summary>
+    public static CancellationTokenRef? FromJsonNode(JsonNode? node)
+    {
+        if (node is JsonObject obj && obj.TryGetPropertyValue("$cancellationToken", out var tokenNode))
+        {
+            var tokenId = tokenNode?.GetValue<string>();
+            if (!string.IsNullOrEmpty(tokenId))
+            {
+                return new CancellationTokenRef { TokenId = tokenId };
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Checks if a JSON node is a cancellation token reference.
+    /// </summary>
+    public static bool IsCancellationTokenRef(JsonNode? node)
+    {
+        return node is JsonObject obj && obj.ContainsKey("$cancellationToken");
+    }
+
+    /// <summary>
+    /// Creates a JSON representation of this cancellation token reference.
+    /// </summary>
+    public JsonObject ToJsonObject()
+    {
+        return new JsonObject
+        {
+            ["$cancellationToken"] = TokenId
+        };
+    }
+}
+
+/// <summary>
 /// Reference expression for string interpolation with object references.
 /// JSON shape: { "$referenceExpression": true, "format": "connection string with {obj_1} placeholder" }
 /// </summary>

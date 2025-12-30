@@ -104,6 +104,8 @@ Communication between the guest and host uses JSON-RPC 2.0 over Unix domain sock
 | `getStaticProperty` / `setStaticProperty` | Guest → Host | Static property access |
 | `getIndexer` / `setIndexer` | Guest → Host | Collection access (list/dictionary) |
 | `unregisterObject` | Guest → Host | Release object from registry |
+| `createCancellationToken` | Guest → Host | Create a new CancellationToken |
+| `cancel` | Guest → Host | Cancel a CancellationToken |
 | `invokeCallback` | Host → Guest | Invoke registered callback |
 
 ### Design Philosophy: Generic .NET Remoting
@@ -312,6 +314,44 @@ Release an object from the registry when no longer needed.
 {"jsonrpc":"2.0","id":12,"method":"unregisterObject","params":["obj_1"]}
 ```
 
+#### `createCancellationToken`
+
+Create a new CancellationToken that can be passed to host methods. This allows the guest to create cancellation tokens and pass them to methods that accept `CancellationToken` parameters, then cancel them later.
+
+| | |
+|---|---|
+| **Parameters** | None |
+| **Returns** | `{ "$cancellationToken": "ct_N" }` - Token reference |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":13,"method":"createCancellationToken","params":[]}
+
+// Response
+{"jsonrpc":"2.0","id":13,"result":{"$cancellationToken":"ct_1"}}
+```
+
+**Use Case:** When calling a method like `RunAsync` that accepts a `CancellationToken`, the guest can create a token, pass it to the method, and later cancel it to gracefully shut down the operation.
+
+#### `cancel`
+
+Cancel a CancellationToken that was created by the guest or passed to the guest via a callback. When the host invokes a callback with a CancellationToken parameter, the token is marshalled as `{ "$cancellationToken": "ct_N" }`. The guest can call this method to signal cancellation back to the host.
+
+| | |
+|---|---|
+| **Parameters** | `cancellationTokenId: string` - Token ID (e.g., `"ct_1"`) |
+| **Returns** | `boolean` - `true` if token was found and cancelled, `false` if not found |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":13,"method":"cancel","params":["ct_1"]}
+
+// Response
+{"jsonrpc":"2.0","id":13,"result":true}
+```
+
+**Use Case:** Methods like `WithHealthCheck` pass a CancellationToken to the callback. If the guest needs to abort the operation early (e.g., health check taking too long), it can call `cancel` with the token ID.
+
 ### RPC Methods (Host → Guest)
 
 #### `invokeCallback`
@@ -344,6 +384,87 @@ Callbacks allow the host to invoke guest functions during method execution (e.g.
 3. Host executes the method, which invokes the callback
 4. Host sends `invokeCallback` request to guest with the callback ID and args
 5. Guest executes the callback and returns the result
+
+### CancellationToken Support
+
+CancellationTokens are supported in two directions:
+
+1. **Host → Guest (callbacks)**: When the host invokes a callback with a `CancellationToken` parameter
+2. **Guest → Host (method calls)**: When the guest needs to pass a cancellable token to a host method
+
+#### Scenario 1: Callbacks with CancellationToken
+
+When a .NET method passes a `CancellationToken` to a callback, the token is marshalled as a proxy that the guest can use to observe or trigger cancellation.
+
+**How it works:**
+
+1. Host invokes callback with a `CancellationToken` parameter
+2. Host creates a linked `CancellationTokenSource` and registers it with a unique ID (e.g., `ct_1`)
+3. Token is marshalled as `{ "$cancellationToken": "ct_1" }` and sent to guest
+4. Guest can call `cancel("ct_1")` to signal cancellation
+5. The linked CTS is cancelled, which propagates to any operations observing it
+
+**Linked Token Behavior:**
+
+The marshalled token is *linked* to the original .NET token:
+- If the .NET token is cancelled (e.g., host shutdown), the linked token is also cancelled
+- If the guest calls `cancel`, the linked token is cancelled (but the original .NET token is not affected)
+
+```json
+// Callback invocation with CancellationToken
+// Host → Guest
+{
+  "method": "invokeCallback",
+  "params": ["callback_1", {
+    "arg1": {"$id": "obj_5", "$type": "HealthCheckContext"},
+    "arg2": {"$cancellationToken": "ct_1"}
+  }]
+}
+
+// Guest cancels the token
+// Guest → Host
+{"method": "cancel", "params": ["ct_1"]}
+```
+
+**Common patterns:**
+- `WithHealthCheck(Func<HealthCheckContext, CancellationToken, Task>)` - Guest receives token to abort long-running health checks
+- `WithCommand(Func<ExecuteCommandContext, CancellationToken, Task>)` - Guest receives token to cancel custom commands
+
+#### Scenario 2: Guest-Created CancellationTokens
+
+The guest can create its own CancellationTokens and pass them to host methods. This is useful for methods that accept `CancellationToken` parameters.
+
+**How it works:**
+
+1. Guest calls `createCancellationToken()` to get a token reference
+2. Guest passes the token reference to a method call
+3. Host deserializes the token reference and retrieves the actual `CancellationToken`
+4. Guest can later call `cancel("ct_N")` to cancel the operation
+
+```json
+// 1. Create a cancellation token
+// Guest → Host
+{"jsonrpc":"2.0","id":1,"method":"createCancellationToken","params":[]}
+// Response
+{"jsonrpc":"2.0","id":1,"result":{"$cancellationToken":"ct_1"}}
+
+// 2. Pass the token to a method (e.g., RunAsync)
+// Guest → Host
+{
+  "method": "invokeMethod",
+  "params": ["obj_app", "RunAsync", {
+    "cancellationToken": {"$cancellationToken": "ct_1"}
+  }]
+}
+
+// 3. Later, cancel the operation
+// Guest → Host
+{"jsonrpc":"2.0","id":3,"method":"cancel","params":["ct_1"]}
+```
+
+**Use Cases:**
+- `RunAsync(CancellationToken)` - Gracefully shut down the application
+- Any async method that supports cancellation
 
 ### Error Responses
 
@@ -390,6 +511,7 @@ Errors follow the JSON-RPC 2.0 error format:
 | Primitive array/list | `[...]` | `[1, 2, 3]`, `["a", "b"]` |
 | Primitive dictionary | `{...}` | `{"key": "value", "count": 42}` |
 | Complex object | `{ "$id": "...", "$type": "..." }` | `{ "$id": "obj_1", "$type": "MyType" }` |
+| CancellationToken | `{ "$cancellationToken": "..." }` | `{ "$cancellationToken": "ct_1" }` |
 
 ---
 

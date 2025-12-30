@@ -12,17 +12,29 @@ namespace Aspire.Hosting.RemoteHost;
 /// Creates delegate proxies that invoke callbacks on the remote client.
 /// Uses expression trees with caching for all delegate types.
 /// </summary>
-internal sealed class CallbackProxyFactory
+internal sealed class CallbackProxyFactory : IDisposable
 {
     private readonly ICallbackInvoker _invoker;
     private readonly ObjectRegistry _objectRegistry;
+    private readonly CancellationTokenRegistry _cancellationTokenRegistry;
     private readonly ConcurrentDictionary<(string CallbackId, Type DelegateType), Delegate> _cache = new();
 
     public CallbackProxyFactory(ICallbackInvoker invoker, ObjectRegistry objectRegistry)
+        : this(invoker, objectRegistry, new CancellationTokenRegistry())
+    {
+    }
+
+    public CallbackProxyFactory(ICallbackInvoker invoker, ObjectRegistry objectRegistry, CancellationTokenRegistry cancellationTokenRegistry)
     {
         _invoker = invoker;
         _objectRegistry = objectRegistry;
+        _cancellationTokenRegistry = cancellationTokenRegistry;
     }
+
+    /// <summary>
+    /// Gets the cancellation token registry for external access (e.g., RPC cancel method).
+    /// </summary>
+    public CancellationTokenRegistry CancellationTokenRegistry => _cancellationTokenRegistry;
 
     /// <summary>
     /// Creates a delegate proxy that invokes a callback on the remote client.
@@ -102,6 +114,8 @@ internal sealed class CallbackProxyFactory
 
     private Expression BuildMarshalledArgsExpression(ParameterExpression[] paramExprs)
     {
+        // All parameters are marshalled, including CancellationToken
+        // CancellationToken is marshalled as {"$cancellationToken": "ct_123"}
         if (paramExprs.Length == 0)
         {
             return Expression.Constant(null, typeof(JsonNode));
@@ -120,13 +134,18 @@ internal sealed class CallbackProxyFactory
 
         // Multiple args - create JsonObject with marshalled values
         var jsonObjType = typeof(JsonObject);
-        var jsonObjCtor = jsonObjType.GetConstructor(Type.EmptyTypes)!;
+        // JsonObject has a constructor with an optional parameter, so we need to find it differently
+        var jsonObjCtor = jsonObjType.GetConstructors()
+            .First(c => c.GetParameters().Length == 0 || c.GetParameters().All(p => p.HasDefaultValue));
         var addMethod = jsonObjType.GetMethod("Add", [typeof(string), typeof(JsonNode)])!;
 
         var jsonObjVar = Expression.Variable(jsonObjType, "args");
+        // Create the JsonObject with default parameters if needed
+        var ctorParams = jsonObjCtor.GetParameters();
+        var ctorArgs = ctorParams.Select(p => Expression.Constant(p.DefaultValue, p.ParameterType)).ToArray();
         var expressions = new List<Expression>
         {
-            Expression.Assign(jsonObjVar, Expression.New(jsonObjCtor))
+            Expression.Assign(jsonObjVar, Expression.New(jsonObjCtor, ctorArgs))
         };
 
         foreach (var param in paramExprs)
@@ -240,13 +259,22 @@ internal sealed class CallbackProxyFactory
 
     /// <summary>
     /// Marshals an argument to JsonNode for callback invocation.
-    /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
+    /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" } | JsonObject { "$cancellationToken": "ct_N" }
     /// </summary>
     private JsonNode? MarshalArg(object? arg)
     {
         if (arg == null)
         {
             return null;
+        }
+
+        // CancellationToken -> JsonObject { "$cancellationToken": "ct_N" }
+        // Create a linked CancellationTokenSource so the guest can cancel,
+        // and the operation also cancels if the original token is cancelled.
+        if (arg is CancellationToken ct)
+        {
+            var (tokenId, _) = _cancellationTokenRegistry.CreateLinked(ct);
+            return new CancellationTokenRef { TokenId = tokenId }.ToJsonObject();
         }
 
         // Primitives -> JsonValue
@@ -257,5 +285,10 @@ internal sealed class CallbackProxyFactory
 
         // Complex objects -> JsonObject { "$id", "$type" }
         return _objectRegistry.Marshal(arg);
+    }
+
+    public void Dispose()
+    {
+        _cancellationTokenRegistry.Dispose();
     }
 }
