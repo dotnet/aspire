@@ -376,26 +376,123 @@ internal sealed class RpcOperations : IAsyncDisposable
         // Handle primitives via JsonValue
         if (node is JsonValue value)
         {
-            if (targetType == typeof(string))
+            // Get underlying type for nullable
+            var actualType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+            // Strings
+            if (actualType == typeof(string))
             {
                 return value.GetValue<string>();
             }
-            if (targetType == typeof(int) || targetType == typeof(int?))
+            if (actualType == typeof(char))
             {
-                return value.GetValue<int>();
+                var str = value.GetValue<string>();
+                return str.Length > 0 ? str[0] : '\0';
             }
-            if (targetType == typeof(long) || targetType == typeof(long?))
-            {
-                return value.GetValue<long>();
-            }
-            if (targetType == typeof(double) || targetType == typeof(double?))
-            {
-                return value.GetValue<double>();
-            }
-            if (targetType == typeof(bool) || targetType == typeof(bool?))
+
+            // Boolean
+            if (actualType == typeof(bool))
             {
                 return value.GetValue<bool>();
             }
+
+            // Integers
+            if (actualType == typeof(byte))
+            {
+                return value.GetValue<byte>();
+            }
+            if (actualType == typeof(sbyte))
+            {
+                return value.GetValue<sbyte>();
+            }
+            if (actualType == typeof(short))
+            {
+                return value.GetValue<short>();
+            }
+            if (actualType == typeof(ushort))
+            {
+                return value.GetValue<ushort>();
+            }
+            if (actualType == typeof(int))
+            {
+                return value.GetValue<int>();
+            }
+            if (actualType == typeof(uint))
+            {
+                return value.GetValue<uint>();
+            }
+            if (actualType == typeof(long))
+            {
+                return value.GetValue<long>();
+            }
+            if (actualType == typeof(ulong))
+            {
+                return value.GetValue<ulong>();
+            }
+
+            // Floating point
+            if (actualType == typeof(float))
+            {
+                return value.GetValue<float>();
+            }
+            if (actualType == typeof(double))
+            {
+                return value.GetValue<double>();
+            }
+            if (actualType == typeof(decimal))
+            {
+                return value.GetValue<decimal>();
+            }
+
+            // Date/Time (serialized as ISO 8601 strings)
+            if (actualType == typeof(DateTime))
+            {
+                return value.GetValue<DateTime>();
+            }
+            if (actualType == typeof(DateTimeOffset))
+            {
+                return value.GetValue<DateTimeOffset>();
+            }
+            if (actualType == typeof(TimeSpan))
+            {
+                var str = value.GetValue<string>();
+                return TimeSpan.Parse(str, System.Globalization.CultureInfo.InvariantCulture);
+            }
+            if (actualType == typeof(DateOnly))
+            {
+                var str = value.GetValue<string>();
+                return DateOnly.Parse(str, System.Globalization.CultureInfo.InvariantCulture);
+            }
+            if (actualType == typeof(TimeOnly))
+            {
+                var str = value.GetValue<string>();
+                return TimeOnly.Parse(str, System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            // Identifiers
+            if (actualType == typeof(Guid))
+            {
+                return value.GetValue<Guid>();
+            }
+            if (actualType == typeof(Uri))
+            {
+                var str = value.GetValue<string>();
+                return new Uri(str);
+            }
+
+            // Enums (serialized as string names)
+            if (actualType.IsEnum)
+            {
+                var str = value.GetValue<string>();
+                return Enum.Parse(actualType, str, ignoreCase: true);
+            }
+        }
+
+        // Handle byte[] as base64 string (special case)
+        if (targetType == typeof(byte[]) && node is JsonValue base64Value)
+        {
+            var base64 = base64Value.GetValue<string>();
+            return Convert.FromBase64String(base64);
         }
 
         // Handle arrays
@@ -408,6 +505,30 @@ internal sealed class RpcOperations : IAsyncDisposable
                 array.SetValue(DeserializeArgument(arr[i], elementType), i);
             }
             return array;
+        }
+
+        // Handle List<T>, IList<T>, ICollection<T>, IEnumerable<T>
+        if (node is JsonArray jsonArr && targetType.IsGenericType)
+        {
+            var genericDef = targetType.GetGenericTypeDefinition();
+            if (genericDef == typeof(List<>) ||
+                genericDef == typeof(IList<>) ||
+                genericDef == typeof(ICollection<>) ||
+                genericDef == typeof(IEnumerable<>) ||
+                genericDef == typeof(IReadOnlyList<>) ||
+                genericDef == typeof(IReadOnlyCollection<>))
+            {
+                var elementType = targetType.GetGenericArguments()[0];
+                var listType = typeof(List<>).MakeGenericType(elementType);
+                var list = (System.Collections.IList)Activator.CreateInstance(listType)!;
+
+                foreach (var item in jsonArr)
+                {
+                    list.Add(DeserializeArgument(item, elementType));
+                }
+
+                return list;
+            }
         }
 
         // Fall back to JSON deserialization
@@ -473,7 +594,18 @@ internal sealed class RpcOperations : IAsyncDisposable
         // Primitives -> JsonValue
         if (ObjectRegistry.IsSimpleType(type))
         {
+            // Enums should be serialized as their string names
+            if (type.IsEnum)
+            {
+                return JsonValue.Create(result.ToString());
+            }
             return JsonValue.Create(result);
+        }
+
+        // byte[] -> base64 string (special case, before general array handling)
+        if (type == typeof(byte[]))
+        {
+            return JsonValue.Create(Convert.ToBase64String((byte[])result));
         }
 
         // Arrays of primitives -> JsonArray
@@ -522,6 +654,9 @@ internal sealed class RpcOperations : IAsyncDisposable
             }
         }
 
+        // Validate type is supported before registering
+        ValidateTypeForMarshalling(type);
+
         // Complex objects -> JsonObject { "$id", "$type" }
         var objectId = _objectRegistry.Register(result);
         var marshalled = MarshalledObject.Create(objectId, type);
@@ -536,6 +671,52 @@ internal sealed class RpcOperations : IAsyncDisposable
     private static bool IsDelegateType(Type type)
     {
         return typeof(Delegate).IsAssignableFrom(type);
+    }
+
+    /// <summary>
+    /// Validates that a type can be marshalled over RPC.
+    /// Throws NotSupportedException for types that cannot be serialized.
+    /// </summary>
+    private static void ValidateTypeForMarshalling(Type type)
+    {
+        // By-ref and pointer types
+        if (type.IsByRef || type.IsPointer)
+        {
+            throw new NotSupportedException($"Cannot marshal by-ref or pointer type: {type.FullName}");
+        }
+
+        // Ref structs (Span<T>, ReadOnlySpan<T>, etc.) - cannot be boxed
+        if (type.IsByRefLike)
+        {
+            throw new NotSupportedException($"Cannot marshal ref struct type: {type.FullName}");
+        }
+
+        // Memory<T> and ReadOnlyMemory<T>
+        if (type.IsGenericType)
+        {
+            var genericDef = type.GetGenericTypeDefinition();
+            if (genericDef == typeof(Memory<>) || genericDef == typeof(ReadOnlyMemory<>))
+            {
+                throw new NotSupportedException($"Cannot marshal Memory<T> type: {type.FullName}. Use byte[] with base64 encoding instead.");
+            }
+        }
+
+        // IAsyncEnumerable<T> - no streaming support
+        foreach (var iface in type.GetInterfaces())
+        {
+            if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
+            {
+                throw new NotSupportedException($"Cannot marshal IAsyncEnumerable<T> type: {type.FullName}. Streaming is not supported.");
+            }
+        }
+
+        // Task/ValueTask without awaiting - user probably made a mistake
+        if (type == typeof(Task) || type == typeof(ValueTask) ||
+            (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(Task<>) ||
+                                    type.GetGenericTypeDefinition() == typeof(ValueTask<>))))
+        {
+            throw new NotSupportedException($"Cannot marshal unawaited Task/ValueTask: {type.FullName}. Await the task before returning.");
+        }
     }
 
     #endregion

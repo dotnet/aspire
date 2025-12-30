@@ -199,6 +199,200 @@ public class RpcOperationsTests : IAsyncLifetime
         Assert.Contains("not provided", ex.Message);
     }
 
+    [Fact]
+    public void InvokeMethod_ReturnsByteArrayAsBase64()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var result = _operations.InvokeMethod(id, "GetByteArray", null);
+
+        var jsonValue = result as JsonValue;
+        Assert.NotNull(jsonValue);
+        var base64 = jsonValue.GetValue<string>();
+        var decoded = Convert.FromBase64String(base64);
+        Assert.Equal(new byte[] { 0x48, 0x65, 0x6C, 0x6C, 0x6F }, decoded);
+    }
+
+    [Fact]
+    public void InvokeMethod_AcceptsByteArrayAsBase64()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+        var data = new byte[] { 0x01, 0x02, 0x03 };
+        var base64 = Convert.ToBase64String(data);
+        var args = JsonNode.Parse($"{{\"data\": \"{base64}\"}}") as JsonObject;
+
+        _operations.InvokeMethod(id, "SetByteArray", args);
+
+        Assert.Equal(data, obj.LastByteArray);
+    }
+
+    [Fact]
+    public void InvokeMethod_ReturnsFloatAsJsonValue()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var result = _operations.InvokeMethod(id, "GetFloat", null);
+
+        Assert.Equal(3.14f, (result as JsonValue)?.GetValue<float>());
+    }
+
+    [Fact]
+    public void InvokeMethod_ReturnsDecimalAsJsonValue()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var result = _operations.InvokeMethod(id, "GetDecimal", null);
+
+        Assert.Equal(123.456m, (result as JsonValue)?.GetValue<decimal>());
+    }
+
+    [Fact]
+    public void InvokeMethod_ReturnsGuidAsJsonValue()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var result = _operations.InvokeMethod(id, "GetGuid", null);
+
+        Assert.Equal(new Guid("12345678-1234-1234-1234-123456789012"), (result as JsonValue)?.GetValue<Guid>());
+    }
+
+    [Fact]
+    public void InvokeMethod_AcceptsFloatArgument()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+        var args = JsonNode.Parse("{\"value\": 2.5}") as JsonObject;
+
+        _operations.InvokeMethod(id, "SetFloat", args);
+
+        Assert.Equal(2.5f, obj.LastFloat);
+    }
+
+    [Fact]
+    public void InvokeMethod_AcceptsDecimalArgument()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+        var args = JsonNode.Parse("{\"value\": 99.99}") as JsonObject;
+
+        _operations.InvokeMethod(id, "SetDecimal", args);
+
+        Assert.Equal(99.99m, obj.LastDecimal);
+    }
+
+    [Fact]
+    public void InvokeMethod_AcceptsGuidArgument()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+        var args = JsonNode.Parse("{\"value\": \"11111111-2222-3333-4444-555555555555\"}") as JsonObject;
+
+        _operations.InvokeMethod(id, "SetGuid", args);
+
+        Assert.Equal(new Guid("11111111-2222-3333-4444-555555555555"), obj.LastGuid);
+    }
+
+    [Fact]
+    public void InvokeMethod_AcceptsUriArgument()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+        var args = JsonNode.Parse("{\"value\": \"https://test.com/api\"}") as JsonObject;
+
+        _operations.InvokeMethod(id, "SetUri", args);
+
+        Assert.Equal(new Uri("https://test.com/api"), obj.LastUri);
+    }
+
+    [Fact]
+    public void InvokeMethod_AcceptsDateOnlyArgument()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+        var args = JsonNode.Parse("{\"value\": \"2025-12-25\"}") as JsonObject;
+
+        _operations.InvokeMethod(id, "SetDateOnly", args);
+
+        Assert.Equal(new DateOnly(2025, 12, 25), obj.LastDateOnly);
+    }
+
+    [Fact]
+    public void InvokeMethod_AcceptsTimeOnlyArgument()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+        var args = JsonNode.Parse("{\"value\": \"09:30:15\"}") as JsonObject;
+
+        _operations.InvokeMethod(id, "SetTimeOnly", args);
+
+        Assert.Equal(new TimeOnly(9, 30, 15), obj.LastTimeOnly);
+    }
+
+    [Fact]
+    public void InvokeMethod_AcceptsEnumAsStringArgument()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+        var args = JsonNode.Parse("{\"value\": \"Friday\"}") as JsonObject;
+
+        _operations.InvokeMethod(id, "SetEnum", args);
+
+        Assert.Equal(DayOfWeek.Friday, obj.LastEnum);
+    }
+
+    [Fact]
+    public void InvokeMethod_ReturnsEnumAsString()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var result = _operations.InvokeMethod(id, "GetEnum", null);
+
+        Assert.Equal("Wednesday", (result as JsonValue)?.GetValue<string>());
+    }
+
+    [Fact]
+    public void InvokeMethod_AcceptsListOfIntegers()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+        var args = JsonNode.Parse("{\"values\": [1, 2, 3, 4, 5]}") as JsonObject;
+
+        _operations.InvokeMethod(id, "SetIntList", args);
+
+        Assert.NotNull(obj.LastIntList);
+        Assert.Equal([1, 2, 3, 4, 5], obj.LastIntList);
+    }
+
+    [Fact]
+    public void InvokeMethod_ThrowsForMemoryType()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _operations.InvokeMethod(id, "GetMemory", null));
+
+        Assert.Contains("Memory<", ex.Message);
+    }
+
+    [Fact]
+    public void InvokeMethod_ThrowsForAsyncEnumerable()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _operations.InvokeMethod(id, "GetAsyncEnumerable", null));
+
+        Assert.Contains("IAsyncEnumerable", ex.Message);
+    }
+
     #endregion
 
     #region GetProperty Tests
@@ -867,6 +1061,63 @@ public class RpcOperationsTests : IAsyncLifetime
         public void MethodWithOptional(int value = 100)
         {
             Value = value;
+        }
+
+        // byte[] tests
+        public byte[] GetByteArray()
+        {
+            return [0x48, 0x65, 0x6C, 0x6C, 0x6F]; // "Hello" in ASCII
+        }
+
+        public void SetByteArray(byte[] data)
+        {
+            LastByteArray = data;
+        }
+
+        public byte[]? LastByteArray { get; private set; }
+
+        // Additional primitive types
+        public float GetFloat() => 3.14f;
+        public double GetDouble() => 2.71828;
+        public decimal GetDecimal() => 123.456m;
+        public short GetShort() => 12345;
+        public ushort GetUShort() => 54321;
+        public uint GetUInt() => 4000000000;
+        public ulong GetULong() => 9000000000000000000UL;
+        public char GetChar() => 'X';
+        public Guid GetGuid() => new("12345678-1234-1234-1234-123456789012");
+        public Uri GetUri() => new("https://example.com/path");
+        public DateOnly GetDateOnly() => new(2024, 6, 15);
+        public TimeOnly GetTimeOnly() => new(14, 30, 45);
+        public DayOfWeek GetEnum() => DayOfWeek.Wednesday;
+
+        public void SetFloat(float value) => LastFloat = value;
+        public void SetDecimal(decimal value) => LastDecimal = value;
+        public void SetGuid(Guid value) => LastGuid = value;
+        public void SetUri(Uri value) => LastUri = value;
+        public void SetDateOnly(DateOnly value) => LastDateOnly = value;
+        public void SetTimeOnly(TimeOnly value) => LastTimeOnly = value;
+        public void SetEnum(DayOfWeek value) => LastEnum = value;
+
+        public float? LastFloat { get; private set; }
+        public decimal? LastDecimal { get; private set; }
+        public Guid? LastGuid { get; private set; }
+        public Uri? LastUri { get; private set; }
+        public DateOnly? LastDateOnly { get; private set; }
+        public TimeOnly? LastTimeOnly { get; private set; }
+        public DayOfWeek? LastEnum { get; private set; }
+
+        // List<T> input tests
+        public void SetIntList(List<int> values) => LastIntList = values;
+        public List<int>? LastIntList { get; private set; }
+
+        // Unsupported types - for testing rejection
+        public Memory<byte> GetMemory() => new byte[10];
+        public IAsyncEnumerable<int> GetAsyncEnumerable() => AsyncEnumerableStub();
+        private static async IAsyncEnumerable<int> AsyncEnumerableStub()
+        {
+            await Task.Yield();
+            yield return 1;
         }
     }
 

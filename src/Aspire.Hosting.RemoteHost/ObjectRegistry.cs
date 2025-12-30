@@ -77,19 +77,69 @@ internal sealed class ObjectRegistry
     public int Count => _objects.Count;
 
     /// <summary>
+    /// Explicit allowlist of simple types that serialize directly to JSON primitives.
+    /// These types do NOT get registered in the ObjectRegistry.
+    /// </summary>
+    private static readonly HashSet<Type> s_simpleTypes = new()
+    {
+        // Strings
+        typeof(string),
+        typeof(char),
+
+        // Boolean
+        typeof(bool),
+
+        // Integers
+        typeof(byte),
+        typeof(sbyte),
+        typeof(short),
+        typeof(ushort),
+        typeof(int),
+        typeof(uint),
+        typeof(long),
+        typeof(ulong),
+
+        // Floating point
+        typeof(float),
+        typeof(double),
+        typeof(decimal),
+
+        // Date/Time
+        typeof(DateTime),
+        typeof(DateTimeOffset),
+        typeof(TimeSpan),
+        typeof(DateOnly),
+        typeof(TimeOnly),
+
+        // Identifiers
+        typeof(Guid),
+        typeof(Uri),
+    };
+
+    /// <summary>
     /// Checks if a type is a simple/primitive type that can be serialized directly.
+    /// Only types in the explicit allowlist are considered simple.
     /// </summary>
     public static bool IsSimpleType(Type type)
     {
-        return type.IsPrimitive ||
-               type == typeof(string) ||
-               type == typeof(decimal) ||
-               type == typeof(DateTime) ||
-               type == typeof(DateTimeOffset) ||
-               type == typeof(TimeSpan) ||
-               type == typeof(Guid) ||
-               type.IsEnum ||
-               (Nullable.GetUnderlyingType(type) is { } underlying && IsSimpleType(underlying));
+        if (s_simpleTypes.Contains(type))
+        {
+            return true;
+        }
+
+        // Enums serialize as their string names
+        if (type.IsEnum)
+        {
+            return true;
+        }
+
+        // Nullable<T> where T is simple
+        if (Nullable.GetUnderlyingType(type) is { } underlying)
+        {
+            return IsSimpleType(underlying);
+        }
+
+        return false;
     }
 
     /// <summary>

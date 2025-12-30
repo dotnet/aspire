@@ -89,8 +89,11 @@ internal sealed class CallbackProxyFactory
         {
             Type t when t == typeof(void) => BuildSyncVoidBody(callbackId, argsExpr),
             Type t when t == typeof(Task) => BuildAsyncVoidBody(callbackId, argsExpr),
+            Type t when t == typeof(ValueTask) => BuildValueTaskVoidBody(callbackId, argsExpr),
             Type t when t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Task<>) =>
                 BuildAsyncResultBody(callbackId, argsExpr, t.GetGenericArguments()[0]),
+            Type t when t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ValueTask<>) =>
+                BuildValueTaskResultBody(callbackId, argsExpr, t.GetGenericArguments()[0]),
             _ => BuildSyncResultBody(callbackId, argsExpr, returnType)
         };
 
@@ -167,6 +170,26 @@ internal sealed class CallbackProxyFactory
         return Expression.Call(Expression.Constant(this), method, Expression.Constant(callbackId), argsExpr);
     }
 
+    private Expression BuildValueTaskVoidBody(string callbackId, Expression argsExpr)
+    {
+        // this.InvokeValueTaskVoid(callbackId, args)
+        return Expression.Call(
+            Expression.Constant(this),
+            typeof(CallbackProxyFactory).GetMethod(nameof(InvokeValueTaskVoid), BindingFlags.NonPublic | BindingFlags.Instance)!,
+            Expression.Constant(callbackId),
+            argsExpr);
+    }
+
+    private Expression BuildValueTaskResultBody(string callbackId, Expression argsExpr, Type resultType)
+    {
+        // this.InvokeValueTaskResult<T>(callbackId, args)
+        var method = typeof(CallbackProxyFactory)
+            .GetMethod(nameof(InvokeValueTaskResult), BindingFlags.NonPublic | BindingFlags.Instance)!
+            .MakeGenericMethod(resultType);
+
+        return Expression.Call(Expression.Constant(this), method, Expression.Constant(callbackId), argsExpr);
+    }
+
     private Expression BuildSyncResultBody(string callbackId, Expression argsExpr, Type resultType)
     {
         // this.InvokeSyncResult<T>(callbackId, args)
@@ -201,6 +224,16 @@ internal sealed class CallbackProxyFactory
     private Task<TResult> InvokeAsyncResult<TResult>(string callbackId, JsonNode? args)
     {
         return _invoker.InvokeAsync<TResult>(callbackId, args);
+    }
+
+    private ValueTask InvokeValueTaskVoid(string callbackId, JsonNode? args)
+    {
+        return new ValueTask(_invoker.InvokeAsync(callbackId, args));
+    }
+
+    private async ValueTask<TResult> InvokeValueTaskResult<TResult>(string callbackId, JsonNode? args)
+    {
+        return await _invoker.InvokeAsync<TResult>(callbackId, args).ConfigureAwait(false);
     }
 
     #endregion

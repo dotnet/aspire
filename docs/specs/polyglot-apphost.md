@@ -411,13 +411,31 @@ The following .NET types are considered "simple" and serialize directly to JSON 
 | Category | .NET Types |
 |----------|------------|
 | Strings | `string`, `char` |
-| Numbers | `int`, `long`, `short`, `byte`, `float`, `double`, `decimal` |
+| Signed integers | `sbyte`, `short`, `int`, `long` |
+| Unsigned integers | `byte`, `ushort`, `uint`, `ulong` |
+| Floating point | `float`, `double`, `decimal` |
 | Boolean | `bool` |
 | Date/Time | `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`, `TimeOnly` |
 | Identifiers | `Guid`, `Uri` |
 | Enums | Any `enum` type |
+| Nullable | `T?` where T is any of the above |
 
-Collections of these types (`T[]`, `List<T>`, `Dictionary<string, T>`) are also serialized directly.
+**Special cases:**
+- `byte[]` serializes as a **base64-encoded string**, not a JSON array
+- Collections of simple types (`T[]`, `List<T>`, `Dictionary<string, T>`) serialize directly
+
+### Unsupported Types
+
+The following types **cannot** be marshalled and will throw `NotSupportedException`:
+
+| Type | Reason |
+|------|--------|
+| `Span<T>`, `ReadOnlySpan<T>` | Ref structs cannot be boxed |
+| `Memory<T>`, `ReadOnlyMemory<T>` | Use `byte[]` with base64 instead |
+| `IAsyncEnumerable<T>` | Streaming not supported |
+| Pointers (`int*`, `void*`) | Cannot serialize pointers |
+| By-ref types (`ref`, `out`, `in`) | Cannot serialize by-reference |
+| Unawaited `Task`/`ValueTask` | Must await before returning |
 
 ### Object Registry
 
@@ -459,6 +477,7 @@ The `ObjectRegistry` in the host maintains a `ConcurrentDictionary<string, objec
 | Primitives (`string`, `int`, `bool`, etc.) | raw value | Direct JSON primitive |
 | `DateTime`, `Guid` | string | ISO 8601 / string format |
 | Enums | string | Enum name |
+| `byte[]` | string | Base64-encoded |
 | `T[]`, `List<T>` (primitive T) | `[...]` | JSON array of primitives |
 | `Dictionary<string, T>` (primitive T) | `{...}` | JSON object (no `$id`/`$type`) |
 | Complex objects | `{ "$id", "$type" }` | Marshalled with registry ID |
@@ -471,6 +490,9 @@ The `ObjectRegistry` in the host maintains a `ConcurrentDictionary<string, objec
 
 // Primitive number
 42
+
+// byte[] as base64 string
+"SGVsbG8gV29ybGQh"
 
 // Array of integers (int[])
 [1, 2, 3, 4, 5]
