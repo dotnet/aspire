@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace Aspire.Hosting.RemoteHost;
 
@@ -62,7 +63,7 @@ internal sealed class CallbackProxyFactory
     ///
     /// // Action&lt;T1, T2&gt; (multiple params, void)
     /// (T1 arg1, T2 arg2) => {
-    ///     var args = new Dictionary&lt;string, object?&gt;();
+    ///     var args = new JsonObject();
     ///     args.Add("arg1", MarshalArg(arg1));
     ///     args.Add("arg2", MarshalArg(arg2));
     ///     InvokeSyncVoid("cb1", args);
@@ -100,7 +101,7 @@ internal sealed class CallbackProxyFactory
     {
         if (paramExprs.Length == 0)
         {
-            return Expression.Constant(null, typeof(object));
+            return Expression.Constant(null, typeof(JsonNode));
         }
 
         // Get MarshalArg method
@@ -110,30 +111,30 @@ internal sealed class CallbackProxyFactory
 
         if (paramExprs.Length == 1)
         {
-            // Single arg - marshal and return
+            // Single arg - marshal and return as JsonNode?
             return Expression.Call(thisExpr, marshalMethod, Expression.Convert(paramExprs[0], typeof(object)));
         }
 
-        // Multiple args - create dictionary with marshalled values
-        var dictType = typeof(Dictionary<string, object?>);
-        var dictCtor = dictType.GetConstructor(Type.EmptyTypes)!;
-        var addMethod = dictType.GetMethod("Add")!;
+        // Multiple args - create JsonObject with marshalled values
+        var jsonObjType = typeof(JsonObject);
+        var jsonObjCtor = jsonObjType.GetConstructor(Type.EmptyTypes)!;
+        var addMethod = jsonObjType.GetMethod("Add", [typeof(string), typeof(JsonNode)])!;
 
-        var dictVar = Expression.Variable(dictType, "args");
+        var jsonObjVar = Expression.Variable(jsonObjType, "args");
         var expressions = new List<Expression>
         {
-            Expression.Assign(dictVar, Expression.New(dictCtor))
+            Expression.Assign(jsonObjVar, Expression.New(jsonObjCtor))
         };
 
         foreach (var param in paramExprs)
         {
             var marshalledValue = Expression.Call(thisExpr, marshalMethod, Expression.Convert(param, typeof(object)));
-            expressions.Add(Expression.Call(dictVar, addMethod, Expression.Constant(param.Name!), marshalledValue));
+            expressions.Add(Expression.Call(jsonObjVar, addMethod, Expression.Constant(param.Name!), marshalledValue));
         }
 
-        expressions.Add(Expression.Convert(dictVar, typeof(object)));
+        expressions.Add(Expression.Convert(jsonObjVar, typeof(JsonNode)));
 
-        return Expression.Block(typeof(object), [dictVar], expressions);
+        return Expression.Block(typeof(JsonNode), [jsonObjVar], expressions);
     }
 
     private Expression BuildSyncVoidBody(string callbackId, Expression argsExpr)
@@ -178,7 +179,7 @@ internal sealed class CallbackProxyFactory
 
     #region Invocation Methods
 
-    private void InvokeSyncVoid(string callbackId, object? args)
+    private void InvokeSyncVoid(string callbackId, JsonNode? args)
     {
         // Use Task.Run to avoid blocking the RPC dispatcher thread.
         // Without this, if the callback calls back to .NET, we'd deadlock
@@ -186,36 +187,42 @@ internal sealed class CallbackProxyFactory
         Task.Run(() => _invoker.InvokeAsync(callbackId, args)).GetAwaiter().GetResult();
     }
 
-    private Task InvokeAsyncVoid(string callbackId, object? args)
+    private Task InvokeAsyncVoid(string callbackId, JsonNode? args)
     {
         return _invoker.InvokeAsync(callbackId, args);
     }
 
-    private TResult InvokeSyncResult<TResult>(string callbackId, object? args)
+    private TResult InvokeSyncResult<TResult>(string callbackId, JsonNode? args)
     {
         // Use Task.Run to avoid deadlock
         return Task.Run(() => _invoker.InvokeAsync<TResult>(callbackId, args)).GetAwaiter().GetResult();
     }
 
-    private Task<TResult> InvokeAsyncResult<TResult>(string callbackId, object? args)
+    private Task<TResult> InvokeAsyncResult<TResult>(string callbackId, JsonNode? args)
     {
         return _invoker.InvokeAsync<TResult>(callbackId, args);
     }
 
     #endregion
 
-    private object? MarshalArg(object? arg)
+    /// <summary>
+    /// Marshals an argument to JsonNode for callback invocation.
+    /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
+    /// </summary>
+    private JsonNode? MarshalArg(object? arg)
     {
         if (arg == null)
         {
             return null;
         }
 
+        // Primitives -> JsonValue
         if (ObjectRegistry.IsSimpleType(arg.GetType()))
         {
-            return arg;
+            return JsonValue.Create(arg);
         }
 
+        // Complex objects -> JsonObject { "$id", "$type" }
         return _objectRegistry.Marshal(arg);
     }
 }

@@ -44,19 +44,19 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     #region Object Marshalling
 
     [JsonRpcMethod("invokeMethod")]
-    public object? InvokeMethod(string objectId, string methodName, JsonObject? args)
+    public JsonNode? InvokeMethod(string objectId, string methodName, JsonObject? args)
         => _operations.InvokeMethod(objectId, methodName, args);
 
     [JsonRpcMethod("invokeStaticMethod")]
-    public object? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonObject? args)
+    public JsonNode? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonObject? args)
         => _operations.InvokeStaticMethod(assemblyName, typeName, methodName, args);
 
     [JsonRpcMethod("createObject")]
-    public object? CreateObject(string assemblyName, string typeName, JsonObject? args)
+    public JsonNode? CreateObject(string assemblyName, string typeName, JsonObject? args)
         => _operations.CreateObject(assemblyName, typeName, args);
 
     [JsonRpcMethod("getProperty")]
-    public object? GetProperty(string objectId, string propertyName)
+    public JsonNode? GetProperty(string objectId, string propertyName)
         => _operations.GetProperty(objectId, propertyName);
 
     [JsonRpcMethod("setProperty")]
@@ -64,7 +64,7 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
         => _operations.SetProperty(objectId, propertyName, value);
 
     [JsonRpcMethod("getIndexer")]
-    public object? GetIndexer(string objectId, JsonNode key)
+    public JsonNode? GetIndexer(string objectId, JsonNode key)
         => _operations.GetIndexer(objectId, key);
 
     [JsonRpcMethod("setIndexer")]
@@ -80,7 +80,7 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     #region Static Members
 
     [JsonRpcMethod("getStaticProperty")]
-    public object? GetStaticProperty(string assemblyName, string typeName, string propertyName)
+    public JsonNode? GetStaticProperty(string assemblyName, string typeName, string propertyName)
         => _operations.GetStaticProperty(assemblyName, typeName, propertyName);
 
     [JsonRpcMethod("setStaticProperty")]

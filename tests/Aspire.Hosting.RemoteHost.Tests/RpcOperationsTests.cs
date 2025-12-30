@@ -59,7 +59,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.InvokeMethod(id, "GetValue", null);
 
-        Assert.Equal(123, result);
+        Assert.Equal(123, (result as JsonValue)?.GetValue<int>());
     }
 
     [Fact]
@@ -70,10 +70,9 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.InvokeMethod(id, "GetSelf", null);
 
-        Assert.IsType<Dictionary<string, object?>>(result);
-        var dict = (Dictionary<string, object?>)result!;
-        Assert.Contains("TestObject", dict["$type"]!.ToString());
-        Assert.True(dict.ContainsKey("$id"));
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        Assert.Contains("TestObject", jsonObj["$type"]!.GetValue<string>());
+        Assert.True(jsonObj.ContainsKey("$id"));
     }
 
     [Fact]
@@ -135,7 +134,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.GetProperty(id, "Name");
 
-        Assert.Equal("test", result);
+        Assert.Equal("test", (result as JsonValue)?.GetValue<string>());
     }
 
     [Fact]
@@ -147,9 +146,8 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.GetProperty(id, "Nested");
 
-        Assert.IsType<Dictionary<string, object?>>(result);
-        var dict = (Dictionary<string, object?>)result!;
-        Assert.Contains("TestObject", dict["$type"]!.ToString());
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        Assert.Contains("TestObject", jsonObj["$type"]!.GetValue<string>());
     }
 
     [Fact]
@@ -207,7 +205,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.GetIndexer(id, index);
 
-        Assert.Equal("second", result);
+        Assert.Equal("second", (result as JsonValue)?.GetValue<string>());
     }
 
     [Fact]
@@ -219,7 +217,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.GetIndexer(id, key);
 
-        Assert.Equal(20, result);
+        Assert.Equal(20, (result as JsonValue)?.GetValue<int>());
     }
 
     [Fact]
@@ -231,9 +229,8 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.GetIndexer(id, index);
 
-        Assert.IsType<Dictionary<string, object?>>(result);
-        var marshalledItem = (Dictionary<string, object?>)result!;
-        Assert.Contains("TestObject", marshalledItem["$type"]!.ToString());
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        Assert.Contains("TestObject", jsonObj["$type"]!.GetValue<string>());
     }
 
     [Fact]
@@ -334,7 +331,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.GetStaticProperty(assemblyName, typeName, "StaticValue");
 
-        Assert.Equal("test-value", result);
+        Assert.Equal("test-value", (result as JsonValue)?.GetValue<string>());
     }
 
     [Fact]
@@ -345,7 +342,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.GetStaticProperty(assemblyName, typeName, "ReadOnlyStaticValue");
 
-        Assert.Equal("readonly", result);
+        Assert.Equal("readonly", (result as JsonValue)?.GetValue<string>());
     }
 
     [Fact]
@@ -359,9 +356,8 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.GetStaticProperty(assemblyName, typeName, "ComplexStatic");
 
-        Assert.IsType<Dictionary<string, object?>>(result);
-        var dict = (Dictionary<string, object?>)result!;
-        Assert.Contains("TestObject", dict["$type"]!.ToString());
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        Assert.Contains("TestObject", jsonObj["$type"]!.GetValue<string>());
     }
 
     [Fact]
@@ -469,10 +465,9 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.CreateObject(assemblyName, typeName, null);
 
-        Assert.IsType<Dictionary<string, object?>>(result);
-        var dict = (Dictionary<string, object?>)result!;
-        Assert.Contains("SimpleTestClass", dict["$type"]!.ToString());
-        Assert.True(dict.ContainsKey("$id"));
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        Assert.Contains("SimpleTestClass", jsonObj["$type"]!.GetValue<string>());
+        Assert.True(jsonObj.ContainsKey("$id"));
     }
 
     [Fact]
@@ -484,16 +479,15 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.CreateObject(assemblyName, typeName, args);
 
-        Assert.IsType<Dictionary<string, object?>>(result);
-        var dict = (Dictionary<string, object?>)result!;
-        var objectId = (string)dict["$id"]!;
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        var objectId = jsonObj["$id"]!.GetValue<string>();
 
         // Verify properties were set correctly
-        var nameValue = _operations.GetProperty(objectId, "Name");
-        Assert.Equal("test-name", nameValue);
+        var nameResult = _operations.GetProperty(objectId, "Name");
+        Assert.Equal("test-name", (nameResult as JsonValue)?.GetValue<string>());
 
-        var valueValue = _operations.GetProperty(objectId, "Value");
-        Assert.Equal(42, valueValue);
+        var valueResult = _operations.GetProperty(objectId, "Value");
+        Assert.Equal(42, (valueResult as JsonValue)?.GetValue<int>());
     }
 
     [Fact]
@@ -505,13 +499,12 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.CreateObject(assemblyName, typeName, args);
 
-        Assert.IsType<Dictionary<string, object?>>(result);
-        var dict = (Dictionary<string, object?>)result!;
-        var objectId = (string)dict["$id"]!;
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        var objectId = jsonObj["$id"]!.GetValue<string>();
 
         // Verify default value was used
-        var valueValue = _operations.GetProperty(objectId, "Value");
-        Assert.Equal(100, valueValue);
+        var valueResult = _operations.GetProperty(objectId, "Value");
+        Assert.Equal(100, (valueResult as JsonValue)?.GetValue<int>());
     }
 
     [Fact]
@@ -560,7 +553,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.InvokeStaticMethod(assemblyName, typeName, "Add", args);
 
-        Assert.Equal(15, result);
+        Assert.Equal(15, (result as JsonValue)?.GetValue<int>());
     }
 
     [Fact]
@@ -572,10 +565,9 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.InvokeStaticMethod(assemblyName, typeName, "CreateInstance", args);
 
-        Assert.IsType<Dictionary<string, object?>>(result);
-        var dict = (Dictionary<string, object?>)result!;
-        Assert.Contains("StaticTestClass", dict["$type"]!.ToString());
-        Assert.True(dict.ContainsKey("$id"));
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        Assert.Contains("StaticTestClass", jsonObj["$type"]!.GetValue<string>());
+        Assert.True(jsonObj.ContainsKey("$id"));
     }
 
     [Fact]
@@ -591,7 +583,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.InvokeStaticMethod(assemblyName, typeName, "IncrementValue", args);
 
-        Assert.Equal(52, result);
+        Assert.Equal(52, (result as JsonValue)?.GetValue<int>());
         Assert.Equal(52, existingObj.Value);
     }
 
@@ -608,8 +600,8 @@ public class RpcOperationsTests : IAsyncLifetime
 
         var result = _operations.InvokeStaticMethod(assemblyName, typeName, "WithEnvironment", args);
 
-        // The method returns the same object
-        Assert.IsType<Dictionary<string, object?>>(result);
+        // The method returns the same object (marshalled as JsonObject)
+        Assert.IsType<JsonObject>(result);
         Assert.Single(container.EnvironmentVariables);
         Assert.Equal("test-value", container.EnvironmentVariables["TEST_VAR"]);
     }
@@ -655,17 +647,17 @@ public class RpcOperationsTests : IAsyncLifetime
         // Single arg - should use Format(string value)
         var args1 = JsonNode.Parse("{\"value\": \"hello\"}") as JsonObject;
         var result1 = _operations.InvokeStaticMethod(assemblyName, typeName, "Format", args1);
-        Assert.Equal("[hello]", result1);
+        Assert.Equal("[hello]", (result1 as JsonValue)?.GetValue<string>());
 
         // Two args with count - should use Format(string value, int count)
         var args2 = JsonNode.Parse("{\"value\": \"x\", \"count\": 2}") as JsonObject;
         var result2 = _operations.InvokeStaticMethod(assemblyName, typeName, "Format", args2);
-        Assert.Equal("[x][x]", result2);
+        Assert.Equal("[x][x]", (result2 as JsonValue)?.GetValue<string>());
 
         // Three string args - should use Format(string value, string prefix, string suffix)
         var args3 = JsonNode.Parse("{\"value\": \"test\", \"prefix\": \"<\", \"suffix\": \">\"}") as JsonObject;
         var result3 = _operations.InvokeStaticMethod(assemblyName, typeName, "Format", args3);
-        Assert.Equal("<test>", result3);
+        Assert.Equal("<test>", (result3 as JsonValue)?.GetValue<string>());
     }
 
     #endregion

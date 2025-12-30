@@ -40,8 +40,9 @@ internal sealed class RpcOperations : IAsyncDisposable
 
     /// <summary>
     /// Creates an object instance.
+    /// Returns: MarshalledObject { "$id", "$type" } or null
     /// </summary>
-    public object? CreateObject(string assemblyName, string typeName, JsonObject? args)
+    public JsonNode? CreateObject(string assemblyName, string typeName, JsonObject? args)
     {
         var type = _typeResolver.ResolveType(assemblyName, typeName);
         var argDict = MethodResolver.ParseArgs(args);
@@ -72,8 +73,9 @@ internal sealed class RpcOperations : IAsyncDisposable
 
     /// <summary>
     /// Invokes a method on a registered object.
+    /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
     /// </summary>
-    public object? InvokeMethod(string objectId, string methodName, JsonObject? args)
+    public JsonNode? InvokeMethod(string objectId, string methodName, JsonObject? args)
     {
         var obj = _objectRegistry.Get(objectId);
         var type = obj.GetType();
@@ -95,8 +97,9 @@ internal sealed class RpcOperations : IAsyncDisposable
 
     /// <summary>
     /// Gets a property value from a registered object.
+    /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
     /// </summary>
-    public object? GetProperty(string objectId, string propertyName)
+    public JsonNode? GetProperty(string objectId, string propertyName)
     {
         var obj = _objectRegistry.Get(objectId);
         var type = obj.GetType();
@@ -136,8 +139,9 @@ internal sealed class RpcOperations : IAsyncDisposable
 
     /// <summary>
     /// Gets an indexed value from a registered object (list or dictionary).
+    /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
     /// </summary>
-    public object? GetIndexer(string objectId, JsonNode key)
+    public JsonNode? GetIndexer(string objectId, JsonNode key)
     {
         var obj = _objectRegistry.Get(objectId);
 
@@ -239,8 +243,9 @@ internal sealed class RpcOperations : IAsyncDisposable
 
     /// <summary>
     /// Invokes a static method on a type.
+    /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
     /// </summary>
-    public object? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonObject? args)
+    public JsonNode? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonObject? args)
     {
         var type = _typeResolver.ResolveType(assemblyName, typeName);
         var argDict = MethodResolver.ParseArgs(args);
@@ -267,8 +272,9 @@ internal sealed class RpcOperations : IAsyncDisposable
 
     /// <summary>
     /// Gets a static property value from a type.
+    /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
     /// </summary>
-    public object? GetStaticProperty(string assemblyName, string typeName, string propertyName)
+    public JsonNode? GetStaticProperty(string assemblyName, string typeName, string propertyName)
     {
         var type = _typeResolver.ResolveType(assemblyName, typeName);
 
@@ -340,26 +346,24 @@ internal sealed class RpcOperations : IAsyncDisposable
             return null;
         }
 
-        // Handle object references (proxied objects)
-        if (node is JsonObject obj && obj.TryGetPropertyValue("$id", out var idNode))
+        // Handle object references: { "$id": "obj_N" }
+        var objectRef = ObjectRef.FromJsonNode(node);
+        if (objectRef != null && _objectRegistry.TryGet(objectRef.Id, out var refObj))
         {
-            var refId = idNode?.GetValue<string>();
-            if (refId != null && _objectRegistry.TryGet(refId, out var refObj))
+            return refObj;
+        }
+
+        // Handle ReferenceExpression: { "$referenceExpression": true, "format": "..." }
+        if (targetType.FullName == "Aspire.Hosting.ApplicationModel.ReferenceExpression")
+        {
+            var refExpr = ReferenceExpressionRef.FromJsonNode(node);
+            if (refExpr != null)
             {
-                return refObj;
+                return DeserializeReferenceExpression(refExpr);
             }
         }
 
-        // Handle ReferenceExpression
-        if (node is JsonObject refExprObj &&
-            refExprObj.TryGetPropertyValue("$referenceExpression", out var refExprMarker) &&
-            refExprMarker?.GetValue<bool>() == true &&
-            targetType.FullName == "Aspire.Hosting.ApplicationModel.ReferenceExpression")
-        {
-            return DeserializeReferenceExpression(refExprObj);
-        }
-
-        // Handle callback parameters (delegate type with string callbackId)
+        // Handle callback parameters: "cb_xyz" string
         if (IsDelegateType(targetType) && node is JsonValue strValue && strValue.TryGetValue<string>(out var callbackId))
         {
             var proxy = _callbackProxyFactory.CreateProxy(callbackId, targetType);
@@ -410,14 +414,9 @@ internal sealed class RpcOperations : IAsyncDisposable
         return JsonSerializer.Deserialize(node.ToJsonString(), targetType, _jsonOptions);
     }
 
-    private object DeserializeReferenceExpression(JsonObject jsonObj)
+    private object DeserializeReferenceExpression(ReferenceExpressionRef refExpr)
     {
-        if (!jsonObj.TryGetPropertyValue("format", out var formatNode))
-        {
-            throw new InvalidOperationException("Invalid ReferenceExpression format: missing 'format' property");
-        }
-
-        var format = formatNode?.GetValue<string>() ?? "";
+        var format = refExpr.Format;
 
         // Use ReferenceExpressionBuilder to construct the expression
         var builder = new Aspire.Hosting.ApplicationModel.ReferenceExpressionBuilder();
@@ -458,19 +457,36 @@ internal sealed class RpcOperations : IAsyncDisposable
         return builder.Build();
     }
 
-    private object? MarshalResult(object? result)
+    /// <summary>
+    /// Converts a .NET result to its JSON representation.
+    /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
+    /// </summary>
+    private JsonNode? MarshalResult(object? result)
     {
         if (result == null)
         {
             return null;
         }
 
-        if (ObjectRegistry.IsSimpleType(result.GetType()))
+        var type = result.GetType();
+
+        // Primitives -> JsonValue
+        if (ObjectRegistry.IsSimpleType(type))
         {
-            return result;
+            return JsonValue.Create(result);
         }
 
-        return _objectRegistry.Marshal(result);
+        // Complex objects -> JsonObject { "$id", "$type" }
+        var objectId = _objectRegistry.Register(result);
+        var marshalled = MarshalledObject.Create(objectId, type);
+
+        var jsonObj = new JsonObject
+        {
+            ["$id"] = marshalled.Id,
+            ["$type"] = marshalled.Type
+        };
+
+        return jsonObj;
     }
 
     private static bool IsDelegateType(Type type)
@@ -484,8 +500,9 @@ internal sealed class RpcOperations : IAsyncDisposable
 
     /// <summary>
     /// Gets an indexed value using a string key.
+    /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
     /// </summary>
-    public object? GetIndexerByStringKey(string objectId, string key)
+    public JsonNode? GetIndexerByStringKey(string objectId, string key)
     {
         var obj = _objectRegistry.Get(objectId);
 

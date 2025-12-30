@@ -38,7 +38,7 @@ public class IndexerOperationsTests : IAsyncLifetime
         {
             var index = JsonNode.Parse($"{i}")!;
             var result = _operations.GetIndexer(id, index);
-            Assert.Equal(list[i], result);
+            Assert.Equal(list[i], (result as JsonValue)?.GetValue<int>());
         }
     }
 
@@ -51,7 +51,7 @@ public class IndexerOperationsTests : IAsyncLifetime
         var index = JsonNode.Parse("1")!;
         var result = _operations.GetIndexer(id, index);
 
-        Assert.Equal("beta", result);
+        Assert.Equal("beta", (result as JsonValue)?.GetValue<string>());
     }
 
     [Fact]
@@ -67,10 +67,9 @@ public class IndexerOperationsTests : IAsyncLifetime
         var index = JsonNode.Parse("0")!;
         var result = _operations.GetIndexer(id, index);
 
-        Assert.IsType<Dictionary<string, object?>>(result);
-        var dict = (Dictionary<string, object?>)result!;
-        Assert.Contains("ComplexItem", dict["$type"]!.ToString());
-        Assert.True(dict.ContainsKey("$id"));
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        Assert.Contains("ComplexItem", jsonObj["$type"]!.GetValue<string>());
+        Assert.True(jsonObj.ContainsKey("$id"));
     }
 
     [Fact]
@@ -166,7 +165,7 @@ public class IndexerOperationsTests : IAsyncLifetime
         var key = JsonNode.Parse("\"two\"")!;
         var result = _operations.GetIndexer(id, key);
 
-        Assert.Equal(2, result);
+        Assert.Equal(2, (result as JsonValue)?.GetValue<int>());
     }
 
     [Fact]
@@ -193,10 +192,9 @@ public class IndexerOperationsTests : IAsyncLifetime
         var key = JsonNode.Parse("\"item\"")!;
         var result = _operations.GetIndexer(id, key);
 
-        Assert.IsType<Dictionary<string, object?>>(result);
-        var marshalled = (Dictionary<string, object?>)result!;
-        Assert.Contains("ComplexItem", marshalled["$type"]!.ToString());
-        Assert.True(marshalled.ContainsKey("$id"));
+        var jsonObj = Assert.IsType<JsonObject>(result);
+        Assert.Contains("ComplexItem", jsonObj["$type"]!.GetValue<string>());
+        Assert.True(jsonObj.ContainsKey("$id"));
     }
 
     [Fact]
@@ -311,7 +309,7 @@ public class IndexerOperationsTests : IAsyncLifetime
 
         var result = _operations.GetIndexerByStringKey(id, "mykey");
 
-        Assert.Equal(42, result);
+        Assert.Equal(42, (result as JsonValue)?.GetValue<int>());
     }
 
     [Fact]

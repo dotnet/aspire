@@ -93,19 +93,21 @@ internal sealed class ObjectRegistry
     }
 
     /// <summary>
-    /// Marshals a .NET object to a dictionary representation for JSON-RPC transport.
+    /// Marshals a .NET object to a JsonObject for JSON-RPC transport.
+    /// Returns: JsonObject { "$id", "$type" }
     /// </summary>
     /// <param name="obj">The object to marshal.</param>
-    /// <returns>A dictionary containing the object's ID and type.</returns>
-    public Dictionary<string, object?> Marshal(object obj)
+    /// <returns>A JsonObject containing the object's ID and type.</returns>
+    public JsonObject Marshal(object obj)
     {
         var type = obj.GetType();
         var objectId = Register(obj);
+        var marshalled = MarshalledObject.Create(objectId, type);
 
-        return new Dictionary<string, object?>
+        return new JsonObject
         {
-            ["$id"] = objectId,
-            ["$type"] = type.FullName
+            ["$id"] = marshalled.Id,
+            ["$type"] = marshalled.Type
         };
     }
 
@@ -122,37 +124,16 @@ internal sealed class ObjectRegistry
         }
 
         // Check if it's a proxy reference (object with $id)
-        if (node is JsonObject obj && obj.TryGetPropertyValue("$id", out var idNode))
+        var objectRef = ObjectRef.FromJsonNode(node);
+        if (objectRef != null && TryGet(objectRef.Id, out var refObj))
         {
-            var refId = idNode?.GetValue<string>();
-            if (!string.IsNullOrEmpty(refId) && TryGet(refId, out var refObj))
-            {
-                return refObj;
-            }
+            return refObj;
         }
 
         // Handle primitives via JsonValue
-        if (node is JsonValue value)
+        if (node is JsonValue)
         {
-            // Try to get the actual underlying value
-            if (value.TryGetValue<string>(out var str))
-            {
-                return str;
-            }
-            if (value.TryGetValue<bool>(out var b))
-            {
-                return b;
-            }
-            if (value.TryGetValue<long>(out var l))
-            {
-                return l;
-            }
-            if (value.TryGetValue<double>(out var d))
-            {
-                return d;
-            }
-            // Fallback
-            return value.GetValue<object>();
+            return JsonPrimitives.GetValue(node);
         }
 
         // For arrays/objects without $id, return the node itself

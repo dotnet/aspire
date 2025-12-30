@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
+
 namespace Aspire.Hosting.RemoteHost.Tests;
 
 /// <summary>
@@ -8,20 +10,20 @@ namespace Aspire.Hosting.RemoteHost.Tests;
 /// </summary>
 internal sealed class TestCallbackInvoker : ICallbackInvoker
 {
-    private readonly List<(string CallbackId, object? Args)> _invocations = new();
-    private readonly Dictionary<string, Func<object?, object?>> _handlers = new();
+    private readonly List<(string CallbackId, JsonNode? Args)> _invocations = new();
+    private readonly Dictionary<string, Func<JsonNode?, object?>> _handlers = new();
 
     public bool IsConnected => true;
 
     /// <summary>
     /// Gets the list of callback invocations that have been recorded.
     /// </summary>
-    public IReadOnlyList<(string CallbackId, object? Args)> Invocations => _invocations;
+    public IReadOnlyList<(string CallbackId, JsonNode? Args)> Invocations => _invocations;
 
     /// <summary>
     /// Registers a handler for a specific callback ID.
     /// </summary>
-    public void RegisterHandler(string callbackId, Func<object?, object?> handler)
+    public void RegisterHandler(string callbackId, Func<JsonNode?, object?> handler)
     {
         _handlers[callbackId] = handler;
     }
@@ -34,7 +36,7 @@ internal sealed class TestCallbackInvoker : ICallbackInvoker
         _handlers[callbackId] = _ => returnValue;
     }
 
-    public Task<TResult> InvokeAsync<TResult>(string callbackId, object? args, CancellationToken cancellationToken = default)
+    public Task<TResult> InvokeAsync<TResult>(string callbackId, JsonNode? args, CancellationToken cancellationToken = default)
     {
         _invocations.Add((callbackId, args));
 
@@ -47,7 +49,7 @@ internal sealed class TestCallbackInvoker : ICallbackInvoker
         return Task.FromResult(default(TResult)!);
     }
 
-    public Task InvokeAsync(string callbackId, object? args, CancellationToken cancellationToken = default)
+    public Task InvokeAsync(string callbackId, JsonNode? args, CancellationToken cancellationToken = default)
     {
         return InvokeAsync<object?>(callbackId, args, cancellationToken);
     }

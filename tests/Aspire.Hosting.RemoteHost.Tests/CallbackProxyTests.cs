@@ -54,7 +54,7 @@ public class CallbackProxyTests : IAsyncLifetime
 
         Assert.Single(_callbackInvoker.Invocations);
         Assert.Equal("cb_action_t", _callbackInvoker.Invocations[0].CallbackId);
-        Assert.Equal("test_value", _callbackInvoker.Invocations[0].Args);
+        Assert.Equal("test_value", (_callbackInvoker.Invocations[0].Args as JsonValue)?.GetValue<string>());
     }
 
     [Fact]

@@ -76,7 +76,7 @@ public sealed class CallbackDeadlockTests : IAsyncLifetime
 
         // If we get here, no deadlock occurred
         Assert.True(obj.WorkCompleted);
-        Assert.Equal(42, _callbackInvoker.LastReentrantResult);
+        Assert.Equal(42, (_callbackInvoker.LastReentrantResult as JsonValue)?.GetValue<int>());
     }
 
     /// <summary>
@@ -161,7 +161,7 @@ internal sealed class SimulatedRpcCallbackInvoker : ICallbackInvoker
         _reentrantCallbacks[callbackId] = (objectId, propertyName);
     }
 
-    public async Task<TResult> InvokeAsync<TResult>(string callbackId, object? args, CancellationToken cancellationToken = default)
+    public async Task<TResult> InvokeAsync<TResult>(string callbackId, JsonNode? args, CancellationToken cancellationToken = default)
     {
         // Simulate network delay
         await Task.Delay(10, cancellationToken).ConfigureAwait(false);
@@ -177,7 +177,7 @@ internal sealed class SimulatedRpcCallbackInvoker : ICallbackInvoker
         return default!;
     }
 
-    public Task InvokeAsync(string callbackId, object? args, CancellationToken cancellationToken = default)
+    public Task InvokeAsync(string callbackId, JsonNode? args, CancellationToken cancellationToken = default)
     {
         return InvokeAsync<object?>(callbackId, args, cancellationToken);
     }

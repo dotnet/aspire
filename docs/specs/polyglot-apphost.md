@@ -345,6 +345,50 @@ Callbacks allow the host to invoke guest functions during method execution (e.g.
 4. Host sends `invokeCallback` request to guest with the callback ID and args
 5. Guest executes the callback and returns the result
 
+### Error Responses
+
+Errors follow the JSON-RPC 2.0 error format:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "error": {
+    "code": -32000,
+    "message": "Object 'obj_999' not found in registry"
+  },
+  "id": 1
+}
+```
+
+| Code | Description |
+|------|-------------|
+| -32700 | Parse error |
+| -32600 | Invalid request |
+| -32601 | Method not found |
+| -32602 | Invalid params |
+| -32603 | Internal error |
+| -32000 | Server error (object not found, method not found, etc.) |
+
+### JSON Value Shape Summary
+
+**Input Values (Guest → Host)**
+
+| Type | JSON Shape | Example |
+|------|------------|---------|
+| Primitive | raw value | `"hello"`, `42`, `true` |
+| Object ref | `{ "$id": "..." }` | `{ "$id": "obj_1" }` |
+| Ref expression | `{ "$referenceExpression": true, "format": "..." }` | `{ "$referenceExpression": true, "format": "Host={obj_1}" }` |
+| Callback | string | `"cb_001"` |
+| Complex object | JSON object | `{ "Name": "test", "Port": 80 }` |
+
+**Output Values (Host → Guest)**
+
+| Type | JSON Shape | Example |
+|------|------------|---------|
+| Null | `null` | `null` |
+| Primitive | raw value | `"hello"`, `42`, `true` |
+| Object ref | `{ "$id": "...", "$type": "..." }` | `{ "$id": "obj_1", "$type": "MyType" }` |
+
 ---
 
 ## Type System and Marshalling

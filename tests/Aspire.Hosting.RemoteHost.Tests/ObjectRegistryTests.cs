@@ -151,7 +151,7 @@ public class ObjectRegistryTests
         var marshalled = registry.Marshal(obj);
 
         Assert.True(marshalled.ContainsKey("$id"));
-        Assert.Equal(typeof(TestClass).FullName, marshalled["$type"]);
+        Assert.Equal(typeof(TestClass).FullName, marshalled["$type"]?.GetValue<string>());
         Assert.Equal(2, marshalled.Count); // Only $id and $type
     }
 
@@ -163,7 +163,7 @@ public class ObjectRegistryTests
 
         var marshalled = registry.Marshal(obj);
 
-        var id = marshalled["$id"] as string;
+        var id = marshalled["$id"]?.GetValue<string>();
         Assert.NotNull(id);
         Assert.True(registry.TryGet(id!, out var registered));
         Assert.Same(obj, registered);

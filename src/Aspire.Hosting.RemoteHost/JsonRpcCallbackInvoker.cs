@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using StreamJsonRpc;
 
 namespace Aspire.Hosting.RemoteHost;
@@ -27,7 +28,7 @@ internal sealed class JsonRpcCallbackInvoker : ICallbackInvoker
     public bool IsConnected => _clientRpc != null;
 
     /// <inheritdoc />
-    public async Task<TResult> InvokeAsync<TResult>(string callbackId, object? args, CancellationToken cancellationToken = default)
+    public async Task<TResult> InvokeAsync<TResult>(string callbackId, JsonNode? args, CancellationToken cancellationToken = default)
     {
         if (_clientRpc == null)
         {
@@ -51,7 +52,7 @@ internal sealed class JsonRpcCallbackInvoker : ICallbackInvoker
     }
 
     /// <inheritdoc />
-    public async Task InvokeAsync(string callbackId, object? args, CancellationToken cancellationToken = default)
+    public async Task InvokeAsync(string callbackId, JsonNode? args, CancellationToken cancellationToken = default)
     {
         await InvokeAsync<object?>(callbackId, args, cancellationToken).ConfigureAwait(false);
     }
