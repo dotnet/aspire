@@ -30,7 +30,7 @@ internal sealed class TypeResolver
 
     /// <summary>
     /// Resolves an assembly by name, using caching for efficiency.
-    /// First checks already-loaded assemblies, then falls back to loading.
+    /// Requires the assembly to be loadable by name - does not scan loaded assemblies.
     /// </summary>
     /// <param name="assemblyName">The name of the assembly to resolve.</param>
     /// <returns>The resolved assembly.</returns>
@@ -39,16 +39,6 @@ internal sealed class TypeResolver
     {
         return _assemblyCache.GetOrAdd(assemblyName, name =>
         {
-            // Try loaded assemblies first (case-insensitive)
-            var loaded = AppDomain.CurrentDomain.GetAssemblies()
-                .FirstOrDefault(a => string.Equals(a.GetName().Name, name, StringComparison.OrdinalIgnoreCase));
-
-            if (loaded != null)
-            {
-                return loaded;
-            }
-
-            // Fall back to loading the assembly
             try
             {
                 return Assembly.Load(name);

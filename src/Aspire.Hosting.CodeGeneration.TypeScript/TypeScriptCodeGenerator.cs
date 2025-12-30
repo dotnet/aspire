@@ -609,11 +609,11 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
             var declaringType = context.DeclaringType!;
             if (context.IsVoid)
             {
-                Writer.WriteLine($"    await client.invokeStaticMethod('{declaringType.Namespace}', '{declaringType.Name}', '{context.OriginalMethodName}', {argsStr});");
+                Writer.WriteLine($"    await client.invokeStaticMethod('{declaringType.DeclaringAssembly?.Name}', '{declaringType.FullName}', '{context.OriginalMethodName}', {argsStr});");
             }
             else
             {
-                Writer.WriteLine($"    return await client.invokeStaticMethod('{declaringType.Namespace}', '{declaringType.Name}', '{context.OriginalMethodName}', {argsStr}) as {context.ReturnType};");
+                Writer.WriteLine($"    return await client.invokeStaticMethod('{declaringType.DeclaringAssembly?.Name}', '{declaringType.FullName}', '{context.OriginalMethodName}', {argsStr}) as {context.ReturnType};");
             }
         }
         else

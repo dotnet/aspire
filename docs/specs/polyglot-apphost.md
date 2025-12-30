@@ -119,13 +119,29 @@ The JSON-RPC server in `Aspire.Hosting.RemoteHost` is designed as a **generic .N
 | `getIndexer` / `setIndexer` | Indexer access (lists, dictionaries) |
 | `unregisterObject` | Release object reference |
 
-**Static Methods** - Require assembly/type resolution (no target instance):
+**Static Methods** - Require assembly + type name (no target instance):
 
 | RPC Method | .NET Concept |
 |------------|--------------|
 | `createObject` | Instantiate a type via constructor |
 | `invokeStaticMethod` | Call static method or extension method |
 | `getStaticProperty` / `setStaticProperty` | Static property access |
+
+**Assembly and Type Resolution**
+
+Top-level operations require **separate** `assemblyName` and `typeName` parameters rather than assembly-qualified names. The assembly must be loadable via `Assembly.Load(assemblyName)`:
+
+```json
+{
+  "assemblyName": "Aspire.Hosting.Redis",
+  "typeName": "Aspire.Hosting.Redis.RedisBuilderExtensions"
+}
+```
+
+This design:
+- Keeps JSON payloads readable
+- Requires explicit assembly specification (no scanning)
+- Works with .NET's standard assembly loading
 
 **Key Insight: Extension Methods are Static Methods**
 
@@ -392,6 +408,94 @@ The `ObjectRegistry` in the host maintains a `ConcurrentDictionary<string, objec
 ```
 
 The format string contains `{$id}` placeholders. The host reconstructs the expression using object registry lookups.
+
+### Argument Deserialization
+
+When the host receives method arguments from the guest, they are deserialized according to the following rules (processed in order of precedence):
+
+#### 1. Object References
+
+**Pattern**: `{"$id": "<object_id>"}`
+
+Looks up the object in the ObjectRegistry and returns the actual .NET instance.
+
+```json
+{ "builder": {"$id": "obj_1"} }
+```
+
+#### 2. ReferenceExpression
+
+**Pattern**: `{"$referenceExpression": true, "format": "..."}`
+
+Only applies when target type is `ReferenceExpression`. Parses format string for `{obj_N}` placeholders and reconstructs the expression.
+
+```json
+{ "connectionString": {"$referenceExpression": true, "format": "Server={obj_1};Port={obj_2}"} }
+```
+
+#### 3. Null
+
+**Pattern**: `null`
+
+Returns `null` for any nullable target type.
+
+#### 4. Callback References
+
+**Pattern**: `"<callback_id>"` (string value when target type is a delegate)
+
+Creates a proxy delegate that invokes the guest callback via `invokeCallback`. Supports any delegate signature.
+
+```json
+{ "onReady": "callback_123" }
+```
+
+#### 5. Primitives
+
+| Target Type | JSON Type | Example |
+|-------------|-----------|---------|
+| `string` | string | `"hello"` |
+| `int`, `int?` | number | `42` |
+| `long`, `long?` | number | `9999999999` |
+| `double`, `double?` | number | `3.14` |
+| `bool`, `bool?` | boolean | `true` |
+
+#### 6. Arrays
+
+**Pattern**: `[...]` (when target type is `T[]`)
+
+Recursively deserializes each element using these same rules.
+
+```json
+{ "ports": [80, 443, 8080] }
+{ "services": [{"$id": "obj_1"}, {"$id": "obj_2"}] }
+```
+
+#### 7. Complex Objects (Fallback)
+
+Any JSON object not matching above patterns is deserialized using `System.Text.Json.JsonSerializer`.
+
+```json
+{ "options": {"name": "my-service", "replicas": 3} }
+```
+
+### Method Resolution
+
+When multiple method overloads exist, the host selects the best match by scoring:
+
+- **+10** for each argument name that matches a parameter name
+- **-100** for each required parameter without a matching argument
+
+Tie-breaker: Prefer methods with fewer parameters.
+
+**Example**: Given `args: {"name": "test"}` and overloads:
+
+| Overload | Score | Reason |
+|----------|-------|--------|
+| `Method(string name)` | **10** | name matches, no missing required |
+| `Method(int value)` | -100 | value required but missing |
+| `Method(string name, int value)` | -90 | name matches (+10), value missing (-100) |
+
+Parameter name matching is **case-insensitive**.
 
 ---
 
