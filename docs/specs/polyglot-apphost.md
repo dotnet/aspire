@@ -458,29 +458,121 @@ The `ObjectRegistry` in the host maintains a `ConcurrentDictionary<string, objec
 
 ### Type Mappings
 
-#### Guest → Host
+#### Guest → Host (Input Deserialization)
 
-| Guest Type | .NET Type | Handling |
-|------------|-----------|----------|
-| String | `string` | Direct JSON |
-| Number | `int`, `long`, `double` | Type coercion |
-| Boolean | `bool` | Direct JSON |
-| Null | `null` | Direct JSON |
-| Object with `$id` | Registry lookup | Proxy reference resolved |
-| `{ $referenceExpression, format }` | `ReferenceExpression` | Special handling |
-| Arrays | `T[]`, `List<T>` | JSON deserialization |
+Input values are deserialized based on the target parameter type and the JSON shape:
 
-#### Host → Guest
+| JSON Shape | Target Type | Handling |
+|------------|-------------|----------|
+| Primitives (`"hello"`, `42`, `true`) | Simple types | Direct conversion |
+| `null` | Any nullable | Returns `null` |
+| `{ "$id": "obj_N" }` | Any | **Reference**: Lookup in ObjectRegistry |
+| `{ "$referenceExpression": true, "format": "..." }` | `ReferenceExpression` | Parsed and reconstructed |
+| `"callback_id"` | Delegate type | **Callback**: Creates proxy delegate |
+| `[...]` | `T[]`, `List<T>`, etc. | Array/list deserialization |
+| `{...}` (no `$id`) | POCO class | **POCO**: Deserialized via `JsonSerializer` |
+
+**POCO Deserialization**: When a JSON object without `$id` is passed to a parameter expecting a class type, it is deserialized using `System.Text.Json`. The target type must have:
+- A public constructor (parameterless or with matching parameter names)
+- Public settable properties matching the JSON keys
+
+```json
+// Example: createObject with POCO argument
+{
+  "method": "createObject",
+  "params": [
+    "Aspire.Hosting",
+    "Aspire.Hosting.DistributedApplicationOptions",
+    {
+      "Args": ["--operation", "run"],
+      "ProjectDirectory": "/path/to/project"
+    }
+  ]
+}
+```
+
+The third parameter is a **POCO** - its properties are copied into a new `DistributedApplicationOptions` instance.
+
+#### Host → Guest (Output Marshalling)
+
+Output values are marshalled based on the .NET type. **There is an important asymmetry**: complex objects are NOT serialized as POCOs on output - they become references.
 
 | .NET Type | JSON Output | Notes |
 |-----------|-------------|-------|
 | Primitives (`string`, `int`, `bool`, etc.) | raw value | Direct JSON primitive |
-| `DateTime`, `Guid` | string | ISO 8601 / string format |
-| Enums | string | Enum name |
+| `DateTime`, `DateTimeOffset`, `TimeSpan` | string | ISO 8601 / duration format |
+| `DateOnly`, `TimeOnly` | string | Date/time format |
+| `Guid`, `Uri` | string | String representation |
+| Enums | string | Enum name (e.g., `"Wednesday"`) |
 | `byte[]` | string | Base64-encoded |
 | `T[]`, `List<T>` (primitive T) | `[...]` | JSON array of primitives |
 | `Dictionary<string, T>` (primitive T) | `{...}` | JSON object (no `$id`/`$type`) |
-| Complex objects | `{ "$id", "$type" }` | Marshalled with registry ID |
+| **All other objects** | `{ "$id", "$type" }` | **Reference**: Registered in ObjectRegistry |
+
+**Key Distinction - POCOs vs References**:
+- **Input (Guest → Host)**: JSON objects can be POCOs (deserialized, properties copied)
+- **Output (Host → Guest)**: Complex objects are ALWAYS references (registered, not serialized)
+
+This means if you pass a POCO in, you get a **copy**. If a method returns an object, you get a **reference** to the live .NET object.
+
+### Input Deserialization Examples
+
+The following examples show how different JSON inputs are deserialized based on the target .NET parameter type:
+
+| JSON Input | Target Type | Result |
+|------------|-------------|--------|
+| `42` | `int` | Primitive: `42` |
+| `"hello"` | `string` | Primitive: `"hello"` |
+| `true` | `bool` | Primitive: `true` |
+| `"Friday"` | `DayOfWeek` | Enum: `DayOfWeek.Friday` |
+| `"SGVsbG8="` | `byte[]` | Base64 decoded: `[72, 101, 108, 108, 111]` |
+| `{"$id": "obj_1"}` | `IResourceBuilder<T>` | **Reference**: Lookup `obj_1` in registry |
+| `{"$id": "obj_1"}` | `DistributedApplicationBuilder` | **Reference**: Lookup `obj_1` in registry |
+| `"cb_123"` | `Action<T>` | **Callback**: Create proxy delegate |
+| `"cb_123"` | `Func<Task>` | **Callback**: Create proxy delegate |
+| `{"$referenceExpression": true, "format": "redis://{obj_1}"}` | `ReferenceExpression` | **ReferenceExpression**: Parse and reconstruct |
+| `[1, 2, 3]` | `int[]` | Array: `[1, 2, 3]` |
+| `[1, 2, 3]` | `List<int>` | List: `[1, 2, 3]` |
+| `{"Name": "test", "Port": 6379}` | `MyOptions` | **POCO**: Deserialize to new `MyOptions` instance |
+| `{"Args": ["--run"], "Dir": "/app"}` | `AppOptions` | **POCO**: Deserialize to new `AppOptions` instance |
+
+**How POCO vs Reference is determined**:
+
+1. If JSON has `"$id"` property → **Reference** (lookup in ObjectRegistry)
+2. If target type is delegate and JSON is string → **Callback**
+3. If target type is `ReferenceExpression` and JSON has `"$referenceExpression"` → **ReferenceExpression**
+4. If JSON is primitive value and target is simple type → **Primitive**
+5. If JSON is array and target is array/list → **Array**
+6. Otherwise → **POCO** (falls through to `JsonSerializer.Deserialize`)
+
+**POCO Requirements**: The target type must be deserializable by `System.Text.Json`:
+- Public parameterless constructor OR constructor with matching parameter names
+- Public settable properties (or `init` properties)
+- Property names match JSON keys (case-insensitive by default)
+
+### Unsupported Input Types (POCO Validation)
+
+The following types **cannot** be deserialized as POCOs and will throw `NotSupportedException` with a helpful message suggesting to use `{$id}` references instead:
+
+| Type Category | Example | Error Message |
+|---------------|---------|---------------|
+| Interfaces | `IResourceBuilder<T>`, `IDistributedApplicationBuilder` | "Cannot deserialize JSON to interface type. Did you mean to pass an object reference?" |
+| Abstract classes | `Resource`, `ContainerResource` | "Cannot deserialize JSON to abstract type. Did you mean to pass an object reference?" |
+| Open generics | `List<>` (without type argument) | "Cannot deserialize JSON to open generic type." |
+| Delegate types | `Action<T>`, `Func<Task>` | "Cannot deserialize JSON to delegate type. Pass a callback ID string instead." |
+| Reflection types | `Type`, `MethodInfo`, `Assembly` | "Cannot deserialize JSON to reflection type." |
+| Types without constructors | Classes with only private constructors | "Cannot deserialize JSON to type - no public constructors." |
+
+**Example Error Scenario**:
+```json
+// WRONG: Passing JSON object to interface parameter
+{"method": "invokeMethod", "params": ["obj_1", "WithReference", {"builder": {"Name": "test"}}]}
+// Error: Cannot deserialize JSON to interface type 'IResourceBuilder`1'.
+//        Did you mean to pass an object reference? Use {"$id": "obj_N"} format.
+
+// CORRECT: Pass object reference
+{"method": "invokeMethod", "params": ["obj_1", "WithReference", {"builder": {"$id": "obj_2"}}]}
+```
 
 **Output Examples:**
 

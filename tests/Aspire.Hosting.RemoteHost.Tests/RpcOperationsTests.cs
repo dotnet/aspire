@@ -393,6 +393,52 @@ public class RpcOperationsTests : IAsyncLifetime
         Assert.Contains("IAsyncEnumerable", ex.Message);
     }
 
+    [Fact]
+    public void InvokeMethod_ThrowsForInterfaceParameterWithoutReference()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+        // Pass a plain object instead of a reference to an interface parameter
+        var args = JsonNode.Parse("{\"service\": {\"Name\": \"test\"}}") as JsonObject;
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _operations.InvokeMethod(id, "TakeInterface", args));
+
+        Assert.Contains("interface", ex.Message);
+        Assert.Contains("$id", ex.Message);
+    }
+
+    [Fact]
+    public void InvokeMethod_ThrowsForAbstractParameterWithoutReference()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+        var args = JsonNode.Parse("{\"resource\": {\"Name\": \"test\"}}") as JsonObject;
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _operations.InvokeMethod(id, "TakeAbstract", args));
+
+        Assert.Contains("abstract", ex.Message);
+        Assert.Contains("$id", ex.Message);
+    }
+
+    [Fact]
+    public void InvokeMethod_AcceptsInterfaceWithReference()
+    {
+        var obj = new TestObject();
+        var id = _objectRegistry.Register(obj);
+
+        // Register an object that implements the interface
+        var service = new ConcreteService { Name = "my-service" };
+        var serviceId = _objectRegistry.Register(service);
+
+        var args = JsonNode.Parse($"{{\"service\": {{\"$id\": \"{serviceId}\"}}}}") as JsonObject;
+
+        _operations.InvokeMethod(id, "TakeInterface", args);
+
+        Assert.Same(service, obj.LastService);
+    }
+
     #endregion
 
     #region GetProperty Tests
@@ -1119,6 +1165,30 @@ public class RpcOperationsTests : IAsyncLifetime
             await Task.Yield();
             yield return 1;
         }
+
+        // Interface/abstract parameter tests
+        public void TakeInterface(IService service) => LastService = service;
+        public void TakeAbstract(AbstractResource resource) => LastResource = resource;
+        public IService? LastService { get; private set; }
+        public AbstractResource? LastResource { get; private set; }
+    }
+
+    // Test interface for POCO validation tests
+    public interface IService
+    {
+        string Name { get; }
+    }
+
+    // Concrete implementation of IService
+    public sealed class ConcreteService : IService
+    {
+        public string Name { get; set; } = "";
+    }
+
+    // Abstract class for POCO validation tests
+    public abstract class AbstractResource
+    {
+        public abstract string Name { get; }
     }
 
     private sealed class TestObjectWithNested

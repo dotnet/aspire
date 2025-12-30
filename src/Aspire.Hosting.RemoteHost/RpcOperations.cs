@@ -531,7 +531,8 @@ internal sealed class RpcOperations : IAsyncDisposable
             }
         }
 
-        // Fall back to JSON deserialization
+        // Fall back to POCO deserialization - validate the type first
+        ValidateTypeForPocoDeserialization(targetType);
         return JsonSerializer.Deserialize(node.ToJsonString(), targetType, _jsonOptions);
     }
 
@@ -671,6 +672,61 @@ internal sealed class RpcOperations : IAsyncDisposable
     private static bool IsDelegateType(Type type)
     {
         return typeof(Delegate).IsAssignableFrom(type);
+    }
+
+    /// <summary>
+    /// Validates that a type can be deserialized as a POCO.
+    /// Throws NotSupportedException for types that cannot be instantiated from JSON.
+    /// </summary>
+    private static void ValidateTypeForPocoDeserialization(Type targetType)
+    {
+        // Interfaces cannot be instantiated - likely a missing $id reference
+        if (targetType.IsInterface)
+        {
+            throw new NotSupportedException(
+                $"Cannot deserialize JSON to interface type '{targetType.Name}'. " +
+                $"Did you mean to pass an object reference? Use {{\"$id\": \"obj_N\"}} format.");
+        }
+
+        // Abstract classes cannot be instantiated
+        if (targetType.IsAbstract)
+        {
+            throw new NotSupportedException(
+                $"Cannot deserialize JSON to abstract type '{targetType.Name}'. " +
+                $"Did you mean to pass an object reference? Use {{\"$id\": \"obj_N\"}} format.");
+        }
+
+        // Open generic types (e.g., List<> without type argument)
+        if (targetType.IsGenericTypeDefinition)
+        {
+            throw new NotSupportedException(
+                $"Cannot deserialize JSON to open generic type '{targetType.Name}'. " +
+                $"A concrete type argument is required.");
+        }
+
+        // Delegate types should use callback pattern
+        if (typeof(Delegate).IsAssignableFrom(targetType))
+        {
+            throw new NotSupportedException(
+                $"Cannot deserialize JSON to delegate type '{targetType.Name}'. " +
+                $"Pass a callback ID string instead (e.g., \"callback_123\").");
+        }
+
+        // System reflection types
+        if (targetType == typeof(Type) || typeof(MemberInfo).IsAssignableFrom(targetType))
+        {
+            throw new NotSupportedException(
+                $"Cannot deserialize JSON to reflection type '{targetType.Name}'.");
+        }
+
+        // Check for accessible constructor
+        var constructors = targetType.GetConstructors();
+        if (constructors.Length == 0 && !targetType.IsValueType)
+        {
+            throw new NotSupportedException(
+                $"Cannot deserialize JSON to type '{targetType.Name}' - no public constructors. " +
+                $"Did you mean to pass an object reference? Use {{\"$id\": \"obj_N\"}} format.");
+        }
     }
 
     /// <summary>
