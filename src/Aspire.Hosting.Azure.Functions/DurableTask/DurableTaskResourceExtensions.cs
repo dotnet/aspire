@@ -114,14 +114,12 @@ public static class DurableTaskResourceExtensions
 
                         for (int i = 0; i < durableTaskHubNames.Count; i++)
                         {
-                            if (i == 0)
+                            if (i > 0)
                             {
-                                namesBuilder.AppendFormatted(durableTaskHubNames[i]);
+                                namesBuilder.AppendLiteral(", ");
                             }
-                            else
-                            {
-                                namesBuilder.AppendFormatted($", {durableTaskHubNames[i]}");
-                            }
+
+                            namesBuilder.AppendFormatted(durableTaskHubNames[i]);
                         }
 
                         context.EnvironmentVariables["DTS_TASK_HUB_NAMES"] = namesBuilder.Build();
