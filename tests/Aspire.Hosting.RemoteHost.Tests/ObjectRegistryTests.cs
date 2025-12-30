@@ -143,7 +143,7 @@ public class ObjectRegistryTests
     }
 
     [Fact]
-    public void Marshal_IncludesIdAndTypeInfo()
+    public void Marshal_IncludesIdAndType()
     {
         var registry = new ObjectRegistry();
         var obj = new TestClass { Name = "test", Value = 42 };
@@ -151,37 +151,8 @@ public class ObjectRegistryTests
         var marshalled = registry.Marshal(obj);
 
         Assert.True(marshalled.ContainsKey("$id"));
-        Assert.Equal("TestClass", marshalled["$type"]);
-        Assert.Equal(typeof(TestClass).FullName, marshalled["$fullType"]);
-    }
-
-    [Fact]
-    public void Marshal_IncludesSimpleProperties()
-    {
-        var registry = new ObjectRegistry();
-        var obj = new TestClass { Name = "test", Value = 42 };
-
-        var marshalled = registry.Marshal(obj);
-
-        Assert.Equal("test", marshalled["Name"]);
-        Assert.Equal(42, marshalled["Value"]);
-    }
-
-    [Fact]
-    public void Marshal_IncludesTypeInfoForComplexProperties()
-    {
-        var registry = new ObjectRegistry();
-        var obj = new TestClassWithNestedObject
-        {
-            Name = "parent",
-            Nested = new TestClass { Name = "child" }
-        };
-
-        var marshalled = registry.Marshal(obj);
-
-        Assert.Equal("parent", marshalled["Name"]);
-        Assert.True(marshalled.ContainsKey("Nested$type"));
-        Assert.Equal("TestClass", marshalled["Nested$type"]);
+        Assert.Equal(typeof(TestClass).FullName, marshalled["$type"]);
+        Assert.Equal(2, marshalled.Count); // Only $id and $type
     }
 
     [Fact]

@@ -7,7 +7,7 @@ using System.Text.Json;
 namespace Aspire.Hosting.RemoteHost;
 
 /// <summary>
-/// Manages registration and lookup of .NET objects for marshalling to/from TypeScript.
+/// Manages registration and lookup of .NET objects for JSON-RPC remoting.
 /// Objects are registered with unique IDs and can be retrieved by ID for method invocations.
 /// </summary>
 internal sealed class ObjectRegistry
@@ -93,79 +93,24 @@ internal sealed class ObjectRegistry
     }
 
     /// <summary>
-    /// Marshals a .NET object to a dictionary representation that can be sent to TypeScript.
+    /// Marshals a .NET object to a dictionary representation for JSON-RPC transport.
     /// </summary>
     /// <param name="obj">The object to marshal.</param>
-    /// <returns>A dictionary containing the object's ID, type info, and simple property values.</returns>
+    /// <returns>A dictionary containing the object's ID and type.</returns>
     public Dictionary<string, object?> Marshal(object obj)
     {
         var type = obj.GetType();
         var objectId = Register(obj);
 
-        var result = new Dictionary<string, object?>
+        return new Dictionary<string, object?>
         {
             ["$id"] = objectId,
-            ["$type"] = type.Name,
-            ["$fullType"] = type.FullName
+            ["$type"] = type.FullName
         };
-
-        // Include simple property values directly
-        foreach (var prop in type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
-        {
-            try
-            {
-                if (prop.GetIndexParameters().Length > 0)
-                {
-                    continue;
-                }
-
-                var propType = prop.PropertyType;
-
-                // Skip problematic types
-                if (propType.FullName?.StartsWith("System.Reflection") == true ||
-                    typeof(Delegate).IsAssignableFrom(propType))
-                {
-                    continue;
-                }
-
-                var value = prop.GetValue(obj);
-
-                if (value == null || IsSimpleType(propType))
-                {
-                    result[prop.Name] = value;
-                }
-                else
-                {
-                    // For complex nested objects, just include type info - they can be fetched via getProperty
-                    result[prop.Name + "$type"] = value.GetType().Name;
-                }
-            }
-            catch
-            {
-                // Ignore properties that can't be read
-            }
-        }
-
-        // Include available methods
-        var methods = type.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
-            .Where(m => !m.IsSpecialName) // Exclude property getters/setters
-            .Where(m => m.DeclaringType != typeof(object)) // Exclude Object methods
-            .Select(m => new
-            {
-                name = m.Name,
-                parameters = m.GetParameters().Select(p => new { name = p.Name, type = p.ParameterType.Name }).ToArray()
-            })
-            .GroupBy(m => m.name)
-            .Select(g => g.First()) // Just include one overload for now
-            .ToArray();
-
-        result["$methods"] = methods;
-
-        return result;
     }
 
     /// <summary>
-    /// Resolves a JsonElement value that might be a proxy reference (with $id) to the actual .NET object.
+    /// Resolves a JSON element that might be a proxy reference (with $id) to the actual .NET object.
     /// </summary>
     /// <param name="element">The JSON element to resolve.</param>
     /// <returns>The resolved value (either the referenced object or the primitive value).</returns>

@@ -72,7 +72,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         Assert.IsType<Dictionary<string, object?>>(result);
         var dict = (Dictionary<string, object?>)result!;
-        Assert.Equal("TestObject", dict["$type"]);
+        Assert.Contains("TestObject", dict["$type"]!.ToString());
         Assert.True(dict.ContainsKey("$id"));
     }
 
@@ -149,7 +149,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         Assert.IsType<Dictionary<string, object?>>(result);
         var dict = (Dictionary<string, object?>)result!;
-        Assert.Equal("TestObject", dict["$type"]);
+        Assert.Contains("TestObject", dict["$type"]!.ToString());
     }
 
     [Fact]
@@ -233,7 +233,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         Assert.IsType<Dictionary<string, object?>>(result);
         var marshalledItem = (Dictionary<string, object?>)result!;
-        Assert.Equal("TestObject", marshalledItem["$type"]);
+        Assert.Contains("TestObject", marshalledItem["$type"]!.ToString());
     }
 
     [Fact]
@@ -361,7 +361,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         Assert.IsType<Dictionary<string, object?>>(result);
         var dict = (Dictionary<string, object?>)result!;
-        Assert.Equal("TestObject", dict["$type"]);
+        Assert.Contains("TestObject", dict["$type"]!.ToString());
     }
 
     [Fact]
@@ -471,7 +471,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         Assert.IsType<Dictionary<string, object?>>(result);
         var dict = (Dictionary<string, object?>)result!;
-        Assert.Equal("SimpleTestClass", dict["$type"]);
+        Assert.Contains("SimpleTestClass", dict["$type"]!.ToString());
         Assert.True(dict.ContainsKey("$id"));
     }
 
@@ -574,7 +574,7 @@ public class RpcOperationsTests : IAsyncLifetime
 
         Assert.IsType<Dictionary<string, object?>>(result);
         var dict = (Dictionary<string, object?>)result!;
-        Assert.Equal("StaticTestClass", dict["$type"]);
+        Assert.Contains("StaticTestClass", dict["$type"]!.ToString());
         Assert.True(dict.ContainsKey("$id"));
     }
 

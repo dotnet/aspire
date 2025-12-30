@@ -69,8 +69,8 @@ public class IndexerOperationsTests : IAsyncLifetime
 
         Assert.IsType<Dictionary<string, object?>>(result);
         var dict = (Dictionary<string, object?>)result!;
-        Assert.Equal("ComplexItem", dict["$type"]);
-        Assert.Equal("first", dict["Name"]);
+        Assert.Contains("ComplexItem", dict["$type"]!.ToString());
+        Assert.True(dict.ContainsKey("$id"));
     }
 
     [Fact]
@@ -195,7 +195,8 @@ public class IndexerOperationsTests : IAsyncLifetime
 
         Assert.IsType<Dictionary<string, object?>>(result);
         var marshalled = (Dictionary<string, object?>)result!;
-        Assert.Equal("test", marshalled["Name"]);
+        Assert.Contains("ComplexItem", marshalled["$type"]!.ToString());
+        Assert.True(marshalled.ContainsKey("$id"));
     }
 
     [Fact]
