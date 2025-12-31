@@ -8,6 +8,12 @@ if (!socketPath) {
     throw new Error('REMOTE_APP_HOST_SOCKET_PATH environment variable not set. Please run with "aspire run".');
 }
 
+// Get auth token from environment variable (set by aspire run)
+const authToken = process.env.ASPIRE_RPC_AUTH_TOKEN;
+if (!authToken) {
+    throw new Error('ASPIRE_RPC_AUTH_TOKEN environment variable not set. Please run with "aspire run".');
+}
+
 const client = new RemoteAppHostClient(socketPath);
 
 export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
@@ -16,6 +22,7 @@ export async function createBuilder(args: string[] = process.argv.slice(2)): Pro
     while (true) {
       try {
         await client.connect();
+        await client.authenticate(authToken);
         await client.ping();
         console.log('Connected successfully!');
         break;
@@ -3509,6 +3516,12 @@ export class RemoteAppHostClient {
     ping(): Promise<string> {
         if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
         return this.connection.sendRequest('ping');
+    }
+
+    /** Authenticate with the server using the provided token */
+    authenticate(token: string): Promise<boolean> {
+        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
+        return this.connection.sendRequest('authenticate', token);
     }
 
     /** Invoke a method on a .NET object (instance methods only) */

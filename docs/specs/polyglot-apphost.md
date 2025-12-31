@@ -16,6 +16,7 @@ This document describes how the Aspire CLI supports non-.NET app hosts. Currentl
 - [Adding New Guest Languages](#adding-new-guest-languages)
 - [Code Generator Architecture](#code-generator-architecture)
 - [Development Mode](#development-mode)
+- [Security and Threat Model](#security-and-threat-model)
 - [Challenges and Limitations](#challenges-and-limitations)
 
 ---
@@ -96,6 +97,7 @@ Communication between the guest and host uses JSON-RPC 2.0 over Unix domain sock
 
 | Method | Direction | Purpose |
 |--------|-----------|---------|
+| `authenticate` | Guest → Host | Authenticate with server token |
 | `ping` | Guest → Host | Health check |
 | `createObject` | Guest → Host | Instantiate a .NET type |
 | `invokeStaticMethod` | Guest → Host | Call static/extension methods |
@@ -1210,6 +1212,271 @@ export ASPIRE_REPO_ROOT=/path/to/aspire
 This:
 - Skips SDK caching (always regenerates)
 - Uses local build artifacts from `artifacts/bin/` instead of NuGet packages
+
+---
+
+## Security and Threat Model
+
+This section describes the security considerations for the polyglot apphost feature.
+
+### Deployment Model
+
+**Critical Context:** Both the guest runtime and the AppHost server run locally on the same machine, started by the same CLI process. This is **not** a remote execution scenario.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Local Machine                            │
+│  ┌─────────────────┐         ┌─────────────────────────┐    │
+│  │  Guest Runtime  │◄───────►│  AppHost Server (.NET)  │    │
+│  │  (Node.js, etc) │  UDS    │                         │    │
+│  └─────────────────┘         └─────────────────────────┘    │
+│          ▲                              ▲                    │
+│          │ spawns                       │ spawns             │
+│          └──────────┬───────────────────┘                    │
+│                     │                                        │
+│              ┌──────┴──────┐                                 │
+│              │  Aspire CLI │                                 │
+│              └─────────────┘                                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Trust Boundaries
+
+| Boundary | Description |
+|----------|-------------|
+| **CLI → Processes** | CLI spawns both guest and host; controls their environment |
+| **Guest ↔ Host** | Unix domain socket; mutual trust assumed |
+| **Socket File** | File system permissions control access |
+| **Guest Dependencies** | npm/pip packages are third-party code |
+
+### Threat Actors
+
+| Actor | Description | Motivation |
+|-------|-------------|------------|
+| **Malicious Dependency** | Compromised npm/pip package in user's project | Data theft, cryptomining, lateral movement |
+| **Local Attacker** | Another process/user on the same machine | Hijack socket, inject commands |
+| **Compromised Guest Runtime** | Exploited vulnerability in Node.js/Python | Arbitrary code execution |
+| **Malicious User Code** | User intentionally writes malicious apphost | N/A (user is attacking themselves) |
+
+**Note:** "Malicious user code" is not a meaningful threat - if the user wants to run malicious code, they can do so directly without using Aspire. The real threats are supply chain attacks and local privilege escalation.
+
+### Attack Vectors
+
+#### 1. Supply Chain Attack (npm/pip packages)
+
+**Threat:** A malicious package in `node_modules` or Python venv gains access to the RPC protocol and invokes dangerous .NET APIs.
+
+**Attack Path:**
+```
+Malicious npm package
+    → Reads ASPIRE_RPC_SOCKET environment variable
+    → Connects to Unix domain socket
+    → Invokes: invokeStaticMethod("System.IO.File", "ReadAllText", {path: "/etc/passwd"})
+    → Exfiltrates data
+```
+
+**Dangerous APIs accessible today:**
+- `System.IO.File.*` - Read/write arbitrary files
+- `System.Diagnostics.Process.Start` - Execute arbitrary commands
+- `System.Environment.GetEnvironmentVariable` - Read secrets
+- `System.Reflection.*` - Load and execute arbitrary code
+- `System.Net.Http.HttpClient` - Exfiltrate data
+
+#### 2. Socket Hijacking
+
+**Threat:** Another process on the machine connects to the Unix domain socket.
+
+**Attack Path:**
+```
+Attacker process
+    → Enumerates /tmp/.aspire/ or watches for socket creation
+    → Connects to socket before/after legitimate guest
+    → Sends malicious RPC commands
+```
+
+#### 3. Object Registry Pollution
+
+**Threat:** Attacker creates objects that persist beyond their intended lifecycle.
+
+**Attack Path:**
+```
+Attacker
+    → Creates thousands of large objects via createObject
+    → Never calls unregisterObject
+    → Host process runs out of memory (DoS)
+```
+
+#### 4. Callback Injection
+
+**Threat:** Attacker registers callbacks that execute malicious code when invoked.
+
+**Attack Path:**
+```
+Attacker
+    → Registers callback that looks legitimate
+    → Callback exfiltrates data passed to it (e.g., HealthCheckContext)
+```
+
+### Current Mitigations
+
+| Mitigation | Description | Effectiveness |
+|------------|-------------|---------------|
+| **Unix Domain Socket** | No network exposure; local-only | ✅ Strong |
+| **Same-user execution** | Guest and host run as same user | ⚠️ Partial |
+| **Socket in temp directory** | Not in predictable location | ⚠️ Weak (discoverable) |
+| **CLI controls lifecycle** | Socket only exists during `aspire run` | ⚠️ Partial |
+
+### Implemented Mitigations
+
+#### M1: Assembly Allowlist ✅
+
+**Problem:** Any loaded assembly's types can be invoked.
+
+**Solution:** Restrict to known-safe assembly prefixes. Implemented in `SecurityPolicy.cs`.
+
+```csharp
+private static readonly string[] s_allowedAssemblyPrefixes =
+[
+    "Aspire.Hosting",
+    "Microsoft.Extensions.Hosting",
+    "Microsoft.Extensions.Configuration",
+    "Microsoft.Extensions.DependencyInjection",
+    "Microsoft.Extensions.ServiceDiscovery",
+];
+```
+
+All `createObject`, `invokeStaticMethod`, `getStaticProperty`, and `setStaticProperty` calls validate the assembly name against this allowlist. Attempts to access blocked assemblies throw `UnauthorizedAccessException`.
+
+**Blocked by default:**
+- `System.IO` - File system access
+- `System.Diagnostics` - Process execution
+- `System.Reflection` - Dynamic code loading
+- `System.Net` - Network access
+
+#### M2: Socket Authentication Token ✅
+
+**Problem:** Any process that can access the socket file can connect.
+
+**Solution:** Require a secret token for authentication. Implemented in `RemoteAppHostService`.
+
+```
+1. Server is created with an optional auth token
+2. Token passed to guest via environment variable (ASPIRE_RPC_TOKEN)
+3. Guest must call authenticate() before any other RPC method
+4. Host rejects all calls (except ping) until authenticated
+5. Token comparison uses constant-time algorithm to prevent timing attacks
+```
+
+```json
+// First message from guest must be:
+{"jsonrpc":"2.0","id":1,"method":"authenticate","params":{"token":"<random-token>"}}
+
+// Response on success:
+{"jsonrpc":"2.0","id":1,"result":true}
+
+// Response on failure:
+{"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"Invalid authentication token."}}
+```
+
+The `ping` method does not require authentication (used for health checks before auth).
+
+### Proposed Mitigations
+
+#### M3: Socket File Permissions
+
+**Problem:** Default file permissions may allow other users to access socket.
+
+**Solution:** Set restrictive permissions on socket file.
+
+```csharp
+// On Unix: chmod 600 (owner read/write only)
+File.SetUnixFileMode(socketPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+```
+
+#### M4: Object Registry Limits
+
+**Problem:** Unbounded object creation can exhaust memory.
+
+**Solution:** Enforce limits on registry size.
+
+```csharp
+private const int MaxRegisteredObjects = 10_000;
+private const int MaxObjectSizeBytes = 100_000_000; // 100 MB total
+
+public string Register(object obj)
+{
+    if (_registry.Count >= MaxRegisteredObjects)
+        throw new InvalidOperationException("Object registry limit exceeded");
+    // ...
+}
+```
+
+#### M5: Method Blocklist
+
+**Problem:** Even on allowed assemblies, some methods are dangerous.
+
+**Solution:** Block known-dangerous methods.
+
+```csharp
+private static readonly HashSet<string> BlockedMethods = new(StringComparer.OrdinalIgnoreCase)
+{
+    "GetType",           // Reflection entry point
+    "InvokeMember",      // Dynamic invocation
+    "CreateDelegate",    // Delegate creation
+};
+```
+
+#### M6: Audit Logging
+
+**Problem:** No visibility into what RPC calls are being made.
+
+**Solution:** Log all RPC operations.
+
+```csharp
+// Log format
+[2024-01-15T10:30:45Z] RPC invokeStaticMethod: Aspire.Hosting.Redis.RedisBuilderExtensions.AddRedis
+[2024-01-15T10:30:45Z] RPC BLOCKED: System.IO.File.ReadAllText (assembly not allowed)
+```
+
+#### M7: Rate Limiting
+
+**Problem:** Burst of RPC calls can overwhelm the host.
+
+**Solution:** Limit RPC calls per time window.
+
+```csharp
+private const int MaxRpcCallsPerSecond = 1000;
+```
+
+### Mitigation Priority Matrix
+
+| Mitigation | Threat Addressed | Effort | Status |
+|------------|------------------|--------|--------|
+| **M1: Assembly Allowlist** | Supply chain attack | Medium | ✅ Implemented |
+| **M2: Socket Auth Token** | Socket hijacking | Medium | ✅ Implemented |
+| **M3: Socket Permissions** | Local attacker | Low | 🟡 TODO |
+| **M4: Registry Limits** | DoS | Low | 🟡 TODO |
+| **M5: Method Blocklist** | Supply chain attack | Low | 🟡 TODO |
+| **M6: Audit Logging** | Detection/forensics | Low | 🟢 Future |
+| **M7: Rate Limiting** | DoS | Low | 🟢 Future |
+
+### Residual Risks
+
+Even with all mitigations, some risks remain:
+
+| Risk | Description | Acceptance Rationale |
+|------|-------------|---------------------|
+| **Allowed API abuse** | Aspire.Hosting APIs could be misused | User code can do this anyway via .NET |
+| **Resource exhaustion** | Creating many legitimate resources | Same as running any .NET code |
+| **Token theft** | Environment variable could be read by malicious package | Package already has user privileges |
+
+### Security Recommendations for Users
+
+1. **Review dependencies** - Audit npm/pip packages before adding to apphost projects
+2. **Use lockfiles** - Pin exact versions to prevent supply chain attacks
+3. **Minimize dependencies** - Fewer packages = smaller attack surface
+4. **Run with least privilege** - Don't run `aspire run` as root/admin
+5. **Monitor for anomalies** - Watch for unexpected network connections or file access
 
 ---
 

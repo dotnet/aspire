@@ -155,6 +155,12 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
             throw new Error('REMOTE_APP_HOST_SOCKET_PATH environment variable not set. Please run with "aspire run".');
         }
 
+        // Get auth token from environment variable (set by aspire run)
+        const authToken = process.env.ASPIRE_RPC_AUTH_TOKEN;
+        if (!authToken) {
+            throw new Error('ASPIRE_RPC_AUTH_TOKEN environment variable not set. Please run with "aspire run".');
+        }
+
         const client = new RemoteAppHostClient(socketPath);
         """);
     }
@@ -1315,6 +1321,7 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
             while (true) {
               try {
                 await client.connect();
+                await client.authenticate(authToken);
                 await client.ping();
                 console.log('Connected successfully!');
                 break;

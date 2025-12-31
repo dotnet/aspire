@@ -825,10 +825,21 @@ public class RpcOperationsTests : IAsyncLifetime
     }
 
     [Fact]
-    public void CreateObject_ThrowsForUnknownAssembly()
+    public void CreateObject_ThrowsForBlockedAssembly()
     {
+        // Non-allowlisted assemblies appear as "not found" to untrusted callers
         var ex = Assert.Throws<InvalidOperationException>(() =>
             _operations.CreateObject("NonExistent.Assembly", "SomeType", null));
+
+        Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public void CreateObject_ThrowsForUnknownAllowedAssembly()
+    {
+        // Allowed prefix but assembly doesn't exist throws InvalidOperationException
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _operations.CreateObject("Aspire.Hosting.DoesNotExist", "SomeType", null));
 
         Assert.Contains("not found", ex.Message);
     }
@@ -924,10 +935,21 @@ public class RpcOperationsTests : IAsyncLifetime
     }
 
     [Fact]
-    public void InvokeStaticMethod_ThrowsForUnknownAssembly()
+    public void InvokeStaticMethod_ThrowsForBlockedAssembly()
     {
+        // Non-allowlisted assemblies appear as "not found" to untrusted callers
         var ex = Assert.Throws<InvalidOperationException>(() =>
             _operations.InvokeStaticMethod("NonExistent.Assembly", "SomeType", "SomeMethod", null));
+
+        Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public void InvokeStaticMethod_ThrowsForUnknownAllowedAssembly()
+    {
+        // Allowed prefix but assembly doesn't exist throws InvalidOperationException
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _operations.InvokeStaticMethod("Aspire.Hosting.DoesNotExist", "SomeType", "SomeMethod", null));
 
         Assert.Contains("not found", ex.Message);
     }

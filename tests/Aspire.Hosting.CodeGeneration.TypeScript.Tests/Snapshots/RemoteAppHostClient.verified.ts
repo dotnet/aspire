@@ -438,6 +438,12 @@ export class RemoteAppHostClient {
         return this.connection.sendRequest('ping');
     }
 
+    /** Authenticate with the server using the provided token */
+    authenticate(token: string): Promise<boolean> {
+        if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));
+        return this.connection.sendRequest('authenticate', token);
+    }
+
     /** Invoke a method on a .NET object (instance methods only) */
     invokeMethod(objectId: string, methodName: string, args?: Record<string, unknown>): Promise<unknown> {
         if (!this.connection) return Promise.reject(new Error('Not connected to RemoteAppHost'));

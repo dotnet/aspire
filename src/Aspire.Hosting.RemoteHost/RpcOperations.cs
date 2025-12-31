@@ -24,10 +24,15 @@ internal sealed class RpcOperations : IAsyncDisposable
     };
 
     public RpcOperations(ObjectRegistry objectRegistry, ICallbackInvoker callbackInvoker)
+        : this(objectRegistry, callbackInvoker, SecurityPolicy.Default)
+    {
+    }
+
+    public RpcOperations(ObjectRegistry objectRegistry, ICallbackInvoker callbackInvoker, SecurityPolicy securityPolicy)
     {
         _objectRegistry = objectRegistry;
         _callbackInvoker = callbackInvoker;
-        _typeResolver = new TypeResolver();
+        _typeResolver = new TypeResolver(securityPolicy);
         _callbackProxyFactory = new CallbackProxyFactory(callbackInvoker, objectRegistry);
     }
 
@@ -141,7 +146,11 @@ internal sealed class RpcOperations : IAsyncDisposable
     }
 
     /// <summary>
-    /// Gets an indexed value from a registered object (list or dictionary).
+    /// Gets an indexed value from a registered object.
+    /// Supports:
+    /// - IDictionary (e.g., Dictionary&lt;string, T&gt;) - uses string key
+    /// - IList (e.g., List&lt;T&gt;) - uses integer index
+    /// - Any type with a single-parameter indexer (e.g., IConfiguration) - via reflection
     /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
     /// </summary>
     public JsonNode? GetIndexer(string objectId, JsonNode key)
@@ -182,6 +191,18 @@ internal sealed class RpcOperations : IAsyncDisposable
             }
 
             return MarshalResult(list[index]);
+        }
+
+        // Fallback: use reflection to find an indexer property.
+        // This handles types like IConfiguration that have an indexer but don't implement IDictionary.
+        // The CLR represents indexers as a property named "Item" with the index type as parameter.
+        var indexerProperty = FindIndexerProperty(obj.GetType());
+        if (indexerProperty != null)
+        {
+            var indexParam = indexerProperty.GetIndexParameters()[0];
+            var convertedKey = ConvertKey(key, indexParam.ParameterType);
+            var value = indexerProperty.GetValue(obj, new object[] { convertedKey });
+            return MarshalResult(value);
         }
 
         throw new InvalidOperationException($"Object '{objectId}' does not support indexing");
@@ -603,6 +624,59 @@ internal sealed class RpcOperations : IAsyncDisposable
     }
 
     /// <summary>
+    /// Finds an indexer property (this[T]) on a type.
+    /// Returns the first single-parameter indexer found, or null if none exists.
+    /// </summary>
+    private static System.Reflection.PropertyInfo? FindIndexerProperty(Type type)
+    {
+        // Look for properties with index parameters (indexers are compiled as "Item" properties)
+        foreach (var prop in type.GetProperties())
+        {
+            var indexParams = prop.GetIndexParameters();
+            if (indexParams.Length == 1)
+            {
+                return prop;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Converts a JsonNode key to the target type for indexer access.
+    /// </summary>
+    private static object ConvertKey(JsonNode key, Type targetType)
+    {
+        if (key is JsonValue jsonValue)
+        {
+            if (targetType == typeof(string))
+            {
+                if (jsonValue.TryGetValue<string>(out var str))
+                {
+                    return str;
+                }
+            }
+            else if (targetType == typeof(int))
+            {
+                if (jsonValue.TryGetValue<int>(out var intVal))
+                {
+                    return intVal;
+                }
+            }
+            else if (targetType == typeof(long))
+            {
+                if (jsonValue.TryGetValue<long>(out var longVal))
+                {
+                    return longVal;
+                }
+            }
+        }
+
+        // Fallback: convert from string representation
+        var keyString = key is JsonValue jv && jv.TryGetValue<string>(out var s) ? s : key.ToString();
+        return Convert.ChangeType(keyString, targetType, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
     /// Converts a .NET result to its JSON representation.
     /// Returns: null | JsonValue (primitive) | JsonArray (primitive array) | JsonObject (primitive dict or object ref)
     /// </summary>
@@ -846,6 +920,10 @@ internal sealed class RpcOperations : IAsyncDisposable
 
     /// <summary>
     /// Gets an indexed value using a string key.
+    /// Supports:
+    /// - IDictionary (e.g., Dictionary&lt;string, T&gt;) - uses string key
+    /// - IList (e.g., List&lt;T&gt;) - parses key as integer index
+    /// - Any type with a single-parameter indexer (e.g., IConfiguration) - via reflection
     /// Returns: null | JsonValue (primitive) | JsonObject { "$id", "$type" }
     /// </summary>
     public JsonNode? GetIndexerByStringKey(string objectId, string key)
@@ -873,6 +951,17 @@ internal sealed class RpcOperations : IAsyncDisposable
             }
 
             return MarshalResult(list[index]);
+        }
+
+        // Fallback: use reflection to find an indexer property.
+        // This handles types like IConfiguration that have an indexer but don't implement IDictionary.
+        var indexerProperty = FindIndexerProperty(obj.GetType());
+        if (indexerProperty != null)
+        {
+            var indexParam = indexerProperty.GetIndexParameters()[0];
+            var convertedKey = Convert.ChangeType(key, indexParam.ParameterType, System.Globalization.CultureInfo.InvariantCulture);
+            var value = indexerProperty.GetValue(obj, new object[] { convertedKey });
+            return MarshalResult(value);
         }
 
         throw new InvalidOperationException($"Object '{objectId}' does not support indexing");
