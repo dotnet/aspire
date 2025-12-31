@@ -6,14 +6,19 @@ using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Microsoft.AspNetCore.Components;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Controls;
 
 public partial class StructuredLogDetails : IDisposable
 {
+    private static readonly Icon s_copyIcon = new Icons.Regular.Size16.Copy();
+
     [Parameter, EditorRequired]
     public required StructureLogsDetailsViewModel ViewModel { get; set; }
 
@@ -53,6 +58,7 @@ public partial class StructuredLogDetails : IDisposable
     private List<TelemetryPropertyViewModel> _logEntryAttributes = null!;
     private List<TelemetryPropertyViewModel> _contextAttributes = null!;
     private List<TelemetryPropertyViewModel> _exceptionAttributes = null!;
+    private readonly List<MenuButtonItem> _logActionsMenuItems = [];
     private AIContext? _aiContext;
 
     protected override void OnInitialized()
@@ -132,7 +138,25 @@ public partial class StructuredLogDetails : IDisposable
                     Parameters = { ["LogEntry"] = _viewModel.LogEntry }
                 },
             };
+
+            UpdateLogActionsMenu();
         }
+    }
+
+    private void UpdateLogActionsMenu()
+    {
+        _logActionsMenuItems.Clear();
+
+        _logActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = Loc[nameof(ControlsStrings.CopyAsJson)],
+            Icon = s_copyIcon,
+            OnClick = async () =>
+            {
+                var logJson = TelemetryExportService.ConvertLogEntryToJson(ViewModel.LogEntry);
+                await JS.InvokeVoidAsync("copyText", logJson);
+            }
+        });
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

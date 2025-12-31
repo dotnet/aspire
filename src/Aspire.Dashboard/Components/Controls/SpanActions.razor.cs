@@ -12,6 +12,7 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components;
@@ -21,6 +22,7 @@ public partial class SpanActions : ComponentBase
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_structuredLogsIcon = new Icons.Regular.Size16.SlideTextSparkle();
     private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
+    private static readonly Icon s_copyIcon = new Icons.Regular.Size16.Copy();
 
     private AspireMenuButton? _menuButton;
 
@@ -38,6 +40,9 @@ public partial class SpanActions : ComponentBase
 
     [Inject]
     public required IAIContextProvider AIContextProvider { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
     [Parameter]
     public required EventCallback<string> OnViewDetails { get; set; }
@@ -84,5 +89,16 @@ public partial class SpanActions : ComponentBase
                 }
             });
         }
+
+        _menuItems.Add(new MenuButtonItem
+        {
+            Text = ControlsLoc[nameof(ControlsStrings.CopyAsJson)],
+            Icon = s_copyIcon,
+            OnClick = async () =>
+            {
+                var spanJson = TelemetryExportService.ConvertSpanToJson(SpanViewModel.Span);
+                await JS.InvokeVoidAsync("copyText", spanJson);
+            }
+        });
     }
 }
