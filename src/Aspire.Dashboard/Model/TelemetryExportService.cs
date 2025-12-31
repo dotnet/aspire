@@ -264,6 +264,18 @@ public sealed class TelemetryExportService
         };
     }
 
+    internal static string ConvertSpanToJson(OtlpSpan span)
+    {
+        var spanJson = ConvertSpan(span);
+        return JsonSerializer.Serialize(spanJson, OtlpJsonSerializerContext.IndentedOptions);
+    }
+
+    internal static string ConvertLogEntryToJson(OtlpLogEntry logEntry)
+    {
+        var logJson = ConvertLogEntry(logEntry);
+        return JsonSerializer.Serialize(logJson, OtlpJsonSerializerContext.IndentedOptions);
+    }
+
     private static OtlpSpanJson ConvertSpan(OtlpSpan span)
     {
         return new OtlpSpanJson

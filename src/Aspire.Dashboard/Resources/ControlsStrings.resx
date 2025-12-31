@@ -519,4 +519,7 @@
   <data name="SpanTypeCloud" xml:space="preserve">
     <value>Cloud</value>
   </data>
+  <data name="CopyAsJson" xml:space="preserve">
+    <value>Copy as JSON</value>
+  </data>
 </root>

@@ -117,6 +117,11 @@
         <target state="translated">Comprimi tutto</target>
         <note />
       </trans-unit>
+      <trans-unit id="CopyAsJson">
+        <source>Copy as JSON</source>
+        <target state="new">Copy as JSON</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
         <target state="translated">Dettagli</target>
