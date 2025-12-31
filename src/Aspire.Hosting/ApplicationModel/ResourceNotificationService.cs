@@ -664,8 +664,8 @@ public class ResourceNotificationService : IDisposable
                     newState.ResourceReadyEvent is not null,
                     newState.ExitCode,
                     string.Join(" ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
-                    string.Join(" ", newState.EnvironmentVariables.Where(e => e.IsFromSpec).Select(e => $"{e.Name} = {e.Value}")),
-                    string.Join(" ", newState.Properties.Select(p => $"{p.Name} = {Stringify(p.Value)}")),
+                    string.Join(" ", newState.EnvironmentVariables.Where(e => e.IsFromSpec).Select(e => $"{e.Name} = {(e.Value is null ? "(null)" : "***")}")),
+                    string.Join(" ", newState.Properties.Select(p => $"{p.Name} = {(p.IsSensitive ? "***" : Stringify(p.Value))}")),
                     string.Join(" ", newState.HealthReports.Select(p => $"{p.Name} = {Stringify(p.Status)}")),
                     string.Join(" ", newState.Commands.Select(c => $"{c.Name} ({c.DisplayName}) = {Stringify(c.State)}")));
 
