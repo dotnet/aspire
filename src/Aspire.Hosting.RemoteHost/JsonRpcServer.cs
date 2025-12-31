@@ -263,6 +263,14 @@ internal sealed class JsonRpcServer : IAsyncDisposable
         var endpoint = new UnixDomainSocketEndPoint(_socketPath);
         _listenSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         _listenSocket.Bind(endpoint);
+
+        // M3: Set restrictive permissions on socket file (owner read/write only)
+        // This prevents other users on the system from connecting to the socket
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        {
+            File.SetUnixFileMode(_socketPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
+
         _listenSocket.Listen(10);
 
         while (!cancellationToken.IsCancellationRequested)

@@ -62,4 +62,5 @@ internal sealed class SecurityPolicy
         }
         return false;
     }
+
 }

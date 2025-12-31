@@ -1382,7 +1382,7 @@ The `ping` method does not require authentication (used for health checks before
 
 ### Proposed Mitigations
 
-#### M3: Socket File Permissions
+#### M3: Socket File Permissions ✅
 
 **Problem:** Default file permissions may allow other users to access socket.
 
@@ -1454,9 +1454,9 @@ private const int MaxRpcCallsPerSecond = 1000;
 |------------|------------------|--------|--------|
 | **M1: Assembly Allowlist** | Supply chain attack | Medium | ✅ Implemented |
 | **M2: Socket Auth Token** | Socket hijacking | Medium | ✅ Implemented |
-| **M3: Socket Permissions** | Local attacker | Low | 🟡 TODO |
-| **M4: Registry Limits** | DoS | Low | 🟡 TODO |
-| **M5: Method Blocklist** | Supply chain attack | Low | 🟡 TODO |
+| **M3: Socket Permissions** | Local attacker | Low | ✅ Implemented |
+| **M4: Registry Limits** | DoS | Low | ⚪ N/A |
+| **M5: Method Blocklist** | Supply chain attack | Low | ⚪ N/A |
 | **M6: Audit Logging** | Detection/forensics | Low | 🟢 Future |
 | **M7: Rate Limiting** | DoS | Low | 🟢 Future |
 
