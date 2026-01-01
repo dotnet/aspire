@@ -54,7 +54,6 @@ foreach(var toolAnnotation in substituted.Resource.Annotations.OfType<DotnetTool
 // Fake Offline by using "empty" package feeds
 var fakeSourcesPath = Path.Combine(Path.GetTempPath(), "does-not-exist", Guid.NewGuid().ToString());
 var offline = builder.AddDotnetTool("offlineSimpleUsage", "dotnet-ef")
-    .WaitForCompletion(simpleUsage)
     .WithToolSource(fakeSourcesPath)
     .WithToolIgnoreExistingFeeds()
     .WithToolIgnoreFailedSources()
@@ -62,7 +61,6 @@ var offline = builder.AddDotnetTool("offlineSimpleUsage", "dotnet-ef")
 
 builder.AddDotnetTool("offlineWildcard", "dotnet-ef")
     .WithToolVersion("10.0.*")
-    .WaitForCompletion(wildcardVersion)
     .WithParentRelationship(offline)
     .WithToolSource(fakeSourcesPath)
     .WithToolIgnoreExistingFeeds()
@@ -70,8 +68,7 @@ builder.AddDotnetTool("offlineWildcard", "dotnet-ef")
 
 builder.AddDotnetTool("offlinePrerelease", "dotnet-ef")
     .WithToolPrerelease()
-    .WaitForCompletion(preRelease)
-    .WithParentRelationship(offline)
+     .WithParentRelationship(offline)
     .WithToolSource(fakeSourcesPath)
     .WithToolIgnoreExistingFeeds()
     .WithToolIgnoreFailedSources();

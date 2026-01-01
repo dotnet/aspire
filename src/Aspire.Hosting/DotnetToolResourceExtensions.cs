@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -13,9 +12,9 @@ namespace Aspire.Hosting;
 /// Provides extension methods for adding Dotnet Tool resources to the application model.
 /// </summary>
 [Experimental("ASPIREDOTNETTOOL", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public static class DotnetToolExtensions
+public static class DotnetToolResourceExtensions
 {
-    private const string ArgumentSeperator = "--";
+    internal const string ArgumentSeparator = "--";
 
     /// <summary>
     /// Adds a .NET tool resource to the distributed application builder.
@@ -41,13 +40,12 @@ public static class DotnetToolExtensions
         return builder.AddResource(resource)
             .WithInitialState(new CustomResourceSnapshot
             {
-                ResourceType = "Tool",
+                ResourceType = KnownResourceTypes.Tool,
                 Properties = []
             })
             .WithIconName("Toolbox")
             .WithCommand("dotnet")
             .WithArgs(BuildToolExecArguments)
-            .OnInitializeResource(UpdateSourceColumnForDashboard)
             .OnBeforeResourceStarted(BuildToolProperties);
 
         void BuildToolExecArguments(CommandLineArgsCallbackContext x)
@@ -87,89 +85,7 @@ public static class DotnetToolExtensions
             }
 
             x.Args.Add("--yes");
-            x.Args.Add(ArgumentSeperator);
-        }
-
-        static Task UpdateSourceColumnForDashboard(T resource, InitializeResourceEvent evt, CancellationToken ct)
-        {
-            var rns = evt.Services.GetRequiredService<ResourceNotificationService>();
-            // `DcpExecutor` will keep on ovewriting these properties every time there is an internal update
-            // so subscribe to every Resource update so we can undo DcpExecutor's changes.
-            _ = Task.Run(async () =>
-            {
-                await foreach (var x in rns.WatchAsync(ct).ConfigureAwait(false))
-                {
-                    if (x.Resource != resource)
-                    {
-                        continue;
-                    }
-
-                    var toolConfig = resource.ToolConfiguration;
-                    if (toolConfig == null)
-                    {
-                        continue;
-                    }
-
-                    // Update the executable `path` property as this is what the dashboard uses to render the primary text in the "Source" column
-                    // changing `dotnet` to `TOOL NAME`
-                    var properties = x.Snapshot.Properties;
-                    var expectedPath = toolConfig.PackageId;
-                    var existingPath = properties.FirstOrDefault(p => p.Name == KnownProperties.Executable.Path)?.Value;
-
-                    if (existingPath as string != expectedPath)
-                    {
-                        await rns.PublishUpdateAsync(resource, x => x with
-                        {
-                            Properties = [
-                              ..x.Properties.RemoveAll(p => p.Name is KnownProperties.Executable.Path),
-                           new(KnownProperties.Executable.Path, expectedPath)
-                           ]
-                        }).ConfigureAwait(false);
-                        continue;
-                    }
-
-                    // For resource args strip out the "tool exec <packageId> ... --" portion and only show the args for the tool itself
-                    // But for diagnostics, put the original properties back in the ToolExecArgs property
-                    var argsProperty = properties.FirstOrDefault(x => x.Name == KnownProperties.Resource.AppArgs);
-                    var argsSensitivityProperty = properties.FirstOrDefault(x => x.Name == KnownProperties.Resource.AppArgsSensitivity);
-
-                    if (argsProperty?.Value is not ImmutableArray<string> originalArgs
-                        || argsSensitivityProperty?.Value is not ImmutableArray<int> originalSensitivity)
-                    {
-                        continue;
-                    }
-
-                    // If the first args are not "tool" or "exec", then assume we've already removed the args
-                    if (originalArgs.Length < 2 || originalArgs[0] != "tool" || originalArgs[1] != "exec")
-                    {
-                        continue;
-                    }
-
-                    var argSeperatorPosition = originalArgs.IndexOf(ArgumentSeperator);
-                    if (argSeperatorPosition == -1)
-                    {
-                        continue;
-                    }
-
-                    var firstToolArg = argSeperatorPosition + 1;
-                    var toolArgs = originalArgs[firstToolArg..];
-                    var toolSensitivity = originalSensitivity[firstToolArg..];
-
-                    var execArgs = originalArgs[..argSeperatorPosition];
-
-                    await rns.PublishUpdateAsync(resource, x => x with
-                    {
-                        Properties = [
-                            ..x.Properties.RemoveAll(p => p.Name is KnownProperties.Resource.AppArgs or KnownProperties.Resource.AppArgsSensitivity or KnownProperties.Tool.ExecArgs),
-                            new(KnownProperties.Resource.AppArgs, toolArgs),
-                            new(KnownProperties.Resource.AppArgsSensitivity, toolSensitivity),
-                            new(KnownProperties.Tool.ExecArgs, toolArgs){ IsSensitive = true }
-                            ]
-                    }).ConfigureAwait(false);
-                }
-            }, ct);
-
-            return Task.CompletedTask;
+            x.Args.Add(ArgumentSeparator);
         }
 
         //TODO: Move to WithConfigurationFinalizer once merged - https://github.com/dotnet/aspire/pull/13200
@@ -187,7 +103,8 @@ public static class DotnetToolExtensions
                 Properties = [
                         ..x.Properties,
                         new (KnownProperties.Tool.Package, toolConfig.PackageId),
-                        new (KnownProperties.Tool.Version, toolConfig.Version)
+                        new (KnownProperties.Tool.Version, toolConfig.Version),
+                        new (KnownProperties.Resource.Source, resource.ToolConfiguration?.PackageId)
                         ]
             }).ConfigureAwait(false);
         }

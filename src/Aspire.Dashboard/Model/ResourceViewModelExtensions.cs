@@ -19,6 +19,11 @@ internal static class ResourceViewModelExtensions
         return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Project);
     }
 
+    public static bool IsTool(this ResourceViewModel resource)
+    {
+        return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Tool);
+    }
+
     public static bool IsExecutable(this ResourceViewModel resource, bool allowSubtypes)
     {
         if (StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Executable))
@@ -47,6 +52,10 @@ internal static class ResourceViewModelExtensions
     public static bool TryGetProjectPath(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? projectPath)
     {
         return resource.TryGetCustomDataString(KnownProperties.Project.Path, out projectPath);
+    }
+    public static bool TryGetToolPackage(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? projectPath)
+    {
+        return resource.TryGetCustomDataString(KnownProperties.Tool.Package, out projectPath);
     }
 
     public static bool TryGetExecutablePath(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? executablePath)

@@ -109,6 +109,7 @@ public class DcpExecutorTests
         Assert.Equal(2, resourceIds.Count);
     }
 
+    //TODO: More tests here
     [Theory]
     [InlineData(ExecutionType.IDE, false, null, new string[] { "--test1", "--test2" })]
     [InlineData(ExecutionType.IDE, true, new string[] { "--withargs-test" }, new string[] { "--withargs-test" })]
@@ -162,7 +163,43 @@ public class DcpExecutorTests
         Assert.Equal(expectedArgs, callArgs);
 
         Assert.True(exe.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations));
-        Assert.Equal(expectedAnnotations, argAnnotations.Select(a => a.Argument));
+        Assert.Equal(expectedDisplayArgs, argAnnotations.Select(a => a.Argument));
+    }
+
+    [Theory]
+    [InlineData()]
+    [InlineData("--arg1", "foo")]
+    public async Task CreateExecutable_ToolHasCommandLineArgs_AnnotationsAdded(params string[] toolArgs)
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        var resourceBuilder = builder.AddDotnetTool("tool", "package")
+            .WithArgs(toolArgs);
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions, events: events);
+        await appExecutor.RunApplicationAsync();
+
+        var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        var exe = Assert.Single(executables);
+
+        string[] dotnetToolExecArgs = ["tool", "exec", "package", "--yes", "--"];
+        string[] callArgs = [..dotnetToolExecArgs, ..toolArgs];
+
+        Assert.Equal(callArgs, exe.Spec.Args);
+
+        Assert.True(exe.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations));
+        Assert.Equal(toolArgs, argAnnotations.Select(a => a.Argument));
     }
 
     [Fact]

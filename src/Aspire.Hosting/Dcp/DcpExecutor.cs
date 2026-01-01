@@ -1700,14 +1700,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
 
             var launchArgs = BuildLaunchArgs(er, spec, configuration.Arguments);
-            var executableArgs = launchArgs.Where(a => !a.AnnotationOnly).Select(a => a.Value).ToList();
+            var executableArgs = launchArgs.Where(a => a.Executable).Select(a => a.Value).ToList();
+            var displayArgs = launchArgs.Where(a => a.Display).ToList();
             if (executableArgs.Count > 0)
             {
                 spec.Args ??= [];
                 spec.Args.AddRange(executableArgs);
             }
             // Arg annotations are what is displayed in the dashboard.
-            er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, launchArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
+            er.DcpResource.SetAnnotationAsObjectList(CustomResource.ResourceAppArgsAnnotation, displayArgs.Select(a => new AppLaunchArgumentAnnotation(a.Value, isSensitive: a.IsSensitive)));
 
             spec.Env = configuration.EnvironmentVariables.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList();
 
@@ -1724,13 +1725,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private static List<(string Value, bool IsSensitive, bool AnnotationOnly)> BuildLaunchArgs(RenderedModelResource er, ExecutableSpec spec, IEnumerable<(string Value, bool IsSensitive)> appHostArgs)
+    private static List<(string Value, bool IsSensitive, bool Executable, bool Display)> BuildLaunchArgs(RenderedModelResource er, ExecutableSpec spec, IEnumerable<(string Value, bool IsSensitive)> appHostArgs)
     {
         // Launch args is the final list of args that are displayed in the UI and possibly added to the executable spec.
         // They're built from app host resource model args and any args in the effective launch profile.
         // Follows behavior in the IDE execution spec when in IDE execution mode:
-        // https://github.com/dotnet/aspire/blob/main/docs/specs/IDE-execution.md#launch-profile-processing-project-launch-configuration
-        var launchArgs = new List<(string Value, bool IsSensitive, bool AnnotationOnly)>();
+        // https://github.com/dotnet/aspire/blob/main/docs/specs/IDE-execution.md#project-launch-configuration-type-project
+        var launchArgs = new List<(string Value, bool IsSensitive, bool Executable, bool Display)>();
 
         // If the executable is a project then include any command line args from the launch profile.
         if (er.ModelResource is ProjectResource project)
@@ -1742,7 +1743,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 // When the .NET project is launched from an IDE the launch profile args are automatically added.
                 // We still want to display the args in the dashboard so only add them to the custom arg annotations.
-                var annotationOnly = spec.ExecutionType == ExecutionType.IDE;
+                var executableArg = spec.ExecutionType != ExecutionType.IDE;
 
                 var launchProfileArgs = GetLaunchProfileArgs(project.GetEffectiveLaunchProfile()?.LaunchProfile);
                 if (launchProfileArgs.Count > 0 && appHostArgs.Any())
@@ -1751,12 +1752,24 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     launchProfileArgs.Insert(0, "--");
                 }
 
-                launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, annotationOnly)));
+                launchArgs.AddRange(launchProfileArgs.Select(a => (a, isSensitive: false, executableArg, true)));
             }
         }
+#pragma warning disable ASPIREDOTNETTOOL // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        else if (er.ModelResource is DotnetToolResource tool)
+        {
+            var argSeparator = appHostArgs.Select((a, i) => (index: i, value: a.Value))
+                .FirstOrDefault(x => x.value == DotnetToolResourceExtensions.ArgumentSeparator);
+
+            var args = appHostArgs.Select((a, i) => (arg : a, display : i > argSeparator.index));
+            launchArgs.AddRange(args.Select(x => (x.arg.Value, x.arg.IsSensitive, true, x.display)));
+            return launchArgs;
+
+        }
+#pragma warning restore ASPIREDOTNETTOOL // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         // In the situation where args are combined (process execution) the app host args are added after the launch profile args.
-        launchArgs.AddRange(appHostArgs.Select(a => (a.Value, a.IsSensitive, annotationOnly: false)));
+        launchArgs.AddRange(appHostArgs.Select(a => (a.Value, a.IsSensitive, true, true)));
 
         return launchArgs;
     }
