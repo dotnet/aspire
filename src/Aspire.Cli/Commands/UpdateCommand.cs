@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 using System.Formats.Tar;
+using System.Globalization;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
@@ -303,15 +304,18 @@ internal sealed class UpdateCommand : BaseCommand
 
     private async Task ExtractAndUpdateAsync(string archivePath, CancellationToken cancellationToken)
     {
-        // Always install to $HOME/.aspire/bin
-        var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (string.IsNullOrEmpty(homeDir))
+        // Install to the same directory as the current CLI executable
+        var currentExePath = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(currentExePath))
         {
-            throw new InvalidOperationException("Unable to determine home directory.");
+            throw new InvalidOperationException("Unable to determine current CLI location.");
         }
 
-        var installDir = Path.Combine(homeDir, ".aspire", "bin");
-        Directory.CreateDirectory(installDir);
+        var installDir = Path.GetDirectoryName(currentExePath);
+        if (string.IsNullOrEmpty(installDir))
+        {
+            throw new InvalidOperationException($"Unable to determine installation directory from: {currentExePath}");
+        }
 
         var exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "aspire.exe" : "aspire";
         var targetExePath = Path.Combine(installDir, exeName);
@@ -319,7 +323,6 @@ internal sealed class UpdateCommand : BaseCommand
 
         try
         {
-
             // Extract archive
             InteractionService.DisplayMessage("package", "Extracting new CLI...");
             await ExtractArchiveAsync(archivePath, tempExtractDir, cancellationToken);
@@ -389,6 +392,11 @@ internal sealed class UpdateCommand : BaseCommand
                 }
                 throw;
             }
+        }
+        catch (UnauthorizedAccessException)
+        {
+            throw new UnauthorizedAccessException(
+                string.Format(CultureInfo.CurrentCulture, UpdateCommandStrings.NoWritePermissionToInstallDirectory, installDir));
         }
         finally
         {
