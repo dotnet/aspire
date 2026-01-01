@@ -1,4 +1,4 @@
-﻿// RemoteAppHostClient.ts - Connects to the GenericAppHost via socket/named pipe
+// RemoteAppHostClient.ts - Connects to the GenericAppHost via socket/named pipe
 import * as net from 'net';
 import * as rpc from 'vscode-jsonrpc/node.js';
 import { CallbackFunction, MarshalledObject } from './types.js';

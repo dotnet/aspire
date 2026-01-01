@@ -1223,7 +1223,7 @@ This section describes the security considerations for the polyglot apphost feat
 
 **Critical Context:** Both the guest runtime and the AppHost server run locally on the same machine, started by the same CLI process. This is **not** a remote execution scenario.
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                     Local Machine                            │
 │  ┌─────────────────┐         ┌─────────────────────────┐    │
@@ -1267,7 +1267,7 @@ This section describes the security considerations for the polyglot apphost feat
 **Threat:** A malicious package in `node_modules` or Python venv gains access to the RPC protocol and invokes dangerous .NET APIs.
 
 **Attack Path:**
-```
+```text
 Malicious npm package
     → Reads ASPIRE_RPC_SOCKET environment variable
     → Connects to Unix domain socket
@@ -1287,7 +1287,7 @@ Malicious npm package
 **Threat:** Another process on the machine connects to the Unix domain socket.
 
 **Attack Path:**
-```
+```text
 Attacker process
     → Enumerates /tmp/.aspire/ or watches for socket creation
     → Connects to socket before/after legitimate guest
@@ -1299,7 +1299,7 @@ Attacker process
 **Threat:** Attacker creates objects that persist beyond their intended lifecycle.
 
 **Attack Path:**
-```
+```text
 Attacker
     → Creates thousands of large objects via createObject
     → Never calls unregisterObject
@@ -1311,7 +1311,7 @@ Attacker
 **Threat:** Attacker registers callbacks that execute malicious code when invoked.
 
 **Attack Path:**
-```
+```text
 Attacker
     → Registers callback that looks legitimate
     → Callback exfiltrates data passed to it (e.g., HealthCheckContext)
@@ -1359,7 +1359,7 @@ All `createObject`, `invokeStaticMethod`, `getStaticProperty`, and `setStaticPro
 
 **Solution:** Require a secret token for authentication. Implemented in `RemoteAppHostService`.
 
-```
+```text
 1. Server is created with an optional auth token
 2. Token passed to guest via environment variable (ASPIRE_RPC_TOKEN)
 3. Guest must call authenticate() before any other RPC method
