@@ -109,7 +109,7 @@ public class DcpExecutorTests
         Assert.Equal(2, resourceIds.Count);
     }
 
-    //TODO: More tests here
+
     [Theory]
     [InlineData(ExecutionType.IDE, false, null, new string[] { "--test1", "--test2" })]
     [InlineData(ExecutionType.IDE, true, new string[] { "--withargs-test" }, new string[] { "--withargs-test" })]

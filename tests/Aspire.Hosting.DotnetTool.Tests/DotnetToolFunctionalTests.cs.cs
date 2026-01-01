@@ -30,7 +30,7 @@ public class DotnetToolFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task VerifyNonExistantDotnetToolResource()
+    public async Task VerifyNonExistentDotnetToolResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);

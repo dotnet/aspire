@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
-/// Represents an annotation for a dotnet tool resources.
+/// Represents an annotation for dotnet tool resources.
 /// </summary>
 [Experimental("ASPIREDOTNETTOOL", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class DotnetToolAnnotation : IResourceAnnotation
@@ -31,7 +31,7 @@ public class DotnetToolAnnotation : IResourceAnnotation
     public List<string> Sources { get; } = [];
 
     /// <summary>
-    /// Are custom sources used in addition or intead of existing feeds.
+    /// Are custom sources used in addition or instead of existing feeds.
     /// </summary>
     /// <remarks>
     /// This value has no impact if <see cref="Sources"/> is empty.
