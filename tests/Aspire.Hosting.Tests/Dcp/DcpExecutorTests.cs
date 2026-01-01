@@ -163,7 +163,7 @@ public class DcpExecutorTests
         Assert.Equal(expectedArgs, callArgs);
 
         Assert.True(exe.TryGetAnnotationAsObjectList<AppLaunchArgumentAnnotation>(CustomResource.ResourceAppArgsAnnotation, out var argAnnotations));
-        Assert.Equal(expectedDisplayArgs, argAnnotations.Select(a => a.Argument));
+        Assert.Equal(expectedAnnotations, argAnnotations.Select(a => a.Argument));
     }
 
     [Theory]

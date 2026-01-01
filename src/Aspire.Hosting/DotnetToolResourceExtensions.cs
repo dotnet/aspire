@@ -17,7 +17,7 @@ public static class DotnetToolResourceExtensions
     internal const string ArgumentSeparator = "--";
 
     /// <summary>
-    /// Adds a .NET tool resource to the distributed application builder.
+    /// Adds a .NET tool resource to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource.</param>
@@ -27,8 +27,8 @@ public static class DotnetToolResourceExtensions
         => builder.AddDotnetTool(new DotnetToolResource(name, packageId));
 
     /// <summary>
-    /// Adds a .NET tool resource to the distributed application builder, configuring it for execution via the 'dotnet
-    /// tool exec' command.
+    /// Adds a .NET tool resource to the distributed application model and configures it for execution via the <c>dotnet
+    /// tool exec</c> command.
     /// </summary>
     /// <typeparam name="T">The type of the .NET tool resource to add. Must inherit from <see cref="DotnetToolResource"/>.</typeparam>
     /// <param name="builder">The distributed application builder to which the .NET tool resource will be added.</param>
@@ -114,7 +114,7 @@ public static class DotnetToolResourceExtensions
     /// Sets the package identifier for the tool configuration associated with the resource builder.
     /// </summary>
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <param name="packageId">The package identifier to assign to the tool configuration. Cannot be null.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<T> WithToolPackage<T>(this IResourceBuilder<T> builder, string packageId)
@@ -125,10 +125,10 @@ public static class DotnetToolResourceExtensions
     }
 
     /// <summary>
-    /// Set the package version for a tool to use
+    /// Sets the package version for a tool to use.
     /// </summary>
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <param name="version">The package version to use</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<T> WithToolVersion<T>(this IResourceBuilder<T> builder, string version)
@@ -139,10 +139,10 @@ public static class DotnetToolResourceExtensions
     }
 
     /// <summary>
-    /// Allow prerelease versions of the tool to be used
+    /// Allows prerelease versions of the tool to be used
     /// </summary>
     /// <typeparam name="T">The type of resource being built. Must inherit from DotnetToolResource.</typeparam>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<T> WithToolPrerelease<T>(this IResourceBuilder<T> builder)
         where T : DotnetToolResource
@@ -152,11 +152,11 @@ public static class DotnetToolResourceExtensions
     }
 
     /// <summary>
-    /// Adds a package source to get a tool from
+    /// Adds a NuGet package source for tool acquisition.
     /// </summary>
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="source"></param>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
+    /// <param name="source">The source to add.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<T> WithToolSource<T>(this IResourceBuilder<T> builder, string source)
         where T : DotnetToolResource
@@ -166,10 +166,10 @@ public static class DotnetToolResourceExtensions
     }
 
     /// <summary>
-    /// Only use the specified package sources, rather than using them in addition to the existing sources.
+    /// Configures the tool to use only the specified package sources, ignoring existing NuGet configuration.
     /// </summary>
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<T> WithToolIgnoreExistingFeeds<T>(this IResourceBuilder<T> builder)
         where T : DotnetToolResource
@@ -179,10 +179,10 @@ public static class DotnetToolResourceExtensions
     }
 
     /// <summary>
-    /// Treat package source failures as warnings.
+    /// Configures the resource to treat package source failures as warnings.
     /// </summary>
     /// <typeparam name="T">The Dotnet Tool resource type</typeparam>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<T> WithToolIgnoreFailedSources<T>(this IResourceBuilder<T> builder)
         where T : DotnetToolResource
