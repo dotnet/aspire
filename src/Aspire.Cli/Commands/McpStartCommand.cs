@@ -49,7 +49,7 @@ internal sealed class McpStartCommand : BaseCommand
         _packagingService = packagingService;
         _environmentChecker = environmentChecker;
 
-        _dashboardUrlOption = new Option<string?>("--dashboard-url", "-d")
+        _dashboardUrlOption = new Option<string?>("--dashboard-url")
         {
             Description = McpCommandStrings.StartCommand_DashboardUrlDescription,
             DefaultValueFactory = _ => Environment.GetEnvironmentVariable("ASPIRE_MCP_DASHBOARD_URL")
