@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../McpCommandStrings.resx">
     <body>
@@ -65,6 +65,11 @@
       <trans-unit id="StartCommand_ApiKeyDescription">
         <source>API key for Dashboard MCP authentication. Required if Dashboard uses ApiKey auth mode. Can also be set via ASPIRE_MCP_API_KEY environment variable.</source>
         <target state="new">API key for Dashboard MCP authentication. Required if Dashboard uses ApiKey auth mode. Can also be set via ASPIRE_MCP_API_KEY environment variable.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartCommand_ApiKeyWithoutDashboardUrlError">
+        <source>The --api-key option can only be used when --dashboard-url is specified.</source>
+        <target state="new">The --api-key option can only be used when --dashboard-url is specified.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartCommand_DashboardUrlDescription">

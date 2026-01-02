@@ -105,4 +105,7 @@
   <data name="StartCommand_ApiKeyDescription" xml:space="preserve">
     <value>API key for Dashboard MCP authentication. Required if Dashboard uses ApiKey auth mode. Can also be set via ASPIRE_MCP_API_KEY environment variable.</value>
   </data>
+  <data name="StartCommand_ApiKeyWithoutDashboardUrlError" xml:space="preserve">
+    <value>The --api-key option can only be used when --dashboard-url is specified.</value>
+  </data>
 </root>

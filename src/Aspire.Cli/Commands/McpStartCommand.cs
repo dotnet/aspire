@@ -101,6 +101,13 @@ internal sealed class McpStartCommand : BaseCommand
         _standaloneDashboardUrl = parseResult.GetValue(_dashboardUrlOption);
         _standaloneApiKey = parseResult.GetValue(_apiKeyOption);
 
+        // Validate that --api-key is only used with --dashboard-url
+        if (!string.IsNullOrEmpty(_standaloneApiKey) && !IsStandaloneMode)
+        {
+            InteractionService.DisplayError(McpCommandStrings.StartCommand_ApiKeyWithoutDashboardUrlError);
+            return ExitCodeConstants.FailedToParseCli;
+        }
+
         if (IsStandaloneMode)
         {
             _logger.LogInformation("Starting MCP server in standalone Dashboard mode. Dashboard URL: {DashboardUrl}", _standaloneDashboardUrl);
