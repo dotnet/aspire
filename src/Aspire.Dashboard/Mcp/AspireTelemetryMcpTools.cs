@@ -43,13 +43,47 @@ internal sealed class AspireTelemetryMcpTools
     [Description("List structured logs for resources.")]
     public string ListStructuredLogs(
         [Description("The resource name. This limits logs returned to the specified resource. If no resource name is specified then structured logs for all resources are returned.")]
-        string? resourceName = null)
+        string? resourceName = null,
+        [Description("JSON array of filter objects. Each filter object should have 'field' (string), 'condition' (string: 'equals', '!equals', 'contains', '!contains', 'gt', 'lt', 'gte', 'lte'), and 'value' (string) properties. Example: [{\"field\":\"log.category\",\"condition\":\"contains\",\"value\":\"MyApp\"}]")]
+        string? filters = null,
+        [Description("Minimum severity level. Logs with this severity and above will be returned. Valid values: Trace, Debug, Information, Warning, Error, Critical.")]
+        string? severity = null)
     {
-        _logger.LogDebug("MCP tool list_structured_logs called with resource '{ResourceName}'.", resourceName);
+        _logger.LogDebug("MCP tool list_structured_logs called with resource '{ResourceName}', filters '{Filters}', severity '{Severity}'.", resourceName, filters, severity);
 
         if (!TryResolveResourceNameForTelemetry(resourceName, out var message, out var resourceKey))
         {
             return message;
+        }
+
+        List<TelemetryFilter> telemetryFilters = [];
+        if (!string.IsNullOrWhiteSpace(filters))
+        {
+            if (!TryParseFilters(filters, out var parsedFilters, out var filterError))
+            {
+                return filterError;
+            }
+            telemetryFilters = parsedFilters;
+        }
+
+        // Add severity filter if provided
+        if (!string.IsNullOrWhiteSpace(severity))
+        {
+            if (!TryParseSeverity(severity, out var parsedSeverity, out var severityError))
+            {
+                return severityError;
+            }
+
+            // Only add filter if severity is above Trace (Trace returns all)
+            if (parsedSeverity != LogLevel.Trace)
+            {
+                telemetryFilters.Add(new FieldTelemetryFilter
+                {
+                    Field = nameof(OtlpLogEntry.Severity),
+                    Condition = FilterCondition.GreaterThanOrEqual,
+                    Value = parsedSeverity.ToString()
+                });
+            }
         }
 
         // Get all logs because we want the most recent logs and they're at the end of the results.
@@ -59,7 +93,7 @@ internal sealed class AspireTelemetryMcpTools
             ResourceKey = resourceKey,
             StartIndex = 0,
             Count = int.MaxValue,
-            Filters = []
+            Filters = telemetryFilters
         }).Items;
 
         if (_dashboardClient.IsEnabled)
@@ -305,6 +339,33 @@ internal sealed class AspireTelemetryMcpTools
         };
 
         return (int)condition >= 0;
+    }
+
+    private static bool TryParseSeverity(string severityString, out LogLevel severity, [NotNullWhen(false)] out string? error)
+    {
+        error = null;
+
+        if (Enum.TryParse<LogLevel>(severityString, ignoreCase: true, out severity))
+        {
+            return true;
+        }
+
+        // Try common aliases
+        severity = severityString.ToLowerInvariant() switch
+        {
+            "info" => LogLevel.Information,
+            "warn" => LogLevel.Warning,
+            "fatal" => LogLevel.Critical,
+            _ => (LogLevel)(-1)
+        };
+
+        if ((int)severity >= 0)
+        {
+            return true;
+        }
+
+        error = $"Invalid severity '{severityString}'. Valid values are: Trace, Debug, Information (or Info), Warning (or Warn), Error, Critical (or Fatal).";
+        return false;
     }
 
     /// <summary>

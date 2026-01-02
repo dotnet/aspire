@@ -143,44 +143,44 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 3.1 Add Filter Support to list_traces
 
-- [ ] Modify `src/Aspire.Dashboard/Mcp/AspireTelemetryMcpTools.cs` `ListTraces` method
-  - [ ] Add `filters` parameter (JSON string array of filter objects)
-  - [ ] Add `searchText` parameter for span name search
-  - [ ] Parse filters JSON into `List<FieldTelemetryFilter>`
-  - [ ] Pass filters to `TelemetryRepository.GetTraces()` request
-  - [ ] Pass searchText as `FilterText` in request
+- [x] Modify `src/Aspire.Dashboard/Mcp/AspireTelemetryMcpTools.cs` `ListTraces` method
+  - [x] Add `filters` parameter (JSON string array of filter objects)
+  - [x] Add `searchText` parameter for span name search
+  - [x] Parse filters JSON into `List<FieldTelemetryFilter>`
+  - [x] Pass filters to `TelemetryRepository.GetTraces()` request
+  - [x] Pass searchText as `FilterText` in request
 
-- [ ] Add tests to `tests/Aspire.Dashboard.Tests/Mcp/AspireTelemetryMcpToolsTests.cs`
-  - [ ] Test `ListTraces_WithSingleFilter_ReturnsFilteredTraces`
-  - [ ] Test `ListTraces_WithMultipleFilters_AppliesAndLogic`
-  - [ ] Test `ListTraces_WithSearchText_FiltersSpanNames`
-  - [ ] Test `ListTraces_WithStatusErrorFilter_ReturnsOnlyErrors`
-  - [ ] Test `ListTraces_WithAttributeFilter_FiltersCustomAttribute`
-  - [ ] Test `ListTraces_WithInvalidFilterJson_ReturnsError`
-  - [ ] Test `ListTraces_FiltersAndResource_CombinesCorrectly`
+- [x] Add tests to `tests/Aspire.Dashboard.Tests/Mcp/AspireTelemetryMcpToolsTests.cs`
+  - [x] Test `ListTraces_WithSingleFilter_ReturnsFilteredTraces`
+  - [x] Test `ListTraces_WithMultipleFilters_AppliesAndLogic`
+  - [x] Test `ListTraces_WithSearchText_FiltersSpanNames`
+  - [x] Test `ListTraces_WithStatusErrorFilter_ReturnsOnlyErrors`
+  - [x] Test `ListTraces_WithAttributeFilter_FiltersCustomAttribute` (covered by WithSingleFilter test)
+  - [x] Test `ListTraces_WithInvalidFilterJson_ReturnsError`
+  - [x] Test `ListTraces_FiltersAndResource_CombinesCorrectly`
 
-- [ ] Verify all trace filter tests pass
+- [x] Verify all trace filter tests pass
 
 ### 3.2 Add Filter Support to list_structured_logs
 
-- [ ] Modify `AspireTelemetryMcpTools.cs` `ListStructuredLogs` method
-  - [ ] Add `filters` parameter (JSON string array of filter objects)
-  - [ ] Add `severity` parameter for minimum severity level
-  - [ ] Parse filters JSON into `List<FieldTelemetryFilter>`
-  - [ ] If severity provided, add severity filter with `>=` condition
-  - [ ] Pass filters to `TelemetryRepository.GetLogs()` request
+- [x] Modify `AspireTelemetryMcpTools.cs` `ListStructuredLogs` method
+  - [x] Add `filters` parameter (JSON string array of filter objects)
+  - [x] Add `severity` parameter for minimum severity level
+  - [x] Parse filters JSON into `List<FieldTelemetryFilter>`
+  - [x] If severity provided, add severity filter with `>=` condition
+  - [x] Pass filters to `TelemetryRepository.GetLogs()` request
 
-- [ ] Add tests to `AspireTelemetryMcpToolsTests.cs`
-  - [ ] Test `ListStructuredLogs_WithSeverityWarning_ReturnsWarningAndAbove`
-  - [ ] Test `ListStructuredLogs_WithSeverityError_ReturnsOnlyErrorAndCritical`
-  - [ ] Test `ListStructuredLogs_WithCategoryFilter_FiltersByCategory`
-  - [ ] Test `ListStructuredLogs_WithMessageContainsFilter_FiltersMessages`
-  - [ ] Test `ListStructuredLogs_WithCustomAttributeFilter_FiltersAttribute`
-  - [ ] Test `ListStructuredLogs_WithMultipleFilters_AppliesAndLogic`
-  - [ ] Test `ListStructuredLogs_WithInvalidSeverity_ReturnsError`
-  - [ ] Test `ListStructuredLogs_FiltersAndResource_CombinesCorrectly`
+- [x] Add tests to `AspireTelemetryMcpToolsTests.cs`
+  - [x] Test `ListStructuredLogs_WithSeverityWarning_ReturnsWarningAndAbove`
+  - [x] Test `ListStructuredLogs_WithSeverityError_ReturnsOnlyErrorAndCritical`
+  - [x] Test `ListStructuredLogs_WithCategoryFilter_FiltersByCategory`
+  - [x] Test `ListStructuredLogs_WithMessageContainsFilter_FiltersMessages`
+  - [x] Test `ListStructuredLogs_WithCustomAttributeFilter_FiltersAttribute`
+  - [x] Test `ListStructuredLogs_WithMultipleFilters_AppliesAndLogic`
+  - [x] Test `ListStructuredLogs_WithInvalidSeverity_ReturnsError`
+  - [x] Test `ListStructuredLogs_FiltersAndResource_CombinesCorrectly`
 
-- [ ] Verify all log filter tests pass
+- [x] Verify all log filter tests pass
 
 ---
 
