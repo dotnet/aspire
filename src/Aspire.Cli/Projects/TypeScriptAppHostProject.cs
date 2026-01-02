@@ -409,7 +409,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var backchannelCompletionSource = context.BackchannelCompletionSource ?? new TaskCompletionSource<IAppHostCliBackchannel>();
 
             // Start connecting to the backchannel (for dashboard URLs, logs, etc.)
-            _ = StartBackchannelConnectionAsync(appHostServerProcess, backchannelSocketPath, backchannelCompletionSource, cancellationToken);
+            _ = StartBackchannelConnectionAsync(appHostServerProcess, backchannelSocketPath, backchannelCompletionSource, enableHotReload, cancellationToken);
 
             // Give the server a moment to start
             await Task.Delay(500, cancellationToken);
@@ -971,7 +971,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Start connecting to the backchannel
             if (context.BackchannelCompletionSource is not null)
             {
-                _ = StartBackchannelConnectionAsync(appHostServerProcess, backchannelSocketPath, context.BackchannelCompletionSource, cancellationToken);
+                _ = StartBackchannelConnectionAsync(appHostServerProcess, backchannelSocketPath, context.BackchannelCompletionSource, enableHotReload: false, cancellationToken);
             }
 
             // Give the server a moment to start
@@ -1075,6 +1075,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         Process process,
         string socketPath,
         TaskCompletionSource<IAppHostCliBackchannel> backchannelCompletionSource,
+        bool enableHotReload,
         CancellationToken cancellationToken)
     {
         const int ConnectionTimeoutSeconds = 60;
@@ -1089,8 +1090,9 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             try
             {
                 _logger.LogTrace("Attempting to connect to AppHost server backchannel at {SocketPath} (attempt {Attempt})", socketPath, ++connectionAttempts);
-                await _backchannel.ConnectAsync(socketPath, cancellationToken).ConfigureAwait(false);
-                backchannelCompletionSource.SetResult(_backchannel);
+                // Pass enableHotReload as autoReconnect - the backchannel will handle reconnection internally
+                await _backchannel.ConnectAsync(socketPath, autoReconnect: enableHotReload, cancellationToken).ConfigureAwait(false);
+                backchannelCompletionSource.TrySetResult(_backchannel);
                 _logger.LogDebug("Connected to AppHost server backchannel at {SocketPath}", socketPath);
                 return;
             }
@@ -1098,7 +1100,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             {
                 _logger.LogError("AppHost server process has exited. Unable to connect to backchannel at {SocketPath}", socketPath);
                 var backchannelException = new FailedToConnectBackchannelConnection($"AppHost server process has exited unexpectedly.", process, ex);
-                backchannelCompletionSource.SetException(backchannelException);
+                backchannelCompletionSource.TrySetException(backchannelException);
                 return;
             }
             catch (SocketException)
@@ -1110,7 +1112,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 {
                     _logger.LogError("Timed out waiting for AppHost server to start after {Timeout} seconds", ConnectionTimeoutSeconds);
                     var timeoutException = new TimeoutException($"Timed out waiting for AppHost server to start after {ConnectionTimeoutSeconds} seconds. Check the debug logs for more details.");
-                    backchannelCompletionSource.SetException(timeoutException);
+                    backchannelCompletionSource.TrySetException(timeoutException);
                     return;
                 }
 
@@ -1127,7 +1129,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to connect to AppHost server backchannel");
-                backchannelCompletionSource.SetException(ex);
+                backchannelCompletionSource.TrySetException(ex);
                 return;
             }
         }
