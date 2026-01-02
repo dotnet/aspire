@@ -22,11 +22,22 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class McpStartCommand : BaseCommand
 {
-    private readonly Dictionary<string, CliMcpTool> _tools;
+    private readonly Dictionary<string, CliMcpTool> _tools = new();
     private readonly IAuxiliaryBackchannelMonitor _auxiliaryBackchannelMonitor;
     private readonly CliExecutionContext _executionContext;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<McpStartCommand> _logger;
+    private readonly IPackagingService _packagingService;
+    private readonly IEnvironmentChecker _environmentChecker;
+
+    // Standalone Dashboard mode settings
+    private string? _standaloneDashboardUrl;
+    private string? _standaloneApiKey;
+    private bool IsStandaloneMode => !string.IsNullOrEmpty(_standaloneDashboardUrl);
+
+    // Command options
+    private readonly Option<string?> _dashboardUrlOption;
+    private readonly Option<string?> _apiKeyOption;
 
     public McpStartCommand(IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IAuxiliaryBackchannelMonitor auxiliaryBackchannelMonitor, ILoggerFactory loggerFactory, ILogger<McpStartCommand> logger, IPackagingService packagingService, IEnvironmentChecker environmentChecker)
         : base("start", McpCommandStrings.StartCommand_Description, features, updateNotifier, executionContext, interactionService)
@@ -35,26 +46,69 @@ internal sealed class McpStartCommand : BaseCommand
         _executionContext = executionContext;
         _loggerFactory = loggerFactory;
         _logger = logger;
-        _tools = new Dictionary<string, CliMcpTool>
+        _packagingService = packagingService;
+        _environmentChecker = environmentChecker;
+
+        _dashboardUrlOption = new Option<string?>("--dashboard-url", "-d")
         {
-            ["list_resources"] = new ListResourcesTool(),
-            ["list_console_logs"] = new ListConsoleLogsTool(),
-            ["execute_resource_command"] = new ExecuteResourceCommandTool(),
-            ["list_structured_logs"] = new ListStructuredLogsTool(),
-            ["list_traces"] = new ListTracesTool(),
-            ["list_trace_structured_logs"] = new ListTraceStructuredLogsTool(),
-            ["select_apphost"] = new SelectAppHostTool(auxiliaryBackchannelMonitor, executionContext),
-            ["list_apphosts"] = new ListAppHostsTool(auxiliaryBackchannelMonitor, executionContext),
-            ["list_integrations"] = new ListIntegrationsTool(packagingService, executionContext, auxiliaryBackchannelMonitor),
-            ["get_integration_docs"] = new GetIntegrationDocsTool(),
-            ["doctor"] = new DoctorTool(environmentChecker)
+            Description = McpCommandStrings.StartCommand_DashboardUrlDescription,
+            DefaultValueFactory = _ => Environment.GetEnvironmentVariable("ASPIRE_MCP_DASHBOARD_URL")
         };
+        Options.Add(_dashboardUrlOption);
+
+        _apiKeyOption = new Option<string?>("--api-key", "-k")
+        {
+            Description = McpCommandStrings.StartCommand_ApiKeyDescription,
+            DefaultValueFactory = _ => Environment.GetEnvironmentVariable("ASPIRE_MCP_API_KEY")
+        };
+        Options.Add(_apiKeyOption);
+    }
+
+    /// <summary>
+    /// Initializes the available tools based on the current mode (standalone vs AppHost).
+    /// In standalone mode, AppHost-specific tools are excluded to reduce context for AI agents.
+    /// </summary>
+    private void InitializeTools()
+    {
+        _tools.Clear();
+
+        // Always available tools (don't require Dashboard connection)
+        _tools["list_integrations"] = new ListIntegrationsTool(_packagingService, _executionContext, _auxiliaryBackchannelMonitor);
+        _tools["get_integration_docs"] = new GetIntegrationDocsTool();
+        _tools["doctor"] = new DoctorTool(_environmentChecker);
+
+        // Telemetry tools (proxied to Dashboard - available in both modes)
+        _tools["list_structured_logs"] = new ListStructuredLogsTool();
+        _tools["list_traces"] = new ListTracesTool();
+        _tools["list_trace_structured_logs"] = new ListTraceStructuredLogsTool();
+
+        // AppHost-only tools (not available in standalone mode)
+        if (!IsStandaloneMode)
+        {
+            _tools["list_resources"] = new ListResourcesTool();
+            _tools["list_console_logs"] = new ListConsoleLogsTool();
+            _tools["execute_resource_command"] = new ExecuteResourceCommandTool();
+            _tools["select_apphost"] = new SelectAppHostTool(_auxiliaryBackchannelMonitor, _executionContext);
+            _tools["list_apphosts"] = new ListAppHostsTool(_auxiliaryBackchannelMonitor, _executionContext);
+        }
     }
 
     protected override bool UpdateNotificationsEnabled => false;
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Parse standalone Dashboard options
+        _standaloneDashboardUrl = parseResult.GetValue(_dashboardUrlOption);
+        _standaloneApiKey = parseResult.GetValue(_apiKeyOption);
+
+        if (IsStandaloneMode)
+        {
+            _logger.LogInformation("Starting MCP server in standalone Dashboard mode. Dashboard URL: {DashboardUrl}", _standaloneDashboardUrl);
+        }
+
+        // Initialize tools based on mode (standalone vs AppHost)
+        InitializeTools();
+
         var icons = McpIconHelper.GetAspireIcons(typeof(McpStartCommand).Assembly, "Aspire.Cli.Mcp.Resources");
 
         var options = new McpServerOptions
@@ -109,54 +163,34 @@ internal sealed class McpStartCommand : BaseCommand
 
         if (_tools.TryGetValue(toolName, out var tool))
         {
-            // Handle tools that don't need an MCP connection to the AppHost
-            if (toolName is "select_apphost" or "list_apphosts" or "list_integrations" or "get_integration_docs" or "doctor")
+            // Handle tools that don't need a Dashboard connection
+            if (toolName is "list_integrations" or "get_integration_docs" or "doctor")
             {
                 return await tool.CallToolAsync(null!, request.Params?.Arguments, cancellationToken);
             }
 
-            // Get the appropriate connection using the new selection logic
-            var connection = GetSelectedConnection();
-            if (connection == null)
+            // Handle AppHost-specific tools (only available in non-standalone mode)
+            if (toolName is "select_apphost" or "list_apphosts")
             {
-                _logger.LogWarning("No Aspire AppHost is currently running");
-                throw new McpProtocolException(
-                    "No Aspire AppHost is currently running. " +
-                    "To use Aspire MCP tools, you must first start an Aspire application by running 'aspire run' in your AppHost project directory. " +
-                    "Once the application is running, the MCP tools will be able to connect to the dashboard and execute commands.",
-                    McpErrorCode.InternalError);
+                return await tool.CallToolAsync(null!, request.Params?.Arguments, cancellationToken);
             }
 
-            if (connection.McpInfo == null)
-            {
-                _logger.LogWarning("Dashboard is not available in the running AppHost");
-                throw new McpProtocolException(
-                    "The Aspire Dashboard is not available in the running AppHost. " +
-                    "The dashboard must be enabled to use MCP tools. " +
-                    "Ensure your AppHost is configured with the dashboard enabled (this is the default configuration).",
-                    McpErrorCode.InternalError);
-            }
-
-            _logger.LogInformation(
-                "Connecting to dashboard MCP server. " +
-                "Dashboard URL: {EndpointUrl}, " +
-                "AppHost Path: {AppHostPath}, " +
-                "AppHost PID: {AppHostPid}, " +
-                "CLI PID: {CliPid}",
-                connection.McpInfo.EndpointUrl,
-                connection.AppHostInfo?.AppHostPath ?? "N/A",
-                connection.AppHostInfo?.ProcessId.ToString(CultureInfo.InvariantCulture) ?? "N/A",
-                connection.AppHostInfo?.CliProcessId?.ToString(CultureInfo.InvariantCulture) ?? "N/A");
+            // Get Dashboard connection (either standalone or via AppHost)
+            var (endpointUrl, apiToken) = GetDashboardConnection();
 
             // Create HTTP transport to the dashboard's MCP server
             var transportOptions = new HttpClientTransportOptions
             {
-                Endpoint = new Uri(connection.McpInfo.EndpointUrl),
-                AdditionalHeaders = new Dictionary<string, string>
-                {
-                    ["x-mcp-api-key"] = connection.McpInfo.ApiToken
-                }
+                Endpoint = new Uri(endpointUrl),
             };
+
+            if (!string.IsNullOrEmpty(apiToken))
+            {
+                transportOptions.AdditionalHeaders = new Dictionary<string, string>
+                {
+                    ["x-mcp-api-key"] = apiToken
+                };
+            }
 
             using var httpClient = new HttpClient();
 
@@ -190,6 +224,55 @@ internal sealed class McpStartCommand : BaseCommand
     }
 
     /// <summary>
+    /// Gets the Dashboard MCP connection information (endpoint URL and optional API token).
+    /// In standalone mode, returns the configured Dashboard URL and API key.
+    /// In AppHost mode, discovers the connection via the backchannel.
+    /// </summary>
+    private (string EndpointUrl, string? ApiToken) GetDashboardConnection()
+    {
+        if (IsStandaloneMode)
+        {
+            _logger.LogDebug("Using standalone Dashboard connection: {Url}", _standaloneDashboardUrl);
+            return (_standaloneDashboardUrl!, _standaloneApiKey);
+        }
+
+        // AppHost mode - use backchannel discovery
+        var connection = GetSelectedAppHostConnection();
+        if (connection == null)
+        {
+            _logger.LogWarning("No Aspire AppHost is currently running");
+            throw new McpProtocolException(
+                "No Aspire AppHost is currently running. " +
+                "To use Aspire MCP tools, either start an Aspire application with 'aspire run', " +
+                "or connect directly to a standalone Dashboard using --dashboard-url.",
+                McpErrorCode.InternalError);
+        }
+
+        if (connection.McpInfo == null)
+        {
+            _logger.LogWarning("Dashboard is not available in the running AppHost");
+            throw new McpProtocolException(
+                "The Aspire Dashboard is not available in the running AppHost. " +
+                "The dashboard must be enabled to use MCP tools. " +
+                "Ensure your AppHost is configured with the dashboard enabled (this is the default configuration).",
+                McpErrorCode.InternalError);
+        }
+
+        _logger.LogInformation(
+            "Connecting to dashboard MCP server. " +
+            "Dashboard URL: {EndpointUrl}, " +
+            "AppHost Path: {AppHostPath}, " +
+            "AppHost PID: {AppHostPid}, " +
+            "CLI PID: {CliPid}",
+            connection.McpInfo.EndpointUrl,
+            connection.AppHostInfo?.AppHostPath ?? "N/A",
+            connection.AppHostInfo?.ProcessId.ToString(CultureInfo.InvariantCulture) ?? "N/A",
+            connection.AppHostInfo?.CliProcessId?.ToString(CultureInfo.InvariantCulture) ?? "N/A");
+
+        return (connection.McpInfo.EndpointUrl, connection.McpInfo.ApiToken);
+    }
+
+    /// <summary>
     /// Gets the appropriate AppHost connection based on the selection logic:
     /// 1. If a specific AppHost is selected via select_apphost, use that
     /// 2. Otherwise, look for in-scope connections (AppHosts within the working directory)
@@ -197,7 +280,7 @@ internal sealed class McpStartCommand : BaseCommand
     /// 4. If multiple in-scope connections exist, throw an error listing them
     /// 5. If no in-scope connections exist, fall back to the first available connection
     /// </summary>
-    private AppHostAuxiliaryBackchannel? GetSelectedConnection()
+    private AppHostAuxiliaryBackchannel? GetSelectedAppHostConnection()
     {
         var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
 

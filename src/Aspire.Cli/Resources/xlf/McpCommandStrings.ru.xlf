@@ -62,6 +62,16 @@
         <target state="translated">Требуется путь к корню рабочей области.</target>
         <note />
       </trans-unit>
+      <trans-unit id="StartCommand_ApiKeyDescription">
+        <source>API key for Dashboard MCP authentication. Required if Dashboard uses ApiKey auth mode. Can also be set via ASPIRE_MCP_API_KEY environment variable.</source>
+        <target state="new">API key for Dashboard MCP authentication. Required if Dashboard uses ApiKey auth mode. Can also be set via ASPIRE_MCP_API_KEY environment variable.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartCommand_DashboardUrlDescription">
+        <source>URL to a standalone Aspire Dashboard's MCP endpoint (e.g., http://localhost:18888/mcp). Can also be set via ASPIRE_MCP_DASHBOARD_URL environment variable.</source>
+        <target state="new">URL to a standalone Aspire Dashboard's MCP endpoint (e.g., http://localhost:18888/mcp). Can also be set via ASPIRE_MCP_DASHBOARD_URL environment variable.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartCommand_Description">
         <source>Start the MCP (Model Context Protocol) server.</source>
         <target state="translated">Запуск сервера MCP (протокол контекста модели).</target>

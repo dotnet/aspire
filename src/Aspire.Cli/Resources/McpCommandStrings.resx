@@ -99,4 +99,10 @@
   <data name="InitCommand_ConfigurePlaywrightPrompt" xml:space="preserve">
     <value>Pre-configure Playwright MCP server?</value>
   </data>
+  <data name="StartCommand_DashboardUrlDescription" xml:space="preserve">
+    <value>URL to a standalone Aspire Dashboard's MCP endpoint (e.g., http://localhost:18888/mcp). Can also be set via ASPIRE_MCP_DASHBOARD_URL environment variable.</value>
+  </data>
+  <data name="StartCommand_ApiKeyDescription" xml:space="preserve">
+    <value>API key for Dashboard MCP authentication. Required if Dashboard uses ApiKey auth mode. Can also be set via ASPIRE_MCP_API_KEY environment variable.</value>
+  </data>
 </root>
