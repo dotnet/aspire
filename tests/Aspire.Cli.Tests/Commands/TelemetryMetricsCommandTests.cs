@@ -193,4 +193,100 @@ public class TelemetryMetricsCommandTests(ITestOutputHelper outputHelper)
         Assert.Contains("--duration", optionNames);
         Assert.Contains("--json", optionNames);
     }
+
+    [Fact]
+    public async Task TelemetryMetricsCommand_NoResource_ReturnsError()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Running without the required --resource option should return an error
+        var result = command.Parse("telemetry metrics");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Expected to fail because --resource is required (exit code 1 for missing required option)
+        Assert.NotEqual(0, exitCode);
+    }
+
+    [Fact]
+    public void TelemetryMetricsCommand_ResourceOption_IsRequired()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var rootCommand = provider.GetRequiredService<RootCommand>();
+        var telemetryCommand = rootCommand.Subcommands.FirstOrDefault(c => c.Name == "telemetry");
+        Assert.NotNull(telemetryCommand);
+
+        var metricsCommand = telemetryCommand.Subcommands.FirstOrDefault(c => c.Name == "metrics");
+        Assert.NotNull(metricsCommand);
+
+        var resourceOption = metricsCommand.Options.FirstOrDefault(o => o.Name == "--resource");
+        Assert.NotNull(resourceOption);
+        Assert.True(resourceOption.Required, "--resource option should be required");
+    }
+
+    [Fact]
+    public void TelemetryMetricsCommand_DurationOption_HasDefaultValue()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var rootCommand = provider.GetRequiredService<RootCommand>();
+        var telemetryCommand = rootCommand.Subcommands.FirstOrDefault(c => c.Name == "telemetry");
+        Assert.NotNull(telemetryCommand);
+
+        var metricsCommand = telemetryCommand.Subcommands.FirstOrDefault(c => c.Name == "metrics");
+        Assert.NotNull(metricsCommand);
+
+        var durationOption = metricsCommand.Options.FirstOrDefault(o => o.Name == "--duration");
+        Assert.NotNull(durationOption);
+
+        // Verify the option has a default value factory (5m)
+        Assert.True(durationOption.HasDefaultValue, "--duration option should have a default value");
+    }
+
+    [Fact]
+    public async Task TelemetryMetricsCommand_InvalidDuration_ReturnsError()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Use an invalid duration value (not in the supported list: 1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h)
+        var result = command.Parse("telemetry metrics --resource test-resource --duration invalid");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Expected to fail with InvalidArguments exit code (18) due to invalid duration
+        Assert.Equal(18, exitCode);
+    }
+
+    [Fact]
+    public void TelemetryMetricsCommand_InstrumentArgument_IsOptional()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var rootCommand = provider.GetRequiredService<RootCommand>();
+        var telemetryCommand = rootCommand.Subcommands.FirstOrDefault(c => c.Name == "telemetry");
+        Assert.NotNull(telemetryCommand);
+
+        var metricsCommand = telemetryCommand.Subcommands.FirstOrDefault(c => c.Name == "metrics");
+        Assert.NotNull(metricsCommand);
+
+        var instrumentArg = metricsCommand.Arguments.FirstOrDefault(a => a.Name == "meter/instrument");
+        Assert.NotNull(instrumentArg);
+
+        // Verify the argument is optional (ZeroOrOne arity)
+        Assert.Equal(0, instrumentArg.Arity.MinimumNumberOfValues);
+        Assert.Equal(1, instrumentArg.Arity.MaximumNumberOfValues);
+    }
 }

@@ -685,39 +685,42 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 10.2 Implement Metrics Listing
 
-- [ ] Implement list metrics handler (no instrument argument)
-  - [ ] Require `--resource` option
-  - [ ] Call MCP proxy tool
-  - [ ] Group by meter
-  - [ ] Format output
+- [x] Implement list metrics handler (no instrument argument)
+  - [x] Require `--resource` option
+  - [x] Call MCP proxy tool
+  - [x] Group by meter
+  - [x] Format output
 
-- [ ] Add list metrics tests to `TelemetryMetricsCommandTests.cs`
-  - [ ] Test `TelemetryMetricsCommand_NoResource_ReturnsError`
-  - [ ] Test `TelemetryMetricsCommand_WithResource_ListsInstruments`
-  - [ ] Test `TelemetryMetricsCommand_GroupsByMeter`
-  - [ ] Test `TelemetryMetricsCommand_ShowsInstrumentDetails`
-  - [ ] Test `TelemetryMetricsCommand_JsonOutput_ReturnsValidJson`
+- [x] Add list metrics tests to `TelemetryMetricsCommandTests.cs`
+  - [x] Test `TelemetryMetricsCommand_NoResource_ReturnsError`
+  - [x] Test `TelemetryMetricsCommand_ResourceOption_IsRequired`
+  - [x] Test `TelemetryMetricsCommand_DurationOption_HasDefaultValue`
+  - [x] Test `TelemetryMetricsCommand_InstrumentArgument_IsOptional`
+  - [ ] Test `TelemetryMetricsCommand_WithResource_ListsInstruments` (requires Dashboard integration)
+  - [ ] Test `TelemetryMetricsCommand_GroupsByMeter` (requires Dashboard integration)
+  - [ ] Test `TelemetryMetricsCommand_ShowsInstrumentDetails` (requires Dashboard integration)
+  - [ ] Test `TelemetryMetricsCommand_JsonOutput_ReturnsValidJson` (requires Dashboard integration)
 
-- [ ] Verify list metrics tests pass
+- [x] Verify list metrics tests pass
 
 ### 10.3 Implement Get Metric Data
 
-- [ ] Implement get metric data handler (meter/instrument argument provided)
-  - [ ] Parse `meter/instrument` argument format
-  - [ ] Validate duration format
-  - [ ] Call MCP proxy tool
-  - [ ] Format output with dimensions
+- [x] Implement get metric data handler (meter/instrument argument provided)
+  - [x] Parse `meter/instrument` argument format
+  - [x] Validate duration format
+  - [x] Call MCP proxy tool
+  - [x] Format output with dimensions
 
 - [ ] Add get metric tests to `TelemetryMetricsCommandTests.cs`
-  - [ ] Test `TelemetryMetricsCommand_WithInstrument_GetsMetricData`
-  - [ ] Test `TelemetryMetricsCommand_DefaultDuration_Uses5Minutes`
-  - [ ] Test `TelemetryMetricsCommand_CustomDuration_UsesSpecifiedDuration`
-  - [ ] Test `TelemetryMetricsCommand_InvalidDuration_ReturnsError`
-  - [ ] Test `TelemetryMetricsCommand_InvalidInstrumentFormat_ReturnsError`
-  - [ ] Test `TelemetryMetricsCommand_InstrumentNotFound_ReturnsError`
-  - [ ] Test `TelemetryMetricsCommand_ShowsDimensions`
+  - [ ] Test `TelemetryMetricsCommand_WithInstrument_GetsMetricData` (requires Dashboard integration)
+  - [ ] Test `TelemetryMetricsCommand_DefaultDuration_Uses5Minutes` (requires Dashboard integration)
+  - [ ] Test `TelemetryMetricsCommand_CustomDuration_UsesSpecifiedDuration` (requires Dashboard integration)
+  - [x] Test `TelemetryMetricsCommand_InvalidDuration_ReturnsError`
+  - [ ] Test `TelemetryMetricsCommand_InvalidInstrumentFormat_ReturnsError` (requires Dashboard - validation happens after connection)
+  - [ ] Test `TelemetryMetricsCommand_InstrumentNotFound_ReturnsError` (requires Dashboard integration)
+  - [ ] Test `TelemetryMetricsCommand_ShowsDimensions` (requires Dashboard integration)
 
-- [ ] Verify get metric tests pass
+- [ ] Verify get metric tests pass (integration tests require Dashboard)
 
 ---
 
