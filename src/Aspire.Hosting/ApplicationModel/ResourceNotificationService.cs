@@ -884,20 +884,19 @@ public class ResourceNotificationService : IDisposable
 
         if (TryGetCurrentState(resourceName, out var evt) && evt.Snapshot != null)
         {
-            var state = evt.Snapshot;
             var snapshot = evt.Snapshot;
 
-            WriteValue("Current State", state.State?.Text);
+            WriteValue("Current State", snapshot.State?.Text);
             WriteValue("Creation Time", snapshot.CreationTimeStamp);
             WriteValueIfNotNull("Start Time", snapshot.StartTimeStamp);
             WriteValueIfNotNull("Stop Time", snapshot.StopTimeStamp);
             WriteValueIfNotNull("Exit Code", snapshot.ExitCode);
-            WriteValue("Current Health", state.HealthStatus);
+            WriteValue("Current Health", snapshot.HealthStatus);
 
-            if (state.HealthReports.Length > 0)
+            if (snapshot.HealthReports.Length > 0)
             {
                 error.AppendLine("- Health Reports:");
-                foreach (var report in state.HealthReports)
+                foreach (var report in snapshot.HealthReports)
                 {
                     error.Append(CultureInfo.InvariantCulture, $"  - {report.Name}: {report.Status?.ToString() ?? "Unknown"}");
                     if (report.LastRunAt.HasValue)
