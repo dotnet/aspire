@@ -50,7 +50,7 @@ public class WaitFailures
         }
     }
 
-    public class WaitForResoruce
+    public class WaitForResource
     {
         [Fact]
         public async Task WaitForResourceThatNeverCompletes()
