@@ -646,22 +646,22 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 10.1 Create Metrics Subcommand Structure
 
-- [ ] Create `src/Aspire.Cli/Commands/TelemetryMetricsCommand.cs`
-  - [ ] Define `metrics` as the command name
-  - [ ] Add description
-  - [ ] Add options:
-    - [ ] `--resource <name>` - Resource name (required)
-    - [ ] `--duration <timespan>` - Time window (default 5m)
-    - [ ] `--json` - Output as JSON
-  - [ ] Add optional argument `<meter/instrument>` for getting specific metric
+- [x] Create `src/Aspire.Cli/Commands/TelemetryMetricsCommand.cs`
+  - [x] Define `metrics` as the command name
+  - [x] Add description
+  - [x] Add options:
+    - [x] `--resource <name>` - Resource name (required)
+    - [x] `--duration <timespan>` - Time window (default 5m)
+    - [x] `--json` - Output as JSON
+  - [x] Add optional argument `<meter/instrument>` for getting specific metric
 
-- [ ] Register as subcommand of TelemetryCommand
+- [x] Register as subcommand of TelemetryCommand
 
-- [ ] Add basic command tests
-  - [ ] Test `TelemetryMetricsCommand_Help_ShowsUsage`
-  - [ ] Test `TelemetryMetricsCommand_Help_ShowsAllOptions`
+- [x] Add basic command tests
+  - [x] Test `TelemetryMetricsCommand_Help_ShowsUsage`
+  - [x] Test `TelemetryMetricsCommand_Help_ShowsAllOptions`
 
-- [ ] Verify basic command tests pass
+- [x] Verify basic command tests pass
 
 ### 10.2 Implement Metrics Listing
 

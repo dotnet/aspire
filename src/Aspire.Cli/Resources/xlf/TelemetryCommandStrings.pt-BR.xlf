@@ -112,6 +112,51 @@
         <target state="new">Filter logs by trace ID.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricsDescription">
+        <source>Query metrics from running Aspire applications.</source>
+        <target state="new">Query metrics from running Aspire applications.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsDurationOptionDescription">
+        <source>Time window to query. Supported values: 1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h. Default is 5m.</source>
+        <target state="new">Time window to query. Supported values: 1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h. Default is 5m.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsInstrumentArgumentDescription">
+        <source>Optional meter/instrument path to get data for (e.g., 'System.Runtime/cpu.usage'). If omitted, lists all available metrics.</source>
+        <target state="new">Optional meter/instrument path to get data for (e.g., 'System.Runtime/cpu.usage'). If omitted, lists all available metrics.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsInvalidDurationError">
+        <source>Invalid duration. Supported values: 1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h.</source>
+        <target state="new">Invalid duration. Supported values: 1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsInvalidInstrumentFormatError">
+        <source>Invalid instrument format. Use 'meter/instrument' format (e.g., 'System.Runtime/cpu.usage').</source>
+        <target state="new">Invalid instrument format. Use 'meter/instrument' format (e.g., 'System.Runtime/cpu.usage').</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsJsonOptionDescription">
+        <source>Output as JSON instead of human-readable format.</source>
+        <target state="new">Output as JSON instead of human-readable format.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsNoDashboardError">
+        <source>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</source>
+        <target state="new">No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsNoResourceError">
+        <source>The --resource option is required for metrics. Specify the resource name to query metrics from.</source>
+        <target state="new">The --resource option is required for metrics. Specify the resource name to query metrics from.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsResourceOptionDescription">
+        <source>Resource name. Required - metrics are always associated with a specific resource.</source>
+        <target state="new">Resource name. Required - metrics are always associated with a specific resource.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the AppHost project file.</source>
         <target state="new">The path to the AppHost project file.</target>

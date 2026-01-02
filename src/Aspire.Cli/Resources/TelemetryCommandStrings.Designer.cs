@@ -338,5 +338,86 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("LogsInvalidSeverityError", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Query metrics from running Aspire applications..
+        /// </summary>
+        internal static string MetricsDescription {
+            get {
+                return ResourceManager.GetString("MetricsDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource name. Required - metrics are always associated with a specific resource..
+        /// </summary>
+        internal static string MetricsResourceOptionDescription {
+            get {
+                return ResourceManager.GetString("MetricsResourceOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Time window to query. Supported values: 1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h. Default is 5m..
+        /// </summary>
+        internal static string MetricsDurationOptionDescription {
+            get {
+                return ResourceManager.GetString("MetricsDurationOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Output as JSON instead of human-readable format..
+        /// </summary>
+        internal static string MetricsJsonOptionDescription {
+            get {
+                return ResourceManager.GetString("MetricsJsonOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Optional meter/instrument path to get data for (e.g., 'System.Runtime/cpu.usage'). If omitted, lists all available metrics..
+        /// </summary>
+        internal static string MetricsInstrumentArgumentDescription {
+            get {
+                return ResourceManager.GetString("MetricsInstrumentArgumentDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard..
+        /// </summary>
+        internal static string MetricsNoDashboardError {
+            get {
+                return ResourceManager.GetString("MetricsNoDashboardError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The --resource option is required for metrics. Specify the resource name to query metrics from..
+        /// </summary>
+        internal static string MetricsNoResourceError {
+            get {
+                return ResourceManager.GetString("MetricsNoResourceError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid duration. Supported values: 1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h..
+        /// </summary>
+        internal static string MetricsInvalidDurationError {
+            get {
+                return ResourceManager.GetString("MetricsInvalidDurationError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid instrument format. Use 'meter/instrument' format (e.g., 'System.Runtime/cpu.usage')..
+        /// </summary>
+        internal static string MetricsInvalidInstrumentFormatError {
+            get {
+                return ResourceManager.GetString("MetricsInvalidInstrumentFormatError", resourceCulture);
+            }
+        }
     }
 }

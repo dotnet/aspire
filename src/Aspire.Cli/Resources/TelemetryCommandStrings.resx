@@ -153,4 +153,31 @@
   <data name="LogsInvalidSeverityError" xml:space="preserve">
     <value>Invalid severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical.</value>
   </data>
+  <data name="MetricsDescription" xml:space="preserve">
+    <value>Query metrics from running Aspire applications.</value>
+  </data>
+  <data name="MetricsResourceOptionDescription" xml:space="preserve">
+    <value>Resource name. Required - metrics are always associated with a specific resource.</value>
+  </data>
+  <data name="MetricsDurationOptionDescription" xml:space="preserve">
+    <value>Time window to query. Supported values: 1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h. Default is 5m.</value>
+  </data>
+  <data name="MetricsJsonOptionDescription" xml:space="preserve">
+    <value>Output as JSON instead of human-readable format.</value>
+  </data>
+  <data name="MetricsInstrumentArgumentDescription" xml:space="preserve">
+    <value>Optional meter/instrument path to get data for (e.g., 'System.Runtime/cpu.usage'). If omitted, lists all available metrics.</value>
+  </data>
+  <data name="MetricsNoDashboardError" xml:space="preserve">
+    <value>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</value>
+  </data>
+  <data name="MetricsNoResourceError" xml:space="preserve">
+    <value>The --resource option is required for metrics. Specify the resource name to query metrics from.</value>
+  </data>
+  <data name="MetricsInvalidDurationError" xml:space="preserve">
+    <value>Invalid duration. Supported values: 1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h.</value>
+  </data>
+  <data name="MetricsInvalidInstrumentFormatError" xml:space="preserve">
+    <value>Invalid instrument format. Use 'meter/instrument' format (e.g., 'System.Runtime/cpu.usage').</value>
+  </data>
 </root>
