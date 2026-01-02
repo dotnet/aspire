@@ -176,7 +176,8 @@ internal sealed class TelemetryLogsCommand : BaseCommand
             if (outputJson)
             {
                 // For JSON output, output the (possibly limited) JSON
-                InteractionService.DisplayMessage(string.Empty, jsonResult);
+                // Use DisplayPlainText to avoid Spectre.Console markup interpretation
+                InteractionService.DisplayPlainText(jsonResult);
             }
             else
             {

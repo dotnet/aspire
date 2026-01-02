@@ -128,7 +128,8 @@ internal sealed class TelemetryFieldsCommand : BaseCommand
             if (outputJson)
             {
                 // For JSON output, try to extract just the JSON part from the result
-                InteractionService.DisplayMessage(string.Empty, ExtractJsonFromResult(result));
+                // Use DisplayPlainText to avoid Spectre.Console markup interpretation
+                InteractionService.DisplayPlainText(ExtractJsonFromResult(result));
             }
             else
             {
