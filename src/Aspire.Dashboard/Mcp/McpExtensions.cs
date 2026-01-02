@@ -44,6 +44,9 @@ public static class McpExtensions
         // Always register fields tools for discovering available telemetry fields
         builder.WithTools<AspireFieldsMcpTools>();
 
+        // Always register metrics tools for querying metrics/instruments
+        builder.WithTools<AspireMetricsMcpTools>();
+
         // Only register resource tools if the resource service is configured
         if (dashboardOptions.ResourceServiceClient.GetUri() is not null)
         {

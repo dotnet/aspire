@@ -188,79 +188,80 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 4.1 Create Metrics MCP Tools Class
 
-- [ ] Create `src/Aspire.Dashboard/Mcp/AspireMetricsMcpTools.cs`
-  - [ ] Add constructor with `TelemetryRepository`, `IDashboardClient`, `IOptionsMonitor<DashboardOptions>`, `ILogger` dependencies
-  - [ ] Add `[McpServerToolType]` attribute to class
+- [x] Create `src/Aspire.Dashboard/Mcp/AspireMetricsMcpTools.cs`
+  - [x] Add constructor with `TelemetryRepository`, `IDashboardClient`, `IOptionsMonitor<DashboardOptions>`, `ILogger` dependencies
+  - [x] Add `[McpServerToolType]` attribute to class (Note: using `[McpServerTool]` attribute on methods)
 
-- [ ] Register in DI container
-  - [ ] Modify `DashboardWebApplication.cs`
-  - [ ] Add `services.AddSingleton<AspireMetricsMcpTools>()`
+- [x] Register in DI container
+  - [x] Modify `McpExtensions.cs` (not DashboardWebApplication.cs - registration is done via `WithTools<T>()`)
+  - [x] Add `builder.WithTools<AspireMetricsMcpTools>()` in MCP registration section
 
 ### 4.2 Implement list_metrics Tool
 
-- [ ] Add `ListMetrics` method to `AspireMetricsMcpTools.cs`
-  - [ ] Add `[McpServerTool(Name = "list_metrics")]` attribute
-  - [ ] Add `[Description("...")]` attribute
-  - [ ] Accept required `resourceName` parameter
-  - [ ] Resolve resource to `ResourceKey`
-  - [ ] Call `TelemetryRepository.GetInstrumentsSummaries()`
-  - [ ] Return JSON with instruments array (name, description, unit, type, meter)
-  - [ ] Group by meter name for readability
+- [x] Add `ListMetrics` method to `AspireMetricsMcpTools.cs`
+  - [x] Add `[McpServerTool(Name = "list_metrics")]` attribute
+  - [x] Add `[Description("...")]` attribute
+  - [x] Accept required `resourceName` parameter
+  - [x] Resolve resource to `ResourceKey`
+  - [x] Call `TelemetryRepository.GetInstrumentsSummaries()`
+  - [x] Return JSON with instruments array (name, description, unit, type, meter)
+  - [x] Group by meter name for readability
 
-- [ ] Create `tests/Aspire.Dashboard.Tests/Mcp/AspireMetricsMcpToolsTests.cs`
-  - [ ] Test `ListMetrics_NoResource_ReturnsError`
-  - [ ] Test `ListMetrics_ResourceNotFound_ReturnsError`
-  - [ ] Test `ListMetrics_WithResource_ReturnsInstruments`
-  - [ ] Test `ListMetrics_MultipleMeters_GroupsByMeter`
-  - [ ] Test `ListMetrics_IncludesInstrumentMetadata` (name, description, unit, type)
-  - [ ] Test `ListMetrics_ResourceOptOut_ReturnsError`
+- [x] Create `tests/Aspire.Dashboard.Tests/Mcp/AspireMetricsMcpToolsTests.cs`
+  - [x] Test `ListMetrics_NoResource_ReturnsError`
+  - [x] Test `ListMetrics_ResourceNotFound_ReturnsError`
+  - [x] Test `ListMetrics_WithResource_ReturnsInstruments`
+  - [x] Test `ListMetrics_MultipleMeters_GroupsByMeter`
+  - [x] Test `ListMetrics_IncludesInstrumentMetadata` (name, description, unit, type)
+  - [x] Test `ListMetrics_NoMetrics_ReturnsNoMetricsMessage` (replaced ResourceOptOut test)
 
-- [ ] Verify all list metrics tests pass
+- [x] Verify all list metrics tests pass
 
 ### 4.3 Implement get_metric_data Tool
 
-- [ ] Add `GetMetricData` method to `AspireMetricsMcpTools.cs`
-  - [ ] Add `[McpServerTool(Name = "get_metric_data")]` attribute
-  - [ ] Accept required `resourceName` parameter
-  - [ ] Accept required `meterName` parameter
-  - [ ] Accept required `instrumentName` parameter
-  - [ ] Accept optional `duration` parameter (default "5m")
-  - [ ] Parse duration string to TimeSpan (1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h)
-  - [ ] Calculate start/end times from duration
-  - [ ] Call `TelemetryRepository.GetInstrument()` with request
-  - [ ] Return JSON with dimensions, values, known attribute values
+- [x] Add `GetMetricData` method to `AspireMetricsMcpTools.cs`
+  - [x] Add `[McpServerTool(Name = "get_metric_data")]` attribute
+  - [x] Accept required `resourceName` parameter
+  - [x] Accept required `meterName` parameter
+  - [x] Accept required `instrumentName` parameter
+  - [x] Accept optional `duration` parameter (default "5m")
+  - [x] Parse duration string to TimeSpan (1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h)
+  - [x] Calculate start/end times from duration
+  - [x] Call `TelemetryRepository.GetInstrument()` with request
+  - [x] Return JSON with dimensions, values, known attribute values
 
-- [ ] Add tests to `AspireMetricsMcpToolsTests.cs`
-  - [ ] Test `GetMetricData_ValidInstrument_ReturnsData`
-  - [ ] Test `GetMetricData_InvalidInstrument_ReturnsError`
-  - [ ] Test `GetMetricData_InvalidMeter_ReturnsError`
-  - [ ] Test `GetMetricData_ResourceNotFound_ReturnsError`
-  - [ ] Test `GetMetricData_DefaultDuration_Uses5Minutes`
-  - [ ] Test `GetMetricData_CustomDuration_UsesSpecifiedDuration`
-  - [ ] Test `GetMetricData_InvalidDuration_ReturnsError`
-  - [ ] Test `GetMetricData_IncludesDimensions`
-  - [ ] Test `GetMetricData_IncludesKnownAttributeValues`
+- [x] Add tests to `AspireMetricsMcpToolsTests.cs`
+  - [x] Test `GetMetricData_ValidInstrument_ReturnsData`
+  - [x] Test `GetMetricData_InvalidInstrument_ReturnsError`
+  - [x] Test `GetMetricData_InvalidMeter_ReturnsError`
+  - [x] Test `GetMetricData_ResourceNotFound_ReturnsError`
+  - [x] Test `GetMetricData_DefaultDuration_Uses5Minutes`
+  - [x] Test `GetMetricData_CustomDuration_UsesSpecifiedDuration`
+  - [x] Test `GetMetricData_InvalidDuration_ReturnsError`
+  - [x] Test `GetMetricData_MissingResourceName_ReturnsError`
+  - [x] Test `GetMetricData_MissingMeterName_ReturnsError`
+  - [x] Test `GetMetricData_MissingInstrumentName_ReturnsError`
 
-- [ ] Verify all get metric data tests pass
+- [x] Verify all get metric data tests pass
 
 ### 4.4 Duration Parser Utility
 
-- [ ] Create duration parsing helper (can be in `AspireMetricsMcpTools.cs` or shared)
-  - [ ] Parse "1m" -> TimeSpan.FromMinutes(1)
-  - [ ] Parse "5m" -> TimeSpan.FromMinutes(5)
-  - [ ] Parse "15m" -> TimeSpan.FromMinutes(15)
-  - [ ] Parse "30m" -> TimeSpan.FromMinutes(30)
-  - [ ] Parse "1h" -> TimeSpan.FromHours(1)
-  - [ ] Parse "3h" -> TimeSpan.FromHours(3)
-  - [ ] Parse "6h" -> TimeSpan.FromHours(6)
-  - [ ] Parse "12h" -> TimeSpan.FromHours(12)
-  - [ ] Return error for unsupported durations
+- [x] Create duration parsing helper (in `AspireMetricsMcpTools.cs` as `TryParseDuration` method)
+  - [x] Parse "1m" -> TimeSpan.FromMinutes(1)
+  - [x] Parse "5m" -> TimeSpan.FromMinutes(5)
+  - [x] Parse "15m" -> TimeSpan.FromMinutes(15)
+  - [x] Parse "30m" -> TimeSpan.FromMinutes(30)
+  - [x] Parse "1h" -> TimeSpan.FromHours(1)
+  - [x] Parse "3h" -> TimeSpan.FromHours(3)
+  - [x] Parse "6h" -> TimeSpan.FromHours(6)
+  - [x] Parse "12h" -> TimeSpan.FromHours(12)
+  - [x] Return error for unsupported durations
 
-- [ ] Add duration parsing tests
-  - [ ] Test all supported duration values
-  - [ ] Test invalid duration returns error
+- [x] Add duration parsing tests
+  - [x] Test all supported duration values (via `GetMetricData_AllSupportedDurations_Succeed` Theory)
+  - [x] Test invalid duration returns error
 
-- [ ] Verify duration parsing tests pass
+- [x] Verify duration parsing tests pass
 
 ---
 
