@@ -780,7 +780,7 @@ Add `aspire telemetry` command group with subcommands:
 ### 11.4 Final Review
 
 - [x] Run full test suite (936 CLI tests, 1127 Dashboard tests - all pass)
-- [ ] Review code for consistency with existing patterns
+- [x] Review code for consistency with existing patterns (extracted duplicate code to TelemetryCommandHelper.cs)
 - [x] Review for any TODO comments that need addressing (no new TODOs in telemetry code)
 - [x] Verify no breaking changes to existing commands (all existing CLI tests pass)
 - [ ] Performance review: ensure commands respond quickly
@@ -802,6 +802,7 @@ Add `aspire telemetry` command group with subcommands:
 - `src/Aspire.Cli/Utils/FilterExpressionParser.cs`
 - `src/Aspire.Cli/Utils/TelemetryOutputFormatter.cs`
 - `src/Aspire.Cli/Utils/FilterFieldValidator.cs`
+- `src/Aspire.Cli/Utils/TelemetryCommandHelper.cs`
 
 **CLI MCP Proxies:**
 - `src/Aspire.Cli/Mcp/ListTelemetryFieldsTool.cs`

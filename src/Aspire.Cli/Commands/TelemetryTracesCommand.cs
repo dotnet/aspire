@@ -300,46 +300,10 @@ internal sealed class TelemetryTracesCommand : BaseCommand
     }
 
     private static string GetTextFromResult(CallToolResult result)
-    {
-        if (result.Content == null || result.Content.Count == 0)
-        {
-            return string.Empty;
-        }
-
-        var textContent = result.Content.OfType<TextContentBlock>().FirstOrDefault();
-        if (textContent?.Text != null)
-        {
-            return textContent.Text;
-        }
-
-        return string.Empty;
-    }
+        => TelemetryCommandHelper.GetTextFromResult(result);
 
     private static string ExtractJsonFromResult(string result)
-    {
-        // The MCP tool response contains markdown headers followed by JSON
-        // We need to extract just the JSON part for formatting
-        var lines = result.Split('\n');
-        var jsonStartIndex = -1;
-
-        for (var i = 0; i < lines.Length; i++)
-        {
-            var trimmed = lines[i].Trim();
-            if (trimmed.StartsWith('{') || trimmed.StartsWith('['))
-            {
-                jsonStartIndex = i;
-                break;
-            }
-        }
-
-        if (jsonStartIndex >= 0)
-        {
-            return string.Join('\n', lines.Skip(jsonStartIndex));
-        }
-
-        // If no JSON found, return the original
-        return result;
-    }
+        => TelemetryCommandHelper.ExtractJsonFromResult(result);
 
     private static string ApplyLimit(string jsonResult, int limit)
     {
@@ -421,57 +385,11 @@ internal sealed class TelemetryTracesCommand : BaseCommand
     }
 
     private static string EscapeJsonString(string value)
-    {
-        return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
-    }
+        => TelemetryCommandHelper.EscapeJsonString(value);
 
     private (string? EndpointUrl, string? ApiToken) GetDashboardConnection(string? dashboardUrl, string? apiKey)
     {
-        // If dashboard URL is provided, use standalone mode
-        if (!string.IsNullOrEmpty(dashboardUrl))
-        {
-            _logger.LogDebug("Using standalone Dashboard connection: {Url}", dashboardUrl);
-            return (dashboardUrl, apiKey);
-        }
-
-        // Try to get connection from running AppHost via backchannel
-        var connections = _auxiliaryBackchannelMonitor.Connections.Values.ToList();
-
-        if (connections.Count == 0)
-        {
-            _logger.LogDebug("No AppHost connections available");
-            return (null, null);
-        }
-
-        // Get in-scope connections
-        var inScopeConnections = connections.Where(c => c.IsInScope).ToList();
-
-        AppHostAuxiliaryBackchannel? connection = null;
-
-        if (inScopeConnections.Count == 1)
-        {
-            connection = inScopeConnections[0];
-        }
-        else if (inScopeConnections.Count > 1)
-        {
-            // Multiple in-scope connections - use the first one but log a warning
-            _logger.LogWarning("Multiple AppHosts running in scope, using first one");
-            connection = inScopeConnections[0];
-        }
-        else if (connections.Count > 0)
-        {
-            // No in-scope connections, use the first available
-            connection = connections[0];
-        }
-
-        if (connection?.McpInfo == null)
-        {
-            _logger.LogDebug("No Dashboard MCP info available from AppHost");
-            return (null, null);
-        }
-
-        _logger.LogDebug("Using AppHost Dashboard connection: {Url}", connection.McpInfo.EndpointUrl);
-        return (connection.McpInfo.EndpointUrl, connection.McpInfo.ApiToken);
+        return TelemetryCommandHelper.GetDashboardConnection(dashboardUrl, apiKey, _auxiliaryBackchannelMonitor, _logger);
     }
 }
 
