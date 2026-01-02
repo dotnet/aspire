@@ -648,17 +648,17 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 9.5 Implement Trace/Span Filtering
 
-- [ ] Implement `--trace` and `--span` options
-  - [ ] Add trace ID as filter if provided
-  - [ ] Add span ID as filter if provided
-  - [ ] Combine with other filters
+- [x] Implement `--trace` and `--span` options
+  - [x] Add trace ID as filter if provided
+  - [x] Add span ID as filter if provided
+  - [x] Combine with other filters
 
-- [ ] Add trace/span filter tests to `TelemetryLogsCommandTests.cs`
+- [ ] Add trace/span filter tests to `TelemetryLogsCommandTests.cs` (requires Dashboard integration)
   - [ ] Test `TelemetryLogsCommand_WithTraceId_FiltersToTrace`
   - [ ] Test `TelemetryLogsCommand_WithSpanId_FiltersToSpan`
   - [ ] Test `TelemetryLogsCommand_TraceAndSpan_CombinesFilters`
 
-- [ ] Verify trace/span filter tests pass
+- [ ] Verify trace/span filter tests pass (requires Dashboard integration)
 
 ---
 
