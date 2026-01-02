@@ -97,14 +97,15 @@ internal sealed class TelemetryLogsCommand : BaseCommand
         var spanId = parseResult.GetValue(_spanOption);
         var filters = parseResult.GetValue(_filterOption) ?? [];
         var severity = parseResult.GetValue(_severityOption);
+        var limit = parseResult.GetValue(_limitOption);
         var outputJson = parseResult.GetValue(_jsonOption);
 
         // Get the parent command's options (they are recursive)
         var dashboardUrl = parseResult.GetValue<string?>("--dashboard-url");
         var apiKey = parseResult.GetValue<string?>("--api-key");
 
-        _logger.LogDebug("Telemetry logs command executing with resource={Resource}, trace={TraceId}, span={SpanId}, filters={FilterCount}, severity={Severity}, json={Json}",
-            resourceName, traceId, spanId, filters.Length, severity, outputJson);
+        _logger.LogDebug("Telemetry logs command executing with resource={Resource}, trace={TraceId}, span={SpanId}, filters={FilterCount}, severity={Severity}, limit={Limit}, json={Json}",
+            resourceName, traceId, spanId, filters.Length, severity, limit, outputJson);
 
         // Validate severity if provided
         if (!string.IsNullOrEmpty(severity) && !IsValidSeverity(severity))
@@ -163,17 +164,26 @@ internal sealed class TelemetryLogsCommand : BaseCommand
             // List logs with filters
             var result = await ListLogsAsync(mcpClient, resourceName, traceId, spanId, parsedFilters, severity, cancellationToken);
 
+            // Extract JSON from the MCP result
+            var jsonResult = ExtractJsonFromResult(result);
+
+            // Apply limit
+            if (limit > 0)
+            {
+                jsonResult = ApplyLimit(jsonResult, limit);
+            }
+
             if (outputJson)
             {
-                // For JSON output, try to extract just the JSON part from the result
-                InteractionService.DisplayMessage(string.Empty, ExtractJsonFromResult(result));
+                // For JSON output, output the (possibly limited) JSON
+                InteractionService.DisplayMessage(string.Empty, jsonResult);
             }
             else
             {
                 // For human-readable output, use the formatter
                 var console = Spectre.Console.AnsiConsole.Console;
                 var formatter = new TelemetryOutputFormatter(console);
-                formatter.FormatLogs(ExtractJsonFromResult(result));
+                formatter.FormatLogs(jsonResult);
             }
 
             return ExitCodeConstants.Success;
@@ -289,6 +299,85 @@ internal sealed class TelemetryLogsCommand : BaseCommand
 
         // If no JSON found, return the original
         return result;
+    }
+
+    private static string ApplyLimit(string jsonResult, int limit)
+    {
+        if (string.IsNullOrWhiteSpace(jsonResult) || limit <= 0)
+        {
+            return jsonResult;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(jsonResult);
+            var root = document.RootElement;
+
+            // If the root is an array, limit the number of elements
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                using var stream = new MemoryStream();
+                using (var writer = new Utf8JsonWriter(stream))
+                {
+                    writer.WriteStartArray();
+                    var count = 0;
+                    foreach (var item in root.EnumerateArray())
+                    {
+                        if (count >= limit)
+                        {
+                            break;
+                        }
+                        item.WriteTo(writer);
+                        count++;
+                    }
+                    writer.WriteEndArray();
+                }
+                return System.Text.Encoding.UTF8.GetString(stream.ToArray());
+            }
+
+            // If it's an object with a "logs" array, limit that array
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("logs", out var logsArray) && logsArray.ValueKind == JsonValueKind.Array)
+            {
+                using var stream = new MemoryStream();
+                using (var writer = new Utf8JsonWriter(stream))
+                {
+                    writer.WriteStartObject();
+                    foreach (var prop in root.EnumerateObject())
+                    {
+                        if (prop.Name == "logs")
+                        {
+                            writer.WritePropertyName("logs");
+                            writer.WriteStartArray();
+                            var count = 0;
+                            foreach (var log in logsArray.EnumerateArray())
+                            {
+                                if (count >= limit)
+                                {
+                                    break;
+                                }
+                                log.WriteTo(writer);
+                                count++;
+                            }
+                            writer.WriteEndArray();
+                        }
+                        else
+                        {
+                            prop.WriteTo(writer);
+                        }
+                    }
+                    writer.WriteEndObject();
+                }
+                return System.Text.Encoding.UTF8.GetString(stream.ToArray());
+            }
+
+            // Return as-is if we can't identify the structure
+            return jsonResult;
+        }
+        catch (JsonException)
+        {
+            // If JSON parsing fails, return the original
+            return jsonResult;
+        }
     }
 
     private static string EscapeJsonString(string value)

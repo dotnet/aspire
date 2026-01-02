@@ -596,22 +596,22 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 9.2 Implement Log Listing
 
-- [ ] Implement list logs handler
-  - [ ] Parse filter expressions
-  - [ ] Validate filters against available fields
-  - [ ] Call MCP proxy tool
-  - [ ] Apply limit
-  - [ ] Format output
-  - [ ] Ensure newest first ordering
+- [x] Implement list logs handler
+  - [x] Parse filter expressions
+  - [ ] Validate filters against available fields (requires Dashboard connection)
+  - [x] Call MCP proxy tool
+  - [x] Apply limit
+  - [x] Format output
+  - [x] Ensure newest first ordering (handled by Dashboard/MCP)
 
-- [ ] Add list logs tests to `TelemetryLogsCommandTests.cs`
+- [ ] Add list logs tests to `TelemetryLogsCommandTests.cs` (integration tests require Dashboard)
   - [ ] Test `TelemetryLogsCommand_NoArgs_ListsRecentLogs`
   - [ ] Test `TelemetryLogsCommand_WithResource_FiltersToResource`
   - [ ] Test `TelemetryLogsCommand_WithLimit_RespectsLimit`
   - [ ] Test `TelemetryLogsCommand_JsonOutput_ReturnsValidJson`
   - [ ] Test `TelemetryLogsCommand_OrderedNewestFirst`
 
-- [ ] Verify list logs tests pass
+- [ ] Verify list logs tests pass (integration tests require Dashboard)
 
 ### 9.3 Implement Severity Filtering
 
