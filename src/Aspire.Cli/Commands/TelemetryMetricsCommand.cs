@@ -47,7 +47,7 @@ internal sealed class TelemetryMetricsCommand : BaseCommand
         };
         Options.Add(_resourceOption);
 
-        _durationOption = new Option<string?>("--duration", "-d")
+        _durationOption = new Option<string?>("--duration")
         {
             Description = TelemetryCommandStrings.MetricsDurationOptionDescription,
             DefaultValueFactory = _ => "5m"
