@@ -228,6 +228,136 @@ public class AspireTelemetryMcpToolsTests
         Assert.Contains("# STRUCTURED LOGS DATA", result);
     }
 
+    [Fact]
+    public void ListTraces_WithSingleFilter_ReturnsFilteredTraces()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResourceWithAttributes(repository, "app1", new KeyValuePair<string, string>("http.method", "POST"));
+        AddResourceWithAttributes(repository, "app2", new KeyValuePair<string, string>("http.method", "GET"));
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.ListTraces(
+            resourceName: null,
+            filters: """[{"field":"http.method","condition":"equals","value":"POST"}]""");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("# TRACES DATA", result);
+        // The filter should be applied - app1 has POST, app2 has GET
+        Assert.Contains("app1", result);
+        Assert.DoesNotContain("app2", result);
+    }
+
+    [Fact]
+    public void ListTraces_WithMultipleFilters_AppliesAndLogic()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResourceWithAttributes(repository, "app1",
+            new KeyValuePair<string, string>("http.method", "POST"),
+            new KeyValuePair<string, string>("http.status_code", "200"));
+        AddResourceWithAttributes(repository, "app2",
+            new KeyValuePair<string, string>("http.method", "POST"),
+            new KeyValuePair<string, string>("http.status_code", "500"));
+        var tools = CreateTools(repository);
+
+        // Act - Filter for POST with 200 status code
+        var result = tools.ListTraces(
+            resourceName: null,
+            filters: """[{"field":"http.method","condition":"equals","value":"POST"},{"field":"http.status_code","condition":"equals","value":"200"}]""");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("# TRACES DATA", result);
+        Assert.Contains("app1", result);
+        Assert.DoesNotContain("app2", result);
+    }
+
+    [Fact]
+    public void ListTraces_WithSearchText_FiltersSpanNames()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResourceWithSpanName(repository, "app1", "GET /api/users");
+        AddResourceWithSpanName(repository, "app2", "POST /api/orders");
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.ListTraces(
+            resourceName: null,
+            filters: null,
+            searchText: "/api/users");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("# TRACES DATA", result);
+        Assert.Contains("app1", result);
+        Assert.DoesNotContain("app2", result);
+    }
+
+    [Fact]
+    public void ListTraces_WithStatusErrorFilter_ReturnsOnlyErrors()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResourceWithStatus(repository, "app1", Status.Types.StatusCode.Error);
+        AddResourceWithStatus(repository, "app2", Status.Types.StatusCode.Ok);
+        var tools = CreateTools(repository);
+
+        // Act - Using the correct field name trace.status
+        var result = tools.ListTraces(
+            resourceName: null,
+            filters: """[{"field":"trace.status","condition":"equals","value":"Error"}]""");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("# TRACES DATA", result);
+        Assert.Contains("app1", result);
+        Assert.DoesNotContain("app2", result);
+    }
+
+    [Fact]
+    public void ListTraces_WithInvalidFilterJson_ReturnsError()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResource(repository, "app1");
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.ListTraces(
+            resourceName: null,
+            filters: "not valid json");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Invalid filters JSON", result);
+    }
+
+    [Fact]
+    public void ListTraces_FiltersAndResource_CombinesCorrectly()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResourceWithAttributes(repository, "app1", new KeyValuePair<string, string>("http.method", "POST"));
+        AddResourceWithAttributes(repository, "app2", new KeyValuePair<string, string>("http.method", "POST"));
+        var tools = CreateTools(repository);
+
+        // Act - Filter by both resource and attribute
+        var result = tools.ListTraces(
+            resourceName: "app1",
+            filters: """[{"field":"http.method","condition":"equals","value":"POST"}]""");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("# TRACES DATA", result);
+        Assert.Contains("app1", result);
+        // app2 should not appear because we filtered by resource name
+        Assert.DoesNotContain("app2", result);
+    }
+
     private static AspireTelemetryMcpTools CreateTools(TelemetryRepository repository, IDashboardClient? dashboardClient = null)
     {
         var options = new DashboardOptions();
@@ -290,6 +420,85 @@ public class AspireTelemetryMcpToolsTests
                         {
                             CreateLogRecord(time: s_testTime, message: "Log entry!")
                         }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+    }
+
+    private static void AddResourceWithAttributes(TelemetryRepository repository, string name, params KeyValuePair<string, string>[] attributes)
+    {
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: name),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: name + "1", spanId: name + "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+    }
+
+    private static void AddResourceWithSpanName(TelemetryRepository repository, string name, string spanName)
+    {
+        var addContext = new AddContext();
+        var span = CreateSpan(traceId: name + "1", spanId: name + "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10));
+        span.Name = spanName;
+
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: name),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans = { span }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+    }
+
+    private static void AddResourceWithStatus(TelemetryRepository repository, string name, Status.Types.StatusCode statusCode)
+    {
+        var addContext = new AddContext();
+        var span = CreateSpan(
+            traceId: name + "1",
+            spanId: name + "1-1",
+            startTime: s_testTime.AddMinutes(1),
+            endTime: s_testTime.AddMinutes(10),
+            status: new Status { Code = statusCode });
+
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: name),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans = { span }
                     }
                 }
             }
