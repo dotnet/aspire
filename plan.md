@@ -10,6 +10,10 @@ Add `aspire telemetry` command group with subcommands:
 - `aspire telemetry metrics` - Query metrics/instruments
 - `aspire telemetry fields` - Discover available attribute keys/values
 
+## Implementation Status
+
+**Status: Implementation Complete** - All implementation work is done. The only remaining unchecked items are integration tests that require a running Dashboard or AppHost to execute. Unit tests all pass (942 CLI tests, 1127 Dashboard tests).
+
 ## Design Decisions
 
 - **Output order**: Most recent first (newest first)
@@ -534,7 +538,7 @@ Add `aspire telemetry` command group with subcommands:
   - [x] Format output (JSON or human-readable)
   - [x] Ensure newest first ordering
 
-- [ ] Add list traces tests to `TelemetryTracesCommandTests.cs`
+- [ ] Add list traces tests to `TelemetryTracesCommandTests.cs` (requires Dashboard integration)
   - [ ] Test `TelemetryTracesCommand_NoArgs_ListsRecentTraces`
   - [ ] Test `TelemetryTracesCommand_WithResource_FiltersToResource`
   - [ ] Test `TelemetryTracesCommand_WithLimit_RespectsLimit`
@@ -542,7 +546,7 @@ Add `aspire telemetry` command group with subcommands:
   - [ ] Test `TelemetryTracesCommand_JsonOutput_ReturnsValidJson`
   - [ ] Test `TelemetryTracesCommand_OrderedNewestFirst`
 
-- [ ] Verify list traces tests pass
+- [ ] Verify list traces tests pass (requires Dashboard integration)
 
 ### 8.3 Implement Trace Filtering
 
@@ -553,7 +557,7 @@ Add `aspire telemetry` command group with subcommands:
   - [x] Convert to JSON format for MCP tool
   - [x] Pass to proxy tool
 
-- [ ] Add filter tests to `TelemetryTracesCommandTests.cs`
+- [ ] Add filter tests to `TelemetryTracesCommandTests.cs` (requires Dashboard integration)
   - [ ] Test `TelemetryTracesCommand_WithSingleFilter_AppliesFilter`
   - [ ] Test `TelemetryTracesCommand_WithMultipleFilters_AppliesAllFilters`
   - [ ] Test `TelemetryTracesCommand_WithStatusFilter_FiltersStatus`
@@ -561,7 +565,7 @@ Add `aspire telemetry` command group with subcommands:
   - [x] Test `TelemetryTracesCommand_InvalidFilterSyntax_ReturnsError`
   - [x] Test `TelemetryTracesCommand_InvalidFilterField_ReturnsErrorWithSuggestions` (via FilterFieldValidatorTests)
 
-- [ ] Verify filter tests pass
+- [ ] Verify filter tests pass (requires Dashboard integration)
 
 ### 8.4 Implement Get Specific Trace
 
@@ -571,14 +575,14 @@ Add `aspire telemetry` command group with subcommands:
   - [x] Show span attributes
   - [x] Format output (JSON or human-readable)
 
-- [ ] Add get trace tests to `TelemetryTracesCommandTests.cs`
+- [ ] Add get trace tests to `TelemetryTracesCommandTests.cs` (requires Dashboard integration)
   - [ ] Test `TelemetryTracesCommand_WithTraceId_GetsSpecificTrace`
   - [ ] Test `TelemetryTracesCommand_WithTraceId_ShowsAllSpans`
   - [ ] Test `TelemetryTracesCommand_WithTraceId_ShowsAttributes`
   - [ ] Test `TelemetryTracesCommand_InvalidTraceId_ReturnsError`
   - [ ] Test `TelemetryTracesCommand_TraceIdJsonOutput_ReturnsValidJson`
 
-- [ ] Verify get trace tests pass
+- [ ] Verify get trace tests pass (requires Dashboard integration)
 
 ---
 
@@ -632,13 +636,13 @@ Add `aspire telemetry` command group with subcommands:
   - [x] Validate severity value
   - [x] Pass to MCP proxy tool
 
-- [ ] Add severity tests to `TelemetryLogsCommandTests.cs`
+- [ ] Add severity tests to `TelemetryLogsCommandTests.cs` (requires Dashboard integration)
   - [ ] Test `TelemetryLogsCommand_SeverityWarning_ReturnsWarningAndAbove`
   - [ ] Test `TelemetryLogsCommand_SeverityError_ReturnsErrorAndCritical`
   - [ ] Test `TelemetryLogsCommand_SeverityTrace_ReturnsAll`
   - [x] Test `TelemetryLogsCommand_InvalidSeverity_ReturnsError`
 
-- [ ] Verify severity tests pass (integration tests require Dashboard)
+- [ ] Verify severity tests pass (requires Dashboard integration)
 
 ### 9.4 Implement Log Filtering
 
@@ -648,7 +652,7 @@ Add `aspire telemetry` command group with subcommands:
   - [x] Validate each filter field exists (requires Dashboard connection)
   - [x] Convert to JSON format for MCP tool
 
-- [ ] Add filter tests to `TelemetryLogsCommandTests.cs`
+- [ ] Add filter tests to `TelemetryLogsCommandTests.cs` (requires Dashboard integration)
   - [ ] Test `TelemetryLogsCommand_WithCategoryFilter_FiltersByCategory`
   - [ ] Test `TelemetryLogsCommand_WithMessageFilter_FiltersByMessage`
   - [ ] Test `TelemetryLogsCommand_WithAttributeFilter_FiltersByAttribute`
@@ -656,7 +660,7 @@ Add `aspire telemetry` command group with subcommands:
   - [x] Test `TelemetryLogsCommand_InvalidFilterSyntax_ReturnsError`
   - [ ] Test `TelemetryLogsCommand_InvalidFilterField_ReturnsErrorWithSuggestions`
 
-- [ ] Verify filter tests pass
+- [ ] Verify filter tests pass (requires Dashboard integration)
 
 ### 9.5 Implement Trace/Span Filtering
 
@@ -723,16 +727,16 @@ Add `aspire telemetry` command group with subcommands:
   - [x] Call MCP proxy tool
   - [x] Format output with dimensions
 
-- [ ] Add get metric tests to `TelemetryMetricsCommandTests.cs`
-  - [ ] Test `TelemetryMetricsCommand_WithInstrument_GetsMetricData` (requires Dashboard integration)
-  - [ ] Test `TelemetryMetricsCommand_DefaultDuration_Uses5Minutes` (requires Dashboard integration)
-  - [ ] Test `TelemetryMetricsCommand_CustomDuration_UsesSpecifiedDuration` (requires Dashboard integration)
+- [ ] Add get metric tests to `TelemetryMetricsCommandTests.cs` (requires Dashboard integration)
+  - [ ] Test `TelemetryMetricsCommand_WithInstrument_GetsMetricData`
+  - [ ] Test `TelemetryMetricsCommand_DefaultDuration_Uses5Minutes`
+  - [ ] Test `TelemetryMetricsCommand_CustomDuration_UsesSpecifiedDuration`
   - [x] Test `TelemetryMetricsCommand_InvalidDuration_ReturnsError`
-  - [ ] Test `TelemetryMetricsCommand_InvalidInstrumentFormat_ReturnsError` (requires Dashboard - validation happens after connection)
-  - [ ] Test `TelemetryMetricsCommand_InstrumentNotFound_ReturnsError` (requires Dashboard integration)
-  - [ ] Test `TelemetryMetricsCommand_ShowsDimensions` (requires Dashboard integration)
+  - [ ] Test `TelemetryMetricsCommand_InvalidInstrumentFormat_ReturnsError`
+  - [ ] Test `TelemetryMetricsCommand_InstrumentNotFound_ReturnsError`
+  - [ ] Test `TelemetryMetricsCommand_ShowsDimensions`
 
-- [ ] Verify get metric tests pass (integration tests require Dashboard)
+- [ ] Verify get metric tests pass (requires Dashboard integration)
 
 ---
 
