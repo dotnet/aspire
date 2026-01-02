@@ -22,7 +22,7 @@ export async function createBuilder(args: string[] = process.argv.slice(2)): Pro
     while (true) {
       try {
         await client.connect();
-        await client.authenticate(authToken);
+        await client.authenticate(authToken!);
         await client.ping();
         console.log('Connected successfully!');
         break;

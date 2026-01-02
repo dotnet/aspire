@@ -1321,7 +1321,7 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
             while (true) {
               try {
                 await client.connect();
-                await client.authenticate(authToken);
+                await client.authenticate(authToken!);
                 await client.ping();
                 console.log('Connected successfully!');
                 break;
