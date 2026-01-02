@@ -789,6 +789,15 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
         }
 
+        // Check if nodemon is installed locally before trying to use it
+        // This prevents npx from hanging while trying to install nodemon interactively
+        var nodemonPath = Path.Combine(directory.FullName, "node_modules", ".bin", "nodemon");
+        if (!File.Exists(nodemonPath))
+        {
+            _interactionService.DisplayError("nodemon is not installed. Please run 'npm install nodemon --save-dev' to enable hot reload.");
+            return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
+        }
+
         // Use nodemon to watch for file changes and restart the TypeScript apphost
         // --watch . : Watch the current directory
         // --ext ts,json : Watch .ts and .json files
@@ -838,8 +847,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
-
-        _interactionService.DisplayMessage("hot_reload", "Hot reload enabled - watching for file changes...");
 
         try
         {
@@ -1070,6 +1077,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         TaskCompletionSource<IAppHostCliBackchannel> backchannelCompletionSource,
         CancellationToken cancellationToken)
     {
+        const int ConnectionTimeoutSeconds = 60;
+
         var startTime = DateTimeOffset.UtcNow;
         var connectionAttempts = 0;
 
@@ -1094,8 +1103,18 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             }
             catch (SocketException)
             {
-                // Slow down polling after 10 seconds
                 var waitingFor = DateTimeOffset.UtcNow - startTime;
+
+                // Timeout after ConnectionTimeoutSeconds - the AppHost server should have started by now
+                if (waitingFor > TimeSpan.FromSeconds(ConnectionTimeoutSeconds))
+                {
+                    _logger.LogError("Timed out waiting for AppHost server to start after {Timeout} seconds", ConnectionTimeoutSeconds);
+                    var timeoutException = new TimeoutException($"Timed out waiting for AppHost server to start after {ConnectionTimeoutSeconds} seconds. Check the debug logs for more details.");
+                    backchannelCompletionSource.SetException(timeoutException);
+                    return;
+                }
+
+                // Slow down polling after 10 seconds
                 if (waitingFor > TimeSpan.FromSeconds(10))
                 {
                     await Task.Delay(1000, cancellationToken).ConfigureAwait(false);

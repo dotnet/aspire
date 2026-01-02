@@ -48,6 +48,13 @@ internal sealed class AspireJsonConfiguration
     public Dictionary<string, string>? Packages { get; set; }
 
     /// <summary>
+    /// Captures any additional properties not explicitly defined in this class.
+    /// This ensures settings like "features" are preserved when saving.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? ExtensionData { get; set; }
+
+    /// <summary>
     /// Gets the full path to the settings.json file.
     /// </summary>
     public static string GetFilePath(string directory)
