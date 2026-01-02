@@ -500,12 +500,13 @@ internal sealed class AppHostServerProject
 
         var process = Process.Start(startInfo)!;
 
-        // Collect output for error diagnostics (not displayed to user unless there's an error)
+        // Collect output for error diagnostics and log at debug level
         var outputCollector = new OutputCollector();
         process.OutputDataReceived += (sender, e) =>
         {
             if (e.Data is not null)
             {
+                _logger.LogDebug("AppHostServer({ProcessId}) stdout: {Line}", process.Id, e.Data);
                 outputCollector.AppendOutput(e.Data);
             }
         };
@@ -513,6 +514,7 @@ internal sealed class AppHostServerProject
         {
             if (e.Data is not null)
             {
+                _logger.LogDebug("AppHostServer({ProcessId}) stderr: {Line}", process.Id, e.Data);
                 outputCollector.AppendError(e.Data);
             }
         };

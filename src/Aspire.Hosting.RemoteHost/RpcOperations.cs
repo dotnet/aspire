@@ -1023,11 +1023,10 @@ internal sealed class RpcOperations : IAsyncDisposable
         return _callbackProxyFactory.CancellationTokenRegistry.Cancel(tokenId);
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _typeResolver.Clear();
-        _objectRegistry.Clear();
+        await _objectRegistry.DisposeAsync().ConfigureAwait(false);
         _callbackProxyFactory.Dispose();
-        return ValueTask.CompletedTask;
     }
 }

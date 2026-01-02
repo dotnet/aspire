@@ -208,9 +208,11 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        Console.WriteLine("[RPC] RemoteAppHostService disposing...");
         _cts.Cancel();
         _cts.Dispose();
         await _operations.DisposeAsync().ConfigureAwait(false);
+        Console.WriteLine("[RPC] RemoteAppHostService disposed.");
     }
 }
 
@@ -311,6 +313,7 @@ internal sealed class JsonRpcServer : IAsyncDisposable
 
         // Create a dedicated service instance for this client connection
         // Each client has its own authentication state and object registry
+        Console.WriteLine($"[RPC] Creating new RemoteAppHostService for client {clientId}");
         var clientService = new RemoteAppHostService(_authToken);
         // Discard pattern to satisfy CA2007 while ensuring disposal
         await using var _ = clientService.ConfigureAwait(false);

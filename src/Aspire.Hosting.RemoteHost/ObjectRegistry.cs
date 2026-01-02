@@ -9,8 +9,9 @@ namespace Aspire.Hosting.RemoteHost;
 /// <summary>
 /// Manages registration and lookup of .NET objects for JSON-RPC remoting.
 /// Objects are registered with unique IDs and can be retrieved by ID for method invocations.
+/// Disposable objects are disposed when the registry is cleared or disposed.
 /// </summary>
-internal sealed class ObjectRegistry
+internal sealed class ObjectRegistry : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, object> _objects = new();
     private long _idCounter;
@@ -69,6 +70,35 @@ internal sealed class ObjectRegistry
     public void Clear()
     {
         _objects.Clear();
+    }
+
+    /// <summary>
+    /// Disposes all disposable objects in the registry and clears it.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        // Take a snapshot of all objects and clear the registry
+        var objects = _objects.Values.ToList();
+        _objects.Clear();
+
+        Console.WriteLine($"[RPC] ObjectRegistry disposing {objects.Count} objects...");
+
+        // Dispose all disposable objects
+        foreach (var obj in objects)
+        {
+            if (obj is IAsyncDisposable asyncDisposable)
+            {
+                Console.WriteLine($"[RPC]   Disposing (async): {obj.GetType().Name}");
+                await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+            }
+            else if (obj is IDisposable disposable)
+            {
+                Console.WriteLine($"[RPC]   Disposing: {obj.GetType().Name}");
+                disposable.Dispose();
+            }
+        }
+
+        Console.WriteLine("[RPC] ObjectRegistry disposed.");
     }
 
     /// <summary>
