@@ -53,6 +53,7 @@ internal static class ResourceViewModelExtensions
     {
         return resource.TryGetCustomDataString(KnownProperties.Project.Path, out projectPath);
     }
+    
     public static bool TryGetToolPackage(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? projectPath)
     {
         return resource.TryGetCustomDataString(KnownProperties.Tool.Package, out projectPath);

@@ -7,11 +7,12 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a .NET tool resource that encapsulates metadata about a .NET CLI tool, including its name, package ID,
-/// and command.
+/// A resource that represents a specified dotnet tool.
 /// </summary>
-/// <remarks>This class is used to define and manage resources for .NET CLI tools. It associates a tool's name and
-/// command with its package ID, and ensures that the required metadata is properly annotated.</remarks>
+/// <remarks>
+/// This class is used to define and manage resources for .NET CLI tools. It associates a tool's name and
+/// command with its package ID, and ensures that the required metadata is properly annotated.
+/// </remarks>
 [Experimental("ASPIREDOTNETTOOL", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Tool = {ToolConfiguration?.PackageId}")]
 public class DotnetToolResource : ExecutableResource
