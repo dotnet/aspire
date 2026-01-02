@@ -330,11 +330,10 @@ Add `aspire telemetry` command group with subcommands:
 
 - [x] Create `src/Aspire.Cli/Utils/TelemetryOutputFormatter.cs`
   - [x] Add `FormatTraces()` method for human-readable trace output
-  - [ ] Add `FormatLogs()` method for human-readable log output
-  - [ ] Add `FormatMetrics()` method for human-readable metric output
+  - [x] Add `FormatLogs()` method for human-readable log output
+  - [x] Add `FormatMetrics()` method for human-readable metric output (FormatMetricsList and FormatMetricData)
   - [ ] Add `FormatFields()` method for human-readable fields output
   - [x] Use consistent formatting with colors/styling via Spectre.Console
-  - [x] Add `FormatLogs()` method for human-readable log output
 
 ### 6.2 Implement Trace Formatting
 
@@ -378,22 +377,22 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 6.4 Implement Metrics Formatting
 
-- [ ] Implement `FormatMetricsList(List<InstrumentSummary> instruments)` method
-  - [ ] Group by meter name
-  - [ ] Show instrument name, type, unit, description
+- [x] Implement `FormatMetricsList(List<InstrumentSummary> instruments)` method
+  - [x] Group by meter name
+  - [x] Show instrument name, type, unit, description
 
-- [ ] Implement `FormatMetricData(MetricData data)` method
-  - [ ] Show instrument summary
-  - [ ] Show dimensions with current values
-  - [ ] Format numbers appropriately (bytes -> MB, etc.)
+- [x] Implement `FormatMetricData(MetricData data)` method
+  - [x] Show instrument summary
+  - [x] Show dimensions with current values
+  - [x] Format numbers appropriately (bytes -> MB, etc.)
 
-- [ ] Add tests to `TelemetryOutputFormatterTests.cs`
-  - [ ] Test `FormatMetricsList_GroupsByMeter`
-  - [ ] Test `FormatMetricsList_ShowsInstrumentDetails`
-  - [ ] Test `FormatMetricData_ShowsDimensions`
-  - [ ] Test `FormatMetricData_FormatsUnitsNicely`
+- [x] Add tests to `TelemetryOutputFormatterTests.cs`
+  - [x] Test `FormatMetricsList_GroupsByMeter`
+  - [x] Test `FormatMetricsList_ShowsInstrumentDetails`
+  - [x] Test `FormatMetricData_ShowsDimensions`
+  - [x] Test `FormatMetricData_FormatsUnitsNicely`
 
-- [ ] Verify metrics formatting tests pass
+- [x] Verify metrics formatting tests pass
 
 ### 6.5 Implement Fields Formatting
 

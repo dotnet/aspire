@@ -770,4 +770,449 @@ public class TelemetryOutputFormatterTests
         Assert.DoesNotContain("Trace:", output);
         Assert.DoesNotContain("Span:", output);
     }
+
+    // ==================== FormatMetricsList Tests ====================
+
+    [Fact]
+    public void FormatMetricsList_EmptyJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatMetricsList("");
+
+        var output = writer.ToString();
+        Assert.Contains("No metrics found", output);
+    }
+
+    [Fact]
+    public void FormatMetricsList_NullJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatMetricsList(null!);
+
+        var output = writer.ToString();
+        Assert.Contains("No metrics found", output);
+    }
+
+    [Fact]
+    public void FormatMetricsList_ZeroInstruments_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "resource": "apiservice",
+                "meters": [],
+                "total_instruments": 0
+            }
+            """;
+
+        formatter.FormatMetricsList(json);
+
+        var output = writer.ToString();
+        Assert.Contains("No metrics found", output);
+    }
+
+    [Fact]
+    public void FormatMetricsList_GroupsByMeter()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "resource": "webfrontend",
+                "meters": [
+                    {
+                        "meter_name": "Microsoft.AspNetCore.Hosting",
+                        "instruments": [
+                            {
+                                "name": "http.server.request.duration",
+                                "description": "Duration of HTTP server requests",
+                                "unit": "s",
+                                "type": "Histogram"
+                            }
+                        ]
+                    },
+                    {
+                        "meter_name": "System.Runtime",
+                        "instruments": [
+                            {
+                                "name": "cpu.usage",
+                                "description": "CPU usage percentage",
+                                "unit": "%",
+                                "type": "Gauge"
+                            }
+                        ]
+                    }
+                ],
+                "total_instruments": 2
+            }
+            """;
+
+        formatter.FormatMetricsList(json);
+
+        var output = writer.ToString();
+        Assert.Contains("Microsoft.AspNetCore.Hosting", output);
+        Assert.Contains("System.Runtime", output);
+        Assert.Contains("http.server.request.duration", output);
+        Assert.Contains("cpu.usage", output);
+    }
+
+    [Fact]
+    public void FormatMetricsList_ShowsInstrumentDetails()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "resource": "apiservice",
+                "meters": [
+                    {
+                        "meter_name": "MyApp.Metrics",
+                        "instruments": [
+                            {
+                                "name": "requests.processed",
+                                "description": "Number of requests processed",
+                                "unit": "{requests}",
+                                "type": "Counter"
+                            }
+                        ]
+                    }
+                ],
+                "total_instruments": 1
+            }
+            """;
+
+        formatter.FormatMetricsList(json);
+
+        var output = writer.ToString();
+        Assert.Contains("requests.processed", output);
+        Assert.Contains("Number of requests processed", output);
+        Assert.Contains("{requests}", output);
+        Assert.Contains("Counter", output);
+    }
+
+    [Fact]
+    public void FormatMetricsList_ShowsResourceInHeader()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "resource": "my-service",
+                "meters": [
+                    {
+                        "meter_name": "TestMeter",
+                        "instruments": [
+                            {
+                                "name": "test.metric",
+                                "description": "",
+                                "unit": "",
+                                "type": "Counter"
+                            }
+                        ]
+                    }
+                ],
+                "total_instruments": 1
+            }
+            """;
+
+        formatter.FormatMetricsList(json);
+
+        var output = writer.ToString();
+        Assert.Contains("MY-SERVICE", output); // Should be uppercase in header
+        Assert.Contains("1 total", output);
+    }
+
+    [Fact]
+    public void FormatMetricsList_InvalidJson_HandlesGracefully()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatMetricsList("not valid json");
+
+        var output = writer.ToString();
+        Assert.Contains("Unable to parse", output);
+    }
+
+    [Fact]
+    public void FormatMetricsList_NonObjectJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatMetricsList("[]");
+
+        var output = writer.ToString();
+        Assert.Contains("No metrics found", output);
+    }
+
+    // ==================== FormatMetricData Tests ====================
+
+    [Fact]
+    public void FormatMetricData_EmptyJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatMetricData("");
+
+        var output = writer.ToString();
+        Assert.Contains("No metric data found", output);
+    }
+
+    [Fact]
+    public void FormatMetricData_NullJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatMetricData(null!);
+
+        var output = writer.ToString();
+        Assert.Contains("No metric data found", output);
+    }
+
+    [Fact]
+    public void FormatMetricData_ShowsInstrumentSummary()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "resource": "webfrontend",
+                "meter": "Microsoft.AspNetCore.Hosting",
+                "instrument": {
+                    "name": "http.server.request.duration",
+                    "description": "Duration of HTTP server requests",
+                    "unit": "s",
+                    "type": "Histogram"
+                },
+                "time_window": {
+                    "start": "2024-01-15T10:00:00Z",
+                    "end": "2024-01-15T10:05:00Z",
+                    "duration": "5m"
+                },
+                "dimensions": [],
+                "dimension_count": 0
+            }
+            """;
+
+        formatter.FormatMetricData(json);
+
+        var output = writer.ToString();
+        Assert.Contains("http.server.request.duration", output);
+        Assert.Contains("webfrontend", output);
+        Assert.Contains("Microsoft.AspNetCore.Hosting", output);
+        Assert.Contains("Histogram", output);
+        Assert.Contains("5m", output);
+    }
+
+    [Fact]
+    public void FormatMetricData_ShowsDimensions()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "resource": "apiservice",
+                "meter": "MyMeter",
+                "instrument": {
+                    "name": "requests.count",
+                    "description": "Request count",
+                    "unit": "{requests}",
+                    "type": "Counter"
+                },
+                "time_window": {
+                    "start": "2024-01-15T10:00:00Z",
+                    "end": "2024-01-15T10:05:00Z",
+                    "duration": "5m"
+                },
+                "dimensions": [
+                    {
+                        "name": "dimension1",
+                        "attributes": {
+                            "http.method": "GET",
+                            "http.route": "/api/users"
+                        },
+                        "value_count": 42,
+                        "latest_values": [
+                            {
+                                "start": "2024-01-15T10:04:00Z",
+                                "end": "2024-01-15T10:05:00Z",
+                                "value": 150
+                            }
+                        ]
+                    }
+                ],
+                "dimension_count": 1
+            }
+            """;
+
+        formatter.FormatMetricData(json);
+
+        var output = writer.ToString();
+        Assert.Contains("Dimensions (1)", output);
+        Assert.Contains("http.method=GET", output);
+        Assert.Contains("http.route=/api/users", output);
+        Assert.Contains("42 data points", output);
+    }
+
+    [Fact]
+    public void FormatMetricData_FormatsUnitsNicely_Bytes()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "resource": "service",
+                "meter": "System.Runtime",
+                "instrument": {
+                    "name": "gc.heap.size",
+                    "description": "GC Heap Size",
+                    "unit": "By",
+                    "type": "Gauge"
+                },
+                "time_window": {
+                    "start": "2024-01-15T10:00:00Z",
+                    "end": "2024-01-15T10:05:00Z",
+                    "duration": "5m"
+                },
+                "dimensions": [
+                    {
+                        "name": "dim1",
+                        "attributes": {},
+                        "value_count": 10,
+                        "latest_values": [
+                            {
+                                "start": "2024-01-15T10:04:00Z",
+                                "end": "2024-01-15T10:05:00Z",
+                                "value": 104857600
+                            }
+                        ]
+                    }
+                ],
+                "dimension_count": 1
+            }
+            """;
+
+        formatter.FormatMetricData(json);
+
+        var output = writer.ToString();
+        // Should format bytes as MB
+        Assert.Contains("MB", output);
+    }
+
+    [Fact]
+    public void FormatMetricData_HistogramValues_ShowsCountAndAverage()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "resource": "webfrontend",
+                "meter": "Microsoft.AspNetCore.Hosting",
+                "instrument": {
+                    "name": "http.server.request.duration",
+                    "description": "Duration of HTTP server requests",
+                    "unit": "s",
+                    "type": "Histogram"
+                },
+                "time_window": {
+                    "start": "2024-01-15T10:00:00Z",
+                    "end": "2024-01-15T10:05:00Z",
+                    "duration": "5m"
+                },
+                "dimensions": [
+                    {
+                        "name": "dim1",
+                        "attributes": {
+                            "http.route": "/api/data"
+                        },
+                        "value_count": 5,
+                        "latest_values": [
+                            {
+                                "start": "2024-01-15T10:04:00Z",
+                                "end": "2024-01-15T10:05:00Z",
+                                "value": {
+                                    "count": 100,
+                                    "sum": 25.5,
+                                    "bucket_counts": [10, 20, 30, 25, 15],
+                                    "explicit_bounds": [0.01, 0.1, 0.5, 1.0]
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "dimension_count": 1
+            }
+            """;
+
+        formatter.FormatMetricData(json);
+
+        var output = writer.ToString();
+        Assert.Contains("count=100", output);
+        Assert.Contains("avg=", output);
+    }
+
+    [Fact]
+    public void FormatMetricData_NoDimensions_ShowsMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "resource": "service",
+                "meter": "MyMeter",
+                "instrument": {
+                    "name": "my.metric",
+                    "description": "",
+                    "unit": "",
+                    "type": "Counter"
+                },
+                "time_window": {
+                    "start": "2024-01-15T10:00:00Z",
+                    "end": "2024-01-15T10:05:00Z",
+                    "duration": "5m"
+                },
+                "dimensions": [],
+                "dimension_count": 0
+            }
+            """;
+
+        formatter.FormatMetricData(json);
+
+        var output = writer.ToString();
+        Assert.Contains("No dimension data available", output);
+    }
+
+    [Fact]
+    public void FormatMetricData_InvalidJson_HandlesGracefully()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatMetricData("not valid json");
+
+        var output = writer.ToString();
+        Assert.Contains("Unable to parse", output);
+    }
+
+    [Fact]
+    public void FormatMetricData_ShowsUnitInHeader()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "resource": "service",
+                "meter": "MyMeter",
+                "instrument": {
+                    "name": "cpu.usage",
+                    "description": "CPU usage",
+                    "unit": "%",
+                    "type": "Gauge"
+                },
+                "time_window": {
+                    "start": "2024-01-15T10:00:00Z",
+                    "end": "2024-01-15T10:05:00Z",
+                    "duration": "5m"
+                },
+                "dimensions": [],
+                "dimension_count": 0
+            }
+            """;
+
+        formatter.FormatMetricData(json);
+
+        var output = writer.ToString();
+        Assert.Contains("cpu.usage [%]", output);
+    }
 }

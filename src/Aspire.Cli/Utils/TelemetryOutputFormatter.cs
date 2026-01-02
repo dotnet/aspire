@@ -638,4 +638,345 @@ internal sealed class TelemetryOutputFormatter
         }
         return 0;
     }
+
+    /// <summary>
+    /// Formats a list of metrics/instruments grouped by meter for human-readable console output.
+    /// </summary>
+    /// <param name="metricsJson">JSON object from list_metrics MCP tool response containing meters and instruments.</param>
+    public void FormatMetricsList(string metricsJson)
+    {
+        if (string.IsNullOrWhiteSpace(metricsJson))
+        {
+            WriteEmptyMessage("metrics");
+            return;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(metricsJson);
+            var root = document.RootElement;
+
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                WriteEmptyMessage("metrics");
+                return;
+            }
+
+            var resourceName = GetStringProperty(root, "resource") ?? "unknown";
+            var totalInstruments = (int?)GetDoubleProperty(root, "total_instruments") ?? 0;
+
+            if (totalInstruments == 0)
+            {
+                WriteEmptyMessage("metrics");
+                return;
+            }
+
+            WriteHeader($"METRICS FOR {resourceName.ToUpperInvariant()} ({totalInstruments} total)");
+
+            if (root.TryGetProperty("meters", out var meters) && meters.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var meter in meters.EnumerateArray())
+                {
+                    FormatMeter(meter);
+                    _console.WriteLine();
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            _console.MarkupLine("[dim]Unable to parse metrics data.[/]");
+        }
+    }
+
+    private void FormatMeter(JsonElement meter)
+    {
+        var meterName = GetStringProperty(meter, "meter_name") ?? "unknown";
+
+        if (_enableColor)
+        {
+            _console.MarkupLine($"[cyan bold]{meterName.EscapeMarkup()}[/]");
+        }
+        else
+        {
+            _console.WriteLine(meterName);
+        }
+
+        if (meter.TryGetProperty("instruments", out var instruments) && instruments.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var instrument in instruments.EnumerateArray())
+            {
+                FormatInstrumentSummary(instrument);
+            }
+        }
+    }
+
+    private void FormatInstrumentSummary(JsonElement instrument)
+    {
+        var name = GetStringProperty(instrument, "name") ?? "unknown";
+        var description = GetStringProperty(instrument, "description") ?? "";
+        var unit = GetStringProperty(instrument, "unit") ?? "";
+        var type = GetStringProperty(instrument, "type") ?? "";
+
+        var unitDisplay = !string.IsNullOrEmpty(unit) ? $" [{unit}]" : "";
+        var typeDisplay = !string.IsNullOrEmpty(type) ? $"({type})" : "";
+
+        if (_enableColor)
+        {
+            _console.MarkupLine($"  {InfoSymbol} [white]{name.EscapeMarkup()}[/]{unitDisplay.EscapeMarkup()} [dim]{typeDisplay.EscapeMarkup()}[/]");
+            if (!string.IsNullOrEmpty(description))
+            {
+                _console.MarkupLine($"    [dim]{TruncateValue(description, 80).EscapeMarkup()}[/]");
+            }
+        }
+        else
+        {
+            _console.WriteLine($"  {InfoSymbol} {name}{unitDisplay} {typeDisplay}");
+            if (!string.IsNullOrEmpty(description))
+            {
+                _console.WriteLine($"    {TruncateValue(description, 80)}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Formats metric data for a specific instrument for human-readable console output.
+    /// </summary>
+    /// <param name="metricDataJson">JSON object from get_metric_data MCP tool response.</param>
+    public void FormatMetricData(string metricDataJson)
+    {
+        if (string.IsNullOrWhiteSpace(metricDataJson))
+        {
+            WriteEmptyMessage("metric data");
+            return;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(metricDataJson);
+            var root = document.RootElement;
+
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                WriteEmptyMessage("metric data");
+                return;
+            }
+
+            var resourceName = GetStringProperty(root, "resource") ?? "unknown";
+            var meterName = GetStringProperty(root, "meter") ?? "unknown";
+
+            // Get instrument details
+            string instrumentName = "unknown", instrumentUnit = "", instrumentType = "", instrumentDescription = "";
+            if (root.TryGetProperty("instrument", out var instrument))
+            {
+                instrumentName = GetStringProperty(instrument, "name") ?? "unknown";
+                instrumentDescription = GetStringProperty(instrument, "description") ?? "";
+                instrumentUnit = GetStringProperty(instrument, "unit") ?? "";
+                instrumentType = GetStringProperty(instrument, "type") ?? "";
+            }
+
+            // Get time window
+            string duration = "5m";
+            if (root.TryGetProperty("time_window", out var timeWindow))
+            {
+                duration = GetStringProperty(timeWindow, "duration") ?? "5m";
+            }
+
+            var unitDisplay = !string.IsNullOrEmpty(instrumentUnit) ? $" [{instrumentUnit}]" : "";
+            WriteHeader($"METRIC: {instrumentName}{unitDisplay} (last {duration})");
+
+            // Show instrument summary
+            if (_enableColor)
+            {
+                _console.MarkupLine($"[dim]Resource:[/] {resourceName.EscapeMarkup()}");
+                _console.MarkupLine($"[dim]Meter:[/] {meterName.EscapeMarkup()}");
+                _console.MarkupLine($"[dim]Type:[/] {instrumentType.EscapeMarkup()}");
+                if (!string.IsNullOrEmpty(instrumentDescription))
+                {
+                    _console.MarkupLine($"[dim]Description:[/] {instrumentDescription.EscapeMarkup()}");
+                }
+            }
+            else
+            {
+                _console.WriteLine($"Resource: {resourceName}");
+                _console.WriteLine($"Meter: {meterName}");
+                _console.WriteLine($"Type: {instrumentType}");
+                if (!string.IsNullOrEmpty(instrumentDescription))
+                {
+                    _console.WriteLine($"Description: {instrumentDescription}");
+                }
+            }
+            _console.WriteLine();
+
+            // Show dimensions
+            var dimensionCount = (int?)GetDoubleProperty(root, "dimension_count") ?? 0;
+            if (root.TryGetProperty("dimensions", out var dimensions) && dimensions.ValueKind == JsonValueKind.Array)
+            {
+                var dimensionList = dimensions.EnumerateArray().ToList();
+
+                if (dimensionList.Count == 0)
+                {
+                    if (_enableColor)
+                    {
+                        _console.MarkupLine("[dim]No dimension data available.[/]");
+                    }
+                    else
+                    {
+                        _console.WriteLine("No dimension data available.");
+                    }
+                }
+                else
+                {
+                    if (_enableColor)
+                    {
+                        _console.MarkupLine($"[bold]Dimensions ({dimensionList.Count}):[/]");
+                    }
+                    else
+                    {
+                        _console.WriteLine($"Dimensions ({dimensionList.Count}):");
+                    }
+
+                    foreach (var dimension in dimensionList)
+                    {
+                        FormatDimension(dimension, instrumentUnit);
+                    }
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            _console.MarkupLine("[dim]Unable to parse metric data.[/]");
+        }
+    }
+
+    private void FormatDimension(JsonElement dimension, string unit)
+    {
+        var name = GetStringProperty(dimension, "name") ?? "";
+        var valueCount = (int?)GetDoubleProperty(dimension, "value_count") ?? 0;
+
+        // Format attributes as key=value pairs
+        var attributeDisplay = "";
+        if (dimension.TryGetProperty("attributes", out var attributes) && attributes.ValueKind == JsonValueKind.Object)
+        {
+            var attrList = attributes.EnumerateObject().ToList();
+            if (attrList.Count > 0)
+            {
+                attributeDisplay = string.Join(", ", attrList.Select(a => $"{a.Name}={TruncateValue(a.Value.ToString(), 30)}"));
+            }
+        }
+
+        // Get latest value for display
+        string latestValueDisplay = "";
+        if (dimension.TryGetProperty("latest_values", out var latestValues) && latestValues.ValueKind == JsonValueKind.Array)
+        {
+            var valuesList = latestValues.EnumerateArray().ToList();
+            if (valuesList.Count > 0)
+            {
+                var lastValue = valuesList[^1];
+                latestValueDisplay = FormatMetricValueForDisplay(lastValue, unit);
+            }
+        }
+
+        if (_enableColor)
+        {
+            var attrPart = !string.IsNullOrEmpty(attributeDisplay) ? $" [dim]({attributeDisplay.EscapeMarkup()})[/]" : " [dim](no attributes)[/]";
+            var valuePart = !string.IsNullOrEmpty(latestValueDisplay) ? $" = [yellow]{latestValueDisplay.EscapeMarkup()}[/]" : "";
+            _console.MarkupLine($"  {InfoSymbol}{attrPart}{valuePart}");
+            _console.MarkupLine($"    [dim]{valueCount} data points[/]");
+        }
+        else
+        {
+            var attrPart = !string.IsNullOrEmpty(attributeDisplay) ? $" ({attributeDisplay})" : " (no attributes)";
+            var valuePart = !string.IsNullOrEmpty(latestValueDisplay) ? $" = {latestValueDisplay}" : "";
+            _console.WriteLine($"  {InfoSymbol}{attrPart}{valuePart}");
+            _console.WriteLine($"    {valueCount} data points");
+        }
+    }
+
+    private static string FormatMetricValueForDisplay(JsonElement valueElement, string unit)
+    {
+        if (!valueElement.TryGetProperty("value", out var value))
+        {
+            return "";
+        }
+
+        // Handle histogram values
+        if (value.ValueKind == JsonValueKind.Object)
+        {
+            var count = GetDoubleProperty(value, "count");
+            var sum = GetDoubleProperty(value, "sum");
+            if (count.HasValue && sum.HasValue)
+            {
+                var avg = count.Value > 0 ? sum.Value / count.Value : 0;
+                return $"count={count.Value:N0}, avg={FormatValueWithUnit(avg, unit)}";
+            }
+            return "histogram";
+        }
+
+        // Handle numeric values
+        if (value.ValueKind == JsonValueKind.Number)
+        {
+            var numericValue = value.GetDouble();
+            return FormatValueWithUnit(numericValue, unit);
+        }
+
+        return value.ToString();
+    }
+
+    private static string FormatValueWithUnit(double value, string unit)
+    {
+        // Format bytes nicely
+        var lowerUnit = unit.ToLowerInvariant();
+        if (lowerUnit == "by" || lowerUnit == "bytes" || lowerUnit.Contains("byte"))
+        {
+            return FormatBytes(value);
+        }
+
+        // Format durations nicely (seconds, milliseconds)
+        if (lowerUnit == "s" || lowerUnit == "seconds" || lowerUnit == "sec")
+        {
+            if (value >= 1)
+            {
+                return $"{value:F2}s";
+            }
+            return $"{value * 1000:F2}ms";
+        }
+
+        if (lowerUnit == "ms" || lowerUnit == "milliseconds")
+        {
+            return $"{value:F2}ms";
+        }
+
+        // Format percentages
+        if (lowerUnit == "%" || lowerUnit == "percent")
+        {
+            return $"{value:F1}%";
+        }
+
+        // Default formatting
+        if (value >= 1000000)
+        {
+            return $"{value / 1000000:F2}M";
+        }
+        if (value >= 1000)
+        {
+            return $"{value / 1000:F2}K";
+        }
+        if (value == Math.Floor(value))
+        {
+            return $"{value:F0}";
+        }
+        return $"{value:F2}";
+    }
+
+    private static string FormatBytes(double bytes)
+    {
+        string[] sizes = ["B", "KB", "MB", "GB", "TB"];
+        var order = 0;
+        while (bytes >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            bytes /= 1024;
+        }
+        return $"{bytes:F2} {sizes[order]}";
+    }
 }
