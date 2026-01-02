@@ -348,4 +348,87 @@ public class FilterExpressionParserTests
         Assert.Equal(FilterCondition.NotContains, result.Condition);
         Assert.Equal("error", result.Value);
     }
+
+    [Fact]
+    public void ToTelemetryFilter_EqualsCondition_ReturnsFieldTelemetryFilter()
+    {
+        var filter = FilterExpressionParser.Parse("http.method=POST");
+
+        var telemetryFilter = filter.ToTelemetryFilter();
+
+        Assert.Equal("http.method", telemetryFilter.Field);
+        Assert.Equal("equals", telemetryFilter.Condition);
+        Assert.Equal("POST", telemetryFilter.Value);
+        Assert.True(telemetryFilter.Enabled);
+    }
+
+    [Theory]
+    [InlineData(FilterCondition.Equals, "equals")]
+    [InlineData(FilterCondition.NotEqual, "!equals")]
+    [InlineData(FilterCondition.Contains, "contains")]
+    [InlineData(FilterCondition.NotContains, "!contains")]
+    [InlineData(FilterCondition.GreaterThan, "gt")]
+    [InlineData(FilterCondition.LessThan, "lt")]
+    [InlineData(FilterCondition.GreaterThanOrEqual, "gte")]
+    [InlineData(FilterCondition.LessThanOrEqual, "lte")]
+    public void ToTelemetryFilter_AllConditions_MapsCorrectly(FilterCondition condition, string expectedConditionString)
+    {
+        var filter = new ParsedFilter("field", condition, "value");
+
+        var telemetryFilter = filter.ToTelemetryFilter();
+
+        Assert.Equal("field", telemetryFilter.Field);
+        Assert.Equal(expectedConditionString, telemetryFilter.Condition);
+        Assert.Equal("value", telemetryFilter.Value);
+    }
+
+    [Fact]
+    public void ToTelemetryFilter_PreservesFieldNameWithDots()
+    {
+        var filter = FilterExpressionParser.Parse("http.response.status_code=200");
+
+        var telemetryFilter = filter.ToTelemetryFilter();
+
+        Assert.Equal("http.response.status_code", telemetryFilter.Field);
+        Assert.Equal("equals", telemetryFilter.Condition);
+        Assert.Equal("200", telemetryFilter.Value);
+    }
+
+    [Fact]
+    public void ToTelemetryFilter_PreservesValueWithSpaces()
+    {
+        var filter = FilterExpressionParser.Parse("message~connection refused");
+
+        var telemetryFilter = filter.ToTelemetryFilter();
+
+        Assert.Equal("message", telemetryFilter.Field);
+        Assert.Equal("contains", telemetryFilter.Condition);
+        Assert.Equal("connection refused", telemetryFilter.Value);
+    }
+
+    [Fact]
+    public void ToTelemetryFilter_EnabledByDefault()
+    {
+        var filter = FilterExpressionParser.Parse("status=Error");
+
+        var telemetryFilter = filter.ToTelemetryFilter();
+
+        Assert.True(telemetryFilter.Enabled);
+    }
+
+    [Theory]
+    [InlineData(FilterCondition.Equals, "equals")]
+    [InlineData(FilterCondition.NotEqual, "!equals")]
+    [InlineData(FilterCondition.Contains, "contains")]
+    [InlineData(FilterCondition.NotContains, "!contains")]
+    [InlineData(FilterCondition.GreaterThan, "gt")]
+    [InlineData(FilterCondition.LessThan, "lt")]
+    [InlineData(FilterCondition.GreaterThanOrEqual, "gte")]
+    [InlineData(FilterCondition.LessThanOrEqual, "lte")]
+    public void ToTelemetryConditionString_AllConditions_ReturnsCorrectString(FilterCondition condition, string expectedString)
+    {
+        var result = condition.ToTelemetryConditionString();
+
+        Assert.Equal(expectedString, result);
+    }
 }

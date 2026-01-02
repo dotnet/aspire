@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace Aspire.Cli.Utils;
@@ -11,7 +12,55 @@ namespace Aspire.Cli.Utils;
 /// <param name="Field">The field name to filter on (e.g., "http.method", "status").</param>
 /// <param name="Condition">The filter condition (e.g., Equals, Contains, GreaterThan).</param>
 /// <param name="Value">The value to compare against.</param>
-public sealed record ParsedFilter(string Field, FilterCondition Condition, string Value);
+public sealed record ParsedFilter(string Field, FilterCondition Condition, string Value)
+{
+    /// <summary>
+    /// Converts this parsed filter to a telemetry filter DTO suitable for JSON serialization
+    /// and passing to the Dashboard's MCP tools.
+    /// </summary>
+    /// <returns>A <see cref="TelemetryFilterDto"/> that can be serialized to JSON.</returns>
+    public TelemetryFilterDto ToTelemetryFilter()
+    {
+        return new TelemetryFilterDto
+        {
+            Field = Field,
+            Condition = Condition.ToTelemetryConditionString(),
+            Value = Value
+        };
+    }
+}
+
+/// <summary>
+/// A Data Transfer Object representing a telemetry filter that can be serialized to JSON
+/// for passing to the Dashboard's MCP tools. This matches the structure expected by
+/// <c>FieldTelemetryFilter</c> in the Dashboard.
+/// </summary>
+public sealed class TelemetryFilterDto
+{
+    /// <summary>
+    /// The field name to filter on.
+    /// </summary>
+    [JsonPropertyName("field")]
+    public required string Field { get; init; }
+
+    /// <summary>
+    /// The filter condition as a string (e.g., "equals", "contains", "gt", "gte").
+    /// </summary>
+    [JsonPropertyName("condition")]
+    public required string Condition { get; init; }
+
+    /// <summary>
+    /// The value to compare against.
+    /// </summary>
+    [JsonPropertyName("value")]
+    public required string Value { get; init; }
+
+    /// <summary>
+    /// Whether the filter is enabled. Defaults to true.
+    /// </summary>
+    [JsonPropertyName("enabled")]
+    public bool Enabled { get; init; } = true;
+}
 
 /// <summary>
 /// Represents the filter condition operators.
@@ -26,6 +75,34 @@ public enum FilterCondition
     LessThan,
     GreaterThanOrEqual,
     LessThanOrEqual
+}
+
+/// <summary>
+/// Extension methods for <see cref="FilterCondition"/>.
+/// </summary>
+public static class FilterConditionExtensions
+{
+    /// <summary>
+    /// Converts the filter condition to the string format expected by the Dashboard's telemetry filtering.
+    /// These strings match the format used by <c>TelemetryFilterFormatter</c> in the Dashboard.
+    /// </summary>
+    /// <param name="condition">The filter condition to convert.</param>
+    /// <returns>The string representation for the Dashboard.</returns>
+    public static string ToTelemetryConditionString(this FilterCondition condition)
+    {
+        return condition switch
+        {
+            FilterCondition.Equals => "equals",
+            FilterCondition.NotEqual => "!equals",
+            FilterCondition.Contains => "contains",
+            FilterCondition.NotContains => "!contains",
+            FilterCondition.GreaterThan => "gt",
+            FilterCondition.LessThan => "lt",
+            FilterCondition.GreaterThanOrEqual => "gte",
+            FilterCondition.LessThanOrEqual => "lte",
+            _ => throw new ArgumentOutOfRangeException(nameof(condition), condition, null)
+        };
+    }
 }
 
 /// <summary>

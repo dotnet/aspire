@@ -61,15 +61,20 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 1.2 Create Filter-to-TelemetryFilter Converter
 
-- [ ] Add `ToTelemetryFilter()` method to convert `ParsedFilter` to `FieldTelemetryFilter`
-  - [ ] Map string condition to `FilterCondition` enum
-  - [ ] Handle field name normalization (known fields vs custom attributes)
+- [x] Add `ToTelemetryFilter()` method to convert `ParsedFilter` to `TelemetryFilterDto`
+  - [x] Map FilterCondition enum to Dashboard-compatible string format
+  - [x] Created `TelemetryFilterDto` class for JSON serialization
+  - [x] Added `ToTelemetryConditionString()` extension method for FilterCondition
 
-- [ ] Add converter tests to `FilterExpressionParserTests.cs`
-  - [ ] Test `ToTelemetryFilter_EqualsCondition_ReturnsFieldTelemetryFilter`
-  - [ ] Test `ToTelemetryFilter_AllConditions_MapsCorrectly`
+- [x] Add converter tests to `FilterExpressionParserTests.cs`
+  - [x] Test `ToTelemetryFilter_EqualsCondition_ReturnsFieldTelemetryFilter`
+  - [x] Test `ToTelemetryFilter_AllConditions_MapsCorrectly`
+  - [x] Test `ToTelemetryFilter_PreservesFieldNameWithDots`
+  - [x] Test `ToTelemetryFilter_PreservesValueWithSpaces`
+  - [x] Test `ToTelemetryFilter_EnabledByDefault`
+  - [x] Test `ToTelemetryConditionString_AllConditions_ReturnsCorrectString`
 
-- [ ] Verify converter tests pass
+- [x] Verify converter tests pass
 
 ---
 
