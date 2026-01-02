@@ -1373,13 +1373,10 @@ public sealed class TypeScriptCodeGenerator : CodeGeneratorVisitor
 
             // Wait for either Ctrl+C, SIGTERM, or the connection to close
             await new Promise<void>((resolve) => {
-              const shutdown = async () => {
+              const shutdown = () => {
                 console.log("\nStopping application...");
-                try {
-                  await this._appProxy?.invokeMethod('StopAsync', {});
-                } catch {
-                  // Ignore errors during shutdown
-                }
+                // Fire-and-forget StopAsync - don't await to allow quick shutdown for hot reload
+                this._appProxy?.invokeMethod('StopAsync', {}).catch(() => {});
                 client.disconnect();
                 resolve();
               };
