@@ -328,32 +328,32 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 6.1 Create Telemetry Output Formatter
 
-- [ ] Create `src/Aspire.Cli/Utils/TelemetryOutputFormatter.cs`
-  - [ ] Add `FormatTraces()` method for human-readable trace output
+- [x] Create `src/Aspire.Cli/Utils/TelemetryOutputFormatter.cs`
+  - [x] Add `FormatTraces()` method for human-readable trace output
   - [ ] Add `FormatLogs()` method for human-readable log output
   - [ ] Add `FormatMetrics()` method for human-readable metric output
   - [ ] Add `FormatFields()` method for human-readable fields output
-  - [ ] Use consistent formatting with colors/styling via Spectre.Console
+  - [x] Use consistent formatting with colors/styling via Spectre.Console
 
 ### 6.2 Implement Trace Formatting
 
-- [ ] Implement `FormatTraces(List<TraceData> traces)` method
-  - [ ] Show header with count and "newest first" indicator
-  - [ ] Format each trace: ID, timestamp, duration, status
-  - [ ] Show title (root span name)
-  - [ ] Show resource flow (source -> destination)
-  - [ ] Show span hierarchy with indentation
-  - [ ] Highlight errors in red
-  - [ ] Truncate long attribute values
+- [x] Implement `FormatTraces(List<TraceData> traces)` method
+  - [x] Show header with count and "newest first" indicator
+  - [x] Format each trace: ID, timestamp, duration, status
+  - [x] Show title (root span name)
+  - [x] Show resource flow (source -> destination)
+  - [x] Show span hierarchy with indentation
+  - [x] Highlight errors in red
+  - [x] Truncate long attribute values
 
-- [ ] Create `tests/Aspire.Cli.Tests/Utils/TelemetryOutputFormatterTests.cs`
-  - [ ] Test `FormatTraces_EmptyList_ShowsEmptyMessage`
-  - [ ] Test `FormatTraces_SingleTrace_FormatsCorrectly`
-  - [ ] Test `FormatTraces_MultipleSpans_ShowsHierarchy`
-  - [ ] Test `FormatTraces_WithError_HighlightsError`
-  - [ ] Test `FormatTraces_ShowsNewestFirst`
+- [x] Create `tests/Aspire.Cli.Tests/Utils/TelemetryOutputFormatterTests.cs`
+  - [x] Test `FormatTraces_EmptyList_ShowsEmptyMessage`
+  - [x] Test `FormatTraces_SingleTrace_FormatsCorrectly`
+  - [x] Test `FormatTraces_MultipleSpans_ShowsHierarchy`
+  - [x] Test `FormatTraces_WithError_HighlightsError`
+  - [x] Test `FormatTraces_ShowsNewestFirst`
 
-- [ ] Verify trace formatting tests pass
+- [x] Verify trace formatting tests pass (build succeeded)
 
 ### 6.3 Implement Log Formatting
 
