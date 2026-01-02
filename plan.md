@@ -883,4 +883,4 @@ Add `aspire telemetry` command group with subcommands:
 - [x] JSON output is valid and matches MCP tool format
 - [x] All tests pass (936 CLI tests, all pass)
 - [x] No regression in existing CLI commands (verified via test suite)
-- [ ] MCP tools have feature parity with CLI commands
+- [x] MCP tools have feature parity with CLI commands (verified: all Dashboard MCP telemetry tools have CLI proxy counterparts)
