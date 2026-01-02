@@ -251,4 +251,43 @@ public class TelemetryLogsCommandTests(ITestOutputHelper outputHelper)
         Assert.Contains("--limit", optionNames);
         Assert.Contains("--json", optionNames);
     }
+
+    [Fact]
+    public async Task TelemetryLogsCommand_InvalidFilterSyntax_ReturnsError()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Use an invalid filter expression (missing operator)
+        var result = command.Parse("telemetry logs --filter invalidfilter");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Expected to fail with InvalidArguments exit code (18) due to invalid filter syntax
+        // The error should be caught before attempting Dashboard connection
+        Assert.Equal(18, exitCode);
+    }
+
+    [Fact]
+    public void TelemetryLogsCommand_LimitOption_HasDefaultValue()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var rootCommand = provider.GetRequiredService<RootCommand>();
+        var telemetryCommand = rootCommand.Subcommands.FirstOrDefault(c => c.Name == "telemetry");
+        Assert.NotNull(telemetryCommand);
+
+        var logsCommand = telemetryCommand.Subcommands.FirstOrDefault(c => c.Name == "logs");
+        Assert.NotNull(logsCommand);
+
+        var limitOption = logsCommand.Options.FirstOrDefault(o => o.Name == "--limit");
+        Assert.NotNull(limitOption);
+
+        // Verify the option has a default value factory
+        Assert.True(limitOption.HasDefaultValue, "--limit option should have a default value");
+    }
 }

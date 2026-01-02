@@ -113,6 +113,24 @@ internal sealed class TelemetryLogsCommand : BaseCommand
             return ExitCodeConstants.InvalidCommand;
         }
 
+        // Validate filter syntax BEFORE connecting to Dashboard
+        // This provides early feedback on invalid filter expressions
+        List<ParsedFilter> parsedFilters = [];
+        foreach (var filterExpr in filters)
+        {
+            try
+            {
+                var parsed = FilterExpressionParser.Parse(filterExpr);
+                parsedFilters.Add(parsed);
+            }
+            catch (FilterParseException ex)
+            {
+                _logger.LogWarning("Invalid filter expression '{Filter}': {Message}", filterExpr, ex.Message);
+                InteractionService.DisplayError($"Invalid filter expression '{filterExpr}': {ex.Message}");
+                return ExitCodeConstants.InvalidArguments;
+            }
+        }
+
         try
         {
             // Get Dashboard connection
@@ -143,7 +161,7 @@ internal sealed class TelemetryLogsCommand : BaseCommand
             await using var mcpClient = await McpClient.CreateAsync(transport, cancellationToken: cancellationToken);
 
             // List logs with filters
-            var result = await ListLogsAsync(mcpClient, resourceName, traceId, spanId, filters, severity, cancellationToken);
+            var result = await ListLogsAsync(mcpClient, resourceName, traceId, spanId, parsedFilters, severity, cancellationToken);
 
             if (outputJson)
             {
@@ -168,7 +186,7 @@ internal sealed class TelemetryLogsCommand : BaseCommand
         }
     }
 
-    private async Task<string> ListLogsAsync(McpClient mcpClient, string? resourceName, string? traceId, string? spanId, string[] filters, string? severity, CancellationToken cancellationToken)
+    private static async Task<string> ListLogsAsync(McpClient mcpClient, string? resourceName, string? traceId, string? spanId, List<ParsedFilter> parsedFilters, string? severity, CancellationToken cancellationToken)
     {
         var tool = new ListStructuredLogsTool();
         var arguments = new Dictionary<string, JsonElement>();
@@ -208,19 +226,10 @@ internal sealed class TelemetryLogsCommand : BaseCommand
             });
         }
 
-        // Parse and add explicit filter expressions
-        foreach (var filterExpr in filters)
+        // Convert pre-parsed filters to TelemetryFilterDto format
+        foreach (var parsed in parsedFilters)
         {
-            try
-            {
-                var parsed = FilterExpressionParser.Parse(filterExpr);
-                filterDtos.Add(parsed.ToTelemetryFilter());
-            }
-            catch (FilterParseException ex)
-            {
-                _logger.LogWarning("Invalid filter expression '{Filter}': {Message}", filterExpr, ex.Message);
-                throw new InvalidOperationException($"Invalid filter expression '{filterExpr}': {ex.Message}", ex);
-            }
+            filterDtos.Add(parsed.ToTelemetryFilter());
         }
 
         // Add filters to arguments if we have any

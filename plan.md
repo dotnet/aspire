@@ -630,16 +630,18 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 9.4 Implement Log Filtering
 
-- [ ] Implement filter handling in logs command
-  - [ ] Parse multiple `--filter` options
-  - [ ] Validate each filter field exists
-  - [ ] Convert to JSON format for MCP tool
+- [x] Implement filter handling in logs command
+  - [x] Parse multiple `--filter` options
+  - [x] Validate filter syntax early (before Dashboard connection)
+  - [ ] Validate each filter field exists (requires Dashboard connection)
+  - [x] Convert to JSON format for MCP tool
 
 - [ ] Add filter tests to `TelemetryLogsCommandTests.cs`
   - [ ] Test `TelemetryLogsCommand_WithCategoryFilter_FiltersByCategory`
   - [ ] Test `TelemetryLogsCommand_WithMessageFilter_FiltersByMessage`
   - [ ] Test `TelemetryLogsCommand_WithAttributeFilter_FiltersByAttribute`
   - [ ] Test `TelemetryLogsCommand_WithMultipleFilters_AppliesAllFilters`
+  - [x] Test `TelemetryLogsCommand_InvalidFilterSyntax_ReturnsError`
   - [ ] Test `TelemetryLogsCommand_InvalidFilterField_ReturnsErrorWithSuggestions`
 
 - [ ] Verify filter tests pass
