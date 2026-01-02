@@ -82,13 +82,13 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 2.1 Create Fields MCP Tools Class
 
-- [ ] Create `src/Aspire.Dashboard/Mcp/AspireFieldsMcpTools.cs`
-  - [ ] Add constructor with `TelemetryRepository`, `IDashboardClient`, `ILogger` dependencies
-  - [ ] Add `[McpServerToolType]` attribute to class
+- [x] Create `src/Aspire.Dashboard/Mcp/AspireFieldsMcpTools.cs`
+  - [x] Add constructor with `TelemetryRepository`, `IDashboardClient`, `ILogger` dependencies
+  - [x] Add `[McpServerToolType]` attribute to class
 
-- [ ] Register in DI container
-  - [ ] Modify `src/Aspire.Dashboard/DashboardWebApplication.cs`
-  - [ ] Add `services.AddSingleton<AspireFieldsMcpTools>()` in MCP registration section
+- [x] Register in DI container
+  - [x] Modify `src/Aspire.Dashboard/Mcp/McpExtensions.cs` (registration is done via `WithTools<T>()` method)
+  - [x] Add `builder.WithTools<AspireFieldsMcpTools>()` in MCP registration section
 
 ### 2.2 Implement list_telemetry_fields Tool
 
