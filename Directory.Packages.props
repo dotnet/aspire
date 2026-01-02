@@ -141,6 +141,8 @@
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Archives" Version="$(MicrosoftDotNetBuildTasksArchivesVersion)" />
     <PackageVersion Include="Microsoft.DotNet.GenAPI.Task" Version="9.0.103-servicing.25065.25" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0" />
+    <!-- test dependencies shared with playground -->
+    <PackageVersion Include="xunit.v3.assert" Version="$(XunitV3Version)" />     
     <!-- playground apps dependencies -->
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="9.2.1" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="9.2.1" />
