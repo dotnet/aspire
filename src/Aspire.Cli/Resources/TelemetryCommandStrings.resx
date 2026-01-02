@@ -61,7 +61,14 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Description" xml:space="preserve">
-    <value>Query telemetry data from running Aspire applications.</value>
+    <value>Query telemetry data from running Aspire applications.
+
+Examples:
+  aspire telemetry traces
+  aspire telemetry logs --severity Warning
+  aspire telemetry metrics --resource apiservice
+  aspire telemetry fields
+    </value>
   </data>
   <data name="ProjectOptionDescription" xml:space="preserve">
     <value>The path to the AppHost project file.</value>
@@ -73,7 +80,15 @@
     <value>API key for Dashboard authentication. Required if Dashboard uses ApiKey auth mode. Can also be set via ASPIRE_DASHBOARD_API_KEY environment variable.</value>
   </data>
   <data name="FieldsDescription" xml:space="preserve">
-    <value>Discover available telemetry fields and their values.</value>
+    <value>Discover available telemetry fields and their values.
+
+Examples:
+  aspire telemetry fields
+  aspire telemetry fields --type traces
+  aspire telemetry fields --type logs --resource apiservice
+  aspire telemetry fields http.method
+  aspire telemetry fields --json
+    </value>
   </data>
   <data name="FieldsTypeOptionDescription" xml:space="preserve">
     <value>Filter to show only trace or log fields. Valid values: 'traces', 'logs'.</value>
@@ -100,7 +115,15 @@
     <value>Querying field values...</value>
   </data>
   <data name="TracesDescription" xml:space="preserve">
-    <value>Query distributed traces from running Aspire applications.</value>
+    <value>Query distributed traces from running Aspire applications.
+
+Examples:
+  aspire telemetry traces
+  aspire telemetry traces --resource apiservice
+  aspire telemetry traces --filter "status=Error"
+  aspire telemetry traces --filter "http.method=POST" --limit 50
+  aspire telemetry traces abc123def456 --json
+    </value>
   </data>
   <data name="TracesResourceOptionDescription" xml:space="preserve">
     <value>Filter traces to a specific resource.</value>
@@ -124,7 +147,15 @@
     <value>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</value>
   </data>
   <data name="LogsDescription" xml:space="preserve">
-    <value>Query structured logs from running Aspire applications.</value>
+    <value>Query structured logs from running Aspire applications.
+
+Examples:
+  aspire telemetry logs
+  aspire telemetry logs --severity Warning
+  aspire telemetry logs --resource apiservice --severity Error
+  aspire telemetry logs --filter "category~MyApp" --limit 50
+  aspire telemetry logs --trace abc123 --json
+    </value>
   </data>
   <data name="LogsResourceOptionDescription" xml:space="preserve">
     <value>Filter logs to a specific resource.</value>
@@ -154,7 +185,14 @@
     <value>Invalid severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical.</value>
   </data>
   <data name="MetricsDescription" xml:space="preserve">
-    <value>Query metrics from running Aspire applications.</value>
+    <value>Query metrics from running Aspire applications.
+
+Examples:
+  aspire telemetry metrics --resource apiservice
+  aspire telemetry metrics --resource apiservice System.Runtime/cpu.usage
+  aspire telemetry metrics --resource apiservice --duration 15m
+  aspire telemetry metrics --resource apiservice --json
+    </value>
   </data>
   <data name="MetricsResourceOptionDescription" xml:space="preserve">
     <value>Resource name. Required - metrics are always associated with a specific resource.</value>

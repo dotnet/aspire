@@ -759,7 +759,12 @@ Add `aspire telemetry` command group with subcommands:
 
 - [ ] Review and polish all command descriptions
 - [ ] Review and polish all option descriptions
-- [ ] Add examples to help text where useful
+- [x] Add examples to help text where useful
+  - [x] Added examples to `telemetry` parent command description
+  - [x] Added examples to `telemetry traces` command description
+  - [x] Added examples to `telemetry logs` command description
+  - [x] Added examples to `telemetry metrics` command description
+  - [x] Added examples to `telemetry fields` command description
 - [ ] Ensure consistency across all telemetry commands
 
 - [ ] Test help text

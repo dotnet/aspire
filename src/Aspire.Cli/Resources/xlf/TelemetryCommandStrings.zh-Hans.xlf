@@ -13,8 +13,22 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Query telemetry data from running Aspire applications.</source>
-        <target state="new">Query telemetry data from running Aspire applications.</target>
+        <source>Query telemetry data from running Aspire applications.
+
+Examples:
+  aspire telemetry traces
+  aspire telemetry logs --severity Warning
+  aspire telemetry metrics --resource apiservice
+  aspire telemetry fields
+    </source>
+        <target state="new">Query telemetry data from running Aspire applications.
+
+Examples:
+  aspire telemetry traces
+  aspire telemetry logs --severity Warning
+  aspire telemetry metrics --resource apiservice
+  aspire telemetry fields
+    </target>
         <note />
       </trans-unit>
       <trans-unit id="FieldsConnectingToDashboard">
@@ -23,8 +37,24 @@
         <note />
       </trans-unit>
       <trans-unit id="FieldsDescription">
-        <source>Discover available telemetry fields and their values.</source>
-        <target state="new">Discover available telemetry fields and their values.</target>
+        <source>Discover available telemetry fields and their values.
+
+Examples:
+  aspire telemetry fields
+  aspire telemetry fields --type traces
+  aspire telemetry fields --type logs --resource apiservice
+  aspire telemetry fields http.method
+  aspire telemetry fields --json
+    </source>
+        <target state="new">Discover available telemetry fields and their values.
+
+Examples:
+  aspire telemetry fields
+  aspire telemetry fields --type traces
+  aspire telemetry fields --type logs --resource apiservice
+  aspire telemetry fields http.method
+  aspire telemetry fields --json
+    </target>
         <note />
       </trans-unit>
       <trans-unit id="FieldsFieldNameArgumentDescription">
@@ -63,8 +93,24 @@
         <note />
       </trans-unit>
       <trans-unit id="LogsDescription">
-        <source>Query structured logs from running Aspire applications.</source>
-        <target state="new">Query structured logs from running Aspire applications.</target>
+        <source>Query structured logs from running Aspire applications.
+
+Examples:
+  aspire telemetry logs
+  aspire telemetry logs --severity Warning
+  aspire telemetry logs --resource apiservice --severity Error
+  aspire telemetry logs --filter "category~MyApp" --limit 50
+  aspire telemetry logs --trace abc123 --json
+    </source>
+        <target state="new">Query structured logs from running Aspire applications.
+
+Examples:
+  aspire telemetry logs
+  aspire telemetry logs --severity Warning
+  aspire telemetry logs --resource apiservice --severity Error
+  aspire telemetry logs --filter "category~MyApp" --limit 50
+  aspire telemetry logs --trace abc123 --json
+    </target>
         <note />
       </trans-unit>
       <trans-unit id="LogsFilterOptionDescription">
@@ -113,8 +159,22 @@
         <note />
       </trans-unit>
       <trans-unit id="MetricsDescription">
-        <source>Query metrics from running Aspire applications.</source>
-        <target state="new">Query metrics from running Aspire applications.</target>
+        <source>Query metrics from running Aspire applications.
+
+Examples:
+  aspire telemetry metrics --resource apiservice
+  aspire telemetry metrics --resource apiservice System.Runtime/cpu.usage
+  aspire telemetry metrics --resource apiservice --duration 15m
+  aspire telemetry metrics --resource apiservice --json
+    </source>
+        <target state="new">Query metrics from running Aspire applications.
+
+Examples:
+  aspire telemetry metrics --resource apiservice
+  aspire telemetry metrics --resource apiservice System.Runtime/cpu.usage
+  aspire telemetry metrics --resource apiservice --duration 15m
+  aspire telemetry metrics --resource apiservice --json
+    </target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsDurationOptionDescription">
@@ -163,8 +223,24 @@
         <note />
       </trans-unit>
       <trans-unit id="TracesDescription">
-        <source>Query distributed traces from running Aspire applications.</source>
-        <target state="new">Query distributed traces from running Aspire applications.</target>
+        <source>Query distributed traces from running Aspire applications.
+
+Examples:
+  aspire telemetry traces
+  aspire telemetry traces --resource apiservice
+  aspire telemetry traces --filter "status=Error"
+  aspire telemetry traces --filter "http.method=POST" --limit 50
+  aspire telemetry traces abc123def456 --json
+    </source>
+        <target state="new">Query distributed traces from running Aspire applications.
+
+Examples:
+  aspire telemetry traces
+  aspire telemetry traces --resource apiservice
+  aspire telemetry traces --filter "status=Error"
+  aspire telemetry traces --filter "http.method=POST" --limit 50
+  aspire telemetry traces abc123def456 --json
+    </target>
         <note />
       </trans-unit>
       <trans-unit id="TracesFilterOptionDescription">
