@@ -274,16 +274,17 @@ Add `aspire telemetry` command group with subcommands:
   - [x] Follow existing proxy pattern from `ListTracesTool.cs`
   - [x] Handle connection errors gracefully (handled by McpStartCommand)
 
-- [ ] Create `src/Aspire.Cli/Mcp/GetTelemetryFieldValuesTool.cs`
-  - [ ] Implement proxy that forwards to Dashboard MCP endpoint
-  - [ ] Handle connection errors gracefully
+- [x] Create `src/Aspire.Cli/Mcp/GetTelemetryFieldValuesTool.cs`
+  - [x] Implement proxy that forwards to Dashboard MCP endpoint
+  - [x] Handle connection errors gracefully (handled by McpStartCommand)
 
 - [x] Add tests for CLI proxy tools in `tests/Aspire.Cli.Tests/Mcp/`
   - [x] Test `ListTelemetryFieldsTool` schema and metadata (`ListTelemetryFieldsToolTests.cs`)
-  - [ ] Test `GetTelemetryFieldValuesTool` schema and metadata
+  - [x] Test `GetTelemetryFieldValuesTool` schema and metadata (`GetTelemetryFieldValuesToolTests.cs`)
   - Note: Forwarding/connection tests handled by integration tests (Dashboard connection managed by McpStartCommand)
 
 - [x] Verify `ListTelemetryFieldsTool` tests pass
+- [x] Verify `GetTelemetryFieldValuesTool` tests pass
 
 ### 5.2 Update Existing CLI Proxy Tools for Filters
 

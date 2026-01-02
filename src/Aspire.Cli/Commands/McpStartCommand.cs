@@ -82,6 +82,7 @@ internal sealed class McpStartCommand : BaseCommand
         _tools["list_traces"] = new ListTracesTool();
         _tools["list_trace_structured_logs"] = new ListTraceStructuredLogsTool();
         _tools["list_telemetry_fields"] = new ListTelemetryFieldsTool();
+        _tools["get_telemetry_field_values"] = new GetTelemetryFieldValuesTool();
 
         // AppHost-only tools (not available in standalone mode)
         if (!IsStandaloneMode)
