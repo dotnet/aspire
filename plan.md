@@ -835,6 +835,12 @@ Add `aspire telemetry` command group with subcommands:
 - **Fix**: Changed to use `DisplayPlainText` instead, which writes directly to the console without markup interpretation.
 - **Files**: `TelemetryTracesCommand.cs`, `TelemetryLogsCommand.cs`, `TelemetryFieldsCommand.cs`, `TelemetryMetricsCommand.cs`
 
+### Fixed: -d alias conflict in TelemetryMetricsCommand
+
+- **Issue**: The `--duration` option in `telemetry metrics` used `-d` as its short alias, which conflicts with `--debug` (`-d`) defined as a recursive option on the root command.
+- **Fix**: Removed the `-d` short alias from `--duration` option. Users must now use the full `--duration` flag.
+- **Files**: `TelemetryMetricsCommand.cs`
+
 ---
 
 ## Success Criteria
