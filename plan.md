@@ -417,26 +417,29 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 7.1 Create Parent Telemetry Command
 
-- [ ] Create `src/Aspire.Cli/Commands/TelemetryCommand.cs`
-  - [ ] Inherit from appropriate base class
-  - [ ] Define `telemetry` as the command name
-  - [ ] Add description: "Query telemetry data from running Aspire applications"
-  - [ ] Add common options inherited by subcommands:
-    - [ ] `--project <path>` - AppHost project path
-    - [ ] `--dashboard-url <url>` - Standalone dashboard URL
-    - [ ] `--api-key <key>` - Dashboard API key
-  - [ ] Do not execute anything directly (subcommands only)
+- [x] Create `src/Aspire.Cli/Commands/TelemetryCommand.cs`
+  - [x] Inherit from appropriate base class
+  - [x] Define `telemetry` as the command name
+  - [x] Add description: "Query telemetry data from running Aspire applications"
+  - [x] Add common options inherited by subcommands:
+    - [x] `--project <path>` - AppHost project path
+    - [x] `--dashboard-url <url>` - Standalone dashboard URL
+    - [x] `--api-key <key>` - Dashboard API key
+  - [x] Do not execute anything directly (subcommands only)
 
-- [ ] Register command in DI
-  - [ ] Add `services.AddTransient<TelemetryCommand>()` in `CliTestHelper.cs` (for tests)
-  - [ ] Add to `RootCommand` subcommands
+- [x] Register command in DI
+  - [x] Add `services.AddTransient<TelemetryCommand>()` in `CliTestHelper.cs` (for tests)
+  - [x] Add `services.AddTransient<TelemetryCommand>()` in `Program.cs`
+  - [x] Add to `RootCommand` subcommands
 
-- [ ] Create `tests/Aspire.Cli.Tests/Commands/TelemetryCommandTests.cs`
-  - [ ] Test `TelemetryCommand_NoSubcommand_ShowsHelp`
-  - [ ] Test `TelemetryCommand_Help_ShowsAllSubcommands`
-  - [ ] Test `TelemetryCommand_Help_ShowsCommonOptions`
+- [x] Create `tests/Aspire.Cli.Tests/Commands/TelemetryCommandTests.cs`
+  - [x] Test `TelemetryCommand_NoSubcommand_ShowsHelp`
+  - [x] Test `TelemetryCommand_Help_ShowsCommonOptions`
+  - [x] Test `TelemetryCommand_ExistsInRootCommand`
+  - [x] Test `TelemetryCommand_WithHelpArgument_ReturnsZero`
+  - [x] Test `TelemetryCommand_CommonOptions_AreRecursive`
 
-- [ ] Verify parent command tests pass
+- [x] Verify parent command tests pass
 
 ### 7.2 Create Fields Subcommand
 

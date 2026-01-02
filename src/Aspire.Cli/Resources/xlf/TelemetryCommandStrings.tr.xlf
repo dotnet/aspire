@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="tr" original="../TelemetryCommandStrings.resx">
+    <body>
+      <trans-unit id="ApiKeyOptionDescription">
+        <source>API key for Dashboard authentication. Required if Dashboard uses ApiKey auth mode. Can also be set via ASPIRE_DASHBOARD_API_KEY environment variable.</source>
+        <target state="new">API key for Dashboard authentication. Required if Dashboard uses ApiKey auth mode. Can also be set via ASPIRE_DASHBOARD_API_KEY environment variable.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DashboardUrlOptionDescription">
+        <source>URL to a standalone Aspire Dashboard (e.g., http://localhost:18888). Can also be set via ASPIRE_DASHBOARD_URL environment variable.</source>
+        <target state="new">URL to a standalone Aspire Dashboard (e.g., http://localhost:18888). Can also be set via ASPIRE_DASHBOARD_URL environment variable.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Query telemetry data from running Aspire applications.</source>
+        <target state="new">Query telemetry data from running Aspire applications.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectOptionDescription">
+        <source>The path to the AppHost project file.</source>
+        <target state="new">The path to the AppHost project file.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
