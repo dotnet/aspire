@@ -290,4 +290,22 @@ public class TelemetryLogsCommandTests(ITestOutputHelper outputHelper)
         // Verify the option has a default value factory
         Assert.True(limitOption.HasDefaultValue, "--limit option should have a default value");
     }
+
+    [Fact]
+    public async Task TelemetryLogsCommand_InvalidSeverity_ReturnsError()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Use an invalid severity value
+        var result = command.Parse("telemetry logs --severity NotAValidSeverity");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Expected to fail with InvalidCommand exit code (1) due to invalid severity
+        // The error should be caught before attempting Dashboard connection
+        Assert.Equal(1, exitCode);
+    }
 }
