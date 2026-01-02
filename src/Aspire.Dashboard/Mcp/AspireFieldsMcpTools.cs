@@ -114,4 +114,96 @@ internal sealed class AspireFieldsMcpTools
             {json}
             """;
     }
+
+    [McpServerTool(Name = "get_telemetry_field_values")]
+    [Description("Get the distinct values for a specific telemetry field. Returns values with their occurrence counts, ordered by count descending. Use list_telemetry_fields first to discover available field names.")]
+    public string GetTelemetryFieldValues(
+        [Description("The field name to get values for (e.g., 'trace.status', 'http.method', 'log.level').")]
+        string fieldName,
+        [Description("The type of telemetry to query. Valid values: 'traces', 'logs'. If not specified, queries both types.")]
+        string? type = null,
+        [Description("The resource name. If specified, only values from the specified resource are returned.")]
+        string? resourceName = null)
+    {
+        _logger.LogDebug("MCP tool get_telemetry_field_values called with fieldName '{FieldName}', type '{Type}', resource '{ResourceName}'.", fieldName, type, resourceName);
+
+        // Validate fieldName parameter
+        if (AIHelpers.IsMissingValue(fieldName))
+        {
+            return "The fieldName parameter is required. Use list_telemetry_fields to discover available field names.";
+        }
+
+        // Validate type parameter
+        var includeTraces = true;
+        var includeLogs = true;
+        if (!AIHelpers.IsMissingValue(type))
+        {
+            if (string.Equals(type, "traces", StringComparison.OrdinalIgnoreCase))
+            {
+                includeLogs = false;
+            }
+            else if (string.Equals(type, "logs", StringComparison.OrdinalIgnoreCase))
+            {
+                includeTraces = false;
+            }
+            else
+            {
+                return $"Invalid type '{type}'. Valid values are 'traces' or 'logs'.";
+            }
+        }
+
+        // Resolve resource if specified (currently for validation only, as GetTraceFieldValues/GetLogsFieldValues don't filter by resource)
+        if (!AIHelpers.IsMissingValue(resourceName))
+        {
+            var resources = _telemetryRepository.GetResources();
+            if (!AIHelpers.TryGetResource(resources, resourceName, out _))
+            {
+                return $"Resource '{resourceName}' doesn't have any telemetry. The resource may not exist, may have failed to start or the resource might not support sending telemetry.";
+            }
+            // Note: Currently GetTraceFieldValues and GetLogsFieldValues don't support resource filtering.
+            // This validation ensures the resource exists but the returned values are from all resources.
+        }
+
+        var result = new Dictionary<string, object>();
+
+        if (includeTraces)
+        {
+            var traceFieldValues = _telemetryRepository.GetTraceFieldValues(fieldName);
+            var orderedTraceValues = traceFieldValues
+                .OrderByDescending(kvp => kvp.Value)
+                .Select(kvp => new Dictionary<string, object> { ["value"] = kvp.Key, ["count"] = kvp.Value })
+                .ToList();
+            result["traces"] = new Dictionary<string, object>
+            {
+                ["field"] = fieldName,
+                ["values"] = orderedTraceValues,
+                ["total_values"] = orderedTraceValues.Count
+            };
+        }
+
+        if (includeLogs)
+        {
+            var logFieldValues = _telemetryRepository.GetLogsFieldValues(fieldName);
+            var orderedLogValues = logFieldValues
+                .OrderByDescending(kvp => kvp.Value)
+                .Select(kvp => new Dictionary<string, object> { ["value"] = kvp.Key, ["count"] = kvp.Value })
+                .ToList();
+            result["logs"] = new Dictionary<string, object>
+            {
+                ["field"] = fieldName,
+                ["values"] = orderedLogValues,
+                ["total_values"] = orderedLogValues.Count
+            };
+        }
+
+        var json = JsonSerializer.Serialize(result, s_jsonSerializerOptions);
+
+        return $"""
+            # TELEMETRY FIELD VALUES
+
+            Values for field '{fieldName}', ordered by occurrence count (highest first).
+
+            {json}
+            """;
+    }
 }

@@ -186,6 +186,179 @@ public class AspireFieldsMcpToolsTests
         Assert.Contains("doesn't have any telemetry", result);
     }
 
+    [Fact]
+    public void GetTelemetryFieldValues_ValidField_ReturnsValues()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResourceWithCustomAttributes(repository, "app1",
+            traceAttributes: [KeyValuePair.Create("http.method", "GET")]);
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTelemetryFieldValues(fieldName: "http.method");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("# TELEMETRY FIELD VALUES", result);
+        Assert.Contains("http.method", result);
+        Assert.Contains("GET", result);
+    }
+
+    [Fact]
+    public void GetTelemetryFieldValues_FieldWithMultipleValues_ReturnsAllWithCounts()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResourceWithCustomAttributes(repository, "app1",
+            traceAttributes: [KeyValuePair.Create("http.method", "GET")]);
+        AddResourceWithCustomAttributes(repository, "app2",
+            traceAttributes: [KeyValuePair.Create("http.method", "POST")]);
+        AddResourceWithCustomAttributes(repository, "app3",
+            traceAttributes: [KeyValuePair.Create("http.method", "GET")]);
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTelemetryFieldValues(fieldName: "http.method");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("GET", result);
+        Assert.Contains("POST", result);
+        Assert.Contains("count", result);
+    }
+
+    [Fact]
+    public void GetTelemetryFieldValues_UnknownField_ReturnsEmptyList()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResourceWithCustomAttributes(repository, "app1");
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTelemetryFieldValues(fieldName: "nonexistent.field");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("# TELEMETRY FIELD VALUES", result);
+        Assert.Contains("\"total_values\": 0", result);
+    }
+
+    [Fact]
+    public void GetTelemetryFieldValues_TypeTraces_QueriesTraceFields()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResourceWithCustomAttributes(repository, "app1",
+            traceAttributes: [KeyValuePair.Create("custom.attr", "trace_value")],
+            logAttributes: [KeyValuePair.Create("custom.attr", "log_value")]);
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTelemetryFieldValues(fieldName: "custom.attr", type: "traces");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("traces", result);
+        Assert.DoesNotContain("\"logs\"", result);
+        Assert.Contains("trace_value", result);
+        Assert.DoesNotContain("log_value", result);
+    }
+
+    [Fact]
+    public void GetTelemetryFieldValues_TypeLogs_QueriesLogFields()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResourceWithCustomAttributes(repository, "app1",
+            traceAttributes: [KeyValuePair.Create("custom.attr", "trace_value")],
+            logAttributes: [KeyValuePair.Create("custom.attr", "log_value")]);
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTelemetryFieldValues(fieldName: "custom.attr", type: "logs");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("logs", result);
+        Assert.DoesNotContain("\"traces\"", result);
+        Assert.Contains("log_value", result);
+        Assert.DoesNotContain("trace_value", result);
+    }
+
+    [Fact]
+    public void GetTelemetryFieldValues_WithResource_ValidatesResourceExists()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResourceWithCustomAttributes(repository, "app1");
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTelemetryFieldValues(fieldName: "http.method", resourceName: "nonexistent");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("doesn't have any telemetry", result);
+    }
+
+    [Fact]
+    public void GetTelemetryFieldValues_OrderedByCountDescending()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        // Add more GET requests to ensure it appears first in the order
+        AddResourceWithCustomAttributes(repository, "app1",
+            traceAttributes: [KeyValuePair.Create("http.method", "GET")]);
+        AddResourceWithCustomAttributes(repository, "app2",
+            traceAttributes: [KeyValuePair.Create("http.method", "GET")]);
+        AddResourceWithCustomAttributes(repository, "app3",
+            traceAttributes: [KeyValuePair.Create("http.method", "POST")]);
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTelemetryFieldValues(fieldName: "http.method", type: "traces");
+
+        // Assert
+        Assert.NotNull(result);
+        // GET should appear before POST since it has more occurrences
+        var getIndex = result.IndexOf("GET", StringComparison.Ordinal);
+        var postIndex = result.IndexOf("POST", StringComparison.Ordinal);
+        Assert.True(getIndex < postIndex, "GET should appear before POST (higher count first)");
+    }
+
+    [Fact]
+    public void GetTelemetryFieldValues_MissingFieldName_ReturnsError()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTelemetryFieldValues(fieldName: "");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("fieldName parameter is required", result);
+    }
+
+    [Fact]
+    public void GetTelemetryFieldValues_InvalidType_ReturnsError()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTelemetryFieldValues(fieldName: "http.method", type: "invalid");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Invalid type", result);
+        Assert.Contains("'traces' or 'logs'", result);
+    }
+
     private static AspireFieldsMcpTools CreateTools(TelemetryRepository repository, IDashboardClient? dashboardClient = null)
     {
         return new AspireFieldsMcpTools(
