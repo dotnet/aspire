@@ -22,6 +22,14 @@ internal sealed class ListStructuredLogsTool : CliMcpTool
                 "resourceName": {
                   "type": "string",
                   "description": "The resource name. This limits logs returned to the specified resource. If no resource name is specified then structured logs for all resources are returned."
+                },
+                "filters": {
+                  "type": "string",
+                  "description": "JSON array of filter objects. Each filter object should have 'field' (string), 'condition' (string: 'equals', '!equals', 'contains', '!contains', 'gt', 'lt', 'gte', 'lte'), and 'value' (string) properties. Example: [{\"field\":\"log.category\",\"condition\":\"contains\",\"value\":\"MyApp\"}]"
+                },
+                "severity": {
+                  "type": "string",
+                  "description": "Minimum severity level. Logs with this severity and above will be returned. Valid values: Trace, Debug, Information, Warning, Error, Critical."
                 }
               }
             }
