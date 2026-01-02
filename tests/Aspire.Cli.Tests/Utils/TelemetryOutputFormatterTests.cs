@@ -1215,4 +1215,412 @@ public class TelemetryOutputFormatterTests
         var output = writer.ToString();
         Assert.Contains("cpu.usage [%]", output);
     }
+
+    // ==================== FormatFields Tests ====================
+
+    [Fact]
+    public void FormatFields_EmptyJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatFields("");
+
+        var output = writer.ToString();
+        Assert.Contains("No fields found", output);
+    }
+
+    [Fact]
+    public void FormatFields_NullJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatFields(null!);
+
+        var output = writer.ToString();
+        Assert.Contains("No fields found", output);
+    }
+
+    [Fact]
+    public void FormatFields_SeparatesKnownAndCustom()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "traces": {
+                    "known_fields": ["trace.name", "trace.kind", "trace.status"],
+                    "custom_attributes": ["http.method", "http.url"],
+                    "total_count": 5
+                },
+                "logs": {
+                    "known_fields": ["log.message", "log.category"],
+                    "custom_attributes": ["user.id"],
+                    "total_count": 3
+                }
+            }
+            """;
+
+        formatter.FormatFields(json);
+
+        var output = writer.ToString();
+        Assert.Contains("TELEMETRY FIELDS", output);
+        Assert.Contains("TRACES", output);
+        Assert.Contains("LOGS", output);
+        Assert.Contains("Known fields (3)", output);
+        Assert.Contains("Custom attributes (2)", output);
+        Assert.Contains("trace.name", output);
+        Assert.Contains("http.method", output);
+        Assert.Contains("log.message", output);
+        Assert.Contains("user.id", output);
+    }
+
+    [Fact]
+    public void FormatFields_TracesOnly_ShowsOnlyTraces()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "traces": {
+                    "known_fields": ["trace.name", "trace.status"],
+                    "custom_attributes": ["http.method"],
+                    "total_count": 3
+                }
+            }
+            """;
+
+        formatter.FormatFields(json);
+
+        var output = writer.ToString();
+        Assert.Contains("TRACES", output);
+        Assert.DoesNotContain("LOGS", output);
+    }
+
+    [Fact]
+    public void FormatFields_LogsOnly_ShowsOnlyLogs()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "logs": {
+                    "known_fields": ["log.message"],
+                    "custom_attributes": ["request.id"],
+                    "total_count": 2
+                }
+            }
+            """;
+
+        formatter.FormatFields(json);
+
+        var output = writer.ToString();
+        Assert.DoesNotContain("TRACES", output);
+        Assert.Contains("LOGS", output);
+    }
+
+    [Fact]
+    public void FormatFields_ShowsTotalCount()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "traces": {
+                    "known_fields": ["trace.name"],
+                    "custom_attributes": ["http.method", "http.url", "http.status_code"],
+                    "total_count": 4
+                }
+            }
+            """;
+
+        formatter.FormatFields(json);
+
+        var output = writer.ToString();
+        Assert.Contains("4 total", output);
+    }
+
+    [Fact]
+    public void FormatFields_EmptyKnownFields_ShowsOnlyCustom()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "traces": {
+                    "known_fields": [],
+                    "custom_attributes": ["my.custom.attr"],
+                    "total_count": 1
+                }
+            }
+            """;
+
+        formatter.FormatFields(json);
+
+        var output = writer.ToString();
+        Assert.Contains("my.custom.attr", output);
+        Assert.DoesNotContain("Known fields (0)", output);
+    }
+
+    [Fact]
+    public void FormatFields_EmptyCustomAttributes_ShowsOnlyKnown()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "traces": {
+                    "known_fields": ["trace.name", "trace.status"],
+                    "custom_attributes": [],
+                    "total_count": 2
+                }
+            }
+            """;
+
+        formatter.FormatFields(json);
+
+        var output = writer.ToString();
+        Assert.Contains("trace.name", output);
+        Assert.Contains("trace.status", output);
+        Assert.DoesNotContain("Custom attributes (0)", output);
+    }
+
+    [Fact]
+    public void FormatFields_InvalidJson_HandlesGracefully()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatFields("not valid json");
+
+        var output = writer.ToString();
+        Assert.Contains("Unable to parse", output);
+    }
+
+    [Fact]
+    public void FormatFields_NonObjectJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatFields("[]");
+
+        var output = writer.ToString();
+        Assert.Contains("No fields found", output);
+    }
+
+    // ==================== FormatFieldValues Tests ====================
+
+    [Fact]
+    public void FormatFieldValues_EmptyJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatFieldValues("");
+
+        var output = writer.ToString();
+        Assert.Contains("No field values found", output);
+    }
+
+    [Fact]
+    public void FormatFieldValues_NullJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatFieldValues(null!);
+
+        var output = writer.ToString();
+        Assert.Contains("No field values found", output);
+    }
+
+    [Fact]
+    public void FormatFieldValues_ShowsCounts()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "traces": {
+                    "field": "http.method",
+                    "values": [
+                        {"value": "GET", "count": 150},
+                        {"value": "POST", "count": 75},
+                        {"value": "DELETE", "count": 10}
+                    ],
+                    "total_values": 3
+                }
+            }
+            """;
+
+        formatter.FormatFieldValues(json);
+
+        var output = writer.ToString();
+        Assert.Contains("http.method", output);
+        Assert.Contains("GET", output);
+        Assert.Contains("150", output);
+        Assert.Contains("POST", output);
+        Assert.Contains("75", output);
+        Assert.Contains("DELETE", output);
+        Assert.Contains("10", output);
+    }
+
+    [Fact]
+    public void FormatFieldValues_OrderedByCount()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "traces": {
+                    "field": "http.status_code",
+                    "values": [
+                        {"value": "200", "count": 1000},
+                        {"value": "404", "count": 50},
+                        {"value": "500", "count": 5}
+                    ],
+                    "total_values": 3
+                }
+            }
+            """;
+
+        formatter.FormatFieldValues(json);
+
+        var output = writer.ToString();
+        // Values should appear in order (highest count first)
+        var index200 = output.IndexOf("200");
+        var index404 = output.IndexOf("404");
+        var index500 = output.IndexOf("500");
+        Assert.True(index200 < index404, "200 should appear before 404");
+        Assert.True(index404 < index500, "404 should appear before 500");
+    }
+
+    [Fact]
+    public void FormatFieldValues_ShowsUniqueValueCount()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "logs": {
+                    "field": "log.level",
+                    "values": [
+                        {"value": "Information", "count": 500},
+                        {"value": "Warning", "count": 100},
+                        {"value": "Error", "count": 25}
+                    ],
+                    "total_values": 3
+                }
+            }
+            """;
+
+        formatter.FormatFieldValues(json);
+
+        var output = writer.ToString();
+        Assert.Contains("3 unique values", output);
+    }
+
+    [Fact]
+    public void FormatFieldValues_BothTracesAndLogs_ShowsBoth()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "traces": {
+                    "field": "service.name",
+                    "values": [
+                        {"value": "webfrontend", "count": 200}
+                    ],
+                    "total_values": 1
+                },
+                "logs": {
+                    "field": "service.name",
+                    "values": [
+                        {"value": "apiservice", "count": 150}
+                    ],
+                    "total_values": 1
+                }
+            }
+            """;
+
+        formatter.FormatFieldValues(json);
+
+        var output = writer.ToString();
+        Assert.Contains("TRACES", output);
+        Assert.Contains("LOGS", output);
+        Assert.Contains("webfrontend", output);
+        Assert.Contains("apiservice", output);
+    }
+
+    [Fact]
+    public void FormatFieldValues_EmptyValues_ShowsNoValuesMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "traces": {
+                    "field": "unknown.field",
+                    "values": [],
+                    "total_values": 0
+                }
+            }
+            """;
+
+        formatter.FormatFieldValues(json);
+
+        var output = writer.ToString();
+        Assert.Contains("No values found", output);
+    }
+
+    [Fact]
+    public void FormatFieldValues_ShowsFieldNameInHeader()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "traces": {
+                    "field": "http.request.method",
+                    "values": [{"value": "GET", "count": 100}],
+                    "total_values": 1
+                }
+            }
+            """;
+
+        formatter.FormatFieldValues(json);
+
+        var output = writer.ToString();
+        Assert.Contains("VALUES FOR FIELD: http.request.method", output);
+    }
+
+    [Fact]
+    public void FormatFieldValues_InvalidJson_HandlesGracefully()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatFieldValues("not valid json");
+
+        var output = writer.ToString();
+        Assert.Contains("Unable to parse", output);
+    }
+
+    [Fact]
+    public void FormatFieldValues_NonObjectJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatFieldValues("[]");
+
+        var output = writer.ToString();
+        Assert.Contains("No field values found", output);
+    }
+
+    [Fact]
+    public void FormatFieldValues_FormatsLargeNumbers()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "traces": {
+                    "field": "http.method",
+                    "values": [
+                        {"value": "GET", "count": 1234567}
+                    ],
+                    "total_values": 1
+                }
+            }
+            """;
+
+        formatter.FormatFieldValues(json);
+
+        var output = writer.ToString();
+        // Should format with thousand separators
+        Assert.Contains("1,234,567", output);
+    }
 }

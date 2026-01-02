@@ -332,7 +332,7 @@ Add `aspire telemetry` command group with subcommands:
   - [x] Add `FormatTraces()` method for human-readable trace output
   - [x] Add `FormatLogs()` method for human-readable log output
   - [x] Add `FormatMetrics()` method for human-readable metric output (FormatMetricsList and FormatMetricData)
-  - [ ] Add `FormatFields()` method for human-readable fields output
+  - [x] Add `FormatFields()` method for human-readable fields output (FormatFields and FormatFieldValues)
   - [x] Use consistent formatting with colors/styling via Spectre.Console
 
 ### 6.2 Implement Trace Formatting
@@ -396,20 +396,20 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 6.5 Implement Fields Formatting
 
-- [ ] Implement `FormatFields(FieldsData fields)` method
-  - [ ] Separate known fields from custom attributes
-  - [ ] Show field counts where available
+- [x] Implement `FormatFields(FieldsData fields)` method
+  - [x] Separate known fields from custom attributes
+  - [x] Show field counts where available
 
-- [ ] Implement `FormatFieldValues(FieldValuesData values)` method
-  - [ ] Show values with counts
-  - [ ] Order by count descending
+- [x] Implement `FormatFieldValues(FieldValuesData values)` method
+  - [x] Show values with counts
+  - [x] Order by count descending
 
-- [ ] Add tests to `TelemetryOutputFormatterTests.cs`
-  - [ ] Test `FormatFields_SeparatesKnownAndCustom`
-  - [ ] Test `FormatFieldValues_ShowsCounts`
-  - [ ] Test `FormatFieldValues_OrderedByCount`
+- [x] Add tests to `TelemetryOutputFormatterTests.cs`
+  - [x] Test `FormatFields_SeparatesKnownAndCustom`
+  - [x] Test `FormatFieldValues_ShowsCounts`
+  - [x] Test `FormatFieldValues_OrderedByCount`
 
-- [ ] Verify fields formatting tests pass
+- [x] Verify fields formatting tests pass
 
 ---
 

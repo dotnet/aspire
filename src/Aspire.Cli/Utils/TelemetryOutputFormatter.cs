@@ -979,4 +979,242 @@ internal sealed class TelemetryOutputFormatter
         }
         return $"{bytes:F2} {sizes[order]}";
     }
+
+    /// <summary>
+    /// Formats telemetry fields information for human-readable console output.
+    /// Shows known fields (built-in) and custom attributes discovered from telemetry data.
+    /// </summary>
+    /// <param name="fieldsJson">JSON object from list_telemetry_fields MCP tool response.</param>
+    public void FormatFields(string fieldsJson)
+    {
+        if (string.IsNullOrWhiteSpace(fieldsJson))
+        {
+            WriteEmptyMessage("fields");
+            return;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(fieldsJson);
+            var root = document.RootElement;
+
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                WriteEmptyMessage("fields");
+                return;
+            }
+
+            var hasTraces = root.TryGetProperty("traces", out var traces);
+            var hasLogs = root.TryGetProperty("logs", out var logs);
+
+            if (!hasTraces && !hasLogs)
+            {
+                WriteEmptyMessage("fields");
+                return;
+            }
+
+            WriteHeader("TELEMETRY FIELDS");
+
+            if (hasTraces)
+            {
+                FormatFieldCategory("TRACES", traces);
+                _console.WriteLine();
+            }
+
+            if (hasLogs)
+            {
+                FormatFieldCategory("LOGS", logs);
+            }
+        }
+        catch (JsonException)
+        {
+            _console.MarkupLine("[dim]Unable to parse fields data.[/]");
+        }
+    }
+
+    private void FormatFieldCategory(string categoryName, JsonElement category)
+    {
+        var totalCount = (int?)GetDoubleProperty(category, "total_count") ?? 0;
+
+        if (_enableColor)
+        {
+            _console.MarkupLine($"[cyan bold]{categoryName}[/] [dim]({totalCount} total)[/]");
+        }
+        else
+        {
+            _console.WriteLine($"{categoryName} ({totalCount} total)");
+        }
+
+        // Show known fields
+        if (category.TryGetProperty("known_fields", out var knownFields) && knownFields.ValueKind == JsonValueKind.Array)
+        {
+            var knownFieldsList = knownFields.EnumerateArray().ToList();
+            if (knownFieldsList.Count > 0)
+            {
+                if (_enableColor)
+                {
+                    _console.MarkupLine($"  [dim]Known fields ({knownFieldsList.Count}):[/]");
+                }
+                else
+                {
+                    _console.WriteLine($"  Known fields ({knownFieldsList.Count}):");
+                }
+
+                foreach (var field in knownFieldsList)
+                {
+                    var fieldName = field.GetString() ?? "";
+                    if (_enableColor)
+                    {
+                        _console.MarkupLine($"    {InfoSymbol} [white]{fieldName.EscapeMarkup()}[/]");
+                    }
+                    else
+                    {
+                        _console.WriteLine($"    {InfoSymbol} {fieldName}");
+                    }
+                }
+            }
+        }
+
+        // Show custom attributes
+        if (category.TryGetProperty("custom_attributes", out var customAttrs) && customAttrs.ValueKind == JsonValueKind.Array)
+        {
+            var customAttrsList = customAttrs.EnumerateArray().ToList();
+            if (customAttrsList.Count > 0)
+            {
+                if (_enableColor)
+                {
+                    _console.MarkupLine($"  [dim]Custom attributes ({customAttrsList.Count}):[/]");
+                }
+                else
+                {
+                    _console.WriteLine($"  Custom attributes ({customAttrsList.Count}):");
+                }
+
+                foreach (var attr in customAttrsList)
+                {
+                    var attrName = attr.GetString() ?? "";
+                    if (_enableColor)
+                    {
+                        _console.MarkupLine($"    {InfoSymbol} [yellow]{attrName.EscapeMarkup()}[/]");
+                    }
+                    else
+                    {
+                        _console.WriteLine($"    {InfoSymbol} {attrName}");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Formats telemetry field values for human-readable console output.
+    /// Shows distinct values with their occurrence counts, ordered by count descending.
+    /// </summary>
+    /// <param name="fieldValuesJson">JSON object from get_telemetry_field_values MCP tool response.</param>
+    public void FormatFieldValues(string fieldValuesJson)
+    {
+        if (string.IsNullOrWhiteSpace(fieldValuesJson))
+        {
+            WriteEmptyMessage("field values");
+            return;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(fieldValuesJson);
+            var root = document.RootElement;
+
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                WriteEmptyMessage("field values");
+                return;
+            }
+
+            var hasTraces = root.TryGetProperty("traces", out var traces);
+            var hasLogs = root.TryGetProperty("logs", out var logs);
+
+            if (!hasTraces && !hasLogs)
+            {
+                WriteEmptyMessage("field values");
+                return;
+            }
+
+            // Get field name from either traces or logs section
+            var fieldName = "";
+            if (hasTraces)
+            {
+                fieldName = GetStringProperty(traces, "field") ?? "";
+            }
+            else if (hasLogs)
+            {
+                fieldName = GetStringProperty(logs, "field") ?? "";
+            }
+
+            WriteHeader($"VALUES FOR FIELD: {fieldName}");
+
+            if (hasTraces)
+            {
+                FormatFieldValueCategory("TRACES", traces);
+                if (hasLogs)
+                {
+                    _console.WriteLine();
+                }
+            }
+
+            if (hasLogs)
+            {
+                FormatFieldValueCategory("LOGS", logs);
+            }
+        }
+        catch (JsonException)
+        {
+            _console.MarkupLine("[dim]Unable to parse field values data.[/]");
+        }
+    }
+
+    private void FormatFieldValueCategory(string categoryName, JsonElement category)
+    {
+        var totalValues = (int?)GetDoubleProperty(category, "total_values") ?? 0;
+
+        if (_enableColor)
+        {
+            _console.MarkupLine($"[cyan bold]{categoryName}[/] [dim]({totalValues} unique values)[/]");
+        }
+        else
+        {
+            _console.WriteLine($"{categoryName} ({totalValues} unique values)");
+        }
+
+        if (category.TryGetProperty("values", out var values) && values.ValueKind == JsonValueKind.Array)
+        {
+            var valuesList = values.EnumerateArray().ToList();
+            if (valuesList.Count == 0)
+            {
+                if (_enableColor)
+                {
+                    _console.MarkupLine($"  [dim]No values found.[/]");
+                }
+                else
+                {
+                    _console.WriteLine("  No values found.");
+                }
+                return;
+            }
+
+            foreach (var valueItem in valuesList)
+            {
+                var value = GetStringProperty(valueItem, "value") ?? "";
+                var count = (int?)GetDoubleProperty(valueItem, "count") ?? 0;
+
+                if (_enableColor)
+                {
+                    _console.MarkupLine($"  {InfoSymbol} [white]{value.EscapeMarkup()}[/] [dim]({count:N0} occurrences)[/]");
+                }
+                else
+                {
+                    _console.WriteLine($"  {InfoSymbol} {value} ({count:N0} occurrences)");
+                }
+            }
+        }
+    }
 }
