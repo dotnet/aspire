@@ -26,38 +26,38 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 1.1 Create Filter Expression Parser
 
-- [ ] Create `src/Aspire.Cli/Utils/FilterExpressionParser.cs`
-  - [ ] Define `ParsedFilter` record with `Field`, `Condition`, `Value` properties
-  - [ ] Implement `Parse(string expression)` method
-  - [ ] Support `=` operator (Equals)
-  - [ ] Support `!=` operator (NotEqual)
-  - [ ] Support `~` operator (Contains)
-  - [ ] Support `!~` operator (NotContains)
-  - [ ] Support `>` operator (GreaterThan)
-  - [ ] Support `<` operator (LessThan)
-  - [ ] Support `>=` operator (GreaterThanOrEqual)
-  - [ ] Support `<=` operator (LessThanOrEqual)
-  - [ ] Handle edge cases: escaped characters, empty values, whitespace
-  - [ ] Throw `FilterParseException` with helpful error messages
+- [x] Create `src/Aspire.Cli/Utils/FilterExpressionParser.cs`
+  - [x] Define `ParsedFilter` record with `Field`, `Condition`, `Value` properties
+  - [x] Implement `Parse(string expression)` method
+  - [x] Support `=` operator (Equals)
+  - [x] Support `!=` operator (NotEqual)
+  - [x] Support `~` operator (Contains)
+  - [x] Support `!~` operator (NotContains)
+  - [x] Support `>` operator (GreaterThan)
+  - [x] Support `<` operator (LessThan)
+  - [x] Support `>=` operator (GreaterThanOrEqual)
+  - [x] Support `<=` operator (LessThanOrEqual)
+  - [x] Handle edge cases: escaped characters, empty values, whitespace
+  - [x] Throw `FilterParseException` with helpful error messages
 
-- [ ] Create `tests/Aspire.Cli.Tests/Utils/FilterExpressionParserTests.cs`
-  - [ ] Test `Parse_EqualsOperator_ReturnsCorrectFilter` ("http.method=POST")
-  - [ ] Test `Parse_NotEqualsOperator_ReturnsCorrectFilter` ("status!=Error")
-  - [ ] Test `Parse_ContainsOperator_ReturnsCorrectFilter` ("user.id~admin")
-  - [ ] Test `Parse_NotContainsOperator_ReturnsCorrectFilter` ("msg!~timeout")
-  - [ ] Test `Parse_GreaterThanOperator_ReturnsCorrectFilter` ("status_code>399")
-  - [ ] Test `Parse_LessThanOperator_ReturnsCorrectFilter` ("duration<100")
-  - [ ] Test `Parse_GreaterThanOrEqualOperator_ReturnsCorrectFilter` ("level>=Warning")
-  - [ ] Test `Parse_LessThanOrEqualOperator_ReturnsCorrectFilter` ("level<=Info")
-  - [ ] Test `Parse_FieldWithDots_ReturnsCorrectFilter` ("http.response.status_code=200")
-  - [ ] Test `Parse_ValueWithSpaces_ReturnsCorrectFilter` ("message~connection refused")
-  - [ ] Test `Parse_EmptyExpression_ThrowsException`
-  - [ ] Test `Parse_MissingOperator_ThrowsException`
-  - [ ] Test `Parse_MissingValue_ThrowsException`
-  - [ ] Test `Parse_MissingField_ThrowsException`
-  - [ ] Test `Parse_InvalidOperator_ThrowsException`
+- [x] Create `tests/Aspire.Cli.Tests/Utils/FilterExpressionParserTests.cs`
+  - [x] Test `Parse_EqualsOperator_ReturnsCorrectFilter` ("http.method=POST")
+  - [x] Test `Parse_NotEqualsOperator_ReturnsCorrectFilter` ("status!=Error")
+  - [x] Test `Parse_ContainsOperator_ReturnsCorrectFilter` ("user.id~admin")
+  - [x] Test `Parse_NotContainsOperator_ReturnsCorrectFilter` ("msg!~timeout")
+  - [x] Test `Parse_GreaterThanOperator_ReturnsCorrectFilter` ("status_code>399")
+  - [x] Test `Parse_LessThanOperator_ReturnsCorrectFilter` ("duration<100")
+  - [x] Test `Parse_GreaterThanOrEqualOperator_ReturnsCorrectFilter` ("level>=Warning")
+  - [x] Test `Parse_LessThanOrEqualOperator_ReturnsCorrectFilter` ("level<=Info")
+  - [x] Test `Parse_FieldWithDots_ReturnsCorrectFilter` ("http.response.status_code=200")
+  - [x] Test `Parse_ValueWithSpaces_ReturnsCorrectFilter` ("message~connection refused")
+  - [x] Test `Parse_EmptyExpression_ThrowsException`
+  - [x] Test `Parse_MissingOperator_ThrowsException`
+  - [x] Test `Parse_MissingValue_ThrowsException` (Note: empty value is allowed, returns empty string)
+  - [x] Test `Parse_MissingField_ThrowsException`
+  - [x] Test `Parse_InvalidOperator_ThrowsException`
 
-- [ ] Verify all parser tests pass
+- [x] Verify all parser tests pass
 
 ### 1.2 Create Filter-to-TelemetryFilter Converter
 

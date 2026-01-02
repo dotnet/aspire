@@ -194,5 +194,14 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("StartCommand_ApiKeyDescription", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The --api-key option can only be used when --dashboard-url is specified..
+        /// </summary>
+        internal static string StartCommand_ApiKeyWithoutDashboardUrlError {
+            get {
+                return ResourceManager.GetString("StartCommand_ApiKeyWithoutDashboardUrlError", resourceCulture);
+            }
+        }
     }
 }
