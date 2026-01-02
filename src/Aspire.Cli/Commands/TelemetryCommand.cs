@@ -16,10 +16,12 @@ internal sealed class TelemetryCommand : BaseCommand
         IInteractionService interactionService,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext)
+        CliExecutionContext executionContext,
+        TelemetryFieldsCommand fieldsCommand)
         : base("telemetry", TelemetryCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(interactionService);
+        ArgumentNullException.ThrowIfNull(fieldsCommand);
 
         // Common options that will be available to all subcommands
         var projectOption = new Option<FileInfo?>("--project", "-p")
@@ -43,11 +45,13 @@ internal sealed class TelemetryCommand : BaseCommand
         };
         Options.Add(apiKeyOption);
 
-        // Subcommands will be added in future phases:
+        // Subcommands
+        Subcommands.Add(fieldsCommand);
+
+        // Future subcommands:
         // - TelemetryTracesCommand
         // - TelemetryLogsCommand
         // - TelemetryMetricsCommand
-        // - TelemetryFieldsCommand
     }
 
     protected override bool UpdateNotificationsEnabled => false;

@@ -123,6 +123,7 @@ internal static class CliTestHelper
         services.AddTransient<UpdateCommand>();
         services.AddTransient<McpCommand>();
         services.AddTransient<TelemetryCommand>();
+        services.AddTransient<TelemetryFieldsCommand>();
         services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 

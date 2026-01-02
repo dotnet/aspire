@@ -17,6 +17,51 @@
         <target state="new">Query telemetry data from running Aspire applications.</target>
         <note />
       </trans-unit>
+      <trans-unit id="FieldsConnectingToDashboard">
+        <source>Connecting to Dashboard...</source>
+        <target state="new">Connecting to Dashboard...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FieldsDescription">
+        <source>Discover available telemetry fields and their values.</source>
+        <target state="new">Discover available telemetry fields and their values.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FieldsFieldNameArgumentDescription">
+        <source>Optional field name to get distinct values for. If omitted, lists all available fields.</source>
+        <target state="new">Optional field name to get distinct values for. If omitted, lists all available fields.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FieldsJsonOptionDescription">
+        <source>Output as JSON instead of human-readable format.</source>
+        <target state="new">Output as JSON instead of human-readable format.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FieldsNoDashboardError">
+        <source>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</source>
+        <target state="new">No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FieldsQueryingFieldValues">
+        <source>Querying field values...</source>
+        <target state="new">Querying field values...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FieldsQueryingFields">
+        <source>Querying telemetry fields...</source>
+        <target state="new">Querying telemetry fields...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FieldsResourceOptionDescription">
+        <source>Filter fields to a specific resource.</source>
+        <target state="new">Filter fields to a specific resource.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FieldsTypeOptionDescription">
+        <source>Filter to show only trace or log fields. Valid values: 'traces', 'logs'.</source>
+        <target state="new">Filter to show only trace or log fields. Valid values: 'traces', 'logs'.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the AppHost project file.</source>
         <target state="new">The path to the AppHost project file.</target>

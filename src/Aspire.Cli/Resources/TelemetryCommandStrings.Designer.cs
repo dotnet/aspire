@@ -95,5 +95,86 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ApiKeyOptionDescription", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Discover available telemetry fields and their values..
+        /// </summary>
+        internal static string FieldsDescription {
+            get {
+                return ResourceManager.GetString("FieldsDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter to show only trace or log fields. Valid values: 'traces', 'logs'..
+        /// </summary>
+        internal static string FieldsTypeOptionDescription {
+            get {
+                return ResourceManager.GetString("FieldsTypeOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter fields to a specific resource..
+        /// </summary>
+        internal static string FieldsResourceOptionDescription {
+            get {
+                return ResourceManager.GetString("FieldsResourceOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Output as JSON instead of human-readable format..
+        /// </summary>
+        internal static string FieldsJsonOptionDescription {
+            get {
+                return ResourceManager.GetString("FieldsJsonOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Optional field name to get distinct values for. If omitted, lists all available fields..
+        /// </summary>
+        internal static string FieldsFieldNameArgumentDescription {
+            get {
+                return ResourceManager.GetString("FieldsFieldNameArgumentDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard..
+        /// </summary>
+        internal static string FieldsNoDashboardError {
+            get {
+                return ResourceManager.GetString("FieldsNoDashboardError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connecting to Dashboard....
+        /// </summary>
+        internal static string FieldsConnectingToDashboard {
+            get {
+                return ResourceManager.GetString("FieldsConnectingToDashboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Querying telemetry fields....
+        /// </summary>
+        internal static string FieldsQueryingFields {
+            get {
+                return ResourceManager.GetString("FieldsQueryingFields", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Querying field values....
+        /// </summary>
+        internal static string FieldsQueryingFieldValues {
+            get {
+                return ResourceManager.GetString("FieldsQueryingFieldValues", resourceCulture);
+            }
+        }
     }
 }

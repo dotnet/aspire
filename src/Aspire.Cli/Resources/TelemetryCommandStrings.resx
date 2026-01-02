@@ -72,4 +72,31 @@
   <data name="ApiKeyOptionDescription" xml:space="preserve">
     <value>API key for Dashboard authentication. Required if Dashboard uses ApiKey auth mode. Can also be set via ASPIRE_DASHBOARD_API_KEY environment variable.</value>
   </data>
+  <data name="FieldsDescription" xml:space="preserve">
+    <value>Discover available telemetry fields and their values.</value>
+  </data>
+  <data name="FieldsTypeOptionDescription" xml:space="preserve">
+    <value>Filter to show only trace or log fields. Valid values: 'traces', 'logs'.</value>
+  </data>
+  <data name="FieldsResourceOptionDescription" xml:space="preserve">
+    <value>Filter fields to a specific resource.</value>
+  </data>
+  <data name="FieldsJsonOptionDescription" xml:space="preserve">
+    <value>Output as JSON instead of human-readable format.</value>
+  </data>
+  <data name="FieldsFieldNameArgumentDescription" xml:space="preserve">
+    <value>Optional field name to get distinct values for. If omitted, lists all available fields.</value>
+  </data>
+  <data name="FieldsNoDashboardError" xml:space="preserve">
+    <value>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</value>
+  </data>
+  <data name="FieldsConnectingToDashboard" xml:space="preserve">
+    <value>Connecting to Dashboard...</value>
+  </data>
+  <data name="FieldsQueryingFields" xml:space="preserve">
+    <value>Querying telemetry fields...</value>
+  </data>
+  <data name="FieldsQueryingFieldValues" xml:space="preserve">
+    <value>Querying field values...</value>
+  </data>
 </root>
