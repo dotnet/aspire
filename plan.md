@@ -744,16 +744,16 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 11.2 Error Handling Polish
 
-- [ ] Review and improve error messages
-  - [ ] Ensure all errors have actionable suggestions
-  - [ ] Ensure invalid filter fields suggest similar valid fields
-  - [ ] Ensure connection errors explain how to connect
+- [x] Review and improve error messages
+  - [x] Ensure all errors have actionable suggestions
+  - [x] Ensure invalid filter fields suggest similar valid fields (FilterFieldValidator with Levenshtein distance)
+  - [x] Ensure connection errors explain how to connect (NoDashboardError messages include --project and --dashboard-url usage)
 
-- [ ] Add error scenario tests
-  - [ ] Test error message quality for common failures
-  - [ ] Test error message includes help on how to fix
+- [x] Add error scenario tests
+  - [x] Test error message quality for common failures (FilterFieldValidatorTests)
+  - [x] Test error message includes help on how to fix (FormatValidationError_WithSuggestions_IncludesDidYouMean)
 
-- [ ] Verify error handling tests pass
+- [x] Verify error handling tests pass (20 FilterFieldValidatorTests passed)
 
 ### 11.3 Documentation and Help Text
 
