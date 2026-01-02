@@ -161,6 +161,17 @@ internal sealed class TelemetryLogsCommand : BaseCommand
             await using var transport = new HttpClientTransport(transportOptions, httpClient, _loggerFactory, ownsHttpClient: false);
             await using var mcpClient = await McpClient.CreateAsync(transport, cancellationToken: cancellationToken);
 
+            // Validate filter fields against available fields (only if we have filters)
+            if (parsedFilters.Count > 0)
+            {
+                var validationError = await ValidateFilterFieldsAsync(mcpClient, parsedFilters, cancellationToken);
+                if (validationError != null)
+                {
+                    InteractionService.DisplayError(validationError);
+                    return ExitCodeConstants.InvalidArguments;
+                }
+            }
+
             // List logs with filters
             var result = await ListLogsAsync(mcpClient, resourceName, traceId, spanId, parsedFilters, severity, cancellationToken);
 
@@ -252,6 +263,49 @@ internal sealed class TelemetryLogsCommand : BaseCommand
 
         var result = await tool.CallToolAsync(mcpClient, arguments.Count > 0 ? arguments : null, cancellationToken);
         return GetTextFromResult(result);
+    }
+
+    private async Task<string?> ValidateFilterFieldsAsync(McpClient mcpClient, List<ParsedFilter> parsedFilters, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Call list_telemetry_fields to get available fields
+            var fieldsTool = new ListTelemetryFieldsTool();
+            var fieldsArgs = new Dictionary<string, JsonElement>
+            {
+                ["type"] = JsonDocument.Parse("\"logs\"").RootElement
+            };
+
+            var fieldsResult = await fieldsTool.CallToolAsync(mcpClient, fieldsArgs, cancellationToken);
+            var fieldsJson = GetTextFromResult(fieldsResult);
+
+            if (string.IsNullOrEmpty(fieldsJson))
+            {
+                // If we can't get fields, skip validation and let the Dashboard handle it
+                _logger.LogDebug("Could not retrieve available fields, skipping field validation");
+                return null;
+            }
+
+            // Validate each filter field
+            var filterFields = parsedFilters.Select(f => f.Field).ToList();
+            var validationResults = FilterFieldValidator.ValidateFields(filterFields, fieldsJson, "logs");
+
+            if (validationResults.Count > 0)
+            {
+                // Return first validation error with suggestions
+                var firstError = validationResults[0];
+                return FilterFieldValidator.FormatValidationError(firstError);
+            }
+
+            return null; // All fields valid
+        }
+        catch (Exception ex)
+        {
+            // If validation fails for any reason, log and continue without validation
+            // The Dashboard will still reject invalid fields
+            _logger.LogDebug(ex, "Filter field validation failed, continuing without validation");
+            return null;
+        }
     }
 
     private static bool IsValidSeverity(string severity)

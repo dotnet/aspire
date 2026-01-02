@@ -598,7 +598,7 @@ Add `aspire telemetry` command group with subcommands:
 
 - [x] Implement list logs handler
   - [x] Parse filter expressions
-  - [ ] Validate filters against available fields (requires Dashboard connection)
+  - [x] Validate filters against available fields (requires Dashboard connection)
   - [x] Call MCP proxy tool
   - [x] Apply limit
   - [x] Format output
@@ -633,7 +633,7 @@ Add `aspire telemetry` command group with subcommands:
 - [x] Implement filter handling in logs command
   - [x] Parse multiple `--filter` options
   - [x] Validate filter syntax early (before Dashboard connection)
-  - [ ] Validate each filter field exists (requires Dashboard connection)
+  - [x] Validate each filter field exists (requires Dashboard connection)
   - [x] Convert to JSON format for MCP tool
 
 - [ ] Add filter tests to `TelemetryLogsCommandTests.cs`
