@@ -100,6 +100,24 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         _logger.LogDebug("Telemetry traces command executing with resource={Resource}, filters={FilterCount}, search={Search}, json={Json}, traceId={TraceId}",
             resourceName, filters.Length, searchText, outputJson, traceId);
 
+        // Validate filter syntax BEFORE connecting to Dashboard
+        // This provides early feedback on invalid filter expressions
+        List<ParsedFilter> parsedFilters = [];
+        foreach (var filterExpr in filters)
+        {
+            try
+            {
+                var parsed = FilterExpressionParser.Parse(filterExpr);
+                parsedFilters.Add(parsed);
+            }
+            catch (FilterParseException ex)
+            {
+                _logger.LogWarning("Invalid filter expression '{Filter}': {Message}", filterExpr, ex.Message);
+                InteractionService.DisplayError($"Invalid filter expression '{filterExpr}': {ex.Message}");
+                return ExitCodeConstants.InvalidArguments;
+            }
+        }
+
         try
         {
             // Get Dashboard connection
@@ -138,7 +156,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
             else
             {
                 // List traces with filters
-                result = await ListTracesAsync(mcpClient, resourceName, filters, searchText, cancellationToken);
+                result = await ListTracesAsync(mcpClient, resourceName, parsedFilters, searchText, cancellationToken);
             }
 
             if (outputJson)
@@ -172,7 +190,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         }
     }
 
-    private async Task<string> ListTracesAsync(McpClient mcpClient, string? resourceName, string[] filters, string? searchText, CancellationToken cancellationToken)
+    private static async Task<string> ListTracesAsync(McpClient mcpClient, string? resourceName, List<ParsedFilter> parsedFilters, string? searchText, CancellationToken cancellationToken)
     {
         var tool = new ListTracesTool();
         var arguments = new Dictionary<string, JsonElement>();
@@ -187,24 +205,10 @@ internal sealed class TelemetryTracesCommand : BaseCommand
             arguments["searchText"] = JsonDocument.Parse($"\"{EscapeJsonString(searchText)}\"").RootElement;
         }
 
-        // Convert filter expressions to JSON array format for MCP tool
-        if (filters.Length > 0)
+        // Convert pre-parsed filters to JSON array format for MCP tool
+        if (parsedFilters.Count > 0)
         {
-            var filterDtos = new List<TelemetryFilterDto>();
-            foreach (var filterExpr in filters)
-            {
-                try
-                {
-                    var parsed = FilterExpressionParser.Parse(filterExpr);
-                    filterDtos.Add(parsed.ToTelemetryFilter());
-                }
-                catch (FilterParseException ex)
-                {
-                    _logger.LogWarning("Invalid filter expression '{Filter}': {Message}", filterExpr, ex.Message);
-                    throw new InvalidOperationException($"Invalid filter expression '{filterExpr}': {ex.Message}", ex);
-                }
-            }
-
+            var filterDtos = parsedFilters.Select(f => f.ToTelemetryFilter()).ToList();
             var filtersJson = JsonSerializer.Serialize(filterDtos, TelemetryJsonContext.Default.ListTelemetryFilterDto);
             arguments["filters"] = JsonDocument.Parse(filtersJson).RootElement;
         }

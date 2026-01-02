@@ -23,4 +23,5 @@ internal static class ExitCodeConstants
     public const int SingleFileAppHostNotSupported = 15;
     public const int FailedToParseCli = 16;
     public const int FailedToConnectToDashboard = 17;
+    public const int InvalidArguments = 18;
 }

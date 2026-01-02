@@ -516,18 +516,19 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 8.3 Implement Trace Filtering
 
-- [ ] Implement filter handling in traces command
-  - [ ] Parse multiple `--filter` options
-  - [ ] Validate each filter field exists
-  - [ ] Convert to JSON format for MCP tool
-  - [ ] Pass to proxy tool
+- [x] Implement filter handling in traces command
+  - [x] Parse multiple `--filter` options
+  - [x] Validate filter syntax early (before Dashboard connection)
+  - [ ] Validate each filter field exists (requires Dashboard connection)
+  - [x] Convert to JSON format for MCP tool
+  - [x] Pass to proxy tool
 
 - [ ] Add filter tests to `TelemetryTracesCommandTests.cs`
   - [ ] Test `TelemetryTracesCommand_WithSingleFilter_AppliesFilter`
   - [ ] Test `TelemetryTracesCommand_WithMultipleFilters_AppliesAllFilters`
   - [ ] Test `TelemetryTracesCommand_WithStatusFilter_FiltersStatus`
   - [ ] Test `TelemetryTracesCommand_WithAttributeFilter_FiltersAttribute`
-  - [ ] Test `TelemetryTracesCommand_InvalidFilterSyntax_ReturnsError`
+  - [x] Test `TelemetryTracesCommand_InvalidFilterSyntax_ReturnsError`
   - [ ] Test `TelemetryTracesCommand_InvalidFilterField_ReturnsErrorWithSuggestions`
 
 - [ ] Verify filter tests pass

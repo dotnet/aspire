@@ -231,4 +231,22 @@ public class TelemetryTracesCommandTests(ITestOutputHelper outputHelper)
         Assert.Contains("--limit", optionNames);
         Assert.Contains("--json", optionNames);
     }
+
+    [Fact]
+    public async Task TelemetryTracesCommand_InvalidFilterSyntax_ReturnsError()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Use an invalid filter expression (missing operator)
+        var result = command.Parse("telemetry traces --filter invalidfilter");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Expected to fail with InvalidArguments exit code (18) due to invalid filter syntax
+        // The error should be caught before attempting Dashboard connection
+        Assert.Equal(18, exitCode);
+    }
 }
