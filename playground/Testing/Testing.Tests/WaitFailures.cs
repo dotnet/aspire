@@ -19,7 +19,6 @@ public class WaitFailures
 
     public class WaitForExplicitStartResources
     {
-
         [Fact]
         public async Task Container()
         {
