@@ -293,17 +293,17 @@ Add `aspire telemetry` command group with subcommands:
   - [x] Add `searchText` parameter
   - [x] Forward new parameters to Dashboard
 
-- [ ] Modify `src/Aspire.Cli/Mcp/ListStructuredLogsTool.cs`
-  - [ ] Add `filters` parameter
-  - [ ] Add `severity` parameter
-  - [ ] Forward new parameters to Dashboard
+- [x] Modify `src/Aspire.Cli/Mcp/ListStructuredLogsTool.cs`
+  - [x] Add `filters` parameter
+  - [x] Add `severity` parameter
+  - [x] Forward new parameters to Dashboard
 
 - [x] Add tests for updated proxy tools
   - [x] Test `ListTracesTool_PassesFilters` (added in `tests/Aspire.Cli.Tests/Mcp/ListTracesToolTests.cs`)
-  - [ ] Test `ListStructuredLogsTool_PassesFilters`
-  - [ ] Test `ListStructuredLogsTool_PassesSeverity`
+  - [x] Test `ListStructuredLogsTool_PassesFilters` (added in `tests/Aspire.Cli.Tests/Mcp/ListStructuredLogsToolTests.cs`)
+  - [x] Test `ListStructuredLogsTool_PassesSeverity` (added in `tests/Aspire.Cli.Tests/Mcp/ListStructuredLogsToolTests.cs`)
 
-- [ ] Verify updated proxy tests pass
+- [x] Verify updated proxy tests pass
 
 ### 5.3 Create CLI Proxy for Metrics Tools
 
