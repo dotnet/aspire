@@ -255,6 +255,5 @@ public class WaitFailures
 
             await app.ResourceNotifications.WaitForDependenciesAsync(consumer.Resource, cancellationToken: cts.Token);
         }
-
     }
 }
