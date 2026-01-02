@@ -176,5 +176,77 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("FieldsQueryingFieldValues", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Query distributed traces from running Aspire applications..
+        /// </summary>
+        internal static string TracesDescription {
+            get {
+                return ResourceManager.GetString("TracesDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter traces to a specific resource..
+        /// </summary>
+        internal static string TracesResourceOptionDescription {
+            get {
+                return ResourceManager.GetString("TracesResourceOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter expression (e.g., 'status=Error', 'http.method=POST'). Can be specified multiple times..
+        /// </summary>
+        internal static string TracesFilterOptionDescription {
+            get {
+                return ResourceManager.GetString("TracesFilterOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Search text to filter span names..
+        /// </summary>
+        internal static string TracesSearchOptionDescription {
+            get {
+                return ResourceManager.GetString("TracesSearchOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Maximum number of traces to return. Default is 100..
+        /// </summary>
+        internal static string TracesLimitOptionDescription {
+            get {
+                return ResourceManager.GetString("TracesLimitOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Output as JSON instead of human-readable format..
+        /// </summary>
+        internal static string TracesJsonOptionDescription {
+            get {
+                return ResourceManager.GetString("TracesJsonOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Optional trace ID to get details for a specific trace. If omitted, lists recent traces..
+        /// </summary>
+        internal static string TracesTraceIdArgumentDescription {
+            get {
+                return ResourceManager.GetString("TracesTraceIdArgumentDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard..
+        /// </summary>
+        internal static string TracesNoDashboardError {
+            get {
+                return ResourceManager.GetString("TracesNoDashboardError", resourceCulture);
+            }
+        }
     }
 }

@@ -474,24 +474,24 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 8.1 Create Traces Subcommand Structure
 
-- [ ] Create `src/Aspire.Cli/Commands/TelemetryTracesCommand.cs`
-  - [ ] Define `traces` as the command name
-  - [ ] Add description
-  - [ ] Add options:
-    - [ ] `--resource <name>` - Filter by resource
-    - [ ] `--filter <expr>` - Filter expression (repeatable)
-    - [ ] `--search <text>` - Search span names
-    - [ ] `--limit <n>` - Max results (default 100)
-    - [ ] `--json` - Output as JSON
-  - [ ] Add optional argument `<trace-id>` for getting specific trace
+- [x] Create `src/Aspire.Cli/Commands/TelemetryTracesCommand.cs`
+  - [x] Define `traces` as the command name
+  - [x] Add description
+  - [x] Add options:
+    - [x] `--resource <name>` - Filter by resource
+    - [x] `--filter <expr>` - Filter expression (repeatable)
+    - [x] `--search <text>` - Search span names
+    - [x] `--limit <n>` - Max results (default 100)
+    - [x] `--json` - Output as JSON
+  - [x] Add optional argument `<trace-id>` for getting specific trace
 
-- [ ] Register as subcommand of TelemetryCommand
+- [x] Register as subcommand of TelemetryCommand
 
-- [ ] Add basic command tests
-  - [ ] Test `TelemetryTracesCommand_Help_ShowsUsage`
-  - [ ] Test `TelemetryTracesCommand_Help_ShowsAllOptions`
+- [x] Add basic command tests
+  - [x] Test `TelemetryTracesCommand_Help_ShowsUsage`
+  - [x] Test `TelemetryTracesCommand_Help_ShowsAllOptions`
 
-- [ ] Verify basic command tests pass
+- [x] Verify basic command tests pass
 
 ### 8.2 Implement Trace Listing
 

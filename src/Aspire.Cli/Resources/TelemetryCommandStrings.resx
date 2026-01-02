@@ -99,4 +99,28 @@
   <data name="FieldsQueryingFieldValues" xml:space="preserve">
     <value>Querying field values...</value>
   </data>
+  <data name="TracesDescription" xml:space="preserve">
+    <value>Query distributed traces from running Aspire applications.</value>
+  </data>
+  <data name="TracesResourceOptionDescription" xml:space="preserve">
+    <value>Filter traces to a specific resource.</value>
+  </data>
+  <data name="TracesFilterOptionDescription" xml:space="preserve">
+    <value>Filter expression (e.g., 'status=Error', 'http.method=POST'). Can be specified multiple times.</value>
+  </data>
+  <data name="TracesSearchOptionDescription" xml:space="preserve">
+    <value>Search text to filter span names.</value>
+  </data>
+  <data name="TracesLimitOptionDescription" xml:space="preserve">
+    <value>Maximum number of traces to return. Default is 100.</value>
+  </data>
+  <data name="TracesJsonOptionDescription" xml:space="preserve">
+    <value>Output as JSON instead of human-readable format.</value>
+  </data>
+  <data name="TracesTraceIdArgumentDescription" xml:space="preserve">
+    <value>Optional trace ID to get details for a specific trace. If omitted, lists recent traces.</value>
+  </data>
+  <data name="TracesNoDashboardError" xml:space="preserve">
+    <value>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</value>
+  </data>
 </root>
