@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
@@ -146,6 +146,15 @@ public class McpServiceTests
         Assert.Contains(tools, t => t!["name"]?.ToString() == "list_structured_logs");
         Assert.Contains(tools, t => t!["name"]?.ToString() == "list_traces");
         Assert.Contains(tools, t => t!["name"]?.ToString() == "list_trace_structured_logs");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "get_trace");
+
+        // Verify that fields tools are available
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_telemetry_fields");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "get_telemetry_field_values");
+
+        // Verify that metrics tools are available
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_metrics");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "get_metric_data");
 
         // Verify that resource tools are NOT available
         Assert.DoesNotContain(tools, t => t!["name"]?.ToString() == "list_resources");
@@ -182,6 +191,15 @@ public class McpServiceTests
         Assert.Contains(tools, t => t!["name"]?.ToString() == "list_structured_logs");
         Assert.Contains(tools, t => t!["name"]?.ToString() == "list_traces");
         Assert.Contains(tools, t => t!["name"]?.ToString() == "list_trace_structured_logs");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "get_trace");
+
+        // Verify that fields tools are available
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_telemetry_fields");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "get_telemetry_field_values");
+
+        // Verify that metrics tools are available
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "list_metrics");
+        Assert.Contains(tools, t => t!["name"]?.ToString() == "get_metric_data");
 
         // Verify that resource tools ARE available
         Assert.Contains(tools, t => t!["name"]?.ToString() == "list_resources");

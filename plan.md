@@ -12,7 +12,7 @@ Add `aspire telemetry` command group with subcommands:
 
 ## Implementation Status
 
-**Status: COMPLETE** - All implementation work is done. All unit tests pass (942 CLI tests, 1127 Dashboard tests verified 2026-01-02). The only remaining unchecked items in the plan are integration tests that require a running Dashboard or AppHost to execute - these cannot be automated without live infrastructure.
+**Status: COMPLETE** - All implementation work is done. All unit tests pass (942 CLI tests verified 2026-01-02). The only remaining unchecked items in the plan are integration tests that require a running Dashboard or AppHost to execute - these cannot be automated without live infrastructure.
 
 ## Design Decisions
 
@@ -757,6 +757,17 @@ Add `aspire telemetry` command group with subcommands:
   - [ ] Test API key authentication
 
 - [ ] Verify integration tests pass
+
+### 11.1.1 MCP Tool Registration Tests
+
+- [x] Update `McpServiceTests.CallService_NoResourceService_ResourceToolsNotRegistered` to verify new telemetry tools
+  - [x] Assert `get_trace` is registered
+  - [x] Assert `list_telemetry_fields` is registered
+  - [x] Assert `get_telemetry_field_values` is registered
+  - [x] Assert `list_metrics` is registered
+  - [x] Assert `get_metric_data` is registered
+- [x] Update `McpServiceTests.CallService_WithResourceService_ResourceToolsRegistered` with same assertions
+- [x] Verify MCP tool registration tests pass (9 McpServiceTests passed)
 
 ### 11.2 Error Handling Polish
 
