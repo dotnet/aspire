@@ -92,27 +92,27 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 2.2 Implement list_telemetry_fields Tool
 
-- [ ] Add `ListTelemetryFields` method to `AspireFieldsMcpTools.cs`
-  - [ ] Add `[McpServerTool(Name = "list_telemetry_fields")]` attribute
-  - [ ] Add `[Description("...")]` attribute with clear description
-  - [ ] Accept optional `type` parameter ("traces" or "logs", default both)
-  - [ ] Accept optional `resourceName` parameter
-  - [ ] Call `TelemetryRepository.GetTracePropertyKeys()` for traces
-  - [ ] Call `TelemetryRepository.GetLogPropertyKeys()` for logs
-  - [ ] Return JSON with known fields and custom attribute keys
-  - [ ] Include field counts where available
+- [x] Add `ListTelemetryFields` method to `AspireFieldsMcpTools.cs`
+  - [x] Add `[McpServerTool(Name = "list_telemetry_fields")]` attribute
+  - [x] Add `[Description("...")]` attribute with clear description
+  - [x] Accept optional `type` parameter ("traces" or "logs", default both)
+  - [x] Accept optional `resourceName` parameter
+  - [x] Call `TelemetryRepository.GetTracePropertyKeys()` for traces
+  - [x] Call `TelemetryRepository.GetLogPropertyKeys()` for logs
+  - [x] Return JSON with known fields and custom attribute keys
+  - [x] Include field counts where available
 
-- [ ] Create `tests/Aspire.Dashboard.Tests/Mcp/AspireFieldsMcpToolsTests.cs`
-  - [ ] Test `ListTelemetryFields_NoData_ReturnsEmptyLists`
-  - [ ] Test `ListTelemetryFields_WithTraces_ReturnsTraceFields`
-  - [ ] Test `ListTelemetryFields_WithLogs_ReturnsLogFields`
-  - [ ] Test `ListTelemetryFields_TypeTraces_ReturnsOnlyTraceFields`
-  - [ ] Test `ListTelemetryFields_TypeLogs_ReturnsOnlyLogFields`
-  - [ ] Test `ListTelemetryFields_WithResource_FiltersToResource`
-  - [ ] Test `ListTelemetryFields_IncludesKnownFields`
-  - [ ] Test `ListTelemetryFields_IncludesCustomAttributes`
+- [x] Create `tests/Aspire.Dashboard.Tests/Mcp/AspireFieldsMcpToolsTests.cs`
+  - [x] Test `ListTelemetryFields_NoData_ReturnsEmptyLists`
+  - [x] Test `ListTelemetryFields_WithTraces_ReturnsTraceFields`
+  - [x] Test `ListTelemetryFields_WithLogs_ReturnsLogFields`
+  - [x] Test `ListTelemetryFields_TypeTraces_ReturnsOnlyTraceFields`
+  - [x] Test `ListTelemetryFields_TypeLogs_ReturnsOnlyLogFields`
+  - [x] Test `ListTelemetryFields_WithResource_FiltersToResource`
+  - [x] Test `ListTelemetryFields_IncludesKnownFields`
+  - [x] Test `ListTelemetryFields_IncludesCustomAttributes`
 
-- [ ] Verify all fields listing tests pass
+- [x] Verify all fields listing tests pass
 
 ### 2.3 Implement get_telemetry_field_values Tool
 
