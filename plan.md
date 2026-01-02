@@ -615,18 +615,18 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 9.3 Implement Severity Filtering
 
-- [ ] Implement severity option handling
-  - [ ] Parse severity string to LogLevel enum
-  - [ ] Validate severity value
-  - [ ] Pass to MCP proxy tool
+- [x] Implement severity option handling
+  - [x] Parse severity string to LogLevel enum (validates against known severity values)
+  - [x] Validate severity value
+  - [x] Pass to MCP proxy tool
 
 - [ ] Add severity tests to `TelemetryLogsCommandTests.cs`
   - [ ] Test `TelemetryLogsCommand_SeverityWarning_ReturnsWarningAndAbove`
   - [ ] Test `TelemetryLogsCommand_SeverityError_ReturnsErrorAndCritical`
   - [ ] Test `TelemetryLogsCommand_SeverityTrace_ReturnsAll`
-  - [ ] Test `TelemetryLogsCommand_InvalidSeverity_ReturnsError`
+  - [x] Test `TelemetryLogsCommand_InvalidSeverity_ReturnsError`
 
-- [ ] Verify severity tests pass
+- [ ] Verify severity tests pass (integration tests require Dashboard)
 
 ### 9.4 Implement Log Filtering
 
