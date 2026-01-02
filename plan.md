@@ -827,14 +827,24 @@ Add `aspire telemetry` command group with subcommands:
 
 ---
 
+## Bug Fixes
+
+### Fixed: JSON output causing Spectre.Console markup errors
+
+- **Issue**: All telemetry commands (`traces`, `logs`, `fields`, `metrics`) used `DisplayMessage` for JSON output, which passed JSON content through `MarkupLine`. JSON contains `[` and `]` characters that Spectre.Console interpreted as markup tags, causing "Unbalanced markup stack" errors.
+- **Fix**: Changed to use `DisplayPlainText` instead, which writes directly to the console without markup interpretation.
+- **Files**: `TelemetryTracesCommand.cs`, `TelemetryLogsCommand.cs`, `TelemetryFieldsCommand.cs`, `TelemetryMetricsCommand.cs`
+
+---
+
 ## Success Criteria
 
 - [ ] All `aspire telemetry` subcommands work with running AppHost
-- [ ] All `aspire telemetry` subcommands work with standalone Dashboard via `--dashboard-url`
+- [x] All `aspire telemetry` subcommands work with standalone Dashboard via `--dashboard-url`
 - [ ] Filter expressions validated before sending to Dashboard
 - [ ] Invalid filters return helpful error messages with suggestions
 - [ ] Human-readable output is clean and informative
-- [ ] JSON output is valid and matches MCP tool format
+- [x] JSON output is valid and matches MCP tool format
 - [ ] All tests pass
 - [ ] No regression in existing CLI commands
 - [ ] MCP tools have feature parity with CLI commands
