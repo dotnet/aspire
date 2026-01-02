@@ -340,6 +340,18 @@ Add `aspire telemetry` command group with subcommands:
 
 - [x] Verify metrics proxy tests pass
 
+### 5.4 Create CLI Proxy for GetTrace Tool
+
+- [x] Create `src/Aspire.Cli/Mcp/GetTraceTool.cs`
+  - [x] Implement proxy to Dashboard MCP endpoint for `get_trace` tool
+  - [x] Handle connection errors gracefully (handled by McpStartCommand)
+
+- [x] Add tests for GetTrace proxy tool
+  - [x] Test `GetTraceTool` schema and metadata (`GetTraceToolTests.cs`)
+  - Note: Forwarding/connection tests handled by integration tests (Dashboard connection managed by McpStartCommand)
+
+- [x] Verify GetTrace proxy tests pass
+
 ---
 
 ## Phase 6: CLI Output Formatter
@@ -809,6 +821,7 @@ Add `aspire telemetry` command group with subcommands:
 - `src/Aspire.Cli/Mcp/GetTelemetryFieldValuesTool.cs`
 - `src/Aspire.Cli/Mcp/ListMetricsTool.cs`
 - `src/Aspire.Cli/Mcp/GetMetricDataTool.cs`
+- `src/Aspire.Cli/Mcp/GetTraceTool.cs`
 
 **Dashboard MCP Tools:**
 - `src/Aspire.Dashboard/Mcp/AspireFieldsMcpTools.cs`
@@ -823,6 +836,7 @@ Add `aspire telemetry` command group with subcommands:
 - `tests/Aspire.Cli.Tests/Utils/FilterExpressionParserTests.cs`
 - `tests/Aspire.Cli.Tests/Utils/TelemetryOutputFormatterTests.cs`
 - `tests/Aspire.Cli.Tests/Utils/FilterFieldValidatorTests.cs`
+- `tests/Aspire.Cli.Tests/Mcp/GetTraceToolTests.cs`
 - `tests/Aspire.Dashboard.Tests/Mcp/AspireFieldsMcpToolsTests.cs`
 - `tests/Aspire.Dashboard.Tests/Mcp/AspireMetricsMcpToolsTests.cs`
 
