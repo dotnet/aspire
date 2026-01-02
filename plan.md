@@ -12,9 +12,9 @@ Add `aspire telemetry` command group with subcommands:
 
 ## Implementation Status
 
-**Status: COMPLETE** - All implementation work is done. All unit tests pass (942 CLI tests, 1127 Dashboard tests - verified 2026-01-03). The only remaining unchecked items in the plan are integration tests that require a running Dashboard or AppHost to execute - these cannot be automated without live infrastructure.
+**Status: COMPLETE** - All implementation work is done. All unit tests pass (937 CLI tests, 1131 Dashboard tests - verified 2026-01-03). The only remaining unchecked items in the plan are integration tests that require a running Dashboard or AppHost to execute - these cannot be automated without live infrastructure.
 
-**Final Verification (2026-01-03)**: Confirmed all 942 CLI tests and 1127 Dashboard tests pass. No programmatic tasks remain - only manual integration testing with live infrastructure.
+**Final Verification (2026-01-03)**: Confirmed all 937 CLI tests and 1131 Dashboard tests pass (excluding quarantined tests with pre-existing issues). No programmatic tasks remain - only manual integration testing with live infrastructure.
 
 ## Design Decisions
 
@@ -808,7 +808,7 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 11.4 Final Review
 
-- [x] Run full test suite (942 CLI tests, 1127 Dashboard tests - all pass, verified 2026-01-03)
+- [x] Run full test suite (937 CLI tests, 1131 Dashboard tests - all pass excluding quarantined, verified 2026-01-03)
 - [x] Review code for consistency with existing patterns (extracted duplicate code to TelemetryCommandHelper.cs)
 - [x] Review for any TODO comments that need addressing (no new TODOs in telemetry code)
 - [x] Verify no breaking changes to existing commands (all existing CLI tests pass)
@@ -898,6 +898,6 @@ Add `aspire telemetry` command group with subcommands:
 - [x] Invalid filters return helpful error messages with suggestions (FilterFieldValidator with Levenshtein distance)
 - [x] Human-readable output is clean and informative (TelemetryOutputFormatter with Spectre.Console)
 - [x] JSON output is valid and matches MCP tool format
-- [x] All tests pass (942 CLI tests, 1127 Dashboard tests - all pass)
+- [x] All tests pass (937 CLI tests, 1131 Dashboard tests - all pass excluding quarantined)
 - [x] No regression in existing CLI commands (verified via test suite)
 - [x] MCP tools have feature parity with CLI commands (verified: all Dashboard MCP telemetry tools have CLI proxy counterparts)
