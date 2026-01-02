@@ -807,7 +807,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         var startInfo = new ProcessStartInfo
         {
             FileName = npxPath,
-            Arguments = $"nodemon --watch . --ext ts,json --ignore node_modules/ --ignore .modules/ --exec \"npx tsx {appHostFile.Name}\"",
+            Arguments = $"nodemon --signal SIGTERM --watch . --ext ts,json --ignore node_modules/ --ignore .modules/ --exec \"npx tsx {appHostFile.Name}\"",
             WorkingDirectory = directory.FullName,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
