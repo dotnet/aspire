@@ -58,8 +58,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsMessage">
-        <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</source>
-        <target state="translated">Podaj wartości dla nierozpoznanych parametrów. Parametry można zapisać we [wpisach tajnych użytkownika](https://learn.microsoft.com/aspnet/core/security/app-secrets) do przyszłego użytku.</target>
+        <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.</source>
+        <target state="needs-review-translation">Podaj wartości dla nierozpoznanych parametrów. Parametry można zapisać we [wpisach tajnych użytkownika](https://aka.ms/aspire/user-secrets) do przyszłego użytku.</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="ParametersInputsMessagePublishMode">
