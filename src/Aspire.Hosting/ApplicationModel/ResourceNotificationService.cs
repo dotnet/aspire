@@ -133,7 +133,6 @@ public class ResourceNotificationService : IDisposable
 
         var finalState = resourceEvent.Snapshot.State!.Text!;
         _logger.LogDebug("Finished waiting for resource '{ResourceName}'. Resource state is '{State}'.", resourceName, finalState);
-        
         return finalState;
     }
 
