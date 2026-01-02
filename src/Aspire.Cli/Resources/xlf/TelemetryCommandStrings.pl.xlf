@@ -62,6 +62,56 @@
         <target state="new">Filter to show only trace or log fields. Valid values: 'traces', 'logs'.</target>
         <note />
       </trans-unit>
+      <trans-unit id="LogsDescription">
+        <source>Query structured logs from running Aspire applications.</source>
+        <target state="new">Query structured logs from running Aspire applications.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsFilterOptionDescription">
+        <source>Filter expression (e.g., 'category~MyApp', 'message~error'). Can be specified multiple times.</source>
+        <target state="new">Filter expression (e.g., 'category~MyApp', 'message~error'). Can be specified multiple times.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsInvalidSeverityError">
+        <source>Invalid severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical.</source>
+        <target state="new">Invalid severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsJsonOptionDescription">
+        <source>Output as JSON instead of human-readable format.</source>
+        <target state="new">Output as JSON instead of human-readable format.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsLimitOptionDescription">
+        <source>Maximum number of logs to return. Default is 100.</source>
+        <target state="new">Maximum number of logs to return. Default is 100.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsNoDashboardError">
+        <source>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</source>
+        <target state="new">No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsResourceOptionDescription">
+        <source>Filter logs to a specific resource.</source>
+        <target state="new">Filter logs to a specific resource.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsSeverityOptionDescription">
+        <source>Minimum severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical.</source>
+        <target state="new">Minimum severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsSpanOptionDescription">
+        <source>Filter logs by span ID.</source>
+        <target state="new">Filter logs by span ID.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogsTraceOptionDescription">
+        <source>Filter logs by trace ID.</source>
+        <target state="new">Filter logs by trace ID.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectOptionDescription">
         <source>The path to the AppHost project file.</source>
         <target state="new">The path to the AppHost project file.</target>

@@ -248,5 +248,95 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("TracesNoDashboardError", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Query structured logs from running Aspire applications..
+        /// </summary>
+        internal static string LogsDescription {
+            get {
+                return ResourceManager.GetString("LogsDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter logs to a specific resource..
+        /// </summary>
+        internal static string LogsResourceOptionDescription {
+            get {
+                return ResourceManager.GetString("LogsResourceOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter logs by trace ID..
+        /// </summary>
+        internal static string LogsTraceOptionDescription {
+            get {
+                return ResourceManager.GetString("LogsTraceOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter logs by span ID..
+        /// </summary>
+        internal static string LogsSpanOptionDescription {
+            get {
+                return ResourceManager.GetString("LogsSpanOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter expression (e.g., 'category~MyApp', 'message~error'). Can be specified multiple times..
+        /// </summary>
+        internal static string LogsFilterOptionDescription {
+            get {
+                return ResourceManager.GetString("LogsFilterOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Minimum severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical..
+        /// </summary>
+        internal static string LogsSeverityOptionDescription {
+            get {
+                return ResourceManager.GetString("LogsSeverityOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Maximum number of logs to return. Default is 100..
+        /// </summary>
+        internal static string LogsLimitOptionDescription {
+            get {
+                return ResourceManager.GetString("LogsLimitOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Output as JSON instead of human-readable format..
+        /// </summary>
+        internal static string LogsJsonOptionDescription {
+            get {
+                return ResourceManager.GetString("LogsJsonOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard..
+        /// </summary>
+        internal static string LogsNoDashboardError {
+            get {
+                return ResourceManager.GetString("LogsNoDashboardError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical..
+        /// </summary>
+        internal static string LogsInvalidSeverityError {
+            get {
+                return ResourceManager.GetString("LogsInvalidSeverityError", resourceCulture);
+            }
+        }
     }
 }

@@ -123,4 +123,34 @@
   <data name="TracesNoDashboardError" xml:space="preserve">
     <value>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</value>
   </data>
+  <data name="LogsDescription" xml:space="preserve">
+    <value>Query structured logs from running Aspire applications.</value>
+  </data>
+  <data name="LogsResourceOptionDescription" xml:space="preserve">
+    <value>Filter logs to a specific resource.</value>
+  </data>
+  <data name="LogsTraceOptionDescription" xml:space="preserve">
+    <value>Filter logs by trace ID.</value>
+  </data>
+  <data name="LogsSpanOptionDescription" xml:space="preserve">
+    <value>Filter logs by span ID.</value>
+  </data>
+  <data name="LogsFilterOptionDescription" xml:space="preserve">
+    <value>Filter expression (e.g., 'category~MyApp', 'message~error'). Can be specified multiple times.</value>
+  </data>
+  <data name="LogsSeverityOptionDescription" xml:space="preserve">
+    <value>Minimum severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical.</value>
+  </data>
+  <data name="LogsLimitOptionDescription" xml:space="preserve">
+    <value>Maximum number of logs to return. Default is 100.</value>
+  </data>
+  <data name="LogsJsonOptionDescription" xml:space="preserve">
+    <value>Output as JSON instead of human-readable format.</value>
+  </data>
+  <data name="LogsNoDashboardError" xml:space="preserve">
+    <value>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</value>
+  </data>
+  <data name="LogsInvalidSeverityError" xml:space="preserve">
+    <value>Invalid severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical.</value>
+  </data>
 </root>

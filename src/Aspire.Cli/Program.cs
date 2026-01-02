@@ -220,6 +220,7 @@ public class Program
         builder.Services.AddTransient<TelemetryCommand>();
         builder.Services.AddTransient<TelemetryFieldsCommand>();
         builder.Services.AddTransient<TelemetryTracesCommand>();
+        builder.Services.AddTransient<TelemetryLogsCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 
