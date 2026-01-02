@@ -22,6 +22,14 @@ internal sealed class ListTracesTool : CliMcpTool
                 "resourceName": {
                   "type": "string",
                   "description": "The resource name. This limits traces returned to the specified resource. If no resource name is specified then distributed traces for all resources are returned."
+                },
+                "filters": {
+                  "type": "string",
+                  "description": "JSON array of filter objects. Each filter object should have 'field' (string), 'condition' (string: 'equals', '!equals', 'contains', '!contains', 'gt', 'lt', 'gte', 'lte'), and 'value' (string) properties. Example: [{\"field\":\"status\",\"condition\":\"equals\",\"value\":\"Error\"}]"
+                },
+                "searchText": {
+                  "type": "string",
+                  "description": "Text to search for in span names. Filters traces to only those with spans matching this text."
                 }
               }
             }

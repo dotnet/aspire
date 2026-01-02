@@ -288,18 +288,18 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 5.2 Update Existing CLI Proxy Tools for Filters
 
-- [ ] Modify `src/Aspire.Cli/Mcp/ListTracesTool.cs`
-  - [ ] Add `filters` parameter
-  - [ ] Add `searchText` parameter
-  - [ ] Forward new parameters to Dashboard
+- [x] Modify `src/Aspire.Cli/Mcp/ListTracesTool.cs`
+  - [x] Add `filters` parameter
+  - [x] Add `searchText` parameter
+  - [x] Forward new parameters to Dashboard
 
 - [ ] Modify `src/Aspire.Cli/Mcp/ListStructuredLogsTool.cs`
   - [ ] Add `filters` parameter
   - [ ] Add `severity` parameter
   - [ ] Forward new parameters to Dashboard
 
-- [ ] Add tests for updated proxy tools
-  - [ ] Test `ListTracesTool_PassesFilters`
+- [x] Add tests for updated proxy tools
+  - [x] Test `ListTracesTool_PassesFilters` (added in `tests/Aspire.Cli.Tests/Mcp/ListTracesToolTests.cs`)
   - [ ] Test `ListStructuredLogsTool_PassesFilters`
   - [ ] Test `ListStructuredLogsTool_PassesSeverity`
 
