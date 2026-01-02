@@ -40,6 +40,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private readonly IDotNetCliRunner _runner;
     private readonly IPackagingService _packagingService;
     private readonly IConfiguration _configuration;
+    private readonly IFeatures _features;
     private readonly ILogger<TypeScriptAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly CodeGeneratorService _codeGeneratorService;
@@ -55,6 +56,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         IDotNetCliRunner runner,
         IPackagingService packagingService,
         IConfiguration configuration,
+        IFeatures features,
         ILogger<TypeScriptAppHostProject> logger,
         TimeProvider? timeProvider = null)
     {
@@ -65,6 +67,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         _runner = runner;
         _packagingService = packagingService;
         _configuration = configuration;
+        _features = features;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _codeGeneratorService = new CodeGeneratorService();
@@ -392,9 +395,13 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Pass the auth token to the AppHost server for RPC authentication
             launchSettingsEnvVars["ASPIRE_RPC_AUTH_TOKEN"] = authToken;
 
+            // Check if hot reload (watch mode) is enabled
+            var enableHotReload = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
+
             // Start the AppHost server process
             var currentPid = Environment.ProcessId;
-            var (process, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars);
+            var serverArgs = enableHotReload ? new[] { "--hot-reload" } : null;
+            var (process, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars, serverArgs);
             appHostServerProcess = process;
 
             // The backchannel completion source is the contract with RunCommand
@@ -423,8 +430,11 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 ["ASPIRE_RPC_AUTH_TOKEN"] = authToken
             };
 
-            // Start TypeScript apphost - it will connect to AppHost server, define resources, then exit
-            var pendingTypeScript = ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken);
+            // Start TypeScript apphost - it will connect to AppHost server, define resources
+            // When hot reload is enabled, use nodemon to watch for changes and restart
+            var pendingTypeScript = enableHotReload
+                ? ExecuteWithNodemonAsync(appHostFile, directory, environmentVariables, cancellationToken)
+                : ExecuteTypeScriptAppHostAsync(appHostFile, directory, environmentVariables, cancellationToken);
 
             // Wait for TypeScript to finish defining resources
             var (typeScriptExitCode, typeScriptOutput) = await pendingTypeScript;
@@ -759,6 +769,110 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             }
 
             throw; // Re-throw to signal cancellation to caller
+        }
+    }
+
+    /// <summary>
+    /// Executes the TypeScript apphost using nodemon for hot reload.
+    /// Nodemon watches for file changes and automatically restarts the TypeScript process.
+    /// </summary>
+    private async Task<(int ExitCode, OutputCollector Output)> ExecuteWithNodemonAsync(
+        FileInfo appHostFile,
+        DirectoryInfo directory,
+        IDictionary<string, string> environmentVariables,
+        CancellationToken cancellationToken)
+    {
+        var npxPath = FindNpxPath();
+        if (npxPath is null)
+        {
+            _interactionService.DisplayError("npx not found. Please install Node.js and ensure npm is in your PATH.");
+            return (ExitCodeConstants.FailedToDotnetRunAppHost, new OutputCollector());
+        }
+
+        // Use nodemon to watch for file changes and restart the TypeScript apphost
+        // --watch . : Watch the current directory
+        // --ext ts,json : Watch .ts and .json files
+        // --ignore node_modules/ : Ignore node_modules
+        // --ignore .modules/ : Ignore generated modules
+        // --exec "npx tsx apphost.ts" : Execute the TypeScript file with tsx
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = npxPath,
+            Arguments = $"nodemon --watch . --ext ts,json --ignore node_modules/ --ignore .modules/ --exec \"npx tsx {appHostFile.Name}\"",
+            WorkingDirectory = directory.FullName,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        // Add environment variables
+        foreach (var (key, value) in environmentVariables)
+        {
+            startInfo.EnvironmentVariables[key] = value;
+        }
+
+        using var process = new Process { StartInfo = startInfo };
+
+        // Capture output for error reporting
+        var outputCollector = new OutputCollector();
+
+        process.OutputDataReceived += (sender, e) =>
+        {
+            if (e.Data is not null)
+            {
+                _logger.LogDebug("nodemon({ProcessId}) {Identifier}: {Line}", process.Id, "stdout", e.Data);
+                outputCollector.AppendOutput(e.Data);
+            }
+        };
+
+        process.ErrorDataReceived += (sender, e) =>
+        {
+            if (e.Data is not null)
+            {
+                _logger.LogDebug("nodemon({ProcessId}) {Identifier}: {Line}", process.Id, "stderr", e.Data);
+                outputCollector.AppendError(e.Data);
+            }
+        };
+
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
+        _interactionService.DisplayMessage("hot_reload", "Hot reload enabled - watching for file changes...");
+
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+            return (process.ExitCode, outputCollector);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogDebug("Cancellation requested, terminating nodemon process");
+
+            if (!process.HasExited)
+            {
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        await process.WaitForExitAsync(cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Process didn't exit in time
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error terminating nodemon process");
+                }
+            }
+
+            throw;
         }
     }
 
