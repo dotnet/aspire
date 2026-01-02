@@ -90,6 +90,7 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         var resourceName = parseResult.GetValue(_resourceOption);
         var filters = parseResult.GetValue(_filterOption) ?? [];
         var searchText = parseResult.GetValue(_searchOption);
+        var limit = parseResult.GetValue(_limitOption);
         var outputJson = parseResult.GetValue(_jsonOption);
         var traceId = parseResult.GetValue(_traceIdArgument);
 
@@ -97,8 +98,8 @@ internal sealed class TelemetryTracesCommand : BaseCommand
         var dashboardUrl = parseResult.GetValue<string?>("--dashboard-url");
         var apiKey = parseResult.GetValue<string?>("--api-key");
 
-        _logger.LogDebug("Telemetry traces command executing with resource={Resource}, filters={FilterCount}, search={Search}, json={Json}, traceId={TraceId}",
-            resourceName, filters.Length, searchText, outputJson, traceId);
+        _logger.LogDebug("Telemetry traces command executing with resource={Resource}, filters={FilterCount}, search={Search}, limit={Limit}, json={Json}, traceId={TraceId}",
+            resourceName, filters.Length, searchText, limit, outputJson, traceId);
 
         // Validate filter syntax BEFORE connecting to Dashboard
         // This provides early feedback on invalid filter expressions
@@ -159,10 +160,19 @@ internal sealed class TelemetryTracesCommand : BaseCommand
                 result = await ListTracesAsync(mcpClient, resourceName, parsedFilters, searchText, cancellationToken);
             }
 
+            // Extract JSON from the MCP result
+            var jsonResult = ExtractJsonFromResult(result);
+
+            // Apply limit for trace listing (not for single trace lookup)
+            if (string.IsNullOrEmpty(traceId) && limit > 0)
+            {
+                jsonResult = ApplyLimit(jsonResult, limit);
+            }
+
             if (outputJson)
             {
-                // For JSON output, try to extract just the JSON part from the result
-                InteractionService.DisplayMessage(string.Empty, ExtractJsonFromResult(result));
+                // For JSON output, output the (possibly limited) JSON
+                InteractionService.DisplayMessage(string.Empty, jsonResult);
             }
             else
             {
@@ -172,11 +182,11 @@ internal sealed class TelemetryTracesCommand : BaseCommand
 
                 if (!string.IsNullOrEmpty(traceId))
                 {
-                    formatter.FormatSingleTrace(ExtractJsonFromResult(result));
+                    formatter.FormatSingleTrace(jsonResult);
                 }
                 else
                 {
-                    formatter.FormatTraces(ExtractJsonFromResult(result));
+                    formatter.FormatTraces(jsonResult);
                 }
             }
 
@@ -274,6 +284,85 @@ internal sealed class TelemetryTracesCommand : BaseCommand
 
         // If no JSON found, return the original
         return result;
+    }
+
+    private static string ApplyLimit(string jsonResult, int limit)
+    {
+        if (string.IsNullOrWhiteSpace(jsonResult) || limit <= 0)
+        {
+            return jsonResult;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(jsonResult);
+            var root = document.RootElement;
+
+            // If the root is an array, limit the number of elements
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                using var stream = new MemoryStream();
+                using (var writer = new Utf8JsonWriter(stream))
+                {
+                    writer.WriteStartArray();
+                    var count = 0;
+                    foreach (var item in root.EnumerateArray())
+                    {
+                        if (count >= limit)
+                        {
+                            break;
+                        }
+                        item.WriteTo(writer);
+                        count++;
+                    }
+                    writer.WriteEndArray();
+                }
+                return System.Text.Encoding.UTF8.GetString(stream.ToArray());
+            }
+
+            // If it's an object with a "traces" array, limit that array
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("traces", out var tracesArray) && tracesArray.ValueKind == JsonValueKind.Array)
+            {
+                using var stream = new MemoryStream();
+                using (var writer = new Utf8JsonWriter(stream))
+                {
+                    writer.WriteStartObject();
+                    foreach (var prop in root.EnumerateObject())
+                    {
+                        if (prop.Name == "traces")
+                        {
+                            writer.WritePropertyName("traces");
+                            writer.WriteStartArray();
+                            var count = 0;
+                            foreach (var trace in tracesArray.EnumerateArray())
+                            {
+                                if (count >= limit)
+                                {
+                                    break;
+                                }
+                                trace.WriteTo(writer);
+                                count++;
+                            }
+                            writer.WriteEndArray();
+                        }
+                        else
+                        {
+                            prop.WriteTo(writer);
+                        }
+                    }
+                    writer.WriteEndObject();
+                }
+                return System.Text.Encoding.UTF8.GetString(stream.ToArray());
+            }
+
+            // Return as-is if we can't identify the structure
+            return jsonResult;
+        }
+        catch (JsonException)
+        {
+            // If JSON parsing fails, return the original
+            return jsonResult;
+        }
     }
 
     private static string EscapeJsonString(string value)

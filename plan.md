@@ -495,14 +495,14 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 8.2 Implement Trace Listing
 
-- [ ] Implement list traces handler (no trace-id argument)
-  - [ ] Parse filter expressions using `FilterExpressionParser`
+- [x] Implement list traces handler (no trace-id argument)
+  - [x] Parse filter expressions using `FilterExpressionParser`
   - [ ] Validate filters against available fields (call fields tool first)
   - [ ] Return helpful error if filter field doesn't exist
-  - [ ] Call MCP proxy tool with filters
-  - [ ] Apply limit
-  - [ ] Format output (JSON or human-readable)
-  - [ ] Ensure newest first ordering
+  - [x] Call MCP proxy tool with filters
+  - [x] Apply limit
+  - [x] Format output (JSON or human-readable)
+  - [x] Ensure newest first ordering
 
 - [ ] Add list traces tests to `TelemetryTracesCommandTests.cs`
   - [ ] Test `TelemetryTracesCommand_NoArgs_ListsRecentTraces`

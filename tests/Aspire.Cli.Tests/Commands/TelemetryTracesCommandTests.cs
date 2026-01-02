@@ -249,4 +249,25 @@ public class TelemetryTracesCommandTests(ITestOutputHelper outputHelper)
         // The error should be caught before attempting Dashboard connection
         Assert.Equal(18, exitCode);
     }
+
+    [Fact]
+    public void TelemetryTracesCommand_LimitOption_HasDefaultValue()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+
+        var rootCommand = provider.GetRequiredService<RootCommand>();
+        var telemetryCommand = rootCommand.Subcommands.FirstOrDefault(c => c.Name == "telemetry");
+        Assert.NotNull(telemetryCommand);
+
+        var tracesCommand = telemetryCommand.Subcommands.FirstOrDefault(c => c.Name == "traces");
+        Assert.NotNull(tracesCommand);
+
+        var limitOption = tracesCommand.Options.FirstOrDefault(o => o.Name == "--limit");
+        Assert.NotNull(limitOption);
+
+        // Verify the option has a default value factory
+        Assert.True(limitOption.HasDefaultValue, "--limit option should have a default value");
+    }
 }
