@@ -415,4 +415,359 @@ public class TelemetryOutputFormatterTests
         var output = writer.ToString();
         Assert.Contains("✓", output); // Success symbol
     }
+
+    // ==================== FormatLogs Tests ====================
+
+    [Fact]
+    public void FormatLogs_EmptyJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatLogs("");
+
+        var output = writer.ToString();
+        Assert.Contains("No logs found", output);
+    }
+
+    [Fact]
+    public void FormatLogs_NullJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatLogs(null!);
+
+        var output = writer.ToString();
+        Assert.Contains("No logs found", output);
+    }
+
+    [Fact]
+    public void FormatLogs_EmptyArray_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatLogs("[]");
+
+        var output = writer.ToString();
+        Assert.Contains("No logs found", output);
+    }
+
+    [Fact]
+    public void FormatLogs_SingleLog_FormatsCorrectly()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            [
+                {
+                    "log_id": 123,
+                    "severity": "Information",
+                    "message": "Application started successfully",
+                    "resource_name": "webfrontend",
+                    "source": "Microsoft.Hosting.Lifetime",
+                    "trace_id": "abc123",
+                    "span_id": "span456"
+                }
+            ]
+            """;
+
+        formatter.FormatLogs(json);
+
+        var output = writer.ToString();
+        Assert.Contains("LOGS", output);
+        Assert.Contains("1 total", output);
+        Assert.Contains("Information", output);
+        Assert.Contains("Application started successfully", output);
+        Assert.Contains("webfrontend", output);
+        Assert.Contains("Log ID: 123", output);
+        Assert.Contains("Category: Microsoft.Hosting.Lifetime", output);
+    }
+
+    [Fact]
+    public void FormatLogs_WithAttributes_ShowsAttributes()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            [
+                {
+                    "log_id": 456,
+                    "severity": "Debug",
+                    "message": "Request received",
+                    "resource_name": "apiservice",
+                    "attributes": {
+                        "http.method": "GET",
+                        "http.path": "/api/users",
+                        "request.id": "req-123"
+                    }
+                }
+            ]
+            """;
+
+        formatter.FormatLogs(json);
+
+        var output = writer.ToString();
+        Assert.Contains("Attributes:", output);
+        Assert.Contains("http.method", output);
+        Assert.Contains("GET", output);
+    }
+
+    [Fact]
+    public void FormatLogs_WithException_ShowsException()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            [
+                {
+                    "log_id": 789,
+                    "severity": "Error",
+                    "message": "An error occurred",
+                    "resource_name": "apiservice",
+                    "exception": "System.InvalidOperationException: Something went wrong\n   at MyApp.Service.DoWork()\n   at MyApp.Controller.HandleRequest()"
+                }
+            ]
+            """;
+
+        formatter.FormatLogs(json);
+
+        var output = writer.ToString();
+        Assert.Contains("Exception:", output);
+        Assert.Contains("System.InvalidOperationException", output);
+        Assert.Contains("Something went wrong", output);
+    }
+
+    [Fact]
+    public void FormatLogs_SeverityColors_AppliedCorrectly()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            [
+                {
+                    "log_id": 1,
+                    "severity": "Error",
+                    "message": "Error message",
+                    "resource_name": "service1"
+                },
+                {
+                    "log_id": 2,
+                    "severity": "Warning",
+                    "message": "Warning message",
+                    "resource_name": "service2"
+                },
+                {
+                    "log_id": 3,
+                    "severity": "Information",
+                    "message": "Info message",
+                    "resource_name": "service3"
+                }
+            ]
+            """;
+
+        formatter.FormatLogs(json);
+
+        var output = writer.ToString();
+        // Verify all severity levels appear with their respective symbols
+        Assert.Contains("Error", output);
+        Assert.Contains("✗", output); // Error symbol
+        Assert.Contains("Warning", output);
+        Assert.Contains("!", output); // Warning symbol
+        Assert.Contains("Information", output);
+        Assert.Contains("•", output); // Info symbol
+    }
+
+    [Fact]
+    public void FormatLogs_ShowsNewestFirst()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            [
+                {
+                    "log_id": 1,
+                    "severity": "Information",
+                    "message": "First log",
+                    "resource_name": "service"
+                },
+                {
+                    "log_id": 100,
+                    "severity": "Information",
+                    "message": "Latest log",
+                    "resource_name": "service"
+                },
+                {
+                    "log_id": 50,
+                    "severity": "Information",
+                    "message": "Middle log",
+                    "resource_name": "service"
+                }
+            ]
+            """;
+
+        formatter.FormatLogs(json);
+
+        var output = writer.ToString();
+        var latestIndex = output.IndexOf("Latest log");
+        var middleIndex = output.IndexOf("Middle log");
+        var firstIndex = output.IndexOf("First log");
+        Assert.True(latestIndex < middleIndex, "Latest log should appear before middle log");
+        Assert.True(middleIndex < firstIndex, "Middle log should appear before first log");
+    }
+
+    [Fact]
+    public void FormatLogs_InvalidJson_HandlesGracefully()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatLogs("not valid json");
+
+        var output = writer.ToString();
+        Assert.Contains("Unable to parse", output);
+    }
+
+    [Fact]
+    public void FormatLogs_NonArrayJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatLogs("""{"key": "value"}""");
+
+        var output = writer.ToString();
+        Assert.Contains("No logs found", output);
+    }
+
+    [Fact]
+    public void FormatLogs_WithTraceAndSpanId_ShowsCorrelation()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            [
+                {
+                    "log_id": 999,
+                    "severity": "Information",
+                    "message": "Processing request",
+                    "resource_name": "apiservice",
+                    "trace_id": "trace-abc-123",
+                    "span_id": "span-xyz-456"
+                }
+            ]
+            """;
+
+        formatter.FormatLogs(json);
+
+        var output = writer.ToString();
+        Assert.Contains("Trace:", output);
+        Assert.Contains("trace-abc-123", output);
+        Assert.Contains("Span:", output);
+        Assert.Contains("span-xyz-456", output);
+    }
+
+    [Fact]
+    public void FormatLogs_WithDashboardLink_ShowsLink()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            [
+                {
+                    "log_id": 555,
+                    "severity": "Error",
+                    "message": "Critical failure",
+                    "resource_name": "backend",
+                    "dashboard_link": {
+                        "url": "http://localhost:18888/logs/555",
+                        "text": "log_id: 555"
+                    }
+                }
+            ]
+            """;
+
+        formatter.FormatLogs(json);
+
+        var output = writer.ToString();
+        Assert.Contains("Dashboard:", output);
+        Assert.Contains("http://localhost:18888", output);
+    }
+
+    [Fact]
+    public void FormatLogs_CriticalSeverity_ShowsBoldSymbol()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            [
+                {
+                    "log_id": 666,
+                    "severity": "Critical",
+                    "message": "System crash",
+                    "resource_name": "core-service"
+                }
+            ]
+            """;
+
+        formatter.FormatLogs(json);
+
+        var output = writer.ToString();
+        Assert.Contains("Critical", output);
+        Assert.Contains("!", output); // Critical symbol
+    }
+
+    [Fact]
+    public void FormatSingleLog_ShowsDetailedView()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            {
+                "log_id": 777,
+                "severity": "Warning",
+                "message": "Cache miss for key: user-preferences-12345",
+                "resource_name": "cache-service",
+                "source": "CacheManager",
+                "trace_id": "trace-detailed",
+                "span_id": "span-detailed",
+                "attributes": {
+                    "cache.key": "user-preferences-12345",
+                    "cache.region": "primary",
+                    "cache.ttl": "3600",
+                    "request.source": "api-gateway"
+                }
+            }
+            """;
+
+        formatter.FormatSingleLog(json);
+
+        var output = writer.ToString();
+        Assert.Contains("Warning", output);
+        Assert.Contains("Cache miss", output);
+        Assert.Contains("cache-service", output);
+        Assert.Contains("CacheManager", output);
+    }
+
+    [Fact]
+    public void FormatSingleLog_EmptyJson_ShowsEmptyMessage()
+    {
+        var (formatter, writer) = CreateFormatter();
+
+        formatter.FormatSingleLog("");
+
+        var output = writer.ToString();
+        Assert.Contains("No log found", output);
+    }
+
+    [Fact]
+    public void FormatLogs_ZeroTraceId_DoesNotShowTrace()
+    {
+        var (formatter, writer) = CreateFormatter();
+        var json = """
+            [
+                {
+                    "log_id": 888,
+                    "severity": "Information",
+                    "message": "Background task completed",
+                    "resource_name": "worker",
+                    "trace_id": "0000000000000000",
+                    "span_id": "0000000000000000"
+                }
+            ]
+            """;
+
+        formatter.FormatLogs(json);
+
+        var output = writer.ToString();
+        Assert.DoesNotContain("Trace:", output);
+        Assert.DoesNotContain("Span:", output);
+    }
 }

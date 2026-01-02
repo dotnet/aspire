@@ -394,4 +394,248 @@ internal sealed class TelemetryOutputFormatter
 
         return value.Length <= maxLength ? value : value[..(maxLength - 3)] + "...";
     }
+
+    /// <summary>
+    /// Formats a list of logs for human-readable console output.
+    /// Logs are displayed newest first.
+    /// </summary>
+    /// <param name="logsJson">JSON array of log objects from MCP tool response.</param>
+    public void FormatLogs(string logsJson)
+    {
+        if (string.IsNullOrWhiteSpace(logsJson))
+        {
+            WriteEmptyMessage("logs");
+            return;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(logsJson);
+            var logs = document.RootElement;
+
+            if (logs.ValueKind != JsonValueKind.Array)
+            {
+                WriteEmptyMessage("logs");
+                return;
+            }
+
+            var logList = logs.EnumerateArray().ToList();
+
+            if (logList.Count == 0)
+            {
+                WriteEmptyMessage("logs");
+                return;
+            }
+
+            // Logs are already ordered by the MCP tool (newest first based on log_id)
+            // but we can sort by log_id descending to ensure newest first
+            logList = logList
+                .OrderByDescending(GetLogId)
+                .ToList();
+
+            WriteHeader($"LOGS ({logList.Count} total, newest first)");
+
+            foreach (var log in logList)
+            {
+                FormatLog(log);
+                _console.WriteLine();
+            }
+        }
+        catch (JsonException)
+        {
+            _console.MarkupLine("[dim]Unable to parse log data.[/]");
+        }
+    }
+
+    /// <summary>
+    /// Formats a single log entry for detailed view.
+    /// </summary>
+    /// <param name="logJson">JSON object of a single log from MCP tool response.</param>
+    public void FormatSingleLog(string logJson)
+    {
+        if (string.IsNullOrWhiteSpace(logJson))
+        {
+            WriteEmptyMessage("log");
+            return;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(logJson);
+            FormatLog(document.RootElement, detailed: true);
+        }
+        catch (JsonException)
+        {
+            _console.MarkupLine("[dim]Unable to parse log data.[/]");
+        }
+    }
+
+    private void FormatLog(JsonElement log, bool detailed = false)
+    {
+        var logId = GetStringProperty(log, "log_id") ?? "unknown";
+        var severity = GetStringProperty(log, "severity") ?? "Information";
+        var message = GetStringProperty(log, "message") ?? "";
+        var resourceName = GetStringProperty(log, "resource_name");
+        var traceId = GetStringProperty(log, "trace_id");
+        var spanId = GetStringProperty(log, "span_id");
+        var source = GetStringProperty(log, "source");
+        var exception = GetStringProperty(log, "exception");
+
+        // Get severity styling
+        var (severitySymbol, severityColor) = GetSeverityStyle(severity);
+
+        // Format: [SeveritySymbol] [Severity] ResourceName - Message
+        if (_enableColor)
+        {
+            var resourceDisplay = !string.IsNullOrEmpty(resourceName) ? $"[cyan]{resourceName.EscapeMarkup()}[/] " : "";
+            var messageDisplay = !string.IsNullOrEmpty(message) ? TruncateValue(message, detailed ? 500 : 100).EscapeMarkup() : "[dim](no message)[/]";
+            _console.MarkupLine($"[{severityColor}]{severitySymbol}[/] [{severityColor}]{severity}[/] {resourceDisplay}{messageDisplay}");
+        }
+        else
+        {
+            var resourceDisplay = !string.IsNullOrEmpty(resourceName) ? $"{resourceName} " : "";
+            var messageDisplay = !string.IsNullOrEmpty(message) ? TruncateValue(message, detailed ? 500 : 100) : "(no message)";
+            _console.WriteLine($"{severitySymbol} {severity} {resourceDisplay}{messageDisplay}");
+        }
+
+        // Show log ID
+        if (_enableColor)
+        {
+            _console.MarkupLine($"  [dim]Log ID:[/] {logId}");
+        }
+        else
+        {
+            _console.WriteLine($"  Log ID: {logId}");
+        }
+
+        // Show source/category if available
+        if (!string.IsNullOrEmpty(source))
+        {
+            if (_enableColor)
+            {
+                _console.MarkupLine($"  [dim]Category:[/] {source.EscapeMarkup()}");
+            }
+            else
+            {
+                _console.WriteLine($"  Category: {source}");
+            }
+        }
+
+        // Show trace/span IDs if present
+        if (!string.IsNullOrEmpty(traceId) && traceId != "0000000000000000")
+        {
+            if (_enableColor)
+            {
+                _console.MarkupLine($"  [dim]Trace:[/] {traceId.EscapeMarkup()}" + (!string.IsNullOrEmpty(spanId) && spanId != "0000000000000000" ? $" [dim]Span:[/] {spanId.EscapeMarkup()}" : ""));
+            }
+            else
+            {
+                _console.WriteLine($"  Trace: {traceId}" + (!string.IsNullOrEmpty(spanId) && spanId != "0000000000000000" ? $" Span: {spanId}" : ""));
+            }
+        }
+
+        // Show attributes if present
+        if (log.TryGetProperty("attributes", out var attributes) && attributes.ValueKind == JsonValueKind.Object)
+        {
+            var attrList = attributes.EnumerateObject().ToList();
+            if (attrList.Count > 0)
+            {
+                var displayCount = detailed ? attrList.Count : Math.Min(attrList.Count, 3);
+                var attrStr = string.Join(", ", attrList.Take(displayCount).Select(a => $"{a.Name}={TruncateValue(a.Value.ToString())}"));
+                var moreCount = attrList.Count - displayCount;
+
+                if (_enableColor)
+                {
+                    var moreText = moreCount > 0 ? $" [dim](+{moreCount} more)[/]" : "";
+                    _console.MarkupLine($"  [dim]Attributes:[/] {attrStr.EscapeMarkup()}{moreText}");
+                }
+                else
+                {
+                    var moreText = moreCount > 0 ? $" (+{moreCount} more)" : "";
+                    _console.WriteLine($"  Attributes: {attrStr}{moreText}");
+                }
+            }
+        }
+
+        // Show exception if present
+        if (!string.IsNullOrEmpty(exception))
+        {
+            if (_enableColor)
+            {
+                _console.MarkupLine($"  [red]Exception:[/]");
+                // Indent exception lines
+                var exceptionLines = exception.Split('\n');
+                var linesToShow = detailed ? exceptionLines.Length : Math.Min(exceptionLines.Length, 5);
+                for (var i = 0; i < linesToShow; i++)
+                {
+                    _console.MarkupLine($"    [red]{TruncateValue(exceptionLines[i], 200).EscapeMarkup()}[/]");
+                }
+                if (exceptionLines.Length > linesToShow)
+                {
+                    _console.MarkupLine($"    [dim]... ({exceptionLines.Length - linesToShow} more lines)[/]");
+                }
+            }
+            else
+            {
+                _console.WriteLine("  Exception:");
+                var exceptionLines = exception.Split('\n');
+                var linesToShow = detailed ? exceptionLines.Length : Math.Min(exceptionLines.Length, 5);
+                for (var i = 0; i < linesToShow; i++)
+                {
+                    _console.WriteLine($"    {TruncateValue(exceptionLines[i], 200)}");
+                }
+                if (exceptionLines.Length > linesToShow)
+                {
+                    _console.WriteLine($"    ... ({exceptionLines.Length - linesToShow} more lines)");
+                }
+            }
+        }
+
+        // Show dashboard link if available
+        if (log.TryGetProperty("dashboard_link", out var dashboardLink))
+        {
+            var url = GetStringProperty(dashboardLink, "url");
+            if (!string.IsNullOrEmpty(url))
+            {
+                if (_enableColor)
+                {
+                    _console.MarkupLine($"  [dim]Dashboard:[/] [link={url.EscapeMarkup()}]{url.EscapeMarkup()}[/]");
+                }
+                else
+                {
+                    _console.WriteLine($"  Dashboard: {url}");
+                }
+            }
+        }
+    }
+
+    private static (string symbol, string color) GetSeverityStyle(string severity)
+    {
+        return severity.ToUpperInvariant() switch
+        {
+            "CRITICAL" => ("!", "red bold"),
+            "ERROR" => (ErrorSymbol, "red"),
+            "WARNING" => ("!", "yellow"),
+            "INFORMATION" or "INFO" => (InfoSymbol, "blue"),
+            "DEBUG" => (InfoSymbol, "dim"),
+            "TRACE" => (InfoSymbol, "dim"),
+            _ => (InfoSymbol, "white")
+        };
+    }
+
+    private static int GetLogId(JsonElement element)
+    {
+        if (element.TryGetProperty("log_id", out var property))
+        {
+            if (property.ValueKind == JsonValueKind.Number)
+            {
+                return property.GetInt32();
+            }
+            else if (property.ValueKind == JsonValueKind.String && int.TryParse(property.GetString(), out var result))
+            {
+                return result;
+            }
+        }
+        return 0;
+    }
 }

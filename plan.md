@@ -334,6 +334,7 @@ Add `aspire telemetry` command group with subcommands:
   - [ ] Add `FormatMetrics()` method for human-readable metric output
   - [ ] Add `FormatFields()` method for human-readable fields output
   - [x] Use consistent formatting with colors/styling via Spectre.Console
+  - [x] Add `FormatLogs()` method for human-readable log output
 
 ### 6.2 Implement Trace Formatting
 
@@ -357,23 +358,23 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 6.3 Implement Log Formatting
 
-- [ ] Implement `FormatLogs(List<LogData> logs)` method
-  - [ ] Show header with count
-  - [ ] Format each log: severity, timestamp, resource
-  - [ ] Show message
-  - [ ] Show trace/span IDs if present
-  - [ ] Show attributes (key=value format)
-  - [ ] Color-code severity levels
-  - [ ] Show exception if present
+- [x] Implement `FormatLogs(List<LogData> logs)` method
+  - [x] Show header with count
+  - [x] Format each log: severity, timestamp, resource
+  - [x] Show message
+  - [x] Show trace/span IDs if present
+  - [x] Show attributes (key=value format)
+  - [x] Color-code severity levels
+  - [x] Show exception if present
 
-- [ ] Add tests to `TelemetryOutputFormatterTests.cs`
-  - [ ] Test `FormatLogs_EmptyList_ShowsEmptyMessage`
-  - [ ] Test `FormatLogs_SingleLog_FormatsCorrectly`
-  - [ ] Test `FormatLogs_WithAttributes_ShowsAttributes`
-  - [ ] Test `FormatLogs_WithException_ShowsException`
-  - [ ] Test `FormatLogs_SeverityColors_AppliedCorrectly`
+- [x] Add tests to `TelemetryOutputFormatterTests.cs`
+  - [x] Test `FormatLogs_EmptyList_ShowsEmptyMessage`
+  - [x] Test `FormatLogs_SingleLog_FormatsCorrectly`
+  - [x] Test `FormatLogs_WithAttributes_ShowsAttributes`
+  - [x] Test `FormatLogs_WithException_ShowsException`
+  - [x] Test `FormatLogs_SeverityColors_AppliedCorrectly`
 
-- [ ] Verify log formatting tests pass
+- [x] Verify log formatting tests pass
 
 ### 6.4 Implement Metrics Formatting
 
