@@ -515,8 +515,8 @@ Add `aspire telemetry` command group with subcommands:
 
 - [x] Implement list traces handler (no trace-id argument)
   - [x] Parse filter expressions using `FilterExpressionParser`
-  - [ ] Validate filters against available fields (call fields tool first)
-  - [ ] Return helpful error if filter field doesn't exist
+  - [x] Validate filters against available fields (call fields tool first)
+  - [x] Return helpful error if filter field doesn't exist
   - [x] Call MCP proxy tool with filters
   - [x] Apply limit
   - [x] Format output (JSON or human-readable)
@@ -537,7 +537,7 @@ Add `aspire telemetry` command group with subcommands:
 - [x] Implement filter handling in traces command
   - [x] Parse multiple `--filter` options
   - [x] Validate filter syntax early (before Dashboard connection)
-  - [ ] Validate each filter field exists (requires Dashboard connection)
+  - [x] Validate each filter field exists (requires Dashboard connection)
   - [x] Convert to JSON format for MCP tool
   - [x] Pass to proxy tool
 
@@ -547,7 +547,7 @@ Add `aspire telemetry` command group with subcommands:
   - [ ] Test `TelemetryTracesCommand_WithStatusFilter_FiltersStatus`
   - [ ] Test `TelemetryTracesCommand_WithAttributeFilter_FiltersAttribute`
   - [x] Test `TelemetryTracesCommand_InvalidFilterSyntax_ReturnsError`
-  - [ ] Test `TelemetryTracesCommand_InvalidFilterField_ReturnsErrorWithSuggestions`
+  - [x] Test `TelemetryTracesCommand_InvalidFilterField_ReturnsErrorWithSuggestions` (via FilterFieldValidatorTests)
 
 - [ ] Verify filter tests pass
 
@@ -792,6 +792,7 @@ Add `aspire telemetry` command group with subcommands:
 **CLI Utilities:**
 - `src/Aspire.Cli/Utils/FilterExpressionParser.cs`
 - `src/Aspire.Cli/Utils/TelemetryOutputFormatter.cs`
+- `src/Aspire.Cli/Utils/FilterFieldValidator.cs`
 
 **CLI MCP Proxies:**
 - `src/Aspire.Cli/Mcp/ListTelemetryFieldsTool.cs`
@@ -811,6 +812,7 @@ Add `aspire telemetry` command group with subcommands:
 - `tests/Aspire.Cli.Tests/Commands/TelemetryFieldsCommandTests.cs`
 - `tests/Aspire.Cli.Tests/Utils/FilterExpressionParserTests.cs`
 - `tests/Aspire.Cli.Tests/Utils/TelemetryOutputFormatterTests.cs`
+- `tests/Aspire.Cli.Tests/Utils/FilterFieldValidatorTests.cs`
 - `tests/Aspire.Dashboard.Tests/Mcp/AspireFieldsMcpToolsTests.cs`
 - `tests/Aspire.Dashboard.Tests/Mcp/AspireMetricsMcpToolsTests.cs`
 
