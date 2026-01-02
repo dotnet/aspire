@@ -190,6 +190,44 @@ internal sealed class AspireTelemetryMcpTools
         return response;
     }
 
+    [McpServerTool(Name = "get_trace")]
+    [Description("Get a specific distributed trace by its ID. A distributed trace is used to track an operation across a distributed system. Returns detailed information about all spans (operations) in the trace, including the span source, status, duration, and optional error information.")]
+    public string GetTrace(
+        [Description("The trace id of the distributed trace.")]
+        string traceId)
+    {
+        _logger.LogDebug("MCP tool get_trace called with trace '{TraceId}'.", traceId);
+
+        if (AIHelpers.IsMissingValue(traceId))
+        {
+            return "Error: traceId is required.";
+        }
+
+        var trace = _telemetryRepository.GetTrace(traceId);
+        if (trace is null)
+        {
+            return $"Trace '{traceId}' not found.";
+        }
+
+        var resources = _telemetryRepository.GetResources();
+
+        var traceData = AIHelpers.GetTraceJson(
+            trace,
+            _outgoingPeerResolvers,
+            new PromptContext(),
+            _dashboardOptions.CurrentValue,
+            includeDashboardUrl: true,
+            getResourceName: r => OtlpResource.GetResourceName(r, resources));
+
+        var response = $"""
+            # TRACE DATA
+
+            {traceData}
+            """;
+
+        return response;
+    }
+
     [McpServerTool(Name = "list_trace_structured_logs")]
     [Description("List structured logs for a distributed trace. Logs for a distributed trace each belong to a span identified by 'span_id'. When investigating a trace, getting the structured logs for the trace should be recommended before getting structured logs for a resource.")]
     public string ListTraceStructuredLogs(

@@ -182,6 +182,24 @@ Add `aspire telemetry` command group with subcommands:
 
 - [x] Verify all log filter tests pass
 
+### 3.3 Add get_trace MCP Tool
+
+- [x] Add `GetTrace` method to `AspireTelemetryMcpTools.cs`
+  - [x] Add `[McpServerTool(Name = "get_trace")]` attribute
+  - [x] Accept required `traceId` parameter
+  - [x] Call `TelemetryRepository.GetTrace()` to get specific trace
+  - [x] Return JSON with trace details including all spans and dashboard link
+  - [x] Return error if trace not found
+
+- [x] Add tests to `AspireTelemetryMcpToolsTests.cs`
+  - [x] Test `GetTrace_WithValidTraceId_ReturnsTraceData`
+  - [x] Test `GetTrace_WithInvalidTraceId_ReturnsNotFound`
+  - [x] Test `GetTrace_WithMissingTraceId_ReturnsError`
+  - [x] Test `GetTrace_WithEmptyTraceId_ReturnsError`
+  - [x] Test `GetTrace_IncludesDashboardLink`
+
+- [x] Verify get_trace tests pass
+
 ---
 
 ## Phase 4: Dashboard MCP - Metrics Tools
@@ -535,11 +553,11 @@ Add `aspire telemetry` command group with subcommands:
 
 ### 8.4 Implement Get Specific Trace
 
-- [ ] Implement get trace by ID handler (trace-id argument provided)
-  - [ ] Call MCP proxy with trace ID
-  - [ ] Show detailed trace with all spans
-  - [ ] Show span attributes
-  - [ ] Format output (JSON or human-readable)
+- [x] Implement get trace by ID handler (trace-id argument provided)
+  - [x] Call MCP proxy with trace ID (uses `get_trace` MCP tool added in Phase 3.3)
+  - [x] Show detailed trace with all spans
+  - [x] Show span attributes
+  - [x] Format output (JSON or human-readable)
 
 - [ ] Add get trace tests to `TelemetryTracesCommandTests.cs`
   - [ ] Test `TelemetryTracesCommand_WithTraceId_GetsSpecificTrace`

@@ -806,4 +806,93 @@ public class AspireTelemetryMcpToolsTests
         Assert.NotNull(result);
         Assert.Contains("Invalid filters JSON", result);
     }
+
+    [Fact]
+    public void GetTrace_WithValidTraceId_ReturnsTraceData()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResource(repository, "app1");
+        var tools = CreateTools(repository);
+
+        // The trace ID is "app11" (resource name + "1") encoded as hex
+        var hexTraceId = GetHexId("app11");
+
+        // Act
+        var result = tools.GetTrace(traceId: hexTraceId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("# TRACE DATA", result);
+        Assert.Contains("app1", result);
+    }
+
+    [Fact]
+    public void GetTrace_WithInvalidTraceId_ReturnsNotFound()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResource(repository, "app1");
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTrace(traceId: "nonexistent-trace");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("not found", result);
+    }
+
+    [Fact]
+    public void GetTrace_WithMissingTraceId_ReturnsError()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResource(repository, "app1");
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTrace(traceId: null!);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("traceId is required", result);
+    }
+
+    [Fact]
+    public void GetTrace_WithEmptyTraceId_ReturnsError()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResource(repository, "app1");
+        var tools = CreateTools(repository);
+
+        // Act
+        var result = tools.GetTrace(traceId: "");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("traceId is required", result);
+    }
+
+    [Fact]
+    public void GetTrace_IncludesDashboardLink()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        AddResource(repository, "app1");
+        var tools = CreateTools(repository);
+
+        // The trace ID is "app11" (resource name + "1") encoded as hex
+        var hexTraceId = GetHexId("app11");
+
+        // Act
+        var result = tools.GetTrace(traceId: hexTraceId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("# TRACE DATA", result);
+        // Dashboard link should be included
+        Assert.Contains("dashboard_link", result);
+    }
 }
