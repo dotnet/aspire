@@ -846,6 +846,12 @@ Add `aspire telemetry` command group with subcommands:
 - **Fix**: Removed the `-d` short alias from `--duration` option. Users must now use the full `--duration` flag.
 - **Files**: `TelemetryMetricsCommand.cs`
 
+### Fixed: JSON output line wrapping
+
+- **Issue**: `DisplayPlainText` used `_ansiConsole.WriteLine()` which passes through Spectre.Console's automatic line wrapping. This caused JSON output to have line breaks inserted mid-JSON when rendered to narrow terminals, resulting in invalid JSON that couldn't be parsed by tools like `jq`.
+- **Fix**: Changed `DisplayPlainText` to use `Console.WriteLine()` directly, bypassing Spectre.Console's line wrapping for machine-readable output.
+- **Files**: `ConsoleInteractionService.cs`
+
 ---
 
 ## Success Criteria
