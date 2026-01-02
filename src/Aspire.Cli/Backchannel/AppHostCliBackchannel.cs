@@ -179,7 +179,15 @@ internal sealed class AppHostCliBackchannel(ILogger<AppHostCliBackchannel> logge
         }
         finally
         {
-            await enumerator.DisposeAsync().ConfigureAwait(false);
+            // Disposing a dead connection's enumerator may throw - suppress it
+            try
+            {
+                await enumerator.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex) when (IsConnectionLostException(ex))
+            {
+                logger.LogDebug("Ignoring connection lost exception during enumerator disposal");
+            }
         }
     }
 
@@ -192,20 +200,49 @@ internal sealed class AppHostCliBackchannel(ILogger<AppHostCliBackchannel> logge
 
     private async Task WaitForReconnectionAsync(CancellationToken cancellationToken)
     {
-        // Wait for the TCS to be reset and completed again
+        // Wait for the TCS to be reset and then completed again
         var startTime = DateTime.UtcNow;
         var maxWait = TimeSpan.FromSeconds(60);
 
+        // First, wait for the reconnection to start (TCS to be reset)
+        // This handles the race where we catch the exception before OnDisconnected fires
+        Task<JsonRpc>? initialTask = null;
+        while (!cancellationToken.IsCancellationRequested && DateTime.UtcNow - startTime < maxWait)
+        {
+            var currentTask = GetRpcTaskAsync();
+
+            // If this is a new TCS (different from what we had), reconnection has started
+            if (initialTask is not null && !ReferenceEquals(currentTask, initialTask))
+            {
+                break;
+            }
+
+            // If we haven't captured the initial task yet, do so
+            initialTask ??= currentTask;
+
+            // If the current task is not completed, reconnection has started (TCS was reset)
+            if (!currentTask.IsCompleted)
+            {
+                break;
+            }
+
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Now wait for the reconnection to complete
         while (!cancellationToken.IsCancellationRequested && DateTime.UtcNow - startTime < maxWait)
         {
             var rpcTask = GetRpcTaskAsync();
             if (rpcTask.IsCompletedSuccessfully)
             {
+                logger.LogDebug("Reconnection completed successfully");
                 return;
             }
 
             await Task.Delay(500, cancellationToken).ConfigureAwait(false);
         }
+
+        logger.LogWarning("Timed out waiting for backchannel reconnection");
     }
 
     public Task ConnectAsync(string socketPath, CancellationToken cancellationToken)
