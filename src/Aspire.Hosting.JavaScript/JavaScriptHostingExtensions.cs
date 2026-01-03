@@ -712,6 +712,61 @@ public static class JavaScriptHostingExtensions
         return resource;
     }
 
+    /// <summary>
+    /// Configures the Node.js resource to use bun as the package manager and optionally installs packages before the application starts.
+    /// </summary>
+    /// <param name="resource">The NodeAppResource.</param>
+    /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
+    /// <param name="installArgs">The command-line arguments passed to "bun install".</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<TResource> WithBun<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null) where TResource : JavaScriptAppResource
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        var workingDirectory = resource.Resource.WorkingDirectory;
+        var hasBunLock = File.Exists(Path.Combine(workingDirectory, "bun.lock")) ||
+            File.Exists(Path.Combine(workingDirectory, "bun.lockb"));
+
+        installArgs ??= GetDefaultBunInstallArgs(resource, hasBunLock);
+
+        var packageFilesSourcePattern = "package.json";
+        if (File.Exists(Path.Combine(workingDirectory, "bun.lock")))
+        {
+            packageFilesSourcePattern += " bun.lock";
+        }
+        if (File.Exists(Path.Combine(workingDirectory, "bun.lockb")))
+        {
+            packageFilesSourcePattern += " bun.lockb";
+        }
+
+        resource
+            .WithAnnotation(new JavaScriptPackageManagerAnnotation("bun", runScriptCommand: "run", cacheMount: "/root/.bun/install/cache")
+            {
+                PackageFilesPatterns = { new CopyFilePattern(packageFilesSourcePattern, "./") },
+                // bun supports passing script flags without the `--` separator.
+                CommandSeparator = null,
+            })
+            .WithAnnotation(new JavaScriptInstallCommandAnnotation(["install", .. installArgs]));
+
+        if (!resource.Resource.TryGetLastAnnotation<DockerfileBaseImageAnnotation>(out _))
+        {
+            // bun is not available in the default Node.js base images used for publish-mode Dockerfile generation.
+            // We override the build image so that the install and build steps can execute with bun.
+            resource.WithAnnotation(new DockerfileBaseImageAnnotation
+            {
+                BuildImage = "oven/bun:1",
+            });
+        }
+
+        AddInstaller(resource, install);
+        return resource;
+    }
+
+    private static string[] GetDefaultBunInstallArgs(IResourceBuilder<JavaScriptAppResource> resource, bool hasBunLock) =>
+        resource.ApplicationBuilder.ExecutionContext.IsPublishMode && hasBunLock
+            ? ["--frozen-lockfile"]
+            : [];
+
     private static string GetDefaultNpmInstallCommand(IResourceBuilder<JavaScriptAppResource> resource) =>
         resource.ApplicationBuilder.ExecutionContext.IsPublishMode &&
             File.Exists(Path.Combine(resource.Resource.WorkingDirectory, "package-lock.json"))
