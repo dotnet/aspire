@@ -713,12 +713,28 @@ public static class JavaScriptHostingExtensions
     }
 
     /// <summary>
-    /// Configures the Node.js resource to use bun as the package manager and optionally installs packages before the application starts.
+    /// Configures the JavaScript resource to use Bun as the package manager and optionally installs packages before the application starts.
     /// </summary>
-    /// <param name="resource">The NodeAppResource.</param>
+    /// <param name="resource">The JavaScript application resource builder.</param>
     /// <param name="install">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
-    /// <param name="installArgs">The command-line arguments passed to "bun install".</param>
+    /// <param name="installArgs">Additional command-line arguments passed to "bun install". When null, defaults are applied based on publish mode and lockfile presence.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// Bun forwards script arguments without requiring the <c>--</c> command separator, so this method configures the resource to omit it.
+    /// When publishing and a bun lockfile (<c>bun.lock</c> or <c>bun.lockb</c>) is present, <c>--frozen-lockfile</c> is used by default.
+    /// Publishing to a container requires Bun to be present in the build image. This method configures a Bun build image when one is not already specified.
+    /// </remarks>
+    /// <example>
+    /// Run a Vite app using Bun as the package manager:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddViteApp("frontend", "./frontend")
+    ///        .WithBun();
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<TResource> WithBun<TResource>(this IResourceBuilder<TResource> resource, bool install = true, string[]? installArgs = null) where TResource : JavaScriptAppResource
     {
         ArgumentNullException.ThrowIfNull(resource);
@@ -754,6 +770,7 @@ public static class JavaScriptHostingExtensions
             // We override the build image so that the install and build steps can execute with bun.
             resource.WithAnnotation(new DockerfileBaseImageAnnotation
             {
+                // Use a constant major version tag to keep builds deterministic.
                 BuildImage = "oven/bun:1",
             });
         }
