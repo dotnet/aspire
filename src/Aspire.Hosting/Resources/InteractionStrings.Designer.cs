@@ -160,7 +160,7 @@ namespace Aspire.Hosting.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use..
+        ///   Looks up a localized string similar to Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use..
         /// </summary>
         internal static string ParametersInputsMessage {
             get {
@@ -201,6 +201,15 @@ namespace Aspire.Hosting.Resources {
         internal static string ParametersInputsRememberLabel {
             get {
                 return ResourceManager.GetString("ParametersInputsRememberLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure..
+        /// </summary>
+        internal static string ParametersInputsRememberDescriptionNotConfigured {
+            get {
+                return ResourceManager.GetString("ParametersInputsRememberDescriptionNotConfigured", resourceCulture);
             }
         }
         

@@ -58,8 +58,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsMessage">
-        <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</source>
-        <target state="translated">Çözülmemiş parametreler için değerleri girin. Parametreler, ileride kullanılmak üzere [kullanıcı gizli bilgileri](https://learn.microsoft.com/aspnet/core/security/app-secrets) bölümüne kaydedilebilir.</target>
+        <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.</source>
+        <target state="needs-review-translation">Çözülmemiş parametreler için değerleri girin. Parametreler, ileride kullanılmak üzere [kullanıcı gizli bilgileri](https://aka.ms/aspire/user-secrets) bölümüne kaydedilebilir.</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="ParametersInputsMessagePublishMode">
@@ -75,6 +75,11 @@
       <trans-unit id="ParametersInputsPrimaryButtonText">
         <source>Save</source>
         <target state="translated">Kaydet</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
+        <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure.</source>
+        <target state="new">Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">

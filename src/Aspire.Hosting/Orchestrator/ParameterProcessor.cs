@@ -23,7 +23,8 @@ public sealed class ParameterProcessor(
     IInteractionService interactionService,
     ILogger<ParameterProcessor> logger,
     DistributedApplicationExecutionContext executionContext,
-    IDeploymentStateManager deploymentStateManager)
+    IDeploymentStateManager deploymentStateManager,
+    IUserSecretsManager userSecretsManager)
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
 
@@ -268,7 +269,12 @@ public sealed class ParameterProcessor(
                         {
                             Name = "RememberParameters",
                             InputType = InputType.Boolean,
-                            Label = InteractionStrings.ParametersInputsRememberLabel
+                            Label = InteractionStrings.ParametersInputsRememberLabel,
+                            Description = !userSecretsManager.IsAvailable 
+                                ? InteractionStrings.ParametersInputsRememberDescriptionNotConfigured 
+                                : null,
+                            EnableDescriptionMarkdown = true,
+                            Disabled = !userSecretsManager.IsAvailable
                         };
                         inputs.Add(saveParameters);
                     }
