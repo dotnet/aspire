@@ -1,4 +1,4 @@
-﻿---
+---
 apiVersion: "apps/v1"
 kind: "Deployment"
 metadata:
@@ -26,7 +26,7 @@ spec:
             httpGet:
               scheme: "https"
               path: "/health"
-              port: "{{ .Values.parameters.project1.port_https }}"
+              port: {{ .Values.parameters.project1.port_https | int }}
           name: "project1"
           readinessProbe:
             failureThreshold: 3
@@ -37,14 +37,14 @@ spec:
             httpGet:
               scheme: "https"
               path: "/ready"
-              port: "{{ .Values.parameters.project1.port_https }}"
+              port: {{ .Values.parameters.project1.port_https | int }}
           envFrom:
             - configMapRef:
                 name: "project1-config"
           ports:
             - name: "https"
               protocol: "TCP"
-              containerPort: "{{ .Values.parameters.project1.port_https }}"
+              containerPort: {{ .Values.parameters.project1.port_https | int }}
           imagePullPolicy: "IfNotPresent"
   selector:
     matchLabels:

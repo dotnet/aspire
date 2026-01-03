@@ -26,6 +26,19 @@ internal static class HelmExtensions
     public static string ToHelmValuesSectionName(this string resourceName)
         => $"{resourceName.Replace("-", "_")}";
 
+    public static string ToTypedHelmParameterExpression<T>(this string parameterName, string resourceName)
+    {
+        var sectionName = $"{ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName();
+
+        return typeof(T) switch
+        {
+            var t when t == typeof(int) => $"{{{{ {sectionName} | int }}}}",
+            var t when t == typeof(float) => $"{{{{ {sectionName} | float64 }}}}",
+            var t when t == typeof(long) => $"{{{{ {sectionName} | int64 }}}}",
+            _ => $"{{{{ {sectionName} }}}}"
+        };
+    }
+
     public static string ToHelmParameterExpression(this string parameterName, string resourceName)
         => $"{{{{ {ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName} }}}}".ToHelmValuesSectionName();
 

@@ -51,13 +51,29 @@ internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
 
         if (item.ShouldApply() && eventInfo.Source.Type == typeof(string))
         {
-            eventInfo = new(eventInfo.Source)
+            if (IsTypedExpression((string?)eventInfo.Source.Value))
             {
-                Style = ScalarStyle.DoubleQuoted,
-            };
+                eventInfo = new(eventInfo.Source)
+                {
+                    Style = ScalarStyle.ForcePlain,
+                };
+            }
+            else
+            {
+                eventInfo = new(eventInfo.Source)
+                {
+                    Style = ScalarStyle.DoubleQuoted,
+                };
+            }
         }
 
         base.Emit(eventInfo, emitter);
+
+        static bool IsTypedExpression(string? value)
+            => !string.IsNullOrEmpty(value)
+               && value.StartsWith("{{")
+               && value.Contains('|')
+               && value.EndsWith("}}");
     }
 
     /// <summary>

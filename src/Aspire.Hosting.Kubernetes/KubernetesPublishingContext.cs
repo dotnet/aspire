@@ -122,7 +122,7 @@ internal sealed class KubernetesPublishingContext(
             return;
         }
 
-        var paramValues = new Dictionary<string, string>();
+        var paramValues = new Dictionary<string, object>();
 
         foreach (var (key, helmExpressionWithValue) in contextItems)
         {
@@ -131,7 +131,7 @@ internal sealed class KubernetesPublishingContext(
                 continue;
             }
 
-            string? value;
+            object? value;
 
             // If there's a parameter source, resolve its value asynchronously
             if (helmExpressionWithValue.ParameterSource is ParameterResource parameter)

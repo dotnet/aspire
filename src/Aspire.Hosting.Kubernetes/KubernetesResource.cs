@@ -182,11 +182,11 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
     private void GenerateDefaultProjectEndpointMapping(EndpointAnnotation endpoint)
     {
-        const string defaultPort = "8080";
+        const int defaultPort = 8080;
 
         // Create a Helm parameter for the container port
         var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
-        var helmExpression = paramName.ToHelmParameterExpression(resource.Name);
+        var helmExpression = paramName.ToTypedHelmParameterExpression<int>(resource.Name);
         Parameters[paramName] = new(helmExpression, defaultPort);
 
         // Use the parameter as the target port in the endpoint mapping
@@ -490,7 +490,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
     internal class HelmExpressionWithValue
     {
-        public HelmExpressionWithValue(string helmExpression, string? value)
+        public HelmExpressionWithValue(string helmExpression, object? value)
         {
             HelmExpression = helmExpression;
             Value = value;
@@ -505,11 +505,12 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
         }
 
         public string HelmExpression { get; }
-        public string? Value { get; }
+        public object? Value { get; }
+        public string? StringValue => Value?.ToString();
         public ParameterResource? ParameterSource { get; }
         public bool IsHelmSecretExpression => HelmExpression.ContainsHelmSecretExpression();
-        public bool ValueContainsSecretExpression => Value?.ContainsHelmSecretExpression() ?? false;
-        public bool ValueContainsHelmExpression => Value?.ContainsHelmExpression() ?? false;
-        public override string ToString() => Value ?? HelmExpression;
+        public bool ValueContainsSecretExpression => StringValue?.ContainsHelmSecretExpression() ?? false;
+        public bool ValueContainsHelmExpression => StringValue?.ContainsHelmExpression() ?? false;
+        public override string ToString() => StringValue ?? HelmExpression;
     }
 }
