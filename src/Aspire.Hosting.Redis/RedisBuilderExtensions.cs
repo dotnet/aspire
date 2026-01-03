@@ -58,6 +58,7 @@ public static class RedisBuilderExtensions
     /// </para>
     /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
     /// </remarks>
+    [AspireExport("aspire.redis/addRedisWithPassword@1", Description = "Adds a Redis container resource with password")]
     public static IResourceBuilder<RedisResource> AddRedis(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
