@@ -141,16 +141,28 @@ internal sealed class AppHostServerProject
     public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(IEnumerable<(string Name, string Version)> packages, CancellationToken cancellationToken = default)
     {
         // Create Program.cs that starts the RemoteHost server
-        // Pass an empty assembly list for now - when ATS capabilities are added,
-        // this should be updated to include the relevant Aspire.* assemblies
+        // The server reads AtsAssemblies from appsettings.json to load integration assemblies
         var programCs = """
-            await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args, []);
+            await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args);
             """;
 
         File.WriteAllText(Path.Combine(_projectModelPath, "Program.cs"), programCs);
 
-        // Create appsettings.json
-        var appSettingsJson = """
+        // Create appsettings.json with the list of ATS assemblies
+        // These are the assemblies that will be scanned for [AspireExport] capabilities
+        var atsAssemblies = new List<string> { "Aspire.Hosting" };
+        foreach (var pkg in packages)
+        {
+            // Include all Aspire.Hosting.* packages as ATS assemblies
+            if (pkg.Name.StartsWith("Aspire.Hosting", StringComparison.OrdinalIgnoreCase) &&
+                !atsAssemblies.Contains(pkg.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                atsAssemblies.Add(pkg.Name);
+            }
+        }
+
+        var assembliesJson = string.Join(",\n      ", atsAssemblies.Select(a => $"\"{a}\""));
+        var appSettingsJson = $$"""
             {
               "Logging": {
                 "LogLevel": {
@@ -158,7 +170,10 @@ internal sealed class AppHostServerProject
                   "Microsoft.AspNetCore": "Warning",
                   "Aspire.Hosting.Dcp": "Warning"
                 }
-              }
+              },
+              "AtsAssemblies": [
+                {{assembliesJson}}
+              ]
             }
             """;
 

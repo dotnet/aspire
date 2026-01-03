@@ -209,12 +209,38 @@ internal sealed class CapabilityDispatcher
                 }
             }
 
-            var result = method.Invoke(null, methodArgs);
+            // Handle generic methods - resolve type parameters from actual arguments
+            var methodToInvoke = method;
+            if (method.ContainsGenericParameters)
+            {
+                methodToInvoke = MethodResolver.MakeGenericMethodFromArgs(method, methodArgs);
+            }
+
+            object? result;
+            try
+            {
+                result = methodToInvoke.Invoke(null, methodArgs);
+            }
+            catch (TargetInvocationException tie) when (tie.InnerException is not null)
+            {
+                // Unwrap the TargetInvocationException to get the actual exception
+                throw tie.InnerException;
+            }
 
             // Handle async methods
             if (result is Task task)
             {
-                task.GetAwaiter().GetResult();
+                try
+                {
+                    task.GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    // Rethrow the exception - it will be caught by the outer handler
+                    // and converted to a CapabilityException
+                    throw new InvalidOperationException(ex.Message, ex);
+                }
+
                 var taskType = task.GetType();
                 if (taskType.IsGenericType)
                 {

@@ -12,6 +12,7 @@
   },
   "include": [
     "apphost.ts",
+    "apphost-legacy.ts",
     ".modules/**/*.ts"
   ],
   "exclude": [

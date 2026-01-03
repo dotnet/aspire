@@ -1,7 +1,14 @@
 // RemoteAppHostClient.ts - Connects to the GenericAppHost via socket/named pipe
 import * as net from 'net';
 import * as rpc from 'vscode-jsonrpc/node.js';
-import { CallbackFunction, MarshalledObject } from './types.js';
+import {
+    CallbackFunction,
+    MarshalledObject,
+    MarshalledHandle,
+    AtsError,
+    isAtsError,
+    isMarshalledHandle
+} from './types.js';
 
 // Callback registry - maps callback IDs to functions
 const callbackRegistry = new Map<string, CallbackFunction>();
@@ -285,6 +292,79 @@ export interface HasProxy {
     proxy: DotNetProxy;
 }
 
+// ============================================================================
+// ATS (Aspire Type System) Classes
+// ============================================================================
+
+/**
+ * Error thrown when an ATS capability invocation fails.
+ */
+export class CapabilityError extends Error {
+    constructor(
+        /** The structured error from the server */
+        public readonly error: AtsError
+    ) {
+        super(error.message);
+        this.name = 'CapabilityError';
+    }
+
+    /** Machine-readable error code */
+    get code(): string {
+        return this.error.code;
+    }
+
+    /** The capability that failed (if applicable) */
+    get capability(): string | undefined {
+        return this.error.capability;
+    }
+}
+
+/**
+ * A typed handle to a .NET object in the ATS system.
+ * Handles are opaque references that can be passed to capabilities.
+ *
+ * @typeParam T - The ATS type ID (e.g., "aspire/Builder")
+ */
+export class Handle<T extends string = string> {
+    private readonly _handleId: string;
+    private readonly _typeId: T;
+
+    constructor(marshalled: MarshalledHandle) {
+        this._handleId = marshalled.$handle;
+        this._typeId = marshalled.$type as T;
+    }
+
+    /** The handle ID (format: "{typeId}:{instanceId}") */
+    get $handle(): string {
+        return this._handleId;
+    }
+
+    /** The ATS type ID */
+    get $type(): T {
+        return this._typeId;
+    }
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle {
+        return {
+            $handle: this._handleId,
+            $type: this._typeId
+        };
+    }
+
+    /** String representation for debugging */
+    toString(): string {
+        return `Handle<${this._typeId}>(${this._handleId})`;
+    }
+}
+
+/**
+ * Interface for objects that have an underlying Handle.
+ */
+export interface HasHandle {
+    handle: Handle;
+}
+
 /**
  * Type guard to check if a value has a proxy property.
  */
@@ -331,11 +411,18 @@ export function refExpr(strings: TemplateStringsArray, ...values: (DotNetProxy |
 }
 
 /**
- * Checks if a value is a marshalled .NET object and wraps it in a proxy if so.
+ * Checks if a value is a marshalled .NET object or handle and wraps it appropriately.
  */
 export function wrapIfProxy(value: unknown): unknown {
-    if (value && typeof value === 'object' && '$id' in value && '$type' in value) {
-        return new DotNetProxy(value as MarshalledObject);
+    if (value && typeof value === 'object') {
+        // Check for ATS handle (new system)
+        if (isMarshalledHandle(value)) {
+            return new Handle(value);
+        }
+        // Check for legacy proxy object
+        if ('$id' in value && '$type' in value) {
+            return new DotNetProxy(value as MarshalledObject);
+        }
     }
     return value;
 }
@@ -504,6 +591,74 @@ export class RemoteAppHostClient {
         return this.connection.sendRequest('setStaticProperty', assemblyName, typeName, propertyName, value);
     }
 
+    // ========================================================================
+    // ATS Capability Methods
+    // ========================================================================
+
+    /**
+     * Invoke an ATS capability by ID.
+     *
+     * Capabilities are versioned operations exposed by [AspireExport] attributes.
+     * Results are automatically wrapped in Handle objects when applicable.
+     *
+     * @param capabilityId - The capability ID (e.g., "aspire/createBuilder@1")
+     * @param args - Arguments to pass to the capability
+     * @returns The capability result, wrapped as Handle if it's a handle type
+     * @throws CapabilityError if the capability fails
+     *
+     * @example
+     * ```typescript
+     * const builder = await client.invokeCapability<Handle<'aspire/Builder'>>(
+     *     'aspire/createBuilder@1',
+     *     {}
+     * );
+     * const redis = await client.invokeCapability<Handle<'aspire.redis/RedisBuilder'>>(
+     *     'aspire.redis/addRedis@1',
+     *     { builder, name: 'cache' }
+     * );
+     * ```
+     */
+    async invokeCapability<T = unknown>(
+        capabilityId: string,
+        args?: Record<string, unknown>
+    ): Promise<T> {
+        if (!this.connection) {
+            throw new Error('Not connected to RemoteAppHost');
+        }
+
+        const result = await this.connection.sendRequest(
+            'invokeCapability',
+            capabilityId,
+            args ?? null
+        );
+
+        // Check for structured error response
+        if (isAtsError(result)) {
+            throw new CapabilityError(result.$error);
+        }
+
+        // Wrap handles automatically
+        return wrapIfProxy(result) as T;
+    }
+
+    /**
+     * Get the list of available capability IDs from the server.
+     *
+     * @returns Array of capability IDs (e.g., ["aspire/createBuilder@1", "aspire.redis/addRedis@1"])
+     *
+     * @example
+     * ```typescript
+     * const capabilities = await client.getCapabilities();
+     * console.log('Available:', capabilities.join(', '));
+     * ```
+     */
+    async getCapabilities(): Promise<string[]> {
+        if (!this.connection) {
+            throw new Error('Not connected to RemoteAppHost');
+        }
+        return await this.connection.sendRequest('getCapabilities');
+    }
+
     disconnect(): void {
         globalClient = null;
         try { this.connection?.dispose(); } finally { this.connection = null; }
@@ -514,3 +669,8 @@ export class RemoteAppHostClient {
         return this.connection !== null && this.socket !== null;
     }
 }
+
+// Re-export ATS types for convenience
+// Use 'export type' for interfaces (type-only exports) to work with isolatedModules
+export type { MarshalledHandle, AtsError, AtsErrorDetails } from './types.js';
+export { AtsErrorCodes, isAtsError, isMarshalledHandle } from './types.js';

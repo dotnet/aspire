@@ -44,7 +44,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private readonly ILogger<TypeScriptAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly CodeGeneratorService _codeGeneratorService;
-    private readonly TypeScriptCodeGenerator _typeScriptGenerator;
+    private readonly AtsTypeScriptCodeGenerator _atsTypeScriptGenerator;
 
     private static readonly string[] s_detectionPatterns = ["apphost.ts"];
 
@@ -71,7 +71,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _codeGeneratorService = new CodeGeneratorService();
-        _typeScriptGenerator = new TypeScriptCodeGenerator();
+        _atsTypeScriptGenerator = new AtsTypeScriptCodeGenerator();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1382,10 +1382,10 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         // Build assembly search paths
         var searchPaths = BuildAssemblySearchPaths(buildPath);
 
-        // Use the shared code generator service
+        // Use the shared code generator service with the ATS capability-based generator
         var fileCount = await _codeGeneratorService.GenerateAsync(
             appPath,
-            _typeScriptGenerator,
+            _atsTypeScriptGenerator,
             packagesList,
             searchPaths,
             GeneratedFolderName,

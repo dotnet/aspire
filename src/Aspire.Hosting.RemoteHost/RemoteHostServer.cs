@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.RemoteHost;
 
@@ -10,6 +11,51 @@ namespace Aspire.Hosting.RemoteHost;
 /// </summary>
 public static class RemoteHostServer
 {
+    /// <summary>
+    /// Runs the RemoteHost JSON-RPC server, loading ATS assemblies from appsettings.json.
+    /// </summary>
+    /// <remarks>
+    /// The server reads the "AtsAssemblies" section from appsettings.json to determine which
+    /// assemblies to scan for [AspireExport] capabilities. The appsettings.json should be
+    /// in the current working directory.
+    /// </remarks>
+    /// <param name="args">Command line arguments.</param>
+    /// <param name="cancellationToken">Cancellation token to stop the server.</param>
+    /// <returns>A task that completes when the server has stopped.</returns>
+    public static Task RunAsync(string[] args, CancellationToken cancellationToken = default)
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true)
+            .Build();
+
+        var assemblyNames = configuration.GetSection("AtsAssemblies").Get<string[]>() ?? [];
+        var assemblies = LoadAssemblies(assemblyNames);
+
+        return RunAsync(args, assemblies, cancellationToken);
+    }
+
+    private static IEnumerable<Assembly> LoadAssemblies(string[] assemblyNames)
+    {
+        var loaded = new List<Assembly>();
+
+        foreach (var name in assemblyNames)
+        {
+            try
+            {
+                var assembly = Assembly.Load(name);
+                loaded.Add(assembly);
+                Console.WriteLine($"[ATS] Loaded assembly: {name}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ATS] Warning: Failed to load assembly '{name}': {ex.Message}");
+            }
+        }
+
+        return loaded;
+    }
+
     /// <summary>
     /// Runs the RemoteHost JSON-RPC server.
     /// </summary>
