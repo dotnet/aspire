@@ -1,11 +1,12 @@
 # Polyglot AppHost Support
 
-This document describes how the Aspire CLI supports non-.NET app hosts. Currently, TypeScript is the supported guest language.
+This document describes how the Aspire CLI supports non-.NET app hosts using the **Aspire Type System (ATS)**.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
+- [Aspire Type System (ATS)](#aspire-type-system-ats)
 - [JSON-RPC Protocol](#json-rpc-protocol)
 - [Type System and Marshalling](#type-system-and-marshalling)
 - [Code Generation](#code-generation)
@@ -23,36 +24,47 @@ This document describes how the Aspire CLI supports non-.NET app hosts. Currentl
 
 ## Overview
 
-The polyglot apphost feature allows developers to write Aspire app hosts in non-.NET languages. The CLI detects the guest language entry point and orchestrates the guest runtime alongside an AppHost server.
+The polyglot apphost feature allows developers to write Aspire app hosts in non-.NET languages. Unlike a generic RPC system, Aspire uses a **capability-based type system** that provides an intentional, stable API surface for polyglot clients. Currently, TypeScript is the supported guest language.
 
 **Terminology:**
 - **Host (AppHost server)**: The .NET process running Aspire.Hosting
 - **Guest**: The non-.NET runtime executing the user's apphost code
+- **Capability**: A named operation (e.g., `aspire.redis/addRedis@1`)
+- **Handle**: An opaque typed reference to a .NET object
+- **DTO**: A serializable data transfer object
 
 **Design Goals:**
-1. **Reuse Existing Integrations** - All 100+ Aspire.Hosting.* packages work automatically
-2. **Native Language Experience** - Generated SDKs with idiomatic APIs
-3. **Consistent CLI Experience** - `aspire run`, `aspire add`, `aspire publish` work identically
+1. **Intentional API Surface** - Capabilities are the contract, not CLR signatures
+2. **Polyglot-First** - .NET is an implementation detail behind a stable surface
+3. **Type Safety** - Strict type boundaries prevent accidental leakage
+4. **Evolvable** - Versioned capability IDs enable breaking changes
+5. **Reuse Existing Integrations** - All 100+ Aspire.Hosting.* packages work automatically
+6. **Consistent CLI Experience** - `aspire run`, `aspire add`, `aspire publish` work identically
+
+**What This Is NOT:**
+- Not a generic .NET remoting layer
+- Not exposing arbitrary .NET types/methods
+- Not reflection-based invocation
 
 ---
 
 ## Architecture
 
-The CLI scaffolds the AppHost server project that references the required hosting integration packages. Code generation reflects over these assemblies to produce a language-specific SDK. At runtime, the AppHost server uses `Aspire.Hosting.RemoteHost` to expose a JSON-RPC server over Unix domain sockets. The guest connects and sends RPC calls (e.g., `addRedis()`, `withEnvironment()`) which are executed against the real Aspire.Hosting APIs.
+The CLI scaffolds the AppHost server project that references the required hosting integration packages. Code generation scans these assemblies for ATS attributes to produce a language-specific SDK. At runtime, the AppHost server uses `Aspire.Hosting.RemoteHost` to expose a capability-based JSON-RPC server over Unix domain sockets. The guest connects and invokes capabilities (e.g., `aspire.redis/addRedis@1`) which are dispatched to capability implementations.
 
 ```mermaid
 flowchart TB
     subgraph CLI["Aspire CLI"]
         subgraph Host["AppHost Server (.NET)"]
             Hosting["Aspire.Hosting.*<br/>(Redis, Postgres, etc)"]
-            Processor["MethodDispatcher<br/>ObjectRegistry"]
+            Dispatcher["CapabilityDispatcher<br/>HandleRegistry<br/>TypeHierarchy"]
             Server["JSON-RPC Server"]
-            Hosting --> Processor --> Server
+            Hosting --> Dispatcher --> Server
         end
 
         subgraph Guest["Guest Runtime"]
             SDK["Generated SDK"]
-            Client["RemoteAppHostClient<br/>(JSON-RPC)"]
+            Client["AtsClient<br/>(JSON-RPC)"]
             UserCode["User AppHost Code"]
             UserCode --> SDK --> Client
         end
@@ -66,16 +78,16 @@ sequenceDiagram
     participant G as Guest Runtime
     participant H as AppHost Server (.NET)
 
-    G->>H: invokeStaticMethod("CreateBuilder")
-    H-->>G: { $id: "obj_1", $type: "DistributedApplicationBuilder" }
+    G->>H: invokeCapability("aspire.core/createBuilder@1", {})
+    H-->>G: { $handle: "aspire.core/DistributedApplicationBuilder:1", $type: "..." }
 
-    G->>H: invokeStaticMethod("AddRedis", {builder: {$id: "obj_1"}, name: "cache"})
-    H-->>G: { $id: "obj_2", $type: "IResourceBuilder<RedisResource>" }
+    G->>H: invokeCapability("aspire.redis/addRedis@1", {builder: {$handle: "..."}, name: "cache"})
+    H-->>G: { $handle: "aspire.redis/RedisBuilder:1", $type: "..." }
 
-    G->>H: invokeMethod("obj_1", "Build")
-    H-->>G: { $id: "obj_3", $type: "DistributedApplication" }
+    G->>H: invokeCapability("aspire.core/build@1", {builder: {$handle: "..."}})
+    H-->>G: { $handle: "aspire.core/DistributedApplication:1", $type: "..." }
 
-    G->>H: invokeMethod("obj_3", "RunAsync")
+    G->>H: invokeCapability("aspire.core/run@1", {app: {$handle: "..."}})
     H-->>G: orchestration started
 ```
 
@@ -83,9 +95,564 @@ sequenceDiagram
 
 | Project | Purpose |
 |---------|---------|
-| `Aspire.Hosting.CodeGeneration` | Reflection-based model building from Aspire.Hosting assemblies |
-| `Aspire.Hosting.CodeGeneration.<Language>` | Language-specific SDK generator |
-| `Aspire.Hosting.RemoteHost` | JSON-RPC server, method dispatcher, object registry |
+| `Aspire.Hosting` | ATS attributes (`[AspireExport]`, `[AspireCallback]`) and intrinsic type definitions |
+| `Aspire.Hosting.Analyzers` | Compile-time validation of `[AspireExport]` attributes |
+| `Aspire.Hosting.RemoteHost` | CapabilityDispatcher, HandleRegistry, TypeHierarchy, JSON-RPC server |
+| `Aspire.Hosting.CodeGeneration` | ATS manifest scanning from capability attributes |
+| `Aspire.Hosting.CodeGeneration.<Language>` | Language-specific SDK generator from ATS manifest |
+
+---
+
+## Aspire Type System (ATS)
+
+ATS defines three core concepts that form the contract between .NET and guest languages.
+
+### Capabilities
+
+Capabilities are named operations with globally unique IDs. They replace direct method invocation.
+
+**Naming Convention:** `aspire/{operation}@{version}` or `aspire.{package}/{operation}@{version}`
+
+| Example | Description |
+|---------|-------------|
+| `aspire/createBuilder@1` | Create a DistributedApplicationBuilder |
+| `aspire/addContainer@1` | Add a container resource |
+| `aspire/withEnvironment@1` | Set an environment variable |
+| `aspire/build@1` | Build the application |
+| `aspire.redis/addRedis@1` | Add a Redis resource (integration package) |
+
+**Definition in .NET:**
+
+Capabilities are defined using the `[AspireExport]` attribute, which can be applied directly to existing extension methods:
+
+```csharp
+// Direct annotation on existing extension method (preferred)
+[AspireExport("aspire/addContainer@1", Description = "Adds a container resource")]
+public static IResourceBuilder<ContainerResource> AddContainer(
+    this IDistributedApplicationBuilder builder,
+    [ResourceName] string name,
+    string image)
+{
+    // Existing implementation unchanged
+}
+```
+
+Or for integration packages:
+
+```csharp
+[AspireExport("aspire.redis/addRedis@1", Description = "Adds a Redis resource")]
+public static IResourceBuilder<RedisResource> AddRedis(
+    this IDistributedApplicationBuilder builder,
+    [ResourceName] string name,
+    int? port = null)
+{
+    // Existing implementation
+}
+```
+
+**AppliesTo Constraint:**
+
+Capabilities can specify type constraints for polymorphic operations. When applied to generic extension methods, `AppliesTo` is automatically derived from the type constraint:
+
+```csharp
+// AppliesTo auto-derived from generic constraint: applies to IResourceWithEnvironment
+[AspireExport("aspire/withEnvironment@1", Description = "Sets an environment variable")]
+public static IResourceBuilder<T> WithEnvironment<T>(
+    this IResourceBuilder<T> builder,
+    string name,
+    string? value) where T : IResourceWithEnvironment
+{
+    // Existing implementation
+}
+```
+
+### Handles
+
+Handles are opaque typed references to .NET objects. They replace direct object proxies. **Handles are derived automatically** - you don't need to define them explicitly.
+
+**Handle ID Format:** `{typeId}:{instanceId}`
+
+| Example | Description |
+|---------|-------------|
+| `aspire/Builder:1` | Builder handle |
+| `aspire/Redis:42` | Redis resource builder handle |
+
+**Automatic Handle Derivation:**
+
+Handle types are automatically derived from .NET types:
+
+| .NET Type | Derived Handle Type | Rule |
+|-----------|---------------------|------|
+| `IDistributedApplicationBuilder` | `aspire/Builder` | Intrinsic |
+| `DistributedApplication` | `aspire/Application` | Intrinsic |
+| `IResourceBuilder<ContainerResource>` | `aspire/Container` | From resource type `T` |
+| `IResourceBuilder<RedisResource>` | `aspire/Redis` | From resource type `T` |
+| Any `IResource` implementation | `aspire/{TypeName}` | Strip `Resource` suffix |
+
+**Type Hierarchy:**
+
+Handles form a type hierarchy based on the CLR type hierarchy, enabling polymorphic capabilities:
+
+```
+aspire/IResource (base interface)
+├── aspire/IResourceWithEnvironment
+├── aspire/IResourceWithEndpoints
+├── aspire/IResourceWithArgs
+├── aspire/Container
+├── aspire/Executable
+└── aspire/Redis
+```
+
+The hierarchy is derived from CLR inheritance - if `RedisResource : ContainerResource`, then `aspire/Redis` extends `aspire/Container`.
+
+**JSON Representation:**
+
+```json
+{
+    "$handle": "aspire/Redis:42",
+    "$type": "aspire/Redis"
+}
+```
+
+### DTOs (Data Transfer Objects)
+
+DTOs are serializable types for passing structured data. They must be explicitly marked.
+
+**Definition in .NET:**
+
+```csharp
+[AspireDto]
+public sealed class AddRedisOptions
+{
+    public required string Name { get; init; }
+    public int? Port { get; init; }
+}
+```
+
+**JSON Representation:**
+
+```json
+{
+    "name": "cache",
+    "port": 6379
+}
+```
+
+**Strict Enforcement:**
+
+Only types marked with `[AspireDto]` can cross the serialization boundary:
+
+| Direction | `[AspireDto]` Type | Non-`[AspireDto]` Type |
+|-----------|-------------------|----------------------|
+| Input (JSON → .NET) | Deserialized | **Error thrown** |
+| Output (.NET → JSON) | Serialized | Marshaled as Handle |
+
+This prevents accidental leakage of internal .NET types.
+
+### Callbacks
+
+Callbacks allow the guest to provide functions that the host can invoke during capability execution.
+
+**Definition in .NET:**
+
+```csharp
+[AspireExport("aspire/withEnvironmentCallback@1", AppliesTo = "aspire/IResourceWithEnvironment", Description = "Adds an environment callback")]
+public static IResourceBuilder<IResourceWithEnvironment> WithEnvironmentCallback(
+    IResourceBuilder<IResourceWithEnvironment> resource,
+    [AspireCallback("aspire/EnvironmentCallback")] Func<EnvironmentCallbackContext, Task> callback)
+{
+    return resource.WithEnvironment(callback);
+}
+```
+
+**JSON Representation:**
+
+Callbacks are passed as string IDs that the guest registers:
+
+```json
+{
+    "resource": {"$handle": "aspire.redis/RedisBuilder:1"},
+    "callback": "callback_1_1234567890"
+}
+```
+
+When the host needs to invoke the callback, it sends an `invokeCallback` request to the guest.
+
+### CancellationTokens
+
+CancellationTokens allow cancellation of long-running operations.
+
+**JSON Representation:**
+
+```json
+{ "$cancellationToken": "ct_1" }
+```
+
+**Operations:**
+- `createCancellationToken` - Guest creates a token to pass to capabilities
+- `cancel` - Guest or host cancels a token
+
+### Type Summary
+
+| ATS Type | Attribute | Purpose | JSON Shape |
+|----------|-----------|---------|------------|
+| **Capability** | `[AspireExport]` | Named operation | N/A (invoked by ID) |
+| **Handle** | *(auto-derived)* | Opaque object reference | `{ $handle, $type }` |
+| **DTO** | `[AspireDto]` | Serializable data | Plain JSON object |
+| **Callback** | `[AspireCallback]` | Guest function reference | `"callback_id"` |
+| **CancellationToken** | N/A | Cancellation signal | `{ $cancellationToken }` |
+
+> **Note:** Handles are automatically derived from intrinsic types and `IResource` implementations. No explicit attribute is needed.
+
+### AspireExport Analyzer
+
+The `Aspire.Hosting.Analyzers` package includes compile-time validation for `[AspireExport]` attributes:
+
+| Diagnostic | Description |
+|------------|-------------|
+| `ASPIRE007` | Method marked with `[AspireExport]` must be static |
+| `ASPIRE008` | Export ID must follow format `aspire/{operation}@{version}` or `aspire.{package}/{operation}@{version}` |
+| `ASPIRE009` | Return type must be ATS-compatible (void, Task, Task<T>, or supported Aspire types) |
+| `ASPIRE010` | Parameter types must be ATS-compatible (primitives, enums, or supported Aspire types) |
+
+**ATS-Compatible Types:**
+
+| Category | Types |
+|----------|-------|
+| Primitives | `string`, `int`, `long`, `double`, `bool`, `DateTime`, `TimeSpan`, `Guid`, `Uri` |
+| Enums | Any enum type |
+| Nullable | `T?` where T is a primitive or enum |
+| Arrays | Arrays of compatible types |
+| Aspire Types | `IDistributedApplicationBuilder`, `DistributedApplication`, `IResourceBuilder<T>`, `IResource`, etc. |
+| Callbacks | Delegate types (`Func<>`, `Action<>`) |
+
+### Intrinsic Types
+
+ATS recognizes certain .NET types natively. These **intrinsic types** are automatically marshalled as handles.
+
+**Core Intrinsic Types:**
+
+| .NET Type | ATS Type ID |
+|-----------|-------------|
+| `IDistributedApplicationBuilder` | `aspire/Builder` |
+| `DistributedApplication` | `aspire/Application` |
+| `DistributedApplicationExecutionContext` | `aspire/ExecutionContext` |
+| `EndpointReference` | `aspire/EndpointReference` |
+| `EnvironmentCallbackContext` | `aspire/EnvironmentContext` |
+
+**Resource Interface Types (for `AppliesTo` constraints):**
+
+| .NET Type | ATS Type ID |
+|-----------|-------------|
+| `IResource` | `aspire/IResource` |
+| `IResourceWithEnvironment` | `aspire/IResourceWithEnvironment` |
+| `IResourceWithEndpoints` | `aspire/IResourceWithEndpoints` |
+| `IResourceWithArgs` | `aspire/IResourceWithArgs` |
+| `IResourceWithConnectionString` | `aspire/IResourceWithConnectionString` |
+| `IResourceWithWaitSupport` | `aspire/IResourceWithWaitSupport` |
+| `ContainerResource` | `aspire/Container` |
+
+**Service Types:**
+
+| .NET Type | ATS Type ID |
+|-----------|-------------|
+| `IServiceProvider` | `aspire/ServiceProvider` |
+| `ResourceNotificationService` | `aspire/ResourceNotificationService` |
+| `ResourceLoggerService` | `aspire/ResourceLoggerService` |
+| `ILogger` | `aspire/Logger` |
+
+**`IResourceBuilder<T>` - First-Class Support:**
+
+`IResourceBuilder<T>` is handled specially - the ATS type ID is derived from the resource type `T`:
+
+| .NET Type | ATS Type ID |
+|-----------|-------------|
+| `IResourceBuilder<RedisResource>` | `aspire/Redis` |
+| `IResourceBuilder<ContainerResource>` | `aspire/Container` |
+| `IResourceBuilder<ParameterResource>` | `aspire/Parameter` |
+| `IResourceBuilder<PostgresServerResource>` | `aspire/PostgresServer` |
+
+The resource type name has its `Resource` suffix stripped: `RedisResource` → `aspire/Redis`.
+
+### Extension Method Compatibility
+
+Most Aspire extension methods map directly to ATS capabilities. This section describes which patterns work and which need adaptation.
+
+**Works Directly:**
+
+| Pattern | Example | Notes |
+|---------|---------|-------|
+| Primitives | `(string name, int? port)` | JSON primitives |
+| `TimeSpan` | `(TimeSpan timeout)` | Marshalled as milliseconds |
+| `IResourceBuilder<T>` | `(IResourceBuilder<ParameterResource> password)` | Marshalled as handle |
+| Simple callbacks | `Func<EnvironmentCallbackContext, Task>` | Via `[AspireCallback]` |
+
+**Example - Redis with password parameter:**
+
+```csharp
+// This works - IResourceBuilder<ParameterResource> is just a handle
+[AspireExport("aspire.redis/addRedis@1")]
+public static IResourceBuilder<RedisResource> AddRedis(
+    IDistributedApplicationBuilder builder,
+    string name,
+    int? port = null,
+    IResourceBuilder<ParameterResource>? password = null)
+{
+    return builder.AddRedis(name, port, password);
+}
+```
+
+```typescript
+// TypeScript usage
+const password = await client.invoke("aspire/addParameter@1", {
+    builder, name: "redis-password", secret: true
+});
+
+const redis = await client.invoke("aspire.redis/addRedis@1", {
+    builder, name: "cache", password  // Pass the handle
+});
+```
+
+**Needs Adaptation:**
+
+| Pattern | Issue | Solution |
+|---------|-------|----------|
+| `X509Certificate2` | Binary data, .NET-specific | Accept base64-encoded certificate data |
+
+Note: `TimeSpan` parameters work directly - they are automatically marshalled as milliseconds (see [TimeSpan Marshalling](#timespan-marshalling)).
+
+**`Action<IResourceBuilder<T>>` Callbacks:**
+
+Callbacks that receive a different resource type work because the resource builder is just a handle:
+
+```csharp
+// .NET pattern - callback receives a different resource type
+redis.WithRedisCommander(commander => {
+    commander.WithHostPort(8081);
+});
+```
+
+**ATS export:**
+
+```csharp
+[AspireExport("aspire.redis/withRedisCommander@1", AppliesTo = "aspire/Redis")]
+public static IResourceBuilder<RedisResource> WithRedisCommander(
+    IResourceBuilder<RedisResource> redis,
+    [AspireCallback] Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null,
+    string? containerName = null)
+{
+    return redis.WithRedisCommander(configureContainer, containerName);
+}
+```
+
+**TypeScript usage:**
+
+```typescript
+await client.invoke("aspire.redis/withRedisCommander@1", {
+    redis,
+    configureContainer: async (commander) => {
+        // commander is a handle to IResourceBuilder<RedisCommanderResource>
+        await client.invoke("aspire/withHostPort@1", { resource: commander, port: 8081 });
+    }
+});
+```
+
+**How it works:**
+
+1. Guest registers callback `callback_123`
+2. Guest invokes `withRedisCommander@1` with `{ redis, configureContainer: "callback_123" }`
+3. Host creates the `RedisCommanderResource` builder
+4. Host invokes: `invokeCallback("callback_123", { $handle: "aspire/RedisCommander:1" })`
+5. Guest callback receives the handle and invokes capabilities on it
+6. Callback returns, host continues
+
+The `IResourceBuilder<RedisCommanderResource>` is marshalled as an `aspire/RedisCommander` handle, which the guest can use with any applicable capability.
+
+### Direct Extension Method Annotation
+
+Instead of creating wrapper methods, you can annotate existing extension methods directly with `[AspireExport]`. The dispatcher automatically handles:
+
+1. **Extension method detection** - Recognizes `this` parameter
+2. **AppliesTo derivation** - Inferred from first parameter type
+3. **Generic constraint handling** - Uses constraints like `where T : JavaScriptAppResource`
+
+**Before (wrapper method):**
+
+```csharp
+// Separate wrapper in Ats/RedisExports.cs
+[AspireExport("aspire.redis/addRedis@1")]
+public static IResourceBuilder<RedisResource> AddRedis(
+    IDistributedApplicationBuilder builder,
+    string name,
+    int? port = null)
+{
+    return builder.AddRedis(name, port);  // Calls the real method
+}
+```
+
+**After (direct annotation):**
+
+```csharp
+// Just add the attribute to the existing method!
+[AspireExport("aspire.redis/addRedis@1")]
+public static IResourceBuilder<RedisResource> AddRedis(
+    this IDistributedApplicationBuilder builder,
+    [ResourceName] string name,
+    int? port = null,
+    IResourceBuilder<ParameterResource>? password = null)
+{
+    // Existing implementation unchanged
+}
+```
+
+**AppliesTo Auto-Derivation:**
+
+The `AppliesTo` constraint is automatically derived from the method signature:
+
+| First Parameter | Derived AppliesTo |
+|----------------|-------------------|
+| `this IDistributedApplicationBuilder` | *(none - entry point)* |
+| `this IResourceBuilder<RedisResource>` | `aspire/Redis` |
+| `this IResourceBuilder<ContainerResource>` | `aspire/Container` |
+| `this IResourceBuilder<T> where T : JavaScriptAppResource` | `aspire/JavaScriptApp` |
+| `this IResourceBuilder<T> where T : IResourceWithEnvironment` | `aspire/IResourceWithEnvironment` |
+
+**Generic Constraint Example:**
+
+```csharp
+// AppliesTo automatically derived as "aspire/JavaScriptApp" from constraint
+[AspireExport("aspire.node/withNpm@1")]
+public static IResourceBuilder<TResource> WithNpm<TResource>(
+    this IResourceBuilder<TResource> resource,
+    bool install = true,
+    string? installCommand = null,
+    string[]? installArgs = null)
+    where TResource : JavaScriptAppResource
+{
+    // Existing implementation
+}
+```
+
+**Callback Parameters:**
+
+For callbacks, add `[AspireCallback]` to the parameter:
+
+```csharp
+[AspireExport("aspire.redis/withRedisCommander@1")]
+public static IResourceBuilder<RedisResource> WithRedisCommander(
+    this IResourceBuilder<RedisResource> builder,
+    [AspireCallback] Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null,
+    string? containerName = null)
+{
+    // Existing implementation
+}
+```
+
+**What Works Automatically (90%+):**
+
+| Pattern | Example | Auto-handled |
+|---------|---------|--------------|
+| Extension on builder | `this IDistributedApplicationBuilder` | ✅ |
+| Extension on resource | `this IResourceBuilder<T>` | ✅ |
+| Generic with constraint | `where T : JavaScriptAppResource` | ✅ |
+| Primitives | `string`, `int?`, `bool` | ✅ |
+| `TimeSpan` | `TimeSpan? interval` | ✅ (milliseconds) |
+| `string[]` | `string[]? args` | ✅ |
+| `IResourceBuilder<T>` params | `IResourceBuilder<ParameterResource>? password` | ✅ |
+| `Action<IResourceBuilder<T>>` | With `[AspireCallback]` | ✅ |
+
+**What Needs Wrapper Methods (10%):**
+
+| Pattern | Example | Solution |
+|---------|---------|----------|
+| `X509Certificate2` | `WithHttpsCertificate(cert)` | Wrapper accepting base64 |
+| Complex internal types | `ManifestPublishingContext` | Create DTO or exclude |
+
+### Service Capabilities
+
+ATS exposes key Aspire services through capabilities, allowing guest code to access logging, notifications, and resource state.
+
+**Getting Services:**
+
+| Capability | Description |
+|------------|-------------|
+| `aspire/getServiceProvider@1` | Gets the `IServiceProvider` from the builder |
+| `aspire/getResourceNotificationService@1` | Gets the `ResourceNotificationService` |
+| `aspire/getResourceLoggerService@1` | Gets the `ResourceLoggerService` |
+
+**Logging:**
+
+| Capability | Description |
+|------------|-------------|
+| `aspire/getLogger@1` | Gets an `ILogger` for a resource |
+| `aspire/getLoggerByName@1` | Gets an `ILogger` by resource name |
+| `aspire/log@1` | Logs a message with specified level |
+| `aspire/logInformation@1` | Logs an information message |
+| `aspire/logWarning@1` | Logs a warning message |
+| `aspire/logError@1` | Logs an error message |
+| `aspire/logDebug@1` | Logs a debug message |
+| `aspire/completeLog@1` | Completes the log stream for a resource |
+
+**Resource Notifications:**
+
+| Capability | Description |
+|------------|-------------|
+| `aspire/waitForResourceState@1` | Waits for a resource to reach a specified state |
+| `aspire/waitForResourceStates@1` | Waits for a resource to reach one of specified states |
+| `aspire/waitForResourceHealthy@1` | Waits for a resource to become healthy |
+| `aspire/waitForDependencies@1` | Waits for all dependencies of a resource |
+| `aspire/tryGetResourceState@1` | Gets current state of a resource (if available) |
+| `aspire/publishResourceUpdate@1` | Publishes a state update for a resource |
+
+**TypeScript Usage Example:**
+
+```typescript
+// Get services from the builder
+const serviceProvider = await client.invoke("aspire/getServiceProvider@1", { builder });
+const notificationService = await client.invoke("aspire/getResourceNotificationService@1", { serviceProvider });
+const loggerService = await client.invoke("aspire/getResourceLoggerService@1", { serviceProvider });
+
+// Get a logger for a resource and log messages
+const logger = await client.invoke("aspire/getLogger@1", { loggerService, resource: redis });
+await client.invoke("aspire/logInformation@1", { logger, message: "Redis is starting..." });
+
+// Wait for a resource to be healthy
+const event = await client.invoke("aspire/waitForResourceHealthy@1", {
+    notificationService,
+    resourceName: "redis"
+});
+console.log(`Redis is healthy! State: ${event.state}`);
+
+// Check current state without waiting
+const currentState = await client.invoke("aspire/tryGetResourceState@1", {
+    notificationService,
+    resourceName: "redis"
+});
+if (currentState) {
+    console.log(`Current state: ${currentState.state}`);
+}
+```
+
+**Mutable Collections:**
+
+Lists and dictionaries are marshalled as handles with standard operations:
+
+| Capability | Description |
+|------------|-------------|
+| `aspire/List.add@1` | Add item to list |
+| `aspire/List.get@1` | Get item by index |
+| `aspire/List.count@1` | Get list count |
+| `aspire/Dictionary.set@1` | Set dictionary value |
+| `aspire/Dictionary.get@1` | Get dictionary value |
+| `aspire/Dictionary.keys@1` | Get dictionary keys |
+
+This enables mutation of collections like `EnvironmentCallbackContext.EnvironmentVariables`:
+
+```typescript
+// In an environment callback
+const envVars = await client.invoke("aspire/EnvironmentContext.environmentVariables@1", { context });
+await client.invoke("aspire/Dictionary.set@1", { dictionary: envVars, key: "MY_VAR", value: "hello" });
+```
 
 ---
 
@@ -99,72 +666,11 @@ Communication between the guest and host uses JSON-RPC 2.0 over Unix domain sock
 |--------|-----------|---------|
 | `authenticate` | Guest → Host | Authenticate with server token |
 | `ping` | Guest → Host | Health check |
-| `createObject` | Guest → Host | Instantiate a .NET type |
-| `invokeStaticMethod` | Guest → Host | Call static/extension methods |
-| `invokeMethod` | Guest → Host | Call instance methods |
-| `getProperty` / `setProperty` | Guest → Host | Instance property access |
-| `getStaticProperty` / `setStaticProperty` | Guest → Host | Static property access |
-| `getIndexer` / `setIndexer` | Guest → Host | Collection access (list/dictionary) |
-| `unregisterObject` | Guest → Host | Release object from registry |
+| `invokeCapability` | Guest → Host | Invoke an ATS capability |
+| `getCapabilities` | Guest → Host | List available capabilities |
 | `createCancellationToken` | Guest → Host | Create a new CancellationToken |
 | `cancel` | Guest → Host | Cancel a CancellationToken |
 | `invokeCallback` | Host → Guest | Invoke registered callback |
-
-### Design Philosophy: Generic .NET Remoting
-
-The JSON-RPC server in `Aspire.Hosting.RemoteHost` is designed as a **generic .NET remoting layer**. The protocol distinguishes between two categories of method calls:
-
-**Instance Methods** - Operate on a specific object in the registry:
-
-| RPC Method | .NET Concept |
-|------------|--------------|
-| `invokeMethod` | Call instance method on registered object |
-| `getProperty` / `setProperty` | Instance property access |
-| `getIndexer` / `setIndexer` | Indexer access (lists, dictionaries) |
-| `unregisterObject` | Release object reference |
-
-**Static Methods** - Require assembly + type name (no target instance):
-
-| RPC Method | .NET Concept |
-|------------|--------------|
-| `createObject` | Instantiate a type via constructor |
-| `invokeStaticMethod` | Call static method or extension method |
-| `getStaticProperty` / `setStaticProperty` | Static property access |
-
-**Assembly and Type Resolution**
-
-Top-level operations require **separate** `assemblyName` and `typeName` parameters rather than assembly-qualified names. The assembly must be loadable via `Assembly.Load(assemblyName)`:
-
-```json
-{
-  "assemblyName": "Aspire.Hosting.Redis",
-  "typeName": "Aspire.Hosting.Redis.RedisBuilderExtensions"
-}
-```
-
-This design:
-- Keeps JSON payloads readable
-- Requires explicit assembly specification (no scanning)
-- Works with .NET's standard assembly loading
-
-**Key Insight: Extension Methods are Static Methods**
-
-Extension methods in .NET are syntactic sugar for static method calls. When calling an extension method via `invokeStaticMethod`, the "this" parameter is passed as an argument:
-
-```json
-// C#: builder.AddRedis("cache")
-// Actually calls: RedisBuilderExtensions.AddRedis(builder, "cache")
-
-// Request
-{"jsonrpc":"2.0","id":5,"method":"invokeStaticMethod","params":[
-    "Aspire.Hosting.Redis",
-    "Aspire.Hosting.Redis.RedisBuilderExtensions",
-    "AddRedis",
-    {"builder":{"$id":"obj_1"},"name":"cache"}
-]}
-```
-
-This design means the protocol can invoke **any .NET API** - not just Aspire.Hosting methods. The guest SDK is generated from reflection over the actual .NET assemblies, so new integrations automatically get type-safe APIs without protocol changes.
 
 ### Transport Layer
 
@@ -178,11 +684,26 @@ Content-Length: 123\r\n
 
 ### RPC Methods (Guest → Host)
 
-These methods are called by the guest to interact with the .NET host.
+#### `authenticate`
+
+Authenticate with the server using a secret token. Must be called before any other method (except `ping`).
+
+| | |
+|---|---|
+| **Parameters** | `token: string` - Authentication token |
+| **Returns** | `boolean` - `true` if successful |
+
+```json
+// Request
+{"jsonrpc":"2.0","id":1,"method":"authenticate","params":["<secret-token>"]}
+
+// Response
+{"jsonrpc":"2.0","id":1,"result":true}
+```
 
 #### `ping`
 
-Health check to verify connection.
+Health check to verify connection. Does not require authentication.
 
 | | |
 |---|---|
@@ -197,168 +718,93 @@ Health check to verify connection.
 {"jsonrpc":"2.0","id":1,"result":"pong"}
 ```
 
-#### `createObject`
+#### `invokeCapability`
 
-Instantiate a .NET type by calling its constructor.
-
-| | |
-|---|---|
-| **Parameters** | `assemblyName: string` - Assembly containing the type<br/>`typeName: string` - Fully qualified type name<br/>`args: object?` - Constructor arguments as JSON object |
-| **Returns** | `object` - Marshalled object with `$id` for future reference |
-
-```json
-// Request
-{"jsonrpc":"2.0","id":2,"method":"createObject","params":[
-    "Aspire.Hosting",
-    "Aspire.Hosting.DistributedApplicationOptions",
-    {"Args":["--operation","run"],"ProjectDirectory":"/path/to/project"}
-]}
-
-// Response
-{"jsonrpc":"2.0","id":2,"result":{"$id":"obj_1","$type":"DistributedApplicationOptions"}}
-```
-
-#### `invokeStaticMethod`
-
-Call a static method on a .NET type. This is the primary method for calling extension methods - pass the target object as the first argument.
+Invoke an ATS capability by ID. This is the primary method for all operations.
 
 | | |
 |---|---|
-| **Parameters** | `assemblyName: string` - Assembly containing the type<br/>`typeName: string` - Fully qualified type name<br/>`methodName: string` - Method name<br/>`args: object?` - Method arguments as JSON object |
-| **Returns** | `object?` - Method return value (marshalled) |
+| **Parameters** | `capabilityId: string` - Capability ID (e.g., `"aspire.redis/addRedis@1"`)<br/>`args: object?` - Arguments as JSON object |
+| **Returns** | Result (handle, DTO, primitive, or null) |
 
 ```json
-// Extension method: builder.AddRedis("cache")
-// Request
-{"jsonrpc":"2.0","id":3,"method":"invokeStaticMethod","params":[
-    "Aspire.Hosting.Redis",
-    "Aspire.Hosting.Redis.RedisBuilderExtensions",
-    "AddRedis",
-    {"builder":{"$id":"obj_1"},"name":"cache"}
+// Request - Create builder
+{"jsonrpc":"2.0","id":2,"method":"invokeCapability","params":[
+    "aspire.core/createBuilder@1",
+    {}
 ]}
 
 // Response
-{"jsonrpc":"2.0","id":3,"result":{"$id":"obj_2","$type":"IResourceBuilder<RedisResource>"}}
+{"jsonrpc":"2.0","id":2,"result":{
+    "$handle": "aspire.core/DistributedApplicationBuilder:1",
+    "$type": "aspire.core/DistributedApplicationBuilder"
+}}
 ```
 
-**Generic Method Handling**: When calling generic methods, type arguments are inferred from the actual argument values at runtime. For example, `AddContainer<T>` will infer `T` from the builder type.
-
-#### `invokeMethod`
-
-Call an instance method on a registered object. Use this for true instance methods only (not extension methods).
-
-| | |
-|---|---|
-| **Parameters** | `objectId: string` - Object ID from registry<br/>`methodName: string` - Method to invoke<br/>`args: object?` - Method arguments as JSON object |
-| **Returns** | `object?` - Method return value (marshalled) |
-
 ```json
-// Request
-{"jsonrpc":"2.0","id":4,"method":"invokeMethod","params":["obj_1","Build",null]}
+// Request - Add Redis with options DTO
+{"jsonrpc":"2.0","id":3,"method":"invokeCapability","params":[
+    "aspire.redis/addRedis@1",
+    {
+        "builder": {"$handle": "aspire.core/DistributedApplicationBuilder:1"},
+        "options": {"name": "cache", "port": 6379}
+    }
+]}
 
 // Response
-{"jsonrpc":"2.0","id":4,"result":{"$id":"obj_2","$type":"DistributedApplication"}}
+{"jsonrpc":"2.0","id":3,"result":{
+    "$handle": "aspire.redis/RedisBuilder:1",
+    "$type": "aspire.redis/RedisBuilder"
+}}
 ```
 
-#### `getProperty` / `setProperty`
-
-Get or set a property value on a registered object.
-
 ```json
-// Get property
-{"jsonrpc":"2.0","id":5,"method":"getProperty","params":["obj_1","Name"]}
-
-// Set property
-{"jsonrpc":"2.0","id":6,"method":"setProperty","params":["obj_1","Name","new-cache"]}
-```
-
-#### `getIndexer` / `setIndexer`
-
-Get or set an indexed value from a collection (list or dictionary).
-
-```json
-// Get from dictionary
-{"jsonrpc":"2.0","id":7,"method":"getIndexer","params":["obj_1","REDIS_URL"]}
-
-// Get from list
-{"jsonrpc":"2.0","id":8,"method":"getIndexer","params":["obj_2",0]}
-
-// Set value
-{"jsonrpc":"2.0","id":9,"method":"setIndexer","params":["obj_1","MY_VAR","my-value"]}
-```
-
-#### `getStaticProperty` / `setStaticProperty`
-
-Get or set a static property value on a .NET type.
-
-```json
-// Get static property
-{"jsonrpc":"2.0","id":10,"method":"getStaticProperty","params":[
-    "Aspire.Hosting",
-    "Aspire.Hosting.SomeType",
-    "StaticProperty"
+// Request - Set environment variable (polymorphic - works on any resource builder)
+{"jsonrpc":"2.0","id":4,"method":"invokeCapability","params":[
+    "aspire.core/withEnvironment@1",
+    {
+        "resource": {"$handle": "aspire.redis/RedisBuilder:1"},
+        "name": "MY_VAR",
+        "value": "hello"
+    }
 ]}
 
-// Set static property
-{"jsonrpc":"2.0","id":11,"method":"setStaticProperty","params":[
-    "Aspire.Hosting",
-    "Aspire.Hosting.SomeType",
-    "StaticProperty",
-    "new-value"
-]}
+// Response - Returns same handle type as input
+{"jsonrpc":"2.0","id":4,"result":{
+    "$handle": "aspire.redis/RedisBuilder:1",
+    "$type": "aspire.redis/RedisBuilder"
+}}
 ```
 
-#### `unregisterObject`
+#### `getCapabilities`
 
-Release an object from the registry when no longer needed.
-
-```json
-{"jsonrpc":"2.0","id":12,"method":"unregisterObject","params":["obj_1"]}
-```
-
-#### `createCancellationToken`
-
-Create a new CancellationToken that can be passed to host methods. This allows the guest to create cancellation tokens and pass them to methods that accept `CancellationToken` parameters, then cancel them later.
+List all registered capability IDs.
 
 | | |
 |---|---|
 | **Parameters** | None |
-| **Returns** | `{ "$cancellationToken": "ct_N" }` - Token reference |
+| **Returns** | `string[]` - Array of capability IDs |
 
 ```json
 // Request
-{"jsonrpc":"2.0","id":13,"method":"createCancellationToken","params":[]}
+{"jsonrpc":"2.0","id":5,"method":"getCapabilities","params":[]}
 
 // Response
-{"jsonrpc":"2.0","id":13,"result":{"$cancellationToken":"ct_1"}}
+{"jsonrpc":"2.0","id":5,"result":[
+    "aspire.core/createBuilder@1",
+    "aspire.core/build@1",
+    "aspire.core/run@1",
+    "aspire.core/withEnvironment@1",
+    "aspire.redis/addRedis@1",
+    "aspire.redis/withDataVolume@1"
+]}
 ```
-
-**Use Case:** When calling a method like `RunAsync` that accepts a `CancellationToken`, the guest can create a token, pass it to the method, and later cancel it to gracefully shut down the operation.
-
-#### `cancel`
-
-Cancel a CancellationToken that was created by the guest or passed to the guest via a callback. When the host invokes a callback with a CancellationToken parameter, the token is marshalled as `{ "$cancellationToken": "ct_N" }`. The guest can call this method to signal cancellation back to the host.
-
-| | |
-|---|---|
-| **Parameters** | `cancellationTokenId: string` - Token ID (e.g., `"ct_1"`) |
-| **Returns** | `boolean` - `true` if token was found and cancelled, `false` if not found |
-
-```json
-// Request
-{"jsonrpc":"2.0","id":13,"method":"cancel","params":["ct_1"]}
-
-// Response
-{"jsonrpc":"2.0","id":13,"result":true}
-```
-
-**Use Case:** Methods like `WithHealthCheck` pass a CancellationToken to the callback. If the guest needs to abort the operation early (e.g., health check taking too long), it can call `cancel` with the token ID.
 
 ### RPC Methods (Host → Guest)
 
 #### `invokeCallback`
 
-Invoke a callback function that was registered by the guest.
+Invoke a callback function registered by the guest.
 
 | | |
 |---|---|
@@ -370,7 +816,9 @@ Invoke a callback function that was registered by the guest.
 // Request (Host → Guest)
 {"jsonrpc":"2.0","id":100,"method":"invokeCallback","params":[
     "callback_1_1234567890",
-    {"$id":"obj_5","$type":"EnvironmentCallbackContext"}
+    {
+        "context": {"$handle": "aspire.core/EnvironmentCallbackContext:5"}
+    }
 ]}
 
 // Response (Guest → Host)
@@ -379,11 +827,11 @@ Invoke a callback function that was registered by the guest.
 
 ### Callback Mechanism
 
-Callbacks allow the host to invoke guest functions during method execution (e.g., `withEnvironment` callbacks):
+Callbacks allow the host to invoke guest functions during capability execution (e.g., `withEnvironmentCallback`):
 
 1. Guest registers a callback function with a unique ID (e.g., `callback_1_1234567890`)
-2. Guest passes the callback ID as an argument to an RPC method call
-3. Host executes the method, which invokes the callback
+2. Guest passes the callback ID as an argument to a capability invocation
+3. Host executes the capability, which invokes the callback
 4. Host sends `invokeCallback` request to guest with the callback ID and args
 5. Guest executes the callback and returns the result
 
@@ -392,25 +840,11 @@ Callbacks allow the host to invoke guest functions during method execution (e.g.
 CancellationTokens are supported in two directions:
 
 1. **Host → Guest (callbacks)**: When the host invokes a callback with a `CancellationToken` parameter
-2. **Guest → Host (method calls)**: When the guest needs to pass a cancellable token to a host method
+2. **Guest → Host (capability calls)**: When the guest needs to pass a cancellable token to a capability
 
-#### Scenario 1: Callbacks with CancellationToken
+#### Callbacks with CancellationToken
 
-When a .NET method passes a `CancellationToken` to a callback, the token is marshalled as a proxy that the guest can use to observe or trigger cancellation.
-
-**How it works:**
-
-1. Host invokes callback with a `CancellationToken` parameter
-2. Host creates a linked `CancellationTokenSource` and registers it with a unique ID (e.g., `ct_1`)
-3. Token is marshalled as `{ "$cancellationToken": "ct_1" }` and sent to guest
-4. Guest can call `cancel("ct_1")` to signal cancellation
-5. The linked CTS is cancelled, which propagates to any operations observing it
-
-**Linked Token Behavior:**
-
-The marshalled token is *linked* to the original .NET token:
-- If the .NET token is cancelled (e.g., host shutdown), the linked token is also cancelled
-- If the guest calls `cancel`, the linked token is cancelled (but the original .NET token is not affected)
+When a .NET capability passes a `CancellationToken` to a callback, the token is marshalled as a proxy:
 
 ```json
 // Callback invocation with CancellationToken
@@ -418,8 +852,8 @@ The marshalled token is *linked* to the original .NET token:
 {
   "method": "invokeCallback",
   "params": ["callback_1", {
-    "arg1": {"$id": "obj_5", "$type": "HealthCheckContext"},
-    "arg2": {"$cancellationToken": "ct_1"}
+    "context": {"$handle": "aspire.core/HealthCheckContext:5"},
+    "cancellationToken": {"$cancellationToken": "ct_1"}
   }]
 }
 
@@ -428,81 +862,67 @@ The marshalled token is *linked* to the original .NET token:
 {"method": "cancel", "params": ["ct_1"]}
 ```
 
-**Common patterns:**
-- `WithHealthCheck(Func<HealthCheckContext, CancellationToken, Task>)` - Guest receives token to abort long-running health checks
-- `WithCommand(Func<ExecuteCommandContext, CancellationToken, Task>)` - Guest receives token to cancel custom commands
+**Linked Token Behavior:**
+- If the .NET token is cancelled (e.g., host shutdown), the linked token is also cancelled
+- If the guest calls `cancel`, the linked token is cancelled
 
-#### Scenario 2: Guest-Created CancellationTokens
+#### Guest-Created CancellationTokens
 
-The guest can create its own CancellationTokens and pass them to host methods. This is useful for methods that accept `CancellationToken` parameters.
-
-**How it works:**
-
-1. Guest calls `createCancellationToken()` to get a token reference
-2. Guest passes the token reference to a method call
-3. Host deserializes the token reference and retrieves the actual `CancellationToken`
-4. Guest can later call `cancel("ct_N")` to cancel the operation
+The guest can create its own CancellationTokens:
 
 ```json
 // 1. Create a cancellation token
-// Guest → Host
 {"jsonrpc":"2.0","id":1,"method":"createCancellationToken","params":[]}
-// Response
-{"jsonrpc":"2.0","id":1,"result":{"$cancellationToken":"ct_1"}}
+// Response: {"$cancellationToken":"ct_1"}
 
-// 2. Pass the token to a method (e.g., RunAsync)
-// Guest → Host
-{
-  "method": "invokeMethod",
-  "params": ["obj_app", "RunAsync", {
+// 2. Pass the token to a capability
+{"method": "invokeCapability", "params": ["aspire.core/run@1", {
+    "app": {"$handle": "..."},
     "cancellationToken": {"$cancellationToken": "ct_1"}
-  }]
-}
+}]}
 
 // 3. Later, cancel the operation
-// Guest → Host
-{"jsonrpc":"2.0","id":3,"method":"cancel","params":["ct_1"]}
+{"method": "cancel", "params": ["ct_1"]}
 ```
-
-**Use Cases:**
-- `RunAsync(CancellationToken)` - Gracefully shut down the application
-- Any async method that supports cancellation
 
 ### Error Responses
 
-Errors follow the JSON-RPC 2.0 error format:
+Errors use a structured format with ATS error codes:
 
 ```json
 {
-  "jsonrpc": "2.0",
-  "error": {
-    "code": -32000,
-    "message": "Object 'obj_999' not found in registry"
-  },
-  "id": 1
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+        "$error": {
+            "code": "CAPABILITY_NOT_FOUND",
+            "message": "Unknown capability: aspire.foo/bar@1",
+            "capability": "aspire.foo/bar@1"
+        }
+    }
 }
 ```
 
 | Code | Description |
 |------|-------------|
-| -32700 | Parse error |
-| -32600 | Invalid request |
-| -32601 | Method not found |
-| -32602 | Invalid params |
-| -32603 | Internal error |
-| -32000 | Server error (object not found, method not found, etc.) |
+| `CAPABILITY_NOT_FOUND` | Unknown capability ID |
+| `HANDLE_NOT_FOUND` | Handle ID doesn't exist or was disposed |
+| `TYPE_MISMATCH` | Handle type doesn't satisfy capability's `AppliesTo` constraint |
+| `INVALID_ARGUMENT` | Missing required argument, wrong type, or type lacks `[AspireDto]` |
+| `CALLBACK_ERROR` | Error occurred during callback invocation |
+| `INTERNAL_ERROR` | Unexpected error in capability execution |
 
-### JSON Value Shape Summary
+### JSON Value Shapes
 
 **Input Values (Guest → Host)**
 
 | Type | JSON Shape | Example |
 |------|------------|---------|
 | Primitive | raw value | `"hello"`, `42`, `true` |
-| Object ref | `{ "$id": "..." }` | `{ "$id": "obj_1" }` |
-| Ref expression | `{ "$referenceExpression": true, "format": "..." }` | `{ "$referenceExpression": true, "format": "Host={obj_1}" }` |
-| Callback | string | `"cb_001"` |
-| Complex object | JSON object | `{ "Name": "test", "Port": 80 }` |
+| Handle ref | `{ "$handle": "..." }` | `{ "$handle": "aspire.redis/RedisBuilder:1" }` |
+| DTO | JSON object (type must have `[AspireDto]`) | `{ "name": "cache", "port": 6379 }` |
+| Callback | string | `"callback_001"` |
+| Array | `[...]` | `[1, 2, 3]` or `[{"$handle": "..."}]` |
 
 **Output Values (Host → Guest)**
 
@@ -510,322 +930,142 @@ Errors follow the JSON-RPC 2.0 error format:
 |------|------------|---------|
 | Null | `null` | `null` |
 | Primitive | raw value | `"hello"`, `42`, `true` |
-| Primitive array/list | `[...]` | `[1, 2, 3]`, `["a", "b"]` |
-| Primitive dictionary | `{...}` | `{"key": "value", "count": 42}` |
-| Complex object | `{ "$id": "...", "$type": "..." }` | `{ "$id": "obj_1", "$type": "MyType" }` |
-| CancellationToken | `{ "$cancellationToken": "..." }` | `{ "$cancellationToken": "ct_1" }` |
+| Handle | `{ "$handle": "...", "$type": "..." }` | `{ "$handle": "aspire.redis/RedisBuilder:1", "$type": "aspire.redis/RedisBuilder" }` |
+| DTO | JSON object (type must have `[AspireDto]`) | `{ "name": "cache", "port": 6379 }` |
+| Error | `{ "$error": {...} }` | See error format above |
 
 ---
 
 ## Type System and Marshalling
 
-The polyglot architecture bridges two type systems: the host (.NET) and the guest.
+ATS bridges two type systems with strict boundaries.
 
 ### Design Principles
 
 1. **Primitives pass directly**: Strings, numbers, booleans serialize as JSON primitives
-2. **Primitive collections pass directly**: Arrays/lists of primitives become JSON arrays; string-keyed dictionaries of primitives become JSON objects
-3. **Complex objects become proxies**: Non-primitive types are registered in the host and accessed via JSON-RPC calls
-4. **Callbacks are bidirectional**: Guest can register callbacks that the host invokes
+2. **Handles are opaque**: Complex objects become typed handles, not serialized
+3. **DTOs are explicit**: Only `[AspireDto]` types serialize as JSON objects
+4. **Strict validation**: Type mismatches throw errors, never silently convert
 
-### Simple Types (Primitives)
+### Primitive Types
 
-The following .NET types are considered "simple" and serialize directly to JSON values without object registry:
+The following types serialize directly to JSON values:
 
-| Category | .NET Types |
-|----------|------------|
+| Category | Types |
+|----------|-------|
 | Strings | `string`, `char` |
-| Signed integers | `sbyte`, `short`, `int`, `long` |
-| Unsigned integers | `byte`, `ushort`, `uint`, `ulong` |
-| Floating point | `float`, `double`, `decimal` |
+| Numbers | `int`, `long`, `float`, `double`, `decimal` |
 | Boolean | `bool` |
 | Date/Time | `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`, `TimeOnly` |
 | Identifiers | `Guid`, `Uri` |
 | Enums | Any `enum` type |
 | Nullable | `T?` where T is any of the above |
 
-**Special cases:**
-- `byte[]` serializes as a **base64-encoded string**, not a JSON array
-- Collections of simple types (`T[]`, `List<T>`, `Dictionary<string, T>`) serialize directly
+### TimeSpan Marshalling
 
-### Unsupported Types
+`TimeSpan` is serialized as **total milliseconds** (a number) for easy JavaScript interop:
 
-The following types **cannot** be marshalled and will throw `NotSupportedException`:
+**Marshalling (.NET → JSON):**
 
-| Type | Reason |
-|------|--------|
-| `Span<T>`, `ReadOnlySpan<T>` | Ref structs cannot be boxed |
-| `Memory<T>`, `ReadOnlyMemory<T>` | Use `byte[]` with base64 instead |
-| `IAsyncEnumerable<T>` | Streaming not supported |
-| Pointers (`int*`, `void*`) | Cannot serialize pointers |
-| By-ref types (`ref`, `out`, `in`) | Cannot serialize by-reference |
-| Unawaited `Task`/`ValueTask` | Must await before returning |
-
-### Object Registry
-
-The `ObjectRegistry` in the host maintains a `ConcurrentDictionary<string, object>` mapping unique IDs to live .NET objects. When a complex object needs to be returned to the guest:
-
-1. Object is registered with a unique ID (e.g., `obj_1`, `obj_2`)
-2. A marshalled representation is sent: `{ $id, $type, ...properties }`
-3. Guest wraps this in a proxy class
-4. Subsequent operations use the `$id` to reference the object in the host
-
-### Marshalled Object Format
-
-```json
-{
-    "$id": "obj_1",
-    "$type": "RedisResource",
-    "Name": "cache"
-}
+```csharp
+TimeSpan.FromMinutes(5)  →  300000
+TimeSpan.FromSeconds(30) →  30000
+TimeSpan.FromHours(1)    →  3600000
 ```
 
-### Type Mappings
+**Unmarshalling (JSON → .NET):**
 
-#### Guest → Host (Input Deserialization)
+The marshaller accepts two formats:
 
-Input values are deserialized based on the target parameter type and the JSON shape:
+| Format | Example | Notes |
+|--------|---------|-------|
+| Number (milliseconds) | `5000` | Primary format, recommended |
+| String (TimeSpan.Parse) | `"00:05:00"` | Standard .NET format, also supported |
 
-| JSON Shape | Target Type | Handling |
-|------------|-------------|----------|
-| Primitives (`"hello"`, `42`, `true`) | Simple types | Direct conversion |
-| `null` | Any nullable | Returns `null` |
-| `{ "$id": "obj_N" }` | Any | **Reference**: Lookup in ObjectRegistry |
-| `{ "$referenceExpression": true, "format": "..." }` | `ReferenceExpression` | Parsed and reconstructed |
-| `"callback_id"` | Delegate type | **Callback**: Creates proxy delegate |
-| `[...]` | `T[]`, `List<T>`, etc. | Array/list deserialization |
-| `{...}` (no `$id`) | POCO class | **POCO**: Deserialized via `JsonSerializer` |
+**TypeScript usage:**
 
-**POCO Deserialization**: When a JSON object without `$id` is passed to a parameter expecting a class type, it is deserialized using `System.Text.Json`. The target type must have:
-- A public constructor (parameterless or with matching parameter names)
-- Public settable properties matching the JSON keys
+```typescript
+// Using milliseconds (recommended)
+await client.invoke("aspire/withTimeout@1", { resource, timeout: 5000 });
 
-```json
-// Example: createObject with POCO argument
-{
-  "method": "createObject",
-  "params": [
-    "Aspire.Hosting",
-    "Aspire.Hosting.DistributedApplicationOptions",
-    {
-      "Args": ["--operation", "run"],
-      "ProjectDirectory": "/path/to/project"
-    }
-  ]
-}
+// Helper functions for readability
+const seconds = (n: number) => n * 1000;
+const minutes = (n: number) => n * 60 * 1000;
+const hours = (n: number) => n * 60 * 60 * 1000;
+
+await client.invoke("aspire/withTimeout@1", { resource, timeout: minutes(5) });
+
+// String format also works
+await client.invoke("aspire/withTimeout@1", { resource, timeout: "00:05:00" });
 ```
 
-The third parameter is a **POCO** - its properties are copied into a new `DistributedApplicationOptions` instance.
+### Handle Resolution
 
-#### Host → Guest (Output Marshalling)
-
-Output values are marshalled based on the .NET type. **There is an important asymmetry**: complex objects are NOT serialized as POCOs on output - they become references.
-
-| .NET Type | JSON Output | Notes |
-|-----------|-------------|-------|
-| Primitives (`string`, `int`, `bool`, etc.) | raw value | Direct JSON primitive |
-| `DateTime`, `DateTimeOffset`, `TimeSpan` | string | ISO 8601 / duration format |
-| `DateOnly`, `TimeOnly` | string | Date/time format |
-| `Guid`, `Uri` | string | String representation |
-| Enums | string | Enum name (e.g., `"Wednesday"`) |
-| `byte[]` | string | Base64-encoded |
-| `T[]`, `List<T>` (primitive T) | `[...]` | JSON array of primitives |
-| `Dictionary<string, T>` (primitive T) | `{...}` | JSON object (no `$id`/`$type`) |
-| **All other objects** | `{ "$id", "$type" }` | **Reference**: Registered in ObjectRegistry |
-
-**Key Distinction - POCOs vs References**:
-- **Input (Guest → Host)**: JSON objects can be POCOs (deserialized, properties copied)
-- **Output (Host → Guest)**: Complex objects are ALWAYS references (registered, not serialized)
-
-This means if you pass a POCO in, you get a **copy**. If a method returns an object, you get a **reference** to the live .NET object.
-
-### Input Deserialization Examples
-
-The following examples show how different JSON inputs are deserialized based on the target .NET parameter type:
-
-| JSON Input | Target Type | Result |
-|------------|-------------|--------|
-| `42` | `int` | Primitive: `42` |
-| `"hello"` | `string` | Primitive: `"hello"` |
-| `true` | `bool` | Primitive: `true` |
-| `"Friday"` | `DayOfWeek` | Enum: `DayOfWeek.Friday` |
-| `"SGVsbG8="` | `byte[]` | Base64 decoded: `[72, 101, 108, 108, 111]` |
-| `{"$id": "obj_1"}` | `IResourceBuilder<T>` | **Reference**: Lookup `obj_1` in registry |
-| `{"$id": "obj_1"}` | `DistributedApplicationBuilder` | **Reference**: Lookup `obj_1` in registry |
-| `"cb_123"` | `Action<T>` | **Callback**: Create proxy delegate |
-| `"cb_123"` | `Func<Task>` | **Callback**: Create proxy delegate |
-| `{"$referenceExpression": true, "format": "redis://{obj_1}"}` | `ReferenceExpression` | **ReferenceExpression**: Parse and reconstruct |
-| `[1, 2, 3]` | `int[]` | Array: `[1, 2, 3]` |
-| `[1, 2, 3]` | `List<int>` | List: `[1, 2, 3]` |
-| `{"Name": "test", "Port": 6379}` | `MyOptions` | **POCO**: Deserialize to new `MyOptions` instance |
-| `{"Args": ["--run"], "Dir": "/app"}` | `AppOptions` | **POCO**: Deserialize to new `AppOptions` instance |
-
-**How POCO vs Reference is determined**:
-
-1. If JSON has `"$id"` property → **Reference** (lookup in ObjectRegistry)
-2. If target type is delegate and JSON is string → **Callback**
-3. If target type is `ReferenceExpression` and JSON has `"$referenceExpression"` → **ReferenceExpression**
-4. If JSON is primitive value and target is simple type → **Primitive**
-5. If JSON is array and target is array/list → **Array**
-6. Otherwise → **POCO** (falls through to `JsonSerializer.Deserialize`)
-
-**POCO Requirements**: The target type must be deserializable by `System.Text.Json`:
-- Public parameterless constructor OR constructor with matching parameter names
-- Public settable properties (or `init` properties)
-- Property names match JSON keys (case-insensitive by default)
-
-### Unsupported Input Types (POCO Validation)
-
-The following types **cannot** be deserialized as POCOs and will throw `NotSupportedException` with a helpful message suggesting to use `{$id}` references instead:
-
-| Type Category | Example | Error Message |
-|---------------|---------|---------------|
-| Interfaces | `IResourceBuilder<T>`, `IDistributedApplicationBuilder` | "Cannot deserialize JSON to interface type. Did you mean to pass an object reference?" |
-| Abstract classes | `Resource`, `ContainerResource` | "Cannot deserialize JSON to abstract type. Did you mean to pass an object reference?" |
-| Open generics | `List<>` (without type argument) | "Cannot deserialize JSON to open generic type." |
-| Delegate types | `Action<T>`, `Func<Task>` | "Cannot deserialize JSON to delegate type. Pass a callback ID string instead." |
-| Reflection types | `Type`, `MethodInfo`, `Assembly` | "Cannot deserialize JSON to reflection type." |
-| Types without constructors | Classes with only private constructors | "Cannot deserialize JSON to type - no public constructors." |
-
-**Example Error Scenario**:
-```json
-// WRONG: Passing JSON object to interface parameter
-{"method": "invokeMethod", "params": ["obj_1", "WithReference", {"builder": {"Name": "test"}}]}
-// Error: Cannot deserialize JSON to interface type 'IResourceBuilder`1'.
-//        Did you mean to pass an object reference? Use {"$id": "obj_N"} format.
-
-// CORRECT: Pass object reference
-{"method": "invokeMethod", "params": ["obj_1", "WithReference", {"builder": {"$id": "obj_2"}}]}
-```
-
-**Output Examples:**
+When a JSON object contains `$handle`, it's resolved from the HandleRegistry:
 
 ```json
-// Primitive string
-"hello"
+// Input
+{ "$handle": "aspire.redis/RedisBuilder:1" }
 
-// Primitive number
-42
-
-// byte[] as base64 string
-"SGVsbG8gV29ybGQh"
-
-// Array of integers (int[])
-[1, 2, 3, 4, 5]
-
-// List of strings (List<string>)
-["alpha", "beta", "gamma"]
-
-// Dictionary with string keys and primitive values (Dictionary<string, int>)
-{"one": 1, "two": 2, "three": 3}
-
-// Complex object (registered in ObjectRegistry)
-{"$id": "obj_5", "$type": "IResourceBuilder<RedisResource>"}
+// Resolved to the actual .NET object registered with that ID
 ```
 
-### ReferenceExpression
+### DTO Serialization
 
-`ReferenceExpression` allows building connection strings that reference host objects:
+DTOs require the `[AspireDto]` attribute. Without it:
+
+| Direction | Behavior |
+|-----------|----------|
+| Input (JSON → .NET) | **Error**: `"Type 'X' must have [AspireDto] attribute to be deserialized from JSON"` |
+| Output (.NET → JSON) | Marshaled as a handle instead |
+
+This prevents accidental serialization of internal types like `IConfiguration` or `ILogger`.
+
+### Array Handling
+
+Arrays support primitives, handles, and DTOs:
 
 ```json
-{ "$referenceExpression": true, "format": "redis://{obj_4}" }
+// Array of primitives
+[1, 2, 3]
+
+// Array of handles
+[
+    {"$handle": "aspire.redis/RedisBuilder:1"},
+    {"$handle": "aspire.redis/RedisBuilder:2"}
+]
+
+// Array of DTOs (element type must have [AspireDto])
+[
+    {"name": "cache1", "port": 6379},
+    {"name": "cache2", "port": 6380}
+]
 ```
 
-The format string contains `{$id}` placeholders. The host reconstructs the expression using object registry lookups.
+### Type Hierarchy Validation
 
-### Argument Deserialization
+The `AppliesTo` constraint is validated against the handle's type hierarchy:
 
-When the host receives method arguments from the guest, they are deserialized according to the following rules (processed in order of precedence):
-
-#### 1. Object References
-
-**Pattern**: `{"$id": "<object_id>"}`
-
-Looks up the object in the ObjectRegistry and returns the actual .NET instance.
+```csharp
+// Capability requires IResourceWithEnvironment - derived from the generic constraint
+[AspireExport("aspire/withEnvironment@1", Description = "Sets an environment variable")]
+public static IResourceBuilder<T> WithEnvironment<T>(...) where T : IResourceWithEnvironment
+```
 
 ```json
-{ "builder": {"$id": "obj_1"} }
+// Valid - Redis extends IResourceWithEnvironment
+{"resource": {"$handle": "aspire/Redis:1"}}
+
+// Invalid - some type that doesn't implement IResourceWithEnvironment
+{"resource": {"$handle": "aspire/SomeOtherType:1"}}
+// Error: TYPE_MISMATCH
 ```
-
-#### 2. ReferenceExpression
-
-**Pattern**: `{"$referenceExpression": true, "format": "..."}`
-
-Only applies when target type is `ReferenceExpression`. Parses format string for `{obj_N}` placeholders and reconstructs the expression.
-
-```json
-{ "connectionString": {"$referenceExpression": true, "format": "Server={obj_1};Port={obj_2}"} }
-```
-
-#### 3. Null
-
-**Pattern**: `null`
-
-Returns `null` for any nullable target type.
-
-#### 4. Callback References
-
-**Pattern**: `"<callback_id>"` (string value when target type is a delegate)
-
-Creates a proxy delegate that invokes the guest callback via `invokeCallback`. Supports any delegate signature.
-
-```json
-{ "onReady": "callback_123" }
-```
-
-#### 5. Primitives
-
-| Target Type | JSON Type | Example |
-|-------------|-----------|---------|
-| `string` | string | `"hello"` |
-| `int`, `int?` | number | `42` |
-| `long`, `long?` | number | `9999999999` |
-| `double`, `double?` | number | `3.14` |
-| `bool`, `bool?` | boolean | `true` |
-
-#### 6. Arrays
-
-**Pattern**: `[...]` (when target type is `T[]`)
-
-Recursively deserializes each element using these same rules.
-
-```json
-{ "ports": [80, 443, 8080] }
-{ "services": [{"$id": "obj_1"}, {"$id": "obj_2"}] }
-```
-
-#### 7. Complex Objects (Fallback)
-
-Any JSON object not matching above patterns is deserialized using `System.Text.Json.JsonSerializer`.
-
-```json
-{ "options": {"name": "my-service", "replicas": 3} }
-```
-
-### Method Resolution
-
-When multiple method overloads exist, the host selects the best match by scoring:
-
-- **+10** for each argument name that matches a parameter name
-- **-100** for each required parameter without a matching argument
-
-Tie-breaker: Prefer methods with fewer parameters.
-
-**Example**: Given `args: {"name": "test"}` and overloads:
-
-| Overload | Score | Reason |
-|----------|-------|--------|
-| `Method(string name)` | **10** | name matches, no missing required |
-| `Method(int value)` | -100 | value required but missing |
-| `Method(string name, int value)` | -90 | name matches (+10), value missing (-100) |
-
-Parameter name matching is **case-insensitive**.
 
 ---
 
 ## Code Generation
 
-The CLI generates language-specific SDK code that provides type-safe APIs with instance methods for all Aspire integrations.
+The CLI generates language-specific SDK code from ATS capability manifests.
 
 ### Generation Trigger
 
@@ -838,11 +1078,11 @@ Code generation runs automatically when:
 
 ### What Gets Generated
 
-For each Aspire integration, the generator creates:
+The generator scans assemblies for `[AspireExport]` attributes and produces:
 
-1. **Builder methods** on `DistributedApplicationBuilder`
-2. **Resource-specific builder classes** with fluent methods
-3. **Proxy wrapper classes** for callback contexts and model types
+1. **Capability wrapper functions** - Type-safe functions for each capability
+2. **Handle type definitions** - TypeScript types for each handle
+3. **DTO interfaces** - TypeScript interfaces for each DTO
 
 ---
 
@@ -855,56 +1095,76 @@ This section covers TypeScript-specific details for the polyglot apphost feature
 ```text
 .modules/
 ├── .codegen-hash              # SHA256 hash of package references
-├── distributed-application.ts # Main SDK with builder classes
-├── types.ts                   # Type definitions for RPC communication
-└── RemoteAppHostClient.ts     # JSON-RPC client implementation
+├── ats-client.ts              # ATS client and core types
+├── handles.ts                 # Handle type definitions
+├── dtos.ts                    # DTO interfaces
+├── capabilities/
+│   ├── core.ts                # aspire.core/* capabilities
+│   └── redis.ts               # aspire.redis/* capabilities
+└── index.ts                   # Main SDK exports
 ```
 
-### Base Proxy Classes
+### Core Types
 
-**`DotNetProxy`** - Foundation for all remote object access:
 ```typescript
-class DotNetProxy {
-    readonly $id: string;
-    readonly $type: string;
+// Handle reference
+export interface Handle<T extends string = string> {
+    readonly $handle: string;
+    readonly $type: T;
+}
 
-    async invokeMethod(name: string, args?: Record<string, unknown>): Promise<unknown>;
-    async getProperty(name: string): Promise<unknown>;
-    async setProperty(name: string, value: unknown): Promise<void>;
-    async getIndexer(key: string | number): Promise<unknown>;
-    async setIndexer(key: string | number, value: unknown): Promise<void>;
-    async dispose(): Promise<void>;
+// ATS client
+export class AtsClient {
+    async invokeCapability<T>(id: string, args: Record<string, unknown>): Promise<T>;
+    async getCapabilities(): Promise<string[]>;
+}
+
+// Type-safe handle types
+export type DistributedApplicationBuilderHandle = Handle<'aspire.core/DistributedApplicationBuilder'>;
+export type RedisBuilderHandle = Handle<'aspire.redis/RedisBuilder'>;
+```
+
+### Generated Capability Functions
+
+```typescript
+// Generated from aspire.redis/addRedis@1
+export async function addRedis(
+    client: AtsClient,
+    builder: DistributedApplicationBuilderHandle,
+    options: AddRedisOptions
+): Promise<RedisBuilderHandle> {
+    return await client.invokeCapability('aspire.redis/addRedis@1', { builder, options });
 }
 ```
 
-**`ListProxy<T>`** - For `IList<T>` operations:
+### Thenable Pattern for Fluent Async
+
+The TypeScript generator produces `*ProxyPromise` wrapper classes that enable fluent async chaining. This pattern can be adapted to other languages with similar async models:
+
 ```typescript
-class ListProxy<T> {
-    async add(item: T): Promise<void>;
-    async get(index: number): Promise<T>;
-    async set(index: number, value: T): Promise<void>;
-    async count(): Promise<number>;
-    async clear(): Promise<void>;
-    async contains(item: T): Promise<boolean>;
-    async remove(item: T): Promise<boolean>;
-    async removeAt(index: number): Promise<void>;
-    async insert(index: number, item: T): Promise<void>;
-    async dispose(): Promise<void>;
-}
+// Without thenable pattern (multiple awaits):
+const env = await builder.getEnvironment();
+const name = await env.getEnvironmentName();
+
+// With thenable pattern (single await, fluent chain):
+const name = await builder.getEnvironment().getEnvironmentName();
 ```
 
-### Generated Proxy Wrappers
-
-The code generator produces typed proxy wrapper classes for common .NET types like `IConfiguration`, `IHostEnvironment`, and `IServiceProvider`. These provide typed access to .NET objects and wrap the underlying `DotNetProxy`:
+The pattern wraps a `Promise<Proxy>` and forwards method calls through the promise:
 
 ```typescript
-class ConfigurationProxy {
-    private _proxy: DotNetProxy;
-    get proxy(): DotNetProxy { return this._proxy; }
+class EnvironmentProxyPromise implements PromiseLike<EnvironmentProxy> {
+  constructor(private _promise: Promise<EnvironmentProxy>) {}
 
-    async get(key: string): Promise<string | null>;
-    async getSection(key: string): Promise<ConfigurationProxy>;
-    async getConnectionString(name: string): Promise<string | null>;
+  // PromiseLike implementation
+  then<T1, T2>(onFulfilled?, onRejected?): PromiseLike<T1 | T2> {
+    return this._promise.then(onFulfilled, onRejected);
+  }
+
+  // Fluent method - chains through the promise
+  getEnvironmentName(): Promise<string> {
+    return this._promise.then(p => p.getEnvironmentName());
+  }
 }
 ```
 
@@ -915,26 +1175,24 @@ The `refExpr` tagged template literal creates reference expressions:
 ```typescript
 const endpoint = await redis.getEndpoint("tcp");
 const expr = refExpr`redis://${endpoint}`;
-// Serializes as: { $referenceExpression: true, format: "redis://{obj_4}" }
+// Serializes as: { $referenceExpression: true, format: "redis://{0}", args: [{$handle: "..."}] }
 ```
 
 ### Example Usage
 
 ```typescript
 // apphost.ts
-import { createBuilder } from './.modules/distributed-application.js';
+import { createBuilder, addRedis, withEnvironment, build, run } from './.modules/index.js';
 
 const builder = await createBuilder();
 
-const redis = await builder.addRedis('cache');
-const postgres = await builder.addPostgres('db');
+const redis = await addRedis(builder, { name: 'cache' });
 
-const api = await builder.addProject('api', '../Api/Api.csproj')
-    .withReference(redis)
-    .withReference(postgres);
+// withEnvironment works on any resource builder (polymorphic)
+await withEnvironment(redis, { name: 'REDIS_MODE', value: 'standalone' });
 
-const app = builder.build();
-await app.run();
+const app = await build(builder);
+await run(app);
 ```
 
 ---
@@ -986,10 +1244,10 @@ classDiagram
 
 For polyglot app hosts, `RunAsync` and `PublishAsync` follow the same pattern:
 
-1. **Start the AppHost server** - A .NET process running Aspire.Hosting that exposes a JSON-RPC server
+1. **Start the AppHost server** - A .NET process running capability dispatcher
 2. **Start the guest** - The guest language process that connects via JSON-RPC
-3. **Guest defines resources** - Via RPC calls like `addRedis()`, `addPostgres()`
-4. **Guest calls `run()`** - Triggers orchestration (run mode) or pipeline execution (publish mode)
+3. **Guest invokes capabilities** - Via `invokeCapability("aspire.redis/addRedis@1", ...)`
+4. **Guest calls run** - Triggers orchestration (run mode) or pipeline execution (publish mode)
 
 In **run mode**, the AppHost server runs until interrupted (Ctrl+C). In **publish mode**, it exits when the pipeline completes.
 
@@ -1005,14 +1263,15 @@ In **run mode**, the AppHost server runs until interrupted (Ctrl+C). In **publis
    - References `Aspire.AppHost.Sdk` and required hosting packages
    - Builds the project with `dotnet build`
 3. **Code Generation**:
-   - Loads assemblies from build output using `AssemblyLoaderContext`
-   - Builds `ApplicationModel` via reflection on loaded assemblies
+   - Scans assemblies for `[AspireExport]` and `[AspireCallback]` attributes
+   - Builds ATS manifest
    - Generates SDK into language-specific output folder
 4. **Host Launch**: AppHost server started via `dotnet exec` with:
    - `REMOTE_APP_HOST_SOCKET_PATH` - Unix domain socket path for JSON-RPC
    - `REMOTE_APP_HOST_PID` - CLI process ID for orphan detection
+   - `ASPIRE_RPC_AUTH_TOKEN` - Authentication token
 5. **Guest Launch**: Guest runtime started with the entry point
-6. **Connection**: Guest connects to host over Unix domain socket
+6. **Connection**: Guest authenticates and invokes capabilities
 
 ### Shutdown Scenarios
 
@@ -1072,29 +1331,31 @@ The polyglot architecture supports additional languages. The host-side infrastru
 **Adding a new language requires:**
 1. Implement `IAppHostProject` interface
 2. Create a code generator in `Aspire.Hosting.CodeGeneration.<Language>`
-3. Implement a JSON-RPC client for the guest runtime
+3. Implement an ATS client for the guest runtime
 
 ### Components to Implement
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | AppHost Project | `Aspire.Cli/Projects/<Language>AppHostProject.cs` | Implement `IAppHostProject` |
-| Code Generator | `Aspire.Hosting.CodeGeneration.<Language>` | Generate idiomatic SDK |
-| Runtime Client | Embedded or generated | JSON-RPC client with proxy classes |
+| Code Generator | `Aspire.Hosting.CodeGeneration.<Language>` | Generate idiomatic SDK from ATS manifest |
+| Runtime Client | Embedded or generated | ATS client with `invokeCapability` support |
 
 ### Runtime Client Requirements
 
-The guest language needs a JSON-RPC client that:
+The guest language needs an ATS client that:
 1. Connects to Unix domain socket (path from `REMOTE_APP_HOST_SOCKET_PATH`)
 2. Implements `vscode-jsonrpc` header-delimited message format
-3. Handles `invokeCallback` requests from host
-4. Wraps marshalled objects (`$id`, `$type`) in proxy classes
+3. Handles `authenticate` before any other calls
+4. Implements `invokeCapability` for all operations
+5. Wraps handle references (`$handle`, `$type`) in typed wrappers
+6. Handles `invokeCallback` requests from host
 
 ### Reusable Infrastructure
 
 These components work unchanged for any guest language:
-- `Aspire.Hosting.RemoteHost` - JSON-RPC server, method dispatcher, object registry
-- `Aspire.Hosting.CodeGeneration` - Reflection-based model building
+- `Aspire.Hosting.RemoteHost` - JSON-RPC server, capability dispatcher, handle registry
+- `Aspire.Hosting.CodeGeneration` - ATS manifest building from attributes
 - AppHost server scaffolding and build process
 
 ---
@@ -1103,17 +1364,44 @@ These components work unchanged for any guest language:
 
 The code generation system uses a **visitor pattern** with a shared base class that handles language-agnostic concerns, allowing new guest languages to be added with minimal effort.
 
+### ATS Manifest
+
+The generator first builds an ATS manifest by scanning assemblies for `[AspireExport]` attributes:
+
+```json
+{
+    "capabilities": [
+        {
+            "id": "aspire.redis/addRedis@1",
+            "appliesTo": null,
+            "parameters": [
+                {"name": "builder", "type": "aspire/Builder"},
+                {"name": "name", "type": "string"},
+                {"name": "port", "type": "number?"}
+            ],
+            "returnType": "aspire/Redis"
+        }
+    ],
+    "handles": [
+        {
+            "typeId": "aspire/Redis",
+            "extends": "aspire/IResource"
+        }
+    ],
+    "dtos": []
+}
+```
+
 ### CodeGeneratorVisitor Base Class
 
 `CodeGeneratorVisitor` in `Aspire.Hosting.CodeGeneration` provides shared logic:
 
 | Concern | What the Base Class Handles |
 |---------|----------------------------|
+| **Manifest Building** | Scans for `[AspireExport]` and `[AspireCallback]` attributes |
 | **Type Discovery** | Queue-based traversal of all referenced types |
-| **Overload Disambiguation** | Generates unique names (`add`, `add2`, `add3`) for overloaded methods |
-| **Delegate Detection** | Identifies `Action<T>`, `Func<T>` parameters for callback generation |
-| **Collection Handling** | Detects `IList<T>`, `IDictionary<K,V>`, nullable types |
-| **Two-Phase Emission** | Discovery phase then emission phase (prevents forward reference issues) |
+| **Handle Hierarchy** | Builds type hierarchy from CLR type inheritance |
+| **Two-Phase Emission** | Discovery phase then emission phase |
 
 Language implementations override abstract methods for syntax-specific concerns:
 
@@ -1121,23 +1409,13 @@ Language implementations override abstract methods for syntax-specific concerns:
 public abstract class CodeGeneratorVisitor : ICodeGenerator
 {
     // Language implementations override these
-    protected abstract string FormatType(RoType type);           // string vs str
-    protected abstract string FormatMethodName(string name);     // camelCase vs snake_case
-    protected abstract void EmitMethod(...);                     // Syntax emission
-    protected abstract void EmitProxyClass(...);                 // Class structure
+    protected abstract string FormatType(string atsType);           // handle type → language type
+    protected abstract string FormatMethodName(string name);        // camelCase vs snake_case
+    protected abstract void EmitCapabilityFunction(...);            // Syntax emission
+    protected abstract void EmitHandleType(...);                    // Type definition
+    protected abstract void EmitDtoInterface(...);                  // DTO interface
 }
 ```
-
-### TypeScript Implementation
-
-`TypeScriptCodeGenerator` extends the base visitor with TypeScript-specific formatting:
-
-| Base Class Method | TypeScript Override |
-|-------------------|---------------------|
-| `FormatType(string)` | `"string"` |
-| `FormatType(int)` | `"number"` |
-| `FormatMethodName("AddRedis")` | `"addRedis"` (camelCase) |
-| `EmitProxyClass` | `class FooProxy { ... }` with braces |
 
 ### Adding a New Language (Example: Python)
 
@@ -1146,58 +1424,26 @@ To add Python support, create `PythonCodeGenerator : CodeGeneratorVisitor`:
 ```csharp
 public class PythonCodeGenerator : CodeGeneratorVisitor
 {
-    protected override string FormatType(RoType type)
+    protected override string FormatType(string atsType)
     {
-        if (type == typeof(string)) return "str";
-        if (type == typeof(int)) return "int";
-        if (type == typeof(bool)) return "bool";
+        if (atsType == "string") return "str";
+        if (atsType == "number") return "int";
+        if (atsType == "boolean") return "bool";
         return "Any";
     }
 
     protected override string FormatMethodName(string name) =>
         ToSnakeCase(name);  // add_redis instead of addRedis
 
-    protected override void EmitProxyClass(string name, ...)
+    protected override void EmitCapabilityFunction(string id, ...)
     {
-        Writer.WriteLine($"class {name}:");
-        Writer.WriteLine($"    def __init__(self, proxy):");
-        // ... indentation-based syntax
+        Writer.WriteLine($"async def {FormatMethodName(name)}(client, ...):");
+        Writer.WriteLine($"    return await client.invoke_capability('{id}', {{...}})");
     }
 }
 ```
 
-The base class handles all the complex logic (type traversal, overload resolution, callback detection), so a new language implementation is primarily formatting and syntax.
-
-### Thenable Pattern for Fluent Async
-
-The TypeScript generator produces `*ProxyPromise` wrapper classes that enable fluent async chaining. This pattern can be adapted to other languages with similar async models:
-
-```typescript
-// Without thenable pattern (multiple awaits):
-const env = await builder.getEnvironment();
-const name = await env.getEnvironmentName();
-
-// With thenable pattern (single await, fluent chain):
-const name = await builder.getEnvironment().getEnvironmentName();
-```
-
-The pattern wraps a `Promise<Proxy>` and forwards method calls through the promise:
-
-```typescript
-class EnvironmentProxyPromise implements PromiseLike<EnvironmentProxy> {
-  constructor(private _promise: Promise<EnvironmentProxy>) {}
-
-  // PromiseLike implementation
-  then<T1, T2>(onFulfilled?, onRejected?): PromiseLike<T1 | T2> {
-    return this._promise.then(onFulfilled, onRejected);
-  }
-
-  // Fluent method - chains through the promise
-  getEnvironmentName(): Promise<string> {
-    return this._promise.then(p => p.getEnvironmentName());
-  }
-}
-```
+The base class handles all the complex logic (manifest building, type traversal, hierarchy), so a new language implementation is primarily formatting and syntax.
 
 ---
 
@@ -1240,6 +1486,18 @@ This section describes the security considerations for the polyglot apphost feat
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### Security Improvements over Generic RPC
+
+ATS provides significant security improvements over a generic .NET remoting approach:
+
+| Aspect | Generic RPC | ATS |
+|--------|-------------|-----|
+| **API Surface** | Any .NET method | Only registered capabilities |
+| **Type Access** | Any loaded type | Only intrinsic and `IResource` types |
+| **Serialization** | Implicit POCO serialization | Only `[AspireDto]` types |
+| **Versioning** | None (CLR signatures) | Capability version in ID |
+| **Dangerous APIs** | `System.IO.File.*`, `Process.Start` accessible | Not exposed |
+
 ### Trust Boundaries
 
 | Boundary | Description |
@@ -1249,226 +1507,29 @@ This section describes the security considerations for the polyglot apphost feat
 | **Socket File** | File system permissions control access |
 | **Guest Dependencies** | npm/pip packages are third-party code |
 
-### Threat Actors
-
-| Actor | Description | Motivation |
-|-------|-------------|------------|
-| **Malicious Dependency** | Compromised npm/pip package in user's project | Data theft, cryptomining, lateral movement |
-| **Local Attacker** | Another process/user on the same machine | Hijack socket, inject commands |
-| **Compromised Guest Runtime** | Exploited vulnerability in Node.js/Python | Arbitrary code execution |
-| **Malicious User Code** | User intentionally writes malicious apphost | N/A (user is attacking themselves) |
-
-**Note:** "Malicious user code" is not a meaningful threat - if the user wants to run malicious code, they can do so directly without using Aspire. The real threats are supply chain attacks and local privilege escalation.
-
-### Attack Vectors
-
-#### 1. Supply Chain Attack (npm/pip packages)
-
-**Threat:** A malicious package in `node_modules` or Python venv gains access to the RPC protocol and invokes dangerous .NET APIs.
-
-**Attack Path:**
-```text
-Malicious npm package
-    → Reads ASPIRE_RPC_SOCKET environment variable
-    → Connects to Unix domain socket
-    → Invokes: invokeStaticMethod("System.IO.File", "ReadAllText", {path: "/etc/passwd"})
-    → Exfiltrates data
-```
-
-**Dangerous APIs accessible today:**
-- `System.IO.File.*` - Read/write arbitrary files
-- `System.Diagnostics.Process.Start` - Execute arbitrary commands
-- `System.Environment.GetEnvironmentVariable` - Read secrets
-- `System.Reflection.*` - Load and execute arbitrary code
-- `System.Net.Http.HttpClient` - Exfiltrate data
-
-#### 2. Socket Hijacking
-
-**Threat:** Another process on the machine connects to the Unix domain socket.
-
-**Attack Path:**
-```text
-Attacker process
-    → Enumerates /tmp/.aspire/ or watches for socket creation
-    → Connects to socket before/after legitimate guest
-    → Sends malicious RPC commands
-```
-
-#### 3. Object Registry Pollution
-
-**Threat:** Attacker creates objects that persist beyond their intended lifecycle.
-
-**Attack Path:**
-```text
-Attacker
-    → Creates thousands of large objects via createObject
-    → Never calls unregisterObject
-    → Host process runs out of memory (DoS)
-```
-
-#### 4. Callback Injection
-
-**Threat:** Attacker registers callbacks that execute malicious code when invoked.
-
-**Attack Path:**
-```text
-Attacker
-    → Registers callback that looks legitimate
-    → Callback exfiltrates data passed to it (e.g., HealthCheckContext)
-```
-
-### Current Mitigations
-
-| Mitigation | Description | Effectiveness |
-|------------|-------------|---------------|
-| **Unix Domain Socket** | No network exposure; local-only | ✅ Strong |
-| **Same-user execution** | Guest and host run as same user | ⚠️ Partial |
-| **Socket in temp directory** | Not in predictable location | ⚠️ Weak (discoverable) |
-| **CLI controls lifecycle** | Socket only exists during `aspire run` | ⚠️ Partial |
-
 ### Implemented Mitigations
 
-#### M1: Assembly Allowlist ✅
+| Mitigation | Description | Status |
+|------------|-------------|--------|
+| **Capability Allowlist** | Only registered capabilities can be invoked | ✅ Implemented |
+| **Handle Type Validation** | `AppliesTo` constraints are enforced | ✅ Implemented |
+| **DTO Enforcement** | Only `[AspireDto]` types can be serialized | ✅ Implemented |
+| **Socket Authentication** | Token-based authentication required | ✅ Implemented |
+| **Socket Permissions** | Restrictive file permissions (owner only) | ✅ Implemented |
 
-**Problem:** Any loaded assembly's types can be invoked.
+### Error Handling
 
-**Solution:** Restrict to known-safe assembly prefixes. Implemented in `SecurityPolicy.cs`.
-
-```csharp
-private static readonly string[] s_allowedAssemblyPrefixes =
-[
-    "Aspire.Hosting",
-    "Microsoft.Extensions.Hosting",
-    "Microsoft.Extensions.Configuration",
-    "Microsoft.Extensions.DependencyInjection",
-    "Microsoft.Extensions.ServiceDiscovery",
-];
-```
-
-All `createObject`, `invokeStaticMethod`, `getStaticProperty`, and `setStaticProperty` calls validate the assembly name against this allowlist. Attempts to access blocked assemblies throw `UnauthorizedAccessException`.
-
-**Blocked by default:**
-- `System.IO` - File system access
-- `System.Diagnostics` - Process execution
-- `System.Reflection` - Dynamic code loading
-- `System.Net` - Network access
-
-#### M2: Socket Authentication Token ✅
-
-**Problem:** Any process that can access the socket file can connect.
-
-**Solution:** Require a secret token for authentication. Implemented in `RemoteAppHostService`.
-
-```text
-1. Server is created with an optional auth token
-2. Token passed to guest via environment variable (ASPIRE_RPC_TOKEN)
-3. Guest must call authenticate() before any other RPC method
-4. Host rejects all calls (except ping) until authenticated
-5. Token comparison uses constant-time algorithm to prevent timing attacks
-```
+Invalid operations return structured errors without exposing internal .NET details:
 
 ```json
-// First message from guest must be:
-{"jsonrpc":"2.0","id":1,"method":"authenticate","params":{"token":"<random-token>"}}
-
-// Response on success:
-{"jsonrpc":"2.0","id":1,"result":true}
-
-// Response on failure:
-{"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"Invalid authentication token."}}
-```
-
-The `ping` method does not require authentication (used for health checks before auth).
-
-### Proposed Mitigations
-
-#### M3: Socket File Permissions ✅
-
-**Problem:** Default file permissions may allow other users to access socket.
-
-**Solution:** Set restrictive permissions on socket file.
-
-```csharp
-// On Unix: chmod 600 (owner read/write only)
-File.SetUnixFileMode(socketPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-```
-
-#### M4: Object Registry Limits
-
-**Problem:** Unbounded object creation can exhaust memory.
-
-**Solution:** Enforce limits on registry size.
-
-```csharp
-private const int MaxRegisteredObjects = 10_000;
-private const int MaxObjectSizeBytes = 100_000_000; // 100 MB total
-
-public string Register(object obj)
 {
-    if (_registry.Count >= MaxRegisteredObjects)
-        throw new InvalidOperationException("Object registry limit exceeded");
-    // ...
+    "$error": {
+        "code": "CAPABILITY_NOT_FOUND",
+        "message": "Unknown capability: aspire.foo/bar@1",
+        "capability": "aspire.foo/bar@1"
+    }
 }
 ```
-
-#### M5: Method Blocklist
-
-**Problem:** Even on allowed assemblies, some methods are dangerous.
-
-**Solution:** Block known-dangerous methods.
-
-```csharp
-private static readonly HashSet<string> BlockedMethods = new(StringComparer.OrdinalIgnoreCase)
-{
-    "GetType",           // Reflection entry point
-    "InvokeMember",      // Dynamic invocation
-    "CreateDelegate",    // Delegate creation
-};
-```
-
-#### M6: Audit Logging
-
-**Problem:** No visibility into what RPC calls are being made.
-
-**Solution:** Log all RPC operations.
-
-```csharp
-// Log format
-[2024-01-15T10:30:45Z] RPC invokeStaticMethod: Aspire.Hosting.Redis.RedisBuilderExtensions.AddRedis
-[2024-01-15T10:30:45Z] RPC BLOCKED: System.IO.File.ReadAllText (assembly not allowed)
-```
-
-#### M7: Rate Limiting
-
-**Problem:** Burst of RPC calls can overwhelm the host.
-
-**Solution:** Limit RPC calls per time window.
-
-```csharp
-private const int MaxRpcCallsPerSecond = 1000;
-```
-
-### Mitigation Priority Matrix
-
-| Mitigation | Threat Addressed | Effort | Status |
-|------------|------------------|--------|--------|
-| **M1: Assembly Allowlist** | Supply chain attack | Medium | ✅ Implemented |
-| **M2: Socket Auth Token** | Socket hijacking | Medium | ✅ Implemented |
-| **M3: Socket Permissions** | Local attacker | Low | ✅ Implemented |
-| **M4: Registry Limits** | DoS | Low | ⚪ N/A |
-| **M5: Method Blocklist** | Supply chain attack | Low | ⚪ N/A |
-| **M6: Audit Logging** | Detection/forensics | Low | 🟢 Future |
-| **M7: Rate Limiting** | DoS | Low | 🟢 Future |
-
-### Residual Risks
-
-Even with all mitigations, some risks remain:
-
-| Risk | Description | Acceptance Rationale |
-|------|-------------|---------------------|
-| **Allowed API abuse** | Aspire.Hosting APIs could be misused | User code can do this anyway via .NET |
-| **Resource exhaustion** | Creating many legitimate resources | Same as running any .NET code |
-| **Token theft** | Environment variable could be read by malicious package | Package already has user privileges |
 
 ### Security Recommendations for Users
 
@@ -1476,22 +1537,28 @@ Even with all mitigations, some risks remain:
 2. **Use lockfiles** - Pin exact versions to prevent supply chain attacks
 3. **Minimize dependencies** - Fewer packages = smaller attack surface
 4. **Run with least privilege** - Don't run `aspire run` as root/admin
-5. **Monitor for anomalies** - Watch for unexpected network connections or file access
 
 ---
 
 ## Challenges and Limitations
 
-The generic .NET remoting approach is powerful but presents challenges when exposing the full .NET type system to guest languages.
+The capability-based approach addresses many challenges of generic RPC but some limitations remain.
 
 ### Known Challenges
 
 | Challenge | Description | Status |
 |-----------|-------------|--------|
-| **Generic methods** | Methods like `GetRequiredService<T>()` require runtime type specification | Inferred from args |
-| **Overload resolution** | Complex overloading may be ambiguous over JSON | Resolved by argument names |
-| **ref/out parameters** | By-reference parameters cannot be marshalled | Skipped in codegen |
-| **Span/Memory types** | Stack-allocated types cannot be marshalled | Not supported |
+| **Capability coverage** | Not all Aspire APIs have capability wrappers yet | In progress |
+| **Callback complexity** | Complex callback signatures need careful mapping | Supported |
 | **Async enumerable** | `IAsyncEnumerable<T>` streaming requires special handling | TBD |
-| **Disposable patterns** | Guest languages may not have deterministic disposal | Manual via `unregisterObject` |
-| **Exception mapping** | .NET exception hierarchy doesn't map to guest languages | Flattened to error messages |
+| **Generic handles** | Handles like `IResourceBuilder<T>` need type parameters | Handled via hierarchy |
+
+### Advantages over Generic RPC
+
+| Aspect | Benefit |
+|--------|---------|
+| **Stability** | Capability IDs are stable; CLR signatures change |
+| **Security** | Only intentional APIs exposed |
+| **Evolvability** | Version in capability ID enables breaking changes |
+| **Documentation** | Capabilities are self-documenting |
+| **Type Safety** | Strict boundaries prevent leakage |

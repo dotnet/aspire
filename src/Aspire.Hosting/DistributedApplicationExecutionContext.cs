@@ -6,6 +6,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Exposes the global contextual information for this invocation of the AppHost.
 /// </summary>
+[AspireContextType("aspire/ExecutionContext")]
 public class DistributedApplicationExecutionContext
 {
     /// <summary>

@@ -141,8 +141,10 @@ internal sealed class AppHostServerProject
     public async Task<(string ProjectPath, string? ChannelName)> CreateProjectFilesAsync(IEnumerable<(string Name, string Version)> packages, CancellationToken cancellationToken = default)
     {
         // Create Program.cs that starts the RemoteHost server
+        // Pass an empty assembly list for now - when ATS capabilities are added,
+        // this should be updated to include the relevant Aspire.* assemblies
         var programCs = """
-            await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args);
+            await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args, []);
             """;
 
         File.WriteAllText(Path.Combine(_projectModelPath, "Program.cs"), programCs);

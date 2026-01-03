@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
+
 namespace Aspire.Hosting.RemoteHost;
 
 /// <summary>
@@ -12,9 +14,10 @@ public static class RemoteHostServer
     /// Runs the RemoteHost JSON-RPC server.
     /// </summary>
     /// <param name="args">Command line arguments.</param>
+    /// <param name="atsAssemblies">The assemblies to scan for ATS capabilities and handles.</param>
     /// <param name="cancellationToken">Cancellation token to stop the server.</param>
     /// <returns>A task that completes when the server has stopped.</returns>
-    public static async Task RunAsync(string[] args, CancellationToken cancellationToken = default)
+    public static async Task RunAsync(string[] args, IEnumerable<Assembly> atsAssemblies, CancellationToken cancellationToken = default)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
@@ -46,7 +49,7 @@ public static class RemoteHostServer
         Console.WriteLine(enableHotReload ? "Hot reload is enabled - server will wait for client reconnections." : "Hot reload is disabled.");
         Console.WriteLine("This server will continue running until stopped with Ctrl+C");
 
-        var server = new JsonRpcServer(socketPath, authToken);
+        var server = new JsonRpcServer(socketPath, atsAssemblies, authToken);
         try
         {
             // In hot reload mode, don't shutdown when clients disconnect

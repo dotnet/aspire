@@ -39,10 +39,14 @@ The RemoteHost acts as a bridge between polyglot AppHost projects and the .NET A
 
 ### RemoteHostServer
 
-The main entry point. Call `RemoteHostServer.RunAsync(args)` to start the server:
+The main entry point. Call `RemoteHostServer.RunAsync(args, assemblies)` to start the server:
 
 ```csharp
-await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args);
+using System.Reflection;
+
+// Pass the assemblies that contain ATS capabilities and handles
+var assemblies = new[] { typeof(SomeAspireType).Assembly };
+await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args, assemblies);
 ```
 
 ### InstructionProcessor
@@ -80,10 +84,11 @@ Complex .NET objects are marshalled as proxies with unique IDs. The client can:
 
 ## Usage
 
-This package is typically not used directly. Instead, the Aspire CLI scaffolds a project that references this package and calls the entry point. The generated `Program.cs` is simply:
+This package is typically not used directly. Instead, the Aspire CLI scaffolds a project that references this package and calls the entry point. The generated `Program.cs` passes the assemblies that contain ATS capabilities:
 
 ```csharp
-await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args);
+// The CLI generates this with the appropriate assembly list
+await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args, assemblies);
 ```
 
 ## JSON-RPC Methods
