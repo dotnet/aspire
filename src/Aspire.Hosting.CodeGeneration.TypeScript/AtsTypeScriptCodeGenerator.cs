@@ -99,6 +99,17 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                     return this.rpc;
                 }
 
+                /**
+                 * Invokes a capability by ID with the given arguments.
+                 * Use this for capabilities not exposed as typed methods.
+                 */
+                async invokeCapability<T>(
+                    capabilityId: string,
+                    args?: Record<string, unknown>
+                ): Promise<T> {
+                    return await this.rpc.invokeCapability<T>(capabilityId, args ?? {});
+                }
+
                 // ========================================================================
                 // Application Lifecycle
                 // ========================================================================

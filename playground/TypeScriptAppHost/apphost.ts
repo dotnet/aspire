@@ -29,19 +29,14 @@ const isPublishMode = await aspire.isPublishMode(context);
 console.log(`✅ Execution context: isRunMode=${isRunMode}, isPublishMode=${isPublishMode}`);
 
 // ============================================================================
-// Add a Redis container
+// Add a Redis resource using the Redis integration
 // ============================================================================
-let redis = await aspire.addContainer(builder, "cache", "redis:latest");
-console.log(`✅ Added Redis container: ${redis.$handle}`);
+let redis = await aspire.invokeCapability("aspire.redis/addRedis@1", { builder, name: "cache" });
+console.log(`✅ Added Redis: ${redis.$handle}`);
 
-// Configure with environment variables (chaining style)
-redis = await aspire.withEnvironment(redis, "REDIS_VERSION", "latest");
-redis = await aspire.withEnvironment(redis, "REDIS_MODE", "standalone");
-console.log(`✅ Configured Redis with environment variables`);
-
-// Add TCP endpoint (Redis uses port 6379)
-redis = await aspire.withHttpEndpoint(redis, { targetPort: 6379, name: "tcp" });
-console.log(`✅ Added TCP endpoint to Redis`);
+// Add Redis Commander for management UI
+redis = await aspire.invokeCapability("aspire.redis/withRedisCommander@1", { builder: redis });
+console.log(`✅ Added Redis Commander`);
 
 // ============================================================================
 // Add another container (API)
