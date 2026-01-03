@@ -723,6 +723,7 @@ public static class JavaScriptHostingExtensions
     /// Bun forwards script arguments without requiring the <c>--</c> command separator, so this method configures the resource to omit it.
     /// When publishing and a bun lockfile (<c>bun.lock</c> or <c>bun.lockb</c>) is present, <c>--frozen-lockfile</c> is used by default.
     /// Publishing to a container requires Bun to be present in the build image. This method configures a Bun build image when one is not already specified.
+    /// To use a specific Bun version, configure a custom build image (for example, <c>oven/bun:&lt;tag&gt;</c>) using <see cref="ContainerResourceBuilderExtensions.WithDockerfileBaseImage{T}(IResourceBuilder{T}, string?, string?)"/>.
     /// </remarks>
     /// <example>
     /// Run a Vite app using Bun as the package manager:
@@ -730,7 +731,8 @@ public static class JavaScriptHostingExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddViteApp("frontend", "./frontend")
-    ///        .WithBun();
+    ///        .WithBun()
+    ///        .WithDockerfileBaseImage(buildImage: "oven/bun:latest"); // To use a specific Bun image
     ///
     /// builder.Build().Run();
     /// </code>
