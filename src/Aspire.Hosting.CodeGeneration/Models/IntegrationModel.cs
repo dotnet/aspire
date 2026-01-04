@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using Aspire.Hosting.CodeGeneration.Models.Ats;
 using Aspire.Hosting.CodeGeneration.Models.Types;
 
 namespace Aspire.Hosting.CodeGeneration.Models;
@@ -40,6 +41,15 @@ public sealed class IntegrationModel
     public List<RoMethod> SharedExtensionMethods { get; } = [];
 
     public HashSet<RoType> ModelTypes { get; } = [];
+
+    /// <summary>
+    /// ATS capabilities discovered via [AspireExport] attributes.
+    /// </summary>
+    /// <remarks>
+    /// These capabilities are used by the ATS code generators to produce
+    /// capability-based SDKs that use invokeCapability() instead of invokeStaticMethod().
+    /// </remarks>
+    public List<AtsCapabilityInfo> Capabilities { get; } = [];
 
     public required RoAssembly Assembly { get; init; }
 
@@ -81,6 +91,10 @@ public sealed class IntegrationModel
 
         integration.DiscoverModelClasses(integration.IDistributedApplicationBuilderExtensionMethods, integration.ModelTypes);
         integration.DiscoverModelClasses(integration.SharedExtensionMethods, integration.ModelTypes);
+
+        // Scan for ATS capabilities via [AspireExport] attributes
+        var capabilities = AtsCapabilityScanner.ScanAssembly(assembly, knownTypes);
+        integration.Capabilities.AddRange(capabilities);
 
         foreach (var r in resourceTypes)
         {

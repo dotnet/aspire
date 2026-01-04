@@ -671,11 +671,6 @@ export class RemoteAppHostClient {
 }
 
 // Re-export ATS types for convenience
-export {
-    MarshalledHandle,
-    AtsError,
-    AtsErrorDetails,
-    AtsErrorCodes,
-    isAtsError,
-    isMarshalledHandle
-} from './types.js';
+// Use 'export type' for interfaces (type-only exports) to work with isolatedModules
+export type { MarshalledHandle, AtsError, AtsErrorDetails } from './types.js';
+export { AtsErrorCodes, isAtsError, isMarshalledHandle } from './types.js';

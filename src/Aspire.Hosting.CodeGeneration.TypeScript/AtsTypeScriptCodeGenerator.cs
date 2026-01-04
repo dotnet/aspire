@@ -1,17 +1,93 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Reflection;
 using Aspire.Hosting.CodeGeneration.Models;
+using Aspire.Hosting.CodeGeneration.Models.Ats;
 
 namespace Aspire.Hosting.CodeGeneration.TypeScript;
 
 /// <summary>
-/// Generates a simplified TypeScript SDK using the ATS (Aspire Type System) capability-based API.
-/// This generator produces a hand-crafted SDK that uses invokeCapability instead of reflection-based RPC.
+/// Generates a TypeScript SDK using the ATS (Aspire Type System) capability-based API.
+/// Produces typed builder classes with fluent methods that use invokeCapability().
 /// </summary>
+/// <remarks>
+/// <para>
+/// <b>ATS to TypeScript Type Mapping</b>
+/// </para>
+/// <para>
+/// The generator maps ATS types to TypeScript types according to the following rules:
+/// </para>
+/// <para>
+/// <b>Primitive Types:</b>
+/// <list type="table">
+///   <listheader>
+///     <term>ATS Type</term>
+///     <description>TypeScript Type</description>
+///   </listheader>
+///   <item><term><c>string</c></term><description><c>string</c></description></item>
+///   <item><term><c>number</c></term><description><c>number</c></description></item>
+///   <item><term><c>boolean</c></term><description><c>boolean</c></description></item>
+///   <item><term><c>any</c></term><description><c>unknown</c></description></item>
+/// </list>
+/// </para>
+/// <para>
+/// <b>Handle Types:</b>
+/// <list type="table">
+///   <listheader>
+///     <term>ATS Type ID</term>
+///     <description>TypeScript Type</description>
+///   </listheader>
+///   <item><term><c>aspire/Builder</c></term><description><c>BuilderHandle</c> (alias for <c>Handle&lt;'aspire/Builder'&gt;</c>)</description></item>
+///   <item><term><c>aspire/Application</c></term><description><c>ApplicationHandle</c></description></item>
+///   <item><term><c>aspire/ExecutionContext</c></term><description><c>ExecutionContextHandle</c></description></item>
+///   <item><term><c>aspire/Redis</c></term><description><c>RedisBuilderHandle</c></description></item>
+///   <item><term><c>aspire/Container</c></term><description><c>ContainerBuilderHandle</c></description></item>
+///   <item><term><c>aspire/IResource</c></term><description><c>IResourceHandle</c></description></item>
+///   <item><term><c>aspire/IResourceWithEnvironment</c></term><description><c>IResourceWithEnvironmentHandle</c></description></item>
+/// </list>
+/// </para>
+/// <para>
+/// <b>Handle Type Naming Rules:</b>
+/// <list type="bullet">
+///   <item><description>Core types (<c>aspire/Builder</c>, <c>aspire/Application</c>): Use type name + "Handle"</description></item>
+///   <item><description>Interface types (<c>aspire/IResource*</c>): Use interface name + "Handle" (keep the I prefix)</description></item>
+///   <item><description>Resource types (<c>aspire/Redis</c>, etc.): Use type name + "BuilderHandle"</description></item>
+/// </list>
+/// </para>
+/// <para>
+/// <b>Special Types:</b>
+/// <list type="table">
+///   <listheader>
+///     <term>ATS Type</term>
+///     <description>TypeScript Type</description>
+///   </listheader>
+///   <item><term><c>callback</c></term><description><c>(context: EnvironmentContextHandle) =&gt; Promise&lt;void&gt;</c></description></item>
+///   <item><term><c>T[]</c> (array)</term><description><c>T[]</c> (array of mapped type)</description></item>
+/// </list>
+/// </para>
+/// <para>
+/// <b>Builder Class Generation:</b>
+/// <list type="bullet">
+///   <item><description><c>aspire/Redis</c> → <c>RedisBuilder</c> class with <c>RedisBuilderPromise</c> thenable wrapper</description></item>
+///   <item><description><c>aspire/IResource</c> → <c>ResourceBuilderBase</c> abstract class (interface types get "BuilderBase" suffix)</description></item>
+///   <item><description>Concrete builders extend interface builders based on type hierarchy</description></item>
+/// </list>
+/// </para>
+/// <para>
+/// <b>Method Naming:</b>
+/// <list type="bullet">
+///   <item><description>Derived from capability ID: <c>aspire.redis/addRedis@1</c> → <c>addRedis</c></description></item>
+///   <item><description>Can be overridden via <c>[AspireExport(MethodName = "...")]</c></description></item>
+///   <item><description>TypeScript uses camelCase (the canonical form from capability IDs)</description></item>
+/// </list>
+/// </para>
+/// </remarks>
 public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 {
+    private TextWriter _writer = null!;
+
     /// <inheritdoc />
     public string Language => "TypeScript";
 
@@ -24,8 +100,13 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         files["types.ts"] = GetEmbeddedResource("types.ts");
         files["RemoteAppHostClient.ts"] = GetEmbeddedResource("RemoteAppHostClient.ts");
 
+        // Aggregate all capabilities from all integrations
+        var allCapabilities = model.IntegrationModels.Values
+            .SelectMany(im => im.Capabilities)
+            .ToList();
+
         // Generate the capability-based aspire.ts SDK
-        files["aspire.ts"] = GenerateAspireSdk();
+        files["aspire.ts"] = GenerateAspireSdk(allCapabilities);
 
         return files;
     }
@@ -44,12 +125,18 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates the aspire.ts SDK file with capability-based API.
     /// </summary>
-    private static string GenerateAspireSdk()
+    private string GenerateAspireSdk(List<AtsCapabilityInfo> capabilities)
     {
-        return """
+        using var stringWriter = new StringWriter(CultureInfo.InvariantCulture);
+        _writer = stringWriter;
+
+        // Header
+        WriteLine("""
             // aspire.ts - Capability-based Aspire SDK
             // This SDK uses the ATS (Aspire Type System) capability API.
             // Capabilities are versioned endpoints like 'aspire/createBuilder@1'.
+            //
+            // GENERATED CODE - DO NOT EDIT
 
             import {
                 RemoteAppHostClient,
@@ -58,36 +145,525 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 registerCallback,
                 wrapIfProxy
             } from './RemoteAppHostClient.js';
+            """);
+        WriteLine();
 
-            // ============================================================================
-            // Handle Type Aliases
-            // ============================================================================
+        // Get builder models grouped by AppliesTo
+        var builders = AtsBuilderModelFactory.CreateBuilderModels(capabilities);
+        var entryPoints = AtsBuilderModelFactory.GetEntryPointCapabilities(capabilities);
 
-            /** Handle to IDistributedApplicationBuilder */
-            export type BuilderHandle = Handle<'aspire/Builder'>;
+        // Separate entry points: ones that extend Builder go on DistributedApplicationBuilder
+        var builderMethods = entryPoints
+            .Where(c => c.ExtendsTypeId == "aspire/Builder")
+            .ToList();
+        var clientMethods = entryPoints
+            .Where(c => c.ExtendsTypeId != "aspire/Builder")
+            .ToList();
 
-            /** Handle to DistributedApplication */
-            export type ApplicationHandle = Handle<'aspire/Application'>;
+        // Collect all unique type IDs for handle type aliases
+        var typeIds = new HashSet<string>();
+        foreach (var cap in capabilities)
+        {
+            if (!string.IsNullOrEmpty(cap.AppliesTo))
+            {
+                typeIds.Add(cap.AppliesTo);
+            }
+            if (!string.IsNullOrEmpty(cap.ReturnTypeId) && cap.ReturnTypeId.StartsWith("aspire/", StringComparison.Ordinal))
+            {
+                typeIds.Add(cap.ReturnTypeId);
+            }
+            // Add parameter type IDs (for types like IResourceBuilder<IResource>)
+            foreach (var param in cap.Parameters)
+            {
+                if (!string.IsNullOrEmpty(param.AtsTypeId) && param.AtsTypeId.StartsWith("aspire/", StringComparison.Ordinal))
+                {
+                    typeIds.Add(param.AtsTypeId);
+                }
+            }
+        }
 
-            /** Handle to DistributedApplicationExecutionContext */
-            export type ExecutionContextHandle = Handle<'aspire/ExecutionContext'>;
+        // Add core type IDs
+        typeIds.Add("aspire/Builder");
+        typeIds.Add("aspire/Application");
+        typeIds.Add("aspire/ExecutionContext");
+        typeIds.Add("aspire/EnvironmentContext");
+        typeIds.Add("aspire/EndpointReference");
 
-            /** Handle to IResourceBuilder<ContainerResource> */
-            export type ContainerBuilderHandle = Handle<'aspire/ContainerBuilder'>;
+        // Generate handle type aliases
+        GenerateHandleTypeAliases(typeIds);
 
-            /** Handle to IResourceBuilder<T> where T : IResourceWithEnvironment */
-            export type ResourceWithEnvironmentHandle = Handle<'aspire/IResourceWithEnvironment'>;
+        // Generate DistributedApplicationBuilder class
+        GenerateDistributedApplicationBuilder(builderMethods, builders);
 
-            /** Handle to EndpointReference */
-            export type EndpointReferenceHandle = Handle<'aspire/EndpointReference'>;
+        // Generate resource builder classes
+        foreach (var builder in builders)
+        {
+            GenerateBuilderClass(builder, builders);
+        }
 
-            /** Handle to EnvironmentCallbackContext */
-            export type EnvironmentContextHandle = Handle<'aspire/EnvironmentContext'>;
+        // Generate AspireClient with remaining entry point methods
+        GenerateAspireClient(clientMethods, builders);
 
-            // ============================================================================
-            // Aspire Client - Wraps RemoteAppHostClient with typed capability methods
-            // ============================================================================
+        // Generate connection helper
+        GenerateConnectionHelper();
 
+        // Generate global error handling
+        GenerateGlobalErrorHandling();
+
+        return stringWriter.ToString();
+    }
+
+    private void WriteLine(string? text = null)
+    {
+        if (text != null)
+        {
+            _writer.WriteLine(text);
+        }
+        else
+        {
+            _writer.WriteLine();
+        }
+    }
+
+    private void Write(string text)
+    {
+        _writer.Write(text);
+    }
+
+    private void GenerateHandleTypeAliases(HashSet<string> typeIds)
+    {
+        WriteLine("// ============================================================================");
+        WriteLine("// Handle Type Aliases");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        foreach (var typeId in typeIds.OrderBy(t => t))
+        {
+            var handleName = AtsBuilderModelFactory.GetHandleTypeName(typeId);
+            var description = GetTypeDescription(typeId);
+            WriteLine($"/** {description} */");
+            WriteLine($"export type {handleName} = Handle<'{typeId}'>;");
+            WriteLine();
+        }
+    }
+
+    private static string GetTypeDescription(string typeId)
+    {
+        return typeId switch
+        {
+            "aspire/Builder" => "Handle to IDistributedApplicationBuilder",
+            "aspire/Application" => "Handle to DistributedApplication",
+            "aspire/ExecutionContext" => "Handle to DistributedApplicationExecutionContext",
+            "aspire/EnvironmentContext" => "Handle to EnvironmentCallbackContext",
+            "aspire/EndpointReference" => "Handle to EndpointReference",
+            "aspire/Container" => "Handle to IResourceBuilder<ContainerResource>",
+            _ when typeId.StartsWith("aspire/IResource", StringComparison.Ordinal) =>
+                $"Handle to IResourceBuilder<{typeId[7..]}>",
+            _ => $"Handle to IResourceBuilder<{typeId[7..]}Resource>"
+        };
+    }
+
+    private void GenerateDistributedApplicationBuilder(List<AtsCapabilityInfo> methods, List<AtsBuilderInfo> resourceBuilders)
+    {
+        WriteLine("// ============================================================================");
+        WriteLine("// DistributedApplicationBuilder");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        // First generate DistributedApplication class for build() return type
+        WriteLine("""
+            /**
+             * Represents a built distributed application ready to run.
+             */
+            export class DistributedApplication {
+                constructor(
+                    private _handle: ApplicationHandle,
+                    private _client: AspireClient
+                ) {}
+
+                /** Gets the underlying handle */
+                get handle(): ApplicationHandle { return this._handle; }
+
+                /**
+                 * Runs the distributed application, starting all configured resources.
+                 */
+                async run(): Promise<void> {
+                    await this._client.client.invokeCapability<void>(
+                        'aspire/run@1',
+                        { app: this._handle }
+                    );
+                }
+            }
+
+            /**
+             * Thenable wrapper for DistributedApplication enabling fluent chaining.
+             * Allows: await builder.build().run()
+             */
+            export class DistributedApplicationPromise implements PromiseLike<DistributedApplication> {
+                constructor(private _promise: Promise<DistributedApplication>) {}
+
+                then<TResult1 = DistributedApplication, TResult2 = never>(
+                    onfulfilled?: ((value: DistributedApplication) => TResult1 | PromiseLike<TResult1>) | null,
+                    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+                ): PromiseLike<TResult1 | TResult2> {
+                    return this._promise.then(onfulfilled, onrejected);
+                }
+
+                /**
+                 * Runs the distributed application, starting all configured resources.
+                 * Chains through the promise for fluent usage: await builder.build().run()
+                 */
+                run(): Promise<void> {
+                    return this._promise.then(app => app.run());
+                }
+            }
+            """);
+        WriteLine();
+
+        // Now generate DistributedApplicationBuilder
+        WriteLine("""
+            /**
+             * Builder for creating distributed applications.
+             * Use createBuilder() to get an instance.
+             */
+            export class DistributedApplicationBuilder {
+                constructor(
+                    private _handle: BuilderHandle,
+                    private _client: AspireClient
+                ) {}
+
+                /** Gets the underlying handle */
+                get handle(): BuilderHandle { return this._handle; }
+
+                /** Gets the AspireClient for invoking capabilities */
+                get client(): AspireClient { return this._client; }
+
+                /** @internal - actual async implementation */
+                async _buildInternal(): Promise<DistributedApplication> {
+                    const handle = await this._client.client.invokeCapability<ApplicationHandle>(
+                        'aspire/build@1',
+                        { builder: this._handle }
+                    );
+                    return new DistributedApplication(handle, this._client);
+                }
+
+                /**
+                 * Builds the distributed application from the configured builder.
+                 * Returns a thenable for fluent chaining: await builder.build().run()
+                 */
+                build(): DistributedApplicationPromise {
+                    return new DistributedApplicationPromise(this._buildInternal());
+                }
+            """);
+
+        // Generate methods that extend IDistributedApplicationBuilder
+        foreach (var capability in methods)
+        {
+            GenerateDistributedApplicationBuilderMethod(capability, resourceBuilders);
+        }
+
+        WriteLine("}");
+        WriteLine();
+    }
+
+    private void GenerateDistributedApplicationBuilderMethod(AtsCapabilityInfo capability, List<AtsBuilderInfo> resourceBuilders)
+    {
+        var methodName = capability.MethodName;
+
+        // Build parameter list (builder is implicit via this._handle)
+        var paramDefs = new List<string>();
+        var paramArgs = new List<string> { "builder: this._handle" };
+
+        foreach (var param in capability.Parameters)
+        {
+            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback);
+            var optional = param.IsOptional || param.IsNullable ? "?" : "";
+            paramDefs.Add($"{param.Name}{optional}: {tsType}");
+            paramArgs.Add(param.Name);
+        }
+
+        var paramsString = string.Join(", ", paramDefs);
+        var argsObject = $"{{ {string.Join(", ", paramArgs)} }}";
+
+        // Determine return type
+        AtsBuilderInfo? builderInfo = null;
+        if (!string.IsNullOrEmpty(capability.ReturnTypeId) && capability.ReturnsBuilder)
+        {
+            builderInfo = resourceBuilders.FirstOrDefault(b => b.TypeId == capability.ReturnTypeId && !b.IsInterface);
+        }
+
+        // Generate JSDoc
+        WriteLine();
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"    /**");
+            WriteLine($"     * {capability.Description}");
+            WriteLine($"     */");
+        }
+
+        // Generate method
+        if (builderInfo != null)
+        {
+            // Returns a resource builder promise
+            var handleType = AtsBuilderModelFactory.GetHandleTypeName(capability.ReturnTypeId!);
+            Write($"    {methodName}(");
+            Write(paramsString);
+            WriteLine($"): {builderInfo.BuilderClassName}Promise {{");
+            WriteLine($"        const promise = this._client.client.invokeCapability<{handleType}>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            {argsObject}");
+            WriteLine($"        ).then(handle => new {builderInfo.BuilderClassName}(handle, this._client));");
+            WriteLine($"        return new {builderInfo.BuilderClassName}Promise(promise);");
+            WriteLine("    }");
+        }
+        else if (!string.IsNullOrEmpty(capability.ReturnTypeId))
+        {
+            // Returns raw handle or value
+            var returnType = MapAtsTypeToTypeScript(capability.ReturnTypeId, false);
+            Write($"    async {methodName}(");
+            Write(paramsString);
+            WriteLine($"): Promise<{returnType}> {{");
+            WriteLine($"        return await this._client.client.invokeCapability<{returnType}>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            {argsObject}");
+            WriteLine("        );");
+            WriteLine("    }");
+        }
+        else
+        {
+            // Returns void
+            Write($"    async {methodName}(");
+            Write(paramsString);
+            WriteLine("): Promise<void> {");
+            WriteLine($"        await this._client.client.invokeCapability<void>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            {argsObject}");
+            WriteLine("        );");
+            WriteLine("    }");
+        }
+    }
+
+    private void GenerateBuilderClass(AtsBuilderInfo builder, List<AtsBuilderInfo> allBuilders)
+    {
+        WriteLine("// ============================================================================");
+        WriteLine($"// {builder.BuilderClassName}");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        var handleType = AtsBuilderModelFactory.GetHandleTypeName(builder.TypeId);
+
+        // Determine base class
+        string? baseClass = null;
+        if (builder.ParentTypeIds.Count > 0)
+        {
+            var parentBuilder = allBuilders.FirstOrDefault(b => b.TypeId == builder.ParentTypeIds[0]);
+            if (parentBuilder != null)
+            {
+                baseClass = parentBuilder.BuilderClassName;
+            }
+        }
+
+        // Generate builder class
+        var extendsClause = baseClass != null ? $" extends {baseClass}" : "";
+        var abstractKeyword = builder.IsInterface ? "abstract " : "";
+
+        WriteLine($"export {abstractKeyword}class {builder.BuilderClassName}{extendsClause} {{");
+
+        // Constructor (only if no base class)
+        if (baseClass == null)
+        {
+            WriteLine($"    constructor(protected _handle: {handleType}, protected _client: AspireClient) {{}}");
+        }
+        else
+        {
+            WriteLine($"    constructor(handle: {handleType}, client: AspireClient) {{");
+            WriteLine("        super(handle, client);");
+            WriteLine("    }");
+        }
+        WriteLine();
+
+        // Handle getter
+        WriteLine("    /** Gets the underlying handle */");
+        WriteLine($"    get handle(): {handleType} {{ return this._handle; }}");
+        WriteLine();
+
+        // Generate internal methods and public fluent methods
+        foreach (var capability in builder.Capabilities)
+        {
+            GenerateBuilderMethod(builder, capability);
+        }
+
+        WriteLine("}");
+        WriteLine();
+
+        // Generate thenable wrapper class (only for concrete builders)
+        if (!builder.IsInterface)
+        {
+            GenerateThenableClass(builder);
+        }
+    }
+
+    private void GenerateBuilderMethod(AtsBuilderInfo builder, AtsCapabilityInfo capability)
+    {
+        var methodName = capability.MethodName;
+        var internalMethodName = $"_{methodName}Internal";
+
+        // Generate JSDoc
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"    /** {capability.Description} */");
+        }
+
+        // Build parameter list
+        var paramDefs = new List<string>();
+        var paramArgs = new List<string>();
+
+        foreach (var param in capability.Parameters)
+        {
+            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback);
+            var optional = param.IsOptional || param.IsNullable ? "?" : "";
+
+            paramDefs.Add($"{param.Name}{optional}: {tsType}");
+
+            if (param.IsCallback)
+            {
+                // Callbacks need to be wrapped with registerCallback
+                paramArgs.Add($"callback: {param.Name}Id");
+            }
+            else
+            {
+                paramArgs.Add($"{param.Name}");
+            }
+        }
+
+        var paramsString = string.Join(", ", paramDefs);
+        var argsString = paramArgs.Count > 0 ? $"{{ builder: this._handle, {string.Join(", ", paramArgs)} }}" : "{ builder: this._handle }";
+
+        // Determine return type
+        var returnHandle = !string.IsNullOrEmpty(capability.ReturnTypeId) && capability.ReturnsBuilder
+            ? AtsBuilderModelFactory.GetHandleTypeName(capability.ReturnTypeId)
+            : "void";
+        var returnsBuilder = capability.ReturnsBuilder;
+
+        // Generate internal async method
+        WriteLine($"    /** @internal */");
+        Write($"    async {internalMethodName}(");
+        Write(paramsString);
+        Write($"): Promise<{builder.BuilderClassName}> {{");
+        WriteLine();
+
+        // Handle callback registration if any
+        var callbackParams = capability.Parameters.Where(p => p.IsCallback).ToList();
+        foreach (var callbackParam in callbackParams)
+        {
+            WriteLine($"        const {callbackParam.Name}Id = registerCallback(async (contextData: unknown) => {{");
+            WriteLine($"            const context = wrapIfProxy(contextData) as EnvironmentContextHandle;");
+            WriteLine($"            await {callbackParam.Name}(context);");
+            WriteLine("        });");
+        }
+
+        if (returnsBuilder)
+        {
+            WriteLine($"        const result = await this._client.invokeCapability<{returnHandle}>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            {argsString}");
+            WriteLine("        );");
+            WriteLine($"        return new {builder.BuilderClassName}(result, this._client);");
+        }
+        else
+        {
+            WriteLine($"        await this._client.invokeCapability<void>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            {argsString}");
+            WriteLine("        );");
+            WriteLine($"        return this;");
+        }
+        WriteLine("    }");
+        WriteLine();
+
+        // Generate public fluent method (returns thenable wrapper for concrete builders)
+        if (!builder.IsInterface)
+        {
+            var promiseClass = $"{builder.BuilderClassName}Promise";
+            Write($"    {methodName}(");
+            Write(paramsString);
+            Write($"): {promiseClass} {{");
+            WriteLine();
+            Write($"        return new {promiseClass}(this.{internalMethodName}(");
+            Write(string.Join(", ", capability.Parameters.Select(p => p.Name)));
+            WriteLine("));");
+            WriteLine("    }");
+            WriteLine();
+        }
+    }
+
+    private void GenerateThenableClass(AtsBuilderInfo builder)
+    {
+        var promiseClass = $"{builder.BuilderClassName}Promise";
+
+        WriteLine($"/**");
+        WriteLine($" * Thenable wrapper for {builder.BuilderClassName} that enables fluent chaining.");
+        WriteLine($" * @example");
+        WriteLine($" * await builder.addSomething().withX().withY();");
+        WriteLine($" */");
+        WriteLine($"export class {promiseClass} implements PromiseLike<{builder.BuilderClassName}> {{");
+        WriteLine($"    constructor(private _promise: Promise<{builder.BuilderClassName}>) {{}}");
+        WriteLine();
+
+        // Generate then() for PromiseLike interface
+        WriteLine($"    then<TResult1 = {builder.BuilderClassName}, TResult2 = never>(");
+        WriteLine($"        onfulfilled?: ((value: {builder.BuilderClassName}) => TResult1 | PromiseLike<TResult1>) | null,");
+        WriteLine("        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null");
+        WriteLine("    ): PromiseLike<TResult1 | TResult2> {");
+        WriteLine("        return this._promise.then(onfulfilled, onrejected);");
+        WriteLine("    }");
+        WriteLine();
+
+        // Generate fluent methods that chain via .then()
+        foreach (var capability in builder.Capabilities)
+        {
+            var methodName = capability.MethodName;
+            var internalMethodName = $"_{methodName}Internal";
+
+            var paramDefs = capability.Parameters.Select(p =>
+            {
+                var tsType = MapAtsTypeToTypeScript(p.AtsTypeId, p.IsCallback);
+                var optional = p.IsOptional || p.IsNullable ? "?" : "";
+                return $"{p.Name}{optional}: {tsType}";
+            });
+
+            var paramsString = string.Join(", ", paramDefs);
+            var argsString = string.Join(", ", capability.Parameters.Select(p => p.Name));
+
+            if (!string.IsNullOrEmpty(capability.Description))
+            {
+                WriteLine($"    /** {capability.Description} */");
+            }
+            Write($"    {methodName}(");
+            Write(paramsString);
+            Write($"): {promiseClass} {{");
+            WriteLine();
+            WriteLine($"        return new {promiseClass}(");
+            Write($"            this._promise.then(b => b.{internalMethodName}(");
+            Write(argsString);
+            WriteLine("))");
+            WriteLine("        );");
+            WriteLine("    }");
+            WriteLine();
+        }
+
+        WriteLine("}");
+        WriteLine();
+    }
+
+    private void GenerateAspireClient(List<AtsCapabilityInfo> entryPoints, List<AtsBuilderInfo> builders)
+    {
+        WriteLine("// ============================================================================");
+        WriteLine("// AspireClient - Entry point and factory methods");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        WriteLine("""
             /**
              * High-level Aspire client that provides typed access to ATS capabilities.
              */
@@ -110,242 +686,145 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                     return await this.rpc.invokeCapability<T>(capabilityId, args ?? {});
                 }
 
-                // ========================================================================
-                // Application Lifecycle
-                // ========================================================================
-
-                /**
-                 * Creates a new distributed application builder.
-                 * This is the entry point for building Aspire applications.
-                 */
-                async createBuilder(args?: string[]): Promise<BuilderHandle> {
-                    return await this.rpc.invokeCapability<BuilderHandle>(
-                        'aspire/createBuilder@1',
-                        { args }
-                    );
-                }
-
-                /**
-                 * Builds the distributed application from the configured builder.
-                 */
-                async build(builder: BuilderHandle): Promise<ApplicationHandle> {
-                    return await this.rpc.invokeCapability<ApplicationHandle>(
-                        'aspire/build@1',
-                        { builder }
-                    );
-                }
-
-                /**
-                 * Runs the distributed application, starting all configured resources.
-                 */
-                async run(app: ApplicationHandle): Promise<void> {
-                    await this.rpc.invokeCapability<void>(
-                        'aspire/run@1',
-                        { app }
-                    );
-                }
-
-                // ========================================================================
-                // Execution Context
-                // ========================================================================
-
-                /**
-                 * Gets the execution context from the builder.
-                 */
-                async getExecutionContext(builder: BuilderHandle): Promise<ExecutionContextHandle> {
-                    return await this.rpc.invokeCapability<ExecutionContextHandle>(
-                        'aspire/getExecutionContext@1',
-                        { builder }
-                    );
-                }
-
-                /**
-                 * Checks if the application is running in run mode.
-                 */
-                async isRunMode(context: ExecutionContextHandle): Promise<boolean> {
-                    return await this.rpc.invokeCapability<boolean>(
-                        'aspire/isRunMode@1',
-                        { context }
-                    );
-                }
-
-                /**
-                 * Checks if the application is running in publish mode.
-                 */
-                async isPublishMode(context: ExecutionContextHandle): Promise<boolean> {
-                    return await this.rpc.invokeCapability<boolean>(
-                        'aspire/isPublishMode@1',
-                        { context }
-                    );
-                }
-
-                // ========================================================================
-                // Container Resources
-                // ========================================================================
-
-                /**
-                 * Adds a container resource to the application.
-                 */
-                async addContainer(
-                    builder: BuilderHandle,
-                    name: string,
-                    image: string
-                ): Promise<ContainerBuilderHandle> {
-                    return await this.rpc.invokeCapability<ContainerBuilderHandle>(
-                        'aspire/addContainer@1',
-                        { builder, name, image }
-                    );
-                }
-
-                // ========================================================================
-                // Resource Configuration (works on any resource with environment)
-                // ========================================================================
-
-                /**
-                 * Sets an environment variable on a resource.
-                 * Returns the same handle for chaining.
-                 */
-                async withEnvironment<T extends Handle>(
-                    builder: T,
-                    name: string,
-                    value: string
-                ): Promise<T> {
-                    return await this.rpc.invokeCapability<T>(
-                        'aspire/withEnvironment@1',
-                        { builder, name, value }
-                    );
-                }
-
-                /**
-                 * Adds an environment callback to a resource.
-                 * The callback is invoked during resource startup.
-                 * Note: This uses 'resource' param name (from CoreExports.cs), not 'builder'
-                 */
-                async withEnvironmentCallback<T extends Handle>(
-                    resource: T,
-                    callback: (context: EnvironmentContextHandle) => Promise<void>
-                ): Promise<T> {
-                    const callbackId = registerCallback(async (contextData: unknown) => {
-                        const context = wrapIfProxy(contextData) as EnvironmentContextHandle;
-                        await callback(context);
-                    });
-
-                    return await this.rpc.invokeCapability<T>(
-                        'aspire/withEnvironmentCallback@1',
-                        { resource, callback: callbackId }
-                    );
-                }
-
-                // ========================================================================
-                // Endpoints
-                // ========================================================================
-
-                /**
-                 * Gets an endpoint reference from a resource.
-                 */
-                async getEndpoint(
-                    builder: Handle,
-                    name: string
-                ): Promise<EndpointReferenceHandle> {
-                    return await this.rpc.invokeCapability<EndpointReferenceHandle>(
-                        'aspire/getEndpoint@1',
-                        { builder, name }
-                    );
-                }
-
-                /**
-                 * Adds an HTTP endpoint to a resource.
-                 */
-                async withHttpEndpoint<T extends Handle>(
-                    builder: T,
-                    options?: {
-                        port?: number;
-                        targetPort?: number;
-                        name?: string;
-                        env?: string;
-                        isProxied?: boolean;
-                    }
-                ): Promise<T> {
-                    return await this.rpc.invokeCapability<T>(
-                        'aspire/withHttpEndpoint@1',
-                        { builder, ...options }
-                    );
-                }
-
-                // ========================================================================
-                // Volumes
-                // ========================================================================
-
-                /**
-                 * Adds a volume to a container resource.
-                 */
-                async withVolume(
-                    builder: ContainerBuilderHandle,
-                    target: string,
-                    name?: string,
-                    isReadOnly?: boolean
-                ): Promise<ContainerBuilderHandle> {
-                    return await this.rpc.invokeCapability<ContainerBuilderHandle>(
-                        'aspire/withVolume@1',
-                        { builder, target, name, isReadOnly }
-                    );
-                }
-
-                // ========================================================================
-                // Dependencies
-                // ========================================================================
-
-                /**
-                 * Adds a reference from one resource to another.
-                 * Note: Uses 'resource' param name (from CoreExports.cs)
-                 */
-                async withReference<T extends Handle>(
-                    resource: T,
-                    dependency: Handle
-                ): Promise<T> {
-                    return await this.rpc.invokeCapability<T>(
-                        'aspire/withReference@1',
-                        { resource, dependency }
-                    );
-                }
-
-                /**
-                 * Waits for another resource to be ready before starting.
-                 * Note: Uses 'builder' param name (from ResourceBuilderExtensions.cs)
-                 */
-                async waitFor<T extends Handle>(
-                    builder: T,
-                    dependency: Handle
-                ): Promise<T> {
-                    return await this.rpc.invokeCapability<T>(
-                        'aspire/waitFor@1',
-                        { builder, dependency }
-                    );
-                }
-
-                // ========================================================================
-                // Utility
-                // ========================================================================
-
-                /**
-                 * Gets the name of a resource.
-                 * Note: Uses 'resource' param name (from CoreExports.cs)
-                 */
-                async getResourceName(resource: Handle): Promise<string> {
-                    return await this.rpc.invokeCapability<string>(
-                        'aspire/getResourceName@1',
-                        { resource }
-                    );
-                }
-
                 /**
                  * Lists all available capabilities from the server.
                  */
                 async getCapabilities(): Promise<string[]> {
                     return await this.rpc.getCapabilities();
                 }
-            }
+            """);
 
+        // Generate entry point methods
+        foreach (var capability in entryPoints)
+        {
+            GenerateClientMethod(capability, builders);
+        }
+
+        WriteLine("}");
+        WriteLine();
+    }
+
+    private void GenerateClientMethod(AtsCapabilityInfo capability, List<AtsBuilderInfo> builders)
+    {
+        var methodName = capability.MethodName;
+
+        // Build parameter list
+        var paramDefs = new List<string>();
+        var paramArgs = new List<string>();
+
+        foreach (var param in capability.Parameters)
+        {
+            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback);
+            var optional = param.IsOptional || param.IsNullable ? "?" : "";
+            paramDefs.Add($"{param.Name}{optional}: {tsType}");
+            paramArgs.Add(param.Name);
+        }
+
+        var paramsString = string.Join(", ", paramDefs);
+        var argsObject = paramArgs.Count > 0
+            ? $"{{ {string.Join(", ", paramArgs)} }}"
+            : "{}";
+
+        // Determine return type
+        string returnType;
+        var returnsBuilder = false;
+        AtsBuilderInfo? builderInfo = null;
+
+        if (!string.IsNullOrEmpty(capability.ReturnTypeId))
+        {
+            if (capability.ReturnsBuilder)
+            {
+                builderInfo = builders.FirstOrDefault(b => b.TypeId == capability.ReturnTypeId && !b.IsInterface);
+                if (builderInfo != null)
+                {
+                    returnType = $"{builderInfo.BuilderClassName}Promise";
+                    returnsBuilder = true;
+                }
+                else
+                {
+                    returnType = AtsBuilderModelFactory.GetHandleTypeName(capability.ReturnTypeId);
+                }
+            }
+            else
+            {
+                returnType = MapAtsTypeToTypeScript(capability.ReturnTypeId, false);
+            }
+        }
+        else
+        {
+            returnType = "void";
+        }
+
+        // Generate JSDoc
+        WriteLine();
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"    /**");
+            WriteLine($"     * {capability.Description}");
+            WriteLine($"     */");
+        }
+
+        // Generate method
+        if (returnsBuilder && builderInfo != null)
+        {
+            // Returns a thenable wrapper
+            var handleType = AtsBuilderModelFactory.GetHandleTypeName(capability.ReturnTypeId!);
+            Write($"    {methodName}(");
+            Write(paramsString);
+            WriteLine($"): {returnType} {{");
+            WriteLine($"        const promise = this.rpc.invokeCapability<{handleType}>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            {argsObject}");
+            WriteLine($"        ).then(handle => new {builderInfo.BuilderClassName}(handle, this));");
+            WriteLine($"        return new {builderInfo.BuilderClassName}Promise(promise);");
+            WriteLine("    }");
+        }
+        else
+        {
+            // Returns raw value
+            Write($"    async {methodName}(");
+            Write(paramsString);
+            WriteLine($"): Promise<{returnType}> {{");
+            if (returnType == "void")
+            {
+                WriteLine($"        await this.rpc.invokeCapability<void>(");
+            }
+            else
+            {
+                WriteLine($"        return await this.rpc.invokeCapability<{returnType}>(");
+            }
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            {argsObject}");
+            WriteLine("        );");
+            WriteLine("    }");
+        }
+    }
+
+    private static string MapAtsTypeToTypeScript(string atsTypeId, bool isCallback)
+    {
+        if (isCallback)
+        {
+            return "(context: EnvironmentContextHandle) => Promise<void>";
+        }
+
+        return atsTypeId switch
+        {
+            "string" => "string",
+            "number" => "number",
+            "boolean" => "boolean",
+            "any" => "unknown",
+            "callback" => "(context: EnvironmentContextHandle) => Promise<void>",
+            _ when atsTypeId.StartsWith("aspire/", StringComparison.Ordinal) =>
+                AtsBuilderModelFactory.GetHandleTypeName(atsTypeId),
+            _ when atsTypeId.EndsWith("[]", StringComparison.Ordinal) =>
+                $"{MapAtsTypeToTypeScript(atsTypeId[..^2], false)}[]",
+            _ => "unknown"
+        };
+    }
+
+    private void GenerateConnectionHelper()
+    {
+        WriteLine("""
             // ============================================================================
             // Connection Helper
             // ============================================================================
@@ -378,9 +857,38 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 return new AspireClient(rpc);
             }
 
+            /**
+             * Creates a new distributed application builder.
+             * This is the entry point for building Aspire applications.
+             *
+             * @param args - Optional command-line arguments to pass to the builder
+             * @returns A DistributedApplicationBuilder instance
+             *
+             * @example
+             * const builder = await createBuilder();
+             * builder.addRedis("cache");
+             * builder.addContainer("api", "mcr.microsoft.com/dotnet/samples:aspnetapp");
+             * const app = await builder.build();
+             * await app.run();
+             */
+            export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
+                const client = await connect();
+                const handle = await client.client.invokeCapability<BuilderHandle>(
+                    'aspire/createBuilder@1',
+                    { args }
+                );
+                return new DistributedApplicationBuilder(handle, client);
+            }
+
             // Re-export commonly used types
             export { Handle, CapabilityError, registerCallback } from './RemoteAppHostClient.js';
+            """);
+        WriteLine();
+    }
 
+    private void GenerateGlobalErrorHandling()
+    {
+        WriteLine("""
             // ============================================================================
             // Global Error Handling
             // ============================================================================
@@ -415,6 +923,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 }
                 process.exit(1);
             });
-            """;
+            """);
     }
 }

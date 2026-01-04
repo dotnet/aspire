@@ -56,4 +56,26 @@ public sealed class AspireExportAttribute : Attribute
     /// Gets or sets a description of what this export does.
     /// </summary>
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Gets or sets the method name to use in generated polyglot SDKs.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When not specified, the method name is derived from the capability ID.
+    /// For example, <c>aspire.redis/addRedis@1</c> generates <c>addRedis</c>.
+    /// </para>
+    /// <para>
+    /// Use this property to override the generated name when the default
+    /// derivation is not suitable. Each language generator will apply its
+    /// own formatting convention (camelCase for TypeScript, snake_case for Python, etc.).
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Generates "addRedis" in TypeScript, "add_redis" in Python
+    /// [AspireExport("aspire.redis/addRedisContainer@1", MethodName = "addRedis")]
+    /// </code>
+    /// </example>
+    public string? MethodName { get; set; }
 }

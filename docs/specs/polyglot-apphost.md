@@ -150,6 +150,19 @@ public static IResourceBuilder<RedisResource> AddRedis(
 }
 ```
 
+**ExtendsTypeId (for code generation):**
+
+During code generation, the capability scanner tracks what type each extension method extends via the `ExtendsTypeId` property. This determines which class the method is generated on:
+
+| ExtendsTypeId | Generated On |
+|---------------|--------------|
+| `aspire/Builder` | `DistributedApplicationBuilder` class |
+| `aspire/Redis` | `RedisBuilder` class |
+| `aspire/Container` | `ContainerBuilder` class |
+| `aspire/IResourceWithEnvironment` | Interface base class |
+
+This is derived from the first parameter of extension methods (the `this` parameter).
+
 **AppliesTo Constraint:**
 
 Capabilities can specify type constraints for polymorphic operations. When applied to generic extension methods, `AppliesTo` is automatically derived from the type constraint:
@@ -1080,9 +1093,244 @@ Code generation runs automatically when:
 
 The generator scans assemblies for `[AspireExport]` attributes and produces:
 
-1. **Capability wrapper functions** - Type-safe functions for each capability
-2. **Handle type definitions** - TypeScript types for each handle
-3. **DTO interfaces** - TypeScript interfaces for each DTO
+1. **Handle type aliases** - TypeScript types for each handle (e.g., `BuilderHandle`, `RedisBuilderHandle`)
+2. **Entry point function** - `createBuilder()` function that creates a `DistributedApplicationBuilder`
+3. **DistributedApplicationBuilder class** - Methods for capabilities that extend `IDistributedApplicationBuilder`
+4. **DistributedApplication class** - The built application with `run()` method
+5. **Resource builder classes** - Per-resource builders (e.g., `RedisBuilder`, `ContainerBuilder`)
+6. **Thenable wrappers** - Promise wrappers for fluent async chaining (e.g., `RedisBuilderPromise`)
+7. **DTO interfaces** - TypeScript interfaces for each DTO
+
+**Capability Scanning Process:**
+
+The `AtsCapabilityScanner` processes each `[AspireExport]` attribute and extracts:
+
+| Property | Source | Example |
+|----------|--------|---------|
+| `CapabilityId` | `[AspireExport("...")]` | `aspire.redis/addRedis@1` |
+| `MethodName` | Derived from capability ID or `MethodName` property | `addRedis` |
+| `Package` | Prefix before `/` in capability ID | `aspire.redis` |
+| `AppliesTo` | `AppliesTo` property or derived from generic constraint | `aspire/Redis` |
+| `ExtendsTypeId` | First parameter type (for extension methods) | `aspire/Builder` |
+| `Parameters` | Method parameters (excluding `this` for extension methods) | `[{ name: "name", type: "string" }]` |
+| `ReturnTypeId` | Method return type mapped to ATS type ID | `aspire/Redis` |
+
+The `ExtendsTypeId` is key for the builder-centric API - it determines which class each method is generated on.
+
+---
+
+## ATS to TypeScript Type Mapping
+
+This section formally defines how ATS types are mapped to TypeScript types during code generation. This mapping is implemented in `AtsTypeScriptCodeGenerator`.
+
+### Primitive Types
+
+| ATS Type | TypeScript Type | Notes |
+|----------|-----------------|-------|
+| `string` | `string` | Direct mapping |
+| `number` | `number` | Covers int, long, float, double, etc. |
+| `boolean` | `boolean` | Direct mapping |
+| `any` | `unknown` | Used for unmapped types |
+
+### Handle Type Aliases
+
+Handle types are mapped to TypeScript type aliases that wrap the generic `Handle<T>` type:
+
+| ATS Type ID | TypeScript Type Alias | Underlying Type |
+|-------------|----------------------|-----------------|
+| `aspire/Builder` | `BuilderHandle` | `Handle<'aspire/Builder'>` |
+| `aspire/Application` | `ApplicationHandle` | `Handle<'aspire/Application'>` |
+| `aspire/ExecutionContext` | `ExecutionContextHandle` | `Handle<'aspire/ExecutionContext'>` |
+| `aspire/EnvironmentContext` | `EnvironmentContextHandle` | `Handle<'aspire/EnvironmentContext'>` |
+| `aspire/EndpointReference` | `EndpointReferenceBuilderHandle` | `Handle<'aspire/EndpointReference'>` |
+| `aspire/Redis` | `RedisBuilderHandle` | `Handle<'aspire/Redis'>` |
+| `aspire/Container` | `ContainerBuilderHandle` | `Handle<'aspire/Container'>` |
+| `aspire/IResource` | `IResourceHandle` | `Handle<'aspire/IResource'>` |
+| `aspire/IResourceWithEnvironment` | `IResourceWithEnvironmentHandle` | `Handle<'aspire/IResourceWithEnvironment'>` |
+
+**Naming Convention:**
+
+| ATS Type Pattern | TypeScript Handle Name | Example |
+|------------------|------------------------|---------|
+| Core types (`Builder`, `Application`, `ExecutionContext`) | `{TypeName}Handle` | `aspire/Builder` → `BuilderHandle` |
+| Interface types (`IResource*`) | `{InterfaceName}Handle` | `aspire/IResource` → `IResourceHandle` |
+| Resource types (concrete resources) | `{ResourceName}BuilderHandle` | `aspire/Redis` → `RedisBuilderHandle` |
+
+### Builder Class Generation
+
+Builder classes are generated from ATS type IDs based on the `AppliesTo` constraint:
+
+| ATS Type ID | Builder Class | Thenable Wrapper | Notes |
+|-------------|---------------|------------------|-------|
+| `aspire/IResource` | `ResourceBuilderBase` | *(abstract)* | Interface types become abstract base classes |
+| `aspire/IResourceWithEnvironment` | `ResourceWithEnvironmentBuilderBase` | *(abstract)* | Extends `ResourceBuilderBase` |
+| `aspire/Redis` | `RedisBuilder` | `RedisBuilderPromise` | Concrete resource builder |
+| `aspire/Container` | `ContainerBuilder` | `ContainerBuilderPromise` | Concrete resource builder |
+
+**Naming Convention:**
+
+| ATS Type Pattern | Builder Class Name | Example |
+|------------------|--------------------|---------|
+| Interface types (`IResource*`) | `{InterfaceName}BuilderBase` (strip `I`, add `BuilderBase`) | `aspire/IResourceWithEnvironment` → `ResourceWithEnvironmentBuilderBase` |
+| Concrete types | `{TypeName}Builder` | `aspire/Redis` → `RedisBuilder` |
+
+### Method Naming
+
+Methods are derived from capability IDs:
+
+| Capability ID | Derived Method Name | Notes |
+|---------------|---------------------|-------|
+| `aspire.redis/addRedis@1` | `addRedis` | Extract after `/`, strip `@version` |
+| `aspire/withEnvironment@1` | `withEnvironment` | Same rule |
+| `aspire/createBuilder@1` | `createBuilder` | Same rule |
+
+**Override:** Use `[AspireExport(MethodName = "customName")]` to specify a different method name.
+
+### Special Types
+
+| ATS Concept | TypeScript Representation |
+|-------------|---------------------------|
+| Callbacks | `(context: EnvironmentContextHandle) => Promise<void>` |
+| Arrays (`T[]`) | `T[]` where T is the mapped type |
+| Optional parameters | `paramName?: Type` |
+| Nullable parameters | `paramName?: Type` (same as optional) |
+
+### Generated Code Structure
+
+The code generator produces a **builder-centric API** where methods are placed directly on builder classes rather than requiring explicit handle parameters:
+
+```typescript
+// Handle type aliases
+export type BuilderHandle = Handle<'aspire/Builder'>;
+export type ApplicationHandle = Handle<'aspire/Application'>;
+export type RedisBuilderHandle = Handle<'aspire/Redis'>;
+
+// Entry point function
+export async function createBuilder(): Promise<DistributedApplicationBuilder> {
+    const client = await AspireClient.connect();
+    const result = await client.invokeCapability<BuilderHandle>(
+        'aspire/createBuilder@1', {}
+    );
+    return new DistributedApplicationBuilder(result, client);
+}
+
+// Main builder class - entry point methods go here
+export class DistributedApplicationBuilder {
+    constructor(private _handle: BuilderHandle, private _client: AspireClient) {}
+    get handle(): BuilderHandle { return this._handle; }
+
+    // Entry point methods that extend IDistributedApplicationBuilder
+    async _addRedisInternal(name: string, port?: number): Promise<RedisBuilder> {
+        const result = await this._client.invokeCapability<RedisBuilderHandle>(
+            'aspire.redis/addRedis@1',
+            { builder: this._handle, name, port }
+        );
+        return new RedisBuilder(result, this._client);
+    }
+
+    addRedis(name: string, port?: number): RedisBuilderPromise {
+        return new RedisBuilderPromise(this._addRedisInternal(name, port));
+    }
+
+    async _addContainerInternal(name: string, image: string): Promise<ContainerBuilder> {
+        const result = await this._client.invokeCapability<ContainerBuilderHandle>(
+            'aspire/addContainer@1',
+            { builder: this._handle, name, image }
+        );
+        return new ContainerBuilder(result, this._client);
+    }
+
+    addContainer(name: string, image: string): ContainerBuilderPromise {
+        return new ContainerBuilderPromise(this._addContainerInternal(name, image));
+    }
+
+    async build(): Promise<DistributedApplication> {
+        const result = await this._client.invokeCapability<ApplicationHandle>(
+            'aspire/build@1', { builder: this._handle }
+        );
+        return new DistributedApplication(result, this._client);
+    }
+}
+
+// Application class with run() method
+export class DistributedApplication {
+    constructor(private _handle: ApplicationHandle, private _client: AspireClient) {}
+    get handle(): ApplicationHandle { return this._handle; }
+
+    async run(): Promise<void> {
+        await this._client.invokeCapability<void>('aspire/run@1', { app: this._handle });
+    }
+}
+
+// Concrete resource builder
+export class RedisBuilder {
+    constructor(private _handle: RedisBuilderHandle, private _client: AspireClient) {}
+    get handle(): RedisBuilderHandle { return this._handle; }
+
+    async _withDataVolumeInternal(name?: string): Promise<RedisBuilder> {
+        const result = await this._client.invokeCapability<RedisBuilderHandle>(
+            'aspire.redis/withDataVolume@1',
+            { builder: this._handle, name }
+        );
+        return new RedisBuilder(result, this._client);
+    }
+
+    withDataVolume(name?: string): RedisBuilderPromise {
+        return new RedisBuilderPromise(this._withDataVolumeInternal(name));
+    }
+
+    async _withRedisCommanderInternal(): Promise<RedisBuilder> {
+        const result = await this._client.invokeCapability<RedisBuilderHandle>(
+            'aspire.redis/withRedisCommander@1',
+            { builder: this._handle }
+        );
+        return new RedisBuilder(result, this._client);
+    }
+
+    withRedisCommander(): RedisBuilderPromise {
+        return new RedisBuilderPromise(this._withRedisCommanderInternal());
+    }
+}
+
+// Thenable wrapper for fluent chaining
+export class RedisBuilderPromise implements PromiseLike<RedisBuilder> {
+    constructor(private _promise: Promise<RedisBuilder>) {}
+
+    then<T1, T2>(...): PromiseLike<T1 | T2> {
+        return this._promise.then(...);
+    }
+
+    withDataVolume(name?: string): RedisBuilderPromise {
+        return new RedisBuilderPromise(
+            this._promise.then(b => b._withDataVolumeInternal(name))
+        );
+    }
+
+    withRedisCommander(): RedisBuilderPromise {
+        return new RedisBuilderPromise(
+            this._promise.then(b => b._withRedisCommanderInternal())
+        );
+    }
+}
+```
+
+**Key Design Decisions:**
+
+1. **Builder-centric API**: Methods like `addRedis()` are on `DistributedApplicationBuilder`, not `AspireClient`
+2. **`ExtendsTypeId` property**: The capability scanner tracks what type each extension method extends (e.g., `aspire/Builder` for methods on `IDistributedApplicationBuilder`)
+3. **Entry point separation**: Methods extending `IDistributedApplicationBuilder` go on `DistributedApplicationBuilder`; methods extending resource builders go on their respective classes
+4. **Thenable pattern**: Enables fluent async chaining like `builder.addRedis("cache").withDataVolume()`
+
+### Language-Agnostic Considerations
+
+The ATS type system is designed to be language-agnostic. Other language generators would apply their own conventions:
+
+| Aspect | TypeScript | Python | C# |
+|--------|------------|--------|-----|
+| Method naming | camelCase (`addRedis`) | snake_case (`add_redis`) | PascalCase (`AddRedis`) |
+| Handle types | Type aliases | Type aliases or classes | Generic types |
+| Async pattern | `Promise<T>` / thenable | `async`/`await` | `Task<T>` |
+| Optional params | `param?: Type` | `param: Type = None` | `Type? param = null` |
 
 ---
 
@@ -1124,16 +1372,41 @@ export type DistributedApplicationBuilderHandle = Handle<'aspire.core/Distribute
 export type RedisBuilderHandle = Handle<'aspire.redis/RedisBuilder'>;
 ```
 
-### Generated Capability Functions
+### Generated Builder Methods
+
+The code generator places methods on builder classes based on `ExtendsTypeId`:
 
 ```typescript
+// Method on DistributedApplicationBuilder (ExtendsTypeId = "aspire/Builder")
 // Generated from aspire.redis/addRedis@1
-export async function addRedis(
-    client: AtsClient,
-    builder: DistributedApplicationBuilderHandle,
-    options: AddRedisOptions
-): Promise<RedisBuilderHandle> {
-    return await client.invokeCapability('aspire.redis/addRedis@1', { builder, options });
+class DistributedApplicationBuilder {
+    async _addRedisInternal(name: string, port?: number): Promise<RedisBuilder> {
+        const result = await this._client.invokeCapability<RedisBuilderHandle>(
+            'aspire.redis/addRedis@1',
+            { builder: this._handle, name, port }
+        );
+        return new RedisBuilder(result, this._client);
+    }
+
+    addRedis(name: string, port?: number): RedisBuilderPromise {
+        return new RedisBuilderPromise(this._addRedisInternal(name, port));
+    }
+}
+
+// Method on RedisBuilder (ExtendsTypeId = "aspire/Redis")
+// Generated from aspire.redis/withDataVolume@1
+class RedisBuilder {
+    async _withDataVolumeInternal(name?: string): Promise<RedisBuilder> {
+        const result = await this._client.invokeCapability<RedisBuilderHandle>(
+            'aspire.redis/withDataVolume@1',
+            { builder: this._handle, name }
+        );
+        return new RedisBuilder(result, this._client);
+    }
+
+    withDataVolume(name?: string): RedisBuilderPromise {
+        return new RedisBuilderPromise(this._withDataVolumeInternal(name));
+    }
 }
 ```
 
@@ -1180,20 +1453,48 @@ const expr = refExpr`redis://${endpoint}`;
 
 ### Example Usage
 
+The builder-centric API provides a natural, fluent coding experience:
+
 ```typescript
 // apphost.ts
-import { createBuilder, addRedis, withEnvironment, build, run } from './.modules/index.js';
+import { createBuilder } from './.modules/aspire.js';
 
+// Create the distributed application builder
 const builder = await createBuilder();
 
-const redis = await addRedis(builder, { name: 'cache' });
+// Add resources using fluent chaining - methods return thenable wrappers
+// so you can chain .withXxx() calls and await the final result
+const cache = await builder
+    .addRedis("cache")
+    .withRedisCommander();
 
-// withEnvironment works on any resource builder (polymorphic)
-await withEnvironment(redis, { name: 'REDIS_MODE', value: 'standalone' });
+const api = await builder
+    .addContainer("api", "mcr.microsoft.com/dotnet/samples:aspnetapp");
 
-const app = await build(builder);
-await run(app);
+// Build and run - fully fluent!
+await builder.build().run();
 ```
+
+**Key differences from function-based API:**
+
+| Function-based (old) | Builder-centric (new) |
+|---------------------|----------------------|
+| `addRedis(builder, { name: 'cache' })` | `builder.addRedis("cache")` |
+| `withRedisCommander(redis)` | `redis.withRedisCommander()` |
+| `build(builder)` | `builder.build()` |
+| `run(app)` | `app.run()` |
+
+**Fluent chaining:** Methods return thenable wrappers (`RedisBuilderPromise`, `DistributedApplicationPromise`) that allow chaining without intermediate awaits:
+
+```typescript
+// Single await with fluent chain
+const cache = await builder.addRedis("cache").withRedisCommander().withDataVolume();
+
+// Fully fluent build and run
+await builder.build().run();
+```
+
+The builder-centric API feels more natural and matches how developers expect to write code in TypeScript.
 
 ---
 
