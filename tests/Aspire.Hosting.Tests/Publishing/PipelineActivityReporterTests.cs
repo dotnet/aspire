@@ -530,7 +530,7 @@ public class PublishingActivityReporterTests
 
         await reporter.CompleteInteractionAsync(promptId, responses, updateResponse: false, cancellationToken: CancellationToken.None).DefaultTimeout();
 
-        var promptResult = await promptTask.DefaultTimeout();
+        var promptResult = await promptTask.GetResultAsync().DefaultTimeout();
         Assert.False(promptResult.Canceled);
         Assert.Equal("user-response", promptResult.Data?.Value);
     }
@@ -559,7 +559,7 @@ public class PublishingActivityReporterTests
         await reporter.CompleteInteractionAsync(promptId, responses, updateResponse: false, CancellationToken.None).DefaultTimeout();
 
         // The prompt task should complete with the user's response
-        var promptResult = await promptTask.DefaultTimeout();
+        var promptResult = await promptTask.GetResultAsync().DefaultTimeout();
         Assert.False(promptResult.Canceled);
         Assert.Equal("user-response", promptResult.Data?.Value);
     }
@@ -588,7 +588,7 @@ public class PublishingActivityReporterTests
         await reporter.CompleteInteractionAsync(promptId, responses, updateResponse: false, CancellationToken.None).DefaultTimeout();
 
         // The prompt task should complete with the user's response
-        var promptResult = await promptTask.DefaultTimeout();
+        var promptResult = await promptTask.GetResultAsync().DefaultTimeout();
         Assert.False(promptResult.Canceled);
         Assert.Equal("user-response", promptResult.Data?.Value);
     }
@@ -628,7 +628,7 @@ public class PublishingActivityReporterTests
         await reporter.CompleteInteractionAsync(notificationId, responses, updateResponse: false, CancellationToken.None).DefaultTimeout();
 
         // The notification task should complete with the user's response
-        var notificationResult = await notificationTask.DefaultTimeout();
+        var notificationResult = await notificationTask.GetResultAsync().DefaultTimeout();
         Assert.False(notificationResult.Canceled);
         Assert.True(notificationResult.Data);
     }
