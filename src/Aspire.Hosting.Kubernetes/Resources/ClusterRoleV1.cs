@@ -38,6 +38,6 @@ public sealed class ClusterRole() : BaseKubernetesResource("rbac.authorization.k
     /// the precise components of a policy rule, including API groups, resources, verbs,
     /// and URLs.
     /// </remarks>
-    [YamlMember(Alias = "rules", DefaultValuesHandling = DefaultValuesHandling.OmitDefaults)]
-    public List<PolicyRuleV1>? Rules { get; set; }
+    [YamlMember(Alias = "rules", DefaultValuesHandling = DefaultValuesHandling.Preserve )]
+    public List<PolicyRuleV1> Rules { get; } = [];
 }

@@ -16,7 +16,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
     /// <inheritdoc/>
     public KubernetesEnvironmentResource Parent => kubernetesEnvironmentResource;
 
-    internal record EndpointMapping(string Scheme, string Host, string Port, string Name, string? HelmExpression = null);
+    internal record EndpointMapping(string Scheme, string Protocol, string Host, string Port, string Name, string? HelmExpression = null);
     internal Dictionary<string, EndpointMapping> EndpointMappings { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> EnvironmentVariables { get; } = [];
     internal Dictionary<string, HelmExpressionWithValue> Secrets { get; } = [];
@@ -176,7 +176,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
             }
 
             var portValue = resolved.TargetPort.Value.Value.ToString(CultureInfo.InvariantCulture);
-            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), portValue, endpoint.Name);
+            EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, endpoint.ToProtocolName(), resource.Name.ToServiceName(), portValue, endpoint.Name);
         }
     }
 
@@ -186,12 +186,13 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
         // Create a Helm parameter for the container port
         var paramName = $"port_{endpoint.Name}".ToHelmValuesSectionName();
-        var helmExpression = paramName.ToTypedHelmParameterExpression<int>(resource.Name);
+        var helmExpression = paramName.AddHelmTypeConversion<int>(resource.Name);
         Parameters[paramName] = new(helmExpression, defaultPort);
-
-        // Use the parameter as the target port in the endpoint mapping
-        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, resource.Name.ToServiceName(), helmExpression, endpoint.Name);
+        
+        EndpointMappings[endpoint.Name] = new(endpoint.UriScheme, endpoint.ToProtocolName(), resource.Name.ToServiceName(), helmExpression, endpoint.Name);
     }
+
+    
 
     private void ProcessVolumes()
     {
@@ -436,7 +437,7 @@ public class KubernetesResource(string name, IResource resource, KubernetesEnvir
 
     private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
     {
-        var (scheme, host, port, _, _) = mapping;
+        var (scheme, _, host, port, _, _) = mapping;
 
         return property switch
         {

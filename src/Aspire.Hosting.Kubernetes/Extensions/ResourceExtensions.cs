@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Resources;
 
@@ -144,11 +145,21 @@ internal static class ResourceExtensions
                     Name = mapping.Name,
                     Port = new(mapping.Port),
                     TargetPort = new(mapping.Port),
-                    Protocol = "TCP",
+                    Protocol = mapping.Protocol,
                 });
         }
 
         return service;
+    }
+
+    internal static string ToProtocolName(this EndpointAnnotation endpoint)
+    {
+        return endpoint.Protocol switch
+        {
+            ProtocolType.Tcp => "TCP",
+            ProtocolType.Udp => "UDP",
+            _ => throw new InvalidOperationException($"Unsupported protocol: {endpoint.Protocol}")
+        };
     }
 
     private static PodTemplateSpecV1 ToPodTemplateSpec(this IResource resource, KubernetesResource context)
@@ -271,7 +282,7 @@ internal static class ResourceExtensions
                 {
                     Name = mapping.Name,
                     ContainerPort = new(mapping.Port),
-                    Protocol = "TCP",
+                    Protocol = mapping.Protocol,
                 });
         }
 

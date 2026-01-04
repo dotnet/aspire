@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.RegularExpressions;
+
 namespace Aspire.Hosting.Kubernetes.Extensions;
 
-internal static class HelmExtensions
+internal static partial class HelmExtensions
 {
     private const string DeploymentKey = "deployment";
     private const string StatefulSetKey = "statefulset";
@@ -16,6 +18,9 @@ internal static class HelmExtensions
     public const string ConfigKey = "config";
     public const string TemplateFileSeparator = "---";
 
+    public const string ExpressionStart = "{{";
+    public const string ExpressionEnd = "}}";
+
     /// <summary>
     /// Converts the specified resource name into a Helm configuration section name.
     /// </summary>
@@ -26,27 +31,29 @@ internal static class HelmExtensions
     public static string ToHelmValuesSectionName(this string resourceName)
         => $"{resourceName.Replace("-", "_")}";
 
-    public static string ToTypedHelmParameterExpression<T>(this string parameterName, string resourceName)
+    public static string AddHelmTypeConversion<T>(this string parameterName, string resourceName)
     {
         var sectionName = $"{ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName();
-
         return typeof(T) switch
         {
-            var t when t == typeof(int) => $"{{{{ {sectionName} | int }}}}",
-            var t when t == typeof(float) => $"{{{{ {sectionName} | float64 }}}}",
-            var t when t == typeof(long) => $"{{{{ {sectionName} | int64 }}}}",
-            _ => $"{{{{ {sectionName} }}}}"
+            var t when t == typeof(int) => $"{ExpressionStart} {sectionName} | int {ExpressionEnd}",
+            var t when t == typeof(float) => $"{ExpressionStart} {sectionName} | float64 {ExpressionEnd}",
+            var t when t == typeof(long) => $"{ExpressionStart} {sectionName} | int64 {ExpressionEnd}",
+            _ => $"{ExpressionStart} {sectionName} {ExpressionEnd}"
         };
     }
 
+    public static string RemoveHelmTypeConversion(this string helmExpression)
+        => SupportedHelmTypeConversion().Replace(helmExpression, $" {ExpressionEnd}");
+
     public static string ToHelmParameterExpression(this string parameterName, string resourceName)
-        => $"{{{{ {ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName} }}}}".ToHelmValuesSectionName();
+        => $"{ExpressionStart} {ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName} {ExpressionEnd}".ToHelmValuesSectionName();
 
     public static string ToHelmSecretExpression(this string parameterName, string resourceName)
-        => $"{{{{ {ValuesSegment}.{SecretsKey}.{resourceName}.{parameterName} }}}}".ToHelmValuesSectionName();
+        => $"{ExpressionStart} {ValuesSegment}.{SecretsKey}.{resourceName}.{parameterName} {ExpressionEnd}".ToHelmValuesSectionName();
 
     public static string ToHelmConfigExpression(this string parameterName, string resourceName)
-        => $"{{{{ {ValuesSegment}.{ConfigKey}.{resourceName}.{parameterName} }}}}".ToHelmValuesSectionName();
+        => $"{ExpressionStart} {ValuesSegment}.{ConfigKey}.{resourceName}.{parameterName} {ExpressionEnd}".ToHelmValuesSectionName();
 
     public static string ToHelmChartName(this string applicationName)
         => applicationName.ToLower().Replace("_", "-").Replace(".", "-");
@@ -83,8 +90,11 @@ internal static class HelmExtensions
         => $"{resourceName.ToKubernetesResourceName()}-{volumeName}-{PvKey}";
 
     public static bool ContainsHelmExpression(this string value)
-        => value.Contains($"{{{{ {ValuesSegment}.", StringComparison.Ordinal);
+        => value.Contains($"{ExpressionStart} {ValuesSegment}.", StringComparison.Ordinal);
 
     public static bool ContainsHelmSecretExpression(this string value)
-        => value.Contains($"{{{{ {ValuesSegment}.{SecretsKey}.", StringComparison.Ordinal);
+        => value.Contains($"{ExpressionStart} {ValuesSegment}.{SecretsKey}.", StringComparison.Ordinal);
+
+    [GeneratedRegex(@$"\s\|\s(int|float64|int64)\s{ExpressionEnd}$", RegexOptions.Compiled)]
+    private static partial Regex SupportedHelmTypeConversion();
 }

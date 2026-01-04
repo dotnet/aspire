@@ -126,15 +126,14 @@ internal sealed class KubernetesPublishingContext(
 
         foreach (var (key, helmExpressionWithValue) in contextItems)
         {
+            object? value;
+            //Port numbers WILL contain helm expressions
             if (helmExpressionWithValue.ValueContainsHelmExpression)
             {
-                continue;
+                value = helmExpressionWithValue.StringValue!.RemoveHelmTypeConversion();
             }
-
-            object? value;
-
             // If there's a parameter source, resolve its value asynchronously
-            if (helmExpressionWithValue.ParameterSource is ParameterResource parameter)
+            else if (helmExpressionWithValue.ParameterSource is ParameterResource parameter)
             {
                 value = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
             }
