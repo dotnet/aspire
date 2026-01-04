@@ -17,6 +17,48 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public async Task EmbeddedResource_RemoteAppHostClientTs_MatchesSnapshot()
+    {
+        var assembly = typeof(AtsTypeScriptCodeGenerator).Assembly;
+        var resourceName = "Aspire.Hosting.CodeGeneration.TypeScript.Resources.RemoteAppHostClient.ts";
+
+        using var stream = assembly.GetManifestResourceStream(resourceName)!;
+        using var reader = new StreamReader(stream);
+        var content = await reader.ReadToEndAsync();
+
+        await Verify(content, extension: "ts")
+            .UseFileName("RemoteAppHostClient");
+    }
+
+    [Fact]
+    public async Task EmbeddedResource_TypesTs_MatchesSnapshot()
+    {
+        var assembly = typeof(AtsTypeScriptCodeGenerator).Assembly;
+        var resourceName = "Aspire.Hosting.CodeGeneration.TypeScript.Resources.types.ts";
+
+        using var stream = assembly.GetManifestResourceStream(resourceName)!;
+        using var reader = new StreamReader(stream);
+        var content = await reader.ReadToEndAsync();
+
+        await Verify(content, extension: "ts")
+            .UseFileName("types");
+    }
+
+    [Fact]
+    public async Task EmbeddedResource_PackageJson_MatchesSnapshot()
+    {
+        var assembly = typeof(AtsTypeScriptCodeGenerator).Assembly;
+        var resourceName = "Aspire.Hosting.CodeGeneration.TypeScript.Resources.package.json";
+
+        using var stream = assembly.GetManifestResourceStream(resourceName)!;
+        using var reader = new StreamReader(stream);
+        var content = await reader.ReadToEndAsync();
+
+        await Verify(content, extension: "json")
+            .UseFileName("package");
+    }
+
+    [Fact]
     public async Task GenerateDistributedApplication_WithTestTypes_GeneratesCorrectOutput()
     {
         // Arrange
