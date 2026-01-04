@@ -210,7 +210,7 @@ Handle types are automatically derived from .NET types:
 
 Handles form a type hierarchy based on the CLR type hierarchy, enabling polymorphic capabilities:
 
-```
+```text
 aspire/IResource (base interface)
 ├── aspire/IResourceWithEnvironment
 ├── aspire/IResourceWithEndpoints
@@ -369,7 +369,7 @@ The `Aspire.Hosting.Analyzers` package includes compile-time validation for `[As
 |------------|-------------|
 | `ASPIRE007` | Method marked with `[AspireExport]` must be static |
 | `ASPIRE008` | Export ID must follow format `aspire/{operation}@{version}` or `aspire.{package}/{operation}@{version}` |
-| `ASPIRE009` | Return type must be ATS-compatible (void, Task, Task<T>, or supported Aspire types) |
+| `ASPIRE009` | Return type must be ATS-compatible (void, Task, `Task<T>`, or supported Aspire types) |
 | `ASPIRE010` | Parameter types must be ATS-compatible (primitives, enums, or supported Aspire types) |
 
 **ATS-Compatible Types:**
