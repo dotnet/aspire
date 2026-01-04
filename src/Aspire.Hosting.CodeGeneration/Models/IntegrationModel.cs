@@ -92,8 +92,11 @@ public sealed class IntegrationModel
         integration.DiscoverModelClasses(integration.IDistributedApplicationBuilderExtensionMethods, integration.ModelTypes);
         integration.DiscoverModelClasses(integration.SharedExtensionMethods, integration.ModelTypes);
 
+        // Build type mapping from the assembly for ATS type resolution
+        var typeMapping = AtsTypeMapping.FromAssembly(assembly);
+
         // Scan for ATS capabilities via [AspireExport] attributes
-        var capabilities = AtsCapabilityScanner.ScanAssembly(assembly, knownTypes);
+        var capabilities = AtsCapabilityScanner.ScanAssembly(assembly, knownTypes, typeMapping);
         integration.Capabilities.AddRange(capabilities);
 
         foreach (var r in resourceTypes)

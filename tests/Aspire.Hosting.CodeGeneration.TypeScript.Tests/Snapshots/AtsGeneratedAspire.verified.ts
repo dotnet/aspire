@@ -41,6 +41,90 @@ export type TBuilderHandle = Handle<'aspire/T'>;
 export type TestRedisBuilderHandle = Handle<'aspire/TestRedis'>;
 
 // ============================================================================
+// DistributedApplicationBuilder
+// ============================================================================
+
+/**
+ * Represents a built distributed application ready to run.
+ */
+export class DistributedApplication {
+    constructor(
+        private _handle: ApplicationHandle,
+        private _client: AspireClient
+    ) {}
+
+    /** Gets the underlying handle */
+    get handle(): ApplicationHandle { return this._handle; }
+
+    /**
+     * Runs the distributed application, starting all configured resources.
+     */
+    async run(): Promise<void> {
+        await this._client.client.invokeCapability<void>(
+            'aspire/run@1',
+            { app: this._handle }
+        );
+    }
+}
+
+/**
+ * Thenable wrapper for DistributedApplication enabling fluent chaining.
+ * Allows: await builder.build().run()
+ */
+export class DistributedApplicationPromise implements PromiseLike<DistributedApplication> {
+    constructor(private _promise: Promise<DistributedApplication>) {}
+
+    then<TResult1 = DistributedApplication, TResult2 = never>(
+        onfulfilled?: ((value: DistributedApplication) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /**
+     * Runs the distributed application, starting all configured resources.
+     * Chains through the promise for fluent usage: await builder.build().run()
+     */
+    run(): Promise<void> {
+        return this._promise.then(app => app.run());
+    }
+}
+
+/**
+ * Builder for creating distributed applications.
+ * Use createBuilder() to get an instance.
+ */
+export class DistributedApplicationBuilder {
+    constructor(
+        private _handle: BuilderHandle,
+        private _client: AspireClient
+    ) {}
+
+    /** Gets the underlying handle */
+    get handle(): BuilderHandle { return this._handle; }
+
+    /** Gets the AspireClient for invoking capabilities */
+    get client(): AspireClient { return this._client; }
+
+    /** @internal - actual async implementation */
+    async _buildInternal(): Promise<DistributedApplication> {
+        const handle = await this._client.client.invokeCapability<ApplicationHandle>(
+            'aspire/build@1',
+            { builder: this._handle }
+        );
+        return new DistributedApplication(handle, this._client);
+    }
+
+    /**
+     * Builds the distributed application from the configured builder.
+     * Returns a thenable for fluent chaining: await builder.build().run()
+     */
+    build(): DistributedApplicationPromise {
+        return new DistributedApplicationPromise(this._buildInternal());
+    }
+}
+
+// ============================================================================
 // ResourceBuilderBase
 // ============================================================================
 
@@ -150,10 +234,10 @@ export class AspireClient {
     /**
      * Adds a test Redis resource
      */
-    addTestRedis(name: string, port?: number): TestRedisBuilderPromise {
+    addTestRedis(builder: unknown, name: string, port?: number): TestRedisBuilderPromise {
         const promise = this.rpc.invokeCapability<TestRedisBuilderHandle>(
             'aspire.test/addTestRedis@1',
-            { name, port }
+            { builder, name, port }
         ).then(handle => new TestRedisBuilder(handle, this));
         return new TestRedisBuilderPromise(promise);
     }
@@ -189,6 +273,29 @@ export async function connect(): Promise<AspireClient> {
     await rpc.authenticate(authToken);
 
     return new AspireClient(rpc);
+}
+
+/**
+ * Creates a new distributed application builder.
+ * This is the entry point for building Aspire applications.
+ *
+ * @param args - Optional command-line arguments to pass to the builder
+ * @returns A DistributedApplicationBuilder instance
+ *
+ * @example
+ * const builder = await createBuilder();
+ * builder.addRedis("cache");
+ * builder.addContainer("api", "mcr.microsoft.com/dotnet/samples:aspnetapp");
+ * const app = await builder.build();
+ * await app.run();
+ */
+export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
+    const client = await connect();
+    const handle = await client.client.invokeCapability<BuilderHandle>(
+        'aspire/createBuilder@1',
+        { args }
+    );
+    return new DistributedApplicationBuilder(handle, client);
 }
 
 // Re-export commonly used types

@@ -18,7 +18,13 @@ public static class AtsCapabilityScanner
     /// <summary>
     /// Scans an assembly for [AspireExport] attributes and returns capability models.
     /// </summary>
-    public static List<AtsCapabilityInfo> ScanAssembly(RoAssembly assembly, IWellKnownTypes wellKnownTypes)
+    /// <param name="assembly">The assembly to scan.</param>
+    /// <param name="wellKnownTypes">Well-known type definitions.</param>
+    /// <param name="typeMapping">The ATS type mapping for resolving type IDs.</param>
+    public static List<AtsCapabilityInfo> ScanAssembly(
+        RoAssembly assembly,
+        IWellKnownTypes wellKnownTypes,
+        AtsTypeMapping typeMapping)
     {
         var capabilities = new List<AtsCapabilityInfo>();
 
@@ -58,7 +64,7 @@ public static class AtsCapabilityScanner
                         continue;
                     }
 
-                    var capability = CreateCapabilityInfo(method, exportAttr, wellKnownTypes);
+                    var capability = CreateCapabilityInfo(method, exportAttr, wellKnownTypes, typeMapping);
                     if (capability != null)
                     {
                         capabilities.Add(capability);
@@ -91,7 +97,8 @@ public static class AtsCapabilityScanner
     private static AtsCapabilityInfo? CreateCapabilityInfo(
         RoMethod method,
         RoCustomAttributeData exportAttr,
-        IWellKnownTypes wellKnownTypes)
+        IWellKnownTypes wellKnownTypes,
+        AtsTypeMapping typeMapping)
     {
         // Get the capability ID (first fixed argument)
         if (exportAttr.FixedArguments.Count == 0 || exportAttr.FixedArguments[0] is not string capabilityId)
@@ -116,7 +123,7 @@ public static class AtsCapabilityScanner
         if (isExtensionMethod)
         {
             var firstParam = method.Parameters[0];
-            extendsTypeId = MapToAtsTypeId(firstParam.ParameterType, wellKnownTypes);
+            extendsTypeId = MapToAtsTypeId(firstParam.ParameterType, wellKnownTypes, typeMapping);
         }
 
         // Get parameters
@@ -132,14 +139,14 @@ public static class AtsCapabilityScanner
         var paramIndex = 0;
         foreach (var param in paramList)
         {
-            var paramInfo = CreateParameterInfo(param, paramIndex, wellKnownTypes);
+            var paramInfo = CreateParameterInfo(param, paramIndex, wellKnownTypes, typeMapping);
             parameters.Add(paramInfo);
             paramIndex++;
         }
 
         // Get return type info
         var returnType = method.ReturnType;
-        var returnTypeId = MapToAtsTypeId(returnType, wellKnownTypes);
+        var returnTypeId = MapToAtsTypeId(returnType, wellKnownTypes, typeMapping);
         var returnsBuilder = returnTypeId != null &&
             (returnTypeId.StartsWith("aspire/") || IsResourceBuilderType(returnType, wellKnownTypes));
 
@@ -161,10 +168,14 @@ public static class AtsCapabilityScanner
     /// <summary>
     /// Creates parameter info from a method parameter.
     /// </summary>
-    private static AtsParameterInfo CreateParameterInfo(RoParameterInfo param, int paramIndex, IWellKnownTypes wellKnownTypes)
+    private static AtsParameterInfo CreateParameterInfo(
+        RoParameterInfo param,
+        int paramIndex,
+        IWellKnownTypes wellKnownTypes,
+        AtsTypeMapping typeMapping)
     {
         var paramType = param.ParameterType;
-        var atsTypeId = MapToAtsTypeId(paramType, wellKnownTypes) ?? "any";
+        var atsTypeId = MapToAtsTypeId(paramType, wellKnownTypes, typeMapping) ?? "any";
 
         // Check for [AspireCallback] attribute
         var callbackAttr = param.GetCustomAttributes()
@@ -179,7 +190,7 @@ public static class AtsCapabilityScanner
         if (isNullable)
         {
             paramType = paramType.GetGenericArguments()[0];
-            atsTypeId = MapToAtsTypeId(paramType, wellKnownTypes) ?? "any";
+            atsTypeId = MapToAtsTypeId(paramType, wellKnownTypes, typeMapping) ?? "any";
         }
 
         return new AtsParameterInfo
@@ -227,15 +238,13 @@ public static class AtsCapabilityScanner
 
     /// <summary>
     /// Maps a CLR type to an ATS type ID for code generation.
+    /// Uses the explicit type mapping first, then falls back to inference for primitives and generics.
     /// </summary>
-    public static string? MapToAtsTypeId(RoType type, IWellKnownTypes wellKnownTypes)
+    public static string? MapToAtsTypeId(RoType type, IWellKnownTypes wellKnownTypes, AtsTypeMapping typeMapping)
     {
         // Handle generic type parameters (e.g., T in IResourceBuilder<T>)
-        // These show up as "!0", "!1", etc. or "!!0", "!!1" for method parameters
         if (type.IsGenericParameter)
         {
-            // For generic type parameters, return a special marker
-            // The caller should use the AppliesTo constraint instead
             return "T";
         }
 
@@ -256,10 +265,10 @@ public static class AtsCapabilityScanner
         if (type.IsGenericType && type.GenericTypeDefinition == taskOfTType)
         {
             var innerType = type.GetGenericArguments()[0];
-            return MapToAtsTypeId(innerType, wellKnownTypes);
+            return MapToAtsTypeId(innerType, wellKnownTypes, typeMapping);
         }
 
-        // Handle primitives
+        // Handle primitives (these don't need explicit mapping)
         if (type == wellKnownTypes.GetKnownType(typeof(string)))
         {
             return "string";
@@ -282,97 +291,38 @@ public static class AtsCapabilityScanner
         if (wellKnownTypes.IsNullableOfT(type))
         {
             var innerType = type.GetGenericArguments()[0];
-            return MapToAtsTypeId(innerType, wellKnownTypes);
+            return MapToAtsTypeId(innerType, wellKnownTypes, typeMapping);
         }
 
-        // Handle IResourceBuilder<T>
+        // Handle IResourceBuilder<T> - get the T and look it up
         if (wellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var resourceType))
         {
-            return GetResourceTypeId(resourceType);
+            return typeMapping.GetTypeIdOrInfer(resourceType);
         }
 
-        // Handle IResource types
+        // Handle IResource types directly
         if (wellKnownTypes.IResourceType.IsAssignableFrom(type))
         {
-            return GetResourceTypeId(type);
+            return typeMapping.GetTypeIdOrInfer(type);
         }
 
-        // Handle known intrinsic types by name
-        var intrinsicId = GetIntrinsicTypeId(type);
-        if (intrinsicId != null)
+        // Try explicit mapping for other types
+        var typeId = typeMapping.GetTypeId(type);
+        if (typeId != null)
         {
-            return intrinsicId;
+            return typeId;
         }
 
         // Handle arrays
         if (type.IsArray)
         {
             var elementType = type.GetElementType();
-            var elementId = elementType != null ? MapToAtsTypeId(elementType, wellKnownTypes) : "any";
+            var elementId = elementType != null ? MapToAtsTypeId(elementType, wellKnownTypes, typeMapping) : "any";
             return $"{elementId}[]";
         }
 
         // Unknown type
         return "any";
-    }
-
-    /// <summary>
-    /// Gets the ATS type ID for a resource type.
-    /// </summary>
-    /// <example>
-    /// RedisResource -> "aspire/Redis"
-    /// ContainerResource -> "aspire/Container"
-    /// IResource -> "aspire/IResource"
-    /// IResourceWithEnvironment -> "aspire/IResourceWithEnvironment"
-    /// </example>
-    public static string GetResourceTypeId(RoType resourceType)
-    {
-        var typeName = resourceType.Name;
-
-        // Don't strip "Resource" suffix from interface types (IResource, IResourceWithXxx)
-        // They should keep their full names
-        var isInterface = typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]);
-
-        // Strip "Resource" suffix if present (but not for interfaces)
-        if (!isInterface && typeName.EndsWith("Resource", StringComparison.Ordinal))
-        {
-            typeName = typeName[..^8];
-        }
-
-        return $"aspire/{typeName}";
-    }
-
-    /// <summary>
-    /// Gets the ATS type ID for known intrinsic types by name matching.
-    /// </summary>
-    private static string? GetIntrinsicTypeId(RoType type)
-    {
-        // Map by full name
-        return type.FullName switch
-        {
-            "Aspire.Hosting.IDistributedApplicationBuilder" => "aspire/Builder",
-            "Aspire.Hosting.DistributedApplication" => "aspire/Application",
-            "Aspire.Hosting.DistributedApplicationExecutionContext" => "aspire/ExecutionContext",
-            "Aspire.Hosting.ApplicationModel.EndpointReference" => "aspire/EndpointReference",
-            "Aspire.Hosting.ApplicationModel.ReferenceExpression" => "aspire/ReferenceExpression",
-            "Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext" => "aspire/EnvironmentContext",
-            "Microsoft.Extensions.Configuration.IConfiguration" => "aspire/Configuration",
-            "Microsoft.Extensions.Hosting.IHostEnvironment" => "aspire/HostEnvironment",
-            "Aspire.Hosting.Eventing.DistributedApplicationEventSubscription" => "aspire/EventSubscription",
-            "System.IServiceProvider" => "aspire/ServiceProvider",
-            "Aspire.Hosting.ApplicationModel.ResourceNotificationService" => "aspire/ResourceNotificationService",
-            "Aspire.Hosting.ApplicationModel.ResourceLoggerService" => "aspire/ResourceLoggerService",
-            "Aspire.Hosting.ApplicationModel.IResource" => "aspire/IResource",
-            "Aspire.Hosting.ApplicationModel.IResourceWithEnvironment" => "aspire/IResourceWithEnvironment",
-            "Aspire.Hosting.ApplicationModel.IResourceWithEndpoints" => "aspire/IResourceWithEndpoints",
-            "Aspire.Hosting.ApplicationModel.IResourceWithArgs" => "aspire/IResourceWithArgs",
-            "Aspire.Hosting.ApplicationModel.IResourceWithConnectionString" => "aspire/IResourceWithConnectionString",
-            "Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport" => "aspire/IResourceWithWaitSupport",
-            "Aspire.Hosting.ApplicationModel.IResourceWithParent" => "aspire/IResourceWithParent",
-            "Aspire.Hosting.ApplicationModel.ContainerResource" => "aspire/Container",
-            "Aspire.Hosting.ApplicationModel.ParameterResource" => "aspire/Parameter",
-            _ => null
-        };
     }
 
     /// <summary>
