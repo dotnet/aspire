@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.RemoteHost.Ats;
 
@@ -304,7 +305,7 @@ internal sealed class CapabilityDispatcher
                 }
 
                 // For IResourceBuilder<T> without constraints, use base interface
-                return "aspire/IResource";
+                return AtsTypeMapping.TypeIds.IResource;
             }
 
             // Check for other intrinsic types (IDistributedApplicationBuilder, etc.)
@@ -312,7 +313,7 @@ internal sealed class CapabilityDispatcher
             if (typeId != null)
             {
                 // Don't set AppliesTo for builder methods - they're entry points
-                if (typeId == "aspire/Builder")
+                if (typeId == AtsTypeMapping.TypeIds.Builder)
                 {
                     return null;
                 }

@@ -182,9 +182,9 @@ public sealed class AtsTypeMapping
     }
 
     /// <summary>
-    /// Gets all registered type IDs.
+    /// Gets all registered type IDs from this mapping.
     /// </summary>
-    public IEnumerable<string> TypeIds => _typeIdToFullName.Keys;
+    public IEnumerable<string> RegisteredTypeIds => _typeIdToFullName.Keys;
 
     /// <summary>
     /// Gets all registered CLR type full names.
@@ -252,4 +252,217 @@ public sealed class AtsTypeMapping
             fullNameToTypeId.ToFrozenDictionary(StringComparer.Ordinal),
             typeIdToFullName.ToFrozenDictionary(StringComparer.Ordinal));
     }
+
+    #region Type ID Constants
+
+    /// <summary>
+    /// Well-known ATS type ID constants.
+    /// </summary>
+    public static class TypeIds
+    {
+        // Core types
+        /// <summary>The ATS type ID for IDistributedApplicationBuilder.</summary>
+        public const string Builder = "aspire/Builder";
+        /// <summary>The ATS type ID for DistributedApplication.</summary>
+        public const string Application = "aspire/Application";
+        /// <summary>The ATS type ID for DistributedApplicationExecutionContext.</summary>
+        public const string ExecutionContext = "aspire/ExecutionContext";
+
+        // Wrapper types (non-resource handles)
+        /// <summary>The ATS type ID for IConfiguration.</summary>
+        public const string Configuration = "aspire/Configuration";
+        /// <summary>The ATS type ID for IHostEnvironment.</summary>
+        public const string HostEnvironment = "aspire/HostEnvironment";
+        /// <summary>The ATS type ID for EnvironmentCallbackContext.</summary>
+        public const string EnvironmentContext = "aspire/EnvironmentContext";
+        /// <summary>The ATS type ID for ILogger.</summary>
+        public const string Logger = "aspire/Logger";
+        /// <summary>The ATS type ID for DistributedApplicationEventSubscription.</summary>
+        public const string EventSubscription = "aspire/EventSubscription";
+        /// <summary>The ATS type ID for IServiceProvider.</summary>
+        public const string ServiceProvider = "aspire/ServiceProvider";
+        /// <summary>The ATS type ID for ResourceNotificationService.</summary>
+        public const string ResourceNotificationService = "aspire/ResourceNotificationService";
+        /// <summary>The ATS type ID for ResourceLoggerService.</summary>
+        public const string ResourceLoggerService = "aspire/ResourceLoggerService";
+
+        // Reference types
+        /// <summary>The ATS type ID for EndpointReference.</summary>
+        public const string EndpointReference = "aspire/EndpointReference";
+        /// <summary>The ATS type ID for ReferenceExpression.</summary>
+        public const string ReferenceExpression = "aspire/ReferenceExpression";
+
+        // Resource interfaces
+        /// <summary>The ATS type ID for IResource.</summary>
+        public const string IResource = "aspire/IResource";
+        /// <summary>The ATS type ID for IResourceWithEnvironment.</summary>
+        public const string IResourceWithEnvironment = "aspire/IResourceWithEnvironment";
+        /// <summary>The ATS type ID for IResourceWithEndpoints.</summary>
+        public const string IResourceWithEndpoints = "aspire/IResourceWithEndpoints";
+        /// <summary>The ATS type ID for IResourceWithArgs.</summary>
+        public const string IResourceWithArgs = "aspire/IResourceWithArgs";
+        /// <summary>The ATS type ID for IResourceWithConnectionString.</summary>
+        public const string IResourceWithConnectionString = "aspire/IResourceWithConnectionString";
+        /// <summary>The ATS type ID for IResourceWithWaitSupport.</summary>
+        public const string IResourceWithWaitSupport = "aspire/IResourceWithWaitSupport";
+        /// <summary>The ATS type ID for IResourceWithParent.</summary>
+        public const string IResourceWithParent = "aspire/IResourceWithParent";
+
+        // Concrete resources
+        /// <summary>The ATS type ID for ContainerResource.</summary>
+        public const string Container = "aspire/Container";
+        /// <summary>The ATS type ID for ExecutableResource.</summary>
+        public const string Executable = "aspire/Executable";
+        /// <summary>The ATS type ID for ProjectResource.</summary>
+        public const string Project = "aspire/Project";
+        /// <summary>The ATS type ID for ParameterResource.</summary>
+        public const string Parameter = "aspire/Parameter";
+    }
+
+    #endregion
+
+    #region Type Classification
+
+    /// <summary>
+    /// Wrapper type IDs - non-resource types that get simple wrapper classes.
+    /// </summary>
+    private static readonly FrozenSet<string> s_wrapperTypeIds = FrozenSet.ToFrozenSet(
+    [
+        TypeIds.Configuration,
+        TypeIds.HostEnvironment,
+        TypeIds.ExecutionContext,
+        TypeIds.Logger,
+        TypeIds.EventSubscription,
+        TypeIds.ServiceProvider,
+        TypeIds.EnvironmentContext,
+        TypeIds.ResourceNotificationService,
+        TypeIds.ResourceLoggerService,
+    ]);
+
+    /// <summary>
+    /// Parameter name conventions for wrapper types.
+    /// </summary>
+    private static readonly FrozenDictionary<string, string> s_parameterNames =
+        new Dictionary<string, string>
+        {
+            [TypeIds.Builder] = "builder",
+            [TypeIds.Configuration] = "configuration",
+            [TypeIds.HostEnvironment] = "environment",
+            [TypeIds.ExecutionContext] = "context",
+            [TypeIds.EnvironmentContext] = "context",
+            [TypeIds.ServiceProvider] = "serviceProvider",
+            [TypeIds.ResourceNotificationService] = "notificationService",
+            [TypeIds.ResourceLoggerService] = "loggerService",
+        }.ToFrozenDictionary();
+
+    /// <summary>
+    /// Checks if a type ID represents a wrapper type (non-resource handle).
+    /// Wrapper types get simple wrapper classes in generated code, not builder classes.
+    /// </summary>
+    /// <param name="typeId">The ATS type ID to check.</param>
+    /// <returns>True if the type ID represents a wrapper type.</returns>
+    public static bool IsWrapperType(string? typeId)
+    {
+        return typeId != null && s_wrapperTypeIds.Contains(typeId);
+    }
+
+    /// <summary>
+    /// Checks if a type ID represents a resource builder type.
+    /// Resource builder types get builder classes with fluent chaining in generated code.
+    /// </summary>
+    /// <param name="typeId">The ATS type ID to check.</param>
+    /// <returns>True if the type ID represents a resource builder type.</returns>
+    public static bool IsResourceBuilderType(string? typeId)
+    {
+        if (string.IsNullOrEmpty(typeId))
+        {
+            return false;
+        }
+
+        if (!typeId.StartsWith("aspire/", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (IsWrapperType(typeId))
+        {
+            return false;
+        }
+
+        // Interface types (IResource, IResourceWithXxx)
+        if (typeId.StartsWith("aspire/IResource", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // Well-known concrete resources
+        if (typeId == TypeIds.Container ||
+            typeId == TypeIds.Executable ||
+            typeId == TypeIds.Project ||
+            typeId == TypeIds.Parameter)
+        {
+            return true;
+        }
+
+        // Custom resources follow pattern: aspire/Xxx (no dots, not a wrapper)
+        // Exclude reference types and special types
+        if (typeId == TypeIds.EndpointReference ||
+            typeId == TypeIds.ReferenceExpression ||
+            typeId == TypeIds.Builder ||
+            typeId == TypeIds.Application)
+        {
+            return false;
+        }
+
+        // Any other aspire/ type without dots is likely a resource type
+        return !typeId.Contains('.');
+    }
+
+    /// <summary>
+    /// Gets the conventional parameter name for a type ID.
+    /// Used in generated code for method parameters.
+    /// </summary>
+    /// <param name="typeId">The ATS type ID.</param>
+    /// <returns>The conventional parameter name.</returns>
+    public static string GetParameterName(string? typeId)
+    {
+        if (typeId == null)
+        {
+            return "handle";
+        }
+
+        if (s_parameterNames.TryGetValue(typeId, out var name))
+        {
+            return name;
+        }
+
+        if (IsResourceBuilderType(typeId))
+        {
+            return "builder";
+        }
+
+        return "handle";
+    }
+
+    /// <summary>
+    /// Infers the ATS type ID from a CLR type name.
+    /// Used when no explicit mapping exists.
+    /// </summary>
+    /// <param name="typeName">The CLR type name (not full name).</param>
+    /// <returns>The inferred ATS type ID.</returns>
+    public static string InferTypeId(string typeName)
+    {
+        // Don't strip "Resource" suffix from interface types (IResource, IResourceWithXxx)
+        var isInterface = typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]);
+
+        // Strip "Resource" suffix if present (but not for interfaces)
+        if (!isInterface && typeName.EndsWith("Resource", StringComparison.Ordinal))
+        {
+            typeName = typeName[..^8];
+        }
+
+        return $"aspire/{typeName}";
+    }
+
+    #endregion
 }

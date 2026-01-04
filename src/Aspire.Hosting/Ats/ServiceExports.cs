@@ -29,8 +29,8 @@ internal static class ServiceExports
     /// </summary>
     private static readonly Dictionary<string, Type> s_serviceTypes = new()
     {
-        ["aspire/ResourceNotificationService"] = typeof(ResourceNotificationService),
-        ["aspire/ResourceLoggerService"] = typeof(ResourceLoggerService),
+        [AtsTypeMapping.TypeIds.ResourceNotificationService] = typeof(ResourceNotificationService),
+        [AtsTypeMapping.TypeIds.ResourceLoggerService] = typeof(ResourceLoggerService),
     };
 
     /// <summary>

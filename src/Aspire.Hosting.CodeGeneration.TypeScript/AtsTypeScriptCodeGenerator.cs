@@ -149,15 +149,19 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
 
         // Get builder models grouped by AppliesTo
-        var builders = AtsBuilderModelFactory.CreateBuilderModels(capabilities);
+        var allBuilders = AtsBuilderModelFactory.CreateBuilderModels(capabilities);
         var entryPoints = AtsBuilderModelFactory.GetEntryPointCapabilities(capabilities);
 
-        // Separate entry points: ones that extend Builder go on DistributedApplicationBuilder
-        var builderMethods = entryPoints
-            .Where(c => c.ExtendsTypeId == "aspire/Builder")
-            .ToList();
+        // Extract the DistributedApplicationBuilder's capabilities (AppliesTo = "aspire/Builder")
+        var distributedAppBuilder = allBuilders.FirstOrDefault(b => b.TypeId == AtsTypeMapping.TypeIds.Builder);
+        var builderMethods = distributedAppBuilder?.Capabilities ?? [];
+
+        // Resource builders are all other builders (not the main builder)
+        var builders = allBuilders.Where(b => b.TypeId != AtsTypeMapping.TypeIds.Builder).ToList();
+
+        // Entry point methods that don't extend any type go on AspireClient
         var clientMethods = entryPoints
-            .Where(c => c.ExtendsTypeId != "aspire/Builder")
+            .Where(c => string.IsNullOrEmpty(c.ExtendsTypeId))
             .ToList();
 
         // Collect all unique type IDs for handle type aliases
@@ -183,22 +187,34 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
 
         // Add core type IDs
-        typeIds.Add("aspire/Builder");
-        typeIds.Add("aspire/Application");
-        typeIds.Add("aspire/ExecutionContext");
-        typeIds.Add("aspire/EnvironmentContext");
-        typeIds.Add("aspire/EndpointReference");
+        typeIds.Add(AtsTypeMapping.TypeIds.Builder);
+        typeIds.Add(AtsTypeMapping.TypeIds.Application);
+        typeIds.Add(AtsTypeMapping.TypeIds.ExecutionContext);
+        typeIds.Add(AtsTypeMapping.TypeIds.EnvironmentContext);
+        typeIds.Add(AtsTypeMapping.TypeIds.EndpointReference);
 
         // Generate handle type aliases
         GenerateHandleTypeAliases(typeIds);
 
+        // Separate resource builders from wrapper types
+        // Resource builders: aspire/IResource*, aspire/Container, aspire/Executable, etc.
+        // Wrapper types: aspire/Configuration, aspire/HostEnvironment, aspire/ExecutionContext
+        var resourceBuilders = builders.Where(b => AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
+        var wrapperTypes = builders.Where(b => !AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
+
+        // Generate wrapper classes first (Configuration, Environment, ExecutionContext)
+        foreach (var wrapperType in wrapperTypes)
+        {
+            GenerateWrapperClass(wrapperType);
+        }
+
         // Generate DistributedApplicationBuilder class
-        GenerateDistributedApplicationBuilder(builderMethods, builders);
+        GenerateDistributedApplicationBuilder(builderMethods, resourceBuilders, wrapperTypes);
 
         // Generate resource builder classes
-        foreach (var builder in builders)
+        foreach (var builder in resourceBuilders)
         {
-            GenerateBuilderClass(builder, builders);
+            GenerateBuilderClass(builder, resourceBuilders);
         }
 
         // Generate AspireClient with remaining entry point methods
@@ -251,19 +267,19 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     {
         return typeId switch
         {
-            "aspire/Builder" => "Handle to IDistributedApplicationBuilder",
-            "aspire/Application" => "Handle to DistributedApplication",
-            "aspire/ExecutionContext" => "Handle to DistributedApplicationExecutionContext",
-            "aspire/EnvironmentContext" => "Handle to EnvironmentCallbackContext",
-            "aspire/EndpointReference" => "Handle to EndpointReference",
-            "aspire/Container" => "Handle to IResourceBuilder<ContainerResource>",
+            _ when typeId == AtsTypeMapping.TypeIds.Builder => "Handle to IDistributedApplicationBuilder",
+            _ when typeId == AtsTypeMapping.TypeIds.Application => "Handle to DistributedApplication",
+            _ when typeId == AtsTypeMapping.TypeIds.ExecutionContext => "Handle to DistributedApplicationExecutionContext",
+            _ when typeId == AtsTypeMapping.TypeIds.EnvironmentContext => "Handle to EnvironmentCallbackContext",
+            _ when typeId == AtsTypeMapping.TypeIds.EndpointReference => "Handle to EndpointReference",
+            _ when typeId == AtsTypeMapping.TypeIds.Container => "Handle to IResourceBuilder<ContainerResource>",
             _ when typeId.StartsWith("aspire/IResource", StringComparison.Ordinal) =>
                 $"Handle to IResourceBuilder<{typeId[7..]}>",
             _ => $"Handle to IResourceBuilder<{typeId[7..]}Resource>"
         };
     }
 
-    private void GenerateDistributedApplicationBuilder(List<AtsCapabilityInfo> methods, List<AtsBuilderInfo> resourceBuilders)
+    private void GenerateDistributedApplicationBuilder(List<AtsCapabilityInfo> methods, List<AtsBuilderInfo> resourceBuilders, List<AtsBuilderInfo> wrapperTypes)
     {
         WriteLine("// ============================================================================");
         WriteLine("// DistributedApplicationBuilder");
@@ -356,17 +372,63 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 }
             """);
 
-        // Generate methods that extend IDistributedApplicationBuilder
-        foreach (var capability in methods)
+        // Separate methods into:
+        // - Property getters (return wrapper types like Configuration, Environment)
+        // - Factory methods (return resource builders)
+        // - Other methods (return void or primitives)
+        var propertyMethods = methods
+            .Where(m => !string.IsNullOrEmpty(m.ReturnTypeId) &&
+                        AtsTypeMapping.IsWrapperType(m.ReturnTypeId) &&
+                        m.Parameters.Count == 0)  // Property getters have no additional params
+            .ToList();
+
+        var otherMethods = methods.Except(propertyMethods).ToList();
+
+        // Generate property-style getters for wrapper types
+        foreach (var capability in propertyMethods)
         {
-            GenerateDistributedApplicationBuilderMethod(capability, resourceBuilders);
+            GenerateBuilderPropertyGetter(capability);
+        }
+
+        // Generate methods that extend IDistributedApplicationBuilder
+        foreach (var capability in otherMethods)
+        {
+            GenerateDistributedApplicationBuilderMethod(capability, resourceBuilders, wrapperTypes);
         }
 
         WriteLine("}");
         WriteLine();
     }
 
-    private void GenerateDistributedApplicationBuilderMethod(AtsCapabilityInfo capability, List<AtsBuilderInfo> resourceBuilders)
+    private void GenerateBuilderPropertyGetter(AtsCapabilityInfo capability)
+    {
+        var returnTypeId = capability.ReturnTypeId!;
+        var wrapperClassName = DeriveWrapperClassName(returnTypeId);
+        var handleType = AtsBuilderModelFactory.GetHandleTypeName(returnTypeId);
+
+        // Derive property name from method name (getConfiguration -> configuration)
+        var propertyName = capability.MethodName;
+        if (propertyName.StartsWith("get", StringComparison.Ordinal) && propertyName.Length > 3)
+        {
+            propertyName = char.ToLowerInvariant(propertyName[3]) + propertyName[4..];
+        }
+
+        WriteLine();
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"    /** {capability.Description} */");
+        }
+
+        // Generate property-style getter returning a Promise<WrapperClass>
+        WriteLine($"    get {propertyName}(): Promise<{wrapperClassName}> {{");
+        WriteLine($"        return this._client.client.invokeCapability<{handleType}>(");
+        WriteLine($"            '{capability.CapabilityId}',");
+        WriteLine("            { builder: this._handle }");
+        WriteLine($"        ).then(handle => new {wrapperClassName}(handle, this._client));");
+        WriteLine("    }");
+    }
+
+    private void GenerateDistributedApplicationBuilderMethod(AtsCapabilityInfo capability, List<AtsBuilderInfo> resourceBuilders, List<AtsBuilderInfo> wrapperTypes)
     {
         var methodName = capability.MethodName;
 
@@ -385,9 +447,16 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var paramsString = string.Join(", ", paramDefs);
         var argsObject = $"{{ {string.Join(", ", paramArgs)} }}";
 
-        // Determine return type
+        // Check if return type is a wrapper type
+        AtsBuilderInfo? wrapperInfo = null;
+        if (!string.IsNullOrEmpty(capability.ReturnTypeId) && AtsTypeMapping.IsWrapperType(capability.ReturnTypeId))
+        {
+            wrapperInfo = wrapperTypes.FirstOrDefault(w => w.TypeId == capability.ReturnTypeId);
+        }
+
+        // Determine return type for resource builders
         AtsBuilderInfo? builderInfo = null;
-        if (!string.IsNullOrEmpty(capability.ReturnTypeId) && capability.ReturnsBuilder)
+        if (wrapperInfo == null && !string.IsNullOrEmpty(capability.ReturnTypeId) && capability.ReturnsBuilder)
         {
             builderInfo = resourceBuilders.FirstOrDefault(b => b.TypeId == capability.ReturnTypeId && !b.IsInterface);
         }
@@ -924,5 +993,111 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 process.exit(1);
             });
             """);
+    }
+
+    /// <summary>
+    /// Generates a simple wrapper class for non-resource types like Configuration, Environment.
+    /// </summary>
+    private void GenerateWrapperClass(AtsBuilderInfo wrapperType)
+    {
+        var handleType = AtsBuilderModelFactory.GetHandleTypeName(wrapperType.TypeId);
+        var className = DeriveWrapperClassName(wrapperType.TypeId);
+
+        WriteLine("// ============================================================================");
+        WriteLine($"// {className}");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        WriteLine($"/**");
+        WriteLine($" * Wrapper class for {wrapperType.TypeId}.");
+        WriteLine($" */");
+        WriteLine($"export class {className} {{");
+        WriteLine($"    constructor(private _handle: {handleType}, private _client: AspireClient) {{}}");
+        WriteLine();
+        WriteLine($"    /** Gets the underlying handle */");
+        WriteLine($"    get handle(): {handleType} {{ return this._handle; }}");
+        WriteLine();
+
+        // Generate methods for each capability
+        foreach (var capability in wrapperType.Capabilities)
+        {
+            GenerateWrapperMethod(capability);
+        }
+
+        WriteLine("}");
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Generates a method on a wrapper class.
+    /// </summary>
+    private void GenerateWrapperMethod(AtsCapabilityInfo capability)
+    {
+        var methodName = capability.MethodName;
+
+        // Build parameter list
+        var paramDefs = new List<string>();
+        var paramArgs = new List<string>();
+
+        // First arg is the handle (implicit via this._handle)
+        // Use parameter name from the method signature - typically matches the type
+        var firstParamName = AtsTypeMapping.GetParameterName(capability.AppliesTo);
+        paramArgs.Add($"{firstParamName}: this._handle");
+
+        foreach (var param in capability.Parameters)
+        {
+            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback);
+            var optional = param.IsOptional || param.IsNullable ? "?" : "";
+            paramDefs.Add($"{param.Name}{optional}: {tsType}");
+            paramArgs.Add(param.Name);
+        }
+
+        var paramsString = string.Join(", ", paramDefs);
+        var argsObject = $"{{ {string.Join(", ", paramArgs)} }}";
+
+        // Determine return type
+        var returnType = MapAtsTypeToTypeScript(capability.ReturnTypeId ?? "void", false);
+
+        // Generate JSDoc
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"    /** {capability.Description} */");
+        }
+
+        // Generate async method
+        Write($"    async {methodName}(");
+        Write(paramsString);
+        WriteLine($"): Promise<{returnType}> {{");
+
+        if (returnType == "void")
+        {
+            WriteLine($"        await this._client.client.invokeCapability<void>(");
+        }
+        else
+        {
+            WriteLine($"        return await this._client.client.invokeCapability<{returnType}>(");
+        }
+        WriteLine($"            '{capability.CapabilityId}',");
+        WriteLine($"            {argsObject}");
+        WriteLine("        );");
+        WriteLine("    }");
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Derives a wrapper class name from a type ID.
+    /// </summary>
+    private static string DeriveWrapperClassName(string typeId)
+    {
+        var slashIndex = typeId.LastIndexOf('/');
+        var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+
+        return typeName switch
+        {
+            "HostEnvironment" => "Environment",
+            "ExecutionContext" => "ExecutionContext",
+            "EnvironmentContext" => "EnvironmentContext",
+            _ => typeName
+        };
     }
 }

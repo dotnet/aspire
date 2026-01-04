@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.RemoteHost.Ats;
 
@@ -34,17 +35,29 @@ internal sealed class TypeHierarchy
     private void ScanAssemblies(IEnumerable<Assembly> assemblies)
     {
         var handleTypes = new List<(Type Type, string TypeId, string? Extends)>();
+        var assemblyList = assemblies.ToList();
 
-        // Register well-known interface types for AppliesTo constraints
-        RegisterInterfaceType(typeof(IResource), "aspire/IResource");
-        RegisterInterfaceType(typeof(IResourceWithEnvironment), "aspire/IResourceWithEnvironment");
-        RegisterInterfaceType(typeof(IResourceWithEndpoints), "aspire/IResourceWithEndpoints");
-        RegisterInterfaceType(typeof(IResourceWithArgs), "aspire/IResourceWithArgs");
-        RegisterInterfaceType(typeof(IResourceWithConnectionString), "aspire/IResourceWithConnectionString");
-        RegisterInterfaceType(typeof(IResourceWithWaitSupport), "aspire/IResourceWithWaitSupport");
-        RegisterInterfaceType(typeof(ContainerResource), "aspire/Container");
+        // Scan assemblies for [AspireExport] type mappings and register them
+        var typeMapping = AtsTypeMapping.FromAssemblies(assemblyList);
+        foreach (var fullName in typeMapping.FullNames)
+        {
+            var typeId = typeMapping.GetTypeId(fullName);
+            if (typeId != null)
+            {
+                // Try to find the actual CLR type
+                foreach (var assembly in assemblyList)
+                {
+                    var type = assembly.GetType(fullName);
+                    if (type != null)
+                    {
+                        RegisterInterfaceType(type, typeId);
+                        break;
+                    }
+                }
+            }
+        }
 
-        foreach (var assembly in assemblies)
+        foreach (var assembly in assemblyList)
         {
             try
             {

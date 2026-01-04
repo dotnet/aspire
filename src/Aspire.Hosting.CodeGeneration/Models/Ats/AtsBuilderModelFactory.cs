@@ -12,13 +12,13 @@ public static class AtsBuilderModelFactory
     // Well-known interface type IDs in inheritance order (most specific first)
     private static readonly string[] s_interfaceTypeIds =
     [
-        "aspire/IResourceWithConnectionString",
-        "aspire/IResourceWithWaitSupport",
-        "aspire/IResourceWithEndpoints",
-        "aspire/IResourceWithArgs",
-        "aspire/IResourceWithEnvironment",
-        "aspire/IResourceWithParent",
-        "aspire/IResource"
+        AtsTypeMapping.TypeIds.IResourceWithConnectionString,
+        AtsTypeMapping.TypeIds.IResourceWithWaitSupport,
+        AtsTypeMapping.TypeIds.IResourceWithEndpoints,
+        AtsTypeMapping.TypeIds.IResourceWithArgs,
+        AtsTypeMapping.TypeIds.IResourceWithEnvironment,
+        AtsTypeMapping.TypeIds.IResourceWithParent,
+        AtsTypeMapping.TypeIds.IResource
     ];
 
     /// <summary>

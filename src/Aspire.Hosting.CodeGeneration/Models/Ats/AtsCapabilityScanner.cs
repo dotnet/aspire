@@ -221,20 +221,26 @@ public static class AtsCapabilityScanner
         var isExtensionMethod = HasAttribute(method, ExtensionAttributeName) && method.Parameters.Count > 0;
         string? extendsTypeId = null;
 
-        if (isExtensionMethod)
+        // For ATS, check if the first parameter is a handle type (even for non-extension methods)
+        // This allows us to group methods by the type they operate on
+        if (method.Parameters.Count > 0)
         {
             var firstParam = method.Parameters[0];
-            extendsTypeId = MapToAtsTypeId(firstParam.ParameterType, wellKnownTypes, typeMapping);
+            var firstParamTypeId = MapToAtsTypeId(firstParam.ParameterType, wellKnownTypes, typeMapping);
+
+            // If the first param maps to an aspire/ type, treat it as the target type
+            if (firstParamTypeId != null && firstParamTypeId.StartsWith("aspire/"))
+            {
+                extendsTypeId = firstParamTypeId;
+            }
         }
 
         // Get parameters
-        // - If AppliesTo is set: skip first param (method goes on builder class, first param is "this")
-        // - Otherwise for extension methods: skip first param if it will be "this" on a generated class
+        // Skip first param if:
+        // - AppliesTo is explicitly set (method goes on that builder class)
+        // - OR first param is an aspire/ handle type (will be "this" on generated class)
         var parameters = new List<AtsParameterInfo>();
-        var skipFirstParam = isExtensionMethod && (
-            !string.IsNullOrEmpty(appliesTo) ||  // Has AppliesTo constraint
-            extendsTypeId == "aspire/Builder"    // Extends IDistributedApplicationBuilder
-        );
+        var skipFirstParam = !string.IsNullOrEmpty(appliesTo) || extendsTypeId != null;
         var paramList = skipFirstParam ? method.Parameters.Skip(1) : method.Parameters;
 
         var paramIndex = 0;
@@ -251,12 +257,16 @@ public static class AtsCapabilityScanner
         var returnsBuilder = returnTypeId != null &&
             (returnTypeId.StartsWith("aspire/") || IsResourceBuilderType(returnType, wellKnownTypes));
 
+        // If AppliesTo is not explicitly set but this is an extension method,
+        // infer AppliesTo from the first parameter type (extendsTypeId)
+        var effectiveAppliesTo = appliesTo ?? extendsTypeId;
+
         return new AtsCapabilityInfo
         {
             CapabilityId = capabilityId,
             MethodName = methodName,
             Package = package,
-            AppliesTo = appliesTo,
+            AppliesTo = effectiveAppliesTo,
             Description = description,
             Parameters = parameters,
             ReturnTypeId = returnTypeId,
