@@ -1804,6 +1804,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     ImagePullPolicy.Default => null,
                     ImagePullPolicy.Always => ContainerPullPolicy.Always,
                     ImagePullPolicy.Missing => ContainerPullPolicy.Missing,
+                    ImagePullPolicy.Never => ContainerPullPolicy.Never,
                     _ => throw new InvalidOperationException($"Unknown pull policy '{Enum.GetName(typeof(ImagePullPolicy), pullPolicy)}' for container '{container.Name}'")
                 };
             }
