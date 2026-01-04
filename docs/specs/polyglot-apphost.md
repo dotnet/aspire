@@ -24,7 +24,9 @@ This document describes how the Aspire CLI supports non-.NET app hosts using the
 
 ## Overview
 
-The polyglot apphost feature allows developers to write Aspire app hosts in non-.NET languages. Unlike a generic RPC system, Aspire uses a **capability-based type system** that provides an intentional, stable API surface for polyglot clients. Currently, TypeScript is the supported guest language.
+The polyglot apphost feature allows developers to write Aspire app hosts in non-.NET languages. The **Aspire Type System (ATS)** defines a safe, portable subset of the AppHost APIs that can be exposed to any language. ATS provides an intentional, stable API surface for polyglot clients via JSON-RPC.
+
+Integration authors can expose their existing extension methods to ATS by simply adding `[AspireExport]` attributes—no wrapper code or separate API surface required. An analyzer flags unsupported parameter or return types, warning when a method is incompatible with ATS. Currently, TypeScript is the supported guest language.
 
 **Terminology:**
 - **Host (AppHost server)**: The .NET process running Aspire.Hosting
@@ -34,12 +36,14 @@ The polyglot apphost feature allows developers to write Aspire app hosts in non-
 - **DTO**: A serializable data transfer object
 
 **Design Goals:**
-1. **Intentional API Surface** - Capabilities are the contract, not CLR signatures
-2. **Polyglot-First** - .NET is an implementation detail behind a stable surface
-3. **Type Safety** - Strict type boundaries prevent accidental leakage
-4. **Evolvable** - Versioned capability IDs enable breaking changes
-5. **Reuse Existing Integrations** - All 100+ Aspire.Hosting.* packages work automatically
-6. **Consistent CLI Experience** - `aspire run`, `aspire add`, `aspire publish` work identically
+1. **Safe Portable Subset** - ATS defines a safe, portable subset of the AppHost APIs that can be exposed to any language
+2. **Easy Integration Transition** - Adding `[AspireExport]` to existing extension methods is all that's needed to expose them via ATS
+3. **Intentional API Surface** - Capabilities are the contract, not CLR signatures
+4. **Polyglot-First** - .NET is an implementation detail behind a stable surface
+5. **Type Safety** - Strict type boundaries prevent accidental leakage of .NET internals
+6. **Evolvable** - Versioned capability IDs enable breaking changes without breaking clients
+7. **Reuse Existing Integrations** - All 100+ Aspire.Hosting.* packages work with minimal annotation
+8. **Consistent CLI Experience** - `aspire run`, `aspire add`, `aspire publish` work identically across languages
 
 **What This Is NOT:**
 - Not a generic .NET remoting layer
@@ -339,11 +343,25 @@ The `Aspire.Hosting.Analyzers` package includes compile-time validation for `[As
 | Aspire Types | `IDistributedApplicationBuilder`, `DistributedApplication`, `IResourceBuilder<T>`, `IResource`, etc. |
 | Callbacks | Delegate types (`Func<>`, `Action<>`) |
 
-### Intrinsic Types
+### Type Mapping
 
-ATS recognizes certain .NET types natively. These **intrinsic types** are automatically marshalled as handles.
+ATS uses explicit type mappings to associate CLR types with ATS type IDs. This eliminates inference and string parsing, providing a single source of truth for type identity.
 
-**Core Intrinsic Types:**
+**Declaring Type Mappings:**
+
+Type mappings are declared using `[AspireExport]` with the `AtsTypeId` property:
+
+```csharp
+// On a type you own
+[AspireExport(AtsTypeId = "aspire/Redis")]
+public class RedisResource : ContainerResource { }
+
+// At assembly level for types you don't own
+[assembly: AspireExport(typeof(IDistributedApplicationBuilder), AtsTypeId = "aspire/Builder")]
+[assembly: AspireExport(typeof(DistributedApplication), AtsTypeId = "aspire/Application")]
+```
+
+**Core Type Mappings (in `Aspire.Hosting`):**
 
 | .NET Type | ATS Type ID |
 |-----------|-------------|
@@ -372,7 +390,28 @@ ATS recognizes certain .NET types natively. These **intrinsic types** are automa
 | `IServiceProvider` | `aspire/ServiceProvider` |
 | `ResourceNotificationService` | `aspire/ResourceNotificationService` |
 | `ResourceLoggerService` | `aspire/ResourceLoggerService` |
-| `ILogger` | `aspire/Logger` |
+
+**`AtsTypeMapping` Class:**
+
+The `AtsTypeMapping` class provides centralized type lookup:
+
+```csharp
+// Build mapping from assemblies
+var mapping = AtsTypeMapping.FromAssemblies(assemblies);
+
+// Lookup type ID
+string? typeId = mapping.GetTypeId(typeof(RedisResource));  // "aspire/Redis"
+
+// Get type ID or infer one for unmapped types
+string typeId = mapping.GetTypeIdOrInfer(resourceType);  // Fallback to inference
+```
+
+**Inference Fallback:**
+
+For types without explicit `[AspireExport(AtsTypeId = "...")]` mappings, the system infers the type ID:
+
+- Resource types: Strip `Resource` suffix → `RedisResource` → `aspire/Redis`
+- Interface types: Keep the name → `IResourceWithEnvironment` → `aspire/IResourceWithEnvironment`
 
 **`IResourceBuilder<T>` - First-Class Support:**
 
@@ -384,8 +423,6 @@ ATS recognizes certain .NET types natively. These **intrinsic types** are automa
 | `IResourceBuilder<ContainerResource>` | `aspire/Container` |
 | `IResourceBuilder<ParameterResource>` | `aspire/Parameter` |
 | `IResourceBuilder<PostgresServerResource>` | `aspire/PostgresServer` |
-
-The resource type name has its `Resource` suffix stripped: `RedisResource` → `aspire/Redis`.
 
 ### Extension Method Compatibility
 
