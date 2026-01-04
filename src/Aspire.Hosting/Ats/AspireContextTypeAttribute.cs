@@ -23,8 +23,7 @@ namespace Aspire.Hosting;
 /// </list>
 /// </para>
 /// <para>
-/// Properties returning non-ATS types (ILogger, CancellationToken, IServiceProvider, etc.)
-/// are automatically skipped.
+/// Properties returning non-ATS types (ILogger, etc.) are automatically skipped.
 /// </para>
 /// </remarks>
 /// <example>

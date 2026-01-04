@@ -129,4 +129,20 @@ public sealed class AtsCapabilityInfo
     /// When true, the generated code will create a thenable wrapper for fluent chaining.
     /// </remarks>
     public bool ReturnsBuilder { get; init; }
+
+    /// <summary>
+    /// Gets or sets whether this capability is an auto-generated property accessor
+    /// for an [AspireContextType] type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Context property capabilities are auto-generated from types marked with
+    /// <c>[AspireContextType]</c>. They provide access to properties on context
+    /// objects passed to callbacks.
+    /// </para>
+    /// <para>
+    /// Example: <c>aspire/EnvironmentContext.executionContext@1</c>
+    /// </para>
+    /// </remarks>
+    public bool IsContextProperty { get; init; }
 }

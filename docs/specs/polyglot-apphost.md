@@ -295,6 +295,45 @@ Callbacks are passed as string IDs that the guest registers:
 
 When the host needs to invoke the callback, it sends an `invokeCallback` request to the guest.
 
+### Context Types
+
+Context types are objects passed to callbacks that provide access to runtime state. Properties on context types are automatically exposed as capabilities.
+
+**Definition in .NET:**
+
+```csharp
+[AspireContextType("aspire/EnvironmentContext")]
+public class EnvironmentCallbackContext
+{
+    // Auto-exposed as "aspire/EnvironmentContext.environmentVariables@1"
+    public Dictionary<string, object> EnvironmentVariables { get; }
+
+    // Auto-exposed as "aspire/EnvironmentContext.executionContext@1"
+    public DistributedApplicationExecutionContext ExecutionContext { get; }
+
+    // Skipped - ILogger is not an ATS-compatible type
+    public ILogger Logger { get; set; }
+}
+```
+
+**Auto-Generated Capabilities:**
+
+Properties that return ATS-compatible types are automatically exposed:
+
+| Property | Generated Capability ID |
+|----------|------------------------|
+| `EnvironmentVariables` | `aspire/EnvironmentContext.environmentVariables@1` |
+| `ExecutionContext` | `aspire/EnvironmentContext.executionContext@1` |
+
+**ATS-Compatible Property Types:**
+- Primitives (string, int, bool, etc.)
+- Intrinsic Aspire types (IDistributedApplicationBuilder, EndpointReference, etc.)
+- Types marked with `[AspireExport(AtsTypeId)]`, `[AspireDto]`, or `[AspireContextType]`
+- `IResourceBuilder<T>` for any resource type
+- Collections of the above
+
+Properties returning non-ATS types (ILogger, etc.) are automatically skipped.
+
 ### CancellationTokens
 
 CancellationTokens allow cancellation of long-running operations.
@@ -317,6 +356,7 @@ CancellationTokens allow cancellation of long-running operations.
 | **Handle** | *(auto-derived)* | Opaque object reference | `{ $handle, $type }` |
 | **DTO** | `[AspireDto]` | Serializable data | Plain JSON object |
 | **Callback** | `[AspireCallback]` | Guest function reference | `"callback_id"` |
+| **Context Type** | `[AspireContextType]` | Callback context with auto-exposed properties | Handle |
 | **CancellationToken** | N/A | Cancellation signal | `{ $cancellationToken }` |
 
 > **Note:** Handles are automatically derived from intrinsic types and `IResource` implementations. No explicit attribute is needed.

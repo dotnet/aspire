@@ -13,10 +13,11 @@ public static class AtsCapabilityScanner
 {
     private const string AspireExportAttributeName = "Aspire.Hosting.AspireExportAttribute";
     private const string AspireCallbackAttributeName = "Aspire.Hosting.AspireCallbackAttribute";
+    private const string AspireContextTypeAttributeName = "Aspire.Hosting.AspireContextTypeAttribute";
     private const string ExtensionAttributeName = "System.Runtime.CompilerServices.ExtensionAttribute";
 
     /// <summary>
-    /// Scans an assembly for [AspireExport] attributes and returns capability models.
+    /// Scans an assembly for [AspireExport] and [AspireContextType] attributes and returns capability models.
     /// </summary>
     /// <param name="assembly">The assembly to scan.</param>
     /// <param name="wellKnownTypes">Well-known type definitions.</param>
@@ -30,6 +31,14 @@ public static class AtsCapabilityScanner
 
         foreach (var type in assembly.GetTypeDefinitions())
         {
+            // Check for [AspireContextType] - auto-generate property accessor capabilities
+            var contextAttr = GetAspireContextTypeAttribute(type);
+            if (contextAttr != null)
+            {
+                var contextCapabilities = CreateContextTypeCapabilities(type, contextAttr, wellKnownTypes, typeMapping);
+                capabilities.AddRange(contextCapabilities);
+            }
+
             // Scan static classes (sealed, non-nested) for [AspireExport] attributes
             // Include both public and internal classes since capabilities aren't tied to CLR visibility
             if (!type.IsSealed || type.IsNested)
@@ -89,6 +98,98 @@ public static class AtsCapabilityScanner
     {
         return method.GetCustomAttributes()
             .FirstOrDefault(a => a.AttributeType.FullName == AspireExportAttributeName);
+    }
+
+    /// <summary>
+    /// Gets the [AspireContextType] attribute from a type, or null if not present.
+    /// </summary>
+    private static RoCustomAttributeData? GetAspireContextTypeAttribute(RoType type)
+    {
+        return type.GetCustomAttributes()
+            .FirstOrDefault(a => a.AttributeType.FullName == AspireContextTypeAttributeName);
+    }
+
+    /// <summary>
+    /// Creates capabilities for all ATS-compatible properties on a context type.
+    /// </summary>
+    /// <example>
+    /// For [AspireContextType("aspire/EnvironmentContext")] on EnvironmentCallbackContext:
+    /// - EnvironmentVariables property -> "aspire/EnvironmentContext.environmentVariables@1"
+    /// - ExecutionContext property -> "aspire/EnvironmentContext.executionContext@1"
+    /// </example>
+    private static List<AtsCapabilityInfo> CreateContextTypeCapabilities(
+        RoType contextType,
+        RoCustomAttributeData contextAttr,
+        IWellKnownTypes wellKnownTypes,
+        AtsTypeMapping typeMapping)
+    {
+        var capabilities = new List<AtsCapabilityInfo>();
+
+        // Get the type ID from the attribute (first fixed argument)
+        if (contextAttr.FixedArguments.Count == 0 || contextAttr.FixedArguments[0] is not string typeId)
+        {
+            return capabilities;
+        }
+
+        // Get the version from named arguments (defaults to 1)
+        var namedArgs = contextAttr.NamedArguments.ToDictionary(kv => kv.Key, kv => kv.Value);
+        var version = namedArgs.TryGetValue("Version", out var v) && v is int ver ? ver : 1;
+
+        // Scan public instance properties with getters
+        foreach (var property in contextType.Properties)
+        {
+            // Skip properties without getters
+            if (!property.CanRead)
+            {
+                continue;
+            }
+
+            // Skip static properties
+            if (property.IsStatic)
+            {
+                continue;
+            }
+
+            // Check if property type is ATS-compatible
+            var propertyTypeId = MapToAtsTypeId(property.PropertyType, wellKnownTypes, typeMapping);
+            if (propertyTypeId == "any")
+            {
+                // Not ATS-compatible, skip
+                continue;
+            }
+
+            // Generate capability ID: aspire/EnvironmentContext.environmentVariables@1
+            var propertyName = char.ToLowerInvariant(property.Name[0]) + property.Name[1..];
+            var capabilityId = $"{typeId}.{propertyName}@{version}";
+
+            capabilities.Add(new AtsCapabilityInfo
+            {
+                CapabilityId = capabilityId,
+                MethodName = propertyName,
+                Package = DerivePackage(typeId),
+                AppliesTo = typeId,
+                Description = $"Gets the {property.Name} property",
+                Parameters = [
+                    new AtsParameterInfo
+                    {
+                        Name = "context",
+                        AtsTypeId = typeId,
+                        IsOptional = false,
+                        IsNullable = false,
+                        IsCallback = false,
+                        CallbackId = null,
+                        DefaultValue = null
+                    }
+                ],
+                ReturnTypeId = propertyTypeId,
+                IsExtensionMethod = false,
+                ExtendsTypeId = typeId,
+                ReturnsBuilder = false,
+                IsContextProperty = true
+            });
+        }
+
+        return capabilities;
     }
 
     /// <summary>

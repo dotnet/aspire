@@ -48,6 +48,7 @@ using Microsoft.Extensions.Hosting;
 // External types we reference
 [assembly: AspireExport(typeof(IConfiguration), AtsTypeId = "aspire/Configuration")]
 [assembly: AspireExport(typeof(IHostEnvironment), AtsTypeId = "aspire/HostEnvironment")]
+[assembly: AspireExport(typeof(CancellationToken), AtsTypeId = "aspire/CancellationToken")]
 
 // Eventing types
 [assembly: AspireExport(typeof(DistributedApplicationEventSubscription), AtsTypeId = "aspire/EventSubscription")]

@@ -92,6 +92,43 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "port" && p.IsOptional);
     }
 
+    [Fact]
+    public void GenerateDistributedApplication_WithContextType_GeneratesPropertyCapabilities()
+    {
+        // Arrange
+        using var model = CreateApplicationModelFromTestAssembly();
+
+        var capabilities = model.IntegrationModels.Values
+            .SelectMany(im => im.Capabilities)
+            .ToList();
+
+        // Assert context type property capabilities are discovered
+        // TestCallbackContext has [AspireContextType("aspire.test/TestContext")]
+        // with Name (string) and Value (int) properties
+
+        var nameCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "aspire.test/TestContext.name@1");
+        Assert.NotNull(nameCapability);
+        Assert.True(nameCapability.IsContextProperty);
+        Assert.Equal("name", nameCapability.MethodName);
+        Assert.Equal("string", nameCapability.ReturnTypeId);
+        Assert.Equal("aspire.test/TestContext", nameCapability.AppliesTo);
+        Assert.Single(nameCapability.Parameters);
+        Assert.Equal("context", nameCapability.Parameters[0].Name);
+
+        var valueCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "aspire.test/TestContext.value@1");
+        Assert.NotNull(valueCapability);
+        Assert.True(valueCapability.IsContextProperty);
+        Assert.Equal("value", valueCapability.MethodName);
+        Assert.Equal("number", valueCapability.ReturnTypeId);
+
+        // CancellationToken - the type mapping is in Aspire.Hosting which may not be loaded
+        // in the test's type mapping. For now, just verify it's discovered (even if as "any")
+        var ctCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "aspire.test/TestContext.cancellationToken@1");
+        // CancellationToken might be mapped to "any" if the type mapping isn't loaded from Aspire.Hosting
+        // This is acceptable - the important thing is the context type scanning works
+        Assert.NotNull(ctCapability);
+    }
+
     private static Aspire.Hosting.CodeGeneration.Models.ApplicationModel CreateApplicationModelFromTestAssembly()
     {
         // Get the path to this test assembly

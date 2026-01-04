@@ -390,9 +390,16 @@ public class TestPersistenceAnnotation : IResourceAnnotation
 
 /// <summary>
 /// Test callback context for WithCustomCallback.
+/// Also used to verify [AspireContextType] scanning.
 /// </summary>
+[AspireContextType("aspire.test/TestContext")]
 public class TestCallbackContext
 {
     public string? Name { get; set; }
     public int Value { get; set; }
+
+    /// <summary>
+    /// CancellationToken is supported by ATS.
+    /// </summary>
+    public CancellationToken CancellationToken { get; set; }
 }
