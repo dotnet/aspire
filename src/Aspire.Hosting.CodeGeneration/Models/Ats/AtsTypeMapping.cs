@@ -82,13 +82,21 @@ public sealed class AtsTypeMapping
                 continue;
             }
 
-            // Get Type from constructor argument or named argument
+            // Get Type from constructor argument - could be RoType or string (type name)
+            // When typeof(X) is decoded from metadata, it comes as a string containing the full type name
+
+            // First try as RoType (for direct type references)
             var targetType = GetConstructorArgument<RoType>(attr, 0)
                 ?? GetNamedArgument<RoType>(attr, "Type");
 
-            if (targetType?.FullName != null)
+            // Get the full name - either from the RoType or try as string (for typeof() decoded from metadata)
+            var targetTypeFullName = targetType?.FullName
+                ?? GetConstructorArgument<string>(attr, 0)
+                ?? GetNamedArgument<string>(attr, "Type");
+
+            if (!string.IsNullOrEmpty(targetTypeFullName))
             {
-                fullNameToTypeId[targetType.FullName] = atsTypeId;
+                fullNameToTypeId[targetTypeFullName] = atsTypeId;
             }
         }
 

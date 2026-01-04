@@ -219,7 +219,7 @@ internal sealed class CapabilityDispatcher
             var methodToInvoke = method;
             if (method.ContainsGenericParameters)
             {
-                methodToInvoke = MethodResolver.MakeGenericMethodFromArgs(method, methodArgs);
+                methodToInvoke = GenericMethodResolver.MakeGenericMethodFromArgs(method, methodArgs);
             }
 
             object? result;

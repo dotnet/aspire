@@ -9,7 +9,7 @@ import {
     Handle,
     CapabilityError,
     registerCallback,
-    wrapIfProxy
+    wrapIfHandle
 } from './RemoteAppHostClient.js';
 
 // ============================================================================
@@ -42,6 +42,37 @@ export type TBuilderHandle = Handle<'aspire/T'>;
 
 /** Handle to IResourceBuilder<TestRedisResource> */
 export type TestRedisBuilderHandle = Handle<'aspire/TestRedis'>;
+
+// ============================================================================
+// TestContext
+// ============================================================================
+
+/**
+ * Wrapper class for aspire.test/TestContext.
+ */
+export class TestContext {
+    constructor(private _handle: TestContextBuilderHandle, private _client: AspireClient) {}
+
+    /** Gets the underlying handle */
+    get handle(): TestContextBuilderHandle { return this._handle; }
+
+    /** Gets the Name property */
+    async name(context: unknown): Promise<string> {
+        return await this._client.client.invokeCapability<string>(
+            'aspire.test/TestContext.name@1',
+            { handle: this._handle, context }
+        );
+    }
+
+    /** Gets the Value property */
+    async value(context: unknown): Promise<number> {
+        return await this._client.client.invokeCapability<number>(
+            'aspire.test/TestContext.value@1',
+            { handle: this._handle, context }
+        );
+    }
+
+}
 
 // ============================================================================
 // DistributedApplicationBuilder
@@ -125,6 +156,17 @@ export class DistributedApplicationBuilder {
     build(): DistributedApplicationPromise {
         return new DistributedApplicationPromise(this._buildInternal());
     }
+
+    /**
+     * Adds a test Redis resource
+     */
+    addTestRedis(name: string, port?: number): TestRedisBuilderPromise {
+        const promise = this._client.client.invokeCapability<TestRedisBuilderHandle>(
+            'aspire.test/addTestRedis@1',
+            { builder: this._handle, name, port }
+        ).then(handle => new TestRedisBuilder(handle, this._client));
+        return new TestRedisBuilderPromise(promise);
+    }
 }
 
 // ============================================================================
@@ -145,79 +187,6 @@ export abstract class ResourceBuilderBase {
             { builder: this._handle, value, enabled }
         );
         return new ResourceBuilderBase(result, this._client);
-    }
-
-}
-
-// ============================================================================
-// TestContextBuilder
-// ============================================================================
-
-export class TestContextBuilder extends ResourceBuilderBase {
-    constructor(handle: TestContextBuilderHandle, client: AspireClient) {
-        super(handle, client);
-    }
-
-    /** Gets the underlying handle */
-    get handle(): TestContextBuilderHandle { return this._handle; }
-
-    /** Gets the Name property */
-    /** @internal */
-    async _nameInternal(context: unknown): Promise<TestContextBuilder> {
-        await this._client.invokeCapability<void>(
-            'aspire.test/TestContext.name@1',
-            { builder: this._handle, context }
-        );
-        return this;
-    }
-
-    name(context: unknown): TestContextBuilderPromise {
-        return new TestContextBuilderPromise(this._nameInternal(context));
-    }
-
-    /** Gets the Value property */
-    /** @internal */
-    async _valueInternal(context: unknown): Promise<TestContextBuilder> {
-        await this._client.invokeCapability<void>(
-            'aspire.test/TestContext.value@1',
-            { builder: this._handle, context }
-        );
-        return this;
-    }
-
-    value(context: unknown): TestContextBuilderPromise {
-        return new TestContextBuilderPromise(this._valueInternal(context));
-    }
-
-}
-
-/**
- * Thenable wrapper for TestContextBuilder that enables fluent chaining.
- * @example
- * await builder.addSomething().withX().withY();
- */
-export class TestContextBuilderPromise implements PromiseLike<TestContextBuilder> {
-    constructor(private _promise: Promise<TestContextBuilder>) {}
-
-    then<TResult1 = TestContextBuilder, TResult2 = never>(
-        onfulfilled?: ((value: TestContextBuilder) => TResult1 | PromiseLike<TResult1>) | null,
-        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-    ): PromiseLike<TResult1 | TResult2> {
-        return this._promise.then(onfulfilled, onrejected);
-    }
-
-    /** Gets the Name property */
-    name(context: unknown): TestContextBuilderPromise {
-        return new TestContextBuilderPromise(
-            this._promise.then(b => b._nameInternal(context))
-        );
-    }
-
-    /** Gets the Value property */
-    value(context: unknown): TestContextBuilderPromise {
-        return new TestContextBuilderPromise(
-            this._promise.then(b => b._valueInternal(context))
-        );
     }
 
 }
@@ -305,17 +274,6 @@ export class AspireClient {
      */
     async getCapabilities(): Promise<string[]> {
         return await this.rpc.getCapabilities();
-    }
-
-    /**
-     * Adds a test Redis resource
-     */
-    addTestRedis(builder: unknown, name: string, port?: number): TestRedisBuilderPromise {
-        const promise = this.rpc.invokeCapability<TestRedisBuilderHandle>(
-            'aspire.test/addTestRedis@1',
-            { builder, name, port }
-        ).then(handle => new TestRedisBuilder(handle, this));
-        return new TestRedisBuilderPromise(promise);
     }
 }
 

@@ -118,9 +118,12 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
     {
         // Build: new JsonObject { { "param1", MarshalArg(arg1) }, { "param2", MarshalArg(arg2) } }
         var jsonObjectType = typeof(JsonObject);
-        var newJsonObject = Expression.New(jsonObjectType);
+        // JsonObject doesn't have a true parameterless constructor - it has JsonObject(JsonNodeOptions? options = null)
+        // Expression.New can't handle optional parameters, so we need to call the constructor explicitly with null
+        var jsonObjectCtor = jsonObjectType.GetConstructor([typeof(JsonNodeOptions?)])!;
+        var newJsonObject = Expression.New(jsonObjectCtor, Expression.Constant(null, typeof(JsonNodeOptions?)));
 
-        var addMethod = jsonObjectType.GetMethod("Add", new[] { typeof(string), typeof(JsonNode) });
+        var addMethod = jsonObjectType.GetMethod("Add", [typeof(string), typeof(JsonNode)]);
 
         var expressions = new List<Expression>();
         var jsonObjVar = Expression.Variable(jsonObjectType, "args");

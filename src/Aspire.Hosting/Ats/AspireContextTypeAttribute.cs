@@ -17,7 +17,7 @@ namespace Aspire.Hosting;
 /// <list type="bullet">
 /// <item>Primitives (string, int, bool, etc.)</item>
 /// <item>Intrinsic Aspire types (IDistributedApplicationBuilder, EndpointReference, etc.)</item>
-/// <item>Types marked with [AspireHandle], [AspireDto], or [AspireContextType]</item>
+/// <item>Types marked with [AspireDto] or [AspireContextType]</item>
 /// <item>IResourceBuilder&lt;T&gt; for any resource type</item>
 /// <item>Collections of the above</item>
 /// </list>

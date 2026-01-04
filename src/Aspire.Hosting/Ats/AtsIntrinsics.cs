@@ -153,6 +153,8 @@ public static class AtsIntrinsics
         typeof(char),
         typeof(DateTime),
         typeof(DateTimeOffset),
+        typeof(DateOnly),
+        typeof(TimeOnly),
         typeof(TimeSpan),
         typeof(Guid),
         typeof(Uri)

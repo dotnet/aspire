@@ -13,7 +13,6 @@ namespace Aspire.Hosting.RemoteHost;
 
 internal sealed class RemoteAppHostService : IAsyncDisposable
 {
-    private readonly RpcOperations _operations;
     private readonly JsonRpcCallbackInvoker _callbackInvoker;
     private readonly CancellationTokenSource _cts = new();
     private readonly string? _authToken;
@@ -38,9 +37,7 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     {
         _authToken = authToken;
         _isAuthenticated = authToken == null; // If no token, auto-authenticate
-        var objectRegistry = new ObjectRegistry();
         _callbackInvoker = new JsonRpcCallbackInvoker();
-        _operations = new RpcOperations(objectRegistry, _callbackInvoker);
 
         // Initialize ATS components with provided assemblies
         _handleRegistry = new HandleRegistry();
@@ -58,11 +55,6 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
         {
             var tokenPreview = authToken.Length > 8 ? authToken[..8] + "..." : authToken;
             Console.WriteLine($"[RPC]   Authentication: ENABLED - token starts with: {tokenPreview}");
-        }
-        Console.WriteLine("[RPC]   Allowed assembly prefixes:");
-        foreach (var prefix in SecurityPolicy.AllowedAssemblyPrefixes)
-        {
-            Console.WriteLine($"[RPC]     - {prefix}*");
         }
     }
 
@@ -129,187 +121,6 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     {
         return "pong";
     }
-
-    #region Object Marshalling
-
-    [JsonRpcMethod("invokeMethod")]
-    public JsonNode? InvokeMethod(string objectId, string methodName, JsonObject? args)
-    {
-        RequireAuthentication();
-        Console.WriteLine($"[RPC] >> invokeMethod({objectId}, {methodName})");
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            return _operations.InvokeMethod(objectId, methodName, args);
-        }
-        finally
-        {
-            Console.WriteLine($"[RPC] << invokeMethod({objectId}, {methodName}) completed in {sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    [JsonRpcMethod("invokeStaticMethod")]
-    public JsonNode? InvokeStaticMethod(string assemblyName, string typeName, string methodName, JsonObject? args)
-    {
-        RequireAuthentication();
-        Console.WriteLine($"[RPC] >> invokeStaticMethod({typeName}.{methodName})");
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            return _operations.InvokeStaticMethod(assemblyName, typeName, methodName, args);
-        }
-        finally
-        {
-            Console.WriteLine($"[RPC] << invokeStaticMethod({typeName}.{methodName}) completed in {sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    [JsonRpcMethod("createObject")]
-    public JsonNode? CreateObject(string assemblyName, string typeName, JsonObject? args)
-    {
-        RequireAuthentication();
-        Console.WriteLine($"[RPC] >> createObject({typeName})");
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            return _operations.CreateObject(assemblyName, typeName, args);
-        }
-        finally
-        {
-            Console.WriteLine($"[RPC] << createObject({typeName}) completed in {sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    [JsonRpcMethod("getProperty")]
-    public JsonNode? GetProperty(string objectId, string propertyName)
-    {
-        RequireAuthentication();
-        Console.WriteLine($"[RPC] >> getProperty({objectId}, {propertyName})");
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            return _operations.GetProperty(objectId, propertyName);
-        }
-        finally
-        {
-            Console.WriteLine($"[RPC] << getProperty({objectId}, {propertyName}) completed in {sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    [JsonRpcMethod("setProperty")]
-    public void SetProperty(string objectId, string propertyName, JsonNode? value)
-    {
-        RequireAuthentication();
-        Console.WriteLine($"[RPC] >> setProperty({objectId}, {propertyName})");
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            _operations.SetProperty(objectId, propertyName, value);
-        }
-        finally
-        {
-            Console.WriteLine($"[RPC] << setProperty({objectId}, {propertyName}) completed in {sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    [JsonRpcMethod("getIndexer")]
-    public JsonNode? GetIndexer(string objectId, JsonNode key)
-    {
-        RequireAuthentication();
-        Console.WriteLine($"[RPC] >> getIndexer({objectId}, {key})");
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            return _operations.GetIndexer(objectId, key);
-        }
-        finally
-        {
-            Console.WriteLine($"[RPC] << getIndexer({objectId}, {key}) completed in {sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    [JsonRpcMethod("setIndexer")]
-    public void SetIndexer(string objectId, JsonNode key, JsonNode? value)
-    {
-        RequireAuthentication();
-        Console.WriteLine($"[RPC] >> setIndexer({objectId}, {key})");
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            _operations.SetIndexer(objectId, key, value);
-        }
-        finally
-        {
-            Console.WriteLine($"[RPC] << setIndexer({objectId}, {key}) completed in {sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    [JsonRpcMethod("unregisterObject")]
-    public void UnregisterObject(string objectId)
-    {
-        RequireAuthentication();
-        Console.WriteLine($"[RPC] >> unregisterObject({objectId})");
-        _operations.UnregisterObject(objectId);
-        Console.WriteLine($"[RPC] << unregisterObject({objectId}) completed");
-    }
-
-    [JsonRpcMethod("createCancellationToken")]
-    public JsonObject CreateCancellationToken()
-    {
-        RequireAuthentication();
-        Console.WriteLine("[RPC] >> createCancellationToken()");
-        var result = _operations.CreateCancellationToken();
-        Console.WriteLine("[RPC] << createCancellationToken() completed");
-        return result;
-    }
-
-    [JsonRpcMethod("cancel")]
-    public bool Cancel(string cancellationTokenId)
-    {
-        RequireAuthentication();
-        Console.WriteLine($"[RPC] >> cancel({cancellationTokenId})");
-        var result = _operations.CancelToken(cancellationTokenId);
-        Console.WriteLine($"[RPC] << cancel({cancellationTokenId}) completed: {result}");
-        return result;
-    }
-
-    #endregion
-
-    #region Static Members
-
-    [JsonRpcMethod("getStaticProperty")]
-    public JsonNode? GetStaticProperty(string assemblyName, string typeName, string propertyName)
-    {
-        RequireAuthentication();
-        Console.WriteLine($"[RPC] >> getStaticProperty({typeName}.{propertyName})");
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            return _operations.GetStaticProperty(assemblyName, typeName, propertyName);
-        }
-        finally
-        {
-            Console.WriteLine($"[RPC] << getStaticProperty({typeName}.{propertyName}) completed in {sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    [JsonRpcMethod("setStaticProperty")]
-    public void SetStaticProperty(string assemblyName, string typeName, string propertyName, JsonNode? value)
-    {
-        RequireAuthentication();
-        Console.WriteLine($"[RPC] >> setStaticProperty({typeName}.{propertyName})");
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            _operations.SetStaticProperty(assemblyName, typeName, propertyName, value);
-        }
-        finally
-        {
-            Console.WriteLine($"[RPC] << setStaticProperty({typeName}.{propertyName}) completed in {sw.ElapsedMilliseconds}ms");
-        }
-    }
-
-    #endregion
 
     #region ATS Capabilities
 
@@ -389,7 +200,6 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
         _cts.Cancel();
         _cts.Dispose();
         _callbackProxyFactory.Dispose();
-        await _operations.DisposeAsync().ConfigureAwait(false);
         await _handleRegistry.DisposeAsync().ConfigureAwait(false);
         Console.WriteLine("[RPC] RemoteAppHostService disposed.");
     }
@@ -494,7 +304,7 @@ internal sealed class JsonRpcServer : IAsyncDisposable
         var disconnectReason = "unknown";
 
         // Create a dedicated service instance for this client connection
-        // Each client has its own authentication state and object registry
+        // Each client has its own authentication state and handle registry
         Console.WriteLine($"[RPC] Creating new RemoteAppHostService for client {clientId}");
         var clientService = new RemoteAppHostService(_atsAssemblies, _authToken);
         // Discard pattern to satisfy CA2007 while ensuring disposal

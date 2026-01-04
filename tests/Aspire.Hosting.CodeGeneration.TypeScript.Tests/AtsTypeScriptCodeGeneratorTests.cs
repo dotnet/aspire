@@ -82,12 +82,11 @@ public class AtsTypeScriptCodeGeneratorTests
             .ToList();
 
         // Assert parameters are captured
-        // Note: The builder parameter is included because the type mapping for IDistributedApplicationBuilder
-        // is defined in Aspire.Hosting, not the test assembly. When the type mapping is properly merged
-        // from referenced assemblies, this should skip the builder parameter.
+        // The builder parameter is skipped because AppliesTo is inferred from the type mapping
+        // (IDistributedApplicationBuilder -> "aspire/Builder")
         var addTestRedis = capabilities.First(c => c.CapabilityId == "aspire.test/addTestRedis@1");
-        Assert.Equal(3, addTestRedis.Parameters.Count);
-        Assert.Contains(addTestRedis.Parameters, p => p.Name == "builder");
+        Assert.Equal(2, addTestRedis.Parameters.Count);
+        Assert.Equal("aspire/Builder", addTestRedis.AppliesTo);
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "name" && p.AtsTypeId == "string");
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "port" && p.IsOptional);
     }

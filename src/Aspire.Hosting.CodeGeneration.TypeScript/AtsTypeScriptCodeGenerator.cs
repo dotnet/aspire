@@ -143,7 +143,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 Handle,
                 CapabilityError,
                 registerCallback,
-                wrapIfProxy
+                wrapIfHandle
             } from './RemoteAppHostClient.js';
             """);
         WriteLine();
@@ -626,7 +626,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         foreach (var callbackParam in callbackParams)
         {
             WriteLine($"        const {callbackParam.Name}Id = registerCallback(async (contextData: unknown) => {{");
-            WriteLine($"            const context = wrapIfProxy(contextData) as EnvironmentContextHandle;");
+            WriteLine($"            const context = wrapIfHandle(contextData) as EnvironmentContextHandle;");
             WriteLine($"            await {callbackParam.Name}(context);");
             WriteLine("        });");
         }

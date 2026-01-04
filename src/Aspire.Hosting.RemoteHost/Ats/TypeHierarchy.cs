@@ -10,12 +10,10 @@ namespace Aspire.Hosting.RemoteHost.Ats;
 
 /// <summary>
 /// Tracks the ATS type hierarchy for AppliesTo constraint validation.
-/// For IResourceBuilder&lt;T&gt;, uses CLR type inheritance directly.
-/// For [AspireHandle] types, uses explicit Extends property.
+/// Uses CLR type inheritance for IResource implementations and interface types.
 /// </summary>
 internal sealed class TypeHierarchy
 {
-    private readonly ConcurrentDictionary<string, HashSet<string>> _handleAncestors = new();
     private readonly ConcurrentDictionary<string, Type> _atsTypeToResourceType = new();
     private readonly ConcurrentDictionary<Type, string> _resourceTypeToAtsType = new();
     private readonly ConcurrentDictionary<string, Type> _atsTypeToInterface = new();
@@ -30,11 +28,10 @@ internal sealed class TypeHierarchy
     }
 
     /// <summary>
-    /// Scans the provided assemblies for [AspireHandle] attributes and resource types.
+    /// Scans the provided assemblies for resource types and interface mappings.
     /// </summary>
     private void ScanAssemblies(IEnumerable<Assembly> assemblies)
     {
-        var handleTypes = new List<(Type Type, string TypeId, string? Extends)>();
         var assemblyList = assemblies.ToList();
 
         // Scan assemblies for [AspireExport] type mappings and register them
@@ -63,14 +60,6 @@ internal sealed class TypeHierarchy
             {
                 foreach (var type in assembly.GetTypes())
                 {
-                    // Check for [AspireHandle]
-                    var handleAttr = type.GetCustomAttribute<AspireHandleAttribute>();
-                    if (handleAttr != null)
-                    {
-                        handleTypes.Add((type, handleAttr.HandleTypeId, handleAttr.Extends));
-                        continue;
-                    }
-
                     // Track resource types (IResource implementations)
                     if (typeof(IResource).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface)
                     {
@@ -85,50 +74,6 @@ internal sealed class TypeHierarchy
                 // Skip assemblies that can't be loaded
             }
         }
-
-        // Register handle types with explicit hierarchy
-        var registered = new HashSet<string>();
-        var pending = new Queue<(Type Type, string TypeId, string? Extends)>(handleTypes);
-        var maxIterations = handleTypes.Count * 2;
-        var iterations = 0;
-
-        while (pending.Count > 0 && iterations++ < maxIterations)
-        {
-            var (type, typeId, extends) = pending.Dequeue();
-
-            if (string.IsNullOrEmpty(extends) || registered.Contains(extends))
-            {
-                RegisterHandle(typeId, extends);
-                registered.Add(typeId);
-            }
-            else
-            {
-                pending.Enqueue((type, typeId, extends));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Registers a handle type with its explicit inheritance chain.
-    /// </summary>
-    private void RegisterHandle(string typeId, string? extends)
-    {
-        var ancestors = new HashSet<string> { typeId };
-
-        if (!string.IsNullOrEmpty(extends))
-        {
-            ancestors.Add(extends);
-
-            if (_handleAncestors.TryGetValue(extends, out var baseAncestors))
-            {
-                foreach (var ancestor in baseAncestors)
-                {
-                    ancestors.Add(ancestor);
-                }
-            }
-        }
-
-        _handleAncestors[typeId] = ancestors;
     }
 
     /// <summary>
@@ -141,7 +86,7 @@ internal sealed class TypeHierarchy
 
     /// <summary>
     /// Checks if a type is assignable to another type in the ATS hierarchy.
-    /// For resource types, uses CLR inheritance. For handles, uses explicit Extends.
+    /// Uses CLR inheritance for resource types and interface types.
     /// </summary>
     /// <param name="typeId">The type to check.</param>
     /// <param name="targetTypeId">The target type.</param>
@@ -170,12 +115,6 @@ internal sealed class TypeHierarchy
             }
         }
 
-        // Check explicit handle hierarchy
-        if (_handleAncestors.TryGetValue(typeId, out var ancestors))
-        {
-            return ancestors.Contains(targetTypeId);
-        }
-
         return false;
     }
 
@@ -200,6 +139,6 @@ internal sealed class TypeHierarchy
     /// </summary>
     public IEnumerable<string> GetAllTypeIds()
     {
-        return _handleAncestors.Keys.Concat(_atsTypeToResourceType.Keys).Distinct();
+        return _atsTypeToResourceType.Keys;
     }
 }

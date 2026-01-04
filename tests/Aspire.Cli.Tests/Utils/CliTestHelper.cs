@@ -298,12 +298,11 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackageCache>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new NuGetPackageCache(logger, runner, cache, telemetry, features);
+        return new NuGetPackageCache(runner, cache, telemetry, features);
     };
 
     public Func<IServiceProvider, IAppHostCliBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>

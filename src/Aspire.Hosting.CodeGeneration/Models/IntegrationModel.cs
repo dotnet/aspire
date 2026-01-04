@@ -92,8 +92,12 @@ public sealed class IntegrationModel
         integration.DiscoverModelClasses(integration.IDistributedApplicationBuilderExtensionMethods, integration.ModelTypes);
         integration.DiscoverModelClasses(integration.SharedExtensionMethods, integration.ModelTypes);
 
-        // Build type mapping from the assembly for ATS type resolution
-        var typeMapping = AtsTypeMapping.FromAssembly(assembly);
+        // Build type mapping from both the integration assembly and Aspire.Hosting assembly
+        // This ensures types like IDistributedApplicationBuilder -> "aspire/Builder" are available
+        var hostingAssembly = knownTypes.IDistributedApplicationBuilderType.DeclaringAssembly;
+        var typeMapping = hostingAssembly != assembly
+            ? AtsTypeMapping.FromAssemblies([hostingAssembly, assembly])
+            : AtsTypeMapping.FromAssembly(assembly);
 
         // Scan for ATS capabilities via [AspireExport] attributes
         var capabilities = AtsCapabilityScanner.ScanAssembly(assembly, knownTypes, typeMapping);

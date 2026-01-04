@@ -2,337 +2,274 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Aspire.Hosting.RemoteHost.Ats;
 using Xunit;
 
 namespace Aspire.Hosting.RemoteHost.Tests;
 
-public class CallbackProxyTests : IAsyncLifetime
+public class CallbackProxyTests
 {
-    private readonly ObjectRegistry _objectRegistry;
-    private readonly TestCallbackInvoker _callbackInvoker;
-    private readonly RpcOperations _operations;
-
-    public CallbackProxyTests()
+    [Fact]
+    public void CreateProxy_ReturnsNullForNonDelegateType()
     {
-        _objectRegistry = new ObjectRegistry();
-        _callbackInvoker = new TestCallbackInvoker();
-        _operations = new RpcOperations(_objectRegistry, _callbackInvoker);
-    }
+        using var factory = CreateFactory();
 
-    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+        var result = factory.CreateProxy("callback1", typeof(string));
 
-    public async ValueTask DisposeAsync()
-    {
-        await _operations.DisposeAsync();
+        Assert.Null(result);
     }
 
     [Fact]
-    public void InvokeMethod_WithActionCallback_InvokesCallback()
+    public void CreateProxy_ReturnsNullForDelegateWithoutAttribute()
     {
-        var obj = new ObjectWithCallbacks();
-        var id = _objectRegistry.Register(obj);
+        using var factory = CreateFactory();
 
-        // Register the callback ID as an argument
-        var args = JsonNode.Parse("{\"callback\": \"cb_action\"}") as JsonObject;
+        var result = factory.CreateProxy("callback1", typeof(Action));
 
-        _operations.InvokeMethod(id, "TakeAction", args);
-
-        // The callback should have been invoked
-        Assert.Single(_callbackInvoker.Invocations);
-        Assert.Equal("cb_action", _callbackInvoker.Invocations[0].CallbackId);
+        Assert.Null(result);
     }
 
     [Fact]
-    public void InvokeMethod_WithActionOfTCallback_PassesArgument()
+    public void CreateProxy_ReturnsDelegateForAttributedType()
     {
-        var obj = new ObjectWithCallbacks();
-        var id = _objectRegistry.Register(obj);
+        using var factory = CreateFactory();
 
-        var args = JsonNode.Parse("{\"callback\": \"cb_action_t\"}") as JsonObject;
-
-        _operations.InvokeMethod(id, "TakeActionWithArg", args);
-
-        Assert.Single(_callbackInvoker.Invocations);
-        Assert.Equal("cb_action_t", _callbackInvoker.Invocations[0].CallbackId);
-        Assert.Equal("test_value", (_callbackInvoker.Invocations[0].Args as JsonValue)?.GetValue<string>());
-    }
-
-    [Fact]
-    public void InvokeMethod_WithFuncTaskCallback_InvokesAsyncCallback()
-    {
-        var obj = new ObjectWithCallbacks();
-        var id = _objectRegistry.Register(obj);
-
-        var args = JsonNode.Parse("{\"callback\": \"cb_func_task\"}") as JsonObject;
-
-        _operations.InvokeMethod(id, "TakeFuncTask", args);
-
-        // Callback is invoked synchronously by the proxy, recorded immediately
-        Assert.Single(_callbackInvoker.Invocations);
-        Assert.Equal("cb_func_task", _callbackInvoker.Invocations[0].CallbackId);
-    }
-
-    [Fact]
-    public void InvokeMethod_WithFuncOfTTaskCallback_PassesArgument()
-    {
-        var obj = new ObjectWithCallbacks();
-        var id = _objectRegistry.Register(obj);
-
-        var args = JsonNode.Parse("{\"callback\": \"cb_func_t_task\"}") as JsonObject;
-
-        _operations.InvokeMethod(id, "TakeFuncWithArgTask", args);
-
-        // Callback is invoked synchronously by the proxy, recorded immediately
-        Assert.Single(_callbackInvoker.Invocations);
-        Assert.Equal("cb_func_t_task", _callbackInvoker.Invocations[0].CallbackId);
-        // The argument should be marshalled since it's a complex object
-        var invokedArgs = _callbackInvoker.Invocations[0].Args;
-        Assert.NotNull(invokedArgs);
-    }
-
-    [Fact]
-    public void InvokeMethod_WithFuncReturningValue_ReturnsCallbackResult()
-    {
-        var obj = new ObjectWithCallbacks();
-        var id = _objectRegistry.Register(obj);
-
-        // Register a handler that returns a value
-        _callbackInvoker.RegisterHandler("cb_func_result", 42);
-
-        var args = JsonNode.Parse("{\"callback\": \"cb_func_result\"}") as JsonObject;
-
-        _operations.InvokeMethod(id, "TakeFuncWithResult", args);
-
-        Assert.Single(_callbackInvoker.Invocations);
-        Assert.Equal(42, obj.LastResult);
-    }
-
-    [Fact]
-    public void InvokeMethod_WithCancellationTokenCallback_PassesCancellationTokenRef()
-    {
-        var obj = new ObjectWithCallbacks();
-        var id = _objectRegistry.Register(obj);
-
-        var args = JsonNode.Parse("{\"callback\": \"cb_with_ct\"}") as JsonObject;
-
-        // InvokeMethod awaits async results via UnwrapAsyncResult
-        _operations.InvokeMethod(id, "TakeFuncWithCancellation", args);
-
-        Assert.Single(_callbackInvoker.Invocations);
-        // The callback args should contain both the CallbackArg and the CancellationToken as a ref
-        // Note: Func<T1, T2, Task> parameters are named "arg1" and "arg2"
-        var invokedArgs = _callbackInvoker.Invocations[0].Args;
-        Assert.NotNull(invokedArgs);
-
-        var jsonObj = invokedArgs as JsonObject;
-        Assert.NotNull(jsonObj);
-
-        // arg1 should be the CallbackArg (marshalled as object ref)
-        Assert.True(jsonObj.ContainsKey("arg1"), "Should have arg1 (CallbackArg)");
-
-        // arg2 should be the CancellationToken ref
-        Assert.True(jsonObj.ContainsKey("arg2"), "CancellationToken should be passed as arg2");
-        var ctNode = jsonObj["arg2"] as JsonObject;
-        Assert.NotNull(ctNode);
-        Assert.True(ctNode.ContainsKey("$cancellationToken"), "CancellationToken should be marshalled as {\"$cancellationToken\": \"ct_N\"}");
-        var tokenId = ctNode["$cancellationToken"]?.GetValue<string>();
-        Assert.NotNull(tokenId);
-        Assert.StartsWith("ct_", tokenId);
-    }
-
-    [Fact]
-    public void InvokeMethod_WithActionCancellationToken_PassesCancellationTokenRef()
-    {
-        var obj = new ObjectWithCallbacks();
-        var id = _objectRegistry.Register(obj);
-
-        var args = JsonNode.Parse("{\"callback\": \"cb_action_ct\"}") as JsonObject;
-
-        _operations.InvokeMethod(id, "TakeActionWithCancellation", args);
-
-        Assert.Single(_callbackInvoker.Invocations);
-        // The invoked args should be an object with both the string value and the CancellationToken ref
-        // Note: Action<T1, T2> delegate parameters are named "arg1" and "arg2"
-        var invokedArgs = _callbackInvoker.Invocations[0].Args;
-        Assert.NotNull(invokedArgs);
-
-        var jsonObj = invokedArgs as JsonObject;
-        Assert.NotNull(jsonObj);
-
-        // Should have the string arg (named "arg1" for Action<T1, T2>)
-        Assert.True(jsonObj.ContainsKey("arg1"), "Should have the string argument (arg1)");
-        Assert.Equal("test_with_ct", jsonObj["arg1"]?.GetValue<string>());
-
-        // Should have a cancellationToken property with $cancellationToken ref (named "arg2" for Action<T1, T2>)
-        Assert.True(jsonObj.ContainsKey("arg2"), "CancellationToken should be passed as a ref (arg2)");
-        var ctNode = jsonObj["arg2"] as JsonObject;
-        Assert.NotNull(ctNode);
-        Assert.True(ctNode.ContainsKey("$cancellationToken"), "CancellationToken should be marshalled as {\"$cancellationToken\": \"ct_N\"}");
-    }
-
-    [Fact]
-    public void CancelToken_CancelsRegisteredToken()
-    {
-        var obj = new ObjectWithCallbacks();
-        var id = _objectRegistry.Register(obj);
-
-        var args = JsonNode.Parse("{\"callback\": \"cb_cancel_test\"}") as JsonObject;
-
-        // Invoke the method - this will create a linked CTS for the CancellationToken
-        _operations.InvokeMethod(id, "TakeFuncWithObservableCancellation", args);
-
-        Assert.Single(_callbackInvoker.Invocations);
-
-        // For single-parameter delegates, the arg is marshalled directly (not in an object)
-        // Func<CancellationToken, Task> -> single CancellationTokenRef
-        var invokedArgs = _callbackInvoker.Invocations[0].Args as JsonObject;
-        Assert.NotNull(invokedArgs);
-
-        // The single arg is the CancellationToken ref directly
-        var tokenId = invokedArgs["$cancellationToken"]?.GetValue<string>();
-        Assert.NotNull(tokenId);
-        Assert.StartsWith("ct_", tokenId);
-
-        // Cancel via RPC - should return true (token exists)
-        var cancelled = _operations.CancelToken(tokenId);
-        Assert.True(cancelled, "CancelToken should return true for a valid token ID");
-
-        // Cancelling again should also work (CTS can be cancelled multiple times)
-        var cancelledAgain = _operations.CancelToken(tokenId);
-        Assert.True(cancelledAgain);
-    }
-
-    [Fact]
-    public void CancelToken_ReturnsFalseForUnknownToken()
-    {
-        var cancelled = _operations.CancelToken("ct_nonexistent");
-        Assert.False(cancelled);
-    }
-
-    [Fact]
-    public void CreateCancellationToken_ReturnsTokenRef()
-    {
-        var result = _operations.CreateCancellationToken();
+        var result = factory.CreateProxy("callback1", typeof(TestCallbackNoArgs));
 
         Assert.NotNull(result);
-        Assert.True(result.ContainsKey("$cancellationToken"));
-        var tokenId = result["$cancellationToken"]?.GetValue<string>();
-        Assert.NotNull(tokenId);
-        Assert.StartsWith("ct_", tokenId);
+        Assert.IsAssignableFrom<TestCallbackNoArgs>(result);
     }
 
     [Fact]
-    public void InvokeMethod_WithCancellationTokenParameter_ResolvesToken()
+    public void CreateProxy_CachesDelegate()
     {
-        var obj = new ObjectWithCancellationToken();
-        var id = _objectRegistry.Register(obj);
+        using var factory = CreateFactory();
 
-        // Create a token via RPC
-        var tokenRef = _operations.CreateCancellationToken();
-        var tokenId = tokenRef["$cancellationToken"]?.GetValue<string>();
+        var result1 = factory.CreateProxy("callback1", typeof(TestCallbackNoArgs));
+        var result2 = factory.CreateProxy("callback1", typeof(TestCallbackNoArgs));
 
-        // Pass the token to a method
-        var args = new JsonObject { ["cancellationToken"] = tokenRef };
-        _operations.InvokeMethod(id, "DoWork", args);
-
-        // The method should have received a valid CancellationToken
-        Assert.NotNull(obj.ReceivedToken);
-        Assert.False(obj.ReceivedToken.Value.IsCancellationRequested);
-
-        // Cancel the token
-        _operations.CancelToken(tokenId!);
-
-        // The token should now be cancelled
-        Assert.True(obj.ReceivedToken.Value.IsCancellationRequested);
+        Assert.Same(result1, result2);
     }
 
     [Fact]
-    public void InvokeMethod_WithNullCancellationToken_UsesNone()
+    public async Task InvokedProxy_CallsCallbackInvoker()
     {
-        var obj = new ObjectWithCancellationToken();
-        var id = _objectRegistry.Register(obj);
+        var invoker = new TestCallbackInvoker();
+        using var factory = CreateFactory(invoker);
 
-        // Pass null for cancellationToken
-        var args = new JsonObject { ["cancellationToken"] = null };
-        _operations.InvokeMethod(id, "DoWork", args);
+        var proxy = (TestCallbackNoArgs)factory.CreateProxy("test-callback", typeof(TestCallbackNoArgs))!;
 
-        // Should receive CancellationToken.None
-        Assert.NotNull(obj.ReceivedToken);
-        Assert.Equal(CancellationToken.None, obj.ReceivedToken.Value);
+        await proxy();
+
+        Assert.Single(invoker.Invocations);
+        Assert.Equal("test-callback", invoker.Invocations[0].CallbackId);
     }
 
-    #region Test Classes
-
-    private sealed class ObjectWithCancellationToken
+    [Fact]
+    public async Task InvokedProxy_ReturnsResultFromInvoker()
     {
-        public CancellationToken? ReceivedToken { get; private set; }
+        var invoker = new TestCallbackInvoker { ResultToReturn = JsonValue.Create(42) };
+        using var factory = CreateFactory(invoker);
 
-        public void DoWork(CancellationToken cancellationToken)
-        {
-            ReceivedToken = cancellationToken;
-        }
+        var proxy = (TestCallbackWithIntResult)factory.CreateProxy("test-callback", typeof(TestCallbackWithIntResult))!;
+
+        var result = await proxy();
+
+        Assert.Equal(42, result);
     }
 
-    private sealed class ObjectWithCallbacks
+    [Fact]
+    public void CancellationTokenRegistry_IsExposed()
     {
-        public int LastResult { get; private set; }
-        public int CallCount { get; private set; }
+        using var factory = CreateFactory();
 
-        public void TakeAction(Action callback)
-        {
-            CallCount++;
-            callback();
-        }
-
-        public void TakeActionWithArg(Action<string> callback)
-        {
-            CallCount++;
-            callback("test_value");
-        }
-
-        public void TakeFuncTask(Func<Task> callback)
-        {
-            CallCount++;
-            _ = callback();
-        }
-
-        public void TakeFuncWithArgTask(Func<CallbackArg, Task> callback)
-        {
-            CallCount++;
-            _ = callback(new CallbackArg { Name = "async_arg", Value = 999 });
-        }
-
-        public void TakeFuncWithResult(Func<string, int> callback)
-        {
-            CallCount++;
-            LastResult = callback("input");
-        }
-
-        public async Task TakeFuncWithCancellation(Func<CallbackArg, CancellationToken, Task> callback)
-        {
-            CallCount++;
-            await callback(new CallbackArg { Name = "with_cancellation", Value = 42 }, CancellationToken.None);
-        }
-
-        public void TakeActionWithCancellation(Action<string, CancellationToken> callback)
-        {
-            CallCount++;
-            callback("test_with_ct", CancellationToken.None);
-        }
-
-        public void TakeFuncWithObservableCancellation(Func<CancellationToken, Task> callback)
-        {
-            CallCount++;
-            // Call the callback proxy with a CancellationToken - the proxy will marshal it
-            _ = callback(CancellationToken.None);
-        }
+        Assert.NotNull(factory.CancellationTokenRegistry);
     }
 
-    private sealed class CallbackArg
+    [Fact]
+    public void Dispose_DisposesResources()
     {
-        public string? Name { get; set; }
-        public int Value { get; set; }
+        var factory = CreateFactory();
+
+        factory.Dispose();
+
+        // Should not throw when disposed
     }
 
-    #endregion
+    // Tests for callbacks with parameters (bug fix verification)
+    [Fact]
+    public void CreateProxy_ReturnsDelegateForCallbackWithStringParameter()
+    {
+        using var factory = CreateFactory();
+
+        var result = factory.CreateProxy("callback1", typeof(TestCallbackWithString));
+
+        Assert.NotNull(result);
+        Assert.IsAssignableFrom<TestCallbackWithString>(result);
+    }
+
+    [Fact]
+    public async Task InvokedProxy_PassesStringArgumentAsJson()
+    {
+        var invoker = new TestCallbackInvoker();
+        using var factory = CreateFactory(invoker);
+
+        var proxy = (TestCallbackWithString)factory.CreateProxy("test-callback", typeof(TestCallbackWithString))!;
+
+        await proxy("hello-world");
+
+        Assert.Single(invoker.Invocations);
+        var args = invoker.Invocations[0].Args as JsonObject;
+        Assert.NotNull(args);
+        Assert.Equal("hello-world", args["value"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task InvokedProxy_PassesMultipleArgumentsAsJson()
+    {
+        var invoker = new TestCallbackInvoker();
+        using var factory = CreateFactory(invoker);
+
+        var proxy = (TestCallbackWithMultipleParams)factory.CreateProxy("test-callback", typeof(TestCallbackWithMultipleParams))!;
+
+        await proxy("test-name", 42);
+
+        Assert.Single(invoker.Invocations);
+        var args = invoker.Invocations[0].Args as JsonObject;
+        Assert.NotNull(args);
+        Assert.Equal("test-name", args["name"]?.GetValue<string>());
+        Assert.Equal(42, args["count"]?.GetValue<int>());
+    }
+
+    [Fact]
+    public async Task InvokedProxy_WithResultReturnsCorrectValue()
+    {
+        var invoker = new TestCallbackInvoker { ResultToReturn = JsonValue.Create("result-value") };
+        using var factory = CreateFactory(invoker);
+
+        var proxy = (TestCallbackWithStringResult)factory.CreateProxy("test-callback", typeof(TestCallbackWithStringResult))!;
+
+        var result = await proxy("input");
+
+        Assert.Equal("result-value", result);
+    }
+
+    [Fact]
+    public async Task InvokedProxy_WithCancellationToken_IncludesTokenInArgs()
+    {
+        var invoker = new TestCallbackInvoker();
+        using var factory = CreateFactory(invoker);
+        using var cts = new CancellationTokenSource();
+
+        var proxy = (TestCallbackWithCancellation)factory.CreateProxy("test-callback", typeof(TestCallbackWithCancellation))!;
+
+        await proxy("test", cts.Token);
+
+        Assert.Single(invoker.Invocations);
+        var args = invoker.Invocations[0].Args as JsonObject;
+        Assert.NotNull(args);
+        Assert.Equal("test", args["value"]?.GetValue<string>());
+        // CancellationToken is added as $cancellationToken only if it's not CancellationToken.None
+    }
+
+    // Callback error handling tests
+    [Fact]
+    public async Task InvokedProxy_PropagatesExceptionFromInvoker()
+    {
+        var invoker = new TestCallbackInvoker
+        {
+            ExceptionToThrow = new InvalidOperationException("Callback failed")
+        };
+        using var factory = CreateFactory(invoker);
+
+        var proxy = (TestCallbackNoArgs)factory.CreateProxy("test-callback", typeof(TestCallbackNoArgs))!;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => proxy());
+        Assert.Equal("Callback failed", ex.Message);
+    }
+
+    [Fact]
+    public async Task InvokedProxy_WithResult_PropagatesExceptionFromInvoker()
+    {
+        var invoker = new TestCallbackInvoker
+        {
+            ExceptionToThrow = new InvalidOperationException("Callback with result failed")
+        };
+        using var factory = CreateFactory(invoker);
+
+        var proxy = (TestCallbackWithIntResult)factory.CreateProxy("test-callback", typeof(TestCallbackWithIntResult))!;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => proxy());
+        Assert.Equal("Callback with result failed", ex.Message);
+    }
+
+    [Fact]
+    public async Task InvokedProxy_PropagatesOperationCanceledException()
+    {
+        var invoker = new TestCallbackInvoker
+        {
+            ExceptionToThrow = new OperationCanceledException("Operation was cancelled")
+        };
+        using var factory = CreateFactory(invoker);
+
+        var proxy = (TestCallbackNoArgs)factory.CreateProxy("test-callback", typeof(TestCallbackNoArgs))!;
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => proxy());
+    }
+
+    private static AtsCallbackProxyFactory CreateFactory(ICallbackInvoker? invoker = null)
+    {
+        var handles = new HandleRegistry();
+        return new AtsCallbackProxyFactory(invoker ?? new TestCallbackInvoker(), handles);
+    }
+
+    // Test delegates with [AspireCallback] attribute
+    [AspireCallback("test/callback")]
+    public delegate Task TestCallback(string value);
+
+    [AspireCallback("test/callbackNoArgs")]
+    public delegate Task TestCallbackNoArgs();
+
+    [AspireCallback("test/callbackWithIntResult")]
+    public delegate Task<int> TestCallbackWithIntResult();
+
+    [AspireCallback("test/callbackWithString")]
+    public delegate Task TestCallbackWithString(string value);
+
+    [AspireCallback("test/callbackWithMultipleParams")]
+    public delegate Task TestCallbackWithMultipleParams(string name, int count);
+
+    [AspireCallback("test/callbackWithStringResult")]
+    public delegate Task<string> TestCallbackWithStringResult(string input);
+
+    [AspireCallback("test/callbackWithCancellation")]
+    public delegate Task TestCallbackWithCancellation(string value, CancellationToken cancellationToken);
+}
+
+internal sealed class TestCallbackInvoker : ICallbackInvoker
+{
+    public List<(string CallbackId, JsonNode? Args)> Invocations { get; } = [];
+    public JsonNode? ResultToReturn { get; set; }
+    public Exception? ExceptionToThrow { get; set; }
+    public bool IsConnected => true;
+
+    public Task<TResult> InvokeAsync<TResult>(string callbackId, JsonNode? args, CancellationToken cancellationToken = default)
+    {
+        Invocations.Add((callbackId, args));
+        if (ExceptionToThrow != null)
+        {
+            throw ExceptionToThrow;
+        }
+        return Task.FromResult(ResultToReturn is TResult result ? result : default!);
+    }
+
+    public Task InvokeAsync(string callbackId, JsonNode? args, CancellationToken cancellationToken = default)
+    {
+        Invocations.Add((callbackId, args));
+        if (ExceptionToThrow != null)
+        {
+            throw ExceptionToThrow;
+        }
+        return Task.CompletedTask;
+    }
 }

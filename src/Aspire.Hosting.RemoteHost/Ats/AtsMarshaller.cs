@@ -56,6 +56,8 @@ internal static class AtsMarshaller
         typeof(char),
         typeof(DateTime),
         typeof(DateTimeOffset),
+        typeof(DateOnly),
+        typeof(TimeOnly),
         typeof(TimeSpan),
         typeof(Guid),
         typeof(Uri)
@@ -93,7 +95,7 @@ internal static class AtsMarshaller
 
     /// <summary>
     /// Marshals a .NET object to JSON for sending to the guest.
-    /// Handles: intrinsic Aspire types, primitives, arrays, lists, dictionaries, [AspireHandle] types, [AspireDto] types.
+    /// Handles: intrinsic Aspire types, primitives, arrays, lists, dictionaries, [AspireDto] types.
     /// </summary>
     /// <param name="value">The value to marshal.</param>
     /// <param name="handles">The handle registry for marshalling handles.</param>
@@ -114,16 +116,6 @@ internal static class AtsMarshaller
             return handles.Marshal(value, intrinsicTypeId);
         }
 
-        // Check if it's a handle type (marked with [AspireHandle])
-        var handleAttr = type.GetCustomAttribute<AspireHandleAttribute>();
-        if (handleAttr != null)
-        {
-            // Get the inner object (assume there's an Inner property)
-            var innerProp = type.GetProperty("Inner", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-            var innerObj = innerProp?.GetValue(value) ?? value;
-            return handles.Marshal(innerObj, handleAttr.HandleTypeId);
-        }
-
         // Primitives - serialize directly
         if (IsSimpleType(type))
         {
@@ -137,6 +129,18 @@ internal static class AtsMarshaller
             if (type == typeof(TimeSpan))
             {
                 return JsonValue.Create(((TimeSpan)value).TotalMilliseconds);
+            }
+
+            // DateOnly is serialized as ISO date string (yyyy-MM-dd)
+            if (type == typeof(DateOnly))
+            {
+                return JsonValue.Create(((DateOnly)value).ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            // TimeOnly is serialized as ISO time string (HH:mm:ss.fffffff)
+            if (type == typeof(TimeOnly))
+            {
+                return JsonValue.Create(((TimeOnly)value).ToString("O", System.Globalization.CultureInfo.InvariantCulture));
             }
 
             return JsonValue.Create(value);
@@ -193,7 +197,7 @@ internal static class AtsMarshaller
 
     /// <summary>
     /// Unmarshals a JSON node to a .NET object of the specified type.
-    /// Handles: primitives, arrays, lists, dictionaries, [AspireHandle] types, [AspireDto] types, [AspireCallback] delegates.
+    /// Handles: primitives, arrays, lists, dictionaries, [AspireDto] types, [AspireCallback] delegates.
     /// </summary>
     /// <param name="node">The JSON node to unmarshal.</param>
     /// <param name="targetType">The target .NET type.</param>
@@ -406,6 +410,24 @@ internal static class AtsMarshaller
             {
                 // Support standard TimeSpan format (e.g., "01:30:00") or ISO 8601 duration
                 return TimeSpan.Parse(str, System.Globalization.CultureInfo.InvariantCulture);
+            }
+        }
+
+        // DateOnly: accept ISO date string (yyyy-MM-dd)
+        if (underlyingType == typeof(DateOnly))
+        {
+            if (value.TryGetValue<string>(out var str))
+            {
+                return DateOnly.Parse(str, System.Globalization.CultureInfo.InvariantCulture);
+            }
+        }
+
+        // TimeOnly: accept ISO time string (HH:mm:ss.fffffff)
+        if (underlyingType == typeof(TimeOnly))
+        {
+            if (value.TryGetValue<string>(out var str))
+            {
+                return TimeOnly.Parse(str, System.Globalization.CultureInfo.InvariantCulture);
             }
         }
 
