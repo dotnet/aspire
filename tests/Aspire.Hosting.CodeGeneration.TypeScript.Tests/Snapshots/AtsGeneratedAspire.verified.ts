@@ -16,6 +16,9 @@ import {
 // Handle Type Aliases
 // ============================================================================
 
+/** Handle to IResourceBuilder<test/TestContextResource> */
+export type TestContextBuilderHandle = Handle<'aspire.test/TestContext'>;
+
 /** Handle to DistributedApplication */
 export type ApplicationHandle = Handle<'aspire/Application'>;
 
@@ -142,6 +145,79 @@ export abstract class ResourceBuilderBase {
             { builder: this._handle, value, enabled }
         );
         return new ResourceBuilderBase(result, this._client);
+    }
+
+}
+
+// ============================================================================
+// TestContextBuilder
+// ============================================================================
+
+export class TestContextBuilder extends ResourceBuilderBase {
+    constructor(handle: TestContextBuilderHandle, client: AspireClient) {
+        super(handle, client);
+    }
+
+    /** Gets the underlying handle */
+    get handle(): TestContextBuilderHandle { return this._handle; }
+
+    /** Gets the Name property */
+    /** @internal */
+    async _nameInternal(context: unknown): Promise<TestContextBuilder> {
+        await this._client.invokeCapability<void>(
+            'aspire.test/TestContext.name@1',
+            { builder: this._handle, context }
+        );
+        return this;
+    }
+
+    name(context: unknown): TestContextBuilderPromise {
+        return new TestContextBuilderPromise(this._nameInternal(context));
+    }
+
+    /** Gets the Value property */
+    /** @internal */
+    async _valueInternal(context: unknown): Promise<TestContextBuilder> {
+        await this._client.invokeCapability<void>(
+            'aspire.test/TestContext.value@1',
+            { builder: this._handle, context }
+        );
+        return this;
+    }
+
+    value(context: unknown): TestContextBuilderPromise {
+        return new TestContextBuilderPromise(this._valueInternal(context));
+    }
+
+}
+
+/**
+ * Thenable wrapper for TestContextBuilder that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class TestContextBuilderPromise implements PromiseLike<TestContextBuilder> {
+    constructor(private _promise: Promise<TestContextBuilder>) {}
+
+    then<TResult1 = TestContextBuilder, TResult2 = never>(
+        onfulfilled?: ((value: TestContextBuilder) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Gets the Name property */
+    name(context: unknown): TestContextBuilderPromise {
+        return new TestContextBuilderPromise(
+            this._promise.then(b => b._nameInternal(context))
+        );
+    }
+
+    /** Gets the Value property */
+    value(context: unknown): TestContextBuilderPromise {
+        return new TestContextBuilderPromise(
+            this._promise.then(b => b._valueInternal(context))
+        );
     }
 
 }

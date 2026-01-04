@@ -3,7 +3,7 @@
 
 using System.Collections;
 
-namespace Aspire.Hosting.RemoteHost.Ats;
+namespace Aspire.Hosting.Ats;
 
 /// <summary>
 /// ATS exports for list operations.

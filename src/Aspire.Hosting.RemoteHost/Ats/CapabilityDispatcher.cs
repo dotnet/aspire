@@ -166,6 +166,11 @@ internal sealed class CapabilityDispatcher
     /// </summary>
     private void RegisterFromAttribute(AspireExportAttribute attr, MethodInfo method)
     {
+        if (attr.Id is null)
+        {
+            throw new InvalidOperationException($"AspireExportAttribute on method {method.DeclaringType?.Name}.{method.Name} must have an Id.");
+        }
+
         var parameters = method.GetParameters();
 
         // Check if this is an extension method

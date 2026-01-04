@@ -2992,6 +2992,22 @@ export class TestCallbackContextProxy {
     }
 
     /**
+     * Gets the CancellationToken property
+     * @returns Promise<CancellationTokenProxy>
+     */
+    async getCancellationToken(): Promise<CancellationTokenProxy> {
+        const result = await this._proxy.getProperty("CancellationToken");
+        return new CancellationTokenProxy(result as DotNetProxy);
+    }
+
+    /**
+     * Sets the CancellationToken property
+     */
+    async setCancellationToken(value: CancellationTokenProxy): Promise<void> {
+        await this._proxy.setProperty("CancellationToken", value);
+    }
+
+    /**
      * Gets a property value from the .NET object (generic fallback)
      * @param propertyName The property name
      */
