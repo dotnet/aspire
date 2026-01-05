@@ -40,7 +40,7 @@ ATS flattens .NET's polymorphism into a simple, portable model that any language
 |--------------|--------------|
 | Interface inheritance | Expanded to concrete types at scan time |
 | Generic constraints | Resolved to concrete types at scan time |
-| Method overloading | **Not supported** - method names must be unique per type |
+| Method overloading | **Not supported** - method names must be unique within each target type |
 | Capability versioning | **Not needed** - NuGet package version handles compatibility |
 
 **The result**: A flat type system where:
@@ -59,7 +59,9 @@ ATS flattens .NET's polymorphism into a simple, portable model that any language
 
 ### Collision Detection
 
-Since method overloading isn't supported, the scanner detects and reports conflicts:
+The same method name can appear on different types (e.g., `withEnvironment` on Redis, Container, Project). However, within a single target type, method names must be unique—even across packages.
+
+The scanner detects and reports conflicts:
 
 ```
 Error: Method 'withDataVolume' has multiple definitions for target 'aspire/Redis':
@@ -75,33 +77,31 @@ Resolution: Use [AspireExport("uniqueMethodName")] to disambiguate.
 
 The CLI orchestrates two processes: the **AppHost Server** (.NET) and the **Guest Runtime** (e.g., Node.js). They communicate via JSON-RPC over a Unix domain socket.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Aspire CLI                               │
-│                                                                 │
-│   ┌─────────────────────┐         ┌─────────────────────────┐  │
-│   │  Guest Runtime      │         │  AppHost Server (.NET)  │  │
-│   │  (Node.js)          │         │                         │  │
-│   │                     │         │  ┌───────────────────┐  │  │
-│   │  ┌───────────────┐  │         │  │ Aspire.Hosting.*  │  │  │
-│   │  │ User Code     │  │         │  │ (Redis, etc)      │  │  │
-│   │  │ (apphost.ts)  │  │         │  └─────────┬─────────┘  │  │
-│   │  └───────┬───────┘  │         │            │            │  │
-│   │          │          │         │  ┌─────────▼─────────┐  │  │
-│   │  ┌───────▼───────┐  │         │  │CapabilityDispatch │  │  │
-│   │  │ Generated SDK │  │         │  │HandleRegistry     │  │  │
-│   │  │ (aspire.ts)   │  │         │  └─────────┬─────────┘  │  │
-│   │  └───────┬───────┘  │         │            │            │  │
-│   │          │          │         │            │            │  │
-│   │  ┌───────▼───────┐  │  JSON   │  ┌─────────▼─────────┐  │  │
-│   │  │ ATS Client    │◄─┼──RPC────┼─►│ JSON-RPC Server   │  │  │
-│   │  └───────────────┘  │  (UDS)  │  └───────────────────┘  │  │
-│   └─────────────────────┘         └─────────────────────────┘  │
-│            ▲                                  ▲                 │
-│            │ spawns                           │ spawns          │
-│            └──────────────┬───────────────────┘                 │
-│                           │                                     │
-└───────────────────────────┼─────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph CLI["Aspire CLI"]
+        direction LR
+        subgraph Guest["Guest Runtime (Node.js)"]
+            direction TB
+            UserCode["User Code<br/>(apphost.ts)"]
+            SDK["Generated SDK<br/>(aspire.ts)"]
+            ATSClient["ATS Client"]
+            UserCode --> SDK --> ATSClient
+        end
+
+        subgraph Host["AppHost Server (.NET)"]
+            direction TB
+            Packages["Aspire.Hosting.*<br/>(Redis, etc)"]
+            Dispatcher["CapabilityDispatcher<br/>HandleRegistry"]
+            RPCServer["JSON-RPC Server"]
+            Packages --> Dispatcher --> RPCServer
+        end
+
+        ATSClient <-->|"JSON-RPC<br/>(Unix Socket)"| RPCServer
+    end
+
+    CLI -.->|spawns| Guest
+    CLI -.->|spawns| Host
 ```
 
 **Startup Sequence:**
@@ -504,14 +504,12 @@ Each capability has:
 - Languages with inheritance (TypeScript, Swift) can use `TargetTypeId` for interface-based generation
 - Languages without inheritance (Go, C) use `ExpandedTargetTypeIds` for flat generation
 
-```
-Assemblies → AtsCapabilityScanner → List<AtsCapabilityInfo>
-               (with CLR types)        (pure ATS, no CLR types)
-                     │
-     ┌───────────────┴───────────────┐
-     ↓                               ↓
-Code Generation                   Runtime
-(group by ExpandedTargetTypeIds)  (index by CapabilityId)
+```mermaid
+flowchart LR
+    A["Assemblies<br/>(with CLR types)"] --> B["AtsCapabilityScanner"]
+    B --> C["List&lt;AtsCapabilityInfo&gt;<br/>(pure ATS, no CLR types)"]
+    C --> D["Code Generation<br/>(group by ExpandedTargetTypeIds)"]
+    C --> E["Runtime<br/>(index by CapabilityId)"]
 ```
 
 ### Output (TypeScript)
