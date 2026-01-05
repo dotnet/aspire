@@ -240,8 +240,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var websiteName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
 
         int maxWebSiteLength = string.IsNullOrWhiteSpace(deploymentSlot) ?
-            MaxHostPrefixLength :
-            MaxWebSiteHostPrefixLengthWithSlot;
+            60 :
+            MaxWebSitePrefixLengthWithSlot;
 
         if (websiteName.Length > maxWebSiteLength)
         {
@@ -252,9 +252,9 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         {
             websiteName += $"-{deploymentSlot}";
 
-            if (websiteName.Length > MaxHostPrefixLength)
+            if (websiteName.Length > MaxHostPrefixLengthWithSlot)
             {
-                websiteName = websiteName.Substring(0, MaxHostPrefixLength);
+                websiteName = websiteName.Substring(0, MaxHostPrefixLengthWithSlot);
             }
         }
 
@@ -263,6 +263,6 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
     private const string AzureManagementScope = "https://management.azure.com/.default";
     private const string AzureManagementEndpoint = "https://management.azure.com/";
-    internal const int MaxHostPrefixLength = 59;
-    internal const int MaxWebSiteHostPrefixLengthWithSlot = 40;
+    internal const int MaxHostPrefixLengthWithSlot = 59;
+    internal const int MaxWebSitePrefixLengthWithSlot = 40;
 }
