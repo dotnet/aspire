@@ -4,10 +4,21 @@
 using System.Globalization;
 using System.Reflection;
 using Aspire.Hosting.Ats;
-using Aspire.Hosting.CodeGeneration.Models;
 using Aspire.Hosting.CodeGeneration.Models.Ats;
 
 namespace Aspire.Hosting.CodeGeneration.TypeScript;
+
+/// <summary>
+/// Represents a builder class to be generated with its capabilities.
+/// Internal type replacing BuilderModel - used only within the generator.
+/// </summary>
+internal sealed class BuilderModel
+{
+    public required string TypeId { get; init; }
+    public required string BuilderClassName { get; init; }
+    public required List<AtsCapabilityInfo> Capabilities { get; init; }
+    public bool IsInterface { get; init; }
+}
 
 /// <summary>
 /// Generates a TypeScript SDK using the ATS (Aspire Type System) capability-based API.
@@ -93,7 +104,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     public string Language => "TypeScript";
 
     /// <inheritdoc />
-    public Dictionary<string, string> GenerateDistributedApplication(CodeGenApplicationModel model)
+    public Dictionary<string, string> GenerateDistributedApplication(IReadOnlyList<AtsCapabilityInfo> capabilities)
     {
         var files = new Dictionary<string, string>();
 
@@ -101,13 +112,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         files["types.ts"] = GetEmbeddedResource("types.ts");
         files["RemoteAppHostClient.ts"] = GetEmbeddedResource("RemoteAppHostClient.ts");
 
-        // Aggregate all capabilities from all integrations
-        var allCapabilities = model.IntegrationModels.Values
-            .SelectMany(im => im.Capabilities)
-            .ToList();
-
         // Generate the capability-based aspire.ts SDK
-        files["aspire.ts"] = GenerateAspireSdk(allCapabilities);
+        files["aspire.ts"] = GenerateAspireSdk(capabilities.ToList());
 
         return files;
     }
@@ -150,10 +156,10 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
 
         // Get builder models (flattened - each builder has all its applicable capabilities)
-        var allBuilders = AtsBuilderModelFactory.CreateBuilderModels(capabilities);
-        var entryPoints = AtsBuilderModelFactory.GetEntryPointCapabilities(capabilities);
+        var allBuilders = CreateBuilderModels(capabilities);
+        var entryPoints = GetEntryPointCapabilities(capabilities);
 
-        // Extract the DistributedApplicationBuilder's capabilities (ExtendsTypeId = "aspire/Builder")
+        // Extract the DistributedApplicationBuilder's capabilities (TargetTypeId = "aspire/Builder")
         var distributedAppBuilder = allBuilders.FirstOrDefault(b => b.TypeId == AtsTypeMapping.TypeIds.Builder);
         var builderMethods = distributedAppBuilder?.Capabilities ?? [];
 
@@ -162,16 +168,16 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Entry point methods that don't extend any type go on AspireClient
         var clientMethods = entryPoints
-            .Where(c => string.IsNullOrEmpty(c.ExtendsTypeId))
+            .Where(c => string.IsNullOrEmpty(c.TargetTypeId))
             .ToList();
 
         // Collect all unique type IDs for handle type aliases
         var typeIds = new HashSet<string>();
         foreach (var cap in capabilities)
         {
-            if (!string.IsNullOrEmpty(cap.ExtendsTypeId))
+            if (!string.IsNullOrEmpty(cap.TargetTypeId))
             {
-                typeIds.Add(cap.ExtendsTypeId);
+                typeIds.Add(cap.TargetTypeId);
             }
             if (!string.IsNullOrEmpty(cap.ReturnTypeId) && cap.ReturnTypeId.StartsWith("aspire/", StringComparison.Ordinal))
             {
@@ -256,7 +262,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         foreach (var typeId in typeIds.OrderBy(t => t))
         {
-            var handleName = AtsBuilderModelFactory.GetHandleTypeName(typeId);
+            var handleName = GetHandleTypeName(typeId);
             var description = GetTypeDescription(typeId);
             WriteLine($"/** {description} */");
             WriteLine($"export type {handleName} = Handle<'{typeId}'>;");
@@ -280,7 +286,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         };
     }
 
-    private void GenerateDistributedApplicationBuilder(List<AtsCapabilityInfo> methods, List<AtsBuilderInfo> resourceBuilders, List<AtsBuilderInfo> wrapperTypes)
+    private void GenerateDistributedApplicationBuilder(List<AtsCapabilityInfo> methods, List<BuilderModel> resourceBuilders, List<BuilderModel> wrapperTypes)
     {
         WriteLine("// ============================================================================");
         WriteLine("// DistributedApplicationBuilder");
@@ -405,7 +411,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     {
         var returnTypeId = capability.ReturnTypeId!;
         var wrapperClassName = DeriveWrapperClassName(returnTypeId);
-        var handleType = AtsBuilderModelFactory.GetHandleTypeName(returnTypeId);
+        var handleType = GetHandleTypeName(returnTypeId);
 
         // Derive property name from method name (getConfiguration -> configuration)
         var propertyName = capability.MethodName;
@@ -429,7 +435,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine("    }");
     }
 
-    private void GenerateDistributedApplicationBuilderMethod(AtsCapabilityInfo capability, List<AtsBuilderInfo> resourceBuilders, List<AtsBuilderInfo> wrapperTypes)
+    private void GenerateDistributedApplicationBuilderMethod(AtsCapabilityInfo capability, List<BuilderModel> resourceBuilders, List<BuilderModel> wrapperTypes)
     {
         var methodName = capability.MethodName;
 
@@ -449,14 +455,14 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var argsObject = $"{{ {string.Join(", ", paramArgs)} }}";
 
         // Check if return type is a wrapper type
-        AtsBuilderInfo? wrapperInfo = null;
+        BuilderModel? wrapperInfo = null;
         if (!string.IsNullOrEmpty(capability.ReturnTypeId) && AtsTypeMapping.IsWrapperType(capability.ReturnTypeId))
         {
             wrapperInfo = wrapperTypes.FirstOrDefault(w => w.TypeId == capability.ReturnTypeId);
         }
 
         // Determine return type for resource builders
-        AtsBuilderInfo? builderInfo = null;
+        BuilderModel? builderInfo = null;
         if (wrapperInfo == null && !string.IsNullOrEmpty(capability.ReturnTypeId) && capability.ReturnsBuilder)
         {
             builderInfo = resourceBuilders.FirstOrDefault(b => b.TypeId == capability.ReturnTypeId && !b.IsInterface);
@@ -475,7 +481,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         if (builderInfo != null)
         {
             // Returns a resource builder promise
-            var handleType = AtsBuilderModelFactory.GetHandleTypeName(capability.ReturnTypeId!);
+            var handleType = GetHandleTypeName(capability.ReturnTypeId!);
             Write($"    {methodName}(");
             Write(paramsString);
             WriteLine($"): {builderInfo.BuilderClassName}Promise {{");
@@ -513,14 +519,14 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
     }
 
-    private void GenerateBuilderClass(AtsBuilderInfo builder)
+    private void GenerateBuilderClass(BuilderModel builder)
     {
         WriteLine("// ============================================================================");
         WriteLine($"// {builder.BuilderClassName}");
         WriteLine("// ============================================================================");
         WriteLine();
 
-        var handleType = AtsBuilderModelFactory.GetHandleTypeName(builder.TypeId);
+        var handleType = GetHandleTypeName(builder.TypeId);
 
         // Generate builder class (no inheritance - capabilities are flattened)
         WriteLine($"export class {builder.BuilderClassName} {{");
@@ -548,7 +554,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         GenerateThenableClass(builder);
     }
 
-    private void GenerateBuilderMethod(AtsBuilderInfo builder, AtsCapabilityInfo capability)
+    private void GenerateBuilderMethod(BuilderModel builder, AtsCapabilityInfo capability)
     {
         var methodName = capability.MethodName;
         var internalMethodName = $"_{methodName}Internal";
@@ -586,7 +592,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Determine return type
         var returnHandle = !string.IsNullOrEmpty(capability.ReturnTypeId) && capability.ReturnsBuilder
-            ? AtsBuilderModelFactory.GetHandleTypeName(capability.ReturnTypeId)
+            ? GetHandleTypeName(capability.ReturnTypeId)
             : "void";
         var returnsBuilder = capability.ReturnsBuilder;
 
@@ -642,7 +648,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
     }
 
-    private void GenerateThenableClass(AtsBuilderInfo builder)
+    private void GenerateThenableClass(BuilderModel builder)
     {
         var promiseClass = $"{builder.BuilderClassName}Promise";
 
@@ -702,7 +708,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
     }
 
-    private void GenerateAspireClient(List<AtsCapabilityInfo> entryPoints, List<AtsBuilderInfo> builders)
+    private void GenerateAspireClient(List<AtsCapabilityInfo> entryPoints, List<BuilderModel> builders)
     {
         WriteLine("// ============================================================================");
         WriteLine("// AspireClient - Entry point and factory methods");
@@ -750,7 +756,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
     }
 
-    private void GenerateClientMethod(AtsCapabilityInfo capability, List<AtsBuilderInfo> builders)
+    private void GenerateClientMethod(AtsCapabilityInfo capability, List<BuilderModel> builders)
     {
         var methodName = capability.MethodName;
 
@@ -774,7 +780,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Determine return type
         string returnType;
         var returnsBuilder = false;
-        AtsBuilderInfo? builderInfo = null;
+        BuilderModel? builderInfo = null;
 
         if (!string.IsNullOrEmpty(capability.ReturnTypeId))
         {
@@ -788,7 +794,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 }
                 else
                 {
-                    returnType = AtsBuilderModelFactory.GetHandleTypeName(capability.ReturnTypeId);
+                    returnType = GetHandleTypeName(capability.ReturnTypeId);
                 }
             }
             else
@@ -814,7 +820,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         if (returnsBuilder && builderInfo != null)
         {
             // Returns a thenable wrapper
-            var handleType = AtsBuilderModelFactory.GetHandleTypeName(capability.ReturnTypeId!);
+            var handleType = GetHandleTypeName(capability.ReturnTypeId!);
             Write($"    {methodName}(");
             Write(paramsString);
             WriteLine($"): {returnType} {{");
@@ -861,7 +867,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             "any" => "unknown",
             "callback" => "(context: EnvironmentContextHandle) => Promise<void>",
             _ when atsTypeId.StartsWith("aspire/", StringComparison.Ordinal) =>
-                AtsBuilderModelFactory.GetHandleTypeName(atsTypeId),
+                GetHandleTypeName(atsTypeId),
             _ when atsTypeId.EndsWith("[]", StringComparison.Ordinal) =>
                 $"{MapAtsTypeToTypeScript(atsTypeId[..^2], false)}[]",
             _ => "unknown"
@@ -975,9 +981,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates a simple wrapper class for non-resource types like Configuration, Environment.
     /// </summary>
-    private void GenerateWrapperClass(AtsBuilderInfo wrapperType)
+    private void GenerateWrapperClass(BuilderModel wrapperType)
     {
-        var handleType = AtsBuilderModelFactory.GetHandleTypeName(wrapperType.TypeId);
+        var handleType = GetHandleTypeName(wrapperType.TypeId);
         var className = DeriveWrapperClassName(wrapperType.TypeId);
 
         WriteLine("// ============================================================================");
@@ -1018,7 +1024,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // First arg is the handle (implicit via this._handle)
         // Use parameter name from the method signature - typically matches the type
-        var firstParamName = AtsTypeMapping.GetParameterName(capability.ExtendsTypeId);
+        var firstParamName = AtsTypeMapping.GetParameterName(capability.TargetTypeId);
         paramArgs.Add($"{firstParamName}: this._handle");
 
         foreach (var param in capability.Parameters)
@@ -1083,5 +1089,159 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             "EnvironmentContext" => "EnvironmentContext",
             _ => typeName
         };
+    }
+
+    // ============================================================================
+    // Builder Model Helpers (replaces AtsBuilderModelFactory)
+    // ============================================================================
+
+    /// <summary>
+    /// Groups capabilities by ExpandedTargetTypeIds to create builder models.
+    /// Uses expansion to map interface targets to their concrete implementations.
+    /// </summary>
+    private static List<BuilderModel> CreateBuilderModels(List<AtsCapabilityInfo> capabilities)
+    {
+        // Group capabilities by expanded target type IDs
+        // A capability targeting aspire/IResource with ExpandedTargetTypeIds = [aspire/TestRedis]
+        // will be assigned to aspire/TestRedis (the concrete type)
+        var capabilitiesByTypeId = new Dictionary<string, List<AtsCapabilityInfo>>();
+
+        foreach (var cap in capabilities)
+        {
+            var targetType = cap.TargetTypeId;
+            if (string.IsNullOrEmpty(targetType))
+            {
+                // Entry point methods - handled separately
+                continue;
+            }
+
+            if (targetType == AtsTypeMapping.TypeIds.Builder ||
+                targetType == AtsTypeMapping.TypeIds.Application)
+            {
+                // Builder/Application methods handled separately
+                continue;
+            }
+
+            if (!targetType.StartsWith("aspire/", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            // Use expanded type IDs if available, otherwise fall back to the original target
+            var expandedTypeIds = cap.ExpandedTargetTypeIds;
+            if (expandedTypeIds is { Count: > 0 })
+            {
+                foreach (var expandedTypeId in expandedTypeIds)
+                {
+                    if (!capabilitiesByTypeId.TryGetValue(expandedTypeId, out var list))
+                    {
+                        list = [];
+                        capabilitiesByTypeId[expandedTypeId] = list;
+                    }
+                    list.Add(cap);
+                }
+            }
+            else
+            {
+                // No expansion - use original target (concrete type)
+                if (!capabilitiesByTypeId.TryGetValue(targetType, out var list))
+                {
+                    list = [];
+                    capabilitiesByTypeId[targetType] = list;
+                }
+                list.Add(cap);
+            }
+        }
+
+        // Create a builder for each concrete type with its specific capabilities
+        var builders = new List<BuilderModel>();
+        foreach (var (typeId, typeCapabilities) in capabilitiesByTypeId)
+        {
+            var builderClassName = DeriveBuilderClassName(typeId);
+            var isInterface = IsInterfaceType(typeId);
+
+            var builder = new BuilderModel
+            {
+                TypeId = typeId,
+                BuilderClassName = builderClassName,
+                Capabilities = typeCapabilities,
+                IsInterface = isInterface
+            };
+
+            builders.Add(builder);
+        }
+
+        // Sort: concrete types first, then interfaces
+        return builders
+            .OrderBy(b => b.IsInterface)
+            .ThenBy(b => b.BuilderClassName)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Gets entry point capabilities (those without TargetTypeId).
+    /// </summary>
+    private static List<AtsCapabilityInfo> GetEntryPointCapabilities(List<AtsCapabilityInfo> capabilities)
+    {
+        return capabilities.Where(c => string.IsNullOrEmpty(c.TargetTypeId)).ToList();
+    }
+
+    /// <summary>
+    /// Derives the builder class name from an ATS type ID.
+    /// </summary>
+    private static string DeriveBuilderClassName(string typeId)
+    {
+        var slashIndex = typeId.LastIndexOf('/');
+        var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+
+        // Handle interface types
+        if (typeName.StartsWith("IResource", StringComparison.Ordinal))
+        {
+            typeName = typeName[1..]; // Remove leading 'I'
+            return $"{typeName}BuilderBase";
+        }
+
+        return $"{typeName}Builder";
+    }
+
+    /// <summary>
+    /// Gets the handle type alias name for a type ID.
+    /// </summary>
+    private static string GetHandleTypeName(string typeId)
+    {
+        var slashIndex = typeId.LastIndexOf('/');
+        var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+
+        // Special cases for core types
+        if (typeName == "Builder")
+        {
+            return "BuilderHandle";
+        }
+        if (typeName == "Application")
+        {
+            return "ApplicationHandle";
+        }
+        if (typeName == "ExecutionContext")
+        {
+            return "ExecutionContextHandle";
+        }
+
+        // For interface types, keep the I prefix
+        if (typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]))
+        {
+            return $"{typeName}Handle";
+        }
+
+        return $"{typeName}BuilderHandle";
+    }
+
+    /// <summary>
+    /// Checks if a type ID represents an interface type.
+    /// </summary>
+    private static bool IsInterfaceType(string typeId)
+    {
+        var slashIndex = typeId.LastIndexOf('/');
+        var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+        return typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]);
     }
 }

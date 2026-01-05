@@ -32,13 +32,17 @@ internal static class AtsCapabilityScanner
         var capabilities = new List<AtsCapabilityInfo>();
         var typeInfos = new List<AtsTypeInfo>();
 
+        // Also collect resource types discovered from capability parameters
+        // These are concrete types like TestRedisResource that appear in IResourceBuilder<T>
+        var discoveredResourceTypes = new Dictionary<string, IAtsTypeInfo>();
+
         foreach (var type in assembly.GetTypes())
         {
             // Check for [AspireExport(AtsTypeId = "...")] on types
             var typeExportAttr = GetAspireExportAttribute(type);
             if (typeExportAttr != null)
             {
-                var typeInfo = CreateTypeInfo(type, typeExportAttr);
+                var typeInfo = CreateTypeInfo(type, typeExportAttr, typeMapping);
                 if (typeInfo != null)
                 {
                     typeInfos.Add(typeInfo);
@@ -76,15 +80,100 @@ internal static class AtsCapabilityScanner
                 if (capability != null)
                 {
                     capabilities.Add(capability);
+
+                    // Collect resource types from capability parameters and return types
+                    CollectResourceTypesFromCapability(method, typeMapping, discoveredResourceTypes);
                 }
             }
         }
+
+        // Add discovered resource types to typeInfos for expansion
+        foreach (var (typeId, resourceType) in discoveredResourceTypes)
+        {
+            // Skip if already in typeInfos (from [AspireExport] attribute)
+            if (typeInfos.Any(t => t.AtsTypeId == typeId))
+            {
+                continue;
+            }
+
+            // Create synthetic type info for this resource type
+            // Collect ALL interfaces (including inherited) for proper expansion
+            var implementedInterfaces = CollectAllInterfaces(resourceType, typeMapping);
+
+            typeInfos.Add(new AtsTypeInfo
+            {
+                AtsTypeId = typeId,
+                ClrTypeName = resourceType.FullName,
+                IsInterface = false,
+                ImplementedInterfaceTypeIds = implementedInterfaces
+            });
+        }
+
+        // Expand interface targets to concrete types (2-pass expansion)
+        ExpandCapabilityTargets(capabilities, typeInfos);
 
         return new ScanResult
         {
             Capabilities = capabilities,
             TypeInfos = typeInfos
         };
+    }
+
+    /// <summary>
+    /// Expands capability targets from interface types to concrete types.
+    /// For capabilities targeting an interface (e.g., "aspire/IResourceWithEnvironment"),
+    /// this populates ExpandedTargetTypeIds with all concrete types implementing that interface.
+    /// </summary>
+    private static void ExpandCapabilityTargets(
+        List<AtsCapabilityInfo> capabilities,
+        List<AtsTypeInfo> typeInfos)
+    {
+        // Build map: interface typeId -> concrete typeIds that implement it
+        // This includes both explicit interfaces (with [AspireExport]) and inferred ones (like IResource)
+        var interfaceToConcreteTypes = new Dictionary<string, List<string>>();
+
+        foreach (var typeInfo in typeInfos)
+        {
+            if (typeInfo.IsInterface)
+            {
+                continue;
+            }
+
+            // Add this concrete type to all interfaces it implements
+            foreach (var interfaceTypeId in typeInfo.ImplementedInterfaceTypeIds)
+            {
+                if (!interfaceToConcreteTypes.TryGetValue(interfaceTypeId, out var list))
+                {
+                    list = [];
+                    interfaceToConcreteTypes[interfaceTypeId] = list;
+                }
+                list.Add(typeInfo.AtsTypeId);
+            }
+        }
+
+        // Expand each capability's target
+        foreach (var capability in capabilities)
+        {
+            var originalTarget = capability.OriginalTargetTypeId;
+            if (string.IsNullOrEmpty(originalTarget))
+            {
+                // Entry point methods have no target
+                capability.ExpandedTargetTypeIds = [];
+                continue;
+            }
+
+            // Check if target is an interface (either explicit or inferred from type hierarchy)
+            // Use the interfaceToConcreteTypes map directly - it includes all interfaces from ImplementedInterfaceTypeIds
+            if (interfaceToConcreteTypes.TryGetValue(originalTarget, out var concreteTypes))
+            {
+                capability.ExpandedTargetTypeIds = concreteTypes.ToList();
+            }
+            else
+            {
+                // Concrete type: expand to itself
+                capability.ExpandedTargetTypeIds = [originalTarget];
+            }
+        }
     }
 
     /// <summary>
@@ -98,121 +187,10 @@ internal static class AtsCapabilityScanner
         return ScanAssembly(assembly, typeMapping, typeResolver).Capabilities;
     }
 
-    /// <summary>
-    /// Enumerates capabilities with their source method info.
-    /// Useful for runtime dispatchers that need access to the underlying method for invocation.
-    /// </summary>
-    public static IEnumerable<(AtsCapabilityInfo Capability, IAtsMethodInfo Method)> EnumerateCapabilitiesWithMethods(
-        IAtsAssemblyInfo assembly,
-        AtsTypeMapping typeMapping,
-        IAtsTypeResolver? typeResolver = null)
-    {
-        foreach (var type in assembly.GetTypes())
-        {
-            // Skip nested types and non-sealed types (same as ScanAssembly)
-            if (!type.IsSealed || type.IsNested)
-            {
-                continue;
-            }
-
-            foreach (var method in type.GetMethods())
-            {
-                if (!method.IsStatic || !method.IsPublic)
-                {
-                    continue;
-                }
-
-                var exportAttr = GetAspireExportAttribute(method);
-                if (exportAttr == null)
-                {
-                    continue;
-                }
-
-                var capability = CreateCapabilityInfo(method, exportAttr, typeMapping, typeResolver);
-                if (capability != null)
-                {
-                    yield return (capability, method);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Enumerates context type capabilities with their source type and property info.
-    /// Useful for runtime dispatchers that need access to the property for invocation.
-    /// </summary>
-    public static IEnumerable<(AtsCapabilityInfo Capability, IAtsTypeInfo ContextType, IAtsPropertyInfo Property)> EnumerateContextTypeCapabilities(
-        IAtsAssemblyInfo assembly,
-        AtsTypeMapping typeMapping,
-        IAtsTypeResolver? typeResolver = null)
-    {
-        foreach (var type in assembly.GetTypes())
-        {
-            var contextAttr = GetAspireContextTypeAttribute(type);
-            if (contextAttr == null)
-            {
-                continue;
-            }
-
-            // Get the type ID from first constructor argument
-            if (contextAttr.FixedArguments.Count == 0 || contextAttr.FixedArguments[0] is not string typeId)
-            {
-                continue;
-            }
-
-            // Get version from named arguments (defaults to 1)
-            var version = contextAttr.NamedArguments.TryGetValue("Version", out var v) && v is int ver ? ver : 1;
-
-            foreach (var property in type.GetProperties())
-            {
-                if (!property.CanRead || property.IsStatic)
-                {
-                    continue;
-                }
-
-                var propertyTypeId = MapToAtsTypeId(property.PropertyType, typeMapping, typeResolver);
-                if (propertyTypeId == "any")
-                {
-                    continue;
-                }
-
-                var propertyName = char.ToLowerInvariant(property.Name[0]) + property.Name[1..];
-                var capabilityId = $"{typeId}.{propertyName}@{version}";
-
-                var capability = new AtsCapabilityInfo
-                {
-                    CapabilityId = capabilityId,
-                    MethodName = propertyName,
-                    Package = DerivePackage(typeId),
-                    Description = null,
-                    Parameters =
-                    [
-                        new AtsParameterInfo
-                        {
-                            Name = "context",
-                            AtsTypeId = typeId,
-                            IsOptional = false,
-                            IsNullable = false,
-                            IsCallback = false,
-                            CallbackId = null,
-                            DefaultValue = null
-                        }
-                    ],
-                    ReturnTypeId = propertyTypeId,
-                    IsExtensionMethod = false,
-                    ExtendsTypeId = typeId,
-                    ReturnsBuilder = false,
-                    IsContextProperty = true
-                };
-
-                yield return (capability, type, property);
-            }
-        }
-    }
-
     private static AtsTypeInfo? CreateTypeInfo(
         IAtsTypeInfo type,
-        IAtsAttributeInfo exportAttr)
+        IAtsAttributeInfo exportAttr,
+        AtsTypeMapping typeMapping)
     {
         // Get the AtsTypeId from named arguments
         if (!exportAttr.NamedArguments.TryGetValue("AtsTypeId", out var atsTypeIdObj) ||
@@ -221,11 +199,18 @@ internal static class AtsCapabilityScanner
             return null;
         }
 
+        // Collect ALL implemented interfaces (for concrete types only)
+        // Use recursive collection to include inherited interfaces
+        var implementedInterfaces = !type.IsInterface
+            ? CollectAllInterfaces(type, typeMapping)
+            : [];
+
         return new AtsTypeInfo
         {
             AtsTypeId = atsTypeId,
             ClrTypeName = type.FullName,
-            IsInterface = type.IsInterface
+            IsInterface = type.IsInterface,
+            ImplementedInterfaceTypeIds = implementedInterfaces
         };
     }
 
@@ -283,9 +268,10 @@ internal static class AtsCapabilityScanner
                 ],
                 ReturnTypeId = propertyTypeId,
                 IsExtensionMethod = false,
-                ExtendsTypeId = typeId,
+                OriginalTargetTypeId = typeId,
                 ReturnsBuilder = false,
-                IsContextProperty = true
+                IsContextProperty = true,
+                SourceProperty = property // Store source property for runtime dispatch
             });
         }
 
@@ -318,7 +304,17 @@ internal static class AtsCapabilityScanner
         string? extendsTypeId = null;
         if (parameters.Count > 0)
         {
-            var firstParamTypeId = MapToAtsTypeId(parameters[0].ParameterType, typeMapping, typeResolver);
+            var firstParam = parameters[0];
+            var firstParamType = firstParam.ParameterType;
+
+            // Check if this is IResourceBuilder<T> where T is an unresolved generic parameter
+            if (IsUnresolvedGenericResourceBuilder(firstParamType))
+            {
+                // Skip - can't generate concrete builders for unresolved generic type parameters
+                return null;
+            }
+
+            var firstParamTypeId = MapToAtsTypeId(firstParamType, typeMapping, typeResolver);
             if (firstParamTypeId != null && firstParamTypeId.StartsWith("aspire/"))
             {
                 extendsTypeId = firstParamTypeId;
@@ -350,8 +346,9 @@ internal static class AtsCapabilityScanner
             Parameters = paramInfos,
             ReturnTypeId = returnTypeId,
             IsExtensionMethod = isExtensionMethod,
-            ExtendsTypeId = extendsTypeId,
-            ReturnsBuilder = returnsBuilder
+            OriginalTargetTypeId = extendsTypeId,
+            ReturnsBuilder = returnsBuilder,
+            SourceMethod = method // Store source method for runtime dispatch
         };
     }
 
@@ -460,6 +457,15 @@ internal static class AtsCapabilityScanner
         // Handle IResourceBuilder<T> - use resolver if available for accurate type checking
         if (typeResolver != null && typeResolver.TryGetResourceBuilderTypeArgument(type, out var resourceType) && resourceType != null)
         {
+            // If T is a generic parameter, use its constraint type instead
+            if (resourceType.IsGenericParameter)
+            {
+                var constraints = resourceType.GetGenericParameterConstraintFullNames().ToList();
+                if (constraints.Count > 0)
+                {
+                    return typeMapping.GetTypeId(constraints[0]) ?? InferResourceTypeId(constraints[0]);
+                }
+            }
             return typeMapping.GetTypeId(resourceType.FullName) ?? InferResourceTypeId(resourceType.FullName);
         }
 
@@ -471,6 +477,20 @@ internal static class AtsCapabilityScanner
             if (genericArgs.Count > 0)
             {
                 var resType = genericArgs[0];
+
+                // If T is a generic parameter (e.g., in WithBindMount<T>(...) where T : ContainerResource),
+                // use the constraint type instead of just "T"
+                if (resType.IsGenericParameter)
+                {
+                    var constraints = resType.GetGenericParameterConstraintFullNames().ToList();
+                    if (constraints.Count > 0)
+                    {
+                        // Use the first constraint (e.g., ContainerResource)
+                        var constraintTypeId = typeMapping.GetTypeId(constraints[0]) ?? InferResourceTypeId(constraints[0]);
+                        return constraintTypeId;
+                    }
+                }
+
                 return typeMapping.GetTypeId(resType.FullName) ?? InferResourceTypeId(resType.FullName);
             }
         }
@@ -565,6 +585,135 @@ internal static class AtsCapabilityScanner
     {
         var slashIndex = capabilityId.IndexOf('/');
         return slashIndex >= 0 ? capabilityId[..slashIndex] : "aspire";
+    }
+
+    /// <summary>
+    /// Checks if a type is IResourceBuilder&lt;T&gt; where T is a generic parameter
+    /// with no constraints (truly unresolvable).
+    /// </summary>
+    private static bool IsUnresolvedGenericResourceBuilder(IAtsTypeInfo type)
+    {
+        // Check if this is IResourceBuilder<T>
+        if (type.GenericTypeDefinitionFullName != "Aspire.Hosting.ApplicationModel.IResourceBuilder`1" &&
+            !type.FullName.StartsWith("Aspire.Hosting.ApplicationModel.IResourceBuilder`1"))
+        {
+            return false;
+        }
+
+        var genericArgs = type.GetGenericArguments().ToList();
+        if (genericArgs.Count == 0)
+        {
+            return false;
+        }
+
+        var resourceType = genericArgs[0];
+
+        // If T is not a generic parameter, it's resolved
+        if (!resourceType.IsGenericParameter)
+        {
+            return false;
+        }
+
+        // T is a generic parameter - check if it has any constraints
+        var constraints = resourceType.GetGenericParameterConstraintFullNames().ToList();
+
+        // If T has constraints, use them (MapToAtsTypeId will pick the first constraint)
+        // Expansion will handle mapping interface constraints to concrete types
+        return constraints.Count == 0;
+    }
+
+    /// <summary>
+    /// Collects ALL interfaces implemented by a type, including inherited interfaces.
+    /// </summary>
+    private static List<string> CollectAllInterfaces(IAtsTypeInfo type, AtsTypeMapping typeMapping)
+    {
+        var allInterfaces = new List<string>();
+
+        // GetInterfaces() returns all interfaces (including inherited for RoTypeInfoWrapper)
+        foreach (var iface in type.GetInterfaces())
+        {
+            var ifaceTypeId = typeMapping.GetTypeId(iface.FullName) ?? InferResourceTypeId(iface.FullName);
+            allInterfaces.Add(ifaceTypeId);
+        }
+
+        return allInterfaces;
+    }
+
+    /// <summary>
+    /// Collects concrete resource types from a capability method's parameters and return type.
+    /// These types are needed for expansion but may not have [AspireExport] attributes.
+    /// </summary>
+    private static void CollectResourceTypesFromCapability(
+        IAtsMethodInfo method,
+        AtsTypeMapping typeMapping,
+        Dictionary<string, IAtsTypeInfo> discoveredTypes)
+    {
+        // Check first parameter (target type for extension methods)
+        var parameters = method.GetParameters().ToList();
+        if (parameters.Count > 0)
+        {
+            CollectResourceTypeFromBuilderType(parameters[0].ParameterType, typeMapping, discoveredTypes);
+        }
+
+        // Check return type
+        CollectResourceTypeFromBuilderType(method.ReturnType, typeMapping, discoveredTypes);
+    }
+
+    /// <summary>
+    /// If the type is IResourceBuilder&lt;T&gt; where T is a concrete resource type,
+    /// add T to the discovered types dictionary.
+    /// </summary>
+    private static void CollectResourceTypeFromBuilderType(
+        IAtsTypeInfo type,
+        AtsTypeMapping typeMapping,
+        Dictionary<string, IAtsTypeInfo> discoveredTypes)
+    {
+        // Handle Task<T> wrapper
+        if (type.GenericTypeDefinitionFullName == "System.Threading.Tasks.Task`1" ||
+            type.FullName.StartsWith("System.Threading.Tasks.Task`1"))
+        {
+            var taskArgs = type.GetGenericArguments().ToList();
+            if (taskArgs.Count > 0)
+            {
+                type = taskArgs[0];
+            }
+        }
+
+        // Check if this is IResourceBuilder<T>
+        if (type.GenericTypeDefinitionFullName != "Aspire.Hosting.ApplicationModel.IResourceBuilder`1" &&
+            !type.FullName.StartsWith("Aspire.Hosting.ApplicationModel.IResourceBuilder`1"))
+        {
+            return;
+        }
+
+        var genericArgs = type.GetGenericArguments().ToList();
+        if (genericArgs.Count == 0)
+        {
+            return;
+        }
+
+        var resourceType = genericArgs[0];
+
+        // Skip generic parameters (T) - we only want concrete types
+        if (resourceType.IsGenericParameter)
+        {
+            return;
+        }
+
+        // Skip interfaces - they don't need to be collected since they don't have implementations
+        if (resourceType.IsInterface)
+        {
+            return;
+        }
+
+        // Get the type ID for this resource
+        var typeId = typeMapping.GetTypeId(resourceType.FullName) ?? InferResourceTypeId(resourceType.FullName);
+
+        // Add to dictionary if not already present
+        if (!discoveredTypes.ContainsKey(typeId))
+        {
+            discoveredTypes[typeId] = resourceType;
+        }
     }
 
     private static bool HasExtensionAttribute(IAtsMethodInfo method)

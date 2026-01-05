@@ -90,23 +90,38 @@ public sealed class AtsCapabilityInfo
     public bool IsExtensionMethod { get; init; }
 
     /// <summary>
-    /// Gets or sets the ATS type ID that this extension method extends.
+    /// Gets or sets the original (declared) ATS type ID that this capability targets.
+    /// May be an interface type (e.g., "aspire/IResourceWithEnvironment").
     /// </summary>
     /// <remarks>
     /// <para>
-    /// For extension methods, this is the ATS type ID of the first ("this") parameter.
-    /// Used to determine which class the method should be generated on:
+    /// This is the ATS type ID of the first parameter, indicating what type this capability operates on.
+    /// Used to determine which builder class(es) the method should be generated on:
     /// <list type="bullet">
     ///   <item><description><c>aspire/Builder</c> → method goes on <c>DistributedApplicationBuilder</c></description></item>
     ///   <item><description><c>aspire/Redis</c> → method goes on <c>RedisBuilder</c></description></item>
-    ///   <item><description><c>aspire/IResourceWithEnvironment</c> → method goes on interface base class</description></item>
+    ///   <item><description><c>aspire/IResourceWithEnvironment</c> → method goes on all builders implementing that interface</description></item>
     /// </list>
     /// </para>
     /// <para>
-    /// Null for non-extension methods.
+    /// For flat codegen (Go, C): use <see cref="ExpandedTargetTypeIds"/> instead to put methods on each concrete builder.
+    /// For inheritance codegen (TypeScript, Java): use this property.
+    /// </para>
+    /// <para>
+    /// Null for entry-point methods (e.g., createBuilder).
     /// </para>
     /// </remarks>
-    public string? ExtendsTypeId { get; init; }
+    public string? TargetTypeId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the expanded list of concrete ATS type IDs this capability applies to.
+    /// Pre-computed during scanning by resolving interface targets to all implementing types.
+    /// </summary>
+    /// <remarks>
+    /// For flat codegen (Go, C): use this to put methods on each concrete builder.
+    /// For inheritance codegen (TypeScript, Java): use <see cref="TargetTypeId"/> instead.
+    /// </remarks>
+    public IReadOnlyList<string> ExpandedTargetTypeIds { get; init; } = [];
 
     /// <summary>
     /// Gets or sets whether the return type is a builder type (for fluent chaining).

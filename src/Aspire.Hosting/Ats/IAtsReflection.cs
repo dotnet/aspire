@@ -46,6 +46,9 @@ internal interface IAtsTypeInfo
     /// <summary>Gets the full names of all interfaces this type implements.</summary>
     IEnumerable<string> GetInterfaceFullNames();
 
+    /// <summary>Gets all interfaces this type implements as IAtsTypeInfo.</summary>
+    IEnumerable<IAtsTypeInfo> GetInterfaces();
+
     /// <summary>Gets the full names of generic type arguments.</summary>
     IEnumerable<string> GetGenericArgumentFullNames();
 

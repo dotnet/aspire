@@ -41,6 +41,37 @@ internal sealed class RoTypeInfoWrapper : IAtsTypeInfo
         }
     }
 
+    public IEnumerable<IAtsTypeInfo> GetInterfaces()
+    {
+        // Collect all interfaces including from base types
+        var allInterfaces = new HashSet<RoType>();
+        CollectAllInterfacesRecursive(_type, allInterfaces);
+
+        foreach (var iface in allInterfaces)
+        {
+            yield return new RoTypeInfoWrapper(iface);
+        }
+    }
+
+    private static void CollectAllInterfacesRecursive(RoType type, HashSet<RoType> collected)
+    {
+        // Add directly implemented interfaces
+        foreach (var iface in type.Interfaces)
+        {
+            if (collected.Add(iface))
+            {
+                // Also collect interfaces that this interface extends
+                CollectAllInterfacesRecursive(iface, collected);
+            }
+        }
+
+        // Also check base type
+        if (type.BaseType != null && type.BaseType.FullName != "System.Object")
+        {
+            CollectAllInterfacesRecursive(type.BaseType, collected);
+        }
+    }
+
     public IEnumerable<string> GetGenericArgumentFullNames()
     {
         foreach (var arg in _type.GetGenericArguments())

@@ -73,20 +73,23 @@ internal sealed class CapabilityDispatcher
             {
                 var wrappedAssembly = new RuntimeAssemblyInfo(assembly);
 
-                // Scan for method capabilities
-                foreach (var (capability, methodInfo) in AtsCapabilityScanner.EnumerateCapabilitiesWithMethods(
-                    wrappedAssembly, typeMapping, typeResolver: null))
-                {
-                    var method = ((RuntimeMethodInfo)methodInfo).UnderlyingMethod;
-                    RegisterFromCapability(capability, method);
-                }
+                // Scan for all capabilities using the unified scanner
+                var result = AtsCapabilityScanner.ScanAssembly(wrappedAssembly, typeMapping, typeResolver: null);
 
-                // Scan for context type property capabilities
-                foreach (var (capability, contextType, propertyInfo) in AtsCapabilityScanner.EnumerateContextTypeCapabilities(
-                    wrappedAssembly, typeMapping, typeResolver: null))
+                foreach (var capability in result.Capabilities)
                 {
-                    var property = ((RuntimePropertyInfo)propertyInfo).UnderlyingProperty;
-                    RegisterContextTypeProperty(capability, property);
+                    if (capability.IsContextProperty && capability.SourceProperty != null)
+                    {
+                        // Context type property capability
+                        var property = ((RuntimePropertyInfo)capability.SourceProperty).UnderlyingProperty;
+                        RegisterContextTypeProperty(capability, property);
+                    }
+                    else if (capability.SourceMethod != null)
+                    {
+                        // Method capability
+                        var method = ((RuntimeMethodInfo)capability.SourceMethod).UnderlyingMethod;
+                        RegisterFromCapability(capability, method);
+                    }
                 }
             }
             catch (ReflectionTypeLoadException)

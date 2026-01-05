@@ -4,8 +4,12 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using Aspire.Hosting.Ats;
+using Aspire.Hosting.CodeGeneration.Ats;
 using Aspire.Hosting.CodeGeneration.Models;
 using Aspire.Hosting.CodeGeneration.Models.Types;
+using AtsCapabilityInfo = Aspire.Hosting.CodeGeneration.Models.Ats.AtsCapabilityInfo;
+using AtsCapabilityScanner = Aspire.Hosting.CodeGeneration.Models.Ats.AtsCapabilityScanner;
 
 namespace Aspire.Hosting.CodeGeneration;
 
@@ -39,11 +43,12 @@ public sealed class CodeGeneratorService
         var packagesList = packages.ToList();
         var searchPaths = assemblySearchPaths.ToList();
 
-        // Create the application model by loading assemblies
-        using var model = CreateApplicationModel(appPath, packagesList, searchPaths);
+        // Scan assemblies for capabilities
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilities(context, packagesList, searchPaths);
 
         // Generate the code using the language-specific generator
-        var files = generator.GenerateDistributedApplication(model);
+        var files = generator.GenerateDistributedApplication(capabilities);
 
         // Write the files to the generated folder
         var generatedPath = Path.Combine(appPath, outputFolderName);
@@ -101,41 +106,54 @@ public sealed class CodeGeneratorService
         return savedHash != currentHash;
     }
 
-    private static CodeGenApplicationModel CreateApplicationModel(
-        string appPath,
+    private static List<AtsCapabilityInfo> ScanCapabilities(
+        AssemblyLoaderContext assemblyLoaderContext,
         List<(string PackageId, string Version)> packages,
         List<string> searchPaths)
     {
-        // Load assemblies from the build output and other search paths
-        var assemblyLoaderContext = new AssemblyLoaderContext();
-        var integrations = new List<IntegrationModel>();
+        var allCapabilities = new List<AtsCapabilityInfo>();
 
-        // Load core runtime assemblies first (required for WellKnownTypes)
+        // Load core runtime assemblies first
         assemblyLoaderContext.LoadAssembly("System.Private.CoreLib", searchPaths, loadDependencies: true);
         assemblyLoaderContext.LoadAssembly("System.Runtime", searchPaths, loadDependencies: true);
 
-        // Load Aspire.Hosting for well-known types
-        assemblyLoaderContext.LoadAssembly("Aspire.Hosting", searchPaths, loadDependencies: true);
+        // Load Aspire.Hosting for core types and type mappings
+        var hostingAssembly = assemblyLoaderContext.LoadAssembly("Aspire.Hosting", searchPaths, loadDependencies: true);
+        if (hostingAssembly is null)
+        {
+            return allCapabilities;
+        }
 
-        WellKnownTypes? wellKnownTypes = null;
+        // Create well-known types resolver
+        var wellKnownTypes = new WellKnownTypes(assemblyLoaderContext);
+
+        // Collect all assemblies to scan
+        var assembliesToScan = new List<RoAssembly> { hostingAssembly };
 
         foreach (var (packageId, version) in packages)
         {
-            // Try to load the assembly for this package
             var assembly = TryLoadPackageAssembly(assemblyLoaderContext, packageId, version, searchPaths);
-            if (assembly is null)
+            if (assembly is not null)
             {
-                continue;
+                assembliesToScan.Add(assembly);
             }
-
-            // Create WellKnownTypes from the first loaded assembly context
-            wellKnownTypes ??= new WellKnownTypes(assemblyLoaderContext);
-
-            var integration = IntegrationModel.Create(wellKnownTypes, assembly);
-            integrations.Add(integration);
         }
 
-        return CodeGenApplicationModel.Create(integrations, appPath, assemblyLoaderContext);
+        // Create type mapping from all assemblies
+        var typeMapping = AtsTypeMapping.FromAssemblies(
+            assembliesToScan.Select(a => new RoAssemblyInfoWrapper(a)));
+
+        // Scan capabilities from all assemblies
+        foreach (var assembly in assembliesToScan)
+        {
+            var capabilities = AtsCapabilityScanner.ScanAssembly(
+                assembly,
+                wellKnownTypes,
+                typeMapping);
+            allCapabilities.AddRange(capabilities);
+        }
+
+        return allCapabilities;
     }
 
     private static RoAssembly? TryLoadPackageAssembly(

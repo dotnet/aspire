@@ -54,14 +54,37 @@ internal sealed class AtsCapabilityInfo
     public bool IsExtensionMethod { get; init; }
 
     /// <summary>
-    /// Gets or sets the ATS type ID that this extension method extends.
+    /// Gets or sets the original (declared) ATS type ID that this capability targets.
+    /// May be an interface type (e.g., "aspire/IResourceWithEnvironment").
     /// </summary>
-    public string? ExtendsTypeId { get; init; }
+    public string? OriginalTargetTypeId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the expanded list of concrete ATS type IDs this capability applies to.
+    /// Pre-computed during scanning by resolving interface targets to all implementing types.
+    /// </summary>
+    /// <remarks>
+    /// For flat codegen (Go, C): use this to put methods on each concrete builder.
+    /// For inheritance codegen (TypeScript, Java): use <see cref="OriginalTargetTypeId"/> instead.
+    /// </remarks>
+    public IReadOnlyList<string> ExpandedTargetTypeIds { get; set; } = [];
 
     /// <summary>
     /// Gets or sets whether the return type is a builder type.
     /// </summary>
     public bool ReturnsBuilder { get; init; }
+
+    /// <summary>
+    /// Gets or sets the source method info for runtime handler creation.
+    /// Only populated at runtime; null for code generation.
+    /// </summary>
+    internal IAtsMethodInfo? SourceMethod { get; set; }
+
+    /// <summary>
+    /// Gets or sets the source property info for context type accessors.
+    /// Only populated at runtime for context type capabilities; null otherwise.
+    /// </summary>
+    internal IAtsPropertyInfo? SourceProperty { get; set; }
 
     /// <summary>
     /// Gets or sets whether this is an auto-generated property accessor.
@@ -129,4 +152,10 @@ internal sealed class AtsTypeInfo
     /// Gets or sets whether this type is an interface.
     /// </summary>
     public bool IsInterface { get; init; }
+
+    /// <summary>
+    /// Gets or sets the ATS type IDs of interfaces this type implements.
+    /// Only populated for concrete (non-interface) types.
+    /// </summary>
+    public IReadOnlyList<string> ImplementedInterfaceTypeIds { get; init; } = [];
 }

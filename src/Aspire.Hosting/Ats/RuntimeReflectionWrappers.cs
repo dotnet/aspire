@@ -43,6 +43,14 @@ internal sealed class RuntimeTypeInfo : IAtsTypeInfo
         }
     }
 
+    public IEnumerable<IAtsTypeInfo> GetInterfaces()
+    {
+        foreach (var iface in _type.GetInterfaces())
+        {
+            yield return new RuntimeTypeInfo(iface);
+        }
+    }
+
     public IEnumerable<string> GetGenericArgumentFullNames()
     {
         if (!_type.IsGenericType)

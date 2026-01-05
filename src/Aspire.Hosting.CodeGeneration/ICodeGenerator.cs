@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.CodeGeneration.Models;
+using Aspire.Hosting.CodeGeneration.Models.Ats;
 
 namespace Aspire.Hosting.CodeGeneration;
 
 /// <summary>
-/// Interface for generating language-specific code from the Aspire application model.
+/// Interface for generating language-specific code from ATS capabilities.
 /// </summary>
 public interface ICodeGenerator
 {
@@ -16,9 +16,9 @@ public interface ICodeGenerator
     string Language { get; }
 
     /// <summary>
-    /// Generates the distributed application SDK code.
+    /// Generates the distributed application SDK code from capabilities.
     /// </summary>
-    /// <param name="model">The application model to generate from.</param>
+    /// <param name="capabilities">The capabilities to generate from.</param>
     /// <returns>A dictionary of file paths to file contents.</returns>
-    Dictionary<string, string> GenerateDistributedApplication(CodeGenApplicationModel model);
+    Dictionary<string, string> GenerateDistributedApplication(IReadOnlyList<AtsCapabilityInfo> capabilities);
 }

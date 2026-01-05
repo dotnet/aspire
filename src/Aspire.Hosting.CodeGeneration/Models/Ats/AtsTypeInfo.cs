@@ -22,4 +22,10 @@ public sealed class AtsTypeInfo
     /// Gets whether this type is an interface.
     /// </summary>
     public bool IsInterface { get; init; }
+
+    /// <summary>
+    /// Gets the ATS type IDs of interfaces this type implements.
+    /// Only populated for concrete (non-interface) types.
+    /// </summary>
+    public IReadOnlyList<string> ImplementedInterfaceTypeIds { get; init; } = [];
 }
