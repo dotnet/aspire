@@ -88,7 +88,7 @@ The value is currently saved in [user secrets](https://learn.microsoft.com/aspne
       </trans-unit>
       <trans-unit id="ParametersInputsMessage">
         <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.</source>
-        <target state="needs-review-translation">请为未解析的参数提供值。参数可以保存到[用户机密](https://aka.ms/aspire/user-secrets)以供将来使用。</target>
+        <target state="new">Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="ParametersInputsMessagePublishMode">
