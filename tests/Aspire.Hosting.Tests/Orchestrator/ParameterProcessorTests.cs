@@ -522,7 +522,7 @@ public class ParameterProcessorTests
         var paramInput = inputsInteraction.Inputs["param1"];
         Assert.Equal("param1", paramInput.Label);
 
-        var saveCheckbox = inputsInteraction.Inputs["RememberParameters"];
+        var saveCheckbox = inputsInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName];
         Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, saveCheckbox.Label);
         Assert.Equal(InputType.Boolean, saveCheckbox.InputType);
         Assert.True(saveCheckbox.Disabled); // Should be disabled when user secrets not available
@@ -561,7 +561,7 @@ public class ParameterProcessorTests
         var paramInput = inputsInteraction.Inputs["param1"];
         Assert.Equal("param1", paramInput.Label);
 
-        var saveCheckbox = inputsInteraction.Inputs["RememberParameters"];
+        var saveCheckbox = inputsInteraction.Inputs[ParameterProcessor.SaveToUserSecretsName];
         Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, saveCheckbox.Label);
         Assert.Equal(InputType.Boolean, saveCheckbox.InputType);
         Assert.False(saveCheckbox.Disabled); // Should be enabled when user secrets are available
