@@ -406,8 +406,6 @@ internal sealed class AzureAppServiceWebsiteContext(
             {
                 slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = targetPort });
             }
-
-            slotConfigNames.Add("WEBSITES_PORT");
         }
 
         foreach (var kv in EnvironmentVariables)
@@ -431,7 +429,11 @@ internal sealed class AzureAppServiceWebsiteContext(
                 slot.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = kv.Key, Value = value });
             }
 
-            slotConfigNames.Add(kv.Key);
+            // make app service references as sticky settings for slots
+            if (kv.Value is EndpointReference || kv.Value is EndpointReferenceExpression)
+            {
+                slotConfigNames.Add(kv.Key);
+            }
         }
 
         if (Args.Count > 0)
