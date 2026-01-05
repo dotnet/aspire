@@ -519,10 +519,4 @@
   <data name="ManageDataSummaryColumnHeader" xml:space="preserve">
     <value>Summary</value>
   </data>
-  <data name="ManageDataSourceAspire" xml:space="preserve">
-    <value>Aspire</value>
-  </data>
-  <data name="ManageDataSourceOpenTelemetry" xml:space="preserve">
-    <value>OpenTelemetry</value>
-  </data>
 </root>

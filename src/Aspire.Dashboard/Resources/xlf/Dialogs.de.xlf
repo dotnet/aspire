@@ -397,16 +397,6 @@
         <target state="new">Remove selected</target>
         <note />
       </trans-unit>
-      <trans-unit id="ManageDataSourceAspire">
-        <source>Aspire</source>
-        <target state="new">Aspire</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ManageDataSourceOpenTelemetry">
-        <source>OpenTelemetry</source>
-        <target state="new">OpenTelemetry</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ManageDataSummaryColumnHeader">
         <source>Summary</source>
         <target state="new">Summary</target>
