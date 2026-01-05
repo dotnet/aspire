@@ -1195,6 +1195,42 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Console logs.
+        /// </summary>
+        public static string ManageDataConsoleLogs {
+            get {
+                return ResourceManager.GetString("ManageDataConsoleLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Metrics.
+        /// </summary>
+        public static string ManageDataMetrics {
+            get {
+                return ResourceManager.GetString("ManageDataMetrics", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Structured logs.
+        /// </summary>
+        public static string ManageDataStructuredLogs {
+            get {
+                return ResourceManager.GetString("ManageDataStructuredLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Traces.
+        /// </summary>
+        public static string ManageDataTraces {
+            get {
+                return ResourceManager.GetString("ManageDataTraces", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Manage.
         /// </summary>
         public static string ManageDataManageButtonText {
@@ -1209,6 +1245,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ManageDataExportButtonText {
             get {
                 return ResourceManager.GetString("ManageDataExportButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No resources found.
+        /// </summary>
+        public static string ManageDataNoResources {
+            get {
+                return ResourceManager.GetString("ManageDataNoResources", resourceCulture);
             }
         }
         

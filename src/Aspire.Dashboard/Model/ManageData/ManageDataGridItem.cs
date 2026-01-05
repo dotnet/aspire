@@ -10,8 +10,8 @@ public sealed class ManageDataGridItem
 {
     public ResourceDataRow? ResourceRow { get; init; }
     public DataRow? NestedRow { get; init; }
-    public ResourceViewModel? ParentResource { get; init; }
     public string? ParentResourceName { get; init; }
+
     public int Depth { get; init; }
 
     public bool IsResourceRow => ResourceRow is not null;

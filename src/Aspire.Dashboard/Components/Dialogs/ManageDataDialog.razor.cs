@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using Aspire.Dashboard.Components.Controls.Chart;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.ManageData;
@@ -14,7 +13,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
-using CoreIcons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
@@ -37,9 +35,6 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     public required IDashboardClient DashboardClient { get; init; }
 
     [Inject]
-    public required IconResolver IconResolver { get; init; }
-
-    [Inject]
     public required ConsoleLogsManager ConsoleLogsManager { get; init; }
 
     [Inject]
@@ -54,17 +49,14 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     [Inject]
     public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
 
-    [Inject]
-    public required IStringLocalizer<Resources.Resources> ResourcesLoc { get; init; }
-
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly Dictionary<string, ResourceDataRow> _resourceDataRows = new(StringComparers.ResourceName);
     private readonly HashSet<string> _expandedResourceNames = new(StringComparers.ResourceName);
     private readonly HashSet<(string ResourceName, AspireDataType DataType)> _selectedRows = [];
     private readonly CancellationTokenSource _cts = new();
-    private readonly Icon _iconUnselectedMultiple = new CoreIcons.Regular.Size20.CheckboxUnchecked().WithColor(Color.FillInverse);
-    private readonly Icon _iconSelectedMultiple = new CoreIcons.Filled.Size20.CheckboxChecked();
-    private readonly Icon _iconIndeterminate = new CoreIcons.Filled.Size20.CheckboxIndeterminate();
+    private readonly Icon _iconUnselectedMultiple = new Icons.Regular.Size20.CheckboxUnchecked().WithColor(Color.FillInverse);
+    private readonly Icon _iconSelectedMultiple = new Icons.Filled.Size20.CheckboxChecked();
+    private readonly Icon _iconIndeterminate = new Icons.Filled.Size20.CheckboxIndeterminate();
     private Task? _resourceSubscriptionTask;
     private FluentDataGrid<ManageDataGridItem>? _dataGrid;
     private bool _isExporting;
@@ -169,7 +161,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         var data = new List<DataRow>();
 
         // Add console logs for resources with ResourceViewModel (no count available)
-        data.Add(new DataRow { DisplayName = "Console logs", DataType = AspireDataType.ConsoleLogs, DataCount = null, Icon = new Icons.Regular.Size16.SlideText(), Url = DashboardUrls.ConsoleLogsUrl(resource: resource.Name) });
+        data.Add(new DataRow { DataType = AspireDataType.ConsoleLogs, DataCount = null, Icon = new Icons.Regular.Size16.SlideText(), Url = DashboardUrls.ConsoleLogsUrl(resource: resource.Name) });
 
         var otlpResource = TelemetryRepository.GetResourceByCompositeName(resource.Name);
         if (otlpResource is not null)
@@ -181,7 +173,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         {
             Resource = resource,
             OtlpResource = otlpResource,
-            DisplayName = resource.Name,
+            Name = resource.Name,
             Data = data
         };
     }
@@ -196,7 +188,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         {
             Resource = null,
             OtlpResource = otlpResource,
-            DisplayName = otlpResource.ResourceKey.GetCompositeName(),
+            Name = otlpResource.ResourceKey.GetCompositeName(),
             Data = data
         };
     }
@@ -213,7 +205,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         });
         if (logsResult.TotalItemCount > 0)
         {
-            data.Add(new DataRow { DisplayName = "Logs", DataType = AspireDataType.StructuredLogs, DataCount = logsResult.TotalItemCount, Icon = new Icons.Regular.Size16.SlideTextSparkle(), Url = DashboardUrls.StructuredLogsUrl(resource: resourceName) });
+            data.Add(new DataRow { DataType = AspireDataType.StructuredLogs, DataCount = logsResult.TotalItemCount, Icon = new Icons.Regular.Size16.SlideTextSparkle(), Url = DashboardUrls.StructuredLogsUrl(resource: resourceName) });
         }
 
         // Check for traces
@@ -227,14 +219,14 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         });
         if (tracesResult.PagedResult.TotalItemCount > 0)
         {
-            data.Add(new DataRow { DisplayName = "Traces", DataType = AspireDataType.Traces, DataCount = tracesResult.PagedResult.TotalItemCount, Icon = new Icons.Regular.Size16.GanttChart(), Url = DashboardUrls.TracesUrl(resource: resourceName) });
+            data.Add(new DataRow { DataType = AspireDataType.Traces, DataCount = tracesResult.PagedResult.TotalItemCount, Icon = new Icons.Regular.Size16.GanttChart(), Url = DashboardUrls.TracesUrl(resource: resourceName) });
         }
 
         // Check for metrics (instruments)
         var instruments = TelemetryRepository.GetInstrumentsSummaries(resourceKey);
         if (instruments.Count > 0)
         {
-            data.Add(new DataRow { DisplayName = "Metrics", DataType = AspireDataType.Metrics, DataCount = instruments.Count, Icon = new Icons.Regular.Size16.ChartMultiple(), Url = DashboardUrls.MetricsUrl(resource: resourceName) });
+            data.Add(new DataRow { DataType = AspireDataType.Metrics, DataCount = instruments.Count, Icon = new Icons.Regular.Size16.ChartMultiple(), Url = DashboardUrls.MetricsUrl(resource: resourceName) });
         }
     }
 
@@ -246,7 +238,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         var items = new List<ManageDataGridItem>();
 
         // Sort by display name (works for both ResourceViewModel resources and telemetry-only resources)
-        foreach (var resourceRow in _resourceDataRows.Values.OrderBy(r => r.DisplayName, StringComparers.ResourceName))
+        foreach (var resourceRow in _resourceDataRows.Values.OrderBy(r => r.Name, StringComparers.ResourceName))
         {
             // Add the resource row
             items.Add(new ManageDataGridItem
@@ -256,15 +248,14 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             });
 
             // If expanded, add nested data rows
-            if (_expandedResourceNames.Contains(resourceRow.DisplayName))
+            if (_expandedResourceNames.Contains(resourceRow.Name))
             {
                 foreach (var dataRow in resourceRow.Data)
                 {
                     items.Add(new ManageDataGridItem
                     {
                         NestedRow = dataRow,
-                        ParentResource = resourceRow.Resource,
-                        ParentResourceName = resourceRow.DisplayName,
+                        ParentResourceName = resourceRow.Name,
                         Depth = 1
                     });
                 }
@@ -316,42 +307,34 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
 
     private void OnToggleExpand(ResourceDataRow resourceRow)
     {
-        if (_expandedResourceNames.Contains(resourceRow.DisplayName))
+        if (_expandedResourceNames.Contains(resourceRow.Name))
         {
-            _expandedResourceNames.Remove(resourceRow.DisplayName);
+            _expandedResourceNames.Remove(resourceRow.Name);
         }
         else
         {
-            _expandedResourceNames.Add(resourceRow.DisplayName);
+            _expandedResourceNames.Add(resourceRow.Name);
         }
 
         StateHasChanged();
     }
 
-    public async Task OnViewDetailsAsync(ChartExemplar exemplar)
-    {
-        var available = await TraceLinkHelpers.WaitForSpanToBeAvailableAsync(
-            traceId: exemplar.TraceId,
-            spanId: exemplar.SpanId,
-            getSpan: TelemetryRepository.GetSpan,
-            DialogService,
-            InvokeAsync,
-            Loc,
-            _cts.Token).ConfigureAwait(false);
-
-        if (available)
-        {
-            NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(exemplar.TraceId, spanId: exemplar.SpanId));
-        }
-    }
-
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);
+
+    private string GetDataTypeDisplayName(AspireDataType dataType) => dataType switch
+    {
+        AspireDataType.ConsoleLogs => Loc[nameof(Resources.Dialogs.ManageDataConsoleLogs)],
+        AspireDataType.StructuredLogs => Loc[nameof(Resources.Dialogs.ManageDataStructuredLogs)],
+        AspireDataType.Traces => Loc[nameof(Resources.Dialogs.ManageDataTraces)],
+        AspireDataType.Metrics => Loc[nameof(Resources.Dialogs.ManageDataMetrics)],
+        _ => dataType.ToString()
+    };
 
     private static string GetItemKey(ManageDataGridItem item)
     {
         if (item.ResourceRow is not null)
         {
-            return item.ResourceRow.DisplayName;
+            return item.ResourceRow.Name;
         }
         if (item.NestedRow is not null && item.ParentResourceName is not null)
         {
@@ -369,7 +352,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         {
             foreach (var row in _resourceDataRows.Values)
             {
-                SelectAllDataTypesForResource(row.DisplayName, row.Data);
+                SelectAllDataTypesForResource(row.Name, row.Data);
             }
         }
         else
@@ -385,11 +368,11 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
 
         if (shouldSelect)
         {
-            SelectAllDataTypesForResource(row.DisplayName, row.Data);
+            SelectAllDataTypesForResource(row.Name, row.Data);
         }
         else
         {
-            RemoveAllSelectionsForResource(row.DisplayName);
+            RemoveAllSelectionsForResource(row.Name);
         }
     }
 
@@ -415,7 +398,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         {
             foreach (var dataRow in row.Data)
             {
-                if (!_selectedRows.Contains((row.DisplayName, dataRow.DataType)))
+                if (!_selectedRows.Contains((row.Name, dataRow.DataType)))
                 {
                     return false;
                 }
@@ -439,7 +422,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     {
         foreach (var dataRow in row.Data)
         {
-            if (!_selectedRows.Contains((row.DisplayName, dataRow.DataType)))
+            if (!_selectedRows.Contains((row.Name, dataRow.DataType)))
             {
                 return false;
             }
@@ -454,7 +437,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     {
         foreach (var dataRow in row.Data)
         {
-            if (_selectedRows.Contains((row.DisplayName, dataRow.DataType)))
+            if (_selectedRows.Contains((row.Name, dataRow.DataType)))
             {
                 return false;
             }
@@ -486,11 +469,6 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             return _iconUnselectedMultiple;
         }
         return _iconIndeterminate;
-    }
-
-    private Icon GetDefaultResourceIcon()
-    {
-        return IconResolver.ResolveIconName("Apps", IconSize.Size16, IconVariant.Filled) ?? new Icons.Filled.Size16.Apps();
     }
 
     private void NavigateToDataPage(DataRow dataRow)
@@ -535,7 +513,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         try
         {
             var selectedResources = GetSelectedResourcesAndDataTypes();
-            using var memoryStream = await TelemetryExportService.ExportSelectedAsync(selectedResources, CancellationToken.None);
+            using var memoryStream = await TelemetryExportService.ExportSelectedAsync(selectedResources, _cts.Token);
             var fileName = $"aspire-telemetry-export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip";
 
             using var streamRef = new DotNetStreamReference(memoryStream, leaveOpen: false);

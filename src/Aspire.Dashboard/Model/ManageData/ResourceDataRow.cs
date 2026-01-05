@@ -23,7 +23,7 @@ public sealed class ResourceDataRow
     /// <summary>
     /// The display name for this resource row.
     /// </summary>
-    public required string DisplayName { get; init; }
+    public required string Name { get; init; }
 
     public List<DataRow> Data { get; set; } = [];
 

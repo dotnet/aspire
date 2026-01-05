@@ -507,16 +507,31 @@
   <data name="ManageDataDialogTitle" xml:space="preserve">
     <value>Manage logs and telemetry</value>
   </data>
-  <data name="ManageDataManageButtonText" xml:space="preserve">
-    <value>Manage</value>
+  <data name="ManageDataConsoleLogs" xml:space="preserve">
+    <value>Console logs</value>
   </data>
   <data name="ManageDataExportButtonText" xml:space="preserve">
     <value>Export selected</value>
   </data>
+  <data name="ManageDataManageButtonText" xml:space="preserve">
+    <value>Manage</value>
+  </data>
+  <data name="ManageDataMetrics" xml:space="preserve">
+    <value>Metrics</value>
+  </data>
+  <data name="ManageDataNoResources" xml:space="preserve">
+    <value>No resources found</value>
+  </data>
   <data name="ManageDataRemoveButtonText" xml:space="preserve">
     <value>Remove selected</value>
   </data>
+  <data name="ManageDataStructuredLogs" xml:space="preserve">
+    <value>Structured logs</value>
+  </data>
   <data name="ManageDataSummaryColumnHeader" xml:space="preserve">
     <value>Summary</value>
+  </data>
+  <data name="ManageDataTraces" xml:space="preserve">
+    <value>Traces</value>
   </data>
 </root>

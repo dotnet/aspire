@@ -40,7 +40,7 @@
                     <span class="resources-name-container" style="margin-left: @(indent)px;">
                         @if (context.IsResourceRow && context.ResourceRow is not null)
                         {
-                            <span @onclick:stopPropagation="true" class="main-grid-expand-container @(IsResourceExpanded(context.ResourceRow.DisplayName) ? "main-grid-expanded" : "main-grid-collapsed")">
+                            <span @onclick:stopPropagation="true" class="main-grid-expand-container @(IsResourceExpanded(context.ResourceRow.Name) ? "main-grid-expanded" : "main-grid-collapsed")">
                                 @if (context.ResourceRow.Data.Count > 0)
                                 {
                                     <FluentButton Appearance="Appearance.Lightweight"
@@ -68,9 +68,9 @@
                                     <FluentIcon Width="16px"
                                                 Class="resource-icon"
                                                 Color="Color.Custom"
-                                                CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(context.ResourceRow.DisplayName)"
-                                                Value="@GetDefaultResourceIcon()" />
-                                    <span class="resource-name-text">@context.ResourceRow.DisplayName</span>
+                                                CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(context.ResourceRow.Name)"
+                                                Value="@(new Icons.Regular.Size16.Apps())" />
+                                    <span class="resource-name-text">@context.ResourceRow.Name</span>
                                 </span>
                             }
                         }
@@ -82,7 +82,7 @@
                                               OnClick="@(() => OnSelectDataRowClicked(context.ParentResourceName, context.NestedRow.DataType))"
                                               style="margin-right: 8px;" />
                             </span>
-                            <span class="cellText">@context.NestedRow.DisplayName</span>
+                            <span class="cellText">@GetDataTypeDisplayName(context.NestedRow.DataType)</span>
                         }
                     </span>
                 </ChildContent>
@@ -103,7 +103,7 @@
             </TemplateColumn>
         </ChildContent>
         <EmptyContent>
-            <FluentIcon Icon="Icons.Regular.Size24.Apps" />&nbsp;@ResourcesLoc[nameof(Resources.ResourcesNoResources)]
+            <FluentIcon Icon="Icons.Regular.Size24.Apps" />&nbsp;@Loc[nameof(Dialogs.ManageDataNoResources)]
         </EmptyContent>
     </FluentDataGrid>
 </div>

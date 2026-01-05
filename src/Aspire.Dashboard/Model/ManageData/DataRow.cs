@@ -10,8 +10,6 @@ namespace Aspire.Dashboard.Model.ManageData;
 /// </summary>
 public sealed class DataRow
 {
-    public required string DisplayName { get; init; }
-
     /// <summary>
     /// The type of data this row represents.
     /// </summary>
