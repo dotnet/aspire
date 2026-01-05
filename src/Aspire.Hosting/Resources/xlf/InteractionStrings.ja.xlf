@@ -42,6 +42,30 @@
         <target state="translated">異常なコンテナー ランタイム</target>
         <note />
       </trans-unit>
+      <trans-unit id="DeleteParameterMessage">
+        <source>Are you sure you want to delete the value for parameter `{0}`? </source>
+        <target state="new">Are you sure you want to delete the value for parameter `{0}`? </target>
+        <note>Contains markdown. {0} is the parameter name.</note>
+      </trans-unit>
+      <trans-unit id="DeleteParameterMessageWithUserSecrets">
+        <source>Are you sure you want to delete the value for parameter `{0}`?
+
+The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there.</source>
+        <target state="new">Are you sure you want to delete the value for parameter `{0}`?
+
+The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there.</target>
+        <note>Contains markdown. {0} is the parameter name.</note>
+      </trans-unit>
+      <trans-unit id="DeleteParameterPrimaryButtonText">
+        <source>Delete</source>
+        <target state="new">Delete</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DeleteParameterTitle">
+        <source>Delete parameter value</source>
+        <target state="new">Delete parameter value</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ParametersBarMessage">
         <source>There are unresolved parameters that need to be set. Please provide values for them.</source>
         <target state="translated">設定する必要のある未解決のパラメーターがあります。それらの値を指定してください。</target>
@@ -55,6 +79,11 @@
       <trans-unit id="ParametersBarTitle">
         <source>Unresolved parameters</source>
         <target state="translated">未解決のパラメーター</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersInputsDeleteLabel">
+        <source>Delete from user secrets</source>
+        <target state="new">Delete from user secrets</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsMessage">
@@ -110,6 +139,20 @@
       <trans-unit id="VersionCheckTitle">
         <source>Update now</source>
         <target state="translated">今すぐ更新</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SetParameterMessage">
+        <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+
+New parameter values may not be used until dependent resources are restarted.</source>
+        <target state="new">Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+
+New parameter values may not be used until dependent resources are restarted.</target>
+        <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="SetParameterTitle">
+        <source>Set parameter</source>
+        <target state="new">Set parameter</target>
         <note />
       </trans-unit>
     </body>
