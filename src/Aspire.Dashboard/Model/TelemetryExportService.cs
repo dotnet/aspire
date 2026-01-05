@@ -356,14 +356,14 @@ public sealed class TelemetryExportService
                 metric.Sum = new OtlpSumJson
                 {
                     DataPoints = ConvertNumberDataPoints(instrumentData.Dimensions),
-                    AggregationTemporality = 2 // AGGREGATION_TEMPORALITY_CUMULATIVE
+                    AggregationTemporality = (int)summary.AggregationTemporality
                 };
                 break;
             case OtlpInstrumentType.Histogram:
                 metric.Histogram = new OtlpHistogramJson
                 {
                     DataPoints = ConvertHistogramDataPoints(instrumentData.Dimensions),
-                    AggregationTemporality = 2 // AGGREGATION_TEMPORALITY_CUMULATIVE
+                    AggregationTemporality = (int)summary.AggregationTemporality
                 };
                 break;
         }
