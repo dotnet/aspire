@@ -25,6 +25,10 @@ internal static class BrowserStorageKeys
     public const string DashboardTelemetrySettings = "Aspire_Settings_DashboardTelemetry";
     public const string ResourcesShowHiddenResources = "Aspire_Resources_ShowHiddenResources";
 
+    public const string CollapsedResourceNamesKeyPrefix = "Aspire_Resources_CollapsedResourceNames_";
+    public const string SplitterOrientationKeyPrefix = "Aspire_SplitterOrientation_";
+    public const string SplitterSizeKeyPrefix = "Aspire_SplitterSize_";
+
     public static string CollapsedResourceNamesKey(string applicationName)
     {
         ArgumentNullException.ThrowIfNull(applicationName);
@@ -39,16 +43,16 @@ internal static class BrowserStorageKeys
             }
         }
 
-        return $"Aspire_Resources_CollapsedResourceNames_{builder.ToString()}";
+        return $"{CollapsedResourceNamesKeyPrefix}{builder.ToString()}";
     }
 
     public static string SplitterOrientationKey(string viewKey)
     {
-        return $"Aspire_SplitterOrientation_{viewKey}";
+        return $"{SplitterOrientationKeyPrefix}{viewKey}";
     }
 
     public static string SplitterSizeKey(string viewKey, Orientation orientation)
     {
-        return $"Aspire_SplitterSize_{orientation}_{viewKey}";
+        return $"{SplitterSizeKeyPrefix}{orientation}_{viewKey}";
     }
 }
