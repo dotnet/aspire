@@ -56,21 +56,6 @@ public sealed class AtsCapabilityInfo
     public required string Package { get; init; }
 
     /// <summary>
-    /// Gets or sets the constraint type ID inferred from generic constraints (e.g., "aspire/IResourceWithEnvironment").
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This is inferred from CLR generic constraints like <c>where T : IResourceWithEnvironment</c>.
-    /// It determines which types this capability can be applied to.
-    /// </para>
-    /// <para>
-    /// Null for entry point methods like <c>createBuilder</c> that don't operate on a builder,
-    /// or for methods without mapped constraints.
-    /// </para>
-    /// </remarks>
-    public string? ConstraintTypeId { get; init; }
-
-    /// <summary>
     /// Gets or sets the description of what this capability does.
     /// </summary>
     public string? Description { get; init; }

@@ -124,11 +124,11 @@ public class AtsTypeScriptCodeGeneratorTests
             .ToList();
 
         // Assert parameters are captured
-        // The builder parameter is skipped because ConstraintTypeId is inferred from the type mapping
+        // The builder parameter is skipped because ExtendsTypeId is inferred from the first parameter
         // (IDistributedApplicationBuilder -> "aspire/Builder")
         var addTestRedis = capabilities.First(c => c.CapabilityId == "aspire.test/addTestRedis@1");
         Assert.Equal(2, addTestRedis.Parameters.Count);
-        Assert.Equal("aspire/Builder", addTestRedis.ConstraintTypeId);
+        Assert.Equal("aspire/Builder", addTestRedis.ExtendsTypeId);
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "name" && p.AtsTypeId == "string");
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "port" && p.IsOptional);
     }
@@ -165,7 +165,7 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.True(nameCapability.IsContextProperty);
         Assert.Equal("name", nameCapability.MethodName);
         Assert.Equal("string", nameCapability.ReturnTypeId);
-        Assert.Equal("aspire.test/TestContext", nameCapability.ConstraintTypeId);
+        Assert.Equal("aspire.test/TestContext", nameCapability.ExtendsTypeId);
         Assert.Single(nameCapability.Parameters);
         Assert.Equal("context", nameCapability.Parameters[0].Name);
 

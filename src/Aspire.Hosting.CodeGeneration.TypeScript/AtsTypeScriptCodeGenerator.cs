@@ -153,7 +153,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var allBuilders = AtsBuilderModelFactory.CreateBuilderModels(capabilities);
         var entryPoints = AtsBuilderModelFactory.GetEntryPointCapabilities(capabilities);
 
-        // Extract the DistributedApplicationBuilder's capabilities (ConstraintTypeId = "aspire/Builder")
+        // Extract the DistributedApplicationBuilder's capabilities (ExtendsTypeId = "aspire/Builder")
         var distributedAppBuilder = allBuilders.FirstOrDefault(b => b.TypeId == AtsTypeMapping.TypeIds.Builder);
         var builderMethods = distributedAppBuilder?.Capabilities ?? [];
 
@@ -169,9 +169,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var typeIds = new HashSet<string>();
         foreach (var cap in capabilities)
         {
-            if (!string.IsNullOrEmpty(cap.ConstraintTypeId))
+            if (!string.IsNullOrEmpty(cap.ExtendsTypeId))
             {
-                typeIds.Add(cap.ConstraintTypeId);
+                typeIds.Add(cap.ExtendsTypeId);
             }
             if (!string.IsNullOrEmpty(cap.ReturnTypeId) && cap.ReturnTypeId.StartsWith("aspire/", StringComparison.Ordinal))
             {
@@ -1018,7 +1018,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // First arg is the handle (implicit via this._handle)
         // Use parameter name from the method signature - typically matches the type
-        var firstParamName = AtsTypeMapping.GetParameterName(capability.ConstraintTypeId);
+        var firstParamName = AtsTypeMapping.GetParameterName(capability.ExtendsTypeId);
         paramArgs.Add($"{firstParamName}: this._handle");
 
         foreach (var param in capability.Parameters)

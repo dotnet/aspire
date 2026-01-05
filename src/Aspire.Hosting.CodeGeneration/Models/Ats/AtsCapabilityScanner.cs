@@ -112,7 +112,6 @@ public static class AtsCapabilityScanner
             CapabilityId = shared.CapabilityId,
             MethodName = shared.MethodName,
             Package = shared.Package,
-            ConstraintTypeId = shared.ConstraintTypeId,
             Description = shared.Description,
             Parameters = shared.Parameters.Select(ConvertParameter).ToList(),
             ReturnTypeId = shared.ReturnTypeId,
@@ -143,8 +142,7 @@ public static class AtsCapabilityScanner
         {
             AtsTypeId = shared.AtsTypeId,
             ClrTypeName = shared.ClrTypeName ?? string.Empty,
-            IsInterface = shared.IsInterface,
-            ImplementedInterfaceTypeIds = shared.ImplementedInterfaceTypeIds.ToList()
+            IsInterface = shared.IsInterface
         };
     }
 

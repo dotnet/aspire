@@ -20,7 +20,6 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
 
     // ATS (Aspire Type System) components
     private readonly HandleRegistry _handleRegistry;
-    private readonly TypeHierarchy _typeHierarchy;
     private readonly AtsCallbackProxyFactory _callbackProxyFactory;
     private readonly CapabilityDispatcher _capabilityDispatcher;
 
@@ -41,9 +40,8 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
 
         // Initialize ATS components with provided assemblies
         _handleRegistry = new HandleRegistry();
-        _typeHierarchy = new TypeHierarchy(assemblies);
         _callbackProxyFactory = new AtsCallbackProxyFactory(_callbackInvoker, _handleRegistry);
-        _capabilityDispatcher = new CapabilityDispatcher(_handleRegistry, _typeHierarchy, assemblies, _callbackProxyFactory);
+        _capabilityDispatcher = new CapabilityDispatcher(_handleRegistry, assemblies, _callbackProxyFactory);
 
         // Diagnostic logging for security configuration
         Console.WriteLine("[RPC] Security Configuration:");

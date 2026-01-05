@@ -5,16 +5,20 @@ namespace Aspire.Hosting.CodeGeneration.Models.Ats;
 
 /// <summary>
 /// Factory for creating builder models from discovered capabilities.
-/// Flattens capabilities based on type hierarchy inferred from CLR metadata.
+/// Groups capabilities by their first parameter type (flat model).
 /// </summary>
 public static class AtsBuilderModelFactory
 {
+    // Well-known ATS type IDs
+    private const string BuilderTypeId = "aspire/Builder";
+    private const string ApplicationTypeId = "aspire/Application";
+
     /// <summary>
     /// Creates builder models from capabilities and type information.
-    /// Flattens capabilities so each concrete builder has all applicable methods.
+    /// Uses a flat model where all resource capabilities go on all resource builders.
     /// </summary>
     /// <param name="capabilities">All discovered capabilities.</param>
-    /// <param name="typeInfos">Type information including interface implementations.</param>
+    /// <param name="typeInfos">Type information for concrete resource types.</param>
     /// <returns>Builder models with flattened capabilities.</returns>
     public static List<AtsBuilderInfo> CreateBuilderModels(
         IEnumerable<AtsCapabilityInfo> capabilities,
@@ -24,51 +28,53 @@ public static class AtsBuilderModelFactory
         var typeInfoList = typeInfos.ToList();
         var builders = new List<AtsBuilderInfo>();
 
-        // Group capabilities by their constraint type ID
-        var capsByConstraint = capabilityList
-            .Where(c => !string.IsNullOrEmpty(c.ConstraintTypeId))
-            .GroupBy(c => c.ConstraintTypeId!)
-            .ToDictionary(g => g.Key, g => g.ToList());
+        // Categorize capabilities by first parameter type
+        var builderCapabilities = new List<AtsCapabilityInfo>();
+        var resourceCapabilities = new List<AtsCapabilityInfo>();
+        var applicationCapabilities = new List<AtsCapabilityInfo>();
 
-        // Create a builder for each concrete (non-interface) type
+        foreach (var cap in capabilityList)
+        {
+            var extendsType = cap.ExtendsTypeId;
+            if (string.IsNullOrEmpty(extendsType))
+            {
+                // Entry point methods (createBuilder, etc.) - skip, handled separately
+                continue;
+            }
+
+            if (extendsType == BuilderTypeId)
+            {
+                builderCapabilities.Add(cap);
+            }
+            else if (extendsType == ApplicationTypeId)
+            {
+                applicationCapabilities.Add(cap);
+            }
+            else if (extendsType.StartsWith("aspire/"))
+            {
+                // All other aspire/* types are resource builders
+                resourceCapabilities.Add(cap);
+            }
+        }
+
+        // Create a builder for each concrete (non-interface) resource type
+        // All resource capabilities go on ALL resource builders (flat model)
         foreach (var typeInfo in typeInfoList.Where(t => !t.IsInterface))
         {
+            // Skip Builder and Application - they're not resource types
+            if (typeInfo.AtsTypeId == BuilderTypeId || typeInfo.AtsTypeId == ApplicationTypeId)
+            {
+                continue;
+            }
+
             var builder = new AtsBuilderInfo
             {
                 TypeId = typeInfo.AtsTypeId,
                 BuilderClassName = DeriveBuilderClassName(typeInfo.AtsTypeId),
                 IsInterface = false,
-                Capabilities = new List<AtsCapabilityInfo>()
+                Capabilities = resourceCapabilities.ToList()
             };
 
-            // Collect capabilities where constraint matches this type directly
-            if (capsByConstraint.TryGetValue(typeInfo.AtsTypeId, out var directCaps))
-            {
-                foreach (var cap in directCaps)
-                {
-                    if (!builder.Capabilities.Any(c => c.CapabilityId == cap.CapabilityId))
-                    {
-                        builder.Capabilities.Add(cap);
-                    }
-                }
-            }
-
-            // Flatten: collect capabilities from all implemented interfaces
-            foreach (var ifaceTypeId in typeInfo.ImplementedInterfaceTypeIds)
-            {
-                if (capsByConstraint.TryGetValue(ifaceTypeId, out var ifaceCaps))
-                {
-                    foreach (var cap in ifaceCaps)
-                    {
-                        if (!builder.Capabilities.Any(c => c.CapabilityId == cap.CapabilityId))
-                        {
-                            builder.Capabilities.Add(cap);
-                        }
-                    }
-                }
-            }
-
-            // Only add builders that have at least one capability
             if (builder.Capabilities.Count > 0)
             {
                 builders.Add(builder);
@@ -83,36 +89,49 @@ public static class AtsBuilderModelFactory
 
     /// <summary>
     /// Creates builder models from a collection of capabilities (legacy overload).
-    /// Uses a simple grouping without type hierarchy flattening.
+    /// Uses the flat grouping model based on first parameter type.
     /// </summary>
     /// <param name="capabilities">All discovered capabilities.</param>
-    /// <returns>Builder models grouped by constraint type.</returns>
+    /// <returns>Builder models grouped by first parameter type.</returns>
     public static List<AtsBuilderInfo> CreateBuilderModels(IEnumerable<AtsCapabilityInfo> capabilities)
     {
         var capabilityList = capabilities.ToList();
         var builders = new Dictionary<string, AtsBuilderInfo>();
 
-        // Group capabilities by ConstraintTypeId
-        var capabilitiesByType = new Dictionary<string, List<AtsCapabilityInfo>>();
+        // Categorize capabilities by first parameter type
+        var builderCapabilities = new List<AtsCapabilityInfo>();
+        var resourceCapabilities = new List<AtsCapabilityInfo>();
+        var applicationCapabilities = new List<AtsCapabilityInfo>();
+        var resourceTypeIds = new HashSet<string>();
 
-        foreach (var capability in capabilityList)
+        foreach (var cap in capabilityList)
         {
-            if (string.IsNullOrEmpty(capability.ConstraintTypeId))
+            var extendsType = cap.ExtendsTypeId;
+            if (string.IsNullOrEmpty(extendsType))
             {
-                // Entry point methods (createBuilder, build, run) go on AspireClient, not builders
+                // Entry point methods - skip, handled by GetEntryPointCapabilities
                 continue;
             }
 
-            if (!capabilitiesByType.TryGetValue(capability.ConstraintTypeId, out var list))
+            if (extendsType == BuilderTypeId)
             {
-                list = [];
-                capabilitiesByType[capability.ConstraintTypeId] = list;
+                builderCapabilities.Add(cap);
             }
-            list.Add(capability);
+            else if (extendsType == ApplicationTypeId)
+            {
+                applicationCapabilities.Add(cap);
+            }
+            else if (extendsType.StartsWith("aspire/"))
+            {
+                // All other aspire/* types are resource builders
+                resourceCapabilities.Add(cap);
+                resourceTypeIds.Add(extendsType);
+            }
         }
 
-        // Create builder info for each type
-        foreach (var (typeId, typeCapabilities) in capabilitiesByType)
+        // Create a single "generic" resource builder that has all resource capabilities
+        // In the flat model, all resource capabilities are available on all resource types
+        foreach (var typeId in resourceTypeIds)
         {
             var builderClassName = DeriveBuilderClassName(typeId);
             var isInterface = IsInterfaceType(typeId);
@@ -121,7 +140,7 @@ public static class AtsBuilderModelFactory
             {
                 TypeId = typeId,
                 BuilderClassName = builderClassName,
-                Capabilities = typeCapabilities,
+                Capabilities = resourceCapabilities.ToList(),
                 IsInterface = isInterface
             };
 
@@ -136,13 +155,13 @@ public static class AtsBuilderModelFactory
     }
 
     /// <summary>
-    /// Gets entry point capabilities (those without ConstraintTypeId).
+    /// Gets entry point capabilities (those without ExtendsTypeId).
     /// These become methods on AspireClient rather than builder classes.
     /// </summary>
     public static List<AtsCapabilityInfo> GetEntryPointCapabilities(IEnumerable<AtsCapabilityInfo> capabilities)
     {
         return capabilities
-            .Where(c => string.IsNullOrEmpty(c.ConstraintTypeId))
+            .Where(c => string.IsNullOrEmpty(c.ExtendsTypeId))
             .ToList();
     }
 

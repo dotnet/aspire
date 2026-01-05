@@ -14,12 +14,10 @@ namespace Aspire.Hosting.RemoteHost.Ats;
 /// </summary>
 /// <param name="args">The arguments as a JSON object.</param>
 /// <param name="handles">The handle registry for resolving/registering handles.</param>
-/// <param name="typeHierarchy">The type hierarchy for type validation.</param>
 /// <returns>The result as JSON, or null for void operations.</returns>
 internal delegate JsonNode? CapabilityHandler(
     JsonObject? args,
-    HandleRegistry handles,
-    TypeHierarchy typeHierarchy);
+    HandleRegistry handles);
 
 /// <summary>
 /// Dispatches capability invocations to their implementations.
@@ -29,7 +27,6 @@ internal sealed class CapabilityDispatcher
 {
     private readonly ConcurrentDictionary<string, CapabilityRegistration> _capabilities = new();
     private readonly HandleRegistry _handles;
-    private readonly TypeHierarchy _typeHierarchy;
     private readonly AtsCallbackProxyFactory? _callbackProxyFactory;
 
     /// <summary>
@@ -39,7 +36,6 @@ internal sealed class CapabilityDispatcher
     {
         public required string CapabilityId { get; init; }
         public required CapabilityHandler Handler { get; init; }
-        public string? AppliesTo { get; init; }
         public string? Description { get; init; }
     }
 
@@ -47,17 +43,14 @@ internal sealed class CapabilityDispatcher
     /// Creates a new CapabilityDispatcher.
     /// </summary>
     /// <param name="handles">The handle registry for resolving handle references.</param>
-    /// <param name="typeHierarchy">The type hierarchy for AppliesTo validation.</param>
     /// <param name="assemblies">The assemblies to scan for [AspireExport] attributes.</param>
     /// <param name="callbackProxyFactory">Optional factory for creating callback proxies.</param>
     public CapabilityDispatcher(
         HandleRegistry handles,
-        TypeHierarchy typeHierarchy,
         IEnumerable<Assembly> assemblies,
         AtsCallbackProxyFactory? callbackProxyFactory = null)
     {
         _handles = handles;
-        _typeHierarchy = typeHierarchy;
         _callbackProxyFactory = callbackProxyFactory;
 
         // Scan for capabilities on initialization
@@ -111,7 +104,7 @@ internal sealed class CapabilityDispatcher
         var capabilityId = capability.CapabilityId;
         var prop = property; // Capture for closure
 
-        CapabilityHandler handler = (args, handles, hierarchy) =>
+        CapabilityHandler handler = (args, handles) =>
         {
             // The context object is passed as the first argument
             if (args == null || !args.TryGetPropertyValue("context", out var contextNode))
@@ -138,7 +131,6 @@ internal sealed class CapabilityDispatcher
         {
             CapabilityId = capabilityId,
             Handler = handler,
-            AppliesTo = capability.ConstraintTypeId,
             Description = capability.Description ?? $"Gets the {property.Name} property"
         };
     }
@@ -153,7 +145,7 @@ internal sealed class CapabilityDispatcher
         var parameters = method.GetParameters();
 
         // Create a handler that invokes the method via reflection
-        CapabilityHandler handler = (args, handles, hierarchy) =>
+        CapabilityHandler handler = (args, handles) =>
         {
             var methodArgs = new object?[parameters.Length];
 
@@ -238,7 +230,6 @@ internal sealed class CapabilityDispatcher
         {
             CapabilityId = capabilityId,
             Handler = handler,
-            AppliesTo = capability.ConstraintTypeId,
             Description = capability.Description
         };
     }
@@ -256,25 +247,23 @@ internal sealed class CapabilityDispatcher
     /// </summary>
     /// <param name="capabilityId">The capability ID (e.g., "aspire.redis/addRedis@1").</param>
     /// <param name="handler">The handler that implements the capability.</param>
-    /// <param name="appliesTo">Optional type constraint for the first handle argument.</param>
     /// <param name="description">Optional description of the capability.</param>
     public void Register(
         string capabilityId,
         CapabilityHandler handler,
-        string? appliesTo = null,
         string? description = null)
     {
         _capabilities[capabilityId] = new CapabilityRegistration
         {
             CapabilityId = capabilityId,
             Handler = handler,
-            AppliesTo = appliesTo,
             Description = description
         };
     }
 
     /// <summary>
     /// Invokes a capability by ID with the given arguments.
+    /// Type validation is performed by the CLR at runtime.
     /// </summary>
     /// <param name="capabilityId">The capability ID.</param>
     /// <param name="args">The arguments as a JSON object.</param>
@@ -289,19 +278,23 @@ internal sealed class CapabilityDispatcher
 
         args ??= new JsonObject();
 
-        // Validate AppliesTo constraint if present
-        if (!string.IsNullOrEmpty(registration.AppliesTo))
-        {
-            ValidateAppliesTo(capabilityId, args, registration.AppliesTo);
-        }
-
         try
         {
-            return registration.Handler(args, _handles, _typeHierarchy);
+            return registration.Handler(args, _handles);
         }
         catch (CapabilityException)
         {
             throw;
+        }
+        catch (ArgumentException ex) when (IsTypeMismatchException(ex))
+        {
+            // Convert CLR type mismatch to ATS error
+            throw CapabilityException.TypeMismatch(capabilityId, "argument", "expected type", ex.Message);
+        }
+        catch (InvalidCastException ex)
+        {
+            // Convert CLR cast failures to ATS error
+            throw CapabilityException.TypeMismatch(capabilityId, "argument", "expected type", ex.Message);
         }
         catch (Exception ex)
         {
@@ -310,30 +303,15 @@ internal sealed class CapabilityDispatcher
     }
 
     /// <summary>
-    /// Validates the AppliesTo constraint for a capability.
+    /// Checks if an exception indicates a type mismatch.
     /// </summary>
-    private void ValidateAppliesTo(string capabilityId, JsonObject args, string appliesTo)
+    private static bool IsTypeMismatchException(ArgumentException ex)
     {
-        // Find the first handle argument
-        foreach (var prop in args)
-        {
-            var handleRef = HandleRef.FromJsonNode(prop.Value);
-            if (handleRef != null)
-            {
-                if (!_handles.TryGet(handleRef.HandleId, out _, out var typeId))
-                {
-                    throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
-                }
-
-                if (!string.IsNullOrEmpty(typeId) && !_typeHierarchy.IsAssignableTo(typeId, appliesTo))
-                {
-                    throw CapabilityException.TypeMismatch(capabilityId, prop.Key, appliesTo, typeId);
-                }
-
-                // Only validate the first handle
-                return;
-            }
-        }
+        // Check for common type mismatch patterns in exception messages
+        var message = ex.Message;
+        return message.Contains("cannot be converted") ||
+               message.Contains("is not assignable") ||
+               message.Contains("type mismatch", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

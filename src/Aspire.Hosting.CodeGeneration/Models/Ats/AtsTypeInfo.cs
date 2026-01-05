@@ -5,7 +5,6 @@ namespace Aspire.Hosting.CodeGeneration.Models.Ats;
 
 /// <summary>
 /// Represents type information discovered from CLR metadata for ATS code generation.
-/// This includes the type's ATS type ID and the interfaces it implements.
 /// </summary>
 public sealed class AtsTypeInfo
 {
@@ -23,15 +22,4 @@ public sealed class AtsTypeInfo
     /// Gets whether this type is an interface.
     /// </summary>
     public bool IsInterface { get; init; }
-
-    /// <summary>
-    /// Gets the ATS type IDs of interfaces this type implements.
-    /// Only includes interfaces that have ATS type mappings.
-    /// </summary>
-    /// <remarks>
-    /// For a type like <c>RedisResource : ContainerResource, IResourceWithConnectionString</c>,
-    /// this would include <c>aspire/IResourceWithEnvironment</c>, <c>aspire/IResourceWithConnectionString</c>, etc.
-    /// (all interfaces from the full type hierarchy that have ATS mappings).
-    /// </remarks>
-    public List<string> ImplementedInterfaceTypeIds { get; init; } = [];
 }

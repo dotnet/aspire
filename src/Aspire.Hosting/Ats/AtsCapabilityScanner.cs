@@ -38,7 +38,7 @@ internal static class AtsCapabilityScanner
             var typeExportAttr = GetAspireExportAttribute(type);
             if (typeExportAttr != null)
             {
-                var typeInfo = CreateTypeInfo(type, typeExportAttr, typeMapping);
+                var typeInfo = CreateTypeInfo(type, typeExportAttr);
                 if (typeInfo != null)
                 {
                     typeInfos.Add(typeInfo);
@@ -184,7 +184,6 @@ internal static class AtsCapabilityScanner
                     CapabilityId = capabilityId,
                     MethodName = propertyName,
                     Package = DerivePackage(typeId),
-                    ConstraintTypeId = typeId,
                     Description = null,
                     Parameters =
                     [
@@ -213,8 +212,7 @@ internal static class AtsCapabilityScanner
 
     private static AtsTypeInfo? CreateTypeInfo(
         IAtsTypeInfo type,
-        IAtsAttributeInfo exportAttr,
-        AtsTypeMapping typeMapping)
+        IAtsAttributeInfo exportAttr)
     {
         // Get the AtsTypeId from named arguments
         if (!exportAttr.NamedArguments.TryGetValue("AtsTypeId", out var atsTypeIdObj) ||
@@ -223,43 +221,12 @@ internal static class AtsCapabilityScanner
             return null;
         }
 
-        // Collect all interfaces with ATS mappings
-        var implementedInterfaces = new List<string>();
-        CollectMappedInterfaces(type, typeMapping, implementedInterfaces, new HashSet<string>());
-
         return new AtsTypeInfo
         {
             AtsTypeId = atsTypeId,
             ClrTypeName = type.FullName,
-            IsInterface = type.IsInterface,
-            ImplementedInterfaceTypeIds = implementedInterfaces
+            IsInterface = type.IsInterface
         };
-    }
-
-    private static void CollectMappedInterfaces(
-        IAtsTypeInfo type,
-        AtsTypeMapping typeMapping,
-        List<string> result,
-        HashSet<string> seen)
-    {
-        foreach (var ifaceFullName in type.GetInterfaceFullNames())
-        {
-            var ifaceTypeId = typeMapping.GetTypeId(ifaceFullName);
-            if (ifaceTypeId != null && ifaceTypeId.StartsWith("aspire/") && seen.Add(ifaceTypeId))
-            {
-                result.Add(ifaceTypeId);
-            }
-        }
-
-        // Check base type
-        if (type.BaseTypeFullName != null)
-        {
-            var baseTypeId = typeMapping.GetTypeId(type.BaseTypeFullName);
-            if (baseTypeId != null && baseTypeId.StartsWith("aspire/") && seen.Add(baseTypeId))
-            {
-                result.Add(baseTypeId);
-            }
-        }
     }
 
     private static List<AtsCapabilityInfo> CreateContextTypeCapabilities(
@@ -301,7 +268,6 @@ internal static class AtsCapabilityScanner
                 CapabilityId = capabilityId,
                 MethodName = propertyName,
                 Package = DerivePackage(typeId),
-                ConstraintTypeId = typeId,
                 Description = $"Gets the {property.Name} property",
                 Parameters = [
                     new AtsParameterInfo
@@ -359,13 +325,6 @@ internal static class AtsCapabilityScanner
             }
         }
 
-        // Extract constraint from generic parameters
-        var constraintTypeId = ExtractConstraintTypeId(method, typeMapping);
-        if (constraintTypeId == null && extendsTypeId != null)
-        {
-            constraintTypeId = extendsTypeId;
-        }
-
         // Build parameters (skip first if it's a handle type)
         var paramInfos = new List<AtsParameterInfo>();
         var skipFirst = extendsTypeId != null;
@@ -387,7 +346,6 @@ internal static class AtsCapabilityScanner
             CapabilityId = capabilityId,
             MethodName = methodName,
             Package = package,
-            ConstraintTypeId = constraintTypeId,
             Description = description,
             Parameters = paramInfos,
             ReturnTypeId = returnTypeId,
@@ -428,22 +386,6 @@ internal static class AtsCapabilityScanner
             CallbackId = callbackId,
             DefaultValue = param.DefaultValue
         };
-    }
-
-    private static string? ExtractConstraintTypeId(IAtsMethodInfo method, AtsTypeMapping typeMapping)
-    {
-        foreach (var constraints in method.GetGenericParameterConstraints())
-        {
-            foreach (var constraintFullName in constraints)
-            {
-                var typeId = typeMapping.GetTypeId(constraintFullName);
-                if (typeId != null && typeId.StartsWith("aspire/"))
-                {
-                    return typeId;
-                }
-            }
-        }
-        return null;
     }
 
     /// <summary>

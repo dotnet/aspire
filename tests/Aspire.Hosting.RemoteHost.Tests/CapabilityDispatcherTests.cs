@@ -14,7 +14,7 @@ public class CapabilityDispatcherTests
     public void Register_AddsCapabilityThatCanBeInvoked()
     {
         var dispatcher = CreateDispatcher();
-        CapabilityHandler handler = (args, handles, hierarchy) => JsonValue.Create("result");
+        CapabilityHandler handler = (args, handles) => JsonValue.Create("result");
 
         dispatcher.Register("test/capability@1", handler);
 
@@ -33,8 +33,8 @@ public class CapabilityDispatcherTests
     public void GetCapabilityIds_ReturnsAllRegisteredCapabilities()
     {
         var dispatcher = CreateDispatcher();
-        dispatcher.Register("test/cap1@1", (_, _, _) => null);
-        dispatcher.Register("test/cap2@1", (_, _, _) => null);
+        dispatcher.Register("test/cap1@1", (_, _) => null);
+        dispatcher.Register("test/cap2@1", (_, _) => null);
 
         var ids = dispatcher.GetCapabilityIds().ToList();
 
@@ -47,7 +47,7 @@ public class CapabilityDispatcherTests
     {
         var dispatcher = CreateDispatcher();
         var called = false;
-        dispatcher.Register("test/capability@1", (args, handles, hierarchy) =>
+        dispatcher.Register("test/capability@1", (args, handles) =>
         {
             called = true;
             return JsonValue.Create("success");
@@ -63,7 +63,7 @@ public class CapabilityDispatcherTests
     {
         var dispatcher = CreateDispatcher();
         string? receivedName = null;
-        dispatcher.Register("test/capability@1", (args, handles, hierarchy) =>
+        dispatcher.Register("test/capability@1", (args, handles) =>
         {
             receivedName = args?["name"]?.GetValue<string>();
             return null;
@@ -78,7 +78,7 @@ public class CapabilityDispatcherTests
     public void Invoke_ReturnsHandlerResult()
     {
         var dispatcher = CreateDispatcher();
-        dispatcher.Register("test/capability@1", (_, _, _) => JsonValue.Create(42));
+        dispatcher.Register("test/capability@1", (_, _) => JsonValue.Create(42));
 
         var result = dispatcher.Invoke("test/capability@1", null);
 
@@ -101,7 +101,7 @@ public class CapabilityDispatcherTests
     public void Invoke_WrapsHandlerExceptionsAsInternalError()
     {
         var dispatcher = CreateDispatcher();
-        dispatcher.Register("test/capability@1", (_, _, _) =>
+        dispatcher.Register("test/capability@1", (_, _) =>
             throw new InvalidOperationException("Handler failed"));
 
         var ex = Assert.Throws<CapabilityException>(() =>
@@ -115,7 +115,7 @@ public class CapabilityDispatcherTests
     public void Invoke_PropagatesCapabilityExceptionsDirectly()
     {
         var dispatcher = CreateDispatcher();
-        dispatcher.Register("test/capability@1", (_, _, _) =>
+        dispatcher.Register("test/capability@1", (_, _) =>
             throw CapabilityException.InvalidArgument("test/capability@1", "param", "Bad value"));
 
         var ex = Assert.Throws<CapabilityException>(() =>
@@ -125,65 +125,16 @@ public class CapabilityDispatcherTests
     }
 
     [Fact]
-    public void Invoke_ValidatesAppliesToConstraint()
+    public void Invoke_ConvertsInvalidCastToTypeMismatch()
     {
-        var handles = new HandleRegistry();
-        var typeHierarchy = new TypeHierarchy([]);
-        var dispatcher = new CapabilityDispatcher(handles, typeHierarchy, []);
+        var dispatcher = CreateDispatcher();
+        dispatcher.Register("test/capability@1", (_, _) =>
+            throw new InvalidCastException("Cannot cast to expected type"));
 
-        // Register a capability that applies to "aspire/SpecificType"
-        dispatcher.Register("test/capability@1", (_, _, _) => null, appliesTo: "aspire/SpecificType");
-
-        // Register a handle with a different type
-        var handleId = handles.Register(new object(), "aspire/OtherType");
-        var args = new JsonObject { ["builder"] = new JsonObject { ["$handle"] = handleId } };
-
-        // Should throw type mismatch
         var ex = Assert.Throws<CapabilityException>(() =>
-            dispatcher.Invoke("test/capability@1", args));
+            dispatcher.Invoke("test/capability@1", null));
 
         Assert.Equal(AtsErrorCodes.TypeMismatch, ex.Error.Code);
-    }
-
-    [Fact]
-    public void Invoke_PassesWhenAppliesToMatches()
-    {
-        var handles = new HandleRegistry();
-        var typeHierarchy = new TypeHierarchy([]);
-        var dispatcher = new CapabilityDispatcher(handles, typeHierarchy, []);
-
-        var called = false;
-        dispatcher.Register("test/capability@1", (_, _, _) =>
-        {
-            called = true;
-            return null;
-        }, appliesTo: "aspire/TestType");
-
-        // Register a handle with matching type
-        var handleId = handles.Register(new object(), "aspire/TestType");
-        var args = new JsonObject { ["builder"] = new JsonObject { ["$handle"] = handleId } };
-
-        dispatcher.Invoke("test/capability@1", args);
-
-        Assert.True(called);
-    }
-
-    [Fact]
-    public void Invoke_ThrowsHandleNotFoundForMissingHandle()
-    {
-        var handles = new HandleRegistry();
-        var typeHierarchy = new TypeHierarchy([]);
-        var dispatcher = new CapabilityDispatcher(handles, typeHierarchy, []);
-
-        dispatcher.Register("test/capability@1", (_, _, _) => null, appliesTo: "aspire/TestType");
-
-        // Use a handle that doesn't exist
-        var args = new JsonObject { ["builder"] = new JsonObject { ["$handle"] = "aspire/TestType:999" } };
-
-        var ex = Assert.Throws<CapabilityException>(() =>
-            dispatcher.Invoke("test/capability@1", args));
-
-        Assert.Equal(AtsErrorCodes.HandleNotFound, ex.Error.Code);
     }
 
     [Fact]
@@ -255,8 +206,7 @@ public class CapabilityDispatcherTests
     public void Invoke_ContextTypePropertyReturnsValue()
     {
         var handles = new HandleRegistry();
-        var typeHierarchy = new TypeHierarchy([typeof(TestContextType).Assembly]);
-        var dispatcher = new CapabilityDispatcher(handles, typeHierarchy, [typeof(TestContextType).Assembly]);
+        var dispatcher = new CapabilityDispatcher(handles, [typeof(TestContextType).Assembly]);
 
         // Create and register a context object
         var context = new TestContextType { Name = "test-name", Count = 100 };
@@ -368,8 +318,7 @@ public class CapabilityDispatcherTests
     private static CapabilityDispatcher CreateDispatcher(params System.Reflection.Assembly[] assemblies)
     {
         var handles = new HandleRegistry();
-        var typeHierarchy = new TypeHierarchy(assemblies);
-        return new CapabilityDispatcher(handles, typeHierarchy, assemblies);
+        return new CapabilityDispatcher(handles, assemblies);
     }
 }
 

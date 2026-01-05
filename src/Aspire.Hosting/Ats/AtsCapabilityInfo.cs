@@ -34,11 +34,6 @@ internal sealed class AtsCapabilityInfo
     public required string Package { get; init; }
 
     /// <summary>
-    /// Gets or sets the constraint type ID inferred from generic constraints.
-    /// </summary>
-    public string? ConstraintTypeId { get; init; }
-
-    /// <summary>
     /// Gets or sets the description of what this capability does.
     /// </summary>
     public string? Description { get; init; }
@@ -134,9 +129,4 @@ internal sealed class AtsTypeInfo
     /// Gets or sets whether this type is an interface.
     /// </summary>
     public bool IsInterface { get; init; }
-
-    /// <summary>
-    /// Gets or sets the ATS type IDs of implemented interfaces.
-    /// </summary>
-    public IReadOnlyList<string> ImplementedInterfaceTypeIds { get; init; } = [];
 }
