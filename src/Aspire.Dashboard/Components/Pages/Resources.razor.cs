@@ -235,7 +235,6 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         _onToggleResourceTypeCallback = EventCallback.Factory.Create(this, OnToggleResourceType);
 
         _hideResourceGraph = DashboardOptions.CurrentValue.UI.DisableResourceGraph ?? false;
-        _collapsedResourceNamesKey = BrowserStorageKeys.CollapsedResourceNamesKey(DashboardClient.ApplicationName);
 
         PageViewModel = new ResourcesViewModel
         {
@@ -256,6 +255,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             _showHiddenResources = showHiddenResources.Value;
         }
         UpdateMenuButtons();
+
+        // Must wait until after the dashboard is connected so the application name is correct.
+        await DashboardClient.WhenConnected;
+        _collapsedResourceNamesKey = BrowserStorageKeys.CollapsedResourceNamesKey(DashboardClient.ApplicationName);
 
         var collapsedResult = await LocalStorage.GetAsync<List<string>>(_collapsedResourceNamesKey);
         if (collapsedResult.Success)
