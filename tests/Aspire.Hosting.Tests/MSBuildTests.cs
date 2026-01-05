@@ -454,3 +454,4 @@ public class MSBuildTests
         Assert.Contains("error ASPIRE008", buildOutput);
         Assert.Contains("GenerateAssemblyInfo", buildOutput);
     }
+}
