@@ -7,10 +7,14 @@ using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using CoreIcons = Microsoft.FluentUI.AspNetCore.Components.Icons;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
@@ -50,6 +54,13 @@ public sealed class ResourceDataRow
 public sealed class DataRow
 {
     public required string Name { get; init; }
+
+    /// <summary>
+    /// The total count of items (logs, traces, or metrics). Null if count is not available.
+    /// </summary>
+    public int? DataCount { get; init; }
+
+    public bool Selected { get; set; }
 }
 
 /// <summary>
@@ -95,10 +106,22 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     [Inject]
     public required IJSRuntime JS { get; init; }
 
+    [Inject]
+    public required IStringLocalizer<Resources.Dialogs> Loc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.Resources> ResourcesLoc { get; init; }
+
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly Dictionary<string, ResourceDataRow> _resourceDataRows = new(StringComparers.ResourceName);
     private readonly HashSet<string> _expandedResourceNames = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
+    private readonly Icon _iconUnselectedMultiple = new CoreIcons.Regular.Size20.CheckboxUnchecked().WithColor(Color.FillInverse);
+    private readonly Icon _iconSelectedMultiple = new CoreIcons.Filled.Size20.CheckboxChecked();
+    private readonly Icon _iconIndeterminate = new CoreIcons.Filled.Size20.CheckboxIndeterminate();
     private Task? _resourceSubscriptionTask;
     private FluentDataGrid<ManageDataGridItem>? _dataGrid;
     private bool _isExporting;
@@ -168,6 +191,9 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     {
         var data = new List<DataRow>();
 
+        // Add console logs for resources with ResourceViewModel (no count available)
+        data.Add(new DataRow { Name = "Console logs", DataCount = null, Selected = true });
+
         var otlpResource = TelemetryRepository.GetResourceByCompositeName(resource.Name);
         if (otlpResource is not null)
         {
@@ -179,7 +205,8 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             Resource = resource,
             OtlpResource = otlpResource,
             DisplayName = resource.Name,
-            Data = data
+            Data = data,
+            Selected = true
         };
     }
 
@@ -193,7 +220,8 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             Resource = null,
             OtlpResource = otlpResource,
             DisplayName = otlpResource.ResourceKey.GetCompositeName(),
-            Data = data
+            Data = data,
+            Selected = true
         };
     }
 
@@ -209,7 +237,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         });
         if (logsResult.TotalItemCount > 0)
         {
-            data.Add(new DataRow { Name = "Logs" });
+            data.Add(new DataRow { Name = "Logs", DataCount = logsResult.TotalItemCount, Selected = true });
         }
 
         // Check for traces
@@ -223,14 +251,14 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         });
         if (tracesResult.PagedResult.TotalItemCount > 0)
         {
-            data.Add(new DataRow { Name = "Traces" });
+            data.Add(new DataRow { Name = "Traces", DataCount = tracesResult.PagedResult.TotalItemCount, Selected = true });
         }
 
         // Check for metrics (instruments)
         var instruments = TelemetryRepository.GetInstrumentsSummaries(resourceKey);
         if (instruments.Count > 0)
         {
-            data.Add(new DataRow { Name = "Metrics" });
+            data.Add(new DataRow { Name = "Metrics", DataCount = instruments.Count, Selected = true });
         }
     }
 
@@ -292,6 +320,24 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         }
     }
 
+    private static void OnRowClicked(FluentDataGridRow<ManageDataGridItem> row)
+    {
+        var item = row.Item;
+        if (item is null)
+        {
+            return;
+        }
+
+        if (item.IsResourceRow && item.ResourceRow is not null)
+        {
+            OnSelectRowClicked(item.ResourceRow);
+        }
+        else if (item.IsNestedRow && item.NestedRow is not null)
+        {
+            OnSelectDataRowClicked(item.NestedRow);
+        }
+    }
+
     private void OnToggleExpand(ResourceDataRow resourceRow)
     {
         resourceRow.IsExpanded = !resourceRow.IsExpanded;
@@ -326,6 +372,167 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     }
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);
+
+    private static string GetRowClass(ManageDataGridItem item)
+    {
+        return item.IsNestedRow ? "nested-data-row" : "resource-data-row";
+    }
+
+    private void OnSelectAllClicked()
+    {
+        // If any are unselected (including data rows), select all. Otherwise deselect all.
+        var shouldSelectAll = !AreAllSelected();
+        foreach (var row in _resourceDataRows.Values)
+        {
+            row.Selected = shouldSelectAll;
+            foreach (var dataRow in row.Data)
+            {
+                dataRow.Selected = shouldSelectAll;
+            }
+        }
+    }
+
+    private static void OnSelectRowClicked(ResourceDataRow row)
+    {
+        // If any child data rows are unselected, select all. Otherwise deselect all.
+        var shouldSelect = !AreAllDataRowsSelected(row);
+        row.Selected = shouldSelect;
+        foreach (var dataRow in row.Data)
+        {
+            dataRow.Selected = shouldSelect;
+        }
+    }
+
+    private static void OnSelectDataRowClicked(DataRow row)
+    {
+        row.Selected = !row.Selected;
+    }
+
+    /// <summary>
+    /// Returns true if all resource rows and their data rows are selected.
+    /// </summary>
+    private bool AreAllSelected()
+    {
+        foreach (var row in _resourceDataRows.Values)
+        {
+            if (!row.Selected)
+            {
+                return false;
+            }
+            foreach (var dataRow in row.Data)
+            {
+                if (!dataRow.Selected)
+                {
+                    return false;
+                }
+            }
+        }
+        return _resourceDataRows.Count > 0;
+    }
+
+    /// <summary>
+    /// Returns true if no resource rows or data rows are selected.
+    /// </summary>
+    private bool AreNoneSelected()
+    {
+        foreach (var row in _resourceDataRows.Values)
+        {
+            if (row.Selected)
+            {
+                return false;
+            }
+            foreach (var dataRow in row.Data)
+            {
+                if (dataRow.Selected)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Returns true if all data rows for a resource are selected.
+    /// </summary>
+    private static bool AreAllDataRowsSelected(ResourceDataRow row)
+    {
+        if (!row.Selected)
+        {
+            return false;
+        }
+        foreach (var dataRow in row.Data)
+        {
+            if (!dataRow.Selected)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Returns true if no data rows for a resource are selected.
+    /// </summary>
+    private static bool AreNoDataRowsSelected(ResourceDataRow row)
+    {
+        foreach (var dataRow in row.Data)
+        {
+            if (dataRow.Selected)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private Icon GetHeaderCheckboxIcon()
+    {
+        if (AreAllSelected())
+        {
+            return _iconSelectedMultiple;
+        }
+        if (AreNoneSelected())
+        {
+            return _iconUnselectedMultiple;
+        }
+        return _iconIndeterminate;
+    }
+
+    private Icon GetResourceCheckboxIcon(ResourceDataRow row)
+    {
+        if (AreAllDataRowsSelected(row))
+        {
+            return _iconSelectedMultiple;
+        }
+        if (AreNoDataRowsSelected(row))
+        {
+            return _iconUnselectedMultiple;
+        }
+        return _iconIndeterminate;
+    }
+
+    private Icon GetDefaultResourceIcon()
+    {
+        return IconResolver.ResolveIconName("Apps", IconSize.Size16, IconVariant.Filled) ?? new Icons.Filled.Size16.Apps();
+    }
+
+    private string GetSourceInfo(ResourceDataRow row)
+    {
+        var sources = new List<string>();
+
+        if (row.Resource is not null)
+        {
+            sources.Add(Loc[nameof(Resources.Dialogs.ManageDataSourceAspire)]);
+        }
+
+        if (row.OtlpResource is not null)
+        {
+            sources.Add(Loc[nameof(Resources.Dialogs.ManageDataSourceOpenTelemetry)]);
+        }
+
+        return string.Join(", ", sources);
+    }
 
     private async Task RemoveAllAsync()
     {

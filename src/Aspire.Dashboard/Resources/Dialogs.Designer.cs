@@ -1220,5 +1220,32 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ManageDataRemoveButtonText", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Info.
+        /// </summary>
+        public static string ManageDataInfoColumnHeader {
+            get {
+                return ResourceManager.GetString("ManageDataInfoColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Aspire.
+        /// </summary>
+        public static string ManageDataSourceAspire {
+            get {
+                return ResourceManager.GetString("ManageDataSourceAspire", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OpenTelemetry.
+        /// </summary>
+        public static string ManageDataSourceOpenTelemetry {
+            get {
+                return ResourceManager.GetString("ManageDataSourceOpenTelemetry", resourceCulture);
+            }
+        }
     }
 }

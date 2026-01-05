@@ -387,6 +387,11 @@
         <target state="new">Export</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataInfoColumnHeader">
+        <source>Info</source>
+        <target state="new">Info</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ManageDataManageButtonText">
         <source>Manage</source>
         <target state="new">Manage</target>
@@ -395,6 +400,16 @@
       <trans-unit id="ManageDataRemoveButtonText">
         <source>Remove</source>
         <target state="new">Remove</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataSourceAspire">
+        <source>Aspire</source>
+        <target state="new">Aspire</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataSourceOpenTelemetry">
+        <source>OpenTelemetry</source>
+        <target state="new">OpenTelemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">

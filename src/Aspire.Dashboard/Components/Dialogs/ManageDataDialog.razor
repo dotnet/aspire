@@ -6,26 +6,26 @@
 @using Resources = Aspire.Dashboard.Resources.Resources
 @using Dialogs = Aspire.Dashboard.Resources.Dialogs
 
-@inject IStringLocalizer<Dialogs> Loc
-@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
-@inject IStringLocalizer<Resources> ResourcesLoc
-
 <div style="max-height: 44vh; overflow-y: auto;">
     <FluentDataGrid @ref="_dataGrid"
                     Items="@GetGridItems()"
                     RowSize="DataGridRowSize.Medium"
-                    GridTemplateColumns="auto 2fr 1fr"
+                    GridTemplateColumns="2fr 1fr"
                     TGridItem="ManageDataGridItem"
-                    RowClass="@GetRowClass">
+                    RowClass="@GetRowClass"
+                    OnRowClick="@OnRowClicked">
         <ChildContent>
-            <SelectColumn TGridItem="ManageDataGridItem"
-                          SelectMode="DataGridSelectMode.Multiple"
-                          SelectFromEntireRow="false"
-                          Property="@(item => item.IsResourceRow && item.ResourceRow is not null ? item.ResourceRow.Selected : false)"
-                          OnSelect="@OnSelectItem" />
             <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
+                <HeaderCellItemTemplate>
+                    <FluentButton Appearance="Appearance.Lightweight"
+                                  IconEnd="@GetHeaderCheckboxIcon()"
+                                  OnClick="OnSelectAllClicked"
+                                  style="margin-right: 8px;" />
+                    @ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]
+                </HeaderCellItemTemplate>
+                <ChildContent>
                 @{
-                    var indent = context.Depth * 24;
+                    var indent = context.Depth * 48;
                 }
                 <span class="resources-name-container" style="margin-left: @(indent)px;">
                     @if (context.IsResourceRow && context.ResourceRow is not null)
@@ -41,6 +41,10 @@
                                 </FluentButton>
                             }
                         </span>
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      IconEnd="@GetResourceCheckboxIcon(context.ResourceRow)"
+                                      OnClick="@(() => OnSelectRowClicked(context.ResourceRow))"
+                                      style="margin-right: 8px;" />
                         @if (context.ResourceRow.Resource is not null)
                         {
                             <ResourceNameDisplay Resource="context.ResourceRow.Resource" FilterText="" FormatName="GetResourceName" />
@@ -60,14 +64,27 @@
                     }
                     else if (context.IsNestedRow && context.NestedRow is not null)
                     {
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      IconEnd="@(context.NestedRow.Selected ? _iconSelectedMultiple : _iconUnselectedMultiple)"
+                                      OnClick="@(() => OnSelectDataRowClicked(context.NestedRow))"
+                                      style="margin-right: 8px;" />
                         <span class="cellText">@context.NestedRow.Name</span>
                     }
                 </span>
+                </ChildContent>
             </TemplateColumn>
-            <TemplateColumn Title="@ResourcesLoc[nameof(Resources.ResourcesStateColumnHeader)]">
-                @if (context.IsResourceRow && context.ResourceRow?.Resource is not null)
+            <TemplateColumn Title="@Loc[nameof(Dialogs.ManageDataInfoColumnHeader)]">
+                @if (context.IsResourceRow && context.ResourceRow is not null)
                 {
-                    <StateColumnDisplay Resource="@context.ResourceRow.Resource" UnviewedErrorCounts="@null" />
+                    <span class="cellText">@GetSourceInfo(context.ResourceRow)</span>
+                }
+                else if (context.IsNestedRow)
+                {
+                    <FluentIcon Icon="Icons.Filled.Size16.CheckboxChecked" Color="Color.Success" style="margin-right: 4px;" />
+                    if (context.NestedRow?.DataCount is { } dataCount)
+                    {
+                        <span class="cellText">@dataCount</span>
+                    }
                 }
             </TemplateColumn>
         </ChildContent>
@@ -92,23 +109,3 @@
         @Loc[nameof(Dialogs.ManageDataRemoveButtonText)]
     </FluentButton>
 </div>
-
-@code {
-    private string GetRowClass(ManageDataGridItem item)
-    {
-        return item.IsNestedRow ? "nested-data-row" : "resource-data-row";
-    }
-
-    private void OnSelectItem((ManageDataGridItem Item, bool Selected) args)
-    {
-        if (args.Item.IsResourceRow && args.Item.ResourceRow is not null)
-        {
-            args.Item.ResourceRow.Selected = args.Selected;
-        }
-    }
-
-    private Icon GetDefaultResourceIcon()
-    {
-        return IconResolver.ResolveIconName("Apps", IconSize.Size16, IconVariant.Filled) ?? new Icons.Filled.Size16.Apps();
-    }
-}

@@ -516,4 +516,13 @@
   <data name="ManageDataRemoveButtonText" xml:space="preserve">
     <value>Remove</value>
   </data>
+  <data name="ManageDataInfoColumnHeader" xml:space="preserve">
+    <value>Info</value>
+  </data>
+  <data name="ManageDataSourceAspire" xml:space="preserve">
+    <value>Aspire</value>
+  </data>
+  <data name="ManageDataSourceOpenTelemetry" xml:space="preserve">
+    <value>OpenTelemetry</value>
+  </data>
 </root>
