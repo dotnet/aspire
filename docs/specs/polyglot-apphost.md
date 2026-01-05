@@ -175,15 +175,69 @@ public class RedisResource : ContainerResource { }
 
 ### Intrinsic Types
 
-These core types are built into ATS and available in all guest languages:
+Intrinsic types are core ATS types that every guest language must understand. They form the foundation of the distributed application model:
 
-| Type | Purpose |
-|------|---------|
-| `aspire/Builder` | The distributed application builder |
-| `aspire/Application` | The built application |
-| `aspire/ExecutionContext` | Runtime context (IsPublishMode, etc.) |
-| `aspire/EndpointReference` | Reference to a resource endpoint |
-| `aspire/Parameter` | A configurable parameter |
+#### `aspire/Builder`
+
+The entry point for all distributed applications. Obtained via `Aspire.Hosting/createBuilder`.
+
+| Capability | Description |
+|------------|-------------|
+| `Aspire.Hosting/createBuilder` | Creates a new builder instance |
+| `Aspire.Hosting/build` | Builds the application from the builder |
+| `Aspire.Hosting/getExecutionContext` | Gets the execution context |
+| `Aspire.Hosting/getConfiguration` | Gets the configuration |
+| `Aspire.Hosting/getEnvironment` | Gets the host environment |
+| `Aspire.Hosting/getAppHostDirectory` | Gets the app host directory path |
+| `Aspire.Hosting/subscribeBeforeStart` | Subscribes to lifecycle event |
+| `Aspire.Hosting/subscribeAfterResourcesCreated` | Subscribes to lifecycle event |
+
+**Adding resources** (also on Builder):
+- `Aspire.Hosting/addContainer` - Add a container resource
+- `Aspire.Hosting/addExecutable` - Add an executable resource
+- `Aspire.Hosting/addParameter` - Add a parameter resource
+- `Aspire.Hosting/addConnectionString` - Add a connection string
+- `Aspire.Hosting.Redis/addRedis` - Add Redis (from integration package)
+
+#### `aspire/Application`
+
+The built application, ready to run. Obtained via `Aspire.Hosting/build`.
+
+| Capability | Description |
+|------------|-------------|
+| `Aspire.Hosting/run` | Starts all resources and runs the application |
+
+#### `aspire/ExecutionContext`
+
+Runtime context providing information about the execution mode.
+
+| Capability | Description |
+|------------|-------------|
+| `Aspire.Hosting/isRunMode` | Returns true if running locally |
+| `Aspire.Hosting/isPublishMode` | Returns true if generating deployment manifests |
+
+**Usage:** Conditionally configure resources based on mode:
+```typescript
+const context = await builder.getExecutionContext();
+if (await context.isPublishMode()) {
+    // Configure for production deployment
+}
+```
+
+#### `aspire/EndpointReference`
+
+A reference to a resource's network endpoint. Used in reference expressions.
+
+| Capability | Description |
+|------------|-------------|
+| `Aspire.Hosting/getEndpoint` | Gets an endpoint reference from a resource |
+
+**Usage:** Build connection strings dynamically:
+```typescript
+const redis = await builder.addRedis("cache");
+const endpoint = await redis.getEndpoint("tcp");
+const connectionString = refExpr`redis://${endpoint}`;
+```
 
 ### Capabilities
 

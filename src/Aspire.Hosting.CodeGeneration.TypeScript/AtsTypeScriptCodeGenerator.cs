@@ -108,9 +108,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     {
         var files = new Dictionary<string, string>();
 
-        // Add embedded resource files (types.ts, RemoteAppHostClient.ts)
-        files["types.ts"] = GetEmbeddedResource("types.ts");
-        files["RemoteAppHostClient.ts"] = GetEmbeddedResource("RemoteAppHostClient.ts");
+        // Add embedded resource files (transport.ts, base.ts)
+        files["transport.ts"] = GetEmbeddedResource("transport.ts");
+        files["base.ts"] = GetEmbeddedResource("base.ts");
 
         // Generate the capability-based aspire.ts SDK
         files["aspire.ts"] = GenerateAspireSdk(capabilities.ToList());
@@ -146,12 +146,22 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             // GENERATED CODE - DO NOT EDIT
 
             import {
-                RemoteAppHostClient,
+                AspireClient as AspireClientRpc,
                 Handle,
                 CapabilityError,
                 registerCallback,
                 wrapIfHandle
-            } from './RemoteAppHostClient.js';
+            } from './transport.js';
+
+            import {
+                DistributedApplicationBuilderBase,
+                DistributedApplicationBase,
+                ResourceBuilderBase,
+                ReferenceExpression,
+                refExpr,
+                type BuilderHandle,
+                type ApplicationHandle
+            } from './base.js';
             """);
         WriteLine();
 
@@ -301,23 +311,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             /**
              * Represents a built distributed application ready to run.
              */
-            export class DistributedApplication {
-                constructor(
-                    private _handle: ApplicationHandle,
-                    private _client: AspireClient
-                ) {}
-
-                /** Gets the underlying handle */
-                get handle(): ApplicationHandle { return this._handle; }
-
-                /**
-                 * Runs the distributed application, starting all configured resources.
-                 */
-                async run(): Promise<void> {
-                    await this._client.client.invokeCapability<void>(
-                        'Aspire.Hosting/run',
-                        { app: this._handle }
-                    );
+            export class DistributedApplication extends DistributedApplicationBase {
+                constructor(handle: ApplicationHandle, client: AspireClientRpc) {
+                    super(handle, client);
                 }
             }
 
@@ -352,21 +348,14 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
              * Builder for creating distributed applications.
              * Use createBuilder() to get an instance.
              */
-            export class DistributedApplicationBuilder {
-                constructor(
-                    private _handle: BuilderHandle,
-                    private _client: AspireClient
-                ) {}
-
-                /** Gets the underlying handle */
-                get handle(): BuilderHandle { return this._handle; }
-
-                /** Gets the AspireClient for invoking capabilities */
-                get client(): AspireClient { return this._client; }
+            export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {
+                constructor(handle: BuilderHandle, client: AspireClientRpc) {
+                    super(handle, client);
+                }
 
                 /** @internal - actual async implementation */
                 async _buildInternal(): Promise<DistributedApplication> {
-                    const handle = await this._client.client.invokeCapability<ApplicationHandle>(
+                    const handle = await this._client.invokeCapability<ApplicationHandle>(
                         'Aspire.Hosting/build',
                         { builder: this._handle }
                     );
@@ -431,7 +420,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Generate property-style getter returning a Promise<WrapperClass>
         WriteLine($"    get {propertyName}(): Promise<{wrapperClassName}> {{");
-        WriteLine($"        return this._client.client.invokeCapability<{handleType}>(");
+        WriteLine($"        return this._client.invokeCapability<{handleType}>(");
         WriteLine($"            '{capability.CapabilityId}',");
         WriteLine("            { builder: this._handle }");
         WriteLine($"        ).then(handle => new {wrapperClassName}(handle, this._client));");
@@ -488,7 +477,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             Write($"    {methodName}(");
             Write(paramsString);
             WriteLine($"): {builderInfo.BuilderClassName}Promise {{");
-            WriteLine($"        const promise = this._client.client.invokeCapability<{handleType}>(");
+            WriteLine($"        const promise = this._client.invokeCapability<{handleType}>(");
             WriteLine($"            '{capability.CapabilityId}',");
             WriteLine($"            {argsObject}");
             WriteLine($"        ).then(handle => new {builderInfo.BuilderClassName}(handle, this._client));");
@@ -502,7 +491,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             Write($"    async {methodName}(");
             Write(paramsString);
             WriteLine($"): Promise<{returnType}> {{");
-            WriteLine($"        return await this._client.client.invokeCapability<{returnType}>(");
+            WriteLine($"        return await this._client.invokeCapability<{returnType}>(");
             WriteLine($"            '{capability.CapabilityId}',");
             WriteLine($"            {argsObject}");
             WriteLine("        );");
@@ -514,7 +503,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             Write($"    async {methodName}(");
             Write(paramsString);
             WriteLine("): Promise<void> {");
-            WriteLine($"        await this._client.client.invokeCapability<void>(");
+            WriteLine($"        await this._client.invokeCapability<void>(");
             WriteLine($"            '{capability.CapabilityId}',");
             WriteLine($"            {argsObject}");
             WriteLine("        );");
@@ -531,16 +520,13 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         var handleType = GetHandleTypeName(builder.TypeId);
 
-        // Generate builder class (no inheritance - capabilities are flattened)
-        WriteLine($"export class {builder.BuilderClassName} {{");
+        // Generate builder class extending ResourceBuilderBase
+        WriteLine($"export class {builder.BuilderClassName} extends ResourceBuilderBase<{handleType}> {{");
 
         // Constructor
-        WriteLine($"    constructor(protected _handle: {handleType}, protected _client: AspireClient) {{}}");
-        WriteLine();
-
-        // Handle getter
-        WriteLine("    /** Gets the underlying handle */");
-        WriteLine($"    get handle(): {handleType} {{ return this._handle; }}");
+        WriteLine($"    constructor(handle: {handleType}, client: AspireClientRpc) {{");
+        WriteLine($"        super(handle, client);");
+        WriteLine("    }");
         WriteLine();
 
         // Generate internal methods and public fluent methods
@@ -713,58 +699,29 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
     private void GenerateAspireClient(List<AtsCapabilityInfo> entryPoints, List<BuilderModel> builders)
     {
-        WriteLine("// ============================================================================");
-        WriteLine("// AspireClient - Entry point and factory methods");
-        WriteLine("// ============================================================================");
-        WriteLine();
-
-        WriteLine("""
-            /**
-             * High-level Aspire client that provides typed access to ATS capabilities.
-             */
-            export class AspireClient {
-                constructor(private readonly rpc: RemoteAppHostClient) {}
-
-                /** Get the underlying RPC client */
-                get client(): RemoteAppHostClient {
-                    return this.rpc;
-                }
-
-                /**
-                 * Invokes a capability by ID with the given arguments.
-                 * Use this for capabilities not exposed as typed methods.
-                 */
-                async invokeCapability<T>(
-                    capabilityId: string,
-                    args?: Record<string, unknown>
-                ): Promise<T> {
-                    return await this.rpc.invokeCapability<T>(capabilityId, args ?? {});
-                }
-
-                /**
-                 * Lists all available capabilities from the server.
-                 */
-                async getCapabilities(): Promise<string[]> {
-                    return await this.rpc.getCapabilities();
-                }
-            """);
-
-        // Generate entry point methods
-        foreach (var capability in entryPoints)
+        // Entry point methods (capabilities with no TargetTypeId) are generated as standalone functions
+        // They're generated in GenerateConnectionHelper after the createBuilder() function
+        // This method now only handles the comment header
+        if (entryPoints.Count > 0)
         {
-            GenerateClientMethod(capability, builders);
-        }
+            WriteLine("// ============================================================================");
+            WriteLine("// Entry Point Functions");
+            WriteLine("// ============================================================================");
+            WriteLine();
 
-        WriteLine("}");
-        WriteLine();
+            foreach (var capability in entryPoints)
+            {
+                GenerateEntryPointFunction(capability, builders);
+            }
+        }
     }
 
-    private void GenerateClientMethod(AtsCapabilityInfo capability, List<BuilderModel> builders)
+    private void GenerateEntryPointFunction(AtsCapabilityInfo capability, List<BuilderModel> builders)
     {
         var methodName = capability.MethodName;
 
         // Build parameter list
-        var paramDefs = new List<string>();
+        var paramDefs = new List<string> { "client: AspireClientRpc" };
         var paramArgs = new List<string>();
 
         foreach (var param in capability.Parameters)
@@ -782,7 +739,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Determine return type
         string returnType;
-        var returnsBuilder = false;
         BuilderModel? builderInfo = null;
 
         if (!string.IsNullOrEmpty(capability.ReturnTypeId))
@@ -793,7 +749,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 if (builderInfo != null)
                 {
                     returnType = $"{builderInfo.BuilderClassName}Promise";
-                    returnsBuilder = true;
                 }
                 else
                 {
@@ -811,48 +766,48 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
 
         // Generate JSDoc
-        WriteLine();
         if (!string.IsNullOrEmpty(capability.Description))
         {
-            WriteLine($"    /**");
-            WriteLine($"     * {capability.Description}");
-            WriteLine($"     */");
+            WriteLine($"/**");
+            WriteLine($" * {capability.Description}");
+            WriteLine($" */");
         }
 
-        // Generate method
-        if (returnsBuilder && builderInfo != null)
+        // Generate function
+        if (builderInfo != null)
         {
             // Returns a thenable wrapper
             var handleType = GetHandleTypeName(capability.ReturnTypeId!);
-            Write($"    {methodName}(");
+            Write($"export function {methodName}(");
             Write(paramsString);
             WriteLine($"): {returnType} {{");
-            WriteLine($"        const promise = this.rpc.invokeCapability<{handleType}>(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            {argsObject}");
-            WriteLine($"        ).then(handle => new {builderInfo.BuilderClassName}(handle, this));");
-            WriteLine($"        return new {builderInfo.BuilderClassName}Promise(promise);");
-            WriteLine("    }");
+            WriteLine($"    const promise = client.invokeCapability<{handleType}>(");
+            WriteLine($"        '{capability.CapabilityId}',");
+            WriteLine($"        {argsObject}");
+            WriteLine($"    ).then(handle => new {builderInfo.BuilderClassName}(handle, client));");
+            WriteLine($"    return new {builderInfo.BuilderClassName}Promise(promise);");
+            WriteLine("}");
         }
         else
         {
             // Returns raw value
-            Write($"    async {methodName}(");
+            Write($"export async function {methodName}(");
             Write(paramsString);
             WriteLine($"): Promise<{returnType}> {{");
             if (returnType == "void")
             {
-                WriteLine($"        await this.rpc.invokeCapability<void>(");
+                WriteLine($"    await client.invokeCapability<void>(");
             }
             else
             {
-                WriteLine($"        return await this.rpc.invokeCapability<{returnType}>(");
+                WriteLine($"    return await client.invokeCapability<{returnType}>(");
             }
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            {argsObject}");
-            WriteLine("        );");
-            WriteLine("    }");
+            WriteLine($"        '{capability.CapabilityId}',");
+            WriteLine($"        {argsObject}");
+            WriteLine("    );");
+            WriteLine("}");
         }
+        WriteLine();
     }
 
     private static string MapAtsTypeToTypeScript(string atsTypeId, bool isCallback)
@@ -885,10 +840,10 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             // ============================================================================
 
             /**
-             * Creates and connects an AspireClient.
+             * Creates and connects to the Aspire AppHost.
              * Reads connection info from environment variables set by `aspire run`.
              */
-            export async function connect(): Promise<AspireClient> {
+            export async function connect(): Promise<AspireClientRpc> {
                 const socketPath = process.env.REMOTE_APP_HOST_SOCKET_PATH;
                 if (!socketPath) {
                     throw new Error(
@@ -905,11 +860,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                     );
                 }
 
-                const rpc = new RemoteAppHostClient(socketPath);
-                await rpc.connect();
-                await rpc.authenticate(authToken);
+                const client = new AspireClientRpc(socketPath);
+                await client.connect();
+                await client.authenticate(authToken);
 
-                return new AspireClient(rpc);
+                return client;
             }
 
             /**
@@ -928,7 +883,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
              */
             export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
                 const client = await connect();
-                const handle = await client.client.invokeCapability<BuilderHandle>(
+                const handle = await client.invokeCapability<BuilderHandle>(
                     'Aspire.Hosting/createBuilder',
                     { args }
                 );
@@ -936,7 +891,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
 
             // Re-export commonly used types
-            export { Handle, CapabilityError, registerCallback, refExpr, ReferenceExpression } from './RemoteAppHostClient.js';
+            export { Handle, CapabilityError, registerCallback } from './transport.js';
+            export { refExpr, ReferenceExpression } from './base.js';
             """);
         WriteLine();
     }
@@ -998,7 +954,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($" * Wrapper class for {wrapperType.TypeId}.");
         WriteLine($" */");
         WriteLine($"export class {className} {{");
-        WriteLine($"    constructor(private _handle: {handleType}, private _client: AspireClient) {{}}");
+        WriteLine($"    constructor(private _handle: {handleType}, private _client: AspireClientRpc) {{}}");
         WriteLine();
         WriteLine($"    /** Gets the underlying handle */");
         WriteLine($"    get handle(): {handleType} {{ return this._handle; }}");
@@ -1064,11 +1020,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         if (returnType == "void")
         {
-            WriteLine($"        await this._client.client.invokeCapability<void>(");
+            WriteLine($"        await this._client.invokeCapability<void>(");
         }
         else
         {
-            WriteLine($"        return await this._client.client.invokeCapability<{returnType}>(");
+            WriteLine($"        return await this._client.invokeCapability<{returnType}>(");
         }
         WriteLine($"            '{capability.CapabilityId}',");
         WriteLine($"            {argsObject}");

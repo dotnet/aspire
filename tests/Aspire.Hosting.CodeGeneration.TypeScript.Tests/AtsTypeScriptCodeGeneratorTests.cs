@@ -23,31 +23,31 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
-    public async Task EmbeddedResource_RemoteAppHostClientTs_MatchesSnapshot()
+    public async Task EmbeddedResource_TransportTs_MatchesSnapshot()
     {
         var assembly = typeof(AtsTypeScriptCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.TypeScript.Resources.RemoteAppHostClient.ts";
+        var resourceName = "Aspire.Hosting.CodeGeneration.TypeScript.Resources.transport.ts";
 
         using var stream = assembly.GetManifestResourceStream(resourceName)!;
         using var reader = new StreamReader(stream);
         var content = await reader.ReadToEndAsync();
 
         await Verify(content, extension: "ts")
-            .UseFileName("RemoteAppHostClient");
+            .UseFileName("transport");
     }
 
     [Fact]
-    public async Task EmbeddedResource_TypesTs_MatchesSnapshot()
+    public async Task EmbeddedResource_BaseTs_MatchesSnapshot()
     {
         var assembly = typeof(AtsTypeScriptCodeGenerator).Assembly;
-        var resourceName = "Aspire.Hosting.CodeGeneration.TypeScript.Resources.types.ts";
+        var resourceName = "Aspire.Hosting.CodeGeneration.TypeScript.Resources.base.ts";
 
         using var stream = assembly.GetManifestResourceStream(resourceName)!;
         using var reader = new StreamReader(stream);
         var content = await reader.ReadToEndAsync();
 
         await Verify(content, extension: "ts")
-            .UseFileName("types");
+            .UseFileName("base");
     }
 
     [Fact]
@@ -76,8 +76,8 @@ public class AtsTypeScriptCodeGeneratorTests
 
         // Assert
         Assert.Contains("aspire.ts", files.Keys);
-        Assert.Contains("RemoteAppHostClient.ts", files.Keys);
-        Assert.Contains("types.ts", files.Keys);
+        Assert.Contains("transport.ts", files.Keys);
+        Assert.Contains("base.ts", files.Keys);
 
         await Verify(files["aspire.ts"], extension: "ts")
             .UseFileName("AtsGeneratedAspire");
@@ -158,7 +158,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var nameCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestContext.name");
         Assert.NotNull(nameCapability);
         Assert.True(nameCapability.IsContextProperty);
-        Assert.Equal("name", nameCapability.MethodName);
+        Assert.Equal("TestContext.name", nameCapability.MethodName);  // Method name includes type name to avoid collisions
         Assert.Equal("string", nameCapability.ReturnTypeId);
         Assert.Equal("aspire.test/TestContext", nameCapability.TargetTypeId);
         Assert.Single(nameCapability.Parameters);
@@ -167,7 +167,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var valueCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestContext.value");
         Assert.NotNull(valueCapability);
         Assert.True(valueCapability.IsContextProperty);
-        Assert.Equal("value", valueCapability.MethodName);
+        Assert.Equal("TestContext.value", valueCapability.MethodName);  // Method name includes type name to avoid collisions
         Assert.Equal("number", valueCapability.ReturnTypeId);
 
         // CancellationToken - the type mapping is in Aspire.Hosting assembly.

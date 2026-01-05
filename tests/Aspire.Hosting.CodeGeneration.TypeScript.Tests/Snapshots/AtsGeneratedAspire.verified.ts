@@ -5,12 +5,22 @@
 // GENERATED CODE - DO NOT EDIT
 
 import {
-    RemoteAppHostClient,
+    AspireClient as AspireClientRpc,
     Handle,
     CapabilityError,
     registerCallback,
     wrapIfHandle
-} from './RemoteAppHostClient.js';
+} from './transport.js';
+
+import {
+    DistributedApplicationBuilderBase,
+    DistributedApplicationBase,
+    ResourceBuilderBase,
+    ReferenceExpression,
+    refExpr,
+    type BuilderHandle,
+    type ApplicationHandle
+} from './base.js';
 
 // ============================================================================
 // Handle Type Aliases
@@ -47,23 +57,9 @@ export type TestRedisBuilderHandle = Handle<'aspire/TestRedis'>;
 /**
  * Represents a built distributed application ready to run.
  */
-export class DistributedApplication {
-    constructor(
-        private _handle: ApplicationHandle,
-        private _client: AspireClient
-    ) {}
-
-    /** Gets the underlying handle */
-    get handle(): ApplicationHandle { return this._handle; }
-
-    /**
-     * Runs the distributed application, starting all configured resources.
-     */
-    async run(): Promise<void> {
-        await this._client.client.invokeCapability<void>(
-            'Aspire.Hosting/run',
-            { app: this._handle }
-        );
+export class DistributedApplication extends DistributedApplicationBase {
+    constructor(handle: ApplicationHandle, client: AspireClientRpc) {
+        super(handle, client);
     }
 }
 
@@ -94,21 +90,14 @@ export class DistributedApplicationPromise implements PromiseLike<DistributedApp
  * Builder for creating distributed applications.
  * Use createBuilder() to get an instance.
  */
-export class DistributedApplicationBuilder {
-    constructor(
-        private _handle: BuilderHandle,
-        private _client: AspireClient
-    ) {}
-
-    /** Gets the underlying handle */
-    get handle(): BuilderHandle { return this._handle; }
-
-    /** Gets the AspireClient for invoking capabilities */
-    get client(): AspireClient { return this._client; }
+export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {
+    constructor(handle: BuilderHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
 
     /** @internal - actual async implementation */
     async _buildInternal(): Promise<DistributedApplication> {
-        const handle = await this._client.client.invokeCapability<ApplicationHandle>(
+        const handle = await this._client.invokeCapability<ApplicationHandle>(
             'Aspire.Hosting/build',
             { builder: this._handle }
         );
@@ -127,7 +116,7 @@ export class DistributedApplicationBuilder {
      * Adds a test Redis resource
      */
     addTestRedis(name: string, port?: number): TestRedisBuilderPromise {
-        const promise = this._client.client.invokeCapability<TestRedisBuilderHandle>(
+        const promise = this._client.invokeCapability<TestRedisBuilderHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis',
             { builder: this._handle, name, port }
         ).then(handle => new TestRedisBuilder(handle, this._client));
@@ -139,11 +128,10 @@ export class DistributedApplicationBuilder {
 // TestRedisBuilder
 // ============================================================================
 
-export class TestRedisBuilder {
-    constructor(protected _handle: TestRedisBuilderHandle, protected _client: AspireClient) {}
-
-    /** Gets the underlying handle */
-    get handle(): TestRedisBuilderHandle { return this._handle; }
+export class TestRedisBuilder extends ResourceBuilderBase<TestRedisBuilderHandle> {
+    constructor(handle: TestRedisBuilderHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
 
     /** Configures the Redis resource with persistence */
     /** @internal */
@@ -207,48 +195,14 @@ export class TestRedisBuilderPromise implements PromiseLike<TestRedisBuilder> {
 }
 
 // ============================================================================
-// AspireClient - Entry point and factory methods
-// ============================================================================
-
-/**
- * High-level Aspire client that provides typed access to ATS capabilities.
- */
-export class AspireClient {
-    constructor(private readonly rpc: RemoteAppHostClient) {}
-
-    /** Get the underlying RPC client */
-    get client(): RemoteAppHostClient {
-        return this.rpc;
-    }
-
-    /**
-     * Invokes a capability by ID with the given arguments.
-     * Use this for capabilities not exposed as typed methods.
-     */
-    async invokeCapability<T>(
-        capabilityId: string,
-        args?: Record<string, unknown>
-    ): Promise<T> {
-        return await this.rpc.invokeCapability<T>(capabilityId, args ?? {});
-    }
-
-    /**
-     * Lists all available capabilities from the server.
-     */
-    async getCapabilities(): Promise<string[]> {
-        return await this.rpc.getCapabilities();
-    }
-}
-
-// ============================================================================
 // Connection Helper
 // ============================================================================
 
 /**
- * Creates and connects an AspireClient.
+ * Creates and connects to the Aspire AppHost.
  * Reads connection info from environment variables set by `aspire run`.
  */
-export async function connect(): Promise<AspireClient> {
+export async function connect(): Promise<AspireClientRpc> {
     const socketPath = process.env.REMOTE_APP_HOST_SOCKET_PATH;
     if (!socketPath) {
         throw new Error(
@@ -265,11 +219,11 @@ export async function connect(): Promise<AspireClient> {
         );
     }
 
-    const rpc = new RemoteAppHostClient(socketPath);
-    await rpc.connect();
-    await rpc.authenticate(authToken);
+    const client = new AspireClientRpc(socketPath);
+    await client.connect();
+    await client.authenticate(authToken);
 
-    return new AspireClient(rpc);
+    return client;
 }
 
 /**
@@ -288,7 +242,7 @@ export async function connect(): Promise<AspireClient> {
  */
 export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
     const client = await connect();
-    const handle = await client.client.invokeCapability<BuilderHandle>(
+    const handle = await client.invokeCapability<BuilderHandle>(
         'Aspire.Hosting/createBuilder',
         { args }
     );
@@ -296,7 +250,8 @@ export async function createBuilder(args: string[] = process.argv.slice(2)): Pro
 }
 
 // Re-export commonly used types
-export { Handle, CapabilityError, registerCallback, refExpr, ReferenceExpression } from './RemoteAppHostClient.js';
+export { Handle, CapabilityError, registerCallback } from './transport.js';
+export { refExpr, ReferenceExpression } from './base.js';
 
 // ============================================================================
 // Global Error Handling

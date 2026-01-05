@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\types.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.types.ts" />
-    <EmbeddedResource Include="Resources\RemoteAppHostClient.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.RemoteAppHostClient.ts" />
+    <EmbeddedResource Include="Resources\transport.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.transport.ts" />
+    <EmbeddedResource Include="Resources\base.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.base.ts" />
     <EmbeddedResource Include="Resources\package.json" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.package.json" />
   </ItemGroup>
 
