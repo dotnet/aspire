@@ -149,7 +149,7 @@ ATS is the central type system that bridges .NET and guest languages. Every type
 
 Type IDs are portable identifiers for .NET types:
 
-**Format:** `aspire/{TypeName}` or `aspire.{package}/{TypeName}`
+**Format:** `aspire/{TypeName}`
 
 | ATS Type ID | .NET Type |
 |-------------|-----------|
@@ -685,7 +685,7 @@ To add a new language:
 | JSON-RPC Server | `Aspire.Hosting.RemoteHost` | Handles all RPC |
 | Capability Dispatcher | `Aspire.Hosting.RemoteHost` | Routes to implementations |
 | Handle Registry | `Aspire.Hosting.RemoteHost` | Object lifecycle |
-| Capability Scanner | `Aspire.Hosting.CodeGeneration` | Discovers `[AspireExport]` |
+| Capability Scanner | `Aspire.Hosting` | Discovers `[AspireExport]` |
 
 ### Code Generator Requirements
 
