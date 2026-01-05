@@ -515,6 +515,11 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
         {
             return Task.CompletedTask;
         }
+
+        public Task DeleteSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class CustomResource(string name) : Resource(name);
