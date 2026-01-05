@@ -1,0 +1,10 @@
+::deep .name-title-text {
+    display: flex;
+    align-items: center;
+    margin-left: 34px;
+}
+
+::deep .resources-name-container {
+    display: flex;
+    align-items: center;
+}

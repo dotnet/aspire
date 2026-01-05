@@ -59,7 +59,73 @@ public sealed class TelemetryExportService
         return memoryStream;
     }
 
+    /// <summary>
+    /// Exports selected telemetry and console logs as a zip archive stream.
+    /// </summary>
+    /// <param name="selectedResources">Dictionary mapping resource names to the data types to export.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A memory stream containing the zip archive.</returns>
+    public async Task<MemoryStream> ExportSelectedAsync(Dictionary<string, HashSet<AspireDataType>> selectedResources, CancellationToken cancellationToken)
+    {
+        var memoryStream = new MemoryStream();
+
+        using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            var allOtlpResources = _telemetryRepository.GetResources();
+
+            // Filter to selected resources with matching data types
+            var consoleLogResources = selectedResources
+                .Where(kvp => kvp.Value.Contains(AspireDataType.ConsoleLogs))
+                .Select(kvp => kvp.Key)
+                .ToHashSet(StringComparers.ResourceName);
+
+            var structuredLogResources = allOtlpResources
+                .Where(r => selectedResources.TryGetValue(r.ResourceKey.GetCompositeName(), out var types) && types.Contains(AspireDataType.StructuredLogs))
+                .ToList();
+
+            var traceResources = allOtlpResources
+                .Where(r => selectedResources.TryGetValue(r.ResourceKey.GetCompositeName(), out var types) && types.Contains(AspireDataType.Traces))
+                .ToList();
+
+            var metricsResources = allOtlpResources
+                .Where(r => selectedResources.TryGetValue(r.ResourceKey.GetCompositeName(), out var types) && types.Contains(AspireDataType.Metrics))
+                .ToList();
+
+            // Export console logs for selected resources
+            if (consoleLogResources.Count > 0)
+            {
+                await ExportConsoleLogsAsync(archive, consoleLogResources, cancellationToken).ConfigureAwait(false);
+            }
+
+            // Export structured logs (OTLP JSON)
+            if (structuredLogResources.Count > 0)
+            {
+                ExportStructuredLogs(archive, structuredLogResources);
+            }
+
+            // Export traces (OTLP JSON)
+            if (traceResources.Count > 0)
+            {
+                ExportTraces(archive, traceResources);
+            }
+
+            // Export metrics (OTLP JSON)
+            if (metricsResources.Count > 0)
+            {
+                ExportMetrics(archive, metricsResources);
+            }
+        }
+
+        memoryStream.Position = 0;
+        return memoryStream;
+    }
+
     private async Task ExportConsoleLogsAsync(ZipArchive archive, CancellationToken cancellationToken)
+    {
+        await ExportConsoleLogsAsync(archive, resourceFilter: null, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ExportConsoleLogsAsync(ZipArchive archive, HashSet<string>? resourceFilter, CancellationToken cancellationToken)
     {
         if (!_dashboardClient.IsEnabled)
         {
@@ -67,6 +133,12 @@ public sealed class TelemetryExportService
         }
 
         var resources = _dashboardClient.GetResources();
+
+        // Filter resources if a filter is provided
+        if (resourceFilter is not null)
+        {
+            resources = resources.Where(r => resourceFilter.Contains(r.Name)).ToList();
+        }
 
         // Fetch console logs for all resources in parallel
         var logTasks = resources.Select(async resource =>
@@ -91,7 +163,7 @@ public sealed class TelemetryExportService
         {
             if (logs.Length > 0)
             {
-                var resourceName = ResourceViewModel.GetResourceName(resource, resources);
+                var resourceName = ResourceViewModel.GetResourceName(resource, _dashboardClient.GetResources());
                 var entry = archive.CreateEntry($"consolelogs/{SanitizeFileName(resourceName)}.txt");
                 using var entryStream = entry.Open();
                 using var writer = new StreamWriter(entryStream, Encoding.UTF8);

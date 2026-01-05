@@ -13,78 +13,92 @@
                     GridTemplateColumns="2fr 1fr"
                     TGridItem="ManageDataGridItem"
                     RowClass="@GetRowClass"
-                    OnRowClick="@OnRowClicked">
+                    OnRowClick="@OnRowClicked"
+                    ShowHover="true"
+                    ItemKey="@(item => GetItemKey(item))"
+                    Class="enable-row-click">
         <ChildContent>
             <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
                 <HeaderCellItemTemplate>
-                    <FluentButton Appearance="Appearance.Lightweight"
-                                  IconEnd="@GetHeaderCheckboxIcon()"
-                                  OnClick="OnSelectAllClicked"
-                                  style="margin-right: 8px;" />
-                    @ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]
+                    <div style="display: flex; justify-content: flex-start;">
+                        <div class="col-title" style="width: calc(100% - 10px);">
+                            <div class="col-title-text name-title-text">
+                                <FluentButton Appearance="Appearance.Lightweight"
+                                              IconEnd="@GetHeaderCheckboxIcon()"
+                                              OnClick="OnSelectAllClicked"
+                                              style="margin-right: 8px;" />
+                                @ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]
+                            </div>
+                        </div>
+                    </div>
+
                 </HeaderCellItemTemplate>
                 <ChildContent>
-                @{
-                    var indent = context.Depth * 48;
-                }
-                <span class="resources-name-container" style="margin-left: @(indent)px;">
-                    @if (context.IsResourceRow && context.ResourceRow is not null)
-                    {
-                        <span @onclick:stopPropagation="true" class="main-grid-expand-container @(context.ResourceRow.IsExpanded ? "main-grid-expanded" : "main-grid-collapsed")">
-                            @if (context.ResourceRow.Data.Count > 0)
-                            {
-                                <FluentButton Appearance="Appearance.Lightweight"
-                                              Class="main-grid-expand-button"
-                                              OnClick="@(() => OnToggleExpand(context.ResourceRow))"
-                                              aria-label="@ControlsStringsLoc[nameof(ControlsStrings.ToggleNesting)]">
-                                    <FluentIcon Icon="Icons.Regular.Size12.ChevronRight" Color="Color.Neutral" />
-                                </FluentButton>
-                            }
-                        </span>
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      IconEnd="@GetResourceCheckboxIcon(context.ResourceRow)"
-                                      OnClick="@(() => OnSelectRowClicked(context.ResourceRow))"
-                                      style="margin-right: 8px;" />
-                        @if (context.ResourceRow.Resource is not null)
+                    @{
+                        var indent = context.Depth * 48;
+                    }
+                    <span class="resources-name-container" style="margin-left: @(indent)px;">
+                        @if (context.IsResourceRow && context.ResourceRow is not null)
                         {
-                            <ResourceNameDisplay Resource="context.ResourceRow.Resource" FilterText="" FormatName="GetResourceName" />
-                        }
-                        else
-                        {
-                            @* Telemetry-only resource - display with default icon *@
-                            <span class="resource-name-container">
-                                <FluentIcon Width="16px"
-                                            Class="resource-icon"
-                                            Color="Color.Custom"
-                                            CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(context.ResourceRow.DisplayName)"
-                                            Value="@GetDefaultResourceIcon()" />
-                                <span class="resource-name-text">@context.ResourceRow.DisplayName</span>
+                            <span @onclick:stopPropagation="true" class="main-grid-expand-container @(context.ResourceRow.IsExpanded ? "main-grid-expanded" : "main-grid-collapsed")">
+                                @if (context.ResourceRow.Data.Count > 0)
+                                {
+                                    <FluentButton Appearance="Appearance.Lightweight"
+                                                  Class="main-grid-expand-button"
+                                                  OnClick="@(() => OnToggleExpand(context.ResourceRow))"
+                                                  aria-label="@ControlsStringsLoc[nameof(ControlsStrings.ToggleNesting)]">
+                                        <FluentIcon Icon="Icons.Regular.Size12.ChevronRight" Color="Color.Neutral" />
+                                    </FluentButton>
+                                }
                             </span>
+                            <span @onclick:stopPropagation="true">
+                                <FluentButton Appearance="Appearance.Lightweight"
+                                              IconEnd="@GetResourceCheckboxIcon(context.ResourceRow)"
+                                              OnClick="@(() => OnSelectRowClicked(context.ResourceRow))"
+                                              style="margin-right: 8px;" />
+                            </span>
+                            @if (context.ResourceRow.Resource is not null)
+                            {
+                                <ResourceNameDisplay Resource="context.ResourceRow.Resource" FilterText="" FormatName="GetResourceName" />
+                            }
+                            else
+                            {
+                                @* Telemetry-only resource - display with default icon *@
+                                <span class="resource-name-container">
+                                    <FluentIcon Width="16px"
+                                                Class="resource-icon"
+                                                Color="Color.Custom"
+                                                CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(context.ResourceRow.DisplayName)"
+                                                Value="@GetDefaultResourceIcon()" />
+                                    <span class="resource-name-text">@context.ResourceRow.DisplayName</span>
+                                </span>
+                            }
                         }
-                    }
-                    else if (context.IsNestedRow && context.NestedRow is not null)
-                    {
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      IconEnd="@(context.NestedRow.Selected ? _iconSelectedMultiple : _iconUnselectedMultiple)"
-                                      OnClick="@(() => OnSelectDataRowClicked(context.NestedRow))"
-                                      style="margin-right: 8px;" />
-                        <span class="cellText">@context.NestedRow.Name</span>
-                    }
-                </span>
+                        else if (context.IsNestedRow && context.NestedRow is not null)
+                        {
+                            <span @onclick:stopPropagation="true">
+                                <FluentButton Appearance="Appearance.Lightweight"
+                                              IconEnd="@(context.NestedRow.Selected ? _iconSelectedMultiple : _iconUnselectedMultiple)"
+                                              OnClick="@(() => OnSelectDataRowClicked(context.NestedRow))"
+                                              style="margin-right: 8px;" />
+                            </span>
+                            <span class="cellText">@context.NestedRow.DisplayName</span>
+                        }
+                    </span>
                 </ChildContent>
             </TemplateColumn>
-            <TemplateColumn Title="@Loc[nameof(Dialogs.ManageDataInfoColumnHeader)]">
+            <TemplateColumn Title="@Loc[nameof(Dialogs.ManageDataSummaryColumnHeader)]">
                 @if (context.IsResourceRow && context.ResourceRow is not null)
                 {
-                    <span class="cellText">@GetSourceInfo(context.ResourceRow)</span>
-                }
-                else if (context.IsNestedRow)
-                {
-                    <FluentIcon Icon="Icons.Filled.Size16.CheckboxChecked" Color="Color.Success" style="margin-right: 4px;" />
-                    if (context.NestedRow?.DataCount is { } dataCount)
-                    {
-                        <span class="cellText">@dataCount</span>
-                    }
+                    <span @onclick:stopPropagation="true">
+                        @foreach (var dataRow in context.ResourceRow.Data)
+                        {
+                            <FluentButton Appearance="Appearance.Lightweight"
+                                          IconEnd="@dataRow.Icon"
+                                          OnClick="@(() => NavigateToDataPage(dataRow))"
+                                          Style="margin-right: 4px;" />
+                        }
+                    </span>
                 }
             </TemplateColumn>
         </ChildContent>
@@ -96,14 +110,14 @@
 
 <div style="margin-top: 16px;">
     <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowDownload())"
-                  OnClick="ExportAllAsync"
+                  OnClick="ExportSelectedAsync"
                   Loading="@_isExporting"
                   Title="@Loc[nameof(Dialogs.ManageDataExportButtonText)]"
                   aria-label="@Loc[nameof(Dialogs.ManageDataExportButtonText)]">
         @Loc[nameof(Dialogs.ManageDataExportButtonText)]
     </FluentButton>
     <FluentButton IconStart="@(new Icons.Regular.Size16.Delete())"
-                  OnClick="RemoveAllAsync"
+                  OnClick="RemoveSelectedAsync"
                   Title="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]"
                   aria-label="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]">
         @Loc[nameof(Dialogs.ManageDataRemoveButtonText)]

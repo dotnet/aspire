@@ -3,12 +3,10 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
@@ -17,7 +15,6 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     private string? _currentSetting;
     private List<CultureInfo> _languageOptions = null!;
     private CultureInfo? _selectedUiCulture;
-    private bool _isExporting;
 
     private IDisposable? _themeChangedSubscription;
 
@@ -25,25 +22,10 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     public required ThemeManager ThemeManager { get; init; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; init; }
-
-    [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required ConsoleLogsManager ConsoleLogsManager { get; init; }
-
-    [Inject]
-    public required BrowserTimeProvider TimeProvider { get; init; }
-
-    [Inject]
     public required DashboardTelemetryService TelemetryService { get; init; }
-
-    [Inject]
-    public required TelemetryExportService TelemetryExportService { get; init; }
-
-    [Inject]
-    public required IJSRuntime JS { get; init; }
 
     [Inject]
     public required IDialogService DialogService { get; init; }
@@ -102,38 +84,6 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     private static void ValueChanged(string? value)
     {
         // Do nothing. Required for FluentUI Blazor to trigger SelectedOptionChanged.
-    }
-
-    private async Task ClearAllSignals()
-    {
-        TelemetryRepository.ClearAllSignals();
-
-        await ConsoleLogsManager.UpdateFiltersAsync(new ConsoleLogsFilters { FilterAllLogsDate = TimeProvider.GetUtcNow().UtcDateTime });
-    }
-
-    private async Task ExportAllAsync()
-    {
-        if (_isExporting)
-        {
-            return;
-        }
-
-        _isExporting = true;
-        StateHasChanged();
-
-        try
-        {
-            using var memoryStream = await TelemetryExportService.ExportAllAsync(CancellationToken.None);
-            var fileName = $"aspire-telemetry-export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip";
-
-            using var streamRef = new DotNetStreamReference(memoryStream, leaveOpen: false);
-            await JS.InvokeVoidAsync("downloadStreamAsFile", fileName, streamRef);
-        }
-        finally
-        {
-            _isExporting = false;
-            StateHasChanged();
-        }
     }
 
     private async Task LaunchManageDataAsync()

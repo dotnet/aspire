@@ -1186,7 +1186,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Resource logs and telemetry.
+        ///   Looks up a localized string similar to Manage logs and telemetry.
         /// </summary>
         public static string ManageDataDialogTitle {
             get {
@@ -1204,7 +1204,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Export.
+        ///   Looks up a localized string similar to Export selected.
         /// </summary>
         public static string ManageDataExportButtonText {
             get {
@@ -1213,7 +1213,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Remove.
+        ///   Looks up a localized string similar to Remove selected.
         /// </summary>
         public static string ManageDataRemoveButtonText {
             get {
@@ -1222,11 +1222,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Info.
+        ///   Looks up a localized string similar to Summary.
         /// </summary>
-        public static string ManageDataInfoColumnHeader {
+        public static string ManageDataSummaryColumnHeader {
             get {
-                return ResourceManager.GetString("ManageDataInfoColumnHeader", resourceCulture);
+                return ResourceManager.GetString("ManageDataSummaryColumnHeader", resourceCulture);
             }
         }
         

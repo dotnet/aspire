@@ -41,19 +41,6 @@
                               aria-label="@Loc[nameof(Dialogs.ManageDataManageButtonText)]">
                     @Loc[nameof(Dialogs.ManageDataManageButtonText)]
                 </FluentButton>
-                <FluentButton IconStart="@(new Icons.Regular.Size16.Delete())"
-                              OnClick="ClearAllSignals"
-                              Title="@Loc[nameof(Dialogs.SettingsRemoveAllButtonText)]"
-                              aria-label="@Loc[nameof(Dialogs.SettingsRemoveAllButtonText)]">
-                    @Loc[nameof(Dialogs.SettingsRemoveAllButtonText)]
-                </FluentButton>
-                <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowDownload())"
-                              OnClick="ExportAllAsync"
-                              Loading="@_isExporting"
-                              Title="@Loc[nameof(Dialogs.SettingsExportAllButtonText)]"
-                              aria-label="@Loc[nameof(Dialogs.SettingsExportAllButtonText)]">
-                    @Loc[nameof(Dialogs.SettingsExportAllButtonText)]
-                </FluentButton>
             </div>
         </div>
 
