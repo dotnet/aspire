@@ -320,6 +320,43 @@ public class UserSecretsParameterDefaultTests
         DeleteUserSecretsFile(userSecretsId);
     }
 
+    [Fact]
+    public async Task GetDefaultValue_ConcurrentAccess_DifferentManagers_ReturnsSameValue()
+    {
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        ClearUsersSecrets(userSecretsId);
+        
+        var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
+
+        var tasks = new List<Task<string>>();
+        for (int i = 0; i < 10; i++)
+        {
+            tasks.Add(Task.Run(() => 
+            {
+                // Create a NEW factory for each task to simulate separate processes/containers
+                // This ensures they have different UserSecretsManager instances (different Semaphores)
+                // BUT they map to the same file path, so they must rely on the named Mutex for synchronization.
+                var factory = CreateFactory(); 
+                var manager = factory.GetOrCreate(testAssembly);
+                
+                var paramDefault = new TestParameterDefault(); // Generates random GUID
+                var usd = new UserSecretsParameterDefault("TestApp", "race-param", paramDefault, manager);
+                return usd.GetDefaultValue();
+            }));
+        }
+        
+        var results = await Task.WhenAll(tasks);
+        
+        var firstValue = results[0];
+        Assert.All(results, r => Assert.Equal(firstValue, r));
+        
+        var secrets = GetUserSecrets(userSecretsId);
+        Assert.Equal(firstValue, secrets["Parameters:race-param"]);
+
+        DeleteUserSecretsFile(userSecretsId);
+    }
+
     private static void EnsureUserSecretsDirectory(string secretsFilePath)
     {
         var directoryName = Path.GetDirectoryName(secretsFilePath);
