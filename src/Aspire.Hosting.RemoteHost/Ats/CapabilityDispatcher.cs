@@ -3,10 +3,8 @@
 
 using System.Collections.Concurrent;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.RemoteHost.Ats;
@@ -68,31 +66,34 @@ internal sealed class CapabilityDispatcher
 
     /// <summary>
     /// Scans the provided assemblies for [AspireExport] and [AspireContextType] attributes.
+    /// Uses the shared AtsCapabilityScanner for discovery.
     /// </summary>
     private void ScanAssemblies(IEnumerable<Assembly> assemblies)
     {
-        foreach (var assembly in assemblies)
+        // Build type mapping from the assemblies being scanned
+        var assemblyList = assemblies.ToList();
+        var typeMapping = AtsTypeMapping.FromAssemblies(assemblyList);
+
+        foreach (var assembly in assemblyList)
         {
             try
             {
-                foreach (var type in assembly.GetTypes())
-                {
-                    // Check for [AspireContextType] - auto-register property accessors
-                    var contextAttr = type.GetCustomAttribute<AspireContextTypeAttribute>();
-                    if (contextAttr != null)
-                    {
-                        RegisterContextTypeProperties(type, contextAttr);
-                    }
+                var wrappedAssembly = new RuntimeAssemblyInfo(assembly);
 
-                    // Check for [AspireExport] on static methods
-                    foreach (var method in type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
-                    {
-                        var attr = method.GetCustomAttribute<AspireExportAttribute>();
-                        if (attr != null)
-                        {
-                            RegisterFromAttribute(attr, method);
-                        }
-                    }
+                // Scan for method capabilities
+                foreach (var (capability, methodInfo) in AtsCapabilityScanner.EnumerateCapabilitiesWithMethods(
+                    wrappedAssembly, typeMapping, typeResolver: null))
+                {
+                    var method = ((RuntimeMethodInfo)methodInfo).UnderlyingMethod;
+                    RegisterFromCapability(capability, method);
+                }
+
+                // Scan for context type property capabilities
+                foreach (var (capability, contextType, propertyInfo) in AtsCapabilityScanner.EnumerateContextTypeCapabilities(
+                    wrappedAssembly, typeMapping, typeResolver: null))
+                {
+                    var property = ((RuntimePropertyInfo)propertyInfo).UnderlyingProperty;
+                    RegisterContextTypeProperty(capability, property);
                 }
             }
             catch (ReflectionTypeLoadException)
@@ -103,82 +104,53 @@ internal sealed class CapabilityDispatcher
     }
 
     /// <summary>
-    /// Registers property accessors for a context type.
+    /// Registers a context type property capability.
     /// </summary>
-    private void RegisterContextTypeProperties(Type contextType, AspireContextTypeAttribute attr)
+    private void RegisterContextTypeProperty(AtsCapabilityInfo capability, PropertyInfo property)
     {
-        var version = attr.Version;
+        var capabilityId = capability.CapabilityId;
+        var prop = property; // Capture for closure
 
-        foreach (var property in contextType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        CapabilityHandler handler = (args, handles, hierarchy) =>
         {
-            // Skip properties without getters
-            if (!property.CanRead)
+            // The context object is passed as the first argument
+            if (args == null || !args.TryGetPropertyValue("context", out var contextNode))
             {
-                continue;
+                throw CapabilityException.InvalidArgument(capabilityId, "context", "Missing required argument 'context'");
             }
 
-            // Skip non-ATS-compatible properties
-            if (!AtsIntrinsics.IsAtsCompatible(property.PropertyType))
+            var handleRef = HandleRef.FromJsonNode(contextNode);
+            if (handleRef == null)
             {
-                continue;
+                throw CapabilityException.InvalidArgument(capabilityId, "context", "Argument 'context' must be a handle reference");
             }
 
-            // Generate capability ID: aspire/EnvironmentContext.environmentVariables@1
-            var propertyName = char.ToLowerInvariant(property.Name[0]) + property.Name[1..];
-            var capabilityId = $"{attr.Id}.{propertyName}@{version}";
-
-            // Create a handler that gets the property value
-            var prop = property; // Capture for closure
-            CapabilityHandler handler = (args, handles, hierarchy) =>
+            if (!handles.TryGet(handleRef.HandleId, out var contextObj, out _))
             {
-                // The context object is passed as the first argument
-                if (args == null || !args.TryGetPropertyValue("context", out var contextNode))
-                {
-                    throw CapabilityException.InvalidArgument(capabilityId, "context", "Missing required argument 'context'");
-                }
+                throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
+            }
 
-                var handleRef = HandleRef.FromJsonNode(contextNode);
-                if (handleRef == null)
-                {
-                    throw CapabilityException.InvalidArgument(capabilityId, "context", "Argument 'context' must be a handle reference");
-                }
+            var value = prop.GetValue(contextObj);
+            return AtsMarshaller.MarshalToJson(value, handles);
+        };
 
-                if (!handles.TryGet(handleRef.HandleId, out var contextObj, out _))
-                {
-                    throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
-                }
-
-                var value = prop.GetValue(contextObj);
-                return AtsMarshaller.MarshalToJson(value, handles);
-            };
-
-            _capabilities[capabilityId] = new CapabilityRegistration
-            {
-                CapabilityId = capabilityId,
-                Handler = handler,
-                AppliesTo = attr.Id,
-                Description = $"Gets the {property.Name} property"
-            };
-        }
+        _capabilities[capabilityId] = new CapabilityRegistration
+        {
+            CapabilityId = capabilityId,
+            Handler = handler,
+            AppliesTo = capability.ConstraintTypeId,
+            Description = capability.Description ?? $"Gets the {property.Name} property"
+        };
     }
 
     /// <summary>
-    /// Registers an export from its attribute and method.
+    /// Registers a capability from its info and method.
+    /// Uses metadata from the shared scanner, creates runtime handler for invocation.
     /// </summary>
-    private void RegisterFromAttribute(AspireExportAttribute attr, MethodInfo method)
+    private void RegisterFromCapability(AtsCapabilityInfo capability, MethodInfo method)
     {
-        if (attr.Id is null)
-        {
-            throw new InvalidOperationException($"AspireExportAttribute on method {method.DeclaringType?.Name}.{method.Name} must have an Id.");
-        }
-
+        var capabilityId = capability.CapabilityId;
         var parameters = method.GetParameters();
-
-        // Check if this is an extension method
-        var isExtensionMethod = method.IsDefined(typeof(ExtensionAttribute), false) && parameters.Length > 0;
-
-        // Auto-derive AppliesTo if not explicitly specified
-        var appliesTo = attr.AppliesTo ?? DeriveAppliesTo(method, parameters, isExtensionMethod);
 
         // Create a handler that invokes the method via reflection
         CapabilityHandler handler = (args, handles, hierarchy) =>
@@ -198,7 +170,7 @@ internal sealed class CapabilityDispatcher
                     {
                         Handles = handles,
                         CallbackProxyFactory = _callbackProxyFactory,
-                        CapabilityId = attr.Id,
+                        CapabilityId = capabilityId,
                         ParameterName = paramName,
                         CallbackId = callbackAttr?.CallbackId
                     };
@@ -211,7 +183,7 @@ internal sealed class CapabilityDispatcher
                 else
                 {
                     throw CapabilityException.InvalidArgument(
-                        attr.Id, paramName, $"Missing required argument '{paramName}'");
+                        capabilityId, paramName, $"Missing required argument '{paramName}'");
                 }
             }
 
@@ -262,97 +234,13 @@ internal sealed class CapabilityDispatcher
             return ConvertResult(result, handles);
         };
 
-        _capabilities[attr.Id] = new CapabilityRegistration
+        _capabilities[capabilityId] = new CapabilityRegistration
         {
-            CapabilityId = attr.Id,
+            CapabilityId = capabilityId,
             Handler = handler,
-            AppliesTo = appliesTo,
-            Description = attr.Description
+            AppliesTo = capability.ConstraintTypeId,
+            Description = capability.Description
         };
-    }
-
-    /// <summary>
-    /// Derives the AppliesTo constraint from method signature.
-    /// For extension methods, uses the first parameter type.
-    /// For generic methods, uses constraints on type parameters.
-    /// </summary>
-    private static string? DeriveAppliesTo(MethodInfo method, ParameterInfo[] parameters, bool isExtensionMethod)
-    {
-        // For extension methods on IResourceBuilder<T>, derive from T
-        if (isExtensionMethod && parameters.Length > 0)
-        {
-            var firstParamType = parameters[0].ParameterType;
-
-            // Check for IResourceBuilder<T>
-            var resourceType = AtsIntrinsics.GetResourceType(firstParamType);
-            if (resourceType != null)
-            {
-                // For generic methods with constraints like "where T : JavaScriptAppResource",
-                // we want to use the constraint type, not the generic parameter
-                if (method.IsGenericMethod)
-                {
-                    var constraintType = GetResourceConstraintFromMethod(method);
-                    if (constraintType != null)
-                    {
-                        return AtsIntrinsics.GetResourceTypeId(constraintType);
-                    }
-                }
-
-                // For concrete types like IResourceBuilder<RedisResource>
-                if (!resourceType.IsGenericParameter)
-                {
-                    return AtsIntrinsics.GetResourceTypeId(resourceType);
-                }
-
-                // For IResourceBuilder<T> without constraints, use base interface
-                return AtsTypeMapping.TypeIds.IResource;
-            }
-
-            // Check for other intrinsic types (IDistributedApplicationBuilder, etc.)
-            var typeId = AtsIntrinsics.GetTypeId(firstParamType);
-            if (typeId != null)
-            {
-                // Don't set AppliesTo for builder methods - they're entry points
-                if (typeId == AtsTypeMapping.TypeIds.Builder)
-                {
-                    return null;
-                }
-                return typeId;
-            }
-        }
-
-        // For generic methods, check type parameter constraints
-        if (method.IsGenericMethod)
-        {
-            var constraintType = GetResourceConstraintFromMethod(method);
-            if (constraintType != null)
-            {
-                return AtsIntrinsics.GetResourceTypeId(constraintType);
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Gets the most specific resource constraint from a generic method's type parameters.
-    /// </summary>
-    private static Type? GetResourceConstraintFromMethod(MethodInfo method)
-    {
-        var genericArgs = method.GetGenericArguments();
-        foreach (var typeParam in genericArgs)
-        {
-            var constraints = typeParam.GetGenericParameterConstraints();
-            foreach (var constraint in constraints)
-            {
-                // Look for resource type constraints (e.g., "where T : JavaScriptAppResource")
-                if (typeof(IResource).IsAssignableFrom(constraint) && constraint != typeof(IResource))
-                {
-                    return constraint;
-                }
-            }
-        }
-        return null;
     }
 
     /// <summary>

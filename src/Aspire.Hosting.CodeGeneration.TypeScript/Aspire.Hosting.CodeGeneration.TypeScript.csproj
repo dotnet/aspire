@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.CodeGeneration\Aspire.Hosting.CodeGeneration.csproj" />
   </ItemGroup>
 

@@ -124,11 +124,11 @@ public class AtsTypeScriptCodeGeneratorTests
             .ToList();
 
         // Assert parameters are captured
-        // The builder parameter is skipped because AppliesTo is inferred from the type mapping
+        // The builder parameter is skipped because ConstraintTypeId is inferred from the type mapping
         // (IDistributedApplicationBuilder -> "aspire/Builder")
         var addTestRedis = capabilities.First(c => c.CapabilityId == "aspire.test/addTestRedis@1");
         Assert.Equal(2, addTestRedis.Parameters.Count);
-        Assert.Equal("aspire/Builder", addTestRedis.AppliesTo);
+        Assert.Equal("aspire/Builder", addTestRedis.ConstraintTypeId);
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "name" && p.AtsTypeId == "string");
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "port" && p.IsOptional);
     }
@@ -165,7 +165,7 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.True(nameCapability.IsContextProperty);
         Assert.Equal("name", nameCapability.MethodName);
         Assert.Equal("string", nameCapability.ReturnTypeId);
-        Assert.Equal("aspire.test/TestContext", nameCapability.AppliesTo);
+        Assert.Equal("aspire.test/TestContext", nameCapability.ConstraintTypeId);
         Assert.Single(nameCapability.Parameters);
         Assert.Equal("context", nameCapability.Parameters[0].Name);
 
@@ -181,7 +181,7 @@ public class AtsTypeScriptCodeGeneratorTests
         // In production, when Aspire.Hosting is loaded, CancellationToken will be properly mapped.
     }
 
-    private static Aspire.Hosting.CodeGeneration.Models.ApplicationModel CreateApplicationModelFromTestAssembly()
+    private static Aspire.Hosting.CodeGeneration.Models.CodeGenApplicationModel CreateApplicationModelFromTestAssembly()
     {
         // Get the path to this test assembly
         var testAssemblyPath = typeof(TestRedisResource).Assembly.Location;
@@ -222,6 +222,6 @@ public class AtsTypeScriptCodeGeneratorTests
         var integrationModel = IntegrationModel.Create(wellKnownTypes, testAssembly);
 
         // Create an ApplicationModel
-        return Aspire.Hosting.CodeGeneration.Models.ApplicationModel.Create([integrationModel], "/test/app", context);
+        return Aspire.Hosting.CodeGeneration.Models.CodeGenApplicationModel.Create([integrationModel], "/test/app", context);
     }
 }

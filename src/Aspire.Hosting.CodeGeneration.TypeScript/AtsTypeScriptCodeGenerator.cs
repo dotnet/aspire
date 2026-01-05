@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Reflection;
+using Aspire.Hosting.Ats;
 using Aspire.Hosting.CodeGeneration.Models;
 using Aspire.Hosting.CodeGeneration.Models.Ats;
 
@@ -92,7 +93,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     public string Language => "TypeScript";
 
     /// <inheritdoc />
-    public Dictionary<string, string> GenerateDistributedApplication(ApplicationModel model)
+    public Dictionary<string, string> GenerateDistributedApplication(CodeGenApplicationModel model)
     {
         var files = new Dictionary<string, string>();
 
@@ -148,11 +149,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             """);
         WriteLine();
 
-        // Get builder models grouped by AppliesTo
+        // Get builder models (flattened - each builder has all its applicable capabilities)
         var allBuilders = AtsBuilderModelFactory.CreateBuilderModels(capabilities);
         var entryPoints = AtsBuilderModelFactory.GetEntryPointCapabilities(capabilities);
 
-        // Extract the DistributedApplicationBuilder's capabilities (AppliesTo = "aspire/Builder")
+        // Extract the DistributedApplicationBuilder's capabilities (ConstraintTypeId = "aspire/Builder")
         var distributedAppBuilder = allBuilders.FirstOrDefault(b => b.TypeId == AtsTypeMapping.TypeIds.Builder);
         var builderMethods = distributedAppBuilder?.Capabilities ?? [];
 
@@ -168,9 +169,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var typeIds = new HashSet<string>();
         foreach (var cap in capabilities)
         {
-            if (!string.IsNullOrEmpty(cap.AppliesTo))
+            if (!string.IsNullOrEmpty(cap.ConstraintTypeId))
             {
-                typeIds.Add(cap.AppliesTo);
+                typeIds.Add(cap.ConstraintTypeId);
             }
             if (!string.IsNullOrEmpty(cap.ReturnTypeId) && cap.ReturnTypeId.StartsWith("aspire/", StringComparison.Ordinal))
             {
@@ -214,7 +215,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Generate resource builder classes
         foreach (var builder in resourceBuilders)
         {
-            GenerateBuilderClass(builder, resourceBuilders);
+            GenerateBuilderClass(builder);
         }
 
         // Generate AspireClient with remaining entry point methods
@@ -512,7 +513,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
     }
 
-    private void GenerateBuilderClass(AtsBuilderInfo builder, List<AtsBuilderInfo> allBuilders)
+    private void GenerateBuilderClass(AtsBuilderInfo builder)
     {
         WriteLine("// ============================================================================");
         WriteLine($"// {builder.BuilderClassName}");
@@ -521,34 +522,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         var handleType = AtsBuilderModelFactory.GetHandleTypeName(builder.TypeId);
 
-        // Determine base class
-        string? baseClass = null;
-        if (builder.ParentTypeIds.Count > 0)
-        {
-            var parentBuilder = allBuilders.FirstOrDefault(b => b.TypeId == builder.ParentTypeIds[0]);
-            if (parentBuilder != null)
-            {
-                baseClass = parentBuilder.BuilderClassName;
-            }
-        }
+        // Generate builder class (no inheritance - capabilities are flattened)
+        WriteLine($"export class {builder.BuilderClassName} {{");
 
-        // Generate builder class
-        var extendsClause = baseClass != null ? $" extends {baseClass}" : "";
-        var abstractKeyword = builder.IsInterface ? "abstract " : "";
-
-        WriteLine($"export {abstractKeyword}class {builder.BuilderClassName}{extendsClause} {{");
-
-        // Constructor (only if no base class)
-        if (baseClass == null)
-        {
-            WriteLine($"    constructor(protected _handle: {handleType}, protected _client: AspireClient) {{}}");
-        }
-        else
-        {
-            WriteLine($"    constructor(handle: {handleType}, client: AspireClient) {{");
-            WriteLine("        super(handle, client);");
-            WriteLine("    }");
-        }
+        // Constructor
+        WriteLine($"    constructor(protected _handle: {handleType}, protected _client: AspireClient) {{}}");
         WriteLine();
 
         // Handle getter
@@ -557,6 +535,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
 
         // Generate internal methods and public fluent methods
+        // Capabilities are already flattened - no need to collect from parents
         foreach (var capability in builder.Capabilities)
         {
             GenerateBuilderMethod(builder, capability);
@@ -565,11 +544,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine("}");
         WriteLine();
 
-        // Generate thenable wrapper class (only for concrete builders)
-        if (!builder.IsInterface)
-        {
-            GenerateThenableClass(builder);
-        }
+        // Generate thenable wrapper class
+        GenerateThenableClass(builder);
     }
 
     private void GenerateBuilderMethod(AtsBuilderInfo builder, AtsCapabilityInfo capability)
@@ -689,6 +665,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
 
         // Generate fluent methods that chain via .then()
+        // Capabilities are already flattened - no need to collect from parents
         foreach (var capability in builder.Capabilities)
         {
             var methodName = capability.MethodName;
@@ -950,7 +927,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
 
             // Re-export commonly used types
-            export { Handle, CapabilityError, registerCallback } from './RemoteAppHostClient.js';
+            export { Handle, CapabilityError, registerCallback, refExpr, ReferenceExpression } from './RemoteAppHostClient.js';
             """);
         WriteLine();
     }
@@ -1041,11 +1018,18 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // First arg is the handle (implicit via this._handle)
         // Use parameter name from the method signature - typically matches the type
-        var firstParamName = AtsTypeMapping.GetParameterName(capability.AppliesTo);
+        var firstParamName = AtsTypeMapping.GetParameterName(capability.ConstraintTypeId);
         paramArgs.Add($"{firstParamName}: this._handle");
 
         foreach (var param in capability.Parameters)
         {
+            // Skip the first parameter if it matches the implicit handle parameter
+            // (e.g., for context type properties, the context is passed as this._handle)
+            if (param.Name == firstParamName)
+            {
+                continue;
+            }
+
             var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
             paramDefs.Add($"{param.Name}{optional}: {tsType}");

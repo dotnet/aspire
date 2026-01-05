@@ -56,18 +56,19 @@ public sealed class AtsCapabilityInfo
     public required string Package { get; init; }
 
     /// <summary>
-    /// Gets or sets the AppliesTo type constraint (e.g., "aspire/Redis", "aspire/IResourceWithEnvironment").
+    /// Gets or sets the constraint type ID inferred from generic constraints (e.g., "aspire/IResourceWithEnvironment").
     /// </summary>
     /// <remarks>
     /// <para>
-    /// When set, the first handle parameter must be assignable to this type.
-    /// This enables capabilities that work across multiple builder types.
+    /// This is inferred from CLR generic constraints like <c>where T : IResourceWithEnvironment</c>.
+    /// It determines which types this capability can be applied to.
     /// </para>
     /// <para>
-    /// Null for entry point methods like <c>createBuilder</c> that don't operate on a builder.
+    /// Null for entry point methods like <c>createBuilder</c> that don't operate on a builder,
+    /// or for methods without mapped constraints.
     /// </para>
     /// </remarks>
-    public string? AppliesTo { get; init; }
+    public string? ConstraintTypeId { get; init; }
 
     /// <summary>
     /// Gets or sets the description of what this capability does.

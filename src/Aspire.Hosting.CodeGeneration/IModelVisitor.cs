@@ -15,7 +15,7 @@ public interface IModelVisitor
     /// <summary>
     /// Visit the root application model.
     /// </summary>
-    void VisitApplicationModel(ApplicationModel model);
+    void VisitApplicationModel(CodeGenApplicationModel model);
 
     /// <summary>
     /// Visit the distributed application builder model.

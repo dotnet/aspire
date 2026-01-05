@@ -65,13 +65,29 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an environment variable to the resource.
+    /// Adds an environment variable to the resource with a reference expression value.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This overload enables polyglot hosts to set environment variables using dynamic
+    /// expressions that reference endpoints, parameters, and other value providers.
+    /// </para>
+    /// <para>
+    /// <strong>Usage from TypeScript:</strong>
+    /// <code>
+    /// const redis = await builder.addRedis("cache");
+    /// const endpoint = await redis.getEndpoint("tcp");
+    /// const expr = refExpr`redis://${endpoint}:6379`;
+    /// await api.withEnvironmentExpression("REDIS_URL", expr);
+    /// </code>
+    /// </para>
+    /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
-    /// <param name="value">The value of the environment variable.</param>
+    /// <param name="value">A ReferenceExpression that will be evaluated at runtime.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("aspire/withEnvironmentExpression@1", Description = "Adds an environment variable with a reference expression")]
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, ReferenceExpression value)
         where T : IResourceWithEnvironment
     {

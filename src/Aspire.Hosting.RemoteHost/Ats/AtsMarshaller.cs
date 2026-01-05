@@ -224,6 +224,14 @@ internal static class AtsMarshaller
             return handleObj;
         }
 
+        // Check for reference expression (similar to handle, but constructs a ReferenceExpression)
+        // Format: { "$expr": { "format": "...", "valueProviders": [...] } }
+        var exprRef = ReferenceExpressionRef.FromJsonNode(node);
+        if (exprRef != null)
+        {
+            return exprRef.ToReferenceExpression(context.Handles, capabilityId, paramName);
+        }
+
         // Handle callbacks - delegate types with [AspireCallback] attribute (on type or parameter)
         if (typeof(Delegate).IsAssignableFrom(targetType))
         {

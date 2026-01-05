@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using Aspire.Hosting.CodeGeneration.Ats;
 using Aspire.Hosting.CodeGeneration.Models.Ats;
 using Aspire.Hosting.CodeGeneration.Models.Types;
+using AtsTypeMapping = Aspire.Hosting.Ats.AtsTypeMapping;
 
 namespace Aspire.Hosting.CodeGeneration.Models;
 
@@ -96,8 +98,10 @@ public sealed class IntegrationModel
         // This ensures types like IDistributedApplicationBuilder -> "aspire/Builder" are available
         var hostingAssembly = knownTypes.IDistributedApplicationBuilderType.DeclaringAssembly;
         var typeMapping = hostingAssembly != assembly
-            ? AtsTypeMapping.FromAssemblies([hostingAssembly, assembly])
-            : AtsTypeMapping.FromAssembly(assembly);
+            ? AtsTypeMapping.FromAssemblies([
+                new RoAssemblyInfoWrapper(hostingAssembly),
+                new RoAssemblyInfoWrapper(assembly)])
+            : AtsTypeMapping.FromAssembly(new RoAssemblyInfoWrapper(assembly));
 
         // Scan for ATS capabilities via [AspireExport] attributes
         var capabilities = AtsCapabilityScanner.ScanAssembly(assembly, knownTypes, typeMapping);

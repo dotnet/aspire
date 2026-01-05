@@ -125,26 +125,6 @@ public sealed class AspireExportAttribute : Attribute
     public Type? Type { get; set; }
 
     /// <summary>
-    /// Gets or sets the handle type constraint for capability exports.
-    /// When set, the first handle parameter must be assignable to this type.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This enables "generic-like" exports that work across multiple builder types.
-    /// For example, <c>aspire/withEnvironment@1</c> might have <c>AppliesTo = "aspire/IResourceWithEnvironment"</c>
-    /// to allow it to work with ContainerBuilder, RedisBuilder, etc.
-    /// </para>
-    /// <para>
-    /// When an export has an AppliesTo constraint:
-    /// <list type="bullet">
-    /// <item><description>The dispatcher validates the first handle argument matches the constraint</description></item>
-    /// <item><description>The return type preserves the concrete input type (RedisBuilder in → RedisBuilder out)</description></item>
-    /// </list>
-    /// </para>
-    /// </remarks>
-    public string? AppliesTo { get; set; }
-
-    /// <summary>
     /// Gets or sets a description of what this export does.
     /// </summary>
     public string? Description { get; set; }

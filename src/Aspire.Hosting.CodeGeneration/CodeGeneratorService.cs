@@ -101,7 +101,7 @@ public sealed class CodeGeneratorService
         return savedHash != currentHash;
     }
 
-    private static ApplicationModel CreateApplicationModel(
+    private static CodeGenApplicationModel CreateApplicationModel(
         string appPath,
         List<(string PackageId, string Version)> packages,
         List<string> searchPaths)
@@ -135,7 +135,7 @@ public sealed class CodeGeneratorService
             integrations.Add(integration);
         }
 
-        return ApplicationModel.Create(integrations, appPath, assemblyLoaderContext);
+        return CodeGenApplicationModel.Create(integrations, appPath, assemblyLoaderContext);
     }
 
     private static RoAssembly? TryLoadPackageAssembly(

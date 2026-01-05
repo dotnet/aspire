@@ -2,7 +2,7 @@
 // This demonstrates the new ATS capability-based API with fluent builder pattern.
 // Run with: aspire run
 
-import { createBuilder } from './.modules/aspire.js';
+import { createBuilder, refExpr } from './.modules/aspire.js';
 
 console.log("Aspire TypeScript AppHost starting...\n");
 
@@ -15,6 +15,12 @@ const cache = await builder
     .addRedis("cache")
     .withRedisCommander();
 console.log("✅ Added Redis with Commander");
+
+// Demonstrate reference expression creation using tagged template literal
+// This creates a dynamic connection string that references the endpoint at runtime
+const port = 6379;
+const redisUrl = refExpr`redis://localhost:${port}`;
+console.log(`✅ Created reference expression: ${redisUrl}`);
 
 const api = await builder
     .addContainer("api", "mcr.microsoft.com/dotnet/samples:aspnetapp");

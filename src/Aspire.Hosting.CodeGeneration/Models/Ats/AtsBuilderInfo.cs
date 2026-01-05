@@ -4,17 +4,16 @@
 namespace Aspire.Hosting.CodeGeneration.Models.Ats;
 
 /// <summary>
-/// Groups capabilities by AppliesTo for builder class generation.
+/// Represents a builder class to be generated, with all its applicable capabilities.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Each AtsBuilderInfo represents a builder class to be generated (e.g., RedisBuilder).
-/// Capabilities are grouped by their AppliesTo constraint, so all methods that apply
-/// to "aspire/Redis" are collected into the RedisBuilder.
+/// Capabilities are flattened based on the type's interface implementations, so RedisBuilder
+/// gets all methods from IResourceWithEnvironment, IResourceWithConnectionString, etc.
 /// </para>
 /// <para>
-/// Parent type IDs establish inheritance relationships for code generation.
-/// For example, RedisBuilder might inherit from ResourceWithConnectionStringBuilder.
+/// No inheritance is used - all applicable methods are flattened onto each concrete builder.
 /// </para>
 /// </remarks>
 public sealed class AtsBuilderInfo
@@ -22,9 +21,6 @@ public sealed class AtsBuilderInfo
     /// <summary>
     /// Gets or sets the ATS type ID for this builder (e.g., "aspire/Redis", "aspire/Container").
     /// </summary>
-    /// <remarks>
-    /// This is the value that appears in capability AppliesTo constraints.
-    /// </remarks>
     public required string TypeId { get; init; }
 
     /// <summary>
@@ -40,32 +36,18 @@ public sealed class AtsBuilderInfo
     /// Gets or sets the capabilities that apply to this builder type.
     /// </summary>
     /// <remarks>
-    /// These are all capabilities where AppliesTo matches this builder's TypeId
-    /// or where AppliesTo matches a parent interface type.
+    /// These are all capabilities where ConstraintTypeId matches this builder's TypeId
+    /// or where ConstraintTypeId matches an interface this type implements.
+    /// Capabilities are flattened - no inheritance, all methods are on the concrete builder.
     /// </remarks>
     public required List<AtsCapabilityInfo> Capabilities { get; init; }
 
     /// <summary>
-    /// Gets the parent type IDs for inheritance hierarchy.
+    /// Gets or sets whether this is an interface-based builder.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// Capabilities from parent types are inherited by this builder.
-    /// For example, if RedisBuilder has parent "aspire/IResourceWithEnvironment",
-    /// it inherits capabilities like withEnvironment.
-    /// </para>
-    /// <para>
-    /// The order matters: more specific interfaces should come before more general ones.
-    /// </para>
-    /// </remarks>
-    public List<string> ParentTypeIds { get; } = [];
-
-    /// <summary>
-    /// Gets or sets whether this is an interface-based builder (abstract base).
-    /// </summary>
-    /// <remarks>
-    /// Interface builders (e.g., IResourceWithEnvironment) are generated as abstract base
-    /// classes that concrete resource builders inherit from.
+    /// With the flattening approach, interface builders are typically not generated.
+    /// Only concrete resource types get builders.
     /// </remarks>
     public bool IsInterface { get; init; }
 }

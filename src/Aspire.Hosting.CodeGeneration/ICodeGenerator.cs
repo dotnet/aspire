@@ -20,5 +20,5 @@ public interface ICodeGenerator
     /// </summary>
     /// <param name="model">The application model to generate from.</param>
     /// <returns>A dictionary of file paths to file contents.</returns>
-    Dictionary<string, string> GenerateDistributedApplication(ApplicationModel model);
+    Dictionary<string, string> GenerateDistributedApplication(CodeGenApplicationModel model);
 }

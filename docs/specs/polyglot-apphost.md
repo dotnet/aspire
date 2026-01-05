@@ -348,6 +348,65 @@ CancellationTokens allow cancellation of long-running operations.
 - `createCancellationToken` - Guest creates a token to pass to capabilities
 - `cancel` - Guest or host cancels a token
 
+### Reference Expressions
+
+Reference expressions allow the guest to create dynamic connection strings, URLs, and other values that reference endpoints, parameters, and other value providers. Expressions are evaluated at runtime by Aspire.
+
+**JSON Representation:**
+
+```json
+{
+    "$expr": {
+        "format": "redis://{0}:{1}",
+        "valueProviders": [
+            { "$handle": "aspire/EndpointReference:1" },
+            "6379"
+        ]
+    }
+}
+```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `format` | `string` | Format string with `{0}`, `{1}`, etc. placeholders |
+| `valueProviders` | `array?` | Optional array of value providers (handles or string literals) |
+
+**Value Provider Types:**
+
+Each value provider in the array can be:
+- **Handle reference** - `{ "$handle": "aspire/EndpointReference:1" }` - A handle to an object implementing `IValueProvider` and `IManifestExpressionProvider`
+- **String literal** - `"6379"` - A static string value included directly in the expression
+
+Handles can reference:
+- `EndpointReference` - Endpoints from resources (host, port, URL)
+- `ParameterResource` - Parameters defined in the app host
+- Any type implementing `IValueProvider` and `IManifestExpressionProvider`
+
+**TypeScript Usage:**
+
+```typescript
+const redis = await builder.addRedis("cache");
+const endpoint = await redis.getEndpoint("tcp");
+
+// Create a reference expression using tagged template literal
+const expr = refExpr`redis://${endpoint}`;
+
+// Use it in an environment variable
+await api.withEnvironment("REDIS_URL", expr);
+```
+
+**Literal Expressions:**
+
+When there are no value providers, the format string is used directly:
+
+```json
+{
+    "$expr": {
+        "format": "redis://localhost:6379"
+    }
+}
+```
+
 ### Type Summary
 
 | ATS Type | Attribute | Purpose | JSON Shape |
@@ -358,6 +417,7 @@ CancellationTokens allow cancellation of long-running operations.
 | **Callback** | `[AspireCallback]` | Guest function reference | `"callback_id"` |
 | **Context Type** | `[AspireContextType]` | Callback context with auto-exposed properties | Handle |
 | **CancellationToken** | N/A | Cancellation signal | `{ $cancellationToken }` |
+| **ReferenceExpression** | N/A | Dynamic value expression | `{ $expr: { format, valueProviders? } }` |
 
 > **Note:** Handles are automatically derived from intrinsic types and `IResource` implementations. No explicit attribute is needed.
 
@@ -1013,6 +1073,7 @@ Errors use a structured format with ATS error codes:
 | DTO | JSON object (type must have `[AspireDto]`) | `{ "name": "cache", "port": 6379 }` |
 | Callback | string | `"callback_001"` |
 | Array | `[...]` | `[1, 2, 3]` or `[{"$handle": "..."}]` |
+| ReferenceExpression | `{ "$expr": { "format": "...", "valueProviders": [...] } }` | `{ "$expr": { "format": "redis://{0}", "valueProviders": [{"$handle": "..."}] } }` |
 
 **Output Values (Host → Guest)**
 

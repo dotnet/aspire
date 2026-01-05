@@ -152,7 +152,7 @@ internal static class CoreExports
     /// <param name="resource">The resource builder handle.</param>
     /// <param name="callback">A callback ID registered with the guest runtime.</param>
     /// <returns>The same resource builder handle for chaining.</returns>
-    [AspireExport("aspire/withEnvironmentCallback@1", AppliesTo = "aspire/IResourceWithEnvironment", Description = "Adds an environment callback")]
+    [AspireExport("aspire/withEnvironmentCallback@1", Description = "Adds an environment callback")]
     public static IResourceBuilder<IResourceWithEnvironment> WithEnvironmentCallback(
         IResourceBuilder<IResourceWithEnvironment> resource,
         [AspireCallback("aspire/EnvironmentCallback")] Func<EnvironmentCallbackContext, Task> callback)
@@ -174,7 +174,7 @@ internal static class CoreExports
     /// <param name="resource">The resource builder handle.</param>
     /// <param name="name">The endpoint name (e.g., "http", "tcp").</param>
     /// <returns>A handle to the endpoint reference.</returns>
-    [AspireExport("aspire/getEndpoint@1", AppliesTo = "aspire/IResource", Description = "Gets an endpoint reference")]
+    [AspireExport("aspire/getEndpoint@1", Description = "Gets an endpoint reference")]
     public static EndpointReference GetEndpoint(
         IResourceBuilder<IResourceWithEndpoints> resource,
         string name)
@@ -196,7 +196,7 @@ internal static class CoreExports
     /// <param name="resource">The resource builder handle.</param>
     /// <param name="dependency">The dependency resource handle.</param>
     /// <returns>The same resource builder handle for chaining.</returns>
-    [AspireExport("aspire/withReference@1", AppliesTo = "aspire/IResource", Description = "Adds a reference to another resource")]
+    [AspireExport("aspire/withReference@1", Description = "Adds a reference to another resource")]
     public static IResourceBuilder<IResourceWithEnvironment> WithReference(
         IResourceBuilder<IResourceWithEnvironment> resource,
         IResourceBuilder<IResourceWithConnectionString> dependency)
@@ -220,7 +220,7 @@ internal static class CoreExports
     /// <param name="name">The volume name. If null, an anonymous volume is created.</param>
     /// <param name="isReadOnly">Whether the volume is read-only.</param>
     /// <returns>The same resource builder handle for chaining.</returns>
-    [AspireExport("aspire/withVolume@1", AppliesTo = "aspire/Container", Description = "Adds a volume")]
+    [AspireExport("aspire/withVolume@1", Description = "Adds a volume")]
     public static IResourceBuilder<ContainerResource> WithVolume(
         IResourceBuilder<ContainerResource> resource,
         string target,
@@ -239,7 +239,7 @@ internal static class CoreExports
     /// </summary>
     /// <param name="resource">The resource builder handle.</param>
     /// <returns>The resource name.</returns>
-    [AspireExport("aspire/getResourceName@1", AppliesTo = "aspire/IResource", Description = "Gets the resource name")]
+    [AspireExport("aspire/getResourceName@1", Description = "Gets the resource name")]
     public static string GetResourceName(IResourceBuilder<IResource> resource)
     {
         return resource.Resource.Name;
@@ -258,7 +258,7 @@ internal static class CoreExports
     /// <param name="resource">The parameter resource builder handle.</param>
     /// <param name="description">The description text.</param>
     /// <returns>The same resource builder handle for chaining.</returns>
-    [AspireExport("aspire/withDescription@1", AppliesTo = "aspire/Parameter", Description = "Sets a parameter description")]
+    [AspireExport("aspire/withDescription@1", Description = "Sets a parameter description")]
     public static IResourceBuilder<ParameterResource> WithDescription(
         IResourceBuilder<ParameterResource> resource,
         string description)

@@ -170,35 +170,11 @@ export class DistributedApplicationBuilder {
 }
 
 // ============================================================================
-// ResourceBuilderBase
-// ============================================================================
-
-export abstract class ResourceBuilderBase {
-    constructor(protected _handle: IResourceHandle, protected _client: AspireClient) {}
-
-    /** Gets the underlying handle */
-    get handle(): IResourceHandle { return this._handle; }
-
-    /** Adds an optional string parameter */
-    /** @internal */
-    async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<ResourceBuilderBase> {
-        const result = await this._client.invokeCapability<TBuilderHandle>(
-            'aspire.test/withOptionalString@1',
-            { builder: this._handle, value, enabled }
-        );
-        return new ResourceBuilderBase(result, this._client);
-    }
-
-}
-
-// ============================================================================
 // TestRedisBuilder
 // ============================================================================
 
-export class TestRedisBuilder extends ResourceBuilderBase {
-    constructor(handle: TestRedisBuilderHandle, client: AspireClient) {
-        super(handle, client);
-    }
+export class TestRedisBuilder {
+    constructor(protected _handle: TestRedisBuilderHandle, protected _client: AspireClient) {}
 
     /** Gets the underlying handle */
     get handle(): TestRedisBuilderHandle { return this._handle; }
@@ -238,6 +214,52 @@ export class TestRedisBuilderPromise implements PromiseLike<TestRedisBuilder> {
     withPersistence(mode?: unknown): TestRedisBuilderPromise {
         return new TestRedisBuilderPromise(
             this._promise.then(b => b._withPersistenceInternal(mode))
+        );
+    }
+
+}
+
+// ============================================================================
+// ResourceBuilderBase
+// ============================================================================
+
+export class ResourceBuilderBase {
+    constructor(protected _handle: IResourceHandle, protected _client: AspireClient) {}
+
+    /** Gets the underlying handle */
+    get handle(): IResourceHandle { return this._handle; }
+
+    /** Adds an optional string parameter */
+    /** @internal */
+    async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<ResourceBuilderBase> {
+        const result = await this._client.invokeCapability<TBuilderHandle>(
+            'aspire.test/withOptionalString@1',
+            { builder: this._handle, value, enabled }
+        );
+        return new ResourceBuilderBase(result, this._client);
+    }
+
+}
+
+/**
+ * Thenable wrapper for ResourceBuilderBase that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ResourceBuilderBasePromise implements PromiseLike<ResourceBuilderBase> {
+    constructor(private _promise: Promise<ResourceBuilderBase>) {}
+
+    then<TResult1 = ResourceBuilderBase, TResult2 = never>(
+        onfulfilled?: ((value: ResourceBuilderBase) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Adds an optional string parameter */
+    withOptionalString(value?: string, enabled?: boolean): ResourceBuilderBasePromise {
+        return new ResourceBuilderBasePromise(
+            this._promise.then(b => b._withOptionalStringInternal(value, enabled))
         );
     }
 
@@ -333,7 +355,7 @@ export async function createBuilder(args: string[] = process.argv.slice(2)): Pro
 }
 
 // Re-export commonly used types
-export { Handle, CapabilityError, registerCallback } from './RemoteAppHostClient.js';
+export { Handle, CapabilityError, registerCallback, refExpr, ReferenceExpression } from './RemoteAppHostClient.js';
 
 // ============================================================================
 // Global Error Handling

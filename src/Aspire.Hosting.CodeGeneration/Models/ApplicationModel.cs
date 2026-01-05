@@ -5,7 +5,7 @@ using Aspire.Hosting.CodeGeneration.Models.Types;
 
 namespace Aspire.Hosting.CodeGeneration.Models;
 
-public sealed class ApplicationModel : IDisposable
+public sealed class CodeGenApplicationModel : IDisposable
 {
     public required AssemblyLoaderContext AssemblyLoaderContext { get; init; }
     public required Dictionary<string, IntegrationModel> IntegrationModels { get; init; }
@@ -17,7 +17,7 @@ public sealed class ApplicationModel : IDisposable
 
     private bool _disposedValue;
 
-    public static ApplicationModel Create(IEnumerable<IntegrationModel> integrationModels, string appPath, AssemblyLoaderContext assemblyLoaderContext)
+    public static CodeGenApplicationModel Create(IEnumerable<IntegrationModel> integrationModels, string appPath, AssemblyLoaderContext assemblyLoaderContext)
     {
         var knownTypes = integrationModels.Any() ? integrationModels.FirstOrDefault()?.WellKnownTypes! : new WellKnownTypes(assemblyLoaderContext);
 
@@ -61,7 +61,7 @@ public sealed class ApplicationModel : IDisposable
         // Create the builder model from reflection
         var builderModel = DistributedApplicationBuilderModelFactory.Create(knownTypes);
 
-        return new ApplicationModel
+        return new CodeGenApplicationModel
         {
             IntegrationModels = integrationModelsLookup,
             ResourceModels = resourceModels,
@@ -88,7 +88,7 @@ public sealed class ApplicationModel : IDisposable
     }
 
     // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-    ~ApplicationModel()
+    ~CodeGenApplicationModel()
     {
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: false);

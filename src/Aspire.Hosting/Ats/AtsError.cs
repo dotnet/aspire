@@ -130,7 +130,7 @@ public static class AtsErrorCodes
     public const string HandleNotFound = "HANDLE_NOT_FOUND";
 
     /// <summary>
-    /// The handle type doesn't satisfy the capability's AppliesTo constraint.
+    /// The handle type doesn't satisfy the capability's type constraint.
     /// </summary>
     public const string TypeMismatch = "TYPE_MISMATCH";
 

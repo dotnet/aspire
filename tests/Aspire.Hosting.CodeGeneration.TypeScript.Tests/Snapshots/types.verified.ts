@@ -52,7 +52,7 @@ export const AtsErrorCodes = {
     CapabilityNotFound: 'CAPABILITY_NOT_FOUND',
     /** Handle ID doesn't exist or was disposed */
     HandleNotFound: 'HANDLE_NOT_FOUND',
-    /** Handle type doesn't satisfy capability's AppliesTo constraint */
+    /** Handle type doesn't satisfy capability's type constraint */
     TypeMismatch: 'TYPE_MISMATCH',
     /** Missing required argument or wrong type */
     InvalidArgument: 'INVALID_ARGUMENT',

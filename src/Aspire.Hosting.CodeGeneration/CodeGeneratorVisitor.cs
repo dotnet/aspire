@@ -22,7 +22,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>
     /// The application model being generated.
     /// </summary>
-    protected ApplicationModel Model { get; set; } = null!;
+    protected CodeGenApplicationModel Model { get; set; } = null!;
 
     /// <summary>
     /// Tracks emitted type names to avoid duplicates.
@@ -52,7 +52,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     // === Main entry point ===
 
     /// <inheritdoc />
-    public virtual Dictionary<string, string> GenerateDistributedApplication(ApplicationModel model)
+    public virtual Dictionary<string, string> GenerateDistributedApplication(CodeGenApplicationModel model)
     {
         Model = model;
         var files = new Dictionary<string, string>();
@@ -72,7 +72,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     // === Shared traversal logic ===
 
     /// <inheritdoc />
-    public virtual void VisitApplicationModel(ApplicationModel model)
+    public virtual void VisitApplicationModel(CodeGenApplicationModel model)
     {
         // === PHASE 1: DISCOVERY ===
         // Walk the model to discover all types that need to be emitted
@@ -139,7 +139,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// This runs before emission so all types are known upfront.
     /// Uses a queue-based approach to avoid stack overflow on deep type graphs.
     /// </summary>
-    protected virtual void DiscoverReferencedTypes(ApplicationModel model)
+    protected virtual void DiscoverReferencedTypes(CodeGenApplicationModel model)
     {
         var visited = new HashSet<RoType>();
         var queue = new Queue<RoType>();
@@ -565,7 +565,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>
     /// Checks if a type is a delegate type (Action, Func, custom delegates, etc.)
     /// </summary>
-    protected static bool IsDelegateType(ApplicationModel model, RoType type)
+    protected static bool IsDelegateType(CodeGenApplicationModel model, RoType type)
     {
         // For constructed generic types like Func<T, TResult>, check the generic type definition's name
         if (type.IsGenericType && type.GenericTypeDefinition is { } genericDef)
@@ -620,7 +620,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>
     /// Checks if a type is a simple/primitive type.
     /// </summary>
-    protected static bool IsSimpleType(ApplicationModel model, RoType type)
+    protected static bool IsSimpleType(CodeGenApplicationModel model, RoType type)
     {
         var simpleTypes = new[]
         {
@@ -652,7 +652,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>
     /// Checks if a return type is a primitive type that shouldn't be wrapped.
     /// </summary>
-    protected static bool IsPrimitiveReturnType(ApplicationModel model, RoType type)
+    protected static bool IsPrimitiveReturnType(CodeGenApplicationModel model, RoType type)
     {
         // Check for void
         if (type == model.WellKnownTypes.GetKnownType(typeof(void)))
@@ -666,7 +666,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>
     /// Checks if a type is a dictionary type (Dictionary, IDictionary).
     /// </summary>
-    protected static bool IsDictionaryType(ApplicationModel model, RoType type)
+    protected static bool IsDictionaryType(CodeGenApplicationModel model, RoType type)
     {
         if (!type.IsGenericType || type.GenericTypeDefinition is not { } genDef)
         {
@@ -680,7 +680,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>
     /// Checks if a type is a list/collection type (List, IList, ICollection, IReadOnlyList, IReadOnlyCollection, IEnumerable).
     /// </summary>
-    protected static bool IsListType(ApplicationModel model, RoType type)
+    protected static bool IsListType(CodeGenApplicationModel model, RoType type)
     {
         if (!type.IsGenericType || type.GenericTypeDefinition is not { } genDef)
         {
@@ -698,7 +698,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>
     /// Checks if a type is Nullable&lt;T&gt;.
     /// </summary>
-    protected static bool IsNullableType(ApplicationModel model, RoType type)
+    protected static bool IsNullableType(CodeGenApplicationModel model, RoType type)
     {
         return type.IsGenericType &&
                type.GenericTypeDefinition == model.WellKnownTypes.GetKnownType(typeof(Nullable<>));
@@ -721,7 +721,7 @@ public abstract class CodeGeneratorVisitor : IModelVisitor, ICodeGenerator
     /// <summary>
     /// Checks if a type is IResourceBuilder&lt;T&gt;.
     /// </summary>
-    protected static bool IsResourceBuilderType(ApplicationModel model, RoType type)
+    protected static bool IsResourceBuilderType(CodeGenApplicationModel model, RoType type)
     {
         return type.IsGenericType &&
                type.GenericTypeDefinition == model.WellKnownTypes.IResourceBuilderType;

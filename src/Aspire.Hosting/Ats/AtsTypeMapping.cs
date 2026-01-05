@@ -7,6 +7,16 @@ using System.Reflection;
 namespace Aspire.Hosting.Ats;
 
 /// <summary>
+/// Attribute full name constants for scanning.
+/// </summary>
+internal static class AspireExportAttributeNames
+{
+    public const string FullName = "Aspire.Hosting.AspireExportAttribute";
+    public const string AspireCallbackFullName = "Aspire.Hosting.AspireCallbackAttribute";
+    public const string AspireContextTypeFullName = "Aspire.Hosting.AspireContextTypeAttribute";
+}
+
+/// <summary>
 /// Provides CLR type to ATS type ID mapping based on <see cref="AspireExportAttribute"/> declarations.
 /// </summary>
 /// <remarks>
@@ -73,6 +83,40 @@ public sealed class AtsTypeMapping
         return FromAssemblies([assembly]);
     }
 
+    /// <summary>
+    /// Creates a type mapping by scanning the specified assemblies using the interface abstraction.
+    /// </summary>
+    /// <param name="assemblies">The assemblies to scan (as IAtsAssemblyInfo).</param>
+    /// <returns>A type mapping containing all discovered type mappings.</returns>
+    /// <remarks>
+    /// This overload enables code sharing between runtime (System.Reflection) and
+    /// code-gen (RoType) paths by working with the abstracted interface.
+    /// </remarks>
+    internal static AtsTypeMapping FromAssemblies(IEnumerable<IAtsAssemblyInfo> assemblies)
+    {
+        var fullNameToTypeId = new Dictionary<string, string>(StringComparer.Ordinal);
+        var typeIdToFullName = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var assembly in assemblies)
+        {
+            ScanAssembly(assembly, fullNameToTypeId, typeIdToFullName);
+        }
+
+        return new AtsTypeMapping(
+            fullNameToTypeId.ToFrozenDictionary(StringComparer.Ordinal),
+            typeIdToFullName.ToFrozenDictionary(StringComparer.Ordinal));
+    }
+
+    /// <summary>
+    /// Creates a type mapping by scanning a single assembly using the interface abstraction.
+    /// </summary>
+    /// <param name="assembly">The assembly to scan (as IAtsAssemblyInfo).</param>
+    /// <returns>A type mapping containing all discovered type mappings.</returns>
+    internal static AtsTypeMapping FromAssembly(IAtsAssemblyInfo assembly)
+    {
+        return FromAssemblies([assembly]);
+    }
+
     private static void ScanAssembly(
         Assembly assembly,
         Dictionary<string, string> fullNameToTypeId,
@@ -116,6 +160,82 @@ public sealed class AtsTypeMapping
     }
 
     /// <summary>
+    /// Scans an assembly using the interface abstraction.
+    /// </summary>
+    private static void ScanAssembly(
+        IAtsAssemblyInfo assembly,
+        Dictionary<string, string> fullNameToTypeId,
+        Dictionary<string, string> typeIdToFullName)
+    {
+        // Scan assembly-level [AspireExport] attributes
+        foreach (var attr in assembly.GetCustomAttributes())
+        {
+            if (attr.AttributeTypeFullName != AspireExportAttributeNames.FullName)
+            {
+                continue;
+            }
+
+            // Get AtsTypeId from named arguments
+            if (!attr.NamedArguments.TryGetValue("AtsTypeId", out var atsTypeIdObj) ||
+                atsTypeIdObj is not string atsTypeId ||
+                string.IsNullOrEmpty(atsTypeId))
+            {
+                continue;
+            }
+
+            // Get Type - could be a type reference (decoded as string from metadata) or from named args
+            string? targetTypeFullName = null;
+
+            // First constructor argument might be the type (for assembly-level [AspireExport(typeof(X))])
+            if (attr.FixedArguments.Count > 0 && attr.FixedArguments[0] is string typeArg)
+            {
+                targetTypeFullName = typeArg;
+            }
+
+            // Or check named argument "Type"
+            if (targetTypeFullName == null &&
+                attr.NamedArguments.TryGetValue("Type", out var typeObj) &&
+                typeObj is string typeNamed)
+            {
+                targetTypeFullName = typeNamed;
+            }
+
+            if (!string.IsNullOrEmpty(targetTypeFullName))
+            {
+                fullNameToTypeId[targetTypeFullName] = atsTypeId;
+                typeIdToFullName[atsTypeId] = targetTypeFullName;
+            }
+        }
+
+        // Scan type-level [AspireExport] attributes
+        foreach (var type in assembly.GetTypes())
+        {
+            foreach (var attr in type.GetCustomAttributes())
+            {
+                if (attr.AttributeTypeFullName != AspireExportAttributeNames.FullName)
+                {
+                    continue;
+                }
+
+                // Get AtsTypeId from named arguments
+                if (!attr.NamedArguments.TryGetValue("AtsTypeId", out var atsTypeIdObj) ||
+                    atsTypeIdObj is not string atsTypeId ||
+                    string.IsNullOrEmpty(atsTypeId))
+                {
+                    continue;
+                }
+
+                var fullName = type.FullName;
+                if (!string.IsNullOrEmpty(fullName))
+                {
+                    fullNameToTypeId[fullName] = atsTypeId;
+                    typeIdToFullName[atsTypeId] = fullName;
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Gets the ATS type ID for a CLR type.
     /// </summary>
     /// <param name="type">The CLR type.</param>
@@ -135,6 +255,16 @@ public sealed class AtsTypeMapping
     public string? GetTypeId(string fullName)
     {
         return _fullNameToTypeId.TryGetValue(fullName, out var typeId) ? typeId : null;
+    }
+
+    /// <summary>
+    /// Gets the ATS type ID for a type using the interface abstraction.
+    /// </summary>
+    /// <param name="type">The type (as IAtsTypeInfo).</param>
+    /// <returns>The ATS type ID, or null if not mapped.</returns>
+    internal string? GetTypeId(IAtsTypeInfo type)
+    {
+        return GetTypeId(type.FullName);
     }
 
     /// <summary>
@@ -182,6 +312,17 @@ public sealed class AtsTypeMapping
     }
 
     /// <summary>
+    /// Tries to get the ATS type ID for a type using the interface abstraction.
+    /// </summary>
+    /// <param name="type">The type (as IAtsTypeInfo).</param>
+    /// <param name="typeId">The ATS type ID if found.</param>
+    /// <returns>True if the type was found in the mapping.</returns>
+    internal bool TryGetTypeId(IAtsTypeInfo type, out string? typeId)
+    {
+        return TryGetTypeId(type.FullName, out typeId);
+    }
+
+    /// <summary>
     /// Gets all registered type IDs from this mapping.
     /// </summary>
     public IEnumerable<string> RegisteredTypeIds => _typeIdToFullName.Keys;
@@ -223,6 +364,16 @@ public sealed class AtsTypeMapping
     public string GetTypeIdOrInfer(Type type)
     {
         return GetTypeId(type) ?? InferResourceTypeId(type);
+    }
+
+    /// <summary>
+    /// Gets the ATS type ID for a type using the interface abstraction, or infers one if not explicitly mapped.
+    /// </summary>
+    /// <param name="type">The type (as IAtsTypeInfo).</param>
+    /// <returns>The ATS type ID (explicit or inferred).</returns>
+    internal string GetTypeIdOrInfer(IAtsTypeInfo type)
+    {
+        return GetTypeId(type) ?? InferTypeId(type.Name);
     }
 
     /// <summary>

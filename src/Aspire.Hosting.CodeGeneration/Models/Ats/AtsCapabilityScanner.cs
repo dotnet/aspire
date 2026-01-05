@@ -1,7 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Ats;
+using Aspire.Hosting.CodeGeneration.Ats;
 using Aspire.Hosting.CodeGeneration.Models.Types;
+using SharedScanner = Aspire.Hosting.Ats.AtsCapabilityScanner;
+using SharedCapabilityInfo = Aspire.Hosting.Ats.AtsCapabilityInfo;
+using SharedParameterInfo = Aspire.Hosting.Ats.AtsParameterInfo;
+using SharedTypeInfo = Aspire.Hosting.Ats.AtsTypeInfo;
 
 namespace Aspire.Hosting.CodeGeneration.Models.Ats;
 
@@ -9,12 +15,46 @@ namespace Aspire.Hosting.CodeGeneration.Models.Ats;
 /// Scans assemblies for [AspireExport] attributes and creates capability models.
 /// Uses metadata reflection (RoMethod/RoType) for code generation.
 /// </summary>
+/// <remarks>
+/// This class is a thin adapter over the shared <see cref="Aspire.Hosting.Ats.AtsCapabilityScanner"/>.
+/// It wraps RoType/RoAssembly using the IAts* interfaces and converts results to public model types.
+/// </remarks>
 public static class AtsCapabilityScanner
 {
-    private const string AspireExportAttributeName = "Aspire.Hosting.AspireExportAttribute";
-    private const string AspireCallbackAttributeName = "Aspire.Hosting.AspireCallbackAttribute";
-    private const string AspireContextTypeAttributeName = "Aspire.Hosting.AspireContextTypeAttribute";
-    private const string ExtensionAttributeName = "System.Runtime.CompilerServices.ExtensionAttribute";
+    /// <summary>
+    /// Result of scanning an assembly, containing both capabilities and type information.
+    /// </summary>
+    public sealed class ScanResult
+    {
+        public required List<AtsCapabilityInfo> Capabilities { get; init; }
+        public required List<AtsTypeInfo> TypeInfos { get; init; }
+    }
+
+    /// <summary>
+    /// Scans an assembly for [AspireExport] and [AspireContextType] attributes and returns capability models
+    /// along with type information including interface implementations.
+    /// </summary>
+    /// <param name="assembly">The assembly to scan.</param>
+    /// <param name="wellKnownTypes">Well-known type definitions.</param>
+    /// <param name="typeMapping">The ATS type mapping for resolving type IDs.</param>
+    public static ScanResult ScanAssemblyWithTypeInfo(
+        RoAssembly assembly,
+        IWellKnownTypes wellKnownTypes,
+        AtsTypeMapping typeMapping)
+    {
+        // Wrap the assembly and call the shared scanner
+        var wrappedAssembly = new RoAssemblyInfoWrapper(assembly);
+        var typeResolver = new WellKnownTypeResolver(wellKnownTypes, typeMapping);
+
+        var sharedResult = SharedScanner.ScanAssembly(wrappedAssembly, typeMapping, typeResolver);
+
+        // Convert results to public types
+        return new ScanResult
+        {
+            Capabilities = sharedResult.Capabilities.Select(ConvertCapability).ToList(),
+            TypeInfos = sharedResult.TypeInfos.Select(ConvertTypeInfo).ToList()
+        };
+    }
 
     /// <summary>
     /// Scans an assembly for [AspireExport] and [AspireContextType] attributes and returns capability models.
@@ -27,293 +67,7 @@ public static class AtsCapabilityScanner
         IWellKnownTypes wellKnownTypes,
         AtsTypeMapping typeMapping)
     {
-        var capabilities = new List<AtsCapabilityInfo>();
-
-        foreach (var type in assembly.GetTypeDefinitions())
-        {
-            // Check for [AspireContextType] - auto-generate property accessor capabilities
-            var contextAttr = GetAspireContextTypeAttribute(type);
-            if (contextAttr != null)
-            {
-                var contextCapabilities = CreateContextTypeCapabilities(type, contextAttr, wellKnownTypes, typeMapping);
-                capabilities.AddRange(contextCapabilities);
-            }
-
-            // Scan static classes (sealed, non-nested) for [AspireExport] attributes
-            // Include both public and internal classes since capabilities aren't tied to CLR visibility
-            if (!type.IsSealed || type.IsNested)
-            {
-                continue;
-            }
-
-            IReadOnlyList<RoMethod> methods;
-            try
-            {
-                methods = type.Methods;
-            }
-            catch (ArgumentException)
-            {
-                // Skip types with methods that have unresolvable parameter types
-                continue;
-            }
-
-            foreach (var method in methods)
-            {
-                try
-                {
-                    // Only scan public static methods
-                    if (!method.IsStatic || !method.IsPublic)
-                    {
-                        continue;
-                    }
-
-                    var exportAttr = GetAspireExportAttribute(method);
-                    if (exportAttr == null)
-                    {
-                        continue;
-                    }
-
-                    var capability = CreateCapabilityInfo(method, exportAttr, wellKnownTypes, typeMapping);
-                    if (capability != null)
-                    {
-                        capabilities.Add(capability);
-                    }
-                }
-                catch (ArgumentException)
-                {
-                    // Skip methods with unresolvable types (e.g., generic type parameters we can't resolve)
-                    // This can happen with complex generic constraints
-                    continue;
-                }
-            }
-        }
-
-        return capabilities;
-    }
-
-    /// <summary>
-    /// Gets the [AspireExport] attribute from a method, or null if not present.
-    /// </summary>
-    private static RoCustomAttributeData? GetAspireExportAttribute(RoMethod method)
-    {
-        return method.GetCustomAttributes()
-            .FirstOrDefault(a => a.AttributeType.FullName == AspireExportAttributeName);
-    }
-
-    /// <summary>
-    /// Gets the [AspireContextType] attribute from a type, or null if not present.
-    /// </summary>
-    private static RoCustomAttributeData? GetAspireContextTypeAttribute(RoType type)
-    {
-        return type.GetCustomAttributes()
-            .FirstOrDefault(a => a.AttributeType.FullName == AspireContextTypeAttributeName);
-    }
-
-    /// <summary>
-    /// Creates capabilities for all ATS-compatible properties on a context type.
-    /// </summary>
-    /// <example>
-    /// For [AspireContextType("aspire/EnvironmentContext")] on EnvironmentCallbackContext:
-    /// - EnvironmentVariables property -> "aspire/EnvironmentContext.environmentVariables@1"
-    /// - ExecutionContext property -> "aspire/EnvironmentContext.executionContext@1"
-    /// </example>
-    private static List<AtsCapabilityInfo> CreateContextTypeCapabilities(
-        RoType contextType,
-        RoCustomAttributeData contextAttr,
-        IWellKnownTypes wellKnownTypes,
-        AtsTypeMapping typeMapping)
-    {
-        var capabilities = new List<AtsCapabilityInfo>();
-
-        // Get the type ID from the attribute (first fixed argument)
-        if (contextAttr.FixedArguments.Count == 0 || contextAttr.FixedArguments[0] is not string typeId)
-        {
-            return capabilities;
-        }
-
-        // Get the version from named arguments (defaults to 1)
-        var namedArgs = contextAttr.NamedArguments.ToDictionary(kv => kv.Key, kv => kv.Value);
-        var version = namedArgs.TryGetValue("Version", out var v) && v is int ver ? ver : 1;
-
-        // Scan public instance properties with getters
-        foreach (var property in contextType.Properties)
-        {
-            // Skip properties without getters
-            if (!property.CanRead)
-            {
-                continue;
-            }
-
-            // Skip static properties
-            if (property.IsStatic)
-            {
-                continue;
-            }
-
-            // Check if property type is ATS-compatible
-            var propertyTypeId = MapToAtsTypeId(property.PropertyType, wellKnownTypes, typeMapping);
-            if (propertyTypeId == "any")
-            {
-                // Not ATS-compatible, skip
-                continue;
-            }
-
-            // Generate capability ID: aspire/EnvironmentContext.environmentVariables@1
-            var propertyName = char.ToLowerInvariant(property.Name[0]) + property.Name[1..];
-            var capabilityId = $"{typeId}.{propertyName}@{version}";
-
-            capabilities.Add(new AtsCapabilityInfo
-            {
-                CapabilityId = capabilityId,
-                MethodName = propertyName,
-                Package = DerivePackage(typeId),
-                AppliesTo = typeId,
-                Description = $"Gets the {property.Name} property",
-                Parameters = [
-                    new AtsParameterInfo
-                    {
-                        Name = "context",
-                        AtsTypeId = typeId,
-                        IsOptional = false,
-                        IsNullable = false,
-                        IsCallback = false,
-                        CallbackId = null,
-                        DefaultValue = null
-                    }
-                ],
-                ReturnTypeId = propertyTypeId,
-                IsExtensionMethod = false,
-                ExtendsTypeId = typeId,
-                ReturnsBuilder = false,
-                IsContextProperty = true
-            });
-        }
-
-        return capabilities;
-    }
-
-    /// <summary>
-    /// Creates a capability info from a method and its [AspireExport] attribute.
-    /// </summary>
-    private static AtsCapabilityInfo? CreateCapabilityInfo(
-        RoMethod method,
-        RoCustomAttributeData exportAttr,
-        IWellKnownTypes wellKnownTypes,
-        AtsTypeMapping typeMapping)
-    {
-        // Get the capability ID (first fixed argument)
-        if (exportAttr.FixedArguments.Count == 0 || exportAttr.FixedArguments[0] is not string capabilityId)
-        {
-            return null;
-        }
-
-        // Get named arguments
-        var namedArgs = exportAttr.NamedArguments.ToDictionary(kv => kv.Key, kv => kv.Value);
-        var appliesTo = namedArgs.TryGetValue("AppliesTo", out var at) ? at as string : null;
-        var description = namedArgs.TryGetValue("Description", out var desc) ? desc as string : null;
-        var methodNameOverride = namedArgs.TryGetValue("MethodName", out var mn) ? mn as string : null;
-
-        // Derive method name
-        var methodName = methodNameOverride ?? DeriveMethodName(capabilityId);
-        var package = DerivePackage(capabilityId);
-
-        // Check if this is an extension method and get the type it extends
-        var isExtensionMethod = HasAttribute(method, ExtensionAttributeName) && method.Parameters.Count > 0;
-        string? extendsTypeId = null;
-
-        // For ATS, check if the first parameter is a handle type (even for non-extension methods)
-        // This allows us to group methods by the type they operate on
-        if (method.Parameters.Count > 0)
-        {
-            var firstParam = method.Parameters[0];
-            var firstParamTypeId = MapToAtsTypeId(firstParam.ParameterType, wellKnownTypes, typeMapping);
-
-            // If the first param maps to an aspire/ type, treat it as the target type
-            if (firstParamTypeId != null && firstParamTypeId.StartsWith("aspire/"))
-            {
-                extendsTypeId = firstParamTypeId;
-            }
-        }
-
-        // Get parameters
-        // Skip first param if:
-        // - AppliesTo is explicitly set (method goes on that builder class)
-        // - OR first param is an aspire/ handle type (will be "this" on generated class)
-        var parameters = new List<AtsParameterInfo>();
-        var skipFirstParam = !string.IsNullOrEmpty(appliesTo) || extendsTypeId != null;
-        var paramList = skipFirstParam ? method.Parameters.Skip(1) : method.Parameters;
-
-        var paramIndex = 0;
-        foreach (var param in paramList)
-        {
-            var paramInfo = CreateParameterInfo(param, paramIndex, wellKnownTypes, typeMapping);
-            parameters.Add(paramInfo);
-            paramIndex++;
-        }
-
-        // Get return type info
-        var returnType = method.ReturnType;
-        var returnTypeId = MapToAtsTypeId(returnType, wellKnownTypes, typeMapping);
-        var returnsBuilder = returnTypeId != null &&
-            (returnTypeId.StartsWith("aspire/") || IsResourceBuilderType(returnType, wellKnownTypes));
-
-        // If AppliesTo is not explicitly set but this is an extension method,
-        // infer AppliesTo from the first parameter type (extendsTypeId)
-        var effectiveAppliesTo = appliesTo ?? extendsTypeId;
-
-        return new AtsCapabilityInfo
-        {
-            CapabilityId = capabilityId,
-            MethodName = methodName,
-            Package = package,
-            AppliesTo = effectiveAppliesTo,
-            Description = description,
-            Parameters = parameters,
-            ReturnTypeId = returnTypeId,
-            IsExtensionMethod = isExtensionMethod,
-            ExtendsTypeId = extendsTypeId,
-            ReturnsBuilder = returnsBuilder
-        };
-    }
-
-    /// <summary>
-    /// Creates parameter info from a method parameter.
-    /// </summary>
-    private static AtsParameterInfo CreateParameterInfo(
-        RoParameterInfo param,
-        int paramIndex,
-        IWellKnownTypes wellKnownTypes,
-        AtsTypeMapping typeMapping)
-    {
-        var paramType = param.ParameterType;
-        var atsTypeId = MapToAtsTypeId(paramType, wellKnownTypes, typeMapping) ?? "any";
-
-        // Check for [AspireCallback] attribute
-        var callbackAttr = param.GetCustomAttributes()
-            .FirstOrDefault(a => a.AttributeType.FullName == AspireCallbackAttributeName);
-        var isCallback = callbackAttr != null;
-        var callbackId = isCallback && callbackAttr!.FixedArguments.Count > 0
-            ? callbackAttr.FixedArguments[0] as string
-            : null;
-
-        // Check if nullable
-        var isNullable = wellKnownTypes.IsNullableOfT(paramType);
-        if (isNullable)
-        {
-            paramType = paramType.GetGenericArguments()[0];
-            atsTypeId = MapToAtsTypeId(paramType, wellKnownTypes, typeMapping) ?? "any";
-        }
-
-        return new AtsParameterInfo
-        {
-            Name = string.IsNullOrEmpty(param.Name) ? $"arg{paramIndex}" : param.Name,
-            AtsTypeId = isCallback ? "callback" : atsTypeId,
-            IsOptional = param.IsOptional,
-            IsNullable = isNullable,
-            IsCallback = isCallback,
-            CallbackId = callbackId,
-            DefaultValue = param.RawDefaultValue
-        };
+        return ScanAssemblyWithTypeInfo(assembly, wellKnownTypes, typeMapping).Capabilities;
     }
 
     /// <summary>
@@ -325,13 +79,7 @@ public static class AtsCapabilityScanner
     /// </example>
     public static string DeriveMethodName(string capabilityId)
     {
-        // Extract after last '/': "aspire.redis/addRedis@1" -> "addRedis@1"
-        var slashIndex = capabilityId.LastIndexOf('/');
-        var methodPart = slashIndex >= 0 ? capabilityId[(slashIndex + 1)..] : capabilityId;
-
-        // Strip version suffix: "addRedis@1" -> "addRedis"
-        var atIndex = methodPart.LastIndexOf('@');
-        return atIndex >= 0 ? methodPart[..atIndex] : methodPart;
+        return SharedScanner.DeriveMethodName(capabilityId);
     }
 
     /// <summary>
@@ -343,8 +91,7 @@ public static class AtsCapabilityScanner
     /// </example>
     public static string DerivePackage(string capabilityId)
     {
-        var slashIndex = capabilityId.IndexOf('/');
-        return slashIndex >= 0 ? capabilityId[..slashIndex] : "aspire";
+        return SharedScanner.DerivePackage(capabilityId);
     }
 
     /// <summary>
@@ -353,102 +100,101 @@ public static class AtsCapabilityScanner
     /// </summary>
     public static string? MapToAtsTypeId(RoType type, IWellKnownTypes wellKnownTypes, AtsTypeMapping typeMapping)
     {
-        // Handle generic type parameters (e.g., T in IResourceBuilder<T>)
-        if (type.IsGenericParameter)
-        {
-            return "T";
-        }
+        var typeResolver = new WellKnownTypeResolver(wellKnownTypes, typeMapping);
+        var wrappedType = new RoTypeInfoWrapper(type);
+        return SharedScanner.MapToAtsTypeId(wrappedType, typeMapping, typeResolver);
+    }
 
-        // Handle void
-        if (type.FullName == "System.Void")
+    private static AtsCapabilityInfo ConvertCapability(SharedCapabilityInfo shared)
+    {
+        return new AtsCapabilityInfo
         {
-            return null;
-        }
+            CapabilityId = shared.CapabilityId,
+            MethodName = shared.MethodName,
+            Package = shared.Package,
+            ConstraintTypeId = shared.ConstraintTypeId,
+            Description = shared.Description,
+            Parameters = shared.Parameters.Select(ConvertParameter).ToList(),
+            ReturnTypeId = shared.ReturnTypeId,
+            IsExtensionMethod = shared.IsExtensionMethod,
+            ExtendsTypeId = shared.ExtendsTypeId,
+            ReturnsBuilder = shared.ReturnsBuilder,
+            IsContextProperty = shared.IsContextProperty
+        };
+    }
 
-        // Handle Task/Task<T>
-        var taskType = wellKnownTypes.GetKnownType(typeof(Task));
-        if (type == taskType)
+    private static AtsParameterInfo ConvertParameter(SharedParameterInfo shared)
+    {
+        return new AtsParameterInfo
         {
-            return null; // void
-        }
+            Name = shared.Name,
+            AtsTypeId = shared.AtsTypeId,
+            IsOptional = shared.IsOptional,
+            IsNullable = shared.IsNullable,
+            IsCallback = shared.IsCallback,
+            CallbackId = shared.CallbackId,
+            DefaultValue = shared.DefaultValue
+        };
+    }
 
-        var taskOfTType = wellKnownTypes.GetKnownType(typeof(Task<>));
-        if (type.IsGenericType && type.GenericTypeDefinition == taskOfTType)
+    private static AtsTypeInfo ConvertTypeInfo(SharedTypeInfo shared)
+    {
+        return new AtsTypeInfo
         {
-            var innerType = type.GetGenericArguments()[0];
-            return MapToAtsTypeId(innerType, wellKnownTypes, typeMapping);
-        }
-
-        // Handle primitives (these don't need explicit mapping)
-        if (type == wellKnownTypes.GetKnownType(typeof(string)))
-        {
-            return "string";
-        }
-        if (type == wellKnownTypes.GetKnownType(typeof(bool)))
-        {
-            return "boolean";
-        }
-        if (type == wellKnownTypes.GetKnownType(typeof(int)) ||
-            type == wellKnownTypes.GetKnownType(typeof(long)) ||
-            type == wellKnownTypes.GetKnownType(typeof(double)) ||
-            type == wellKnownTypes.GetKnownType(typeof(float)) ||
-            type == wellKnownTypes.GetKnownType(typeof(short)) ||
-            type == wellKnownTypes.GetKnownType(typeof(byte)))
-        {
-            return "number";
-        }
-
-        // Handle Nullable<T>
-        if (wellKnownTypes.IsNullableOfT(type))
-        {
-            var innerType = type.GetGenericArguments()[0];
-            return MapToAtsTypeId(innerType, wellKnownTypes, typeMapping);
-        }
-
-        // Handle IResourceBuilder<T> - get the T and look it up
-        if (wellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var resourceType))
-        {
-            return typeMapping.GetTypeIdOrInfer(resourceType);
-        }
-
-        // Handle IResource types directly
-        if (wellKnownTypes.IResourceType.IsAssignableFrom(type))
-        {
-            return typeMapping.GetTypeIdOrInfer(type);
-        }
-
-        // Try explicit mapping for other types
-        var typeId = typeMapping.GetTypeId(type);
-        if (typeId != null)
-        {
-            return typeId;
-        }
-
-        // Handle arrays
-        if (type.IsArray)
-        {
-            var elementType = type.GetElementType();
-            var elementId = elementType != null ? MapToAtsTypeId(elementType, wellKnownTypes, typeMapping) : "any";
-            return $"{elementId}[]";
-        }
-
-        // Unknown type
-        return "any";
+            AtsTypeId = shared.AtsTypeId,
+            ClrTypeName = shared.ClrTypeName ?? string.Empty,
+            IsInterface = shared.IsInterface,
+            ImplementedInterfaceTypeIds = shared.ImplementedInterfaceTypeIds.ToList()
+        };
     }
 
     /// <summary>
-    /// Checks if a method has a specific attribute by name.
+    /// Adapts IWellKnownTypes to IAtsTypeResolver.
     /// </summary>
-    private static bool HasAttribute(RoMethod method, string attributeFullName)
+    private sealed class WellKnownTypeResolver : IAtsTypeResolver
     {
-        return method.GetCustomAttributes().Any(a => a.AttributeType.FullName == attributeFullName);
-    }
+        private readonly IWellKnownTypes _wellKnownTypes;
 
-    /// <summary>
-    /// Checks if a type is IResourceBuilder&lt;T&gt;.
-    /// </summary>
-    private static bool IsResourceBuilderType(RoType type, IWellKnownTypes wellKnownTypes)
-    {
-        return wellKnownTypes.TryGetResourceBuilderTypeArgument(type, out _);
+        public WellKnownTypeResolver(IWellKnownTypes wellKnownTypes, AtsTypeMapping _)
+        {
+            _wellKnownTypes = wellKnownTypes;
+        }
+
+        public bool IsResourceType(IAtsTypeInfo type)
+        {
+            // Check if the type is assignable to IResource
+            if (type is RoTypeInfoWrapper wrapper)
+            {
+                return _wellKnownTypes.IResourceType.IsAssignableFrom(wrapper.UnderlyingType);
+            }
+            // Fallback: check by type name pattern
+            return type.FullName.Contains("Resource") &&
+                   !type.FullName.Contains("IResourceBuilder");
+        }
+
+        public bool IsResourceBuilderType(IAtsTypeInfo type)
+        {
+            // Check if the type is IResourceBuilder<T>
+            if (type is RoTypeInfoWrapper wrapper)
+            {
+                return wrapper.UnderlyingType.IsGenericType &&
+                       wrapper.UnderlyingType.GenericTypeDefinition == _wellKnownTypes.IResourceBuilderType;
+            }
+            return type.GenericTypeDefinitionFullName == "Aspire.Hosting.ApplicationModel.IResourceBuilder`1";
+        }
+
+        public bool TryGetResourceBuilderTypeArgument(IAtsTypeInfo type, out IAtsTypeInfo? resourceType)
+        {
+            if (type is RoTypeInfoWrapper wrapper)
+            {
+                if (_wellKnownTypes.TryGetResourceBuilderTypeArgument(wrapper.UnderlyingType, out var roResourceType))
+                {
+                    resourceType = new RoTypeInfoWrapper(roResourceType);
+                    return true;
+                }
+            }
+            resourceType = null;
+            return false;
+        }
     }
 }
