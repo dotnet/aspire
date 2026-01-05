@@ -163,8 +163,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var distributedAppBuilder = allBuilders.FirstOrDefault(b => b.TypeId == AtsTypeMapping.TypeIds.Builder);
         var builderMethods = distributedAppBuilder?.Capabilities ?? [];
 
-        // Resource builders are all other builders (not the main builder)
-        var builders = allBuilders.Where(b => b.TypeId != AtsTypeMapping.TypeIds.Builder).ToList();
+        // Resource builders are all other builders (not the main builder or application)
+        var builders = allBuilders
+            .Where(b => b.TypeId != AtsTypeMapping.TypeIds.Builder &&
+                        b.TypeId != AtsTypeMapping.TypeIds.Application)
+            .ToList();
 
         // Entry point methods that don't extend any type go on AspireClient
         var clientMethods = entryPoints
@@ -1112,12 +1115,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             if (string.IsNullOrEmpty(targetType))
             {
                 // Entry point methods - handled separately
-                continue;
-            }
-
-            if (targetType == AtsTypeMapping.TypeIds.Application)
-            {
-                // Application methods handled separately
                 continue;
             }
 
