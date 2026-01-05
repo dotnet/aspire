@@ -25,8 +25,6 @@ public sealed class ResourceDataRow
     /// </summary>
     public required string DisplayName { get; init; }
 
-    public bool IsExpanded { get; set; }
-    public bool Selected { get; set; }
     public List<DataRow> Data { get; set; } = [];
 
     /// <summary>

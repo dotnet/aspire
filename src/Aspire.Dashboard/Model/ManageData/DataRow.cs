@@ -31,6 +31,4 @@ public sealed class DataRow
     /// The URL to navigate to when clicking on this data row.
     /// </summary>
     public required string Url { get; init; }
-
-    public bool Selected { get; set; }
 }

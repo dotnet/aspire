@@ -13,7 +13,6 @@
                     RowSize="DataGridRowSize.Medium"
                     GridTemplateColumns="2fr 1fr"
                     TGridItem="ManageDataGridItem"
-                    RowClass="@GetRowClass"
                     OnRowClick="@OnRowClicked"
                     ShowHover="true"
                     ItemKey="@(item => GetItemKey(item))"
@@ -41,7 +40,7 @@
                     <span class="resources-name-container" style="margin-left: @(indent)px;">
                         @if (context.IsResourceRow && context.ResourceRow is not null)
                         {
-                            <span @onclick:stopPropagation="true" class="main-grid-expand-container @(context.ResourceRow.IsExpanded ? "main-grid-expanded" : "main-grid-collapsed")">
+                            <span @onclick:stopPropagation="true" class="main-grid-expand-container @(IsResourceExpanded(context.ResourceRow.DisplayName) ? "main-grid-expanded" : "main-grid-collapsed")">
                                 @if (context.ResourceRow.Data.Count > 0)
                                 {
                                     <FluentButton Appearance="Appearance.Lightweight"
@@ -75,12 +74,12 @@
                                 </span>
                             }
                         }
-                        else if (context.IsNestedRow && context.NestedRow is not null)
+                        else if (context.IsNestedRow && context.NestedRow is not null && context.ParentResourceName is not null)
                         {
                             <span @onclick:stopPropagation="true">
                                 <FluentButton Appearance="Appearance.Lightweight"
-                                              IconEnd="@(context.NestedRow.Selected ? _iconSelectedMultiple : _iconUnselectedMultiple)"
-                                              OnClick="@(() => OnSelectDataRowClicked(context.NestedRow))"
+                                              IconEnd="@(IsDataRowSelected(context.ParentResourceName, context.NestedRow.DataType) ? _iconSelectedMultiple : _iconUnselectedMultiple)"
+                                              OnClick="@(() => OnSelectDataRowClicked(context.ParentResourceName, context.NestedRow.DataType))"
                                               style="margin-right: 8px;" />
                             </span>
                             <span class="cellText">@context.NestedRow.DisplayName</span>

@@ -60,6 +60,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly Dictionary<string, ResourceDataRow> _resourceDataRows = new(StringComparers.ResourceName);
     private readonly HashSet<string> _expandedResourceNames = new(StringComparers.ResourceName);
+    private readonly HashSet<(string ResourceName, AspireDataType DataType)> _selectedRows = [];
     private readonly CancellationTokenSource _cts = new();
     private readonly Icon _iconUnselectedMultiple = new CoreIcons.Regular.Size20.CheckboxUnchecked().WithColor(Color.FillInverse);
     private readonly Icon _iconSelectedMultiple = new CoreIcons.Filled.Size20.CheckboxChecked();
@@ -95,25 +96,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             {
                 if (_resourceDataRows.TryGetValue(resourceName, out var existingRow))
                 {
-                    var wasExpanded = existingRow.IsExpanded;
-                    var wasSelected = existingRow.Selected;
-                    var previousDataSelections = existingRow.Data.ToDictionary(d => d.DataType, d => d.Selected);
-
                     var newRow = CreateResourceDataRow(resource);
-
-                    // Preserve expanded and selected state
-                    newRow.IsExpanded = wasExpanded;
-                    newRow.Selected = wasSelected;
-
-                    // Preserve individual data row selections
-                    foreach (var dataRow in newRow.Data)
-                    {
-                        if (previousDataSelections.TryGetValue(dataRow.DataType, out var wasDataSelected))
-                        {
-                            dataRow.Selected = wasDataSelected;
-                        }
-                    }
-
                     _resourceDataRows[resourceName] = newRow;
                 }
             }
@@ -136,6 +119,9 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         {
             _resourceByName[resource.Name] = resource;
             _resourceDataRows[resource.Name] = CreateResourceDataRow(resource);
+
+            // Select all data types for new resources by default
+            SelectAllDataTypesForResource(resource.Name, _resourceDataRows[resource.Name].Data);
         }
 
         // Listen for updates and apply.
@@ -148,16 +134,13 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
                     if (changeType == ResourceViewModelChangeType.Upsert)
                     {
                         _resourceByName[resource.Name] = resource;
-                        if (_resourceDataRows.TryGetValue(resource.Name, out var existingRow))
+                        var isNewResource = !_resourceDataRows.ContainsKey(resource.Name);
+                        _resourceDataRows[resource.Name] = CreateResourceDataRow(resource);
+
+                        if (isNewResource)
                         {
-                            // Preserve expanded state
-                            var wasExpanded = existingRow.IsExpanded;
-                            _resourceDataRows[resource.Name] = CreateResourceDataRow(resource);
-                            _resourceDataRows[resource.Name].IsExpanded = wasExpanded;
-                        }
-                        else
-                        {
-                            _resourceDataRows[resource.Name] = CreateResourceDataRow(resource);
+                            // Select all data types for new resources by default
+                            SelectAllDataTypesForResource(resource.Name, _resourceDataRows[resource.Name].Data);
                         }
                     }
                     else if (changeType == ResourceViewModelChangeType.Delete)
@@ -165,6 +148,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
                         _resourceByName.TryRemove(resource.Name, out _);
                         _resourceDataRows.Remove(resource.Name);
                         _expandedResourceNames.Remove(resource.Name);
+                        RemoveAllSelectionsForResource(resource.Name);
                     }
                 }
 
@@ -185,7 +169,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         var data = new List<DataRow>();
 
         // Add console logs for resources with ResourceViewModel (no count available)
-        data.Add(new DataRow { DisplayName = "Console logs", DataType = AspireDataType.ConsoleLogs, DataCount = null, Selected = true, Icon = new Icons.Regular.Size16.SlideText(), Url = DashboardUrls.ConsoleLogsUrl(resource: resource.Name) });
+        data.Add(new DataRow { DisplayName = "Console logs", DataType = AspireDataType.ConsoleLogs, DataCount = null, Icon = new Icons.Regular.Size16.SlideText(), Url = DashboardUrls.ConsoleLogsUrl(resource: resource.Name) });
 
         var otlpResource = TelemetryRepository.GetResourceByCompositeName(resource.Name);
         if (otlpResource is not null)
@@ -198,8 +182,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             Resource = resource,
             OtlpResource = otlpResource,
             DisplayName = resource.Name,
-            Data = data,
-            Selected = true
+            Data = data
         };
     }
 
@@ -214,8 +197,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             Resource = null,
             OtlpResource = otlpResource,
             DisplayName = otlpResource.ResourceKey.GetCompositeName(),
-            Data = data,
-            Selected = true
+            Data = data
         };
     }
 
@@ -231,7 +213,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         });
         if (logsResult.TotalItemCount > 0)
         {
-            data.Add(new DataRow { DisplayName = "Logs", DataType = AspireDataType.StructuredLogs, DataCount = logsResult.TotalItemCount, Selected = true, Icon = new Icons.Regular.Size16.SlideTextSparkle(), Url = DashboardUrls.StructuredLogsUrl(resource: resourceName) });
+            data.Add(new DataRow { DisplayName = "Logs", DataType = AspireDataType.StructuredLogs, DataCount = logsResult.TotalItemCount, Icon = new Icons.Regular.Size16.SlideTextSparkle(), Url = DashboardUrls.StructuredLogsUrl(resource: resourceName) });
         }
 
         // Check for traces
@@ -245,14 +227,14 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         });
         if (tracesResult.PagedResult.TotalItemCount > 0)
         {
-            data.Add(new DataRow { DisplayName = "Traces", DataType = AspireDataType.Traces, DataCount = tracesResult.PagedResult.TotalItemCount, Selected = true, Icon = new Icons.Regular.Size16.GanttChart(), Url = DashboardUrls.TracesUrl(resource: resourceName) });
+            data.Add(new DataRow { DisplayName = "Traces", DataType = AspireDataType.Traces, DataCount = tracesResult.PagedResult.TotalItemCount, Icon = new Icons.Regular.Size16.GanttChart(), Url = DashboardUrls.TracesUrl(resource: resourceName) });
         }
 
         // Check for metrics (instruments)
         var instruments = TelemetryRepository.GetInstrumentsSummaries(resourceKey);
         if (instruments.Count > 0)
         {
-            data.Add(new DataRow { DisplayName = "Metrics", DataType = AspireDataType.Metrics, DataCount = instruments.Count, Selected = true, Icon = new Icons.Regular.Size16.ChartMultiple(), Url = DashboardUrls.MetricsUrl(resource: resourceName) });
+            data.Add(new DataRow { DisplayName = "Metrics", DataType = AspireDataType.Metrics, DataCount = instruments.Count, Icon = new Icons.Regular.Size16.ChartMultiple(), Url = DashboardUrls.MetricsUrl(resource: resourceName) });
         }
     }
 
@@ -274,7 +256,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             });
 
             // If expanded, add nested data rows
-            if (resourceRow.IsExpanded)
+            if (_expandedResourceNames.Contains(resourceRow.DisplayName))
             {
                 foreach (var dataRow in resourceRow.Data)
                 {
@@ -282,6 +264,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
                     {
                         NestedRow = dataRow,
                         ParentResource = resourceRow.Resource,
+                        ParentResourceName = resourceRow.DisplayName,
                         Depth = 1
                     });
                 }
@@ -305,16 +288,15 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             {
                 // This is a telemetry-only resource, add it
                 var row = CreateTelemetryOnlyResourceDataRow(otlpResource);
-                if (_expandedResourceNames.Contains(compositeName))
-                {
-                    row.IsExpanded = true;
-                }
                 _resourceDataRows[compositeName] = row;
+
+                // Select all data types for new telemetry-only resources by default
+                SelectAllDataTypesForResource(compositeName, row.Data);
             }
         }
     }
 
-    private static void OnRowClicked(FluentDataGridRow<ManageDataGridItem> row)
+    private void OnRowClicked(FluentDataGridRow<ManageDataGridItem> row)
     {
         var item = row.Item;
         if (item is null)
@@ -326,23 +308,21 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         {
             OnSelectRowClicked(item.ResourceRow);
         }
-        else if (item.IsNestedRow && item.NestedRow is not null)
+        else if (item.IsNestedRow && item.NestedRow is not null && item.ParentResourceName is not null)
         {
-            OnSelectDataRowClicked(item.NestedRow);
+            OnSelectDataRowClicked(item.ParentResourceName, item.NestedRow.DataType);
         }
     }
 
     private void OnToggleExpand(ResourceDataRow resourceRow)
     {
-        resourceRow.IsExpanded = !resourceRow.IsExpanded;
-
-        if (resourceRow.IsExpanded)
+        if (_expandedResourceNames.Contains(resourceRow.DisplayName))
         {
-            _expandedResourceNames.Add(resourceRow.DisplayName);
+            _expandedResourceNames.Remove(resourceRow.DisplayName);
         }
         else
         {
-            _expandedResourceNames.Remove(resourceRow.DisplayName);
+            _expandedResourceNames.Add(resourceRow.DisplayName);
         }
 
         StateHasChanged();
@@ -373,47 +353,58 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         {
             return item.ResourceRow.DisplayName;
         }
-        if (item.NestedRow is not null)
+        if (item.NestedRow is not null && item.ParentResourceName is not null)
         {
-            return item.NestedRow.DisplayName;
+            return $"{item.ParentResourceName}_{item.NestedRow.DataType}";
         }
         return string.Empty;
-    }
-
-    private static string GetRowClass(ManageDataGridItem item)
-    {
-        return item.IsNestedRow ? "nested-data-row" : "resource-data-row";
     }
 
     private void OnSelectAllClicked()
     {
         // If any are unselected (including data rows), select all. Otherwise deselect all.
         var shouldSelectAll = !AreAllSelected();
-        foreach (var row in _resourceDataRows.Values)
+
+        if (shouldSelectAll)
         {
-            row.Selected = shouldSelectAll;
-            foreach (var dataRow in row.Data)
+            foreach (var row in _resourceDataRows.Values)
             {
-                dataRow.Selected = shouldSelectAll;
+                SelectAllDataTypesForResource(row.DisplayName, row.Data);
             }
+        }
+        else
+        {
+            _selectedRows.Clear();
         }
     }
 
-    private static void OnSelectRowClicked(ResourceDataRow row)
+    private void OnSelectRowClicked(ResourceDataRow row)
     {
         // If any child data rows are unselected, select all. Otherwise deselect all.
         var shouldSelect = !AreAllDataRowsSelected(row);
-        row.Selected = shouldSelect;
-        foreach (var dataRow in row.Data)
+
+        if (shouldSelect)
         {
-            dataRow.Selected = shouldSelect;
+            SelectAllDataTypesForResource(row.DisplayName, row.Data);
+        }
+        else
+        {
+            RemoveAllSelectionsForResource(row.DisplayName);
         }
     }
 
-    private static void OnSelectDataRowClicked(DataRow row)
+    private void OnSelectDataRowClicked(string resourceName, AspireDataType dataType)
     {
-        row.Selected = !row.Selected;
+        var key = (resourceName, dataType);
+        if (!_selectedRows.Remove(key))
+        {
+            _selectedRows.Add(key);
+        }
     }
+
+    private bool IsResourceExpanded(string resourceName) => _expandedResourceNames.Contains(resourceName);
+
+    private bool IsDataRowSelected(string resourceName, AspireDataType dataType) => _selectedRows.Contains((resourceName, dataType));
 
     /// <summary>
     /// Returns true if all resource rows and their data rows are selected.
@@ -422,13 +413,9 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     {
         foreach (var row in _resourceDataRows.Values)
         {
-            if (!row.Selected)
-            {
-                return false;
-            }
             foreach (var dataRow in row.Data)
             {
-                if (!dataRow.Selected)
+                if (!_selectedRows.Contains((row.DisplayName, dataRow.DataType)))
                 {
                     return false;
                 }
@@ -442,50 +429,32 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     /// </summary>
     private bool AreNoneSelected()
     {
-        foreach (var row in _resourceDataRows.Values)
-        {
-            if (row.Selected)
-            {
-                return false;
-            }
-            foreach (var dataRow in row.Data)
-            {
-                if (dataRow.Selected)
-                {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return _selectedRows.Count == 0;
     }
 
     /// <summary>
     /// Returns true if all data rows for a resource are selected.
     /// </summary>
-    private static bool AreAllDataRowsSelected(ResourceDataRow row)
+    private bool AreAllDataRowsSelected(ResourceDataRow row)
     {
-        if (!row.Selected)
-        {
-            return false;
-        }
         foreach (var dataRow in row.Data)
         {
-            if (!dataRow.Selected)
+            if (!_selectedRows.Contains((row.DisplayName, dataRow.DataType)))
             {
                 return false;
             }
         }
-        return true;
+        return row.Data.Count > 0;
     }
 
     /// <summary>
     /// Returns true if no data rows for a resource are selected.
     /// </summary>
-    private static bool AreNoDataRowsSelected(ResourceDataRow row)
+    private bool AreNoDataRowsSelected(ResourceDataRow row)
     {
         foreach (var dataRow in row.Data)
         {
-            if (dataRow.Selected)
+            if (_selectedRows.Contains((row.DisplayName, dataRow.DataType)))
             {
                 return false;
             }
@@ -583,25 +552,30 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     {
         var result = new Dictionary<string, HashSet<AspireDataType>>(StringComparers.ResourceName);
 
-        foreach (var resourceRow in _resourceDataRows.Values)
+        foreach (var (resourceName, dataType) in _selectedRows)
         {
-            var selectedDataTypes = new HashSet<AspireDataType>();
-
-            foreach (var dataRow in resourceRow.Data)
+            if (!result.TryGetValue(resourceName, out var dataTypes))
             {
-                if (dataRow.Selected)
-                {
-                    selectedDataTypes.Add(dataRow.DataType);
-                }
+                dataTypes = [];
+                result[resourceName] = dataTypes;
             }
-
-            if (selectedDataTypes.Count > 0)
-            {
-                result[resourceRow.DisplayName] = selectedDataTypes;
-            }
+            dataTypes.Add(dataType);
         }
 
         return result;
+    }
+
+    private void SelectAllDataTypesForResource(string resourceName, List<DataRow> dataRows)
+    {
+        foreach (var dataRow in dataRows)
+        {
+            _selectedRows.Add((resourceName, dataRow.DataType));
+        }
+    }
+
+    private void RemoveAllSelectionsForResource(string resourceName)
+    {
+        _selectedRows.RemoveWhere(r => StringComparers.ResourceName.Equals(r.ResourceName, resourceName));
     }
 
     public async ValueTask DisposeAsync()
