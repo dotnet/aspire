@@ -13,7 +13,8 @@ public interface IAzureComputeEnvironmentWithContainerRegistry : IAzureComputeEn
     /// </summary>
     /// <returns>The <see cref="AzureContainerRegistryResource"/> used by this environment.</returns>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when no container registry is configured for this environment.
+    /// Thrown when no container registry is configured for this environment, or when 
+    /// the configured container registry is not an Azure Container Registry.
     /// </exception>
     AzureContainerRegistryResource GetContainerRegistryResource();
 }
