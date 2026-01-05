@@ -18,7 +18,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 public class AzureAppServiceEnvironmentResource :
     AzureProvisioningResource,
-    IAzureComputeEnvironmentResource,
+    IAzureComputeEnvironmentWithContainerRegistry,
     IAzureContainerRegistry
 {
     /// <summary>
@@ -227,6 +227,27 @@ public class AzureAppServiceEnvironmentResource :
 
         // Fall back to default container registry
         return DefaultContainerRegistry;
+    }
+
+    /// <inheritdoc/>
+    public AzureContainerRegistryResource GetContainerRegistryResource()
+    {
+        // Check for explicit container registry reference annotation
+        if (this.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var annotation))
+        {
+            if (annotation.Registry is AzureContainerRegistryResource azureRegistry)
+            {
+                return azureRegistry;
+            }
+        }
+
+        // Fall back to default container registry
+        if (DefaultContainerRegistry is not null)
+        {
+            return DefaultContainerRegistry;
+        }
+
+        throw new InvalidOperationException($"No container registry is configured for the Azure App Service Environment '{Name}'.");
     }
 
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");

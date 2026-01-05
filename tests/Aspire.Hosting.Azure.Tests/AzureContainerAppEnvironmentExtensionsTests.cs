@@ -80,4 +80,43 @@ public class AzureContainerAppEnvironmentExtensionsTests
         await Verify(bicep, extension: "bicep")
             .AppendContentAsFile(manifest.ToString(), "json");
     }
+
+    [Fact]
+    public void GetContainerRegistryResource_ReturnsDefaultContainerRegistry()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var containerAppEnvironment = builder.AddAzureContainerAppEnvironment("env");
+
+        // The environment should have a default container registry set up
+        var registry = containerAppEnvironment.Resource.GetContainerRegistryResource();
+        Assert.NotNull(registry);
+        Assert.IsType<AzureContainerRegistryResource>(registry);
+    }
+
+    [Fact]
+    public void GetContainerRegistryResource_PrefersExplicitContainerRegistry()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var acr = builder.AddAzureContainerRegistry("myacr");
+        var containerAppEnvironment = builder.AddAzureContainerAppEnvironment("env")
+            .WithAzureContainerRegistry(acr);
+
+        // Should return the explicitly set registry
+        var registry = containerAppEnvironment.Resource.GetContainerRegistryResource();
+        Assert.Same(acr.Resource, registry);
+    }
+
+    [Fact]
+    public void GetContainerRegistryResource_ThrowsWhenNoRegistryConfigured()
+    {
+        // Create an environment resource without the builder to avoid automatic registry setup
+        var environment = new AzureContainerAppEnvironmentResource("env", _ => { });
+
+        // Should throw because no registry is configured
+        var exception = Assert.Throws<InvalidOperationException>(environment.GetContainerRegistryResource);
+        Assert.Contains("No container registry is configured", exception.Message);
+        Assert.Contains("env", exception.Message);
+    }
 }
