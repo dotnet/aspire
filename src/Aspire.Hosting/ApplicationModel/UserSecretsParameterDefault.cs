@@ -21,16 +21,9 @@ internal sealed class UserSecretsParameterDefault(string applicationName, string
     /// <inheritdoc/>
     public override string GetDefaultValue()
     {
-        var value = parameterDefault.GetDefaultValue();
         var configurationKey = $"Parameters:{parameterName}";
 
-        if (!userSecretsManager.TrySetSecret(configurationKey, value))
-        {
-            // This is a best-effort operation, so we don't throw if it fails. Common reason for failure is that the user secrets ID is not set
-            // in the application's assembly. Note there's no ILogger available this early in the application lifecycle.
-            Debug.WriteLine($"Failed to set value for parameter '{parameterName}' in application '{applicationName}' to user secrets.");
-        }
-        return value;
+        return userSecretsManager.GetOrSetSecret(configurationKey, parameterDefault.GetDefaultValue);
     }
 
     /// <inheritdoc/>
