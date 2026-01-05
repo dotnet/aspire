@@ -45,6 +45,9 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     [Inject]
     public required IJSRuntime JS { get; init; }
 
+    [Inject]
+    public required IDialogService DialogService { get; init; }
+
     protected override void OnInitialized()
     {
         _languageOptions = GlobalizationHelpers.OrderedLocalizedCultures;
@@ -131,6 +134,20 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
             _isExporting = false;
             StateHasChanged();
         }
+    }
+
+    private async Task LaunchManageDataAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            Title = Loc[nameof(Dashboard.Resources.Dialogs.ExemplarsDialogTitle)],
+            PrimaryAction = Loc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
+            DismissTitle = Loc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
+            SecondaryAction = string.Empty,
+            Width = "800px",
+            Height = "auto"
+        };
+        await DialogService.ShowDialogAsync<ExemplarsDialog>(parameters);
     }
 
     public void Dispose()
