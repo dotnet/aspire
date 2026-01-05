@@ -1,26 +1,114 @@
 ﻿@using Aspire.Dashboard.Components.Controls.Chart
+@using Aspire.Dashboard.Components.ResourcesGridColumns
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.Dashboard.Model
+@using Resources = Aspire.Dashboard.Resources.Resources
 @using Dialogs = Aspire.Dashboard.Resources.Dialogs
 
 @inject IStringLocalizer<Dialogs> Loc
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+@inject IStringLocalizer<Resources> ResourcesLoc
 
 <div style="max-height: 44vh; overflow-y: auto;">
-    <FluentDataGrid Items="@MetricView"
+    <FluentDataGrid @ref="_dataGrid"
+                    Items="@GetGridItems()"
                     RowSize="DataGridRowSize.Medium"
-                    GridTemplateColumns="2fr 1fr 1fr 1fr"
-                    TGridItem="DataRow">
+                    GridTemplateColumns="auto 2fr 1fr"
+                    TGridItem="ManageDataGridItem"
+                    RowClass="@GetRowClass">
         <ChildContent>
-            <SelectColumn TGridItem="DataRow"
+            <SelectColumn TGridItem="ManageDataGridItem"
                           SelectMode="DataGridSelectMode.Multiple"
-                          SelectFromEntireRow="true"
-                          @bind-SelectedItems="@SelectedItems" />
-            <TemplateColumn Title="@Loc[nameof(Dialogs.ExemplarsDialogTraceColumnHeader)]" TooltipText="@(context => "Test")" Tooltip="true">
-                @context.Name
+                          SelectFromEntireRow="false"
+                          Property="@(item => item.IsResourceRow && item.ResourceRow is not null ? item.ResourceRow.Selected : false)"
+                          OnSelect="@OnSelectItem" />
+            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
+                @{
+                    var indent = context.Depth * 24;
+                }
+                <span class="resources-name-container" style="margin-left: @(indent)px;">
+                    @if (context.IsResourceRow && context.ResourceRow is not null)
+                    {
+                        <span @onclick:stopPropagation="true" class="main-grid-expand-container @(context.ResourceRow.IsExpanded ? "main-grid-expanded" : "main-grid-collapsed")">
+                            @if (context.ResourceRow.Data.Count > 0)
+                            {
+                                <FluentButton Appearance="Appearance.Lightweight"
+                                              Class="main-grid-expand-button"
+                                              OnClick="@(() => OnToggleExpand(context.ResourceRow))"
+                                              aria-label="@ControlsStringsLoc[nameof(ControlsStrings.ToggleNesting)]">
+                                    <FluentIcon Icon="Icons.Regular.Size12.ChevronRight" Color="Color.Neutral" />
+                                </FluentButton>
+                            }
+                        </span>
+                        @if (context.ResourceRow.Resource is not null)
+                        {
+                            <ResourceNameDisplay Resource="context.ResourceRow.Resource" FilterText="" FormatName="GetResourceName" />
+                        }
+                        else
+                        {
+                            @* Telemetry-only resource - display with default icon *@
+                            <span class="resource-name-container">
+                                <FluentIcon Width="16px"
+                                            Class="resource-icon"
+                                            Color="Color.Custom"
+                                            CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(context.ResourceRow.DisplayName)"
+                                            Value="@GetDefaultResourceIcon()" />
+                                <span class="resource-name-text">@context.ResourceRow.DisplayName</span>
+                            </span>
+                        }
+                    }
+                    else if (context.IsNestedRow && context.NestedRow is not null)
+                    {
+                        <span class="cellText">@context.NestedRow.Name</span>
+                    }
+                </span>
+            </TemplateColumn>
+            <TemplateColumn Title="@ResourcesLoc[nameof(Resources.ResourcesStateColumnHeader)]">
+                @if (context.IsResourceRow && context.ResourceRow?.Resource is not null)
+                {
+                    <StateColumnDisplay Resource="@context.ResourceRow.Resource" UnviewedErrorCounts="@null" />
+                }
             </TemplateColumn>
         </ChildContent>
         <EmptyContent>
-            <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;@Loc[nameof(ControlsStrings.MetricTableNoMetricsFound)]
+            <FluentIcon Icon="Icons.Regular.Size24.Apps" />&nbsp;@ResourcesLoc[nameof(Resources.ResourcesNoResources)]
         </EmptyContent>
     </FluentDataGrid>
 </div>
+
+<div style="margin-top: 16px;">
+    <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowDownload())"
+                  OnClick="ExportAllAsync"
+                  Loading="@_isExporting"
+                  Title="@Loc[nameof(Dialogs.ManageDataExportButtonText)]"
+                  aria-label="@Loc[nameof(Dialogs.ManageDataExportButtonText)]">
+        @Loc[nameof(Dialogs.ManageDataExportButtonText)]
+    </FluentButton>
+    <FluentButton IconStart="@(new Icons.Regular.Size16.Delete())"
+                  OnClick="RemoveAllAsync"
+                  Title="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]"
+                  aria-label="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]">
+        @Loc[nameof(Dialogs.ManageDataRemoveButtonText)]
+    </FluentButton>
+</div>
+
+@code {
+    private string GetRowClass(ManageDataGridItem item)
+    {
+        return item.IsNestedRow ? "nested-data-row" : "resource-data-row";
+    }
+
+    private void OnSelectItem((ManageDataGridItem Item, bool Selected) args)
+    {
+        if (args.Item.IsResourceRow && args.Item.ResourceRow is not null)
+        {
+            args.Item.ResourceRow.Selected = args.Selected;
+        }
+    }
+
+    private Icon GetDefaultResourceIcon()
+    {
+        return IconResolver.ResolveIconName("Apps", IconSize.Size16, IconVariant.Filled) ?? new Icons.Filled.Size16.Apps();
+    }
+}

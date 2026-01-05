@@ -377,6 +377,26 @@
         <target state="translated">Tamam</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataDialogTitle">
+        <source>Resource logs and telemetry</source>
+        <target state="new">Resource logs and telemetry</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportButtonText">
+        <source>Export</source>
+        <target state="new">Export</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataManageButtonText">
+        <source>Manage</source>
+        <target state="new">Manage</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveButtonText">
+        <source>Remove</source>
+        <target state="new">Remove</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
         <source>Aspire MCP API key</source>
         <target state="translated">Aspire MCP API anahtarı</target>

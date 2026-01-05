@@ -1184,5 +1184,41 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("TextVisualizerSelectFormatType", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource logs and telemetry.
+        /// </summary>
+        public static string ManageDataDialogTitle {
+            get {
+                return ResourceManager.GetString("ManageDataDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage.
+        /// </summary>
+        public static string ManageDataManageButtonText {
+            get {
+                return ResourceManager.GetString("ManageDataManageButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Export.
+        /// </summary>
+        public static string ManageDataExportButtonText {
+            get {
+                return ResourceManager.GetString("ManageDataExportButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove.
+        /// </summary>
+        public static string ManageDataRemoveButtonText {
+            get {
+                return ResourceManager.GetString("ManageDataRemoveButtonText", resourceCulture);
+            }
+        }
     }
 }

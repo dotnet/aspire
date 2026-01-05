@@ -140,14 +140,14 @@ public partial class SettingsDialog : IDialogContentComponent, IDisposable
     {
         var parameters = new DialogParameters
         {
-            Title = Loc[nameof(Dashboard.Resources.Dialogs.ExemplarsDialogTitle)],
+            Title = Loc[nameof(Dashboard.Resources.Dialogs.ManageDataDialogTitle)],
             PrimaryAction = Loc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
             DismissTitle = Loc[nameof(Dashboard.Resources.Dialogs.DialogCloseButtonText)],
             SecondaryAction = string.Empty,
             Width = "800px",
             Height = "auto"
         };
-        await DialogService.ShowDialogAsync<ExemplarsDialog>(parameters);
+        await DialogService.ShowDialogAsync<ManageDataDialog>(parameters);
     }
 
     public void Dispose()

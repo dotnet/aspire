@@ -504,4 +504,16 @@
   <data name="McpServerDialogCliInstructionsBelow" xml:space="preserve">
     <value>The &lt;code&gt;aspire mcp init&lt;/code&gt; command writes MCP JSON to your local workspace. Alternatively, configure your local AI development tools using instructions below.</value>
   </data>
+  <data name="ManageDataDialogTitle" xml:space="preserve">
+    <value>Resource logs and telemetry</value>
+  </data>
+  <data name="ManageDataManageButtonText" xml:space="preserve">
+    <value>Manage</value>
+  </data>
+  <data name="ManageDataExportButtonText" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="ManageDataRemoveButtonText" xml:space="preserve">
+    <value>Remove</value>
+  </data>
 </root>
