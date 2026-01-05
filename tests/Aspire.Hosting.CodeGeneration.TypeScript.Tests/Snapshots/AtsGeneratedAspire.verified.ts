@@ -34,45 +34,11 @@ export type EnvironmentContextBuilderHandle = Handle<'aspire/EnvironmentContext'
 /** Handle to DistributedApplicationExecutionContext */
 export type ExecutionContextHandle = Handle<'aspire/ExecutionContext'>;
 
-/** Handle to IResourceBuilder<IResource> */
-export type IResourceHandle = Handle<'aspire/IResource'>;
-
 /** Handle to IResourceBuilder<TResource> */
 export type TBuilderHandle = Handle<'aspire/T'>;
 
 /** Handle to IResourceBuilder<TestRedisResource> */
 export type TestRedisBuilderHandle = Handle<'aspire/TestRedis'>;
-
-// ============================================================================
-// TestContext
-// ============================================================================
-
-/**
- * Wrapper class for aspire.test/TestContext.
- */
-export class TestContext {
-    constructor(private _handle: TestContextBuilderHandle, private _client: AspireClient) {}
-
-    /** Gets the underlying handle */
-    get handle(): TestContextBuilderHandle { return this._handle; }
-
-    /** Gets the Name property */
-    async name(context: unknown): Promise<string> {
-        return await this._client.client.invokeCapability<string>(
-            'aspire.test/TestContext.name@1',
-            { handle: this._handle, context }
-        );
-    }
-
-    /** Gets the Value property */
-    async value(context: unknown): Promise<number> {
-        return await this._client.client.invokeCapability<number>(
-            'aspire.test/TestContext.value@1',
-            { handle: this._handle, context }
-        );
-    }
-
-}
 
 // ============================================================================
 // DistributedApplicationBuilder
@@ -156,17 +122,77 @@ export class DistributedApplicationBuilder {
     build(): DistributedApplicationPromise {
         return new DistributedApplicationPromise(this._buildInternal());
     }
+}
 
-    /**
-     * Adds a test Redis resource
-     */
-    addTestRedis(name: string, port?: number): TestRedisBuilderPromise {
-        const promise = this._client.client.invokeCapability<TestRedisBuilderHandle>(
-            'aspire.test/addTestRedis@1',
-            { builder: this._handle, name, port }
-        ).then(handle => new TestRedisBuilder(handle, this._client));
-        return new TestRedisBuilderPromise(promise);
+// ============================================================================
+// TBuilder
+// ============================================================================
+
+export class TBuilder {
+    constructor(protected _handle: TBuilderHandle, protected _client: AspireClient) {}
+
+    /** Gets the underlying handle */
+    get handle(): TBuilderHandle { return this._handle; }
+
+    /** Configures the Redis resource with persistence */
+    /** @internal */
+    async _withPersistenceInternal(mode?: unknown): Promise<TBuilder> {
+        const result = await this._client.invokeCapability<TestRedisBuilderHandle>(
+            'aspire.test/withPersistence@1',
+            { builder: this._handle, mode }
+        );
+        return new TBuilder(result, this._client);
     }
+
+    withPersistence(mode?: unknown): TBuilderPromise {
+        return new TBuilderPromise(this._withPersistenceInternal(mode));
+    }
+
+    /** Adds an optional string parameter */
+    /** @internal */
+    async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<TBuilder> {
+        const result = await this._client.invokeCapability<TBuilderHandle>(
+            'aspire.test/withOptionalString@1',
+            { builder: this._handle, value, enabled }
+        );
+        return new TBuilder(result, this._client);
+    }
+
+    withOptionalString(value?: string, enabled?: boolean): TBuilderPromise {
+        return new TBuilderPromise(this._withOptionalStringInternal(value, enabled));
+    }
+
+}
+
+/**
+ * Thenable wrapper for TBuilder that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class TBuilderPromise implements PromiseLike<TBuilder> {
+    constructor(private _promise: Promise<TBuilder>) {}
+
+    then<TResult1 = TBuilder, TResult2 = never>(
+        onfulfilled?: ((value: TBuilder) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Configures the Redis resource with persistence */
+    withPersistence(mode?: unknown): TBuilderPromise {
+        return new TBuilderPromise(
+            this._promise.then(b => b._withPersistenceInternal(mode))
+        );
+    }
+
+    /** Adds an optional string parameter */
+    withOptionalString(value?: string, enabled?: boolean): TBuilderPromise {
+        return new TBuilderPromise(
+            this._promise.then(b => b._withOptionalStringInternal(value, enabled))
+        );
+    }
+
 }
 
 // ============================================================================
@@ -193,6 +219,20 @@ export class TestRedisBuilder {
         return new TestRedisBuilderPromise(this._withPersistenceInternal(mode));
     }
 
+    /** Adds an optional string parameter */
+    /** @internal */
+    async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<TestRedisBuilder> {
+        const result = await this._client.invokeCapability<TBuilderHandle>(
+            'aspire.test/withOptionalString@1',
+            { builder: this._handle, value, enabled }
+        );
+        return new TestRedisBuilder(result, this._client);
+    }
+
+    withOptionalString(value?: string, enabled?: boolean): TestRedisBuilderPromise {
+        return new TestRedisBuilderPromise(this._withOptionalStringInternal(value, enabled));
+    }
+
 }
 
 /**
@@ -217,48 +257,9 @@ export class TestRedisBuilderPromise implements PromiseLike<TestRedisBuilder> {
         );
     }
 
-}
-
-// ============================================================================
-// ResourceBuilderBase
-// ============================================================================
-
-export class ResourceBuilderBase {
-    constructor(protected _handle: IResourceHandle, protected _client: AspireClient) {}
-
-    /** Gets the underlying handle */
-    get handle(): IResourceHandle { return this._handle; }
-
     /** Adds an optional string parameter */
-    /** @internal */
-    async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<ResourceBuilderBase> {
-        const result = await this._client.invokeCapability<TBuilderHandle>(
-            'aspire.test/withOptionalString@1',
-            { builder: this._handle, value, enabled }
-        );
-        return new ResourceBuilderBase(result, this._client);
-    }
-
-}
-
-/**
- * Thenable wrapper for ResourceBuilderBase that enables fluent chaining.
- * @example
- * await builder.addSomething().withX().withY();
- */
-export class ResourceBuilderBasePromise implements PromiseLike<ResourceBuilderBase> {
-    constructor(private _promise: Promise<ResourceBuilderBase>) {}
-
-    then<TResult1 = ResourceBuilderBase, TResult2 = never>(
-        onfulfilled?: ((value: ResourceBuilderBase) => TResult1 | PromiseLike<TResult1>) | null,
-        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-    ): PromiseLike<TResult1 | TResult2> {
-        return this._promise.then(onfulfilled, onrejected);
-    }
-
-    /** Adds an optional string parameter */
-    withOptionalString(value?: string, enabled?: boolean): ResourceBuilderBasePromise {
-        return new ResourceBuilderBasePromise(
+    withOptionalString(value?: string, enabled?: boolean): TestRedisBuilderPromise {
+        return new TestRedisBuilderPromise(
             this._promise.then(b => b._withOptionalStringInternal(value, enabled))
         );
     }
