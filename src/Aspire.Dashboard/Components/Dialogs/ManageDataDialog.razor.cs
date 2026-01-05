@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using Aspire.Dashboard.Components.Controls.Chart;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.ManageData;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
@@ -17,80 +18,6 @@ using CoreIcons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
-
-/// <summary>
-/// Represents a row in the manage data grid, containing resource information and nested data rows.
-/// </summary>
-public sealed class ResourceDataRow
-{
-    /// <summary>
-    /// The ResourceViewModel from the dashboard client. May be null for telemetry-only resources.
-    /// </summary>
-    public ResourceViewModel? Resource { get; init; }
-
-    /// <summary>
-    /// The OtlpResource from telemetry. May be null if no telemetry data exists yet.
-    /// </summary>
-    public OtlpResource? OtlpResource { get; init; }
-
-    /// <summary>
-    /// The display name for this resource row.
-    /// </summary>
-    public required string DisplayName { get; init; }
-
-    public bool IsExpanded { get; set; }
-    public bool Selected { get; set; }
-    public List<DataRow> Data { get; set; } = [];
-
-    /// <summary>
-    /// Gets whether this resource is telemetry-only (no corresponding ResourceViewModel).
-    /// </summary>
-    public bool IsTelemetryOnly => Resource is null && OtlpResource is not null;
-}
-
-/// <summary>
-/// Represents a nested data row within a resource row.
-/// </summary>
-public sealed class DataRow
-{
-    public required string DisplayName { get; init; }
-
-    /// <summary>
-    /// The type of data this row represents.
-    /// </summary>
-    public required AspireDataType DataType { get; init; }
-
-    /// <summary>
-    /// The total count of items (logs, traces, or metrics). Null if count is not available.
-    /// </summary>
-    public int? DataCount { get; init; }
-
-    /// <summary>
-    /// The icon representing this data type.
-    /// </summary>
-    public required Icon Icon { get; init; }
-
-    /// <summary>
-    /// The URL to navigate to when clicking on this data row.
-    /// </summary>
-    public required string Url { get; init; }
-
-    public bool Selected { get; set; }
-}
-
-/// <summary>
-/// Represents an item in the manage data grid, which can be either a resource row or a nested data row.
-/// </summary>
-public sealed class ManageDataGridItem
-{
-    public ResourceDataRow? ResourceRow { get; init; }
-    public DataRow? NestedRow { get; init; }
-    public ResourceViewModel? ParentResource { get; init; }
-    public int Depth { get; init; }
-
-    public bool IsResourceRow => ResourceRow is not null;
-    public bool IsNestedRow => NestedRow is not null;
-}
 
 public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposable
 {

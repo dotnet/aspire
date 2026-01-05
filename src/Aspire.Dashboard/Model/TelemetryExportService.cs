@@ -30,36 +30,6 @@ public sealed class TelemetryExportService
     }
 
     /// <summary>
-    /// Exports all telemetry and console logs as a zip archive stream.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A memory stream containing the zip archive.</returns>
-    public async Task<MemoryStream> ExportAllAsync(CancellationToken cancellationToken)
-    {
-        var memoryStream = new MemoryStream();
-
-        using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            var resources = _telemetryRepository.GetResources();
-
-            // Export console logs
-            await ExportConsoleLogsAsync(archive, cancellationToken).ConfigureAwait(false);
-
-            // Export structured logs (OTLP JSON)
-            ExportStructuredLogs(archive, resources);
-
-            // Export traces (OTLP JSON)
-            ExportTraces(archive, resources);
-
-            // Export metrics (OTLP JSON)
-            ExportMetrics(archive, resources);
-        }
-
-        memoryStream.Position = 0;
-        return memoryStream;
-    }
-
-    /// <summary>
     /// Exports selected telemetry and console logs as a zip archive stream.
     /// </summary>
     /// <param name="selectedResources">Dictionary mapping resource names to the data types to export.</param>
@@ -118,11 +88,6 @@ public sealed class TelemetryExportService
 
         memoryStream.Position = 0;
         return memoryStream;
-    }
-
-    private async Task ExportConsoleLogsAsync(ZipArchive archive, CancellationToken cancellationToken)
-    {
-        await ExportConsoleLogsAsync(archive, resourceFilter: null, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task ExportConsoleLogsAsync(ZipArchive archive, HashSet<string>? resourceFilter, CancellationToken cancellationToken)
