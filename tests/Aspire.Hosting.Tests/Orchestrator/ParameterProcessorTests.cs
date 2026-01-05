@@ -507,7 +507,7 @@ public class ParameterProcessorTests
         List<ParameterResource> parameters = [param];
 
         // Act
-        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
         // Wait for the message bar interaction and complete it
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -518,10 +518,10 @@ public class ParameterProcessorTests
 
         // Assert - Should have 2 inputs (parameter + disabled save checkbox)
         Assert.Equal(2, inputsInteraction.Inputs.Count);
-        
+
         var paramInput = inputsInteraction.Inputs["param1"];
         Assert.Equal("param1", paramInput.Label);
-        
+
         var saveCheckbox = inputsInteraction.Inputs["RememberParameters"];
         Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, saveCheckbox.Label);
         Assert.Equal(InputType.Boolean, saveCheckbox.InputType);
@@ -546,7 +546,7 @@ public class ParameterProcessorTests
         List<ParameterResource> parameters = [param];
 
         // Act
-        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters);
+        _ = parameterProcessor.HandleUnresolvedParametersAsync(parameters, CancellationToken.None);
 
         // Wait for the message bar interaction and complete it
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -557,10 +557,10 @@ public class ParameterProcessorTests
 
         // Assert - Should have 2 inputs (parameter + enabled save checkbox)
         Assert.Equal(2, inputsInteraction.Inputs.Count);
-        
+
         var paramInput = inputsInteraction.Inputs["param1"];
         Assert.Equal("param1", paramInput.Label);
-        
+
         var saveCheckbox = inputsInteraction.Inputs["RememberParameters"];
         Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, saveCheckbox.Label);
         Assert.Equal(InputType.Boolean, saveCheckbox.InputType);
