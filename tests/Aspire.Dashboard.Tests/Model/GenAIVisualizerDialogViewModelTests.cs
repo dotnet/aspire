@@ -8,7 +8,7 @@ using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
-using Microsoft.OpenApi.Any;
+using Microsoft.OpenApi;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
@@ -1161,22 +1161,22 @@ public sealed class GenAIVisualizerDialogViewModelTests
                 Assert.Equal("get_current_weather", tool.ToolDefinition.Name);
                 Assert.Equal("Get the current weather in a given location", tool.ToolDefinition.Description);
                 Assert.NotNull(tool.ToolDefinition.Parameters);
-                Assert.Equal("object", tool.ToolDefinition.Parameters.Type);
+                Assert.Equal(JsonSchemaType.Object, tool.ToolDefinition.Parameters.Type);
                 Assert.NotNull(tool.ToolDefinition.Parameters.Properties);
                 Assert.Equal(2, tool.ToolDefinition.Parameters.Properties.Count);
 
                 Assert.True(tool.ToolDefinition.Parameters.Properties.ContainsKey("location"));
                 var locationProp = tool.ToolDefinition.Parameters.Properties["location"];
-                Assert.Equal("string", locationProp.Type);
+                Assert.Equal(JsonSchemaType.String, locationProp.Type);
                 Assert.Equal("The city and state, e.g. San Francisco, CA", locationProp.Description);
 
                 Assert.True(tool.ToolDefinition.Parameters.Properties.ContainsKey("unit"));
                 var unitProp = tool.ToolDefinition.Parameters.Properties["unit"];
-                Assert.Equal("string", unitProp.Type);
+                Assert.Equal(JsonSchemaType.String, unitProp.Type);
                 Assert.NotNull(unitProp.Enum);
                 Assert.Equal(2, unitProp.Enum.Count);
-                Assert.Equal("celsius", ((OpenApiString)unitProp.Enum[0]).Value);
-                Assert.Equal("fahrenheit", ((OpenApiString)unitProp.Enum[1]).Value);
+                Assert.Equal("celsius", unitProp.Enum[0]!.GetValue<string>());
+                Assert.Equal("fahrenheit", unitProp.Enum[1]!.GetValue<string>());
 
                 Assert.NotNull(tool.ToolDefinition.Parameters.Required);
                 Assert.Equal(2, tool.ToolDefinition.Parameters.Required.Count);
@@ -1446,6 +1446,214 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Equal(2, vm.ToolDefinitions.Count);
         Assert.Contains(vm.ToolDefinitions, t => t.ToolDefinition.Name == "get_weather" && t.ToolDefinition.Description == "Gets weather for a location");
         Assert.Contains(vm.ToolDefinitions, t => t.ToolDefinition.Name == "search" && t.ToolDefinition.Description == "Searches the web");
+    }
+
+    [Fact]
+    public void Create_GenAIToolDefinitions_TypeAsArray_ParsesToolDefinitions()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Create tool definitions JSON with "type" as an array of strings
+        // This is valid in JSON Schema and can occur in GenAI tool schemas
+        var toolDefinitionsJson = """
+        [
+          {
+            "type": "function",
+            "name": "get_optional_value",
+            "description": "Get an optional value that may be null",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": ["string", "null"],
+                  "description": "The value which can be string or null"
+                },
+                "count": {
+                  "type": ["number", "null"]
+                },
+                "flag": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["flag"]
+            }
+          }
+        ]
+        """;
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create(GenAIHelpers.GenAIToolDefinitions, toolDefinitionsJson)
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.ToolDefinitions,
+            tool =>
+            {
+                Assert.Equal("function", tool.ToolDefinition.Type);
+                Assert.Equal("get_optional_value", tool.ToolDefinition.Name);
+                Assert.Equal("Get an optional value that may be null", tool.ToolDefinition.Description);
+                Assert.NotNull(tool.ToolDefinition.Parameters);
+                Assert.Equal(JsonSchemaType.Object, tool.ToolDefinition.Parameters.Type);
+                Assert.NotNull(tool.ToolDefinition.Parameters.Properties);
+                Assert.Equal(3, tool.ToolDefinition.Parameters.Properties.Count);
+
+                // Check "value" property with type array ["string", "null"]
+                Assert.True(tool.ToolDefinition.Parameters.Properties.ContainsKey("value"));
+                var valueProp = tool.ToolDefinition.Parameters.Properties["value"];
+                Assert.Equal(JsonSchemaType.String | JsonSchemaType.Null, valueProp.Type); // Should OR all types together
+                Assert.Equal("The value which can be string or null", valueProp.Description);
+
+                // Check "count" property with type array ["number", "null"]
+                Assert.True(tool.ToolDefinition.Parameters.Properties.ContainsKey("count"));
+                var countProp = tool.ToolDefinition.Parameters.Properties["count"];
+                Assert.Equal(JsonSchemaType.Number | JsonSchemaType.Null, countProp.Type); // Should OR all types together
+
+                // Check "flag" property with simple string type
+                Assert.True(tool.ToolDefinition.Parameters.Properties.ContainsKey("flag"));
+                var flagProp = tool.ToolDefinition.Parameters.Properties["flag"];
+                Assert.Equal(JsonSchemaType.Boolean, flagProp.Type);
+
+                Assert.NotNull(tool.ToolDefinition.Parameters.Required);
+                Assert.Single(tool.ToolDefinition.Parameters.Required);
+                Assert.Contains("flag", tool.ToolDefinition.Parameters.Required);
+            });
+    }
+
+    [Fact]
+    public void Create_GenAIToolDefinitions_WithArrayItems_ParsesAndFormatsCorrectly()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Create tool definitions JSON with array types and items
+        var toolDefinitionsJson = """
+        [
+          {
+            "type": "function",
+            "name": "process_data",
+            "description": "Process a list of data items",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of string items"
+                },
+                "numbers": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "mixed": {
+                  "type": ["array", "null"],
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        ]
+        """;
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create(GenAIHelpers.GenAIToolDefinitions, toolDefinitionsJson)
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Collection(vm.ToolDefinitions,
+            tool =>
+            {
+                Assert.Equal("function", tool.ToolDefinition.Type);
+                Assert.Equal("process_data", tool.ToolDefinition.Name);
+                Assert.NotNull(tool.ToolDefinition.Parameters);
+                Assert.NotNull(tool.ToolDefinition.Parameters.Properties);
+                Assert.Equal(3, tool.ToolDefinition.Parameters.Properties.Count);
+
+                // Check "items" property - array of strings
+                var itemsProp = tool.ToolDefinition.Parameters.Properties["items"];
+                Assert.Equal(JsonSchemaType.Array, itemsProp.Type);
+                Assert.NotNull(itemsProp.Items);
+                Assert.Equal(JsonSchemaType.String, itemsProp.Items.Type);
+                Assert.Equal("array<string>", string.Join(", ", GenAISchemaHelpers.ConvertTypeToNames(itemsProp)));
+
+                // Check "numbers" property - array of numbers
+                var numbersProp = tool.ToolDefinition.Parameters.Properties["numbers"];
+                Assert.Equal(JsonSchemaType.Array, numbersProp.Type);
+                Assert.NotNull(numbersProp.Items);
+                Assert.Equal(JsonSchemaType.Number, numbersProp.Items.Type);
+                Assert.Equal("array<number>", string.Join(", ", GenAISchemaHelpers.ConvertTypeToNames(numbersProp)));
+
+                // Check "mixed" property - array or null of integers (null excluded from display)
+                var mixedProp = tool.ToolDefinition.Parameters.Properties["mixed"];
+                Assert.Equal(JsonSchemaType.Array | JsonSchemaType.Null, mixedProp.Type);
+                Assert.NotNull(mixedProp.Items);
+                Assert.Equal(JsonSchemaType.Integer, mixedProp.Items.Type);
+                Assert.Equal("array<integer>", string.Join(", ", GenAISchemaHelpers.ConvertTypeToNames(mixedProp)));
+            });
     }
 
     private static GenAIVisualizerDialogViewModel Create(
