@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRECOMPUTE003 // Type is for evaluation purposes only and is subject to change or removal in future updates.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Utils;
@@ -117,6 +119,21 @@ public class AzureContainerAppEnvironmentExtensionsTests
         // Should throw because no registry is configured
         var exception = Assert.Throws<InvalidOperationException>(environment.GetContainerRegistryResource);
         Assert.Contains("No container registry is configured", exception.Message);
+        Assert.Contains("env", exception.Message);
+    }
+
+    [Fact]
+    public void GetContainerRegistryResource_ThrowsWhenNonAzureRegistryConfigured()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var dockerRegistry = builder.AddContainerRegistry("docker-hub", "docker.io", "myuser");
+        var containerAppEnvironment = builder.AddAzureContainerAppEnvironment("env")
+            .WithContainerRegistry(dockerRegistry);
+
+        // Should throw because a non-Azure registry is configured
+        var exception = Assert.Throws<InvalidOperationException>(containerAppEnvironment.Resource.GetContainerRegistryResource);
+        Assert.Contains("not an Azure Container Registry", exception.Message);
         Assert.Contains("env", exception.Message);
     }
 }
