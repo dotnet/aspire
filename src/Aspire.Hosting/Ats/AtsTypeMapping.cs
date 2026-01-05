@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Frozen;
-using System.Reflection;
 
 namespace Aspire.Hosting.Ats;
 
@@ -17,13 +16,12 @@ internal static class AspireExportAttributeNames
 }
 
 /// <summary>
-/// Provides CLR type to ATS type ID mapping based on <see cref="AspireExportAttribute"/> declarations.
+/// Provides CLR type to ATS type ID mapping based on [AspireExport] attribute declarations.
 /// </summary>
 /// <remarks>
 /// <para>
 /// This class centralizes all type mapping logic, replacing scattered inference and string parsing.
-/// It scans assemblies for <see cref="AspireExportAttribute"/> with <see cref="AspireExportAttribute.AtsTypeId"/>
-/// set on types or at assembly level.
+/// It scans assemblies for [AspireExport] attributes with AtsTypeId set on types or at assembly level.
 /// </para>
 /// <para>
 /// The mapping is used by:
@@ -33,7 +31,7 @@ internal static class AspireExportAttributeNames
 /// </list>
 /// </para>
 /// </remarks>
-public sealed class AtsTypeMapping
+public sealed partial class AtsTypeMapping
 {
     private readonly FrozenDictionary<string, string> _fullNameToTypeId;
     private readonly FrozenDictionary<string, string> _typeIdToFullName;
@@ -51,36 +49,6 @@ public sealed class AtsTypeMapping
     {
         _fullNameToTypeId = fullNameToTypeId;
         _typeIdToFullName = typeIdToFullName;
-    }
-
-    /// <summary>
-    /// Creates a type mapping by scanning the specified assemblies for <see cref="AspireExportAttribute"/> declarations.
-    /// </summary>
-    /// <param name="assemblies">The assemblies to scan.</param>
-    /// <returns>A type mapping containing all discovered type mappings.</returns>
-    public static AtsTypeMapping FromAssemblies(IEnumerable<Assembly> assemblies)
-    {
-        var fullNameToTypeId = new Dictionary<string, string>(StringComparer.Ordinal);
-        var typeIdToFullName = new Dictionary<string, string>(StringComparer.Ordinal);
-
-        foreach (var assembly in assemblies)
-        {
-            ScanAssembly(assembly, fullNameToTypeId, typeIdToFullName);
-        }
-
-        return new AtsTypeMapping(
-            fullNameToTypeId.ToFrozenDictionary(StringComparer.Ordinal),
-            typeIdToFullName.ToFrozenDictionary(StringComparer.Ordinal));
-    }
-
-    /// <summary>
-    /// Creates a type mapping by scanning the specified assembly.
-    /// </summary>
-    /// <param name="assembly">The assembly to scan.</param>
-    /// <returns>A type mapping containing all discovered type mappings.</returns>
-    public static AtsTypeMapping FromAssembly(Assembly assembly)
-    {
-        return FromAssemblies([assembly]);
     }
 
     /// <summary>
@@ -115,48 +83,6 @@ public sealed class AtsTypeMapping
     internal static AtsTypeMapping FromAssembly(IAtsAssemblyInfo assembly)
     {
         return FromAssemblies([assembly]);
-    }
-
-    private static void ScanAssembly(
-        Assembly assembly,
-        Dictionary<string, string> fullNameToTypeId,
-        Dictionary<string, string> typeIdToFullName)
-    {
-        // Scan assembly-level attributes
-        foreach (var attr in assembly.GetCustomAttributes<AspireExportAttribute>())
-        {
-            if (attr.Type != null && !string.IsNullOrEmpty(attr.AtsTypeId))
-            {
-                var fullName = attr.Type.FullName;
-                if (fullName != null)
-                {
-                    fullNameToTypeId[fullName] = attr.AtsTypeId;
-                    typeIdToFullName[attr.AtsTypeId] = fullName;
-                }
-            }
-        }
-
-        // Scan type-level attributes
-        try
-        {
-            foreach (var type in assembly.GetTypes())
-            {
-                var attr = type.GetCustomAttribute<AspireExportAttribute>();
-                if (attr != null && !string.IsNullOrEmpty(attr.AtsTypeId))
-                {
-                    var fullName = type.FullName;
-                    if (fullName != null)
-                    {
-                        fullNameToTypeId[fullName] = attr.AtsTypeId;
-                        typeIdToFullName[attr.AtsTypeId] = fullName;
-                    }
-                }
-            }
-        }
-        catch (ReflectionTypeLoadException)
-        {
-            // Skip assemblies that can't be fully loaded
-        }
     }
 
     /// <summary>

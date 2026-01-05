@@ -10,8 +10,12 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
+  <!-- Shared ATS code from Aspire.Hosting (interfaces and scanners only, not attributes) -->
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <Compile Include="..\Aspire.Hosting\Ats\IAtsReflection.cs" Link="Ats\IAtsReflection.cs" />
+    <Compile Include="..\Aspire.Hosting\Ats\AtsCapabilityScanner.cs" Link="Ats\AtsCapabilityScanner.cs" />
+    <Compile Include="..\Aspire.Hosting\Ats\AtsCapabilityInfo.cs" Link="Ats\AtsCapabilityInfo.cs" />
+    <Compile Include="..\Aspire.Hosting\Ats\AtsTypeMapping.cs" Link="Ats\AtsTypeMapping.cs" />
   </ItemGroup>
 
 </Project>
