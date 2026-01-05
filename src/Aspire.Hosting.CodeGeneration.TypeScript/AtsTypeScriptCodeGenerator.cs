@@ -90,7 +90,7 @@ internal sealed class BuilderModel
 /// <para>
 /// <b>Method Naming:</b>
 /// <list type="bullet">
-///   <item><description>Derived from capability ID: <c>aspire.redis/addRedis@1</c> → <c>addRedis</c></description></item>
+///   <item><description>Derived from capability ID: <c>Aspire.Hosting.Redis/addRedis</c> → <c>addRedis</c></description></item>
 ///   <item><description>Can be overridden via <c>[AspireExport(MethodName = "...")]</c></description></item>
 ///   <item><description>TypeScript uses camelCase (the canonical form from capability IDs)</description></item>
 /// </list>
@@ -141,7 +141,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine("""
             // aspire.ts - Capability-based Aspire SDK
             // This SDK uses the ATS (Aspire Type System) capability API.
-            // Capabilities are versioned endpoints like 'aspire/createBuilder@1'.
+            // Capabilities are endpoints like 'Aspire.Hosting/createBuilder'.
             //
             // GENERATED CODE - DO NOT EDIT
 
@@ -315,7 +315,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                  */
                 async run(): Promise<void> {
                     await this._client.client.invokeCapability<void>(
-                        'aspire/run@1',
+                        'Aspire.Hosting/run',
                         { app: this._handle }
                     );
                 }
@@ -367,7 +367,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 /** @internal - actual async implementation */
                 async _buildInternal(): Promise<DistributedApplication> {
                     const handle = await this._client.client.invokeCapability<ApplicationHandle>(
-                        'aspire/build@1',
+                        'Aspire.Hosting/build',
                         { builder: this._handle }
                     );
                     return new DistributedApplication(handle, this._client);
@@ -929,7 +929,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
                 const client = await connect();
                 const handle = await client.client.invokeCapability<BuilderHandle>(
-                    'aspire/createBuilder@1',
+                    'Aspire.Hosting/createBuilder',
                     { args }
                 );
                 return new DistributedApplicationBuilder(handle, client);

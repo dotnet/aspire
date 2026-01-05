@@ -175,6 +175,9 @@ internal interface IAtsAttributeInfo
 /// </summary>
 internal interface IAtsAssemblyInfo
 {
+    /// <summary>Gets the simple name of the assembly (e.g., "Aspire.Hosting.Redis").</summary>
+    string Name { get; }
+
     /// <summary>Gets all types defined in this assembly.</summary>
     IEnumerable<IAtsTypeInfo> GetTypes();
 

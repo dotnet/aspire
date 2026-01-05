@@ -42,7 +42,7 @@ internal static class BuilderExports
     /// </summary>
     /// <param name="builder">The builder handle.</param>
     /// <returns>A handle to the <see cref="IConfiguration"/>.</returns>
-    [AspireExport("aspire/getConfiguration@1", Description = "Gets the configuration from the builder")]
+    [AspireExport("getConfiguration", Description = "Gets the configuration from the builder")]
     public static IConfiguration GetConfiguration(IDistributedApplicationBuilder builder)
     {
         return builder.Configuration;
@@ -53,7 +53,7 @@ internal static class BuilderExports
     /// </summary>
     /// <param name="builder">The builder handle.</param>
     /// <returns>A handle to the <see cref="IHostEnvironment"/>.</returns>
-    [AspireExport("aspire/getEnvironment@1", Description = "Gets the host environment from the builder")]
+    [AspireExport("getEnvironment", Description = "Gets the host environment from the builder")]
     public static IHostEnvironment GetEnvironment(IDistributedApplicationBuilder builder)
     {
         return builder.Environment;
@@ -64,7 +64,7 @@ internal static class BuilderExports
     /// </summary>
     /// <param name="builder">The builder handle.</param>
     /// <returns>The directory path containing the app host.</returns>
-    [AspireExport("aspire/getAppHostDirectory@1", Description = "Gets the app host directory")]
+    [AspireExport("getAppHostDirectory", Description = "Gets the app host directory")]
     public static string GetAppHostDirectory(IDistributedApplicationBuilder builder)
     {
         return builder.AppHostDirectory;
@@ -80,7 +80,7 @@ internal static class BuilderExports
     /// <param name="configuration">The configuration handle.</param>
     /// <param name="key">The configuration key (e.g., "ConnectionStrings:Default").</param>
     /// <returns>The configuration value, or null if not found.</returns>
-    [AspireExport("aspire/getConfigValue@1", Description = "Gets a configuration value by key")]
+    [AspireExport("getConfigValue", Description = "Gets a configuration value by key")]
     public static string? GetConfigValue(IConfiguration configuration, string key)
     {
         return configuration[key];
@@ -92,7 +92,7 @@ internal static class BuilderExports
     /// <param name="configuration">The configuration handle.</param>
     /// <param name="name">The connection string name.</param>
     /// <returns>The connection string value, or null if not found.</returns>
-    [AspireExport("aspire/getConnectionString@1", Description = "Gets a connection string by name")]
+    [AspireExport("getConnectionString", Description = "Gets a connection string by name")]
     public static string? GetConnectionString(IConfiguration configuration, string name)
     {
         return configuration.GetConnectionString(name);
@@ -107,7 +107,7 @@ internal static class BuilderExports
     /// </summary>
     /// <param name="environment">The host environment handle.</param>
     /// <returns>The environment name.</returns>
-    [AspireExport("aspire/getEnvironmentName@1", Description = "Gets the environment name")]
+    [AspireExport("getEnvironmentName", Description = "Gets the environment name")]
     public static string GetEnvironmentName(IHostEnvironment environment)
     {
         return environment.EnvironmentName;
@@ -118,7 +118,7 @@ internal static class BuilderExports
     /// </summary>
     /// <param name="environment">The host environment handle.</param>
     /// <returns>True if running in Development environment.</returns>
-    [AspireExport("aspire/isDevelopment@1", Description = "Checks if running in Development environment")]
+    [AspireExport("isDevelopment", Description = "Checks if running in Development environment")]
     public static bool IsDevelopment(IHostEnvironment environment)
     {
         return environment.IsDevelopment();
@@ -138,7 +138,7 @@ internal static class BuilderExports
     /// <param name="builder">The builder handle.</param>
     /// <param name="callback">A callback that receives the service provider when the event fires.</param>
     /// <returns>A subscription handle that can be used to unsubscribe.</returns>
-    [AspireExport("aspire/subscribeBeforeStart@1", Description = "Subscribes to the BeforeStart lifecycle event")]
+    [AspireExport("subscribeBeforeStart", Description = "Subscribes to the BeforeStart lifecycle event")]
     public static DistributedApplicationEventSubscription SubscribeBeforeStart(
         IDistributedApplicationBuilder builder,
         [AspireCallback("aspire/BeforeStartCallback")] Func<IServiceProvider, Task> callback)
@@ -159,7 +159,7 @@ internal static class BuilderExports
     /// <param name="builder">The builder handle.</param>
     /// <param name="callback">A callback that receives the service provider when the event fires.</param>
     /// <returns>A subscription handle that can be used to unsubscribe.</returns>
-    [AspireExport("aspire/subscribeAfterResourcesCreated@1", Description = "Subscribes to the AfterResourcesCreated lifecycle event")]
+    [AspireExport("subscribeAfterResourcesCreated", Description = "Subscribes to the AfterResourcesCreated lifecycle event")]
     public static DistributedApplicationEventSubscription SubscribeAfterResourcesCreated(
         IDistributedApplicationBuilder builder,
         [AspireCallback("aspire/AfterResourcesCreatedCallback")] Func<IServiceProvider, Task> callback)

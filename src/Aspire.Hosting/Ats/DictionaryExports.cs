@@ -14,7 +14,7 @@ internal static class DictionaryExports
     /// <summary>
     /// Sets a value in a dictionary.
     /// </summary>
-    [AspireExport("aspire/Dictionary.set@1", Description = "Sets a value in a dictionary")]
+    [AspireExport("Dictionary.set", Description = "Sets a value in a dictionary")]
     public static void Set(IDictionary dictionary, string key, object? value)
     {
         dictionary[key] = value;
@@ -23,7 +23,7 @@ internal static class DictionaryExports
     /// <summary>
     /// Gets a value from a dictionary.
     /// </summary>
-    [AspireExport("aspire/Dictionary.get@1", Description = "Gets a value from a dictionary")]
+    [AspireExport("Dictionary.get", Description = "Gets a value from a dictionary")]
     public static object? Get(IDictionary dictionary, string key)
     {
         return dictionary.Contains(key) ? dictionary[key] : null;
@@ -32,7 +32,7 @@ internal static class DictionaryExports
     /// <summary>
     /// Removes a key from a dictionary.
     /// </summary>
-    [AspireExport("aspire/Dictionary.remove@1", Description = "Removes a key from a dictionary")]
+    [AspireExport("Dictionary.remove", Description = "Removes a key from a dictionary")]
     public static bool Remove(IDictionary dictionary, string key)
     {
         if (dictionary.Contains(key))
@@ -46,7 +46,7 @@ internal static class DictionaryExports
     /// <summary>
     /// Checks if a key exists in a dictionary.
     /// </summary>
-    [AspireExport("aspire/Dictionary.containsKey@1", Description = "Checks if a key exists")]
+    [AspireExport("Dictionary.containsKey", Description = "Checks if a key exists")]
     public static bool ContainsKey(IDictionary dictionary, string key)
     {
         return dictionary.Contains(key);
@@ -55,7 +55,7 @@ internal static class DictionaryExports
     /// <summary>
     /// Gets all keys from a dictionary.
     /// </summary>
-    [AspireExport("aspire/Dictionary.keys@1", Description = "Gets all keys")]
+    [AspireExport("Dictionary.keys", Description = "Gets all keys")]
     public static string[] Keys(IDictionary dictionary)
     {
         var keys = new string[dictionary.Count];
@@ -70,7 +70,7 @@ internal static class DictionaryExports
     /// <summary>
     /// Gets the count of items in a dictionary.
     /// </summary>
-    [AspireExport("aspire/Dictionary.count@1", Description = "Gets the count of items")]
+    [AspireExport("Dictionary.count", Description = "Gets the count of items")]
     public static int Count(IDictionary dictionary)
     {
         return dictionary.Count;
@@ -79,7 +79,7 @@ internal static class DictionaryExports
     /// <summary>
     /// Clears all items from a dictionary.
     /// </summary>
-    [AspireExport("aspire/Dictionary.clear@1", Description = "Clears all items")]
+    [AspireExport("Dictionary.clear", Description = "Clears all items")]
     public static void Clear(IDictionary dictionary)
     {
         dictionary.Clear();

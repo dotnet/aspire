@@ -14,8 +14,8 @@ namespace Aspire.Hosting;
 /// <item>
 /// <description>
 /// <b>Capability exports (on methods):</b> Marks a static method as an ATS capability.
-/// Export IDs should follow the format: <c>aspire.{package}/{methodName}@{version}</c>
-/// For example: <c>aspire.redis/addRedis@1</c>
+/// Specify just the method name - the capability ID is computed as <c>{AssemblyName}/{methodName}</c>.
+/// For example: <c>"addRedis"</c> in Aspire.Hosting.Redis becomes <c>Aspire.Hosting.Redis/addRedis</c>.
 /// </description>
 /// </item>
 /// <item>
@@ -29,9 +29,10 @@ namespace Aspire.Hosting;
 /// </remarks>
 /// <example>
 /// <code>
-/// // Capability export on a method
-/// [AspireExport("aspire.redis/addRedis@1", Description = "Adds a Redis resource")]
+/// // Capability export on a method - just specify the method name
+/// [AspireExport("addRedis", Description = "Adds a Redis resource")]
 /// public static IResourceBuilder&lt;RedisResource&gt; AddRedis(...) { }
+/// // Scanner computes capability ID: Aspire.Hosting.Redis/addRedis
 ///
 /// // Type mapping on a type you own
 /// [AspireExport(AtsTypeId = "aspire/Redis")]
@@ -51,9 +52,10 @@ public sealed class AspireExportAttribute : Attribute
     /// Initializes a new instance for a capability export (on methods).
     /// </summary>
     /// <param name="id">
-    /// The globally unique export identifier.
-    /// Should follow the format: <c>aspire.{package}/{methodName}@{version}</c>
-    /// For example: <c>aspire.redis/addRedis@1</c>
+    /// The method name for this capability. The full capability ID is computed
+    /// as <c>{AssemblyName}/{methodName}</c>.
+    /// For example: <c>"addRedis"</c> in Aspire.Hosting.Redis becomes
+    /// <c>Aspire.Hosting.Redis/addRedis</c>.
     /// </param>
     public AspireExportAttribute(string id)
     {
@@ -90,10 +92,15 @@ public sealed class AspireExportAttribute : Attribute
     }
 
     /// <summary>
-    /// Gets the globally unique capability identifier (for method exports).
+    /// Gets the method name for capability exports.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// The full capability ID is computed as <c>{AssemblyName}/{Id}</c>.
+    /// </para>
+    /// <para>
     /// This is null for type mappings.
+    /// </para>
     /// </remarks>
     public string? Id { get; }
 
@@ -134,13 +141,13 @@ public sealed class AspireExportAttribute : Attribute
     /// </summary>
     /// <remarks>
     /// <para>
-    /// When not specified, the method name is derived from the capability ID.
-    /// For example, <c>aspire.redis/addRedis@1</c> generates <c>addRedis</c>.
+    /// When not specified, the method name from <see cref="Id"/> is used directly.
     /// </para>
     /// <para>
-    /// Use this property to override the generated name when the default
-    /// derivation is not suitable. Each language generator will apply its
-    /// own formatting convention (camelCase for TypeScript, snake_case for Python, etc.).
+    /// Use this property to override the generated name when disambiguation is needed
+    /// (e.g., to avoid collisions with another integration's method of the same name).
+    /// Each language generator will apply its own formatting convention
+    /// (camelCase for TypeScript, snake_case for Python, etc.).
     /// </para>
     /// </remarks>
     public string? MethodName { get; set; }

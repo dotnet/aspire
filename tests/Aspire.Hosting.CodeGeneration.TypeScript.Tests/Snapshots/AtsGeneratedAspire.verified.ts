@@ -1,6 +1,6 @@
 ﻿// aspire.ts - Capability-based Aspire SDK
 // This SDK uses the ATS (Aspire Type System) capability API.
-// Capabilities are versioned endpoints like 'aspire/createBuilder@1'.
+// Capabilities are endpoints like 'Aspire.Hosting/createBuilder'.
 //
 // GENERATED CODE - DO NOT EDIT
 
@@ -61,7 +61,7 @@ export class DistributedApplication {
      */
     async run(): Promise<void> {
         await this._client.client.invokeCapability<void>(
-            'aspire/run@1',
+            'Aspire.Hosting/run',
             { app: this._handle }
         );
     }
@@ -109,7 +109,7 @@ export class DistributedApplicationBuilder {
     /** @internal - actual async implementation */
     async _buildInternal(): Promise<DistributedApplication> {
         const handle = await this._client.client.invokeCapability<ApplicationHandle>(
-            'aspire/build@1',
+            'Aspire.Hosting/build',
             { builder: this._handle }
         );
         return new DistributedApplication(handle, this._client);
@@ -128,7 +128,7 @@ export class DistributedApplicationBuilder {
      */
     addTestRedis(name: string, port?: number): TestRedisBuilderPromise {
         const promise = this._client.client.invokeCapability<TestRedisBuilderHandle>(
-            'aspire.test/addTestRedis@1',
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis',
             { builder: this._handle, name, port }
         ).then(handle => new TestRedisBuilder(handle, this._client));
         return new TestRedisBuilderPromise(promise);
@@ -149,7 +149,7 @@ export class TestRedisBuilder {
     /** @internal */
     async _withPersistenceInternal(mode?: unknown): Promise<TestRedisBuilder> {
         const result = await this._client.invokeCapability<TestRedisBuilderHandle>(
-            'aspire.test/withPersistence@1',
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withPersistence',
             { builder: this._handle, mode }
         );
         return new TestRedisBuilder(result, this._client);
@@ -163,7 +163,7 @@ export class TestRedisBuilder {
     /** @internal */
     async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<TestRedisBuilder> {
         const result = await this._client.invokeCapability<IResourceHandle>(
-            'aspire.test/withOptionalString@1',
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString',
             { builder: this._handle, value, enabled }
         );
         return new TestRedisBuilder(result, this._client);
@@ -289,7 +289,7 @@ export async function connect(): Promise<AspireClient> {
 export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
     const client = await connect();
     const handle = await client.client.invokeCapability<BuilderHandle>(
-        'aspire/createBuilder@1',
+        'Aspire.Hosting/createBuilder',
         { args }
     );
     return new DistributedApplicationBuilder(handle, client);

@@ -35,7 +35,7 @@ public static class RedisBuilderExtensions
     /// </para>
     /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
     /// </remarks>
-    [AspireExport("aspire.redis/addRedisWithPort@1", Description = "Adds a Redis container resource with specific port")]
+    [AspireExport("addRedisWithPort", Description = "Adds a Redis container resource with specific port")]
     public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port)
     {
         return builder.AddRedis(name, port, null);
@@ -58,7 +58,7 @@ public static class RedisBuilderExtensions
     /// </para>
     /// This version of the package defaults to the <inheritdoc cref="RedisContainerImageTags.Tag"/> tag of the <inheritdoc cref="RedisContainerImageTags.Image"/> container image.
     /// </remarks>
-    [AspireExport("aspire.redis/addRedis@1", Description = "Adds a Redis container resource")]
+    [AspireExport("addRedis", Description = "Adds a Redis container resource")]
     public static IResourceBuilder<RedisResource> AddRedis(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
@@ -226,7 +226,7 @@ public static class RedisBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Commander.</param>
     /// <returns></returns>
-    [AspireExport("aspire.redis/withRedisCommander@1", Description = "Adds Redis Commander management UI")]
+    [AspireExport("withRedisCommander", Description = "Adds Redis Commander management UI")]
     public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -304,7 +304,7 @@ public static class RedisBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Redis Insight container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Insight.</param>
     /// <returns></returns>
-    [AspireExport("aspire.redis/withRedisInsight@1", Description = "Adds Redis Insight management UI")]
+    [AspireExport("withRedisInsight", Description = "Adds Redis Insight management UI")]
     public static IResourceBuilder<RedisResource> WithRedisInsight(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisInsightResource>>? configureContainer = null, string? containerName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -469,7 +469,7 @@ public static class RedisBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("aspire.redis/withDataVolume@1", Description = "Adds a data volume with persistence")]
+    [AspireExport("withDataVolume", Description = "Adds a data volume with persistence")]
     public static IResourceBuilder<RedisResource> WithDataVolume(this IResourceBuilder<RedisResource> builder, string? name = null, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -500,7 +500,7 @@ public static class RedisBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("aspire.redis/withDataBindMount@1", Description = "Adds a data bind mount with persistence")]
+    [AspireExport("withDataBindMount", Description = "Adds a data bind mount with persistence")]
     public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -530,7 +530,7 @@ public static class RedisBuilderExtensions
     /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("aspire.redis/withPersistence@1", Description = "Configures Redis persistence")]
+    [AspireExport("withPersistence", Description = "Configures Redis persistence")]
     public static IResourceBuilder<RedisResource> WithPersistence(this IResourceBuilder<RedisResource> builder, TimeSpan? interval = null, long keysChangedThreshold = 1)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -593,7 +593,7 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    [AspireExport("aspire.redis/withHostPort@1", Description = "Sets the host port for Redis")]
+    [AspireExport("withHostPort", Description = "Sets the host port for Redis")]
     public static IResourceBuilder<RedisResource> WithHostPort(this IResourceBuilder<RedisResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);

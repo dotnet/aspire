@@ -5,15 +5,16 @@ This document describes how the Aspire CLI supports non-.NET app hosts using the
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Architecture](#architecture)
-3. [Aspire Type System (ATS)](#aspire-type-system-ats)
-4. [JSON-RPC Protocol](#json-rpc-protocol)
-5. [Code Generation](#code-generation)
-6. [TypeScript Implementation](#typescript-implementation)
-7. [CLI Integration](#cli-integration)
-8. [Configuration](#configuration)
-9. [Adding New Guest Languages](#adding-new-guest-languages)
-10. [Security](#security)
+2. [Design Philosophy](#design-philosophy)
+3. [Architecture](#architecture)
+4. [Aspire Type System (ATS)](#aspire-type-system-ats)
+5. [JSON-RPC Protocol](#json-rpc-protocol)
+6. [Code Generation](#code-generation)
+7. [TypeScript Implementation](#typescript-implementation)
+8. [CLI Integration](#cli-integration)
+9. [Configuration](#configuration)
+10. [Adding New Guest Languages](#adding-new-guest-languages)
+11. [Security](#security)
 
 ---
 
@@ -25,9 +26,48 @@ Integration authors expose their existing extension methods to ATS by adding `[A
 
 **Key Concepts:**
 - **ATS Type ID** - A portable type identifier (e.g., `aspire/Redis`)
-- **Capability** - A named operation (e.g., `aspire.redis/addRedis@1`)
+- **Capability** - A named operation (e.g., `Aspire.Hosting.Redis/addRedis`)
 - **Handle** - An opaque typed reference to a .NET object
 - **DTO** - A serializable data transfer object
+
+---
+
+## Design Philosophy
+
+ATS flattens .NET's polymorphism into a simple, portable model that any language can work with:
+
+| .NET Concept | ATS Approach |
+|--------------|--------------|
+| Interface inheritance | Expanded to concrete types at scan time |
+| Generic constraints | Resolved to concrete types at scan time |
+| Method overloading | **Not supported** - method names must be unique per type |
+| Capability versioning | **Not needed** - NuGet package version handles compatibility |
+
+**The result**: A flat type system where:
+- Each concrete type has a complete list of capabilities
+- No type hierarchy to reason about
+- No generic type parameters
+- Guest languages don't need to understand .NET's type system
+
+### Why Flat?
+
+.NET's type system is powerful but complex. Interfaces, generics, and method overloading require sophisticated type checking that many languages don't support natively. By flattening at scan time:
+
+1. **Go, C, and other non-OOP languages** get a natural API without emulating inheritance
+2. **TypeScript, Swift** can optionally use the original interface hierarchy
+3. **All languages** see the same capabilities - just grouped differently
+
+### Collision Detection
+
+Since method overloading isn't supported, the scanner detects and reports conflicts:
+
+```
+Error: Method 'withDataVolume' has multiple definitions for target 'aspire/Redis':
+  - Aspire.Hosting.Redis/withDataVolume
+  - ThirdParty.Integration/withDataVolume
+
+Resolution: Use [AspireExport("uniqueMethodName")] to disambiguate.
+```
 
 ---
 
@@ -86,16 +126,16 @@ sequenceDiagram
     Guest->>Host: authenticate(token)
     Host-->>Guest: true
 
-    Guest->>Host: invokeCapability("aspire/createBuilder@1", {})
+    Guest->>Host: invokeCapability("Aspire.Hosting/createBuilder", {})
     Host-->>Guest: { $handle: "aspire/Builder:1" }
 
-    Guest->>Host: invokeCapability("aspire.redis/addRedis@1", {builder, name})
+    Guest->>Host: invokeCapability("Aspire.Hosting.Redis/addRedis", {builder, name})
     Host-->>Guest: { $handle: "aspire/Redis:1" }
 
-    Guest->>Host: invokeCapability("aspire/build@1", {builder})
+    Guest->>Host: invokeCapability("Aspire.Hosting/build", {builder})
     Host-->>Guest: { $handle: "aspire/Application:1" }
 
-    Guest->>Host: invokeCapability("aspire/run@1", {app})
+    Guest->>Host: invokeCapability("Aspire.Hosting/run", {app})
     Host-->>Guest: Started (orchestration running)
 ```
 
@@ -149,21 +189,24 @@ These core types are built into ATS and available in all guest languages:
 
 Capabilities are named operations with globally unique IDs. They replace direct method invocation.
 
-**Format:** `aspire/{operation}@{version}` or `aspire.{package}/{operation}@{version}`
+**Format:** `{Package}/{MethodName}`
+
+- Package = NuGet package name (derived from assembly)
+- MethodName = specified in `[AspireExport]` attribute
 
 | Capability ID | Description |
 |---------------|-------------|
-| `aspire/createBuilder@1` | Create a DistributedApplicationBuilder |
-| `aspire/addContainer@1` | Add a container resource |
-| `aspire/withEnvironment@1` | Set an environment variable |
-| `aspire/build@1` | Build the application |
-| `aspire/run@1` | Run the application |
-| `aspire.redis/addRedis@1` | Add a Redis resource |
+| `Aspire.Hosting/createBuilder` | Create a DistributedApplicationBuilder |
+| `Aspire.Hosting/addContainer` | Add a container resource |
+| `Aspire.Hosting/withEnvironment` | Set an environment variable |
+| `Aspire.Hosting/build` | Build the application |
+| `Aspire.Hosting/run` | Run the application |
+| `Aspire.Hosting.Redis/addRedis` | Add a Redis resource |
 
 Declared on extension methods:
 
 ```csharp
-[AspireExport("aspire.redis/addRedis@1", Description = "Adds a Redis resource")]
+[AspireExport("addRedis", Description = "Adds a Redis resource")]
 public static IResourceBuilder<RedisResource> AddRedis(
     this IDistributedApplicationBuilder builder,
     [ResourceName] string name,
@@ -171,6 +214,7 @@ public static IResourceBuilder<RedisResource> AddRedis(
 {
     // Existing implementation - unchanged
 }
+// Scanner computes capability ID: Aspire.Hosting.Redis/addRedis
 ```
 
 ### Handles
@@ -219,11 +263,12 @@ public sealed class ContainerMountOptions
 Guest-provided functions the host can invoke during execution:
 
 ```csharp
-[AspireExport("aspire/withEnvironmentCallback@1")]
+[AspireExport("withEnvironmentCallback")]
 public static IResourceBuilder<T> WithEnvironmentCallback<T>(
     this IResourceBuilder<T> resource,
     [AspireCallback("aspire/EnvironmentCallback")] Func<EnvironmentCallbackContext, Task> callback)
     where T : IResourceWithEnvironment
+// Scanner computes: Aspire.Hosting/withEnvironmentCallback
 ```
 
 Callbacks are passed as string IDs:
@@ -243,10 +288,10 @@ Objects passed to callbacks with auto-exposed properties:
 [AspireContextType("aspire/EnvironmentContext")]
 public class EnvironmentCallbackContext
 {
-    // Auto-exposed as "aspire/EnvironmentContext.environmentVariables@1"
+    // Auto-exposed as "Aspire.Hosting/EnvironmentContext.environmentVariables"
     public Dictionary<string, object> EnvironmentVariables { get; }
 
-    // Auto-exposed as "aspire/EnvironmentContext.executionContext@1"
+    // Auto-exposed as "Aspire.Hosting/EnvironmentContext.executionContext"
     public DistributedApplicationExecutionContext ExecutionContext { get; }
 }
 ```
@@ -312,7 +357,7 @@ Must be called first (except for `ping`):
 ```json
 // Request
 {"jsonrpc":"2.0","id":2,"method":"invokeCapability","params":[
-    "aspire.redis/addRedis@1",
+    "Aspire.Hosting.Redis/addRedis",
     {
         "builder": {"$handle": "aspire/Builder:1"},
         "name": "cache",
@@ -349,8 +394,8 @@ Must be called first (except for `ping`):
     "result": {
         "$error": {
             "code": "CAPABILITY_NOT_FOUND",
-            "message": "Unknown capability: aspire.foo/bar@1",
-            "capability": "aspire.foo/bar@1"
+            "message": "Unknown capability: Contoso.Aspire/bar",
+            "capability": "Contoso.Aspire/bar"
         }
     }
 }
@@ -419,8 +464,55 @@ The CLI generates language-specific SDKs from ATS capabilities.
 
 1. Load assemblies from AppHost server build
 2. Scan for `[AspireExport]` attributes using `AtsCapabilityScanner`
-3. Build type mapping (CLR type → ATS type ID)
+3. Expand interface targets to concrete implementations
 4. Generate language-specific SDK
+
+### Capability Expansion
+
+Capabilities can target either concrete types or interfaces. For example:
+
+```csharp
+// Targets concrete type - no expansion needed
+[AspireExport("withPersistence")]
+public static IResourceBuilder<RedisResource> WithPersistence(
+    this IResourceBuilder<RedisResource> builder, ...)
+// → Aspire.Hosting.Redis/withPersistence
+
+// Targets interface - expanded to all implementing types
+[AspireExport("withEnvironment")]
+public static IResourceBuilder<T> WithEnvironment<T>(
+    this IResourceBuilder<T> builder, string name, string value)
+    where T : IResourceWithEnvironment
+// → Aspire.Hosting/withEnvironment (expands to Redis, Container, Project, ...)
+```
+
+The scanner performs **2-pass expansion**:
+
+**Pass 1: Collect type hierarchy**
+- For each concrete resource type, collect all implemented interfaces
+- `RedisResource` → `[IResourceWithEnvironment, IResourceWithEndpoints, ...]`
+
+**Pass 2: Expand capabilities**
+- Capabilities targeting interfaces are expanded to concrete types
+- `withEnvironment` (targets `IResourceWithEnvironment`) → expands to `[Redis, Container, Project, ...]`
+
+Each capability has:
+- `TargetTypeId` - The declared target (e.g., `aspire/IResourceWithEnvironment`)
+- `ExpandedTargetTypeIds` - Pre-computed list of concrete types (e.g., `[aspire/Redis, aspire/Container, ...]`)
+
+**Language generator usage:**
+- Languages with inheritance (TypeScript, Swift) can use `TargetTypeId` for interface-based generation
+- Languages without inheritance (Go, C) use `ExpandedTargetTypeIds` for flat generation
+
+```
+Assemblies → AtsCapabilityScanner → List<AtsCapabilityInfo>
+               (with CLR types)        (pure ATS, no CLR types)
+                     │
+     ┌───────────────┴───────────────┐
+     ↓                               ↓
+Code Generation                   Runtime
+(group by ExpandedTargetTypeIds)  (index by CapabilityId)
+```
 
 ### Output (TypeScript)
 
@@ -434,12 +526,24 @@ The CLI generates language-specific SDKs from ATS capabilities.
 
 ### Type Mapping
 
-| ATS Type ID | TypeScript |
-|-------------|------------|
-| `aspire/Builder` | `DistributedApplicationBuilder` class |
-| `aspire/Redis` | `RedisBuilder` class |
-| `aspire/Application` | `DistributedApplication` class |
-| primitives | `string`, `number`, `boolean` |
+Capabilities are grouped by their (expanded) target type to generate builder classes:
+
+| ATS Type ID | TypeScript Class | Capabilities |
+|-------------|------------------|--------------|
+| `aspire/Builder` | `DistributedApplicationBuilder` | `addRedis`, `addContainer`, `build` |
+| `aspire/Redis` | `RedisBuilder` | `withPersistence`, `withEnvironment`, ... |
+| `aspire/Container` | `ContainerBuilder` | `withBindMount`, `withEnvironment`, ... |
+| `aspire/Application` | `DistributedApplication` | `run` |
+
+Primitive type mapping:
+
+| ATS Type | TypeScript |
+|----------|------------|
+| `string` | `string` |
+| `number` | `number` |
+| `boolean` | `boolean` |
+| `any` | `unknown` |
+| `aspire/*` | `Handle<'aspire/*'>` (typed handle alias) |
 
 ---
 
@@ -585,10 +689,32 @@ To add a new language:
 
 ### Code Generator Requirements
 
-1. Map ATS type IDs to language types
-2. Generate methods for each capability
-3. Handle async/promise patterns
-4. Marshal handles, DTOs, primitives
+Implement `ICodeGenerator`:
+
+```csharp
+public interface ICodeGenerator
+{
+    string Language { get; }
+    Dictionary<string, string> GenerateDistributedApplication(
+        IReadOnlyList<AtsCapabilityInfo> capabilities);
+}
+```
+
+The generator receives a list of `AtsCapabilityInfo` with:
+- `CapabilityId` - Unique ID (e.g., `Aspire.Hosting.Redis/addRedis`)
+- `MethodName` - Method name (e.g., `addRedis`)
+- `TargetTypeId` - Original declared target (e.g., `aspire/Builder`)
+- `ExpandedTargetTypeIds` - Concrete types for interface targets
+- `ReturnTypeId` - Return type ID
+- `Parameters` - List of parameter info
+- `Description` - Documentation
+
+**Generation steps:**
+
+1. Group capabilities by `ExpandedTargetTypeIds` (or `TargetTypeId` for inheritance-based languages)
+2. For each type, generate a builder class with all its capabilities as methods
+3. Handle async/promise patterns appropriate for the language
+4. Marshal handles, DTOs, and primitives according to the wire protocol
 
 ---
 

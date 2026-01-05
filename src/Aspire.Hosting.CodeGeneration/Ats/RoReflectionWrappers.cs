@@ -310,6 +310,9 @@ internal sealed class RoAssemblyInfoWrapper : IAtsAssemblyInfo
     /// <summary>Gets the underlying RoAssembly.</summary>
     public RoAssembly UnderlyingAssembly => _assembly;
 
+    /// <summary>Gets the simple name of the assembly.</summary>
+    public string Name => _assembly.Name;
+
     public IEnumerable<IAtsTypeInfo> GetTypes()
     {
         foreach (var type in _assembly.GetTypeDefinitions())

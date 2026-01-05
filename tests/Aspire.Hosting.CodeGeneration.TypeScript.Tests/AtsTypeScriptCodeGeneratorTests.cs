@@ -93,10 +93,10 @@ public class AtsTypeScriptCodeGeneratorTests
         // Assert that capabilities are discovered
         Assert.NotEmpty(capabilities);
 
-        // Check for specific capabilities
-        Assert.Contains(capabilities, c => c.CapabilityId == "aspire.test/addTestRedis@1");
-        Assert.Contains(capabilities, c => c.CapabilityId == "aspire.test/withPersistence@1");
-        Assert.Contains(capabilities, c => c.CapabilityId == "aspire.test/withOptionalString@1");
+        // Check for specific capabilities (now uses AssemblyName/methodName format)
+        Assert.Contains(capabilities, c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
+        Assert.Contains(capabilities, c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withPersistence");
+        Assert.Contains(capabilities, c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString");
     }
 
     [Fact]
@@ -107,10 +107,10 @@ public class AtsTypeScriptCodeGeneratorTests
         var capabilities = ScanCapabilitiesFromTestAssembly(context);
 
         // Assert method names are derived correctly
-        var addTestRedis = capabilities.First(c => c.CapabilityId == "aspire.test/addTestRedis@1");
+        var addTestRedis = capabilities.First(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
         Assert.Equal("addTestRedis", addTestRedis.MethodName);
 
-        var withPersistence = capabilities.First(c => c.CapabilityId == "aspire.test/withPersistence@1");
+        var withPersistence = capabilities.First(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withPersistence");
         Assert.Equal("withPersistence", withPersistence.MethodName);
     }
 
@@ -124,7 +124,7 @@ public class AtsTypeScriptCodeGeneratorTests
         // Assert parameters are captured
         // The builder parameter is skipped because TargetTypeId is inferred from the first parameter
         // (IDistributedApplicationBuilder -> "aspire/Builder")
-        var addTestRedis = capabilities.First(c => c.CapabilityId == "aspire.test/addTestRedis@1");
+        var addTestRedis = capabilities.First(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
         Assert.Equal(2, addTestRedis.Parameters.Count);
         Assert.Equal("aspire/Builder", addTestRedis.TargetTypeId);
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "name" && p.AtsTypeId == "string");
@@ -155,7 +155,7 @@ public class AtsTypeScriptCodeGeneratorTests
             return;
         }
 
-        var nameCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "aspire.test/TestContext.name@1");
+        var nameCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestContext.name");
         Assert.NotNull(nameCapability);
         Assert.True(nameCapability.IsContextProperty);
         Assert.Equal("name", nameCapability.MethodName);
@@ -164,7 +164,7 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Single(nameCapability.Parameters);
         Assert.Equal("context", nameCapability.Parameters[0].Name);
 
-        var valueCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "aspire.test/TestContext.value@1");
+        var valueCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestContext.value");
         Assert.NotNull(valueCapability);
         Assert.True(valueCapability.IsContextProperty);
         Assert.Equal("value", valueCapability.MethodName);
@@ -229,7 +229,7 @@ public class AtsTypeScriptCodeGeneratorTests
 
         // Find the withOptionalString capability
         var withOptionalString = capabilities
-            .FirstOrDefault(c => c.CapabilityId == "aspire.test/withOptionalString@1");
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString");
 
         Assert.NotNull(withOptionalString);
 
@@ -247,7 +247,7 @@ public class AtsTypeScriptCodeGeneratorTests
 
         // Find the withOptionalString capability
         var withOptionalString = capabilities
-            .FirstOrDefault(c => c.CapabilityId == "aspire.test/withOptionalString@1");
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString");
 
         Assert.NotNull(withOptionalString);
 

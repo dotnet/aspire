@@ -16,7 +16,7 @@ public static class TestExtensions
     /// <summary>
     /// Adds a test Redis resource.
     /// </summary>
-    [AspireExport("aspire.test/addTestRedis@1", Description = "Adds a test Redis resource")]
+    [AspireExport("addTestRedis", Description = "Adds a test Redis resource")]
     public static IResourceBuilder<TestRedisResource> AddTestRedis(
         this IDistributedApplicationBuilder builder,
         string name,
@@ -45,7 +45,7 @@ public static class TestExtensions
     /// <summary>
     /// Configures the Redis resource with persistence.
     /// </summary>
-    [AspireExport("aspire.test/withPersistence@1", Description = "Configures the Redis resource with persistence")]
+    [AspireExport("withPersistence", Description = "Configures the Redis resource with persistence")]
     public static IResourceBuilder<TestRedisResource> WithPersistence(
         this IResourceBuilder<TestRedisResource> builder,
         TestPersistenceMode mode = TestPersistenceMode.Volume)
@@ -67,7 +67,7 @@ public static class TestExtensions
     /// <summary>
     /// Adds an optional string parameter.
     /// </summary>
-    [AspireExport("aspire.test/withOptionalString@1", Description = "Adds an optional string parameter")]
+    [AspireExport("withOptionalString", Description = "Adds an optional string parameter")]
     public static IResourceBuilder<T> WithOptionalString<T>(
         this IResourceBuilder<T> builder,
         string? value = null,

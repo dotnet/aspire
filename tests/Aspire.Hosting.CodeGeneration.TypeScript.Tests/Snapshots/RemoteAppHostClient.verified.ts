@@ -264,10 +264,10 @@ export class RemoteAppHostClient {
     /**
      * Invoke an ATS capability by ID.
      *
-     * Capabilities are versioned operations exposed by [AspireExport] attributes.
+     * Capabilities are operations exposed by [AspireExport] attributes.
      * Results are automatically wrapped in Handle objects when applicable.
      *
-     * @param capabilityId - The capability ID (e.g., "aspire/createBuilder@1")
+     * @param capabilityId - The capability ID (e.g., "Aspire.Hosting/createBuilder")
      * @param args - Arguments to pass to the capability
      * @returns The capability result, wrapped as Handle if it's a handle type
      * @throws CapabilityError if the capability fails
@@ -275,11 +275,11 @@ export class RemoteAppHostClient {
      * @example
      * ```typescript
      * const builder = await client.invokeCapability<Handle<'aspire/Builder'>>(
-     *     'aspire/createBuilder@1',
+     *     'Aspire.Hosting/createBuilder',
      *     {}
      * );
-     * const redis = await client.invokeCapability<Handle<'aspire.redis/RedisBuilder'>>(
-     *     'aspire.redis/addRedis@1',
+     * const redis = await client.invokeCapability<Handle<'aspire/Redis'>>(
+     *     'Aspire.Hosting.Redis/addRedis',
      *     { builder, name: 'cache' }
      * );
      * ```
@@ -310,7 +310,7 @@ export class RemoteAppHostClient {
     /**
      * Get the list of available capability IDs from the server.
      *
-     * @returns Array of capability IDs (e.g., ["aspire/createBuilder@1", "aspire.redis/addRedis@1"])
+     * @returns Array of capability IDs (e.g., ["Aspire.Hosting/createBuilder", "Aspire.Hosting.Redis/addRedis"])
      *
      * @example
      * ```typescript

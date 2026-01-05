@@ -74,8 +74,8 @@ public static class AtsCapabilityScanner
     /// Derives the method name from a capability ID.
     /// </summary>
     /// <example>
-    /// "aspire.redis/addRedis@1" -> "addRedis"
-    /// "aspire/withEnvironment@1" -> "withEnvironment"
+    /// "Aspire.Hosting.Redis/addRedis" -> "addRedis"
+    /// "Aspire.Hosting/withEnvironment" -> "withEnvironment"
     /// </example>
     public static string DeriveMethodName(string capabilityId)
     {
@@ -86,8 +86,8 @@ public static class AtsCapabilityScanner
     /// Derives the package name from a capability ID.
     /// </summary>
     /// <example>
-    /// "aspire.redis/addRedis@1" -> "aspire.redis"
-    /// "aspire/withEnvironment@1" -> "aspire"
+    /// "Aspire.Hosting.Redis/addRedis" -> "Aspire.Hosting.Redis"
+    /// "Aspire.Hosting/withEnvironment" -> "Aspire.Hosting"
     /// </example>
     public static string DerivePackage(string capabilityId)
     {

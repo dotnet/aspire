@@ -13,7 +13,7 @@ internal static class NotificationExports
     /// <summary>
     /// Waits for a resource to reach a specified state.
     /// </summary>
-    [AspireExport("aspire/waitForResourceState@1", Description = "Waits for a resource to reach a specified state")]
+    [AspireExport("waitForResourceState", Description = "Waits for a resource to reach a specified state")]
     public static Task WaitForResourceState(
         ResourceNotificationService notificationService,
         string resourceName,
@@ -25,7 +25,7 @@ internal static class NotificationExports
     /// <summary>
     /// Waits for a resource to reach one of the specified states.
     /// </summary>
-    [AspireExport("aspire/waitForResourceStates@1", Description = "Waits for a resource to reach one of the specified states")]
+    [AspireExport("waitForResourceStates", Description = "Waits for a resource to reach one of the specified states")]
     public static Task<string> WaitForResourceStates(
         ResourceNotificationService notificationService,
         string resourceName,
@@ -37,7 +37,7 @@ internal static class NotificationExports
     /// <summary>
     /// Waits for a resource to become healthy.
     /// </summary>
-    [AspireExport("aspire/waitForResourceHealthy@1", Description = "Waits for a resource to become healthy")]
+    [AspireExport("waitForResourceHealthy", Description = "Waits for a resource to become healthy")]
     public static async Task<ResourceEventDto> WaitForResourceHealthy(
         ResourceNotificationService notificationService,
         string resourceName)
@@ -49,7 +49,7 @@ internal static class NotificationExports
     /// <summary>
     /// Waits for all dependencies of a resource to be ready.
     /// </summary>
-    [AspireExport("aspire/waitForDependencies@1", Description = "Waits for all dependencies of a resource to be ready")]
+    [AspireExport("waitForDependencies", Description = "Waits for all dependencies of a resource to be ready")]
     public static Task WaitForDependencies(
         ResourceNotificationService notificationService,
         IResourceBuilder<IResource> resource)
@@ -60,7 +60,7 @@ internal static class NotificationExports
     /// <summary>
     /// Tries to get the current state of a resource.
     /// </summary>
-    [AspireExport("aspire/tryGetResourceState@1", Description = "Tries to get the current state of a resource")]
+    [AspireExport("tryGetResourceState", Description = "Tries to get the current state of a resource")]
     public static ResourceEventDto? TryGetResourceState(
         ResourceNotificationService notificationService,
         string resourceName)
@@ -75,7 +75,7 @@ internal static class NotificationExports
     /// <summary>
     /// Publishes an update for a resource's state.
     /// </summary>
-    [AspireExport("aspire/publishResourceUpdate@1", Description = "Publishes an update for a resource's state")]
+    [AspireExport("publishResourceUpdate", Description = "Publishes an update for a resource's state")]
     public static Task PublishResourceUpdate(
         ResourceNotificationService notificationService,
         IResourceBuilder<IResource> resource,

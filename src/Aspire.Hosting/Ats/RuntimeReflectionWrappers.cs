@@ -301,6 +301,9 @@ internal sealed class RuntimeAssemblyInfo : IAtsAssemblyInfo
     /// <summary>Gets the underlying CLR assembly.</summary>
     public Assembly UnderlyingAssembly => _assembly;
 
+    /// <summary>Gets the simple name of the assembly.</summary>
+    public string Name => _assembly.GetName().Name ?? "";
+
     public IEnumerable<IAtsTypeInfo> GetTypes()
     {
         Type[] types;

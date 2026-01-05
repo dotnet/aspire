@@ -53,7 +53,7 @@ internal static class AtsCapabilityScanner
             var contextAttr = GetAspireContextTypeAttribute(type);
             if (contextAttr != null)
             {
-                var contextCapabilities = CreateContextTypeCapabilities(type, contextAttr, typeMapping, typeResolver);
+                var contextCapabilities = CreateContextTypeCapabilities(type, contextAttr, assembly.Name, typeMapping, typeResolver);
                 capabilities.AddRange(contextCapabilities);
             }
 
@@ -76,7 +76,7 @@ internal static class AtsCapabilityScanner
                     continue;
                 }
 
-                var capability = CreateCapabilityInfo(method, exportAttr, typeMapping, typeResolver);
+                var capability = CreateCapabilityInfo(method, exportAttr, assembly.Name, typeMapping, typeResolver);
                 if (capability != null)
                 {
                     capabilities.Add(capability);
@@ -111,6 +111,9 @@ internal static class AtsCapabilityScanner
 
         // Expand interface targets to concrete types (2-pass expansion)
         ExpandCapabilityTargets(capabilities, typeInfos);
+
+        // Detect method name collisions after expansion
+        DetectMethodNameCollisions(capabilities);
 
         return new ScanResult
         {
@@ -177,6 +180,35 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
+    /// Detects method name collisions after capability expansion.
+    /// Since ATS doesn't support method overloading, each (TargetTypeId, MethodName) pair must be unique.
+    /// </summary>
+    private static void DetectMethodNameCollisions(List<AtsCapabilityInfo> capabilities)
+    {
+        // Group by (TargetTypeId, MethodName) to find collisions
+        var collisions = capabilities
+            .Where(c => c.ExpandedTargetTypeIds.Count > 0)
+            .SelectMany(c => c.ExpandedTargetTypeIds.Select(t => (Target: t, Capability: c)))
+            .GroupBy(x => (x.Target, x.Capability.MethodName))
+            .Where(g => g.Count() > 1)
+            .ToList();
+
+        if (collisions.Count > 0)
+        {
+            var errors = collisions.Select(g =>
+            {
+                var conflictingIds = string.Join(", ", g.Select(x => x.Capability.CapabilityId));
+                return $"Method '{g.Key.MethodName}' has multiple definitions for target '{g.Key.Target}': {conflictingIds}";
+            });
+
+            throw new InvalidOperationException(
+                $"ATS method name collision detected. Method names must be unique per target type.\n" +
+                string.Join("\n", errors) +
+                "\n\nTo resolve: Use [AspireExport(MethodName = \"uniqueName\")] to disambiguate.");
+        }
+    }
+
+    /// <summary>
     /// Scans an assembly and returns only the capabilities.
     /// </summary>
     public static List<AtsCapabilityInfo> ScanCapabilities(
@@ -217,6 +249,7 @@ internal static class AtsCapabilityScanner
     private static List<AtsCapabilityInfo> CreateContextTypeCapabilities(
         IAtsTypeInfo contextType,
         IAtsAttributeInfo contextAttr,
+        string assemblyName,
         AtsTypeMapping typeMapping,
         IAtsTypeResolver? typeResolver)
     {
@@ -227,9 +260,6 @@ internal static class AtsCapabilityScanner
         {
             return capabilities;
         }
-
-        // Get version from named arguments (defaults to 1)
-        var version = contextAttr.NamedArguments.TryGetValue("Version", out var v) && v is int ver ? ver : 1;
 
         // Scan properties
         foreach (var property in contextType.GetProperties())
@@ -246,13 +276,17 @@ internal static class AtsCapabilityScanner
             }
 
             var propertyName = char.ToLowerInvariant(property.Name[0]) + property.Name[1..];
-            var capabilityId = $"{typeId}.{propertyName}@{version}";
+            // Extract type name from typeId (e.g., "aspire.test/TestContext" -> "TestContext")
+            var typeName = typeId.Contains('/') ? typeId[(typeId.LastIndexOf('/') + 1)..] : typeId;
+            // New format: {AssemblyName}/{TypeName}.{propertyName}
+            var methodName = $"{typeName}.{propertyName}";
+            var capabilityId = $"{assemblyName}/{methodName}";
 
             capabilities.Add(new AtsCapabilityInfo
             {
                 CapabilityId = capabilityId,
-                MethodName = propertyName,
-                Package = DerivePackage(typeId),
+                MethodName = methodName,
+                Package = assemblyName,
                 Description = $"Gets the {property.Name} property",
                 Parameters = [
                     new AtsParameterInfo
@@ -281,11 +315,12 @@ internal static class AtsCapabilityScanner
     private static AtsCapabilityInfo? CreateCapabilityInfo(
         IAtsMethodInfo method,
         IAtsAttributeInfo exportAttr,
+        string assemblyName,
         AtsTypeMapping typeMapping,
         IAtsTypeResolver? typeResolver)
     {
-        // Get capability ID from first constructor argument
-        if (exportAttr.FixedArguments.Count == 0 || exportAttr.FixedArguments[0] is not string capabilityId)
+        // Get method name from first constructor argument (new format: just the method name)
+        if (exportAttr.FixedArguments.Count == 0 || exportAttr.FixedArguments[0] is not string methodNameFromAttr)
         {
             return null;
         }
@@ -294,8 +329,10 @@ internal static class AtsCapabilityScanner
         var description = exportAttr.NamedArguments.TryGetValue("Description", out var desc) ? desc as string : null;
         var methodNameOverride = exportAttr.NamedArguments.TryGetValue("MethodName", out var mn) ? mn as string : null;
 
-        var methodName = methodNameOverride ?? DeriveMethodName(capabilityId);
-        var package = DerivePackage(capabilityId);
+        var methodName = methodNameOverride ?? methodNameFromAttr;
+        // New format: {AssemblyName}/{methodName}
+        var capabilityId = $"{assemblyName}/{methodNameFromAttr}";
+        var package = assemblyName;
 
         // Check if extension method
         var parameters = method.GetParameters().ToList();
@@ -569,22 +606,22 @@ internal static class AtsCapabilityScanner
 
     /// <summary>
     /// Derives the method name from a capability ID.
+    /// Format: {Package}/{MethodName} (e.g., "Aspire.Hosting.Redis/addRedis" -> "addRedis")
     /// </summary>
     public static string DeriveMethodName(string capabilityId)
     {
         var slashIndex = capabilityId.LastIndexOf('/');
-        var methodPart = slashIndex >= 0 ? capabilityId[(slashIndex + 1)..] : capabilityId;
-        var atIndex = methodPart.LastIndexOf('@');
-        return atIndex >= 0 ? methodPart[..atIndex] : methodPart;
+        return slashIndex >= 0 ? capabilityId[(slashIndex + 1)..] : capabilityId;
     }
 
     /// <summary>
     /// Derives the package name from a capability ID.
+    /// Format: {Package}/{MethodName} (e.g., "Aspire.Hosting.Redis/addRedis" -> "Aspire.Hosting.Redis")
     /// </summary>
     public static string DerivePackage(string capabilityId)
     {
         var slashIndex = capabilityId.IndexOf('/');
-        return slashIndex >= 0 ? capabilityId[..slashIndex] : "aspire";
+        return slashIndex >= 0 ? capabilityId[..slashIndex] : capabilityId;
     }
 
     /// <summary>

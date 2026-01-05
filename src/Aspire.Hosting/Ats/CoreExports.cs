@@ -18,24 +18,24 @@ namespace Aspire.Hosting.Ats;
 /// <list type="bullet">
 ///   <item><description>Capabilities are the contract - not CLR method signatures</description></item>
 ///   <item><description>Handles replace direct object references - guest code never sees .NET types</description></item>
-///   <item><description>Version suffixes (@1) enable API evolution without breaking changes</description></item>
+///   <item><description>Capability IDs use format {Package}/{Method}</description></item>
 ///   <item><description>.NET implementation details are hidden behind a stable polyglot surface</description></item>
 /// </list>
 /// </para>
 /// <para>
-/// <strong>Capability Naming Convention:</strong> <c>aspire/{operation}@{version}</c>
+/// <strong>Capability Naming Convention:</strong> <c>{Package}/{operation}</c>
 /// </para>
 /// <para>
 /// <strong>Usage from TypeScript:</strong>
 /// <code>
 /// // Create builder and add resources
-/// const builder = await client.invoke("aspire/createBuilder@1", {});
-/// const redis = await client.invoke("aspire/addContainer@1", { builder, name: "cache", image: "redis:latest" });
-/// await client.invoke("aspire/withEnvironment@1", { resource: redis, name: "REDIS_MODE", value: "standalone" });
+/// const builder = await client.invoke("Aspire.Hosting/createBuilder", {});
+/// const redis = await client.invoke("Aspire.Hosting/addContainer", { builder, name: "cache", image: "redis:latest" });
+/// await client.invoke("Aspire.Hosting/withEnvironment", { resource: redis, name: "REDIS_MODE", value: "standalone" });
 ///
 /// // Build and run
-/// const app = await client.invoke("aspire/build@1", { builder });
-/// await client.invoke("aspire/run@1", { app });
+/// const app = await client.invoke("Aspire.Hosting/build", { builder });
+/// await client.invoke("Aspire.Hosting/run", { app });
 /// </code>
 /// </para>
 /// </remarks>
@@ -52,7 +52,7 @@ internal static class CoreExports
     /// </remarks>
     /// <param name="args">Optional command-line arguments to pass to the builder.</param>
     /// <returns>A handle to the <see cref="IDistributedApplicationBuilder"/>.</returns>
-    [AspireExport("aspire/createBuilder@1", Description = "Creates a new distributed application builder")]
+    [AspireExport("createBuilder", Description = "Creates a new distributed application builder")]
     public static IDistributedApplicationBuilder CreateBuilder(string[]? args = null)
     {
         return DistributedApplication.CreateBuilder(args ?? []);
@@ -63,11 +63,11 @@ internal static class CoreExports
     /// </summary>
     /// <remarks>
     /// Call this after all resources have been added and configured. The returned application
-    /// handle can then be passed to <c>aspire/run@1</c> to start orchestration.
+    /// handle can then be passed to <c>Aspire.Hosting/run</c> to start orchestration.
     /// </remarks>
-    /// <param name="builder">The builder handle from <c>aspire/createBuilder@1</c>.</param>
+    /// <param name="builder">The builder handle from <c>Aspire.Hosting/createBuilder</c>.</param>
     /// <returns>A handle to the built <see cref="DistributedApplication"/>.</returns>
-    [AspireExport("aspire/build@1", Description = "Builds the distributed application")]
+    [AspireExport("build", Description = "Builds the distributed application")]
     public static DistributedApplication Build(IDistributedApplicationBuilder builder)
     {
         return builder.Build();
@@ -80,9 +80,9 @@ internal static class CoreExports
     /// This starts the Aspire orchestrator which will launch containers, executables,
     /// and other resources. The method completes when the application shuts down.
     /// </remarks>
-    /// <param name="app">The application handle from <c>aspire/build@1</c>.</param>
+    /// <param name="app">The application handle from <c>Aspire.Hosting/build</c>.</param>
     /// <returns>A task that completes when the application stops.</returns>
-    [AspireExport("aspire/run@1", Description = "Runs the distributed application")]
+    [AspireExport("run", Description = "Runs the distributed application")]
     public static Task Run(DistributedApplication app)
     {
         return app.RunAsync();
@@ -97,7 +97,7 @@ internal static class CoreExports
     /// </remarks>
     /// <param name="builder">The builder handle.</param>
     /// <returns>A handle to the <see cref="DistributedApplicationExecutionContext"/>.</returns>
-    [AspireExport("aspire/getExecutionContext@1", Description = "Gets the execution context from the builder")]
+    [AspireExport("getExecutionContext", Description = "Gets the execution context from the builder")]
     public static DistributedApplicationExecutionContext GetExecutionContext(IDistributedApplicationBuilder builder)
     {
         return builder.ExecutionContext;
@@ -116,7 +116,7 @@ internal static class CoreExports
     /// </remarks>
     /// <param name="context">The execution context handle.</param>
     /// <returns>True if in run mode.</returns>
-    [AspireExport("aspire/isRunMode@1", Description = "Checks if running in run mode")]
+    [AspireExport("isRunMode", Description = "Checks if running in run mode")]
     public static bool IsRunMode(DistributedApplicationExecutionContext context)
     {
         return context.IsRunMode;
@@ -131,7 +131,7 @@ internal static class CoreExports
     /// </remarks>
     /// <param name="context">The execution context handle.</param>
     /// <returns>True if in publish mode.</returns>
-    [AspireExport("aspire/isPublishMode@1", Description = "Checks if running in publish mode")]
+    [AspireExport("isPublishMode", Description = "Checks if running in publish mode")]
     public static bool IsPublishMode(DistributedApplicationExecutionContext context)
     {
         return context.IsPublishMode;
@@ -152,7 +152,7 @@ internal static class CoreExports
     /// <param name="resource">The resource builder handle.</param>
     /// <param name="callback">A callback ID registered with the guest runtime.</param>
     /// <returns>The same resource builder handle for chaining.</returns>
-    [AspireExport("aspire/withEnvironmentCallback@1", Description = "Adds an environment callback")]
+    [AspireExport("withEnvironmentCallback", Description = "Adds an environment callback")]
     public static IResourceBuilder<IResourceWithEnvironment> WithEnvironmentCallback(
         IResourceBuilder<IResourceWithEnvironment> resource,
         [AspireCallback("aspire/EnvironmentCallback")] Func<EnvironmentCallbackContext, Task> callback)
@@ -174,7 +174,7 @@ internal static class CoreExports
     /// <param name="resource">The resource builder handle.</param>
     /// <param name="name">The endpoint name (e.g., "http", "tcp").</param>
     /// <returns>A handle to the endpoint reference.</returns>
-    [AspireExport("aspire/getEndpoint@1", Description = "Gets an endpoint reference")]
+    [AspireExport("getEndpoint", Description = "Gets an endpoint reference")]
     public static EndpointReference GetEndpoint(
         IResourceBuilder<IResourceWithEndpoints> resource,
         string name)
@@ -196,7 +196,7 @@ internal static class CoreExports
     /// <param name="resource">The resource builder handle.</param>
     /// <param name="dependency">The dependency resource handle.</param>
     /// <returns>The same resource builder handle for chaining.</returns>
-    [AspireExport("aspire/withReference@1", Description = "Adds a reference to another resource")]
+    [AspireExport("withReference", Description = "Adds a reference to another resource")]
     public static IResourceBuilder<IResourceWithEnvironment> WithReference(
         IResourceBuilder<IResourceWithEnvironment> resource,
         IResourceBuilder<IResourceWithConnectionString> dependency)
@@ -220,7 +220,7 @@ internal static class CoreExports
     /// <param name="name">The volume name. If null, an anonymous volume is created.</param>
     /// <param name="isReadOnly">Whether the volume is read-only.</param>
     /// <returns>The same resource builder handle for chaining.</returns>
-    [AspireExport("aspire/withVolume@1", Description = "Adds a volume")]
+    [AspireExport("withVolume", Description = "Adds a volume")]
     public static IResourceBuilder<ContainerResource> WithVolume(
         IResourceBuilder<ContainerResource> resource,
         string target,
@@ -239,7 +239,7 @@ internal static class CoreExports
     /// </summary>
     /// <param name="resource">The resource builder handle.</param>
     /// <returns>The resource name.</returns>
-    [AspireExport("aspire/getResourceName@1", Description = "Gets the resource name")]
+    [AspireExport("getResourceName", Description = "Gets the resource name")]
     public static string GetResourceName(IResourceBuilder<IResource> resource)
     {
         return resource.Resource.Name;
@@ -258,7 +258,7 @@ internal static class CoreExports
     /// <param name="resource">The parameter resource builder handle.</param>
     /// <param name="description">The description text.</param>
     /// <returns>The same resource builder handle for chaining.</returns>
-    [AspireExport("aspire/withDescription@1", Description = "Sets a parameter description")]
+    [AspireExport("withDescription", Description = "Sets a parameter description")]
     public static IResourceBuilder<ParameterResource> WithDescription(
         IResourceBuilder<ParameterResource> resource,
         string description)

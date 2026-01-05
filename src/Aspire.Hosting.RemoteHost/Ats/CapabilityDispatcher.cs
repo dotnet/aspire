@@ -69,6 +69,7 @@ internal sealed class CapabilityDispatcher
 
         foreach (var assembly in assemblyList)
         {
+            var assemblyName = assembly.GetName().Name ?? assembly.FullName ?? "unknown";
             try
             {
                 var wrappedAssembly = new RuntimeAssemblyInfo(assembly);
@@ -95,6 +96,13 @@ internal sealed class CapabilityDispatcher
             catch (ReflectionTypeLoadException)
             {
                 // Skip assemblies that can't be loaded
+            }
+            catch (Exception ex)
+            {
+                // Log errors scanning assemblies - these are critical for debugging ATS issues
+                Console.Error.WriteLine($"[ATS] Error scanning assembly '{assemblyName}': {ex.Message}");
+                Console.Error.WriteLine($"[ATS] Full exception: {ex}");
+                throw;
             }
         }
     }
@@ -248,7 +256,7 @@ internal sealed class CapabilityDispatcher
     /// <summary>
     /// Registers a capability with its handler.
     /// </summary>
-    /// <param name="capabilityId">The capability ID (e.g., "aspire.redis/addRedis@1").</param>
+    /// <param name="capabilityId">The capability ID (e.g., "Aspire.Hosting.Redis/addRedis").</param>
     /// <param name="handler">The handler that implements the capability.</param>
     /// <param name="description">Optional description of the capability.</param>
     public void Register(

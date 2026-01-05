@@ -37,12 +37,12 @@ internal static class ServiceExports
     /// Gets the service provider from the builder's execution context.
     /// </summary>
     /// <remarks>
-    /// The service provider is only available after <c>aspire/build@1</c> has been called.
+    /// The service provider is only available after <c>Aspire.Hosting/build</c> has been called.
     /// Before build, accessing the service provider will throw an exception.
     /// </remarks>
     /// <param name="builder">The builder handle.</param>
     /// <returns>A handle to the <see cref="IServiceProvider"/>.</returns>
-    [AspireExport("aspire/getServiceProvider@1", Description = "Gets the service provider from the builder")]
+    [AspireExport("getServiceProvider", Description = "Gets the service provider from the builder")]
     public static IServiceProvider GetServiceProvider(IDistributedApplicationBuilder builder)
     {
         return builder.ExecutionContext.ServiceProvider;
@@ -53,7 +53,7 @@ internal static class ServiceExports
     /// </summary>
     /// <param name="serviceProvider">The service provider handle.</param>
     /// <returns>A handle to the <see cref="ResourceNotificationService"/>.</returns>
-    [AspireExport("aspire/getResourceNotificationService@1", Description = "Gets the resource notification service")]
+    [AspireExport("getResourceNotificationService", Description = "Gets the resource notification service")]
     public static ResourceNotificationService GetResourceNotificationService(IServiceProvider serviceProvider)
     {
         return serviceProvider.GetRequiredService<ResourceNotificationService>();
@@ -64,7 +64,7 @@ internal static class ServiceExports
     /// </summary>
     /// <param name="serviceProvider">The service provider handle.</param>
     /// <returns>A handle to the <see cref="ResourceLoggerService"/>.</returns>
-    [AspireExport("aspire/getResourceLoggerService@1", Description = "Gets the resource logger service")]
+    [AspireExport("getResourceLoggerService", Description = "Gets the resource logger service")]
     public static ResourceLoggerService GetResourceLoggerService(IServiceProvider serviceProvider)
     {
         return serviceProvider.GetRequiredService<ResourceLoggerService>();
@@ -82,7 +82,7 @@ internal static class ServiceExports
     /// <strong>Example:</strong>
     /// <code>
     /// // Get ResourceNotificationService by ATS type ID
-    /// const notifications = await client.invoke("aspire/getService@1", {
+    /// const notifications = await client.invoke("Aspire.Hosting/getService", {
     ///     serviceProvider,
     ///     typeId: "aspire/ResourceNotificationService"
     /// });
@@ -92,7 +92,7 @@ internal static class ServiceExports
     /// <param name="serviceProvider">The service provider handle.</param>
     /// <param name="typeId">The ATS type ID (e.g., "aspire/ResourceNotificationService").</param>
     /// <returns>A handle to the service, or null if not found.</returns>
-    [AspireExport("aspire/getService@1", Description = "Gets a service by ATS type ID")]
+    [AspireExport("getService", Description = "Gets a service by ATS type ID")]
     public static object? GetService(IServiceProvider serviceProvider, string typeId)
     {
         if (!s_serviceTypes.TryGetValue(typeId, out var type))
@@ -109,12 +109,12 @@ internal static class ServiceExports
     /// Gets a required service by its ATS type ID.
     /// </summary>
     /// <remarks>
-    /// Like <c>aspire/getService@1</c>, but throws if the service is not registered.
+    /// Like <c>Aspire.Hosting/getService</c>, but throws if the service is not registered.
     /// </remarks>
     /// <param name="serviceProvider">The service provider handle.</param>
     /// <param name="typeId">The ATS type ID.</param>
     /// <returns>A handle to the service.</returns>
-    [AspireExport("aspire/getRequiredService@1", Description = "Gets a required service by ATS type ID")]
+    [AspireExport("getRequiredService", Description = "Gets a required service by ATS type ID")]
     public static object GetRequiredService(IServiceProvider serviceProvider, string typeId)
     {
         if (!s_serviceTypes.TryGetValue(typeId, out var type))
