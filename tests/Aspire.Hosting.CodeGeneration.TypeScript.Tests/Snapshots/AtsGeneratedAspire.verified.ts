@@ -122,6 +122,17 @@ export class DistributedApplicationBuilder {
     build(): DistributedApplicationPromise {
         return new DistributedApplicationPromise(this._buildInternal());
     }
+
+    /**
+     * Adds a test Redis resource
+     */
+    addTestRedis(name: string, port?: number): TestRedisBuilderPromise {
+        const promise = this._client.client.invokeCapability<TestRedisBuilderHandle>(
+            'aspire.test/addTestRedis@1',
+            { builder: this._handle, name, port }
+        ).then(handle => new TestRedisBuilder(handle, this._client));
+        return new TestRedisBuilderPromise(promise);
+    }
 }
 
 // ============================================================================

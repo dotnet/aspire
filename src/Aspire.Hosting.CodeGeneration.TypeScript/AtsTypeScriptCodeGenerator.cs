@@ -1115,10 +1115,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 continue;
             }
 
-            if (targetType == AtsTypeMapping.TypeIds.Builder ||
-                targetType == AtsTypeMapping.TypeIds.Application)
+            if (targetType == AtsTypeMapping.TypeIds.Application)
             {
-                // Builder/Application methods handled separately
+                // Application methods handled separately
                 continue;
             }
 
@@ -1160,11 +1159,17 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             var builderClassName = DeriveBuilderClassName(typeId);
             var isInterface = IsInterfaceType(typeId);
 
+            // Deduplicate capabilities by CapabilityId to avoid duplicate methods
+            var uniqueCapabilities = typeCapabilities
+                .GroupBy(c => c.CapabilityId)
+                .Select(g => g.First())
+                .ToList();
+
             var builder = new BuilderModel
             {
                 TypeId = typeId,
                 BuilderClassName = builderClassName,
-                Capabilities = typeCapabilities,
+                Capabilities = uniqueCapabilities,
                 IsInterface = isInterface
             };
 
