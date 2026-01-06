@@ -308,7 +308,6 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                     await dotNetService.buildDotNetProject(projectPath);
                 }
 
-
                 debugConfiguration.program = outputPath;
                 debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(
                     baseProfile?.environmentVariables,
