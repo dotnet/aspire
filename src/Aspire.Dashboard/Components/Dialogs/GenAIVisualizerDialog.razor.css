@@ -276,6 +276,7 @@
 
 ::deep .tab-container .type-name {
     white-space: nowrap;
+    margin-right: 0.25rem;
 }
 
 ::deep .tab-container .tool-footer {
