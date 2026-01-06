@@ -6,11 +6,10 @@ This package provides the remote host server for polyglot .NET Aspire AppHosts. 
 
 The RemoteHost acts as a bridge between polyglot AppHost projects and the .NET Aspire hosting infrastructure. It:
 
-- Accepts JSON-RPC commands over a Unix domain socket
-- Executes instructions to create and configure `DistributedApplicationBuilder`
-- Invokes methods on Aspire resources and builders
+- Exposes Aspire capabilities via JSON-RPC over a Unix domain socket
+- Scans assemblies for `[AspireExport]` attributes to discover available capabilities
+- Manages object lifecycle with a handle-based registry system
 - Supports bidirectional communication for callbacks (e.g., environment configuration lambdas)
-- Manages object lifecycle with a registry-based proxy system
 
 ## Architecture
 
@@ -24,8 +23,9 @@ The RemoteHost acts as a bridge between polyglot AppHost projects and the .NET A
 ┌─────────────────────────────┐
 │   RemoteHostServer          │
 │   ├── JsonRpcServer         │
-│   ├── InstructionProcessor  │
-│   └── Object Registry       │
+│   ├── CapabilityDispatcher  │
+│   ├── HandleRegistry        │
+│   └── AtsMarshaller         │
 └─────────────┬───────────────┘
               │
               ▼
@@ -68,31 +68,31 @@ var assemblies = new[] { typeof(SomeAspireType).Assembly };
 await Aspire.Hosting.RemoteHost.RemoteHostServer.RunAsync(args, assemblies);
 ```
 
-### InstructionProcessor
+### CapabilityDispatcher
 
-Handles the execution of instructions sent from the client:
+Discovers and dispatches capability invocations:
 
-- `CREATE_BUILDER` - Creates a new `DistributedApplicationBuilder`
-- `RUN_BUILDER` - Builds and runs the application
-- `INVOKE` - Invokes methods on objects (resources, builders, etc.)
-- `pragma` - Configuration directives
+- Scans assemblies for `[AspireExport]` and `[AspireContextType]` attributes
+- Registers capability handlers for each discovered export
+- Routes `invokeCapability` calls to the appropriate handler
+- Handles parameter binding, optional parameters, and async methods
 
-### JsonRpcServer
+### HandleRegistry
 
-Manages client connections and JSON-RPC communication:
+Manages the lifecycle of .NET objects exposed to clients:
 
-- Listens on a Unix domain socket
-- Supports multiple concurrent clients
-- Provides bidirectional RPC for callbacks
+- Assigns unique handle IDs to objects (format: `{typeId}:{sequenceNumber}`)
+- Resolves handle references back to objects
+- Supports type-safe retrieval with expected type validation
 
-### Object Marshalling
+### AtsMarshaller
 
-Complex .NET objects are marshalled as proxies with unique IDs. The client can:
+Handles serialization between .NET types and JSON:
 
-- Invoke methods on proxied objects
-- Get/set properties
-- Access indexers (for lists and dictionaries)
-- Receive callbacks for delegate parameters
+- Marshals primitive types directly
+- Wraps complex objects as handle references
+- Supports reference expressions for deferred evaluation
+- Creates callback proxies for delegate parameters
 
 ## Environment Variables
 
@@ -100,6 +100,7 @@ Complex .NET objects are marshalled as proxies with unique IDs. The client can:
 |----------|-------------|
 | `REMOTE_APP_HOST_SOCKET_PATH` | Path to the Unix domain socket. Defaults to `{temp}/aspire/remote-app-host.sock` |
 | `REMOTE_APP_HOST_PID` | Parent process ID for orphan detection. If set, the server shuts down when the parent exits |
+| `ASPIRE_RPC_AUTH_TOKEN` | Authentication token required for client connections |
 
 ## Usage
 
@@ -127,11 +128,86 @@ The server loads each assembly listed in `AtsAssemblies` and scans them for `[As
 | Method | Description |
 |--------|-------------|
 | `ping` | Health check, returns "pong" |
-| `executeInstruction` | Execute a typed instruction (CREATE_BUILDER, INVOKE, etc.) |
-| `invokeMethod` | Call a method on a proxied object |
-| `getProperty` | Get a property value from a proxied object |
-| `setProperty` | Set a property value on a proxied object |
-| `getIndexer` | Get a value by index (list) or key (dictionary) |
-| `setIndexer` | Set a value by index or key |
-| `unregisterObject` | Release a proxied object from the registry |
-| `invokeCallback` | (Server→Client) Invoke a callback registered by the client |
+| `authenticate` | Authenticate with the server using the auth token |
+| `invokeCapability` | Invoke a capability by ID with arguments |
+| `getCapabilities` | Get list of all available capability IDs |
+
+### invokeCapability
+
+The primary method for interacting with Aspire. Capabilities are identified by `{AssemblyName}/{methodName}`.
+
+**Request:**
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "invokeCapability",
+  "params": {
+    "capabilityId": "Aspire.Hosting/createBuilder",
+    "args": {
+      "name": "my-app"
+    }
+  },
+  "id": 1
+}
+```
+
+**Response (success):**
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "$handle": "aspire/Builder:1",
+    "$type": "aspire/Builder"
+  },
+  "id": 1
+}
+```
+
+**Response (error):**
+```json
+{
+  "jsonrpc": "2.0",
+  "error": {
+    "code": -32000,
+    "message": "Capability error",
+    "data": {
+      "code": "CAPABILITY_NOT_FOUND",
+      "message": "Unknown capability: Aspire.Hosting/unknownMethod",
+      "capability": "Aspire.Hosting/unknownMethod"
+    }
+  },
+  "id": 1
+}
+```
+
+## Capability Discovery
+
+Capabilities are discovered by scanning assemblies for:
+
+1. **[AspireExport]** - Static methods that can be invoked:
+   ```csharp
+   [AspireExport("addRedis", Description = "Adds a Redis container")]
+   public static IResourceBuilder<RedisResource> AddRedis(
+       IDistributedApplicationBuilder builder,
+       string name,
+       int? port = null)
+   ```
+
+2. **[AspireContextType]** - Types whose properties are exposed as capabilities:
+   ```csharp
+   [AspireContextType("aspire/Configuration")]
+   public class ConfigurationContext
+   {
+       public string? ConnectionString { get; set; }
+   }
+   ```
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| `CAPABILITY_NOT_FOUND` | The requested capability does not exist |
+| `INVALID_ARGUMENT` | A required argument is missing or invalid |
+| `HANDLE_NOT_FOUND` | The referenced handle does not exist |
+| `TYPE_MISMATCH` | The argument type doesn't match the expected type |
+| `INTERNAL_ERROR` | An unexpected error occurred during execution |
