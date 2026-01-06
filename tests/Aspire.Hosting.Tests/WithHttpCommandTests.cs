@@ -535,12 +535,10 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         // Wait for resource to be running AND for the command to become enabled
         // The command state is updated synchronously when PublishUpdateAsync is called, but we still need to wait
         // for the notification to propagate through the ResourceNotificationService event system
-        using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         await app.ResourceNotifications.WaitForResourceAsync(
             resource.Name,
             e => e.Snapshot.State?.Text == KnownResourceStates.Running &&
-                 e.Snapshot.Commands.FirstOrDefault(c => c.Name == commandName)?.State == ResourceCommandState.Enabled,
-            cts.Token).ConfigureAwait(false);
+                 e.Snapshot.Commands.FirstOrDefault(c => c.Name == commandName)?.State == ResourceCommandState.Enabled).DefaultTimeout();
     }
 
     /// <summary>
