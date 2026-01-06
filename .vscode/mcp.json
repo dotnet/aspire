@@ -5,13 +5,12 @@
 			"command": "aspire",
 			"args": ["mcp", "start"]
 		},
-		"terminal-mcp": {
+		"hex1b": {
 			"type": "stdio",
-			"command": "dotnet",
+			"command": "dnx",
 			"args": [
-				"run",
-				"--project",
-				"${workspaceFolder}/tools/TerminalMcp"
+				"Hex1b.McpServer@0.40.0",
+				"--yes"
 			]
 		}
 	},
