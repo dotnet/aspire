@@ -130,6 +130,16 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
+    /// Gets a valid TypeScript method name from a capability method name.
+    /// Handles dotted names like "EnvironmentContext.resource" by extracting just the final part.
+    /// </summary>
+    private static string GetTypeScriptMethodName(string methodName)
+    {
+        var dotIndex = methodName.LastIndexOf('.');
+        return dotIndex >= 0 ? methodName[(dotIndex + 1)..] : methodName;
+    }
+
+    /// <summary>
     /// Generates the aspire.ts SDK file with capability-based API.
     /// </summary>
     private string GenerateAspireSdk(List<AtsCapabilityInfo> capabilities)
@@ -975,7 +985,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// </summary>
     private void GenerateWrapperMethod(AtsCapabilityInfo capability)
     {
-        var methodName = capability.MethodName;
+        var methodName = GetTypeScriptMethodName(capability.MethodName);
 
         // Build parameter list
         var paramDefs = new List<string>();
