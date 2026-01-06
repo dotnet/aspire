@@ -6,6 +6,14 @@ using Aspire.Cli.Backchannel;
 namespace Aspire.Cli.Projects;
 
 /// <summary>
+/// Result of validating an AppHost file.
+/// </summary>
+internal record AppHostValidationResult(
+    bool IsValid,
+    bool IsPossiblyUnbuildable = false,
+    string? Message = null);
+
+/// <summary>
 /// Context for updating packages in an AppHost project.
 /// </summary>
 internal sealed class UpdatePackagesContext
@@ -156,12 +164,13 @@ internal interface IAppHostProject
     Task<int> PublishAsync(PublishContext context, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Validates that the AppHost file is compatible with this runner.
+    /// Validates that a candidate file is a valid AppHost for this project type.
+    /// This does deeper validation beyond just file pattern matching.
     /// </summary>
-    /// <param name="appHostFile">The AppHost file to validate.</param>
+    /// <param name="appHostFile">The candidate AppHost file to validate.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>True if the AppHost is valid and compatible; otherwise, false.</returns>
-    Task<bool> ValidateAsync(FileInfo appHostFile, CancellationToken cancellationToken);
+    /// <returns>A validation result indicating if the file is valid and any additional status.</returns>
+    Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken);
 
     /// <summary>
     /// Adds a package to the AppHost project.

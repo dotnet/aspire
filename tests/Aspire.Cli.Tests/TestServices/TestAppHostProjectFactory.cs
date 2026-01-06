@@ -11,7 +11,17 @@ namespace Aspire.Cli.Tests.TestServices;
 internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
 {
     private static readonly HashSet<string> s_projectExtensions = new(StringComparer.OrdinalIgnoreCase) { ".csproj", ".fsproj", ".vbproj" };
-    private readonly TestAppHostProject _testProject = new();
+    private readonly TestAppHostProject _testProject;
+
+    /// <summary>
+    /// Optional callback to control validation behavior. If not set, all valid project files are considered valid AppHosts.
+    /// </summary>
+    public Func<FileInfo, AppHostValidationResult>? ValidateAppHostCallback { get; set; }
+
+    public TestAppHostProjectFactory()
+    {
+        _testProject = new TestAppHostProject(this);
+    }
 
     public IAppHostProject GetProject(FileInfo appHostFile)
     {
@@ -90,6 +100,12 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
     private sealed class TestAppHostProject : IAppHostProject
     {
         private static readonly string[] s_detectionPatterns = ["*.csproj", "*.fsproj", "*.vbproj", "apphost.cs"];
+        private readonly TestAppHostProjectFactory _factory;
+
+        public TestAppHostProject(TestAppHostProjectFactory factory)
+        {
+            _factory = factory;
+        }
 
         public string LanguageId => "csharp";
         public string DisplayName => "C# (.NET)";
@@ -122,8 +138,14 @@ internal sealed class TestAppHostProjectFactory : IAppHostProjectFactory
         public Task<IReadOnlyList<(string PackageId, string Version)>> GetPackageReferencesAsync(FileInfo appHostFile, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<bool> ValidateAsync(FileInfo appHostFile, CancellationToken cancellationToken)
-            => Task.FromResult(true);
+        public Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
+        {
+            if (_factory.ValidateAppHostCallback is not null)
+            {
+                return Task.FromResult(_factory.ValidateAppHostCallback(appHostFile));
+            }
+            return Task.FromResult(new AppHostValidationResult(IsValid: true));
+        }
 
         public Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken)
             => throw new NotImplementedException();

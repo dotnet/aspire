@@ -142,26 +142,39 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public async Task<bool> ValidateAsync(FileInfo appHostFile, CancellationToken cancellationToken)
+    public async Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
     {
         var isSingleFile = appHostFile.Extension.Equals(".cs", StringComparison.OrdinalIgnoreCase);
 
         if (isSingleFile)
         {
             // For single-file apphosts, we just check that it exists
-            return appHostFile.Exists;
+            return new AppHostValidationResult(IsValid: appHostFile.Exists);
         }
 
-        // For project files, check if it's a valid Aspire AppHost
-        var compatibility = await AppHostHelper.CheckAppHostCompatibilityAsync(
-            _runner,
-            _interactionService,
-            appHostFile,
-            _telemetry,
-            appHostFile.Directory!,
-            cancellationToken);
+        // For project files, check if it's a valid Aspire AppHost using GetAppHostInformationAsync
+        var information = await _runner.GetAppHostInformationAsync(appHostFile, new DotNetCliRunnerInvocationOptions(), cancellationToken);
 
-        return compatibility.IsCompatibleAppHost;
+        if (information.ExitCode == 0 && information.IsAspireHost)
+        {
+            return new AppHostValidationResult(IsValid: true);
+        }
+
+        // Check if it's possibly an unbuildable AppHost (has the right name pattern but couldn't be validated)
+        var isPossiblyUnbuildable = IsPossiblyUnbuildableAppHost(appHostFile);
+
+        return new AppHostValidationResult(
+            IsValid: false,
+            IsPossiblyUnbuildable: isPossiblyUnbuildable);
+    }
+
+    private static bool IsPossiblyUnbuildableAppHost(FileInfo projectFile)
+    {
+        var fileNameSuggestsAppHost = projectFile.Name.EndsWith("AppHost.csproj", StringComparison.OrdinalIgnoreCase);
+        var folderContainsAppHostCSharpFile = projectFile.Directory!
+            .EnumerateFiles("*", SearchOption.TopDirectoryOnly)
+            .Any(f => f.Name.Equals("AppHost.cs", StringComparison.OrdinalIgnoreCase));
+        return fileNameSuggestsAppHost || folderContainsAppHostCSharpFile;
     }
 
     /// <inheritdoc />

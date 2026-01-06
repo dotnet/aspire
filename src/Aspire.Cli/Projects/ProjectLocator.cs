@@ -4,7 +4,6 @@
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -18,19 +17,16 @@ internal interface IProjectLocator
 {
     Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken = default);
     Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken);
-    Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken);
 }
 
 internal sealed class ProjectLocator(
     ILogger<ProjectLocator> logger,
-    IDotNetCliRunner runner,
     CliExecutionContext executionContext,
     IInteractionService interactionService,
     IConfigurationService configurationService,
     IAppHostProjectFactory projectFactory,
     AspireCliTelemetry telemetry) : IProjectLocator
 {
-    private static readonly HashSet<string> s_dotNetProjectExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".csproj", ".fsproj", ".vbproj" };
 
     public async Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
     {
@@ -88,38 +84,11 @@ internal sealed class ProjectLocator(
                         return;
                     }
 
-                    // For .NET project files, we need deeper validation via GetAppHostInformationAsync
-                    if (s_dotNetProjectExtensions.Contains(candidateFile.Extension))
-                    {
-                        var information = await runner.GetAppHostInformationAsync(candidateFile, new DotNetCliRunnerInvocationOptions(), ct);
+                    // Validate the candidate file using the handler
+                    var validationResult = await handler.ValidateAppHostAsync(candidateFile, ct);
 
-                        if (information.ExitCode == 0 && information.IsAspireHost)
-                        {
-                            logger.LogDebug("Found AppHost project file {ProjectFile}", candidateFile.FullName);
-                            var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
-                            interactionService.DisplaySubtleMessage(relativePath);
-                            lock (lockObject)
-                            {
-                                appHostProjects.Add(candidateFile);
-                            }
-                        }
-                        else if (IsPossiblyUnbuildableAppHost(candidateFile))
-                        {
-                            var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
-                            interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, relativePath));
-                            lock (lockObject)
-                            {
-                                unbuildableSuspectedAppHostProjects.Add(candidateFile);
-                            }
-                        }
-                        else
-                        {
-                            logger.LogTrace("Project file {ProjectFile} is not an Aspire host", candidateFile.FullName);
-                        }
-                    }
-                    else
+                    if (validationResult.IsValid)
                     {
-                        // For non-.NET project files (e.g., apphost.cs, apphost.ts), CanHandle already validated
                         logger.LogDebug("Found {Language} apphost {CandidateFile}", handler.DisplayName, candidateFile.FullName);
                         var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
                         interactionService.DisplaySubtleMessage(relativePath);
@@ -127,6 +96,19 @@ internal sealed class ProjectLocator(
                         {
                             appHostProjects.Add(candidateFile);
                         }
+                    }
+                    else if (validationResult.IsPossiblyUnbuildable)
+                    {
+                        var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
+                        interactionService.DisplayMessage("warning", string.Format(CultureInfo.CurrentCulture, ErrorStrings.ProjectFileMayBeUnbuildableAppHost, relativePath));
+                        lock (lockObject)
+                        {
+                            unbuildableSuspectedAppHostProjects.Add(candidateFile);
+                        }
+                    }
+                    else
+                    {
+                        logger.LogTrace("File {CandidateFile} is not a valid Aspire host", candidateFile.FullName);
                     }
                 });
             }
@@ -137,13 +119,6 @@ internal sealed class ProjectLocator(
 
             return (appHostProjects, unbuildableSuspectedAppHostProjects);
         });
-    }
-
-    private static bool IsPossiblyUnbuildableAppHost(FileInfo projectFile)
-    {
-        var fileNameSuggestsAppHost = () => projectFile.Name.EndsWith("AppHost.csproj", StringComparison.OrdinalIgnoreCase);
-        var folderContainsAppHostCSharpFile = () => projectFile.Directory!.EnumerateFiles("*", SearchOption.TopDirectoryOnly).Any(f => f.Name.Equals("AppHost.cs", StringComparison.OrdinalIgnoreCase));
-        return fileNameSuggestsAppHost() || folderContainsAppHostCSharpFile();
     }
 
     private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)
@@ -339,70 +314,6 @@ internal sealed class ProjectLocator(
         interactionService.DisplayMessage("file_cabinet", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
     }
 
-    public async Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-    {
-        using var activity = telemetry.ActivitySource.StartActivity();
-
-        return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
-        {
-            var executableProjects = new List<FileInfo>();
-            var lockObject = new object();
-            logger.LogDebug("Searching for executable project files in {SearchDirectory}", searchDirectory);
-
-            var enumerationOptions = new EnumerationOptions
-            {
-                RecurseSubdirectories = true,
-                IgnoreInaccessible = true
-            };
-
-            var searchDir = new DirectoryInfo(searchDirectory);
-            var projectFiles = searchDir.GetFiles("*.csproj", enumerationOptions);
-            logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory);
-
-            var parallelOptions = new ParallelOptions
-            {
-                CancellationToken = cancellationToken,
-                MaxDegreeOfParallelism = Environment.ProcessorCount
-            };
-
-            await Parallel.ForEachAsync(projectFiles, parallelOptions, async (projectFile, ct) =>
-            {
-                logger.LogDebug("Checking project file {ProjectFile} for OutputType", projectFile.FullName);
-
-                var (exitCode, jsonDocument) = await runner.GetProjectItemsAndPropertiesAsync(
-                    projectFile,
-                    [],
-                    ["OutputType"],
-                    new DotNet.DotNetCliRunnerInvocationOptions(),
-                    ct);
-
-                if (exitCode == 0 && jsonDocument != null)
-                {
-                    var rootElement = jsonDocument.RootElement;
-                    if (rootElement.TryGetProperty("Properties", out var properties))
-                    {
-                        if (properties.TryGetProperty("OutputType", out var outputTypeElement))
-                        {
-                            var outputType = outputTypeElement.GetString();
-                            if (outputType == "Exe" || outputType == "WinExe")
-                            {
-                                logger.LogDebug("Found executable project file {ProjectFile} with OutputType {OutputType}", projectFile.FullName, outputType);
-                                lock (lockObject)
-                                {
-                                    executableProjects.Add(projectFile);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Sort for deterministic results
-            executableProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
-
-            return executableProjects;
-        });
-    }
 }
 
 internal class ProjectLocatorException : System.Exception

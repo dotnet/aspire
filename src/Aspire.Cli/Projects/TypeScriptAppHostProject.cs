@@ -271,29 +271,30 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     // ═══════════════════════════════════════════════════════════════
 
     /// <inheritdoc />
-    public Task<bool> ValidateAsync(FileInfo appHostFile, CancellationToken cancellationToken)
+    public Task<AppHostValidationResult> ValidateAppHostAsync(FileInfo appHostFile, CancellationToken cancellationToken)
     {
         // Check if the file exists and has the correct extension
         if (!appHostFile.Exists)
         {
-            return Task.FromResult(false);
+            return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
 
         if (!appHostFile.Name.Equals("apphost.ts", StringComparison.OrdinalIgnoreCase))
         {
-            return Task.FromResult(false);
+            return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
 
         // Check for package.json in the same directory
         var directory = appHostFile.Directory;
         if (directory is null)
         {
-            return Task.FromResult(false);
+            return Task.FromResult(new AppHostValidationResult(IsValid: false));
         }
 
         var hasPackageJson = File.Exists(Path.Combine(directory.FullName, "package.json"));
 
-        return Task.FromResult(hasPackageJson);
+        // TypeScript doesn't have the "possibly unbuildable" concept
+        return Task.FromResult(new AppHostValidationResult(IsValid: hasPackageJson));
     }
 
     /// <inheritdoc />
