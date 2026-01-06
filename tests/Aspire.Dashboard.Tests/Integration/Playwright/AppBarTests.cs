@@ -66,6 +66,7 @@ public class AppBarTests : PlaywrightTestsBase<DashboardServerFixture>
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/9152", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOS))]
     [OuterloopTest("Resource-intensive Playwright browser test")]
     public async Task AppBar_Change_Theme_ReloadPage()
     {
