@@ -17,9 +17,7 @@ import {
     DistributedApplicationBase,
     ResourceBuilderBase,
     ReferenceExpression,
-    refExpr,
-    type BuilderHandle,
-    type ApplicationHandle
+    refExpr
 } from './base.js';
 
 // ============================================================================
@@ -150,7 +148,7 @@ export class TestRedisBuilder extends ResourceBuilderBase<TestRedisBuilderHandle
     /** Adds an optional string parameter */
     /** @internal */
     async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<TestRedisBuilder> {
-        const result = await this._client.invokeCapability<IResourceHandle>(
+        const result = await this._client.invokeCapability<TestRedisBuilderHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString',
             { builder: this._handle, value, enabled }
         );
