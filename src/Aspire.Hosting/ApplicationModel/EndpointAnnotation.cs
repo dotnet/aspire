@@ -22,6 +22,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     private bool _portSetToNull;
     private int? _targetPort;
     private bool _targetPortSetToNull;
+    private bool? _isTls;
     private readonly NetworkIdentifier _networkID;
 
     /// <summary>
@@ -168,6 +169,15 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     {
         get => _transport ?? (UriScheme == "http" || UriScheme == "https" ? "http" : Protocol.ToString().ToLowerInvariant());
         set => _transport = value;
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the endpoint uses TLS.
+    /// </summary>
+    public bool Tls
+    {
+        get => _isTls ?? (UriScheme == "https");
+        set => _isTls = value;
     }
 
     /// <summary>
