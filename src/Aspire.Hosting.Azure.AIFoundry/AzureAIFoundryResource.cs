@@ -3,12 +3,12 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning.CognitiveServices;
-using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents an Azure AI Foundry resource.
+/// Represents an Azure AI Foundry resource. This corresponds to the Azure Cognitive Services account
+/// with AI Foundry capabilities enabled.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Configures the underlying Azure resource using Azure.Provisioning.</param>
@@ -18,6 +18,30 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     internal Uri? EmulatorServiceUri { get; set; }
 
     private readonly List<AzureAIFoundryDeploymentResource> _deployments = [];
+    internal bool _isAspireDefaultProjectSet { get; set; } = true;
+
+    /// <summary>
+    /// Project to use within the AI Foundry resource if none are otherwise specified. Note that
+    /// this may NOT be the same as the "default" project in Azure.
+    /// </summary>
+    internal IResourceBuilder<AzureCognitiveServicesProjectResource> Project
+    {
+        get
+        {
+            ArgumentNullException.ThrowIfNull(field);
+            return field;
+        }
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (_isAspireDefaultProjectSet)
+            {
+                field = value;
+                _isAspireDefaultProjectSet = false;
+                return;
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the "aiFoundryApiEndpoint" output reference from the Azure AI Foundry resource.
@@ -58,7 +82,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     public string? ApiKey { get; internal set; }
 
     /// <inheritdoc/>
-    public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
+    public override CognitiveServicesAccount AddAsExistingResource(AzureResourceInfrastructure infra)
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();

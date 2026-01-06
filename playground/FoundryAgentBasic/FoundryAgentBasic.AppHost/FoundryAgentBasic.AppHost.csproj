@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CognitiveServices" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AIFoundry" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ContainerRegistry" />
   </ItemGroup>
 

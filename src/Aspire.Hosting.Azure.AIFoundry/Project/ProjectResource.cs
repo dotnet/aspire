@@ -4,23 +4,23 @@
 using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.CognitiveServices;
-using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
+using Aspire.Hosting.Azure.AIFoundry;
 using Azure.Provisioning.CognitiveServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Aspire.Hosting.Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// The Azure Cognitive Services project resource.
+/// The Azure Cognitive Services project resource that can be used for Microsoft Foundry AI agents.
 ///
 /// This also functions as an Aspire compute environment resource for deployment.
 /// </summary>
 public class AzureCognitiveServicesProjectResource :
-    AzureResourceManagerAspireResourceWithParent<CognitiveServicesProject, AzureCognitiveServicesAccountResource, CognitiveServicesAccount>,
+    AzureResourceManagerAspireResourceWithParent<CognitiveServicesProject, AzureAIFoundryResource>,
     IResourceWithConnectionString,
     IAzureComputeEnvironmentResource,
     IAzureContainerRegistry
@@ -31,7 +31,7 @@ public class AzureCognitiveServicesProjectResource :
     /// <param name="name"></param>
     /// <param name="configureInfrastructure"></param>
     /// <param name="parent"></param>
-    public AzureCognitiveServicesProjectResource([ResourceName] string name, Action<AzureResourceInfrastructure> configureInfrastructure, AzureCognitiveServicesAccountResource parent)
+    public AzureCognitiveServicesProjectResource([ResourceName] string name, Action<AzureResourceInfrastructure> configureInfrastructure, AzureAIFoundryResource parent)
         : base(name, configureInfrastructure, parent)
     {
         // This is a bit long, but this sets up the necessary pipeline steps to

@@ -1,15 +1,23 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Azure;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-var storage = builder.AddAzureStorage("storage-account");
+var foundry = builder.AddAzureAIFoundry("my-foundry");
+var deployment = foundry.AddDeployment("my-gpt-5", AIFoundryModel.OpenAI.Gpt5);
+var project = foundry.AddProject("my-foundry-proj");
 
-var account = builder.AddAzureCognitiveServicesAccount("cogsvc-account")
-    ;
-
-var deployment = account.AddDeployment("my-gpt-5", "OpenAI", "gpt-5");
-var project = account.AddProject("cogsvc-project");
+var kvConn = project.AddConnection(builder.AddAzureKeyVault("foundry-kv"));
+var dbConn = project.AddConnection(builder.AddAzureCosmosDB("foundry-db"));
+var registryConn = project.AddConnection(builder.AddAzureContainerRegistry("foundry-registry"));
+var storageConn = project.AddConnection(builder.AddAzureStorage("storage-account"));
+var capHost = project.AddCapabilityHost("capability-host")
+    .WithReference(kvConn)
+    .WithReference(dbConn)
+    .WithReference(registryConn)
+    .WithReference(storageConn);
 
 var app = builder.AddUvicornApp("app", "./app", "main:app")
     .WithUv()

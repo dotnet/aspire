@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.CognitiveServices;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.ContainerRegistry;
@@ -18,7 +17,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureCognitiveServicesProjectExtensions
 {
-
     /// <summary>
     /// Adds an Azure Cognitive Services project resource to the application model.
     ///
@@ -28,7 +26,7 @@ public static class AzureCognitiveServicesProjectExtensions
     /// <param name="name">The name of the Azure Cognitive Services project resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for the Azure Cognitive Services project resource.</returns>
     public static IResourceBuilder<AzureCognitiveServicesProjectResource> AddProject(
-        this IResourceBuilder<AzureCognitiveServicesAccountResource> builder,
+        this IResourceBuilder<AzureAIFoundryResource> builder,
         string name)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -146,8 +144,34 @@ public static class AzureCognitiveServicesProjectExtensions
             });
         }
         var resource = new AzureCognitiveServicesProjectResource(name, configureInfrastructure, builder.Resource);
+        var resourceBuilder = builder.ApplicationBuilder.AddResource(resource);
+        // Set the project on the parent AI Foundry resource if not already set
+        builder.Resource.Project = resourceBuilder;
+        return resourceBuilder;
+    }
 
-        return builder.ApplicationBuilder.AddResource(resource);
+    /// <summary>
+    /// Associates a container registry with the Azure Cognitive Services project resource for
+    /// publishing and locating hosted agents.
+    /// </summary>
+    public static IResourceBuilder<AzureAIFoundryResource> WithContainerRegistry(
+        this IResourceBuilder<AzureAIFoundryResource> builder,
+        IResourceBuilder<AzureContainerRegistryResource> registryBuilder)
+    {
+        builder.Resource.Project.WithContainerRegistry(registryBuilder);
+        return builder;
+    }
+
+    /// <summary>
+    /// Associates a container registry with the Azure Cognitive Services project resource for
+    /// publishing and locating hosted agents.
+    /// </summary>
+    public static IResourceBuilder<AzureAIFoundryResource> WithContainerRegistry(
+        this IResourceBuilder<AzureAIFoundryResource> builder,
+        IContainerRegistry registry)
+    {
+        builder.Resource.Project.WithContainerRegistry(registry);
+        return builder;
     }
 
     /// <summary>
@@ -167,7 +191,7 @@ public static class AzureCognitiveServicesProjectExtensions
     /// </summary>
     public static IResourceBuilder<AzureCognitiveServicesProjectResource> WithContainerRegistry(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
-        AzureContainerRegistryResource registry)
+        IContainerRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(registry);

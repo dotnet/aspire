@@ -5,7 +5,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
 
-namespace Aspire.Hosting.Azure.CognitiveServices;
+namespace Aspire.Hosting.Azure.AIFoundry;
 
 internal static class CogSvcFunction
 {

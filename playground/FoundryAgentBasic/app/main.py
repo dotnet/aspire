@@ -7,9 +7,7 @@ import json
 import logging
 import os
 import random
-from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable
 from urllib.parse import urlparse
 
 from azure.identity.aio import DefaultAzureCredential
@@ -21,12 +19,6 @@ from agents import (
     function_tool,
     set_default_openai_client,
     set_tracing_disabled,
-)
-from agents.tracing import (
-    agent_span as tracing_agent_span,
-    function_span as tracing_function_span,
-    generation_span as tracing_generation_span,
-    trace as tracing_trace,
 )
 from azure.ai.agentserver.core import AgentRunContext, FoundryCBAgent
 from azure.ai.agentserver.core.models import (

@@ -13,7 +13,6 @@ using Microsoft.AI.Foundry.Local;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
-using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
 
@@ -33,13 +32,17 @@ public static class AzureAIFoundryExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureAIFoundryResource(name, ConfigureInfrastructure);
-        return builder.AddResource(resource)
+        var resourceBuilder = builder.AddResource(resource)
             .WithDefaultRoleAssignments(CognitiveServicesBuiltInRole.GetBuiltInRoleName,
                 CognitiveServicesBuiltInRole.CognitiveServicesUser, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIUser);
+
+        // Add a default project. If the user adds their own project, this one will be ignored.
+        resourceBuilder.AddProject($"{resource.Name}-proj");
+        return resourceBuilder;
     }
 
     /// <summary>
-    /// Adds and returns an Azure AI Foundry Deployment resource to the application model.
+    /// Adds and returns an Azure AI Foundry Deployment resource (e.g. an AI model) to the application model.
     /// </summary>
     /// <param name="builder">The Azure AI Foundry resource builder.</param>
     /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
@@ -177,7 +180,7 @@ public static class AzureAIFoundryExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var aiFoundry = builder.AddAzureAIFoundry("aiFoundry");
-    /// 
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithRoleAssignments(aiFoundry, CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor)
     ///   .WithReference(aiFoundry);
@@ -368,9 +371,11 @@ public static class AzureAIFoundryExtensions
                     },
                     Properties = new CognitiveServicesAccountProperties()
                     {
-                        CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                        // Until this bug is fixed, disable custom subdomains: https://msdata.visualstudio.com/Vienna/_workitems/edit/4866592
+                        // CustomSubDomainName = ToLower(Take(Concat(infrastructure.AspireResource.Name, GetUniqueString(GetResourceGroup().Id)), 24)),
                         PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
-                        DisableLocalAuth = true
+                        DisableLocalAuth = true,
+                        AllowProjectManagement = true
                     },
                     Identity = new ManagedServiceIdentity()
                     {
@@ -430,6 +435,29 @@ public static class AzureAIFoundryExtensions
 
             dependency = cdkDeployment;
         }
-    }
 
+        var project = infrastructure.GetProvisionableResources().OfType<CognitiveServicesProject>().FirstOrDefault(p => p.Parent == cogServicesAccount);
+        if (project is null)
+        {
+            var projectName = Infrastructure.NormalizeBicepIdentifier($"{cogServicesAccount.Name}-proj");
+            project = new CognitiveServicesProject(projectName)
+            {
+                Name = projectName,
+                Parent = cogServicesAccount,
+                Properties = new CognitiveServicesProjectProperties()
+                {
+                    Description = "Project created by Aspire Hosting for Azure AI Foundry.",
+                    DisplayName = $"{cogServicesAccount.Name} Project"
+                },
+                Identity = new ManagedServiceIdentity()
+                {
+                    ManagedServiceIdentityType = ManagedServiceIdentityType.SystemAssigned
+                },
+                Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+            };
+            infrastructure.Add(project);
+        }
+        infrastructure.Add(new ProvisioningOutput("projectId", typeof(string)) { Value = project.Id });
+        infrastructure.Add(new ProvisioningOutput("projectName", typeof(string)) { Value = project.Name });
+    }
 }

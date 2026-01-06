@@ -4,7 +4,7 @@
 using Azure.AI.Projects;
 using Azure.AI.Projects.OpenAI;
 
-namespace Aspire.Hosting.Azure.CognitiveServices;
+namespace Aspire.Hosting.Azure.AIFoundry;
 
 /// <summary>
 /// A configuration helper for Python hosted agents.
