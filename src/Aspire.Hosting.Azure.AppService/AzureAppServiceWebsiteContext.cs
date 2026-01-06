@@ -555,7 +555,6 @@ internal sealed class AzureAppServiceWebsiteContext(
                     webSiteObject.BicepIdentifier,
                     webSiteObject.SiteConfig.AppSettings,
                     acrClientIdParameter,
-                    slotConfigNames,
                     deploymentSlot);
             }
             infra.Add(webSiteObject);
@@ -568,7 +567,6 @@ internal sealed class AzureAppServiceWebsiteContext(
                     slot.BicepIdentifier,
                     slot.SiteConfig.AppSettings,
                     acrClientIdParameter,
-                    slotConfigNames,
                     deploymentSlot);
             }
             infra.Add(slot);
@@ -577,6 +575,9 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (webSiteRa is not null)
         {
             infra.Add(webSiteRa);
+
+            // Make OTEL_SERVICE_NAME a deployment slot sticky appsetting if dashboard is enabled
+            slotConfigNames.Add("OTEL_SERVICE_NAME");
         }
 
         if (environmentContext.Environment.EnableApplicationInsights)
@@ -777,7 +778,6 @@ internal sealed class AzureAppServiceWebsiteContext(
         String bicepIdentifier,
         BicepList<AppServiceNameValuePair> appSettings,
         ProvisioningParameter acrClientIdParameter,
-        HashSet<string> appSettingNames,
         BicepValue<string>? deploymentSlot = null)
     {
         bool isSlot = deploymentSlot is not null;
@@ -801,9 +801,6 @@ internal sealed class AzureAppServiceWebsiteContext(
         appSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
         appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
         appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
-
-        // make OTEL_SERVICE_NAME app setting a slot sticky setting
-        appSettingNames.Add("OTEL_SERVICE_NAME");
 
         var websiteRaName = BicepFunction.CreateGuid(id, contributorId, websiteRaId);
         RoleAssignment roleAssignment = new RoleAssignment(raResourceName)
