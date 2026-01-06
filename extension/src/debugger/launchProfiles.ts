@@ -136,7 +136,6 @@ export function mergeEnvironmentVariables(
         Object.assign(merged, debugConfigEnv);
     }
 
-
     // Override with run API environment variables
     if (runApiEnv) {
         Object.assign(merged, runApiEnv);
