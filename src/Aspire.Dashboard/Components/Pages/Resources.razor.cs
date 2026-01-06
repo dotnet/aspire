@@ -148,7 +148,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             return false;
         }
 
-        return IsKeyValueTrue(resource.ResourceType, PageViewModel.ResourceTypesToVisibility)
+        // In Parameters view, ignore resource type filtering since we always show only parameters
+        var applyResourceTypeFilter = PageViewModel.SelectedViewKind != ResourceViewKind.Parameters;
+
+        return (!applyResourceTypeFilter || IsKeyValueTrue(resource.ResourceType, PageViewModel.ResourceTypesToVisibility))
                && IsKeyValueTrue(resource.State ?? string.Empty, PageViewModel.ResourceStatesToVisibility)
                && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, PageViewModel.ResourceHealthStatusesToVisibility)
                && (_filter.Length == 0 || resource.MatchesFilter(_filter))
