@@ -269,6 +269,15 @@
     padding-left: 4px;
 }
 
+::deep .tab-container .tool-heading .tool-name {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+::deep .tab-container .type-name {
+    white-space: nowrap;
+}
+
 ::deep .tab-container .tool-footer {
     padding-left: 4px;
 }

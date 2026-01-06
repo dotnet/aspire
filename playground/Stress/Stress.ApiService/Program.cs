@@ -523,19 +523,19 @@ app.MapGet("/genai-trace", async () =>
               {
                 "type": "function",
                 "name": "get_weather",
-                "description": "Get the current weather in a given location",
+                "description": "Retrieves the current weather conditions for a specified location. This tool provides real-time meteorological data including temperature, humidity, wind speed, and general conditions such as sunny, cloudy, or rainy.",
                 "parameters": {
                   "type": "object",
                   "properties": {
                     "location": {
                       "type": "string",
-                      "description": "The city and state, e.g. San Francisco, CA"
+                      "description": "The geographic location for which to retrieve weather data, specified as a city and state or country. For example, 'San Francisco, CA' or 'London, UK'. The location should be specific enough to avoid ambiguity between similarly named places."
                     },
                     "unit": {
                     },
                     "include_forecast": {
                       "type": ["string", "boolean"],
-                      "description": "Whether to include forecast data"
+                      "description": "Determines whether to include extended forecast data alongside current conditions. When enabled, the response will contain predictions for upcoming days including expected temperatures and precipitation chances."
                     }
                   },
                   "required": ["location"]
@@ -544,25 +544,25 @@ app.MapGet("/genai-trace", async () =>
               {
                 "type": "function",
                 "name": "search_database",
-                "description": "Search for items in the database",
+                "description": "Performs a comprehensive search across the database to find items matching the specified criteria. This tool supports full-text search with relevance scoring and allows filtering results based on various attributes to narrow down the results.",
                 "parameters": {
                   "type": "object",
                   "properties": {
                     "query": {
                       "type": "string",
-                      "description": "Search query string"
+                      "description": "The search query string used to find matching items in the database. This supports natural language queries and will be matched against item titles, descriptions, and metadata fields using semantic search techniques."
                     },
                     "max_results": {
                       "type": "integer",
-                      "description": "Maximum number of results to return"
+                      "description": "The maximum number of results to return from the search operation. Setting this value helps control response size and processing time. If not specified, a default limit will be applied by the system."
                     },
                     "score_threshold": {
                       "type": "number",
-                      "description": "Minimum relevance score (0.0 to 1.0)"
+                      "description": "The minimum relevance score required for items to be included in results, expressed as a decimal value between 0.0 and 1.0. Higher values return only highly relevant matches, while lower values include more loosely related items."
                     },
                     "filters": {
                       "type": "object",
-                      "description": "Optional filters to apply"
+                      "description": "A collection of optional filter criteria to apply to the search results. These filters can narrow results by attributes such as category, date range, author, or any other indexed field in the database schema."
                     }
                   },
                   "required": ["query"]
@@ -571,38 +571,38 @@ app.MapGet("/genai-trace", async () =>
               {
                 "type": "function",
                 "name": "process_items",
-                "description": "Process a list of items with optional parameters",
+                "description": "Processes a collection of items through a configurable pipeline with support for batch operations. This tool is designed for bulk data processing tasks and includes options for handling nullable values and various data types.",
                 "parameters": {
                   "type": "object",
                   "properties": {
                     "items": {
-                      "type": "array",
+                      "type": ["array", "string"],
                       "items": {
                         "type": "string"
                       },
-                      "description": "Array of items to process"
+                      "description": "The items to be processed by the pipeline, provided either as an array of strings or as a single comma-separated string. When provided as a string, values will be split on commas and each segment processed individually. Each item will be individually processed and the results aggregated."
                     },
                     "numbers": {
                       "type": "array",
                       "items": {
                         "type": "integer"
                       },
-                      "description": "Array of integers"
+                      "description": "An array of integer values that can be used for numerical processing operations. These numbers may be used for calculations, sorting, or as indices depending on the processing mode selected."
                     },
                     "optional_value": {
                       "type": ["string", "null"],
-                      "description": "Optional nullable string value"
+                      "description": "An optional string value that can be null when not applicable. This parameter is useful for providing additional context or configuration that may not be required for all processing scenarios."
                     },
                     "optional_count": {
                       "type": ["number", "null"],
-                      "description": "Optional nullable number"
+                      "description": "An optional numeric count value that can be null if not needed. This can be used to specify batch sizes, iteration limits, or other numerical configuration options for the processing pipeline."
                     },
                     "nullable_array": {
                       "type": ["array", "null"],
                       "items": {
                         "type": "number"
                       },
-                      "description": "Array that can be null"
+                      "description": "An array of numbers that can be entirely null when no numeric data is available. When provided, these values are used for supplementary calculations or weighting factors during processing."
                     }
                   },
                   "required": ["items"]
