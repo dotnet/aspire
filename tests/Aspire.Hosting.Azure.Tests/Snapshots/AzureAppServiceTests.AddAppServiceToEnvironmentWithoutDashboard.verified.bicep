@@ -82,3 +82,14 @@ resource webapp 'Microsoft.Web/sites@2025-03-01' = {
     }
   }
 }
+
+resource slotConfigNames 'Microsoft.Web/sites/config@2025-03-01' = {
+  name: 'slotConfigNames'
+  properties: {
+    appSettingNames: [
+      'PROJECT1_HTTP'
+      'services__project1__http__0'
+    ]
+  }
+  parent: webapp
+}
