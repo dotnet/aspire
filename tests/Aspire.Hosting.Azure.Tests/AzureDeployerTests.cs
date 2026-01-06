@@ -8,6 +8,7 @@
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECONTAINERRUNTIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -17,6 +18,7 @@ using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests;
+using Aspire.Hosting.Execution;
 using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -245,7 +247,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
-        var mockProcessRunner = new MockProcessRunner();
+        var mockProcessRunner = new FakeVirtualShell();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
@@ -268,7 +270,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, activityReporter: mockActivityReporter, processRunner: mockProcessRunner, containerRuntime: fakeContainerRuntime);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, activityReporter: mockActivityReporter, shell: mockProcessRunner, containerRuntime: fakeContainerRuntime);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -305,7 +307,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
-        var mockProcessRunner = new MockProcessRunner();
+        var mockProcessRunner = new FakeVirtualShell();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(deploymentName =>
@@ -328,7 +330,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, activityReporter: mockActivityReporter, processRunner: mockProcessRunner, containerRuntime: fakeContainerRuntime);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, activityReporter: mockActivityReporter, shell: mockProcessRunner, containerRuntime: fakeContainerRuntime);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -370,7 +372,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithProjectResource_Works()
     {
         // Arrange
-        var mockProcessRunner = new MockProcessRunner();
+        var mockProcessRunner = new FakeVirtualShell();
         var fakeContainerRuntime = new FakeContainerRuntime();
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
@@ -394,7 +396,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, shell: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -438,7 +440,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithMultipleComputeEnvironments_Works(string step)
     {
         // Arrange
-        var mockProcessRunner = new MockProcessRunner();
+        var mockProcessRunner = new FakeVirtualShell();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
@@ -480,7 +482,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, shell: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
 
         var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env");
         var aasEnv = builder.AddAzureAppServiceEnvironment("aas-env");
@@ -671,7 +673,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithSingleRedisCache_CallsDeployingComputeResources()
     {
         // Arrange
-        var mockProcessRunner = new MockProcessRunner();
+        var mockProcessRunner = new FakeVirtualShell();
         var fakeContainerRuntime = new FakeContainerRuntime();
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
@@ -695,7 +697,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, shell: mockProcessRunner, activityReporter: mockActivityReporter);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -735,7 +737,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithOnlyAzureResources_PrintsDashboardUrl()
     {
         // Arrange
-        var mockProcessRunner = new MockProcessRunner();
+        var mockProcessRunner = new FakeVirtualShell();
         var fakeContainerRuntime = new FakeContainerRuntime();
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
@@ -756,7 +758,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, shell: mockProcessRunner, activityReporter: mockActivityReporter);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -904,7 +906,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange
-        var mockProcessRunner = new MockProcessRunner();
+        var mockProcessRunner = new FakeVirtualShell();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var deploymentOutputsProvider = (string deploymentName) => deploymentName switch
@@ -960,7 +962,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
 
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider(deploymentOutputsProvider);
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, activityReporter: mockActivityReporter, processRunner: mockProcessRunner, containerRuntime: fakeContainerRuntime);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, activityReporter: mockActivityReporter, shell: mockProcessRunner, containerRuntime: fakeContainerRuntime);
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
         var azureEnv = builder.AddAzureEnvironment();
@@ -1019,7 +1021,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
     {
         // Arrange - Recreate scenario similar to the issue where a compute resource references a KeyVault secret
         // This tests that Bicep resources properly depend on referenced Azure resources to avoid hangs during deployment
-        var mockProcessRunner = new MockProcessRunner();
+        var mockProcessRunner = new FakeVirtualShell();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: step);
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
@@ -1042,7 +1044,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, shell: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
 
         // Set up the scenario from the issue: AppService environment with a compute resource that references a KeyVault secret
         builder.AddAzureAppServiceEnvironment("env");
@@ -1090,7 +1092,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         // Arrange - Test that Redis with AccessKeyAuthentication creates proper dependencies
         // This recreates the scenario from issue #12801 where Redis writes a secret to KeyVault
         // and a website references that secret
-        var mockProcessRunner = new MockProcessRunner();
+        var mockProcessRunner = new FakeVirtualShell();
         var fakeContainerRuntime = new FakeContainerRuntime();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "diagnostics");
         var mockActivityReporter = new TestPipelineActivityReporter(testOutputHelper);
@@ -1117,7 +1119,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
                 _ => []
             };
         });
-        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, shell: mockProcessRunner, activityReporter: mockActivityReporter, containerRuntime: fakeContainerRuntime);
 
         // Set up the scenario: AppService environment with Redis using access key authentication
         // and a compute resource that references the Redis cache
@@ -1191,7 +1193,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         IInteractionService? interactionService = null,
         IBicepProvisioner? bicepProvisioner = null,
         IArmClientProvider? armClientProvider = null,
-        MockProcessRunner? processRunner = null,
+        FakeVirtualShell? shell = null,
         IPipelineActivityReporter? activityReporter = null,
         IContainerRuntime? containerRuntime = null,
         bool setDefaultProvisioningOptions = true)
@@ -1223,7 +1225,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
         {
             builder.Services.AddSingleton(bicepProvisioner);
         }
-        builder.Services.AddSingleton<IProcessRunner>(processRunner ?? new MockProcessRunner());
+        builder.Services.AddSingleton<IVirtualShell>(shell ?? new FakeVirtualShell());
         builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
         builder.Services.AddSingleton<IContainerRuntime>(containerRuntime ?? new FakeContainerRuntime());
         builder.Services.AddSingleton<IAcrLoginService>(sp => new FakeAcrLoginService(sp.GetRequiredService<IContainerRuntime>()));
@@ -1612,7 +1614,7 @@ public class AzureDeployerTests(ITestOutputHelper testOutputHelper)
             builder.Services.AddSingleton(bicepProvisioner);
         }
 
-        builder.Services.AddSingleton<IProcessRunner>(new MockProcessRunner());
+        builder.Services.AddSingleton<IVirtualShell>(new FakeVirtualShell());
         builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
         builder.Services.AddSingleton<IContainerRuntime>(new FakeContainerRuntime());
         builder.Services.AddSingleton<IAcrLoginService>(sp => new FakeAcrLoginService(sp.GetRequiredService<IContainerRuntime>()));

@@ -1,0 +1,420 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
+
+using Aspire.Hosting.Execution;
+
+namespace Aspire.Hosting.Tests.Execution;
+
+/// <summary>
+/// Tests for <see cref="FakeVirtualShell"/> which captures commands for testing.
+/// </summary>
+public class FakeVirtualShellTests
+{
+    #region Basic Command Execution
+
+    [Fact]
+    public async Task Run_CapturesCommand()
+    {
+        var shell = new FakeVirtualShell();
+
+        await shell.Command("dotnet", ["build"]).RunAsync();
+
+        var command = Assert.Single(shell.ExecutedCommands);
+        Assert.Equal("dotnet", command.FileName);
+        Assert.Equal(["build"], command.Arguments);
+    }
+
+    [Fact]
+    public async Task Run_ReturnsDefaultResult()
+    {
+        var shell = new FakeVirtualShell();
+
+        var result = await shell.Command("any-command").RunAsync();
+
+        Assert.True(result.Success);
+        Assert.Equal(0, result.ExitCode);
+    }
+
+    [Fact]
+    public async Task WithDefaultResult_ReturnsConfiguredResult()
+    {
+        var shell = new FakeVirtualShell()
+            .WithDefaultResult(new ProcessResult(42, "output", "error", ProcessExitReason.Exited));
+
+        var result = await shell.Command("any-command").RunAsync();
+
+        Assert.False(result.Success);
+        Assert.Equal(42, result.ExitCode);
+        Assert.Equal("output", result.Stdout);
+        Assert.Equal("error", result.Stderr);
+    }
+
+    [Fact]
+    public async Task WithResponse_ReturnsConfiguredResultForCommand()
+    {
+        var shell = new FakeVirtualShell()
+            .WithResponse("dotnet", new ProcessResult(0, "Build succeeded", "", ProcessExitReason.Exited))
+            .WithResponse("npm", new ProcessResult(1, "", "npm ERR!", ProcessExitReason.Exited));
+
+        var dotnetResult = await shell.Command("dotnet", ["build"]).RunAsync();
+        var npmResult = await shell.Command("npm", ["install"]).RunAsync();
+
+        Assert.True(dotnetResult.Success);
+        Assert.Equal("Build succeeded", dotnetResult.Stdout);
+
+        Assert.False(npmResult.Success);
+        Assert.Equal("npm ERR!", npmResult.Stderr);
+    }
+
+    [Fact]
+    public async Task WithResponseHandler_CallsHandlerWithCommand()
+    {
+        var shell = new FakeVirtualShell()
+            .WithResponseHandler("echo", cmd =>
+            {
+                var text = string.Join(" ", cmd.Arguments);
+                return new ProcessResult(0, text, "", ProcessExitReason.Exited);
+            });
+
+        var result = await shell.Command("echo", ["hello", "world"]).RunAsync();
+
+        Assert.Equal("hello world", result.Stdout);
+    }
+
+    #endregion
+
+    #region Working Directory
+
+    [Fact]
+    public async Task Cd_SetsWorkingDirectory()
+    {
+        var shell = new FakeVirtualShell();
+        var shellWithCd = shell.Cd("/app") as FakeVirtualShell;
+
+        await shellWithCd!.Command("ls").RunAsync();
+
+        var command = shellWithCd.ExecutedCommands.Single();
+        Assert.Equal("/app", command.WorkingDirectory);
+    }
+
+    [Fact]
+    public void Cd_CreatesNewInstance()
+    {
+        var shell = new FakeVirtualShell();
+        var shellWithCd = shell.Cd("/app");
+
+        Assert.NotSame(shell, shellWithCd);
+        Assert.Null(shell.WorkingDirectory);
+        Assert.Equal("/app", (shellWithCd as FakeVirtualShell)?.WorkingDirectory);
+    }
+
+    [Fact]
+    public async Task Cd_Chained_UsesLastDirectory()
+    {
+        var shell = new FakeVirtualShell()
+            .Cd("/first")
+            .Cd("/second") as FakeVirtualShell;
+
+        await shell!.Command("pwd").RunAsync();
+
+        var command = shell.ExecutedCommands.Single();
+        Assert.Equal("/second", command.WorkingDirectory);
+    }
+
+    #endregion
+
+    #region Environment Variables
+
+    [Fact]
+    public async Task Env_SetsEnvironmentVariable()
+    {
+        var shell = new FakeVirtualShell()
+            .Env("NODE_ENV", "production") as FakeVirtualShell;
+
+        await shell!.Command("node", ["app.js"]).RunAsync();
+
+        var command = shell.ExecutedCommands.Single();
+        Assert.Equal("production", command.Environment["NODE_ENV"]);
+    }
+
+    [Fact]
+    public async Task Env_NullValue_RemovesVariable()
+    {
+        var shell = new FakeVirtualShell()
+            .Env("VAR", "value")
+            .Env("VAR", null) as FakeVirtualShell;
+
+        await shell!.Command("test").RunAsync();
+
+        var command = shell.ExecutedCommands.Single();
+        Assert.False(command.Environment.ContainsKey("VAR"));
+    }
+
+    [Fact]
+    public async Task Env_Dictionary_SetsMultipleVariables()
+    {
+        var shell = new FakeVirtualShell()
+            .Env(new Dictionary<string, string?>
+            {
+                ["VAR1"] = "value1",
+                ["VAR2"] = "value2"
+            }) as FakeVirtualShell;
+
+        await shell!.Command("test").RunAsync();
+
+        var command = shell.ExecutedCommands.Single();
+        Assert.Equal("value1", command.Environment["VAR1"]);
+        Assert.Equal("value2", command.Environment["VAR2"]);
+    }
+
+    [Fact]
+    public void Env_CreatesNewInstance()
+    {
+        var shell = new FakeVirtualShell();
+        var shellWithEnv = shell.Env("VAR", "value");
+
+        Assert.NotSame(shell, shellWithEnv);
+        Assert.Empty(shell.Environment);
+    }
+
+    #endregion
+
+    #region PATH Manipulation
+
+    [Fact]
+    public async Task PrependPath_AddsToFrontOfPath()
+    {
+        var shell = new FakeVirtualShell()
+            .PrependPath("/custom/bin") as FakeVirtualShell;
+
+        await shell!.Command("test").RunAsync();
+
+        var command = shell.ExecutedCommands.Single();
+        Assert.StartsWith("/custom/bin", command.Environment["PATH"]);
+    }
+
+    [Fact]
+    public async Task AppendPath_AddsToEndOfPath()
+    {
+        var shell = new FakeVirtualShell()
+            .AppendPath("/custom/bin") as FakeVirtualShell;
+
+        await shell!.Command("test").RunAsync();
+
+        var command = shell.ExecutedCommands.Single();
+        Assert.EndsWith("/custom/bin", command.Environment["PATH"]);
+    }
+
+    #endregion
+
+    #region Secrets
+
+    [Fact]
+    public void DefineSecret_And_Secret_WorkTogether()
+    {
+        var shell = new FakeVirtualShell()
+            .DefineSecret("API_KEY", "secret123");
+
+        var value = shell.Secret("API_KEY");
+
+        Assert.Equal("secret123", value);
+    }
+
+    [Fact]
+    public void Secret_ThrowsForUndefinedSecret()
+    {
+        var shell = new FakeVirtualShell();
+
+        Assert.Throws<KeyNotFoundException>(() => shell.Secret("UNDEFINED"));
+    }
+
+    [Fact]
+    public async Task SecretEnv_SetsEnvironmentVariable()
+    {
+        var shell = new FakeVirtualShell()
+            .SecretEnv("API_KEY", "secret123") as FakeVirtualShell;
+
+        await shell!.Command("test").RunAsync();
+
+        var command = shell.ExecutedCommands.Single();
+        Assert.Equal("secret123", command.Environment["API_KEY"]);
+    }
+
+    #endregion
+
+    #region Tags
+
+    [Fact]
+    public void Tag_SetsCategory()
+    {
+        var shell = new FakeVirtualShell()
+            .Tag("build") as FakeVirtualShell;
+
+        Assert.Equal("build", shell!.CurrentTag);
+    }
+
+    [Fact]
+    public void Tag_CreatesNewInstance()
+    {
+        var shell = new FakeVirtualShell();
+        var shellWithTag = shell.Tag("deploy");
+
+        Assert.NotSame(shell, shellWithTag);
+        Assert.Null(shell.CurrentTag);
+    }
+
+    #endregion
+
+    #region RunAsync Parameters
+
+    [Fact]
+    public async Task RunAsync_WithStdin_PassesStdin()
+    {
+        var shell = new FakeVirtualShell();
+        var stdin = ProcessInput.FromText("input data");
+
+        await shell.Command("cat").RunAsync(stdin: stdin);
+
+        var command = shell.ExecutedCommands.Single();
+        Assert.NotNull(command.Stdin);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithCaptureFalse_SetsOutputToNull()
+    {
+        var shell = new FakeVirtualShell();
+
+        await shell.Command("echo", ["test"]).RunAsync(capture: false);
+
+        var command = shell.ExecutedCommands.Single();
+        Assert.Equal(ProcessOutput.Null, command.Stdout);
+        Assert.Equal(ProcessOutput.Null, command.Stderr);
+    }
+
+    #endregion
+
+    #region StartReading (Streaming)
+
+    [Fact]
+    public async Task StartReading_ReturnsProcessLines()
+    {
+        var shell = new FakeVirtualShell()
+            .WithResponse("echo", new ProcessResult(0, "line1\nline2", "", ProcessExitReason.Exited));
+
+        await using var process = shell.Command("echo", ["hello"]).StartReading();
+        var lines = new List<string>();
+
+        await foreach (var line in process.ReadLinesAsync())
+        {
+            lines.Add(line.Text);
+        }
+
+        Assert.Equal(["line1", "line2"], lines);
+    }
+
+    [Fact]
+    public async Task StartReading_WaitAsync_ReturnsResult()
+    {
+        var shell = new FakeVirtualShell()
+            .WithResponse("test", new ProcessResult(42, "", "", ProcessExitReason.Exited));
+
+        await using var process = shell.Command("test").StartReading();
+        var result = await process.WaitAsync();
+
+        Assert.Equal(42, result.ExitCode);
+    }
+
+    [Fact]
+    public async Task StartReading_EnsureSuccessAsync_ThrowsOnFailure()
+    {
+        var shell = new FakeVirtualShell()
+            .WithResponse("fail", new ProcessResult(1, "", "error message", ProcessExitReason.Exited));
+
+        await using var process = shell.Command("fail").StartReading();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => process.EnsureSuccessAsync());
+    }
+
+    #endregion
+
+    #region Immutability
+
+    [Fact]
+    public void AllMethods_ReturnNewInstances()
+    {
+        var shell = new FakeVirtualShell();
+
+        var shell1 = shell.Cd("/app");
+        var shell2 = shell.Env("VAR", "value");
+        var shell3 = shell.PrependPath("/bin");
+        var shell4 = shell.AppendPath("/bin");
+        var shell5 = shell.DefineSecret("KEY", "value");
+        var shell6 = shell.SecretEnv("KEY", "value");
+        var shell7 = shell.Tag("build");
+        var shell8 = shell.WithLogging();
+
+        Assert.NotSame(shell, shell1);
+        Assert.NotSame(shell, shell2);
+        Assert.NotSame(shell, shell3);
+        Assert.NotSame(shell, shell4);
+        Assert.NotSame(shell, shell5);
+        Assert.NotSame(shell, shell6);
+        Assert.NotSame(shell, shell7);
+        Assert.NotSame(shell, shell8);
+    }
+
+    [Fact]
+    public async Task SharedCommandQueue_AcrossInstances()
+    {
+        var shell = new FakeVirtualShell();
+        var shell2 = shell.Cd("/app") as FakeVirtualShell;
+
+        await shell.Command("cmd1").RunAsync();
+        await shell2!.Command("cmd2").RunAsync();
+
+        // Both instances share the same command queue
+        Assert.Equal(2, shell.ExecutedCommands.Count);
+        Assert.Equal(2, shell2.ExecutedCommands.Count);
+    }
+
+    #endregion
+
+    #region ClearCommands
+
+    [Fact]
+    public async Task ClearCommands_RemovesAllCapturedCommands()
+    {
+        var shell = new FakeVirtualShell();
+
+        await shell.Command("cmd1").RunAsync();
+        await shell.Command("cmd2").RunAsync();
+        Assert.Equal(2, shell.ExecutedCommands.Count);
+
+        shell.ClearCommands();
+
+        Assert.Empty(shell.ExecutedCommands);
+    }
+
+    #endregion
+
+    #region GetStateAsJson
+
+    [Fact]
+    public void GetStateAsJson_ReturnsShellState()
+    {
+        var shell = new FakeVirtualShell()
+            .Cd("/app")
+            .Env("VAR", "value")
+            .Tag("build") as FakeVirtualShell;
+
+        var json = shell!.GetStateAsJson();
+
+        Assert.Equal("/app", json["workingDirectory"]?.GetValue<string>());
+        Assert.Equal("value", json["environment"]?["VAR"]?.GetValue<string>());
+        Assert.Equal("build", json["tag"]?.GetValue<string>());
+    }
+
+    #endregion
+}

@@ -49,26 +49,42 @@ internal static class PathLookupHelper
     {
         foreach (var directory in (pathVariable ?? string.Empty).Split(pathSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
-            // On Windows, search each directory completely with all PATHEXT extensions before moving to the next.
-            // This matches Windows command lookup behavior where directory order takes precedence.
-            if (pathExtensions is not null && pathExtensions.Length > 0)
+            var resolved = TryResolveWithExtensions(Path.Combine(directory, command), fileExists, pathExtensions);
+            if (resolved is not null)
             {
-                foreach (var extension in pathExtensions)
+                return resolved;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Tries to resolve a path by checking if it exists directly or with any of the provided extensions.
+    /// </summary>
+    /// <param name="path">The base path to check.</param>
+    /// <param name="fileExists">A function to check if a file exists at a given path.</param>
+    /// <param name="pathExtensions">Optional array of extensions to try appending.</param>
+    /// <returns>The resolved path if found; otherwise, <c>null</c>.</returns>
+    internal static string? TryResolveWithExtensions(string path, Func<string, bool> fileExists, string[]? pathExtensions)
+    {
+        // On Windows, try extensions first (matches Windows command lookup behavior)
+        if (pathExtensions is not null && pathExtensions.Length > 0)
+        {
+            foreach (var extension in pathExtensions)
+            {
+                var pathWithExt = path + extension;
+                if (fileExists(pathWithExt))
                 {
-                    var fullPathWithExt = Path.Combine(directory, command + extension);
-                    if (fileExists(fullPathWithExt))
-                    {
-                        return fullPathWithExt;
-                    }
+                    return pathWithExt;
                 }
             }
+        }
 
-            // Try exact match (for non-Windows, or as fallback on Windows if no extension match found in this directory).
-            var fullPath = Path.Combine(directory, command);
-            if (fileExists(fullPath))
-            {
-                return fullPath;
-            }
+        // Try exact match
+        if (fileExists(path))
+        {
+            return path;
         }
 
         return null;

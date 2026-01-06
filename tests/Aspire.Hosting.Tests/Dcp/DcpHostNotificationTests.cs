@@ -1,9 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
+
 using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Resources;
+using Aspire.Hosting.Execution;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,6 +46,7 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
+            new FakeVirtualShell(),
             timeProvider);
 
         Assert.NotNull(dcpHost);
@@ -81,6 +85,7 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
+            new FakeVirtualShell(),
             timeProvider);
 
         // Act
@@ -130,6 +135,7 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
+            new FakeVirtualShell(),
             timeProvider);
 
         // Act
@@ -185,6 +191,7 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
+            new FakeVirtualShell(),
             timeProvider);
 
         // Act
@@ -240,6 +247,7 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
+            new FakeVirtualShell(),
             timeProvider);
 
         // Act
@@ -290,6 +298,7 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
+            new FakeVirtualShell(),
             timeProvider);
 
         // Act
@@ -298,7 +307,7 @@ public sealed class DcpHostNotificationTests
         // Use ReadAsync with timeout to wait for the notification
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
-        
+
         // Assert - Verify notification was shown initially
         Assert.Equal(InteractionStrings.ContainerRuntimeUnhealthyTitle, interaction.Title);
         Assert.False(interaction.CancellationToken.IsCancellationRequested); // Should not be cancelled yet
@@ -358,6 +367,7 @@ public sealed class DcpHostNotificationTests
             interactionService,
             locations,
             applicationModel,
+            new FakeVirtualShell(),
             timeProvider);
 
         // Act

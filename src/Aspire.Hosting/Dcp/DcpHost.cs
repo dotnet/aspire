@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
+
 using System.Buffers;
 using System.Collections;
 using System.IO.Pipelines;
@@ -8,8 +10,8 @@ using System.Net.Sockets;
 using System.Text;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Resources;
+using Aspire.Hosting.Execution;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -28,6 +30,7 @@ internal sealed class DcpHost
     private readonly IDcpDependencyCheckService _dependencyCheckService;
     private readonly IInteractionService _interactionService;
     private readonly Locations _locations;
+    private readonly IVirtualShell _shell;
     private readonly TimeProvider _timeProvider;
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _logProcessorTask;
@@ -48,6 +51,7 @@ internal sealed class DcpHost
         IInteractionService interactionService,
         Locations locations,
         DistributedApplicationModel applicationModel,
+        IVirtualShell shell,
         TimeProvider timeProvider)
     {
         _loggerFactory = loggerFactory;
@@ -57,6 +61,7 @@ internal sealed class DcpHost
         _interactionService = interactionService;
         _locations = locations;
         _applicationModel = applicationModel;
+        _shell = shell;
         _timeProvider = timeProvider;
     }
 
@@ -135,7 +140,57 @@ internal sealed class DcpHost
 
         try
         {
-            var dcpProcessSpec = CreateDcpProcessSpec(_locations);
+            var dcpExePath = _dcpOptions.CliPath;
+            if (!File.Exists(dcpExePath))
+            {
+                throw new FileNotFoundException($"The Developer Control Plane is not installed at \"{dcpExePath}\". The application cannot be run without it.", dcpExePath);
+            }
+
+            // Build environment variables
+            var envVars = new Dictionary<string, string?>();
+
+            // First, inherit all environment variables except the exclusion list
+            foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
+            {
+                var key = de.Key?.ToString();
+                var val = de.Value?.ToString();
+                if (key is not null && val is not null && !s_doNotInheritEnvironmentVars.Contains(key))
+                {
+                    envVars[key] = val;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(_dcpOptions.ExtensionsPath))
+            {
+                envVars["DCP_EXTENSIONS_PATH"] = _dcpOptions.ExtensionsPath;
+            }
+
+            if (!string.IsNullOrEmpty(_dcpOptions.BinPath))
+            {
+                envVars["DCP_BIN_PATH"] = _dcpOptions.BinPath;
+            }
+
+            // Set an environment variable to contain session info that should be deleted when DCP is done
+            // Currently this contains the Unix socket for logging and the kubeconfig
+            envVars["DCP_SESSION_FOLDER"] = _locations.DcpSessionDir;
+
+            // Set diagnostic log folder if configured (takes precedence over environment variable)
+            if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogFolder))
+            {
+                envVars["DCP_DIAGNOSTICS_LOG_FOLDER"] = _dcpOptions.DiagnosticsLogFolder;
+            }
+
+            // Set diagnostic log level if configured (takes precedence over environment variable)
+            if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogLevel))
+            {
+                envVars["DCP_DIAGNOSTICS_LOG_LEVEL"] = _dcpOptions.DiagnosticsLogLevel;
+            }
+
+            // Set preserve executable logs if configured (takes precedence over environment variable)
+            if (_dcpOptions.PreserveExecutableLogs == true)
+            {
+                envVars["DCP_PRESERVE_EXECUTABLE_LOGS"] = "1";
+            }
 
             // Enable Unix Domain Socket based log streaming from DCP
             try
@@ -144,10 +199,10 @@ internal sealed class DcpHost
                 var loggingSocket = CreateLoggingSocket(_locations.DcpLogSocket);
                 loggingSocket.Listen(LoggingSocketConnectionBacklog);
 
-                dcpProcessSpec.EnvironmentVariables.Add("DCP_LOG_SOCKET", _locations.DcpLogSocket);
+                envVars["DCP_LOG_SOCKET"] = _locations.DcpLogSocket;
                 if (!string.IsNullOrWhiteSpace(_dcpOptions.LogFileNameSuffix))
                 {
-                    dcpProcessSpec.EnvironmentVariables.Add("DCP_LOG_FILE_NAME_SUFFIX", _dcpOptions.LogFileNameSuffix);
+                    envVars["DCP_LOG_FILE_NAME_SUFFIX"] = _dcpOptions.LogFileNameSuffix;
                 }
 
                 _logProcessorTask = Task.Run(() => StartLoggingSocketAsync(loggingSocket));
@@ -161,83 +216,54 @@ internal sealed class DcpHost
                 AspireEventSource.Instance.DcpLogSocketCreateStop();
             }
 
-            _ = ProcessUtil.Run(dcpProcessSpec);
+            // Build the arguments list
+            var args = new List<string>
+            {
+                "start-apiserver",
+                "--monitor", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "--detach",
+                "--kubeconfig", _locations.DcpKubeconfigPath
+            };
+
+            if (!string.IsNullOrEmpty(_dcpOptions.ContainerRuntime))
+            {
+                args.Add("--container-runtime");
+                args.Add(_dcpOptions.ContainerRuntime);
+            }
+
+            _logger.LogInformation("Starting DCP with arguments: {Arguments}", string.Join(" ", args));
+
+            // DCP runs with --detach so it exits quickly after starting the API server
+            var dcpProcessTask = _shell
+                .Env(envVars)
+                .Command(dcpExePath, args)
+                .RunAsync(capture: false);
+
+            // Log when DCP process exits
+            _ = dcpProcessTask.ContinueWith(t =>
+            {
+                if (t.IsCompletedSuccessfully)
+                {
+                    var result = t.Result;
+                    if (result.Success)
+                    {
+                        _logger.LogDebug("DCP process exited successfully.");
+                    }
+                    else
+                    {
+                        _logger.LogWarning("DCP process exited with code {ExitCode}.", result.ExitCode);
+                    }
+                }
+                else if (t.IsFaulted)
+                {
+                    _logger.LogError(t.Exception, "DCP process failed.");
+                }
+            }, TaskScheduler.Default);
         }
         finally
         {
             AspireEventSource.Instance.DcpApiServerLaunchStop();
         }
-
-    }
-
-    private ProcessSpec CreateDcpProcessSpec(Locations locations)
-    {
-        var dcpExePath = _dcpOptions.CliPath;
-        if (!File.Exists(dcpExePath))
-        {
-            throw new FileNotFoundException($"The Developer Control Plane is not installed at \"{dcpExePath}\". The application cannot be run without it.", dcpExePath);
-        }
-
-        var arguments = $"start-apiserver --monitor {Environment.ProcessId} --detach --kubeconfig \"{locations.DcpKubeconfigPath}\"";
-        if (!string.IsNullOrEmpty(_dcpOptions.ContainerRuntime))
-        {
-            arguments += $" --container-runtime \"{_dcpOptions.ContainerRuntime}\"";
-        }
-
-        var dcpProcessSpec = new ProcessSpec(dcpExePath)
-        {
-            WorkingDirectory = Directory.GetCurrentDirectory(),
-            Arguments = arguments,
-            OnOutputData = Console.Out.Write,
-            OnErrorData = Console.Error.Write,
-            InheritEnv = false,
-        };
-
-        _logger.LogInformation("Starting DCP with arguments: {Arguments}", dcpProcessSpec.Arguments);
-
-        if (!string.IsNullOrEmpty(_dcpOptions.ExtensionsPath))
-        {
-            dcpProcessSpec.EnvironmentVariables.Add("DCP_EXTENSIONS_PATH", _dcpOptions.ExtensionsPath);
-        }
-
-        if (!string.IsNullOrEmpty(_dcpOptions.BinPath))
-        {
-            dcpProcessSpec.EnvironmentVariables.Add("DCP_BIN_PATH", _dcpOptions.BinPath);
-        }
-
-        // Set an environment variable to contain session info that should be deleted when DCP is done
-        // Currently this contains the Unix socket for logging and the kubeconfig
-        dcpProcessSpec.EnvironmentVariables.Add("DCP_SESSION_FOLDER", locations.DcpSessionDir);
-
-        foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
-        {
-            var key = de.Key?.ToString();
-            var val = de.Value?.ToString();
-            if (key is not null && val is not null && !s_doNotInheritEnvironmentVars.Contains(key))
-            {
-                dcpProcessSpec.EnvironmentVariables[key] = val;
-            }
-        }
-
-        // Set diagnostic log folder if configured (takes precedence over environment variable)
-        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogFolder))
-        {
-            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_FOLDER"] = _dcpOptions.DiagnosticsLogFolder;
-        }
-
-        // Set diagnostic log level if configured (takes precedence over environment variable)
-        if (!string.IsNullOrEmpty(_dcpOptions.DiagnosticsLogLevel))
-        {
-            dcpProcessSpec.EnvironmentVariables["DCP_DIAGNOSTICS_LOG_LEVEL"] = _dcpOptions.DiagnosticsLogLevel;
-        }
-
-        // Set preserve executable logs if configured (takes precedence over environment variable)
-        if (_dcpOptions.PreserveExecutableLogs == true)
-        {
-            dcpProcessSpec.EnvironmentVariables["DCP_PRESERVE_EXECUTABLE_LOGS"] = "1";
-        }
-
-        return dcpProcessSpec;
     }
 
     private static Socket CreateLoggingSocket(string socketPath)

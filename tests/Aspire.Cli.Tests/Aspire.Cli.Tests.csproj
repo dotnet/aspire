@@ -9,6 +9,9 @@
     <!-- Do not run tests in Helix at all -->
     <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
     <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
+
+    <!-- Suppress CS0436 warning for PathLookupHelper which is compiled into multiple assemblies -->
+    <NoWarn>$(NoWarn);CS0436</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,6 +29,7 @@
 
   <ItemGroup>
     <Compile Include="$(TestsSharedDir)TestModuleInitializer.cs" Link="shared/TestModuleInitializer.cs" />
+    <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="shared/PathLookupHelper.cs" />
   </ItemGroup>
 
 </Project>

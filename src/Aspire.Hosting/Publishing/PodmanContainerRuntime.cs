@@ -2,14 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES003
+#pragma warning disable ASPIREHOSTINGVIRTUALSHELL001
 
+using Aspire.Hosting.Execution;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
 
 internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContainerRuntime>
 {
-    public PodmanContainerRuntime(ILogger<PodmanContainerRuntime> logger) : base(logger)
+    public PodmanContainerRuntime(ILogger<PodmanContainerRuntime> logger, IVirtualShell shell) : base(logger, shell)
     {
     }
 
