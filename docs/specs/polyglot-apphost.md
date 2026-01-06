@@ -63,7 +63,7 @@ The same method name can appear on different types (e.g., `withEnvironment` on R
 
 The scanner detects and reports conflicts:
 
-```
+```text
 Error: Method 'withDataVolume' has multiple definitions for target 'aspire/Redis':
   - Aspire.Hosting.Redis/withDataVolume
   - ThirdParty.Integration/withDataVolume
@@ -376,7 +376,7 @@ Guest and host communicate via JSON-RPC 2.0 over Unix domain sockets (named pipe
 
 Messages use the LSP/vscode-jsonrpc header format:
 
-```
+```text
 Content-Length: 123\r\n
 \r\n
 {"jsonrpc":"2.0","id":1,"method":"ping","params":[]}
@@ -568,7 +568,7 @@ flowchart LR
 
 ### Output (TypeScript)
 
-```
+```text
 .modules/
 ├── .codegen-hash           # Hash of package references
 ├── aspire.ts               # Generated SDK
