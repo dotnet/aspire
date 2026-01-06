@@ -139,6 +139,10 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         Assert.True(result.Success);
 
         var resolvedResourceNames = custom.Resource.GetResolvedResourceNames().ToList();
+        Assert.Equal(2, resolvedResourceNames.Count);
+        Assert.Contains("myResource-abcdwxyz", resolvedResourceNames);
+        Assert.Contains("myResource-efghwxyz", resolvedResourceNames);
+
         await foreach (var resourceName in commandResourcesChannel.Reader.ReadAllAsync().DefaultTimeout())
         {
             Assert.True(resolvedResourceNames.Remove(resourceName));
@@ -173,6 +177,10 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         Assert.False(result.Success);
 
         var resourceNames = custom.Resource.GetResolvedResourceNames();
+        Assert.Equal(2, resourceNames.Length);
+        Assert.Equal("myResource-abcdwxyz", resourceNames[0]);
+        Assert.Equal("myResource-efghwxyz", resourceNames[1]);
+
         Assert.Equal($"""
             2 command executions failed.
             Resource '{resourceNames[0]}' failed with error message: Failure!
