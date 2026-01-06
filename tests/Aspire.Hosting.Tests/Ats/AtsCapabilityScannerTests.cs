@@ -149,7 +149,7 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void DeriveMethodName_SimpleCapabilityId_ReturnsMethodName()
     {
-        var result = AtsCapabilityScanner.DeriveMethodName("aspire/createBuilder@1");
+        var result = AtsCapabilityScanner.DeriveMethodName("Aspire.Hosting/createBuilder");
 
         Assert.Equal("createBuilder", result);
     }
@@ -157,15 +157,15 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void DeriveMethodName_NestedCapabilityId_ReturnsMethodName()
     {
-        var result = AtsCapabilityScanner.DeriveMethodName("aspire.redis/addRedis@1");
+        var result = AtsCapabilityScanner.DeriveMethodName("Aspire.Hosting.Redis/addRedis");
 
         Assert.Equal("addRedis", result);
     }
 
     [Fact]
-    public void DeriveMethodName_NoVersion_ReturnsMethodName()
+    public void DeriveMethodName_NoSlash_ReturnsEntireId()
     {
-        var result = AtsCapabilityScanner.DeriveMethodName("aspire/withEnvironment");
+        var result = AtsCapabilityScanner.DeriveMethodName("withEnvironment");
 
         Assert.Equal("withEnvironment", result);
     }
@@ -177,17 +177,17 @@ public class AtsCapabilityScannerTests
     [Fact]
     public void DerivePackage_SimpleCapabilityId_ReturnsPackage()
     {
-        var result = AtsCapabilityScanner.DerivePackage("aspire/createBuilder@1");
+        var result = AtsCapabilityScanner.DerivePackage("Aspire.Hosting/createBuilder");
 
-        Assert.Equal("aspire", result);
+        Assert.Equal("Aspire.Hosting", result);
     }
 
     [Fact]
     public void DerivePackage_NestedCapabilityId_ReturnsPackage()
     {
-        var result = AtsCapabilityScanner.DerivePackage("aspire.redis/addRedis@1");
+        var result = AtsCapabilityScanner.DerivePackage("Aspire.Hosting.Redis/addRedis");
 
-        Assert.Equal("aspire.redis", result);
+        Assert.Equal("Aspire.Hosting.Redis", result);
     }
 
     #endregion

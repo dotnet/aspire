@@ -142,7 +142,7 @@ public class CapabilityDispatcherTests
     {
         var dispatcher = CreateDispatcher(typeof(TestCapabilities).Assembly);
 
-        Assert.True(dispatcher.HasCapability("test/testMethod@1"));
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/testMethod"));
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public class CapabilityDispatcherTests
         var dispatcher = CreateDispatcher(typeof(TestCapabilities).Assembly);
         var args = new JsonObject { ["value"] = "hello" };
 
-        var result = dispatcher.Invoke("test/testMethod@1", args);
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/testMethod", args);
 
         Assert.NotNull(result);
         Assert.Equal("HELLO", result.GetValue<string>());
@@ -163,7 +163,7 @@ public class CapabilityDispatcherTests
         var dispatcher = CreateDispatcher(typeof(TestCapabilities).Assembly);
         var args = new JsonObject { ["required"] = "test" };
 
-        var result = dispatcher.Invoke("test/withOptional@1", args);
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/withOptional", args);
 
         Assert.NotNull(result);
         Assert.Equal("test:default", result.GetValue<string>());
@@ -175,7 +175,7 @@ public class CapabilityDispatcherTests
         var dispatcher = CreateDispatcher(typeof(TestCapabilities).Assembly);
         var args = new JsonObject { ["required"] = "test", ["optional"] = "custom" };
 
-        var result = dispatcher.Invoke("test/withOptional@1", args);
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/withOptional", args);
 
         Assert.NotNull(result);
         Assert.Equal("test:custom", result.GetValue<string>());
@@ -188,9 +188,9 @@ public class CapabilityDispatcherTests
         var dispatcher = CreateDispatcher(typeof(TestContextType).Assembly);
 
         // Properties should be registered with camelCase names
-        Assert.True(dispatcher.HasCapability("test/TestContext.name@1"));
-        Assert.True(dispatcher.HasCapability("test/TestContext.count@1"));
-        Assert.True(dispatcher.HasCapability("test/TestContext.isEnabled@1"));
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContext.name"));
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContext.count"));
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContext.isEnabled"));
     }
 
     [Fact]
@@ -199,7 +199,7 @@ public class CapabilityDispatcherTests
         var dispatcher = CreateDispatcher(typeof(TestContextType).Assembly);
 
         // IDisposable is not ATS-compatible, so this property should be skipped
-        Assert.False(dispatcher.HasCapability("test/TestContext.nonAtsProperty@1"));
+        Assert.False(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContext.nonAtsProperty"));
     }
 
     [Fact]
@@ -213,8 +213,8 @@ public class CapabilityDispatcherTests
         var handleId = handles.Register(context, "test/TestContext");
         var args = new JsonObject { ["context"] = new JsonObject { ["$handle"] = handleId } };
 
-        var nameResult = dispatcher.Invoke("test/TestContext.name@1", args);
-        var countResult = dispatcher.Invoke("test/TestContext.count@1", args);
+        var nameResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContext.name", args);
+        var countResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContext.count", args);
 
         Assert.NotNull(nameResult);
         Assert.Equal("test-name", nameResult.GetValue<string>());
@@ -228,7 +228,7 @@ public class CapabilityDispatcherTests
         var dispatcher = CreateDispatcher(typeof(TestContextType).Assembly);
 
         var ex = Assert.Throws<CapabilityException>(() =>
-            dispatcher.Invoke("test/TestContext.name@1", null));
+            dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContext.name", null));
 
         Assert.Equal(AtsErrorCodes.InvalidArgument, ex.Error.Code);
         Assert.Contains("context", ex.Message);
@@ -241,7 +241,7 @@ public class CapabilityDispatcherTests
         var args = new JsonObject { ["context"] = "not-a-handle" };
 
         var ex = Assert.Throws<CapabilityException>(() =>
-            dispatcher.Invoke("test/TestContext.name@1", args));
+            dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContext.name", args));
 
         Assert.Equal(AtsErrorCodes.InvalidArgument, ex.Error.Code);
     }
@@ -253,19 +253,18 @@ public class CapabilityDispatcherTests
         var args = new JsonObject { ["context"] = new JsonObject { ["$handle"] = "test/TestContext:999" } };
 
         var ex = Assert.Throws<CapabilityException>(() =>
-            dispatcher.Invoke("test/TestContext.name@1", args));
+            dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContext.name", args));
 
         Assert.Equal(AtsErrorCodes.HandleNotFound, ex.Error.Code);
     }
 
     [Fact]
-    public void Constructor_UsesVersionFromAttribute()
+    public void Constructor_RegistersVersionedContextTypeProperties()
     {
         var dispatcher = CreateDispatcher(typeof(VersionedContextType).Assembly);
 
-        // Version 2 should be used in the capability ID
-        Assert.True(dispatcher.HasCapability("test/VersionedContext.value@2"));
-        Assert.False(dispatcher.HasCapability("test/VersionedContext.value@1"));
+        // Versioned context type properties should also be registered
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/VersionedContext.value"));
     }
 
     // Async capability handler tests
@@ -274,9 +273,9 @@ public class CapabilityDispatcherTests
     {
         var dispatcher = CreateDispatcher(typeof(TestCapabilities).Assembly);
 
-        Assert.True(dispatcher.HasCapability("test/asyncVoid@1"));
-        Assert.True(dispatcher.HasCapability("test/asyncWithResult@1"));
-        Assert.True(dispatcher.HasCapability("test/asyncThrows@1"));
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/asyncVoid"));
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/asyncWithResult"));
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/asyncThrows"));
     }
 
     [Fact]
@@ -287,7 +286,7 @@ public class CapabilityDispatcherTests
 
         // Should not throw - async void (Task) methods complete successfully
         // Note: may return the awaited Task's internal result or null
-        dispatcher.Invoke("test/asyncVoid@1", args);
+        dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/asyncVoid", args);
     }
 
     [Fact]
@@ -296,7 +295,7 @@ public class CapabilityDispatcherTests
         var dispatcher = CreateDispatcher(typeof(TestCapabilities).Assembly);
         var args = new JsonObject { ["value"] = "hello" };
 
-        var result = dispatcher.Invoke("test/asyncWithResult@1", args);
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/asyncWithResult", args);
 
         Assert.NotNull(result);
         Assert.Equal("HELLO", result.GetValue<string>());
@@ -309,7 +308,7 @@ public class CapabilityDispatcherTests
         var args = new JsonObject { ["value"] = "test" };
 
         var ex = Assert.Throws<CapabilityException>(() =>
-            dispatcher.Invoke("test/asyncThrows@1", args));
+            dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/asyncThrows", args));
 
         Assert.Equal(AtsErrorCodes.InternalError, ex.Error.Code);
         Assert.Contains("Async error", ex.Message);
@@ -327,33 +326,33 @@ public class CapabilityDispatcherTests
 /// </summary>
 internal static class TestCapabilities
 {
-    [AspireExport("test/testMethod@1", Description = "Test method")]
+    [AspireExport("testMethod", Description = "Test method")]
     public static string TestMethod(string value)
     {
         return value.ToUpperInvariant();
     }
 
-    [AspireExport("test/withOptional@1", Description = "Method with optional parameter")]
+    [AspireExport("withOptional", Description = "Method with optional parameter")]
     public static string WithOptional(string required, string optional = "default")
     {
         return $"{required}:{optional}";
     }
 
-    [AspireExport("test/asyncVoid@1", Description = "Async method returning Task")]
+    [AspireExport("asyncVoid", Description = "Async method returning Task")]
     public static async Task AsyncVoidMethod(string value)
     {
         await Task.Delay(1);
         _ = value; // Use the parameter to avoid warning
     }
 
-    [AspireExport("test/asyncWithResult@1", Description = "Async method returning Task<T>")]
+    [AspireExport("asyncWithResult", Description = "Async method returning Task<T>")]
     public static async Task<string> AsyncWithResult(string value)
     {
         await Task.Delay(1);
         return value.ToUpperInvariant();
     }
 
-    [AspireExport("test/asyncThrows@1", Description = "Async method that throws")]
+    [AspireExport("asyncThrows", Description = "Async method that throws")]
     public static async Task<string> AsyncThrows(string value)
     {
         await Task.Delay(1);
@@ -376,9 +375,9 @@ internal sealed class TestContextType
 }
 
 /// <summary>
-/// Test context type with custom version.
+/// Test context type to verify context properties work.
 /// </summary>
-[AspireContextType("test/VersionedContext", Version = 2)]
+[AspireContextType("test/VersionedContext")]
 internal sealed class VersionedContextType
 {
     public string Value { get; set; } = "v2";
