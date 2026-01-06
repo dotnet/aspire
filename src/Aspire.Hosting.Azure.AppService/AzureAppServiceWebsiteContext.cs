@@ -430,7 +430,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             }
 
             // make app service references as sticky settings for slots
-            if (kv.Value is EndpointReference || kv.Value is EndpointReferenceExpression)
+            if (kv.Value is EndpointReference)
             {
                 slotConfigNames.Add(kv.Key);
             }
