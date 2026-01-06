@@ -18,6 +18,15 @@ public static class DurableTaskResourceExtensions
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The logical name of the scheduler resource.</param>
     /// <returns>An <see cref="IResourceBuilder{TResource}"/> for the scheduler resource.</returns>
+    /// <remarks>
+    /// <example>
+    /// Add a Durable Task scheduler resource:
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var scheduler = builder.AddDurableTaskScheduler("scheduler");
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<DurableTaskSchedulerResource> AddDurableTaskScheduler(this IDistributedApplicationBuilder builder, string name)
     {
         var scheduler = new DurableTaskSchedulerResource(name);
@@ -34,7 +43,19 @@ public static class DurableTaskResourceExtensions
     /// <param name="builder">The scheduler resource builder.</param>
     /// <param name="connectionString">The connection string referencing the existing Durable Task scheduler instance.</param>
     /// <returns>The same <see cref="IResourceBuilder{DurableTaskSchedulerResource}"/> instance for fluent chaining.</returns>
-    /// <remarks>The existing resource annotation is only applied when the execution context is not in publish mode.</remarks>
+    /// <remarks>
+    /// <para>
+    /// The existing resource annotation is only applied when the execution context is not in publish mode.
+    /// </para>
+    /// <example>
+    /// Use an existing scheduler instead of provisioning a new one:
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var scheduler = builder.AddDurableTaskScheduler("scheduler")
+    ///     .RunAsExisting("Endpoint=https://example;...;");
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<DurableTaskSchedulerResource> RunAsExisting(this IResourceBuilder<DurableTaskSchedulerResource> builder, string connectionString)
     {
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
@@ -52,7 +73,21 @@ public static class DurableTaskResourceExtensions
     /// <param name="builder">The scheduler resource builder.</param>
     /// <param name="connectionString">The connection string parameter referencing the existing Durable Task scheduler instance.</param>
     /// <returns>The same <see cref="IResourceBuilder{DurableTaskSchedulerResource}"/> instance for fluent chaining.</returns>
-    /// <remarks>The existing resource annotation is only applied when the execution context is not in publish mode.</remarks>
+    /// <remarks>
+    /// <para>
+    /// The existing resource annotation is only applied when the execution context is not in publish mode.
+    /// </para>
+    /// <example>
+    /// Use an existing scheduler where the connection string is supplied via a parameter:
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var schedulerConnectionString = builder.AddParameter("schedulerConnectionString");
+    ///
+    /// var scheduler = builder.AddDurableTaskScheduler("scheduler")
+    ///     .RunAsExisting(schedulerConnectionString);
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<DurableTaskSchedulerResource> RunAsExisting(this IResourceBuilder<DurableTaskSchedulerResource> builder, IResourceBuilder<ParameterResource> connectionString)
     {
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
@@ -69,6 +104,16 @@ public static class DurableTaskResourceExtensions
     /// <param name="builder">The resource builder for the scheduler.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>The same <see cref="IResourceBuilder{DurableTaskSchedulerResource}"/> instance for chaining.</returns>
+    /// <remarks>
+    /// <example>
+    /// Run the scheduler locally using the emulator:
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var scheduler = builder.AddDurableTaskScheduler("scheduler")
+    ///     .RunAsEmulator();
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<DurableTaskSchedulerResource> RunAsEmulator(this IResourceBuilder<DurableTaskSchedulerResource> builder, Action<IResourceBuilder<DurableTaskSchedulerEmulatorResource>>? configureContainer = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -136,6 +181,18 @@ public static class DurableTaskResourceExtensions
     /// <param name="builder">The scheduler resource builder.</param>
     /// <param name="name">The logical name of the task hub resource.</param>
     /// <returns>An <see cref="IResourceBuilder{TResource}"/> for the task hub resource.</returns>
+    /// <remarks>
+    /// <example>
+    /// Add a task hub under a scheduler:
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var scheduler = builder.AddDurableTaskScheduler("scheduler").RunAsEmulator();
+    ///
+    /// var hub = scheduler.AddTaskHub("hub")
+    ///     .WithTaskHubName("MyTaskHub");
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<DurableTaskHubResource> AddTaskHub(this IResourceBuilder<DurableTaskSchedulerResource> builder, string name)
     {
         var hub = new DurableTaskHubResource(name, builder.Resource);
@@ -170,6 +227,16 @@ public static class DurableTaskResourceExtensions
     /// <param name="builder">The task hub resource builder.</param>
     /// <param name="taskHubName">The name of the Task Hub.</param>
     /// <returns>The same <see cref="IResourceBuilder{DurableTaskHubResource}"/> instance for fluent chaining.</returns>
+    /// <remarks>
+    /// <example>
+    /// Set the task hub name:
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var scheduler = builder.AddDurableTaskScheduler("scheduler").RunAsEmulator();
+    /// var hub = scheduler.AddTaskHub("hub").WithTaskHubName("MyTaskHub");
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<DurableTaskHubResource> WithTaskHubName(this IResourceBuilder<DurableTaskHubResource> builder, string taskHubName)
     {
         return builder.WithAnnotation(new DurableTaskHubNameAnnotation(taskHubName));
@@ -181,6 +248,18 @@ public static class DurableTaskResourceExtensions
     /// <param name="builder">The task hub resource builder.</param>
     /// <param name="taskHubName">A parameter resource that resolves to the Task Hub name.</param>
     /// <returns>The same <see cref="IResourceBuilder{DurableTaskHubResource}"/> instance for fluent chaining.</returns>
+    /// <remarks>
+    /// <example>
+    /// Set the task hub name from a parameter:
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var taskHubName = builder.AddParameter("taskHubName");
+    ///
+    /// var scheduler = builder.AddDurableTaskScheduler("scheduler").RunAsEmulator();
+    /// var hub = scheduler.AddTaskHub("hub").WithTaskHubName(taskHubName);
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<DurableTaskHubResource> WithTaskHubName(this IResourceBuilder<DurableTaskHubResource> builder, IResourceBuilder<ParameterResource> taskHubName)
     {
         return builder.WithAnnotation(new DurableTaskHubNameAnnotation(taskHubName.Resource));
