@@ -32,12 +32,6 @@ jobs:
       - name: Install GitHub Copilot CLI
         run: npm install -g @github/copilot
 
-      - name: Authenticate GitHub Copilot CLI
-        run: |
-          copilot auth
-        env:
-          GH_TOKEN: ${{ github.token }}
-
       - name: Set PR number
         id: pr
         run: |
