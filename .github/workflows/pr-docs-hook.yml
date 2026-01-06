@@ -1,0 +1,115 @@
+name: PR Documentation Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to analyze'
+        required: true
+        type: number
+
+permissions:
+  pull-requests: read
+  contents: read
+
+jobs:
+  check-docs-needed:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install GitHub Copilot CLI
+        run: npm install -g @githubnext/github-copilot-cli
+
+      - name: Set PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
+          else
+            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get PR details
+        id: pr_details
+        run: |
+          gh pr view ${{ steps.pr.outputs.number }} --json title,author --jq '{title: .title, author: .author.login}' > pr-info.json
+          echo "title=$(jq -r '.title' pr-info.json)" >> $GITHUB_OUTPUT
+          echo "author=$(jq -r '.author' pr-info.json)" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Get PR diff
+        id: diff
+        run: |
+          gh pr diff ${{ steps.pr.outputs.number }} > pr-diff.txt
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Generate documentation requirements with Copilot
+        id: analyze
+        run: |
+          cat > prompt.txt <<'EOF'
+          Analyze the following PR diff and generate detailed documentation requirements for a coding agent to implement.
+
+          Review the changes for:
+          - New public APIs, methods, classes, or interfaces
+          - New features or capabilities
+          - Breaking changes requiring migration guides
+          - New configuration options or settings
+          - Behavioral changes to existing features
+          - New command-line arguments or environment variables
+
+          If documentation is needed, provide:
+          1. A clear title for the documentation task
+          2. Specific sections that need to be created or updated
+          3. Key points that must be covered in each section
+          4. Code examples that should be included (with placeholders for actual code)
+          5. Any warnings, notes, or best practices to document
+
+          If no documentation is needed, respond with 'NO_DOCS_NEEDED'.
+
+          Format your response as a structured issue description that a coding agent can follow to implement the documentation.
+
+          PR #${{ steps.pr.outputs.number }}: ${{ steps.pr_details.outputs.title }}
+
+          PR Diff:
+          EOF
+
+          cat pr-diff.txt >> prompt.txt
+
+          copilot -p "$(cat prompt.txt)" > analysis.txt
+          cat analysis.txt
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Output documentation analysis results
+        run: |
+          echo "============================================"
+          echo "Documentation Analysis for PR #${{ steps.pr.outputs.number }}"
+          echo "PR Title: ${{ steps.pr_details.outputs.title }}"
+          echo "PR Author: ${{ steps.pr_details.outputs.author }}"
+          echo "============================================"
+          echo ""
+
+          if grep -q "NO_DOCS_NEEDED" analysis.txt; then
+            echo "✅ No documentation updates required"
+          else
+            echo "📝 Documentation updates recommended:"
+            echo ""
+            cat analysis.txt
+          fi
+
+          echo ""
+          echo "============================================"
