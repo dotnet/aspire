@@ -343,6 +343,16 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
+    private int CalculateReplicaIndex(string displayName)
+    {
+        Debug.Assert(Monitor.IsEntered(_lock), "Caller must hold _lock.");
+
+        // There is no consistent way to know which replica is instance 1 vs instance 2. It shouldn't ever matter.
+        // This index provides an easy way to identify resources across app runs that takes into account replicas.
+        var replicas = _resourceByName.Values.Count(r => r.DisplayName == displayName);
+        return replicas + 1;
+    }
+
     private async Task<RetryResult> WatchResourcesAsync(RetryContext retryContext, CancellationToken cancellationToken)
     {
         var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = retryContext.ErrorCount != 0 }, headers: _headers, cancellationToken: cancellationToken);
@@ -366,7 +376,7 @@ internal sealed class DashboardClient : IDashboardClient
                     foreach (var resource in response.InitialData.Resources)
                     {
                         // Add to map.
-                        var viewModel = resource.ToViewModel(_knownPropertyLookup, _logger);
+                        var viewModel = resource.ToViewModel(CalculateReplicaIndex(resource.DisplayName), _knownPropertyLookup, _logger);
                         _resourceByName[resource.Name] = viewModel;
 
                         // Send this update to any subscribers too.
@@ -386,7 +396,7 @@ internal sealed class DashboardClient : IDashboardClient
                         if (change.KindCase == WatchResourcesChange.KindOneofCase.Upsert)
                         {
                             // Upsert (i.e. add or replace)
-                            var viewModel = change.Upsert.ToViewModel(_knownPropertyLookup, _logger);
+                            var viewModel = change.Upsert.ToViewModel(CalculateReplicaIndex(change.Upsert.DisplayName), _knownPropertyLookup, _logger);
                             _resourceByName[change.Upsert.Name] = viewModel;
                             changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                         }
@@ -791,7 +801,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 foreach (var data in initialData)
                 {
-                    _resourceByName[data.Name] = data.ToViewModel(_knownPropertyLookup, _logger);
+                    _resourceByName[data.Name] = data.ToViewModel(CalculateReplicaIndex(data.DisplayName), _knownPropertyLookup, _logger);
                 }
             }
         }

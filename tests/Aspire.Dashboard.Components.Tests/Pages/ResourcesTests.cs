@@ -361,7 +361,8 @@ public partial class ResourcesTests : DashboardTestContext
         ImmutableArray<HealthReportViewModel>? healthReports,
         bool isHidden = false,
         string? stateStyle = null,
-        ImmutableDictionary<string, ResourcePropertyViewModel>? properties = null)
+        ImmutableDictionary<string, ResourcePropertyViewModel>? properties = null,
+        int? replicaIndex = null)
     {
         return new ResourceViewModel
         {
@@ -371,6 +372,7 @@ public partial class ResourcesTests : DashboardTestContext
             KnownState = state is not null && Enum.TryParse<KnownResourceState>(state, out var knownState) ? knownState : null,
             DisplayName = name,
             Uid = name,
+            ReplicaIndex = replicaIndex ?? 0,
             HealthReports = healthReports ?? [],
 
             StateStyle = stateStyle,
@@ -633,5 +635,64 @@ public partial class ResourcesTests : DashboardTestContext
         // Verify the resource has error stateStyle (triggers "Value not set" display)
         var resource = filteredResources[0];
         Assert.Equal("error", resource.StateStyle);
+    }
+
+    [Fact]
+    public void CollapsedResourceNames_FetchedAfterDashboardClientConnected_KeyIncludesApplicationName()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("Resource1", "Type1", "Running", null),
+        };
+
+        var connectionTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        const string applicationName = "MyTestApplication";
+
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            applicationName: applicationName,
+            initialResources: initialResources,
+            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>,
+            whenConnected: connectionTcs.Task);
+
+        var collapsedResourceNamesKeyUsed = string.Empty;
+        var getAsyncCallOrder = new List<(string Key, bool ConnectionCompleted)>();
+
+        var localStorage = new TestLocalStorage
+        {
+            OnGetAsync = key =>
+            {
+                // Track every GetAsync call and whether the connection was completed at that time
+                getAsyncCallOrder.Add((key, connectionTcs.Task.IsCompleted));
+                if (key.Contains(BrowserStorageKeys.CollapsedResourceNamesKeyPrefix))
+                {
+                    collapsedResourceNamesKeyUsed = key;
+                }
+                return (false, null);
+            }
+        };
+
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient, localStorage);
+
+        // Complete the connection immediately so the component can initialize
+        connectionTcs.SetResult();
+
+        // Act - Render the component
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        // Assert 1 - The key should include the application name
+        var expectedKey = BrowserStorageKeys.CollapsedResourceNamesKey(applicationName);
+        Assert.Equal(expectedKey, collapsedResourceNamesKeyUsed);
+
+        // Assert 2 - CollapsedResourceNames was only fetched after connection was completed
+        var collapsedResourceNamesCall = getAsyncCallOrder.FirstOrDefault(c => c.Key.Contains(BrowserStorageKeys.CollapsedResourceNamesKeyPrefix));
+        Assert.NotEqual(default, collapsedResourceNamesCall);
+        Assert.True(collapsedResourceNamesCall.ConnectionCompleted,
+            "CollapsedResourceNames was fetched before the dashboard client was connected");
     }
 }
