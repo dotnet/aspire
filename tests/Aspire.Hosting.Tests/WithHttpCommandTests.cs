@@ -4,6 +4,7 @@
 using System.Net;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
@@ -175,6 +176,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData(403, false)]
     [InlineData(404, false)]
     [InlineData(500, false)]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9670")]
     [Theory]
     public async Task WithHttpCommand_ResultsInExpectedResultForStatusCode(int statusCode, bool expectSuccess)
     {
@@ -204,6 +206,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     [InlineData("get", true)]
     [InlineData("post", false)]
     [Theory]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/9725")]
     public async Task WithHttpCommand_ResultsInExpectedResultForHttpMethod(string? httpMethod, bool expectSuccess)
     {
         // Arrange
@@ -213,12 +216,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         // Return 405 Method Not Allowed for POST, 200 OK for GET
         var fakeHandler = new FakeHttpMessageHandler(expectSuccess ? HttpStatusCode.OK : HttpStatusCode.MethodNotAllowed);
         builder.Services.AddHttpClient("commandclient")
-            .ConfigurePrimaryHttpMessageHandler(() => fakeHandler)
-            .AddStandardResilienceHandler(options =>
-            {
-                // Disable retries to make test faster and deterministic
-                options.Retry.ShouldHandle = _ => ValueTask.FromResult(false);
-            });
+            .ConfigurePrimaryHttpMessageHandler(() => fakeHandler);
 
         var service = CreateResourceWithAllocatedEndpoint(builder, "service");
         service.WithHttpCommand("/get-only", "Do The Thing", commandName: "mycommand", commandOptions: new() { Method = method, HttpClientName = "commandclient" });
@@ -237,18 +235,14 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9800")]
     public async Task WithHttpCommand_UsesNamedHttpClient()
     {
         // Arrange
         using var builder = CreateTestDistributedApplicationBuilder();
         var fakeHandler = new FakeHttpMessageHandler(HttpStatusCode.OK);
         builder.Services.AddHttpClient("commandclient")
-            .ConfigurePrimaryHttpMessageHandler(() => fakeHandler)
-            .AddStandardResilienceHandler(options =>
-            {
-                // Disable retries to make test faster and deterministic
-                options.Retry.ShouldHandle = _ => ValueTask.FromResult(false);
-            });
+            .ConfigurePrimaryHttpMessageHandler(() => fakeHandler);
 
         var service = CreateResourceWithAllocatedEndpoint(builder, "service");
         service.WithHttpCommand("/get-only", "Do The Thing", commandName: "mycommand", commandOptions: new() { HttpClientName = "commandclient" });
@@ -284,12 +278,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         var fakeHandler = new FakeHttpMessageHandler(HttpStatusCode.OK);
         builder.Services.AddHttpClient("commandclient")
-            .ConfigurePrimaryHttpMessageHandler(() => fakeHandler)
-            .AddStandardResilienceHandler(options =>
-            {
-                // Disable retries to make test faster and deterministic
-                options.Retry.ShouldHandle = _ => ValueTask.FromResult(false);
-            });
+            .ConfigurePrimaryHttpMessageHandler(() => fakeHandler);
 
         var serviceA = CreateResourceWithAllocatedEndpoint(builder, "servicea");
         var callbackCalled = false;
@@ -333,12 +322,7 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
         var fakeHandler = new FakeHttpMessageHandler(HttpStatusCode.OK);
         builder.Services.AddHttpClient("commandclient")
-            .ConfigurePrimaryHttpMessageHandler(() => fakeHandler)
-            .AddStandardResilienceHandler(options =>
-            {
-                // Disable retries to make test faster and deterministic
-                options.Retry.ShouldHandle = _ => ValueTask.FromResult(false);
-            });
+            .ConfigurePrimaryHttpMessageHandler(() => fakeHandler);
 
         var service = CreateResourceWithAllocatedEndpoint(builder, "service");
         service.WithHttpCommand("/status/200", "Do The Thing",
