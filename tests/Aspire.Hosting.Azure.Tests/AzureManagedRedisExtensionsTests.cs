@@ -95,7 +95,7 @@ public class AzureManagedRedisExtensionsTests
         Assert.True(redis.Resource.IsContainer(), "The resource should now be a container resource.");
 
         Assert.NotNull(redisResource?.PasswordParameter);
-        Assert.Equal($"localhost:12455,password=p@ssw0rd1", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal($"localhost:12455,password=p@ssw0rd1,ssl=false", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
 
         // Test the new reference properties
         Assert.NotNull(redis.Resource.HostName);
