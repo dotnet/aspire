@@ -54,26 +54,15 @@ Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPE
 
 ## MCP (Model Context Protocol) Support
 
-The PostgreSQL hosting integration provides support for adding an MCP sidecar container that enables AI agents to interact with PostgreSQL databases. This is enabled by calling `WithPostgresMcp()` on the PostgreSQL server resource.
+The PostgreSQL hosting integration provides support for adding an MCP sidecar container that enables AI agents to interact with PostgreSQL databases. This is enabled by calling `WithPostgresMcp()` on the PostgreSQL server or database resources.
 
 ```csharp
 var pg = builder.AddPostgres("pg");
 pg.WithPostgresMcp();
 ```
 
-The PostgreSQL MCP server (powered by [Postgres MCP Pro](https://github.com/crystaldba/postgres-mcp)) provides the following tools:
-
-| Tool | Description |
-|------|-------------|
-| `list_schemas` | Lists all database schemas available in the PostgreSQL instance |
-| `list_objects` | Lists database objects (tables, views, sequences, extensions) within a schema |
-| `get_object_details` | Provides information about a specific database object (columns, constraints, indexes) |
-| `execute_sql` | Executes SQL statements on the database |
-| `explain_query` | Gets the execution plan for a SQL query, including support for hypothetical indexes |
-| `get_top_queries` | Reports the slowest SQL queries based on execution time |
-| `analyze_workload_indexes` | Analyzes database workload and recommends optimal indexes |
-| `analyze_query_indexes` | Analyzes specific SQL queries and recommends indexes |
-| `analyze_db_health` | Performs comprehensive health checks (buffer cache, connections, indexes, vacuum health) |
+The PostgreSQL MCP server is currently powered by [Postgres MCP Pro](https://github.com/crystaldba/postgres-mcp)) and provides tools
+for database exploration, query execution, index tuning, and health checks.
 
 ## Additional documentation
 

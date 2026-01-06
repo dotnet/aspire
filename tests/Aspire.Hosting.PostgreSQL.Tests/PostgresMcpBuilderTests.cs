@@ -4,10 +4,12 @@
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.ApplicationModel;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.PostgreSQL.Tests;
 
+[Experimental("ASPIREPOSTGRES001")]
 public class PostgresMcpBuilderTests
 {
     [Fact]

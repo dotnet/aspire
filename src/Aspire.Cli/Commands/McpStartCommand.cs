@@ -139,13 +139,13 @@ internal sealed class McpStartCommand : BaseCommand
         if (_tools.TryGetValue(toolName, out var tool))
         {
             // Handle tools that don't need an MCP connection to the AppHost
-            if (IsLocalTool(toolName))
+            if (KnownMcpTools.IsLocalTool(toolName))
             {
                 var args = request.Params?.Arguments as IReadOnlyDictionary<string, JsonElement>;
                 return await tool.CallToolAsync(null!, args, cancellationToken).ConfigureAwait(false);
             }
 
-            if (IsDashboardTool(toolName))
+            if (KnownMcpTools.IsDashboardTool(toolName))
             {
                 var args = request.Params?.Arguments as IReadOnlyDictionary<string, JsonElement>;
                 return await CallDashboardToolAsync(toolName, tool, args, cancellationToken).ConfigureAwait(false);
@@ -207,10 +207,6 @@ internal sealed class McpStartCommand : BaseCommand
 
         throw new McpProtocolException($"Unknown tool: '{toolName}'", McpErrorCode.MethodNotFound);
     }
-
-    private static bool IsLocalTool(string toolName) => toolName is KnownMcpTools.SelectAppHost or KnownMcpTools.ListAppHosts or KnownMcpTools.ListIntegrations or KnownMcpTools.GetIntegrationDocs or KnownMcpTools.Doctor or KnownMcpTools.RefreshTools;
-
-    private static bool IsDashboardTool(string toolName) => toolName is KnownMcpTools.ListResources or KnownMcpTools.ListConsoleLogs or KnownMcpTools.ExecuteResourceCommand or KnownMcpTools.ListStructuredLogs or KnownMcpTools.ListTraces or KnownMcpTools.ListTraceStructuredLogs;
 
     private async ValueTask<CallToolResult> CallDashboardToolAsync(
         string toolName,
