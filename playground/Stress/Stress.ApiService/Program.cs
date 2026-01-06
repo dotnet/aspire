@@ -517,6 +517,99 @@ app.MapGet("/genai-trace", async () =>
               }
             ]
             """);
+
+        activity.SetTag("gen_ai.tool.definitions", """
+            [
+              {
+                "type": "function",
+                "name": "get_weather",
+                "description": "Get the current weather in a given location",
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                      "description": "The city and state, e.g. San Francisco, CA"
+                    },
+                    "unit": {
+                    },
+                    "include_forecast": {
+                      "type": ["string", "boolean"],
+                      "description": "Whether to include forecast data"
+                    }
+                  },
+                  "required": ["location"]
+                }
+              },
+              {
+                "type": "function",
+                "name": "search_database",
+                "description": "Search for items in the database",
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "description": "Search query string"
+                    },
+                    "max_results": {
+                      "type": "integer",
+                      "description": "Maximum number of results to return"
+                    },
+                    "score_threshold": {
+                      "type": "number",
+                      "description": "Minimum relevance score (0.0 to 1.0)"
+                    },
+                    "filters": {
+                      "type": "object",
+                      "description": "Optional filters to apply"
+                    }
+                  },
+                  "required": ["query"]
+                }
+              },
+              {
+                "type": "function",
+                "name": "process_items",
+                "description": "Process a list of items with optional parameters",
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Array of items to process"
+                    },
+                    "numbers": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "description": "Array of integers"
+                    },
+                    "optional_value": {
+                      "type": ["string", "null"],
+                      "description": "Optional nullable string value"
+                    },
+                    "optional_count": {
+                      "type": ["number", "null"],
+                      "description": "Optional nullable number"
+                    },
+                    "nullable_array": {
+                      "type": ["array", "null"],
+                      "items": {
+                        "type": "number"
+                      },
+                      "description": "Array that can be null"
+                    }
+                  },
+                  "required": ["items"]
+                }
+              }
+            ]
+            """);
     }
 
     // Avoid zero seconds span.

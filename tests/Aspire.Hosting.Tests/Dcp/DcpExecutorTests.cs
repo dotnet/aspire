@@ -1251,6 +1251,7 @@ public class DcpExecutorTests
         builder.AddContainer("ExplicitDefault", "container").WithImagePullPolicy(ImagePullPolicy.Default);
         builder.AddContainer("ExplicitAlways", "container").WithImagePullPolicy(ImagePullPolicy.Always);
         builder.AddContainer("ExplicitMissing", "container").WithImagePullPolicy(ImagePullPolicy.Missing);
+        builder.AddContainer("ExplicitNever", "container").WithImagePullPolicy(ImagePullPolicy.Never);
 
         var kubernetesService = new TestKubernetesService();
 
@@ -1263,7 +1264,7 @@ public class DcpExecutorTests
         await appExecutor.RunApplicationAsync();
 
         // Assert
-        Assert.Equal(4, kubernetesService.CreatedResources.OfType<Container>().Count());
+        Assert.Equal(5, kubernetesService.CreatedResources.OfType<Container>().Count());
         var implicitDefaultContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>(), c => c.AppModelResourceName == "ImplicitDefault");
         Assert.Null(implicitDefaultContainer.Spec.PullPolicy);
 
@@ -1275,6 +1276,9 @@ public class DcpExecutorTests
 
         var explicitMissingContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>(), c => c.AppModelResourceName == "ExplicitMissing");
         Assert.Equal(ContainerPullPolicy.Missing, explicitMissingContainer.Spec.PullPolicy);
+
+        var explicitNeverContainer = Assert.Single(kubernetesService.CreatedResources.OfType<Container>(), c => c.AppModelResourceName == "ExplicitNever");
+        Assert.Equal(ContainerPullPolicy.Never, explicitNeverContainer.Spec.PullPolicy);
     }
 
     [Fact]
