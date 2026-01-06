@@ -1,9 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Runtime.Versioning;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Ats;
 using Aspire.Hosting.RemoteHost.Ats;
@@ -236,6 +240,78 @@ internal sealed class JsonRpcServer : IAsyncDisposable
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        if (OperatingSystem.IsWindows())
+        {
+            await StartNamedPipeServerAsync(cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await StartUnixSocketServerAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private async Task StartNamedPipeServerAsync(CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"Starting JsonRpc server on named pipe: {_socketPath}");
+        Console.WriteLine("Server will continue running until stopped manually.");
+
+        // Create pipe security that only allows the current user to connect
+        // This is equivalent to the Unix socket permission (owner read/write only)
+        var pipeSecurity = new PipeSecurity();
+        var currentUser = WindowsIdentity.GetCurrent().User;
+        if (currentUser != null)
+        {
+            pipeSecurity.AddAccessRule(new PipeAccessRule(
+                currentUser,
+                PipeAccessRights.FullControl,
+                AccessControlType.Allow));
+        }
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                Console.WriteLine("Waiting for client connection...");
+
+                // Create a new named pipe server for each connection with security restrictions
+                var pipeServer = NamedPipeServerStreamAcl.Create(
+                    _socketPath,
+                    PipeDirection.InOut,
+                    NamedPipeServerStream.MaxAllowedServerInstances,
+                    PipeTransmissionMode.Byte,
+                    PipeOptions.Asynchronous,
+                    inBufferSize: 0,
+                    outBufferSize: 0,
+                    pipeSecurity);
+
+                await pipeServer.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+                Console.WriteLine("Client connected!");
+                Interlocked.Increment(ref _activeClientCount);
+                _hasHadClient = true;
+
+                // Handle the connection in a separate task - pipe stream is owned by handler
+                _ = Task.Run(() => HandleClientStreamAsync(pipeServer, ownsStream: true, cancellationToken), cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("Server shutdown requested.");
+                break;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in server loop: {ex.Message}");
+                Console.WriteLine("Retrying in 1 second...");
+                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        Console.WriteLine("Server stopped.");
+    }
+
+    private async Task StartUnixSocketServerAsync(CancellationToken cancellationToken)
+    {
         Console.WriteLine($"Starting JsonRpc server on Unix domain socket: {_socketPath}");
         Console.WriteLine("Server will continue running until stopped manually.");
 
@@ -277,8 +353,9 @@ internal sealed class JsonRpcServer : IAsyncDisposable
                 Interlocked.Increment(ref _activeClientCount);
                 _hasHadClient = true;
 
-                // Handle the connection in a separate task
-                _ = Task.Run(() => HandleClientAsync(clientSocket, cancellationToken), cancellationToken);
+                // Handle the connection in a separate task - NetworkStream owns the socket
+                var stream = new NetworkStream(clientSocket, ownsSocket: true);
+                _ = Task.Run(() => HandleClientStreamAsync(stream, ownsStream: true, cancellationToken), cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -296,7 +373,7 @@ internal sealed class JsonRpcServer : IAsyncDisposable
         Console.WriteLine("Server stopped.");
     }
 
-    private async Task HandleClientAsync(Socket clientSocket, CancellationToken cancellationToken)
+    private async Task HandleClientStreamAsync(Stream clientStream, bool ownsStream, CancellationToken cancellationToken)
     {
         var clientId = Guid.NewGuid().ToString("N")[..8]; // Short client identifier
         var disconnectReason = "unknown";
@@ -310,11 +387,9 @@ internal sealed class JsonRpcServer : IAsyncDisposable
 
         try
         {
-            using var networkStream = new NetworkStream(clientSocket, ownsSocket: true);
-
             // Use System.Text.Json formatter instead of the default Newtonsoft.Json formatter
             var formatter = new SystemTextJsonFormatter();
-            var handler = new HeaderDelimitedMessageHandler(networkStream, networkStream, formatter);
+            var handler = new HeaderDelimitedMessageHandler(clientStream, clientStream, formatter);
             using var jsonRpc = new JsonRpc(handler, clientService);
             jsonRpc.StartListening();
 
@@ -345,16 +420,12 @@ internal sealed class JsonRpcServer : IAsyncDisposable
                 // This happens when server shutdown causes jsonRpc.Dispose()
                 disconnectReason ??= "server shutdown";
             }
-            catch (IOException ex) when (ex.InnerException is SocketException)
+            catch (IOException)
             {
-                disconnectReason = "socket closed (client terminated)";
+                disconnectReason = "stream closed (client terminated)";
             }
 
             Console.WriteLine($"Client {clientId}: {disconnectReason}");
-        }
-        catch (SocketException ex)
-        {
-            Console.WriteLine($"Client {clientId} socket error: {ex.SocketErrorCode} - {ex.Message}");
         }
         catch (IOException ex)
         {
@@ -366,30 +437,17 @@ internal sealed class JsonRpcServer : IAsyncDisposable
         }
         finally
         {
-            // Clean up socket - wrap in try-catch since it might already be disposed
-            try
+            // Clean up stream if we own it
+            if (ownsStream)
             {
-                if (clientSocket.Connected)
+                try
                 {
-                    clientSocket.Shutdown(SocketShutdown.Both);
+                    clientStream.Dispose();
                 }
-            }
-            catch (SocketException)
-            {
-                // Socket already closed, ignore
-            }
-            catch (ObjectDisposedException)
-            {
-                // Socket already disposed, ignore
-            }
-
-            try
-            {
-                clientSocket.Close();
-            }
-            catch
-            {
-                // Ignore errors during close
+                catch
+                {
+                    // Ignore errors during close
+                }
             }
 
             Console.WriteLine($"Connection cleanup completed for client {clientId}");

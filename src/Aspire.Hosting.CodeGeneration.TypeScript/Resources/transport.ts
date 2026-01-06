@@ -280,7 +280,7 @@ export class AspireClient {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Connection timeout')), timeoutMs);
 
-            // On Windows, socket path is a named pipe; on Unix, it's a Unix domain socket path
+            // On Windows, use named pipes; on Unix, use Unix domain sockets
             const isWindows = process.platform === 'win32';
             const pipePath = isWindows ? `\\\\.\\pipe\\${this.socketPath}` : this.socketPath;
 
