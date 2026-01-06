@@ -17,6 +17,7 @@ permissions:
 jobs:
   check-docs-needed:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
