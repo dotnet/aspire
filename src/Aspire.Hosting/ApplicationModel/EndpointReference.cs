@@ -100,6 +100,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
             EndpointProperty.Scheme => Binding("scheme"),
             EndpointProperty.TargetPort => Binding("targetPort"),
             EndpointProperty.HostAndPort => $"{Binding("host")}:{Binding("port")}",
+            EndpointProperty.Tls => Tls.ToString().ToLowerInvariant(),
             _ => throw new InvalidOperationException($"The property '{property}' is not supported for the endpoint '{EndpointName}'.")
         };
 
@@ -140,6 +141,11 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// Gets the URL for this endpoint.
     /// </summary>
     public string Url => AllocatedEndpoint.UriString;
+
+    /// <summary>
+    /// Gets a value indicating whether the endpoint uses TLS.
+    /// </summary>
+    public bool Tls => EndpointAnnotation.Tls;
 
     internal ValueSnapshot<AllocatedEndpoint> AllocatedEndpointSnapshot =>
         EndpointAnnotation.AllocatedEndpointSnapshot;
@@ -302,6 +308,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
             EndpointProperty.Scheme => new(Endpoint.Scheme),
             EndpointProperty.IPV4Host when networkContext == KnownNetworkIdentifiers.LocalhostNetwork => "127.0.0.1",
             EndpointProperty.TargetPort when Endpoint.TargetPort is int port => new(port.ToString(CultureInfo.InvariantCulture)),
+            EndpointProperty.Tls => new(Endpoint.Tls.ToString().ToLowerInvariant()),
             _ => await ResolveValueWithAllocatedAddress().ConfigureAwait(false)
         };
 
@@ -357,22 +364,27 @@ public enum EndpointProperty
     /// The entire URL of the endpoint.
     /// </summary>
     Url,
+
     /// <summary>
     /// The host of the endpoint.
     /// </summary>
     Host,
+
     /// <summary>
     /// The IPv4 address of the endpoint.
     /// </summary>
     IPV4Host,
+
     /// <summary>
     /// The port of the endpoint.
     /// </summary>
     Port,
+
     /// <summary>
     /// The scheme of the endpoint.
     /// </summary>
     Scheme,
+
     /// <summary>
     /// The target port of the endpoint.
     /// </summary>
@@ -381,5 +393,10 @@ public enum EndpointProperty
     /// <summary>
     /// The host and port of the endpoint in the format `{Host}:{Port}`.
     /// </summary>
-    HostAndPort
+    HostAndPort,
+
+    /// <summary>
+    /// Indicates whether the endpoint uses TLS.
+    /// </summary>
+    Tls,
 }
