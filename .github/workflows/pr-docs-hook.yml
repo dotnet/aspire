@@ -92,7 +92,7 @@ jobs:
           copilot -p "$(cat prompt.txt)" > analysis.txt
           cat analysis.txt
         env:
-          GH_TOKEN: ${{ github.token }}
+          COPILOT_GITHUB_TOKEN: ${{ github.token }}
 
       - name: Output documentation analysis results
         run: |
