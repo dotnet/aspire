@@ -230,8 +230,9 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
+        var projectFactory = serviceProvider.GetService<IAppHostProjectFactory>() ?? new TestAppHostProjectFactory();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
+        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, projectFactory, telemetry);
     }
 
     public ISolutionLocator CreateDefaultSolutionLocatorFactory(IServiceProvider serviceProvider)
