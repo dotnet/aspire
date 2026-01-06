@@ -23,6 +23,7 @@ internal sealed class UserSecretsParameterDefault(string applicationName, string
     {
         var configurationKey = $"Parameters:{parameterName}";
 
+        Debug.WriteLine($"UserSecretsParameterDefault: applicationName: {applicationName}, parameterName: {parameterName}");
         return userSecretsManager.GetOrSetSecret(configurationKey, parameterDefault.GetDefaultValue);
     }
 

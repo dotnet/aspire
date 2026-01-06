@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Pipelines.Internal;
@@ -139,7 +138,7 @@ internal sealed class UserSecretsManagerFactory
         {
             // Create a named mutex based on the file path to coordinate across processes
             var mutexName = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(FilePath)));
-            
+
             // On Windows, limits on mutex names may apply, but hex string of SHA256 is 64 chars, which is safe.
             // We use global scope on Windows to ensure it works across sessions if needed, though for tests it's usually same session.
             // On Linux, the name is used for file locking in /tmp.
@@ -162,7 +161,7 @@ internal sealed class UserSecretsManagerFactory
                 {
                     // Reload inside the lock to get the latest state
                     Dictionary<string, string?> secrets;
-                    try 
+                    try
                     {
                         secrets = Load();
                     }
@@ -179,7 +178,7 @@ internal sealed class UserSecretsManagerFactory
 
                     var newValue = valueGenerator();
                     secrets[name] = newValue;
-                    
+
                     try
                     {
                         Save(secrets);
@@ -189,7 +188,7 @@ internal sealed class UserSecretsManagerFactory
                         // Best effort - allow returning value even if persistence fails
                         Debug.WriteLine("Failed to save user secrets.");
                     }
-                    
+
                     return newValue;
                 }
                 finally
