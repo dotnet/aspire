@@ -769,6 +769,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 await InvokeAsync(StateHasChanged);
             }
 
+            var hasError = false;
             try
             {
                 lock (_updateLogsLock)
@@ -807,6 +808,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 // If the subscription is being canceled then error could be transient from cancellation. Ignore errors during cancellation.
                 if (!subscription.CancellationToken.IsCancellationRequested)
                 {
+                    hasError = true;
                     Logger.LogError(ex, "Error watching logs for resource {ResourceName}.", subscription.Resource.Name);
 
                     // For single resource subscriptions or first subscription in "All" mode, update status
@@ -824,7 +826,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
                 // If the subscription is being canceled then a new one could be starting.
                 // Don't set the status when finishing because overwrite the status from the new subscription.
-                if (!subscription.CancellationToken.IsCancellationRequested && !_isSubscribedToAll)
+                // Also don't overwrite error status if an error occurred.
+                if (!subscription.CancellationToken.IsCancellationRequested && !_isSubscribedToAll && !hasError)
                 {
                     SetStatus(PageViewModel, nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs));
                     await InvokeAsync(StateHasChanged);
