@@ -774,6 +774,15 @@ internal sealed class AzureAppServiceWebsiteContext(
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
     }
 
+    /// <summary>
+    /// Add app settings and role assignment for Aspire dashboard
+    /// </summary>
+    /// <param name="id">resource identifier</param>
+    /// <param name="bicepIdentifier">bicep identifier for the website</param>
+    /// <param name="appSettings">list of app settings</param>
+    /// <param name="acrClientIdParameter">acr identity client id</param>
+    /// <param name="deploymentSlot">deployment slot</param>
+    /// <returns></returns>
     private RoleAssignment AddDashboardPermissionAndSettings(BicepValue<ResourceIdentifier> id,
         String bicepIdentifier,
         BicepList<AppServiceNameValuePair> appSettings,
@@ -812,9 +821,13 @@ internal sealed class AzureAppServiceWebsiteContext(
             RoleDefinitionId = websiteRaId,
         };
 
-        return roleAssignment!;
+        return roleAssignment;
     }
 
+    /// <summary>
+    /// Add appsettings to enable application insights for the website or slot
+    /// </summary>
+    /// <param name="appSettings">The list of app settings</param>
     private void EnableApplicationInsightsForWebSite(BicepList<AppServiceNameValuePair> appSettings)
     {
         var appInsightsInstrumentationKey = environmentContext.Environment.AzureAppInsightsInstrumentationKeyReference.AsProvisioningParameter(Infra);
@@ -837,6 +850,11 @@ internal sealed class AzureAppServiceWebsiteContext(
         });
     }
 
+    /// <summary>
+    /// Add app settings related to managed identity assigned to the website or slot
+    /// </summary>
+    /// <param name="appSettings">The list of app settings</param>
+    /// <param name="clientId">Managed identity client id</param>
     private static void UpdateIdentityAppSettings(BicepList<AppServiceNameValuePair> appSettings, ProvisioningParameter clientId)
     {
         appSettings.Add(new AppServiceNameValuePair
