@@ -506,7 +506,6 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
 
     private IDistributedApplicationTestingBuilder CreateTestDistributedApplicationBuilder()
     {
-        // Arrange
         var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
         // Disable retries for the commandclient HTTP client to make test faster and deterministic.
