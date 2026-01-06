@@ -4,6 +4,15 @@
 			"type": "stdio",
 			"command": "aspire",
 			"args": ["mcp", "start"]
+		},
+		"terminal-mcp": {
+			"type": "stdio",
+			"command": "dotnet",
+			"args": [
+				"run",
+				"--project",
+				"${workspaceFolder}/tools/TerminalMcp"
+			]
 		}
 	},
 	"inputs": []
