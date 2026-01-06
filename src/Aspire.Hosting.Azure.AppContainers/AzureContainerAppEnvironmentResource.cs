@@ -108,7 +108,6 @@ public class AzureContainerAppEnvironmentResource :
             foreach (var computeResource in context.Model.GetBuildResources())
             {
                 context.GetSteps(computeResource, WellKnownPipelineTags.BuildCompute)
-                        .RequiredBy(WellKnownPipelineSteps.Deploy)
                         .DependsOn(WellKnownPipelineSteps.DeployPrereq);
             }
 
