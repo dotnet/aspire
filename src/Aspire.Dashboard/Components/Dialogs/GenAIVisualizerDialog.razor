@@ -309,7 +309,7 @@
                                                         <FluentBadge Appearance="Appearance.Accent" Style="min-width: 80px; text-align: center;">
                                                             @toolVM.ToolDefinition.Type
                                                         </FluentBadge>
-                                                        <strong>@toolVM.ToolDefinition.Name</strong>
+                                                        <span class="tool-name">@toolVM.ToolDefinition.Name</span>
                                                         @if (!string.IsNullOrEmpty(toolVM.ToolDefinition.Description))
                                                         {
                                                             <span>@FormatHelpers.TruncateText(toolVM.ToolDefinition.Description, maxLength: 100)</span>
@@ -339,9 +339,18 @@
                                                                             }
                                                                         </td>
                                                                         <td class="tool-cell">
-                                                                            @if (FormatSchemaType(prop.Value) is { Length: > 0 } type)
+                                                                            @if (GenAISchemaHelpers.ConvertTypeToNames(prop.Value) is { Count: > 0 } types)
                                                                             {
-                                                                                <code>@type</code>
+                                                                                @* Put each type in its own nowrap element *@
+                                                                                for (var i = 0; i < types.Count; i++)
+                                                                                {
+                                                                                    var typeName = types[i];
+                                                                                    if (i < types.Count - 1)
+                                                                                    {
+                                                                                        typeName += ",";
+                                                                                    }
+                                                                                    <code class="type-name">@typeName</code>
+                                                                                }
                                                                             }
                                                                             else
                                                                             {
