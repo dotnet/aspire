@@ -2,7 +2,7 @@ name: PR Documentation Check
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [closed]
   workflow_dispatch:
     inputs:
       pr_number:
