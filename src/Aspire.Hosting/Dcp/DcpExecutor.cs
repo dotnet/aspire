@@ -1311,7 +1311,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, D
 
             if (executable.TryGetLastAnnotation<ResourceStdinAnnotation>(out var stdinAnnotation))
             {
-                exe.Spec.Stdin = stdinAnnotation.Enabled && exe.Spec.ExecutionType == ExecutionType.Process;
+                if (stdinAnnotation.Enabled && exe.Spec.ExecutionType == ExecutionType.Process)
+                {
+                    exe.Spec.IOMode = Model.IOMode.SimpleIO;
+                }
             }
 
             SetInitialResourceState(executable, exe);
@@ -1414,7 +1417,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, D
 
                 if (project.TryGetLastAnnotation<ResourceStdinAnnotation>(out var stdinAnnotation))
                 {
-                    exeSpec.Spec.Stdin = stdinAnnotation.Enabled && exeSpec.Spec.ExecutionType == ExecutionType.Process;
+                    if (stdinAnnotation.Enabled && exeSpec.Spec.ExecutionType == ExecutionType.Process)
+                    {
+                        exeSpec.Spec.IOMode = Model.IOMode.SimpleIO;
+                    }
                 }
 
                 // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
@@ -1821,7 +1827,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, D
             // Enable stdin support if the container has the ContainerStdinAnnotation
             if (container.TryGetLastAnnotation<ContainerStdinAnnotation>(out var stdinAnnotation) && stdinAnnotation.Enabled)
             {
-                ctr.Spec.Stdin = true;
+                ctr.Spec.IOMode = Model.IOMode.SimpleIO;
             }
 
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);

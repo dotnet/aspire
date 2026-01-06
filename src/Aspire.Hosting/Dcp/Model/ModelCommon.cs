@@ -468,3 +468,25 @@ internal static class Logs
     public const string StreamTypeSystem = "system";
     public const string SubResourceName = "log";
 }
+
+/// <summary>
+/// I/O modes for executables and containers.
+/// </summary>
+internal static class IOMode
+{
+    /// <summary>
+    /// No special I/O handling (default). Console logs only, no stdin access.
+    /// </summary>
+    public const string None = "";
+
+    /// <summary>
+    /// SimpleIO mode enables bidirectional I/O via a Unix domain socket.
+    /// Stdin writes to the socket, stdout/stderr are combined in the output.
+    /// </summary>
+    public const string SimpleIO = "SimpleIO";
+
+    /// <summary>
+    /// Terminal mode enables full PTY support with terminal resizing via proprietary protocol.
+    /// </summary>
+    public const string Terminal = "Terminal";
+}

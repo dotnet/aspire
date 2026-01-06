@@ -71,10 +71,13 @@ internal sealed class ExecutableSpec
     public ExecutablePemCertificates? PemCertificates { get; set; }
 
     /// <summary>
-    /// Keep stdin open on the executable.
+    /// I/O mode for the executable. Determines how stdin/stdout/stderr are handled.
+    /// Empty string or null means no special I/O handling (default).
+    /// "SimpleIO" enables bidirectional I/O via Unix domain socket.
+    /// "Terminal" enables full PTY support with terminal resizing.
     /// </summary>
-    [JsonPropertyName("stdin")]
-    public bool? Stdin { get; set; }
+    [JsonPropertyName("ioMode")]
+    public string? IOMode { get; set; }
 }
 
 internal sealed class AmbientEnvironment
@@ -180,10 +183,11 @@ internal sealed record ExecutableStatus : V1Status
     public string? StdErrFile { get; set; }
 
     /// <summary>
-    /// The path of a temporary file used as a backing store for stdin input.
+    /// The path to the Unix domain socket used for I/O with the executable.
+    /// Only set when IOMode is "SimpleIO" or "Terminal".
     /// </summary>
-    [JsonPropertyName("stdinFile")]
-    public string? StdinFile { get; set; }
+    [JsonPropertyName("ioSocketPath")]
+    public string? IOSocketPath { get; set; }
 
     /// <summary>
     /// Effective values of environment variables, after all substitutions have been applied

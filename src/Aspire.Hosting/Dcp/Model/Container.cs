@@ -97,11 +97,13 @@ internal sealed class ContainerSpec
     public ContainerPemCertificates? PemCertificates { get; set; }
 
     /// <summary>
-    /// Keep stdin open on the container. When set to true, the container is created with -i flag,
-    /// allowing the container process to read from stdin.
+    /// I/O mode for the container. Determines how stdin/stdout/stderr are handled.
+    /// Empty string or null means no special I/O handling (default).
+    /// "SimpleIO" enables bidirectional I/O via Unix domain socket.
+    /// "Terminal" enables full PTY support with terminal resizing.
     /// </summary>
-    [JsonPropertyName("stdin")]
-    public bool? Stdin { get; set; }
+    [JsonPropertyName("ioMode")]
+    public string? IOMode { get; set; }
 }
 
 internal sealed class BuildContext
@@ -529,6 +531,13 @@ internal sealed record ContainerStatus : V1Status
     /// </summary>
     [JsonPropertyName("lifecycleKey")]
     public string? LifecycleKey { get; set; }
+
+    /// <summary>
+    /// The path to the Unix domain socket used for I/O with the container.
+    /// Only set when IOMode is "SimpleIO" or "Terminal".
+    /// </summary>
+    [JsonPropertyName("ioSocketPath")]
+    public string? IOSocketPath { get; set; }
 
     // Note: the ContainerStatus has "Message" property that represents a human-readable information about Container state.
     // It is provided by V1Status base class.
