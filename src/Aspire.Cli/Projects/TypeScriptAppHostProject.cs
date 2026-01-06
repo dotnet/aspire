@@ -128,21 +128,17 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         // Create a TypeScript apphost that uses the generated Aspire SDK
         var appHostContent = """
             // Aspire TypeScript AppHost
-            // For more information, see: https://learn.microsoft.com/dotnet/aspire
+            // For more information, see: https://aspire.dev
 
-            // Import from the generated module (created by 'aspire run' code generation)
-            import { createBuilder } from './.modules/distributed-application.js';
+            import { createBuilder } from './.modules/aspire.js';
 
-            // Create the distributed application builder
             const builder = await createBuilder();
 
             // Add your resources here, for example:
             // const redis = await builder.addContainer("cache", "redis:latest");
             // const postgres = await builder.addPostgres("db");
 
-            // Build and run the application
-            const app = builder.build();
-            await app.run();
+            await builder.build().run();
             """;
 
         await File.WriteAllTextAsync(appHostPath, appHostContent, cancellationToken);
