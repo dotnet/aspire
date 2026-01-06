@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Globalization;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -28,9 +27,6 @@ namespace Aspire.Cli.Projects;
 /// </summary>
 internal sealed class TypeScriptAppHostProject : IAppHostProject
 {
-    // Constants for running instance detection
-    private const int ProcessTerminationTimeoutMs = 10000; // Wait up to 10 seconds for processes to terminate
-    private const int ProcessTerminationPollIntervalMs = 250; // Check process status every 250ms
     private const string GeneratedFolderName = ".modules";
 
     private readonly IInteractionService _interactionService;
@@ -45,6 +41,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private readonly TimeProvider _timeProvider;
     private readonly CodeGeneratorService _codeGeneratorService;
     private readonly AtsTypeScriptCodeGenerator _atsTypeScriptGenerator;
+    private readonly RunningInstanceManager _runningInstanceManager;
 
     private static readonly string[] s_detectionPatterns = ["apphost.ts"];
 
@@ -72,6 +69,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         _timeProvider = timeProvider ?? TimeProvider.System;
         _codeGeneratorService = new CodeGeneratorService();
         _atsTypeScriptGenerator = new AtsTypeScriptCodeGenerator();
+        _runningInstanceManager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1265,91 +1263,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         }
 
         // Stop the running instance
-        return await StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
-    }
-
-    private async Task<bool> StopRunningInstanceAsync(string socketPath, CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Connect to the auxiliary backchannel
-            using var backchannel = await AppHostAuxiliaryBackchannel.ConnectAsync(socketPath, _logger, cancellationToken).ConfigureAwait(false);
-
-            // Get the AppHost information
-            var appHostInfo = backchannel.AppHostInfo;
-
-            if (appHostInfo is null)
-            {
-                _logger.LogWarning("Failed to get AppHost information from running instance");
-                return false;
-            }
-
-            // Display message that we're stopping the previous instance
-            var cliPidText = appHostInfo.CliProcessId.HasValue ? appHostInfo.CliProcessId.Value.ToString(CultureInfo.InvariantCulture) : "N/A";
-            _interactionService.DisplayMessage("stop_sign", $"Stopping previous instance (AppHost PID: {appHostInfo.ProcessId.ToString(CultureInfo.InvariantCulture)}, CLI PID: {cliPidText})");
-
-            // Call StopAppHostAsync on the auxiliary backchannel
-            await backchannel.StopAppHostAsync(cancellationToken).ConfigureAwait(false);
-
-            // Monitor the PIDs for termination
-            var stopped = await MonitorProcessesForTerminationAsync(appHostInfo, cancellationToken).ConfigureAwait(false);
-
-            if (stopped)
-            {
-                _interactionService.DisplaySuccess(RunCommandStrings.RunningInstanceStopped);
-            }
-            else
-            {
-                _logger.LogWarning("Failed to stop running instance within timeout");
-            }
-
-            return stopped;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to stop running instance");
-            return false;
-        }
-    }
-
-    private async Task<bool> MonitorProcessesForTerminationAsync(AppHostInformation appHostInfo, CancellationToken cancellationToken)
-    {
-        var startTime = _timeProvider.GetUtcNow();
-        var pidsToMonitor = new List<int> { appHostInfo.ProcessId };
-
-        if (appHostInfo.CliProcessId.HasValue)
-        {
-            pidsToMonitor.Add(appHostInfo.CliProcessId.Value);
-        }
-
-        while ((_timeProvider.GetUtcNow() - startTime).TotalMilliseconds < ProcessTerminationTimeoutMs)
-        {
-            var allStopped = true;
-
-            foreach (var pid in pidsToMonitor)
-            {
-                try
-                {
-                    var process = Process.GetProcessById(pid);
-                    // If we can get the process, it's still running
-                    allStopped = false;
-                }
-                catch (ArgumentException)
-                {
-                    // Process doesn't exist, it has stopped
-                }
-            }
-
-            if (allStopped)
-            {
-                return true;
-            }
-
-            await Task.Delay(ProcessTerminationPollIntervalMs, cancellationToken).ConfigureAwait(false);
-        }
-
-        // Timeout reached
-        return false;
+        return await _runningInstanceManager.StopRunningInstanceAsync(auxiliarySocketPath, cancellationToken);
     }
 
     /// <summary>
