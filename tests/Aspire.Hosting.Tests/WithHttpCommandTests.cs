@@ -533,8 +533,8 @@ public class WithHttpCommandTests(ITestOutputHelper testOutputHelper)
         }).DefaultTimeout();
 
         // Wait for resource to be running AND for the command to become enabled
-        // The command state is updated asynchronously by a WatchAsync loop, so we need to wait for both conditions
-        // Use a longer timeout because the WatchAsync loop may take time to process the state change
+        // The command state is updated synchronously when PublishUpdateAsync is called, but we still need to wait
+        // for the notification to propagate through the ResourceNotificationService event system
         using var cts = new CancellationTokenSource(TestConstants.LongTimeoutTimeSpan);
         await app.ResourceNotifications.WaitForResourceAsync(
             resource.Name,
