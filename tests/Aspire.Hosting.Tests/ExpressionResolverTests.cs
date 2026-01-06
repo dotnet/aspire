@@ -271,6 +271,37 @@ public class ExpressionResolverTests
             _ = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(consumer.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).AsTask().TimeoutAfter(TimeSpan.FromSeconds(2));
         });
     }
+
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            public async Task TlsEndpointPropertyGetsResolved(bool sourceIsContainer)
+            {
+                var builder = DistributedApplication.CreateBuilder();
+
+                _ = builder.AddResource(new ContainerResource("testresource"))
+                    .WithEndpoint("endpoint1", e => e.UriScheme = "http")
+                    .WithEndpoint("endpoint2", e => e.UriScheme = "https");
+
+                var context = new ValueProviderContext()
+                {
+                    Network = sourceIsContainer ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork
+                };
+
+                var resource = builder.Resources.OfType<IResourceWithEndpoints>().Single(r => r.Name == "testresource");
+
+                var tls1 = await ExpressionResolver.ResolveAsync(
+                    new EndpointReference(resource, "endpoint1").Property(EndpointProperty.Tls),
+                    context,
+                    CancellationToken.None);
+                Assert.Equal("false", tls1.Value);
+
+                var tls2 = await ExpressionResolver.ResolveAsync(
+                    new EndpointReference(resource, "endpoint2").Property(EndpointProperty.Tls),
+                    context,
+                    CancellationToken.None);
+                Assert.Equal("true", tls2.Value);
+            }
 }
 
 sealed class MyContainerResource : ContainerResource, IResourceWithConnectionString
