@@ -192,23 +192,26 @@ public class AzureContainerAppEnvironmentResource :
     }
 
     /// <inheritdoc/>
-    public AzureContainerRegistryResource GetContainerRegistryResource()
+    public AzureContainerRegistryResource ContainerRegistry
     {
-        var registry = GetContainerRegistry();
-
-        if (registry is null)
+        get
         {
-            throw new InvalidOperationException($"No container registry is configured for the Azure Container App Environment '{Name}'.");
-        }
+            var registry = GetContainerRegistry();
 
-        if (registry is AzureContainerRegistryResource azureRegistry)
-        {
-            return azureRegistry;
-        }
+            if (registry is null)
+            {
+                throw new InvalidOperationException($"No container registry is configured for the Azure Container App Environment '{Name}'.");
+            }
 
-        throw new InvalidOperationException(
-            $"The container registry configured for the Azure Container App Environment '{Name}' is not an Azure Container Registry. " +
-            $"Only Azure Container Registry resources are supported. Use '.WithAzureContainerRegistry()' to configure an Azure Container Registry.");
+            if (registry is AzureContainerRegistryResource azureRegistry)
+            {
+                return azureRegistry;
+            }
+
+            throw new InvalidOperationException(
+                $"The container registry configured for the Azure Container App Environment '{Name}' is not an Azure Container Registry. " +
+                $"Only Azure Container Registry resources are supported. Use '.WithAzureContainerRegistry()' to configure an Azure Container Registry.");
+        }
     }
 
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
