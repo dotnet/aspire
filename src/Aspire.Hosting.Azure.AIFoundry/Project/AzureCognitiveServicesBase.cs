@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.Primitives;
 
-namespace Aspire.Hosting.Azure.CognitiveServices;
+namespace Aspire.Hosting.Azure.AIFoundry;
 
 /// <summary>
 /// An Aspire wrapper around an Azure.Provisioning.ProvisionableResource.
@@ -81,11 +81,10 @@ public abstract class AzureResourceManagerAspireResource<T>(string name, Action<
 /// <summary>
 /// An AzureResourceManagerResource that also is IResourceWithParent.
 /// </summary>
-public abstract class AzureResourceManagerAspireResourceWithParent<T, P, U>(string name, Action<AzureResourceInfrastructure> configureInfrastructure, P parent) :
+public abstract class AzureResourceManagerAspireResourceWithParent<T, P>(string name, Action<AzureResourceInfrastructure> configureInfrastructure, P parent) :
     AzureResourceManagerAspireResource<T>(name, configureInfrastructure), IResourceWithParent<P>
     where T : ProvisionableResource
-    where P : AzureResourceManagerAspireResource<U>
-    where U : ProvisionableResource
+    where P : AzureProvisioningResource
 {
     /// <summary>
     /// Gets the parent resource.

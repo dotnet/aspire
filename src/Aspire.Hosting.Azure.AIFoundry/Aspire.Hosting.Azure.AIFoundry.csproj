@@ -10,13 +10,13 @@
     <!--
       CS8002: Referenced assembly does not have a strong name
     -->
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <NoWarn>$(NoWarn);CS8002;ASPIRECOMPUTE001;ASPIREPIPELINES001;ASPIREAZURE001;ASPIREPIPELINES003</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Shared\AzureRoleAssignmentUtils.cs" />
     <Compile Remove="tools\**\*.cs" />
@@ -24,9 +24,19 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.ApplicationInsights\Aspire.Hosting.Azure.ApplicationInsights.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.ContainerRegistry\Aspire.Hosting.Azure.ContainerRegistry.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.CosmosDB\Aspire.Hosting.Azure.CosmosDB.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.OperationalInsights\Aspire.Hosting.Azure.OperationalInsights.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.Search\Aspire.Hosting.Azure.Search.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Python\Aspire.Hosting.Python.csproj" />
+    <PackageReference Include="Azure.AI.Projects" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CognitiveServices" />
+    <PackageReference Include="Azure.Provisioning.ContainerRegistry" />
     <PackageReference Include="Microsoft.AI.Foundry.Local" />
+    <PackageReference Include="Microsoft.Bcl.Memory" />
   </ItemGroup>
 
 </Project>

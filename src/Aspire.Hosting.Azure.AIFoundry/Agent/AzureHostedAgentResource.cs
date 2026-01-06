@@ -9,7 +9,8 @@ using Azure.AI.Projects.OpenAI;
 using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-namespace Aspire.Hosting.Azure.CognitiveServices;
+
+namespace Aspire.Hosting.Azure.AIFoundry;
 
 /// <summary>
 /// An Azure AI Foundry hosted agent resource.

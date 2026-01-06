@@ -4,13 +4,13 @@
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
 
-namespace Aspire.Hosting.Azure.CognitiveServices;
+namespace Aspire.Hosting.Azure.AIFoundry;
 
 /// <summary>
 /// The Azure Cognitive Services connection resource scoped to a project.
 /// </summary>
 public class AzureCognitiveServicesProjectConnectionResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure, AzureCognitiveServicesProjectResource parent) :
-    AzureResourceManagerAspireResourceWithParent<CognitiveServicesProjectConnection, AzureCognitiveServicesProjectResource, CognitiveServicesProject>(name, configureInfrastructure, parent)
+    AzureResourceManagerAspireResourceWithParent<CognitiveServicesProjectConnection, AzureCognitiveServicesProjectResource>(name, configureInfrastructure, parent)
 {
     /// <inheritdoc/>
     public override CognitiveServicesProjectConnection FromExisting(string bicepIdentifier)
