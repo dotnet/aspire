@@ -168,9 +168,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 DistributedApplicationBase,
                 ResourceBuilderBase,
                 ReferenceExpression,
-                refExpr,
-                type BuilderHandle,
-                type ApplicationHandle
+                refExpr
             } from './base.js';
             """);
         WriteLine();
@@ -589,9 +587,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var paramsString = string.Join(", ", paramDefs);
         var argsString = paramArgs.Count > 0 ? $"{{ builder: this._handle, {string.Join(", ", paramArgs)} }}" : "{ builder: this._handle }";
 
-        // Determine return type
-        var returnHandle = !string.IsNullOrEmpty(capability.ReturnTypeId) && capability.ReturnsBuilder
-            ? GetHandleTypeName(capability.ReturnTypeId)
+        // Determine return type - use the builder's own type for fluent methods
+        // The capability may return an interface type (e.g., IResourceWithEnvironment) but
+        // we're generating for a concrete builder (e.g., Container), so use the builder's type
+        var returnHandle = capability.ReturnsBuilder
+            ? GetHandleTypeName(builder.TypeId)
             : "void";
         var returnsBuilder = capability.ReturnsBuilder;
 
