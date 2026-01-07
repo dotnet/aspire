@@ -29,7 +29,7 @@ public sealed class ResourceUrlAnnotation : IResourceAnnotation
     /// <summary>
     /// The display order the URL. Higher values mean sort higher in the list.
     /// </summary>
-    public int? DisplayOrder;
+    public int? DisplayOrder { get; set; }
 
     /// <summary>
     /// Locations where this URL should be shown on the dashboard. Defaults to <see cref="UrlDisplayLocation.SummaryAndDetails"/>.

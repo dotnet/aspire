@@ -3157,7 +3157,7 @@ namespace Aspire.Hosting.ApplicationModel
     [System.Diagnostics.DebuggerDisplay("Url = {Url}, DisplayText = {DisplayText}")]
     public sealed partial class ResourceUrlAnnotation : IResourceAnnotation
     {
-        public int? DisplayOrder;
+        public int? DisplayOrder { get { throw null; } set { } }
         public UrlDisplayLocation DisplayLocation { get { throw null; } set { } }
 
         public string? DisplayText { get { throw null; } set { } }
