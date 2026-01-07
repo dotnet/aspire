@@ -27,7 +27,7 @@ public sealed class ResourceUrlAnnotation : IResourceAnnotation
     public EndpointReference? Endpoint { get; init; }
 
     /// <summary>
-    /// The display order the URL. Higher values mean sort higher in the list.
+    /// The display order of the URL. Higher values mean sort higher in the list.
     /// </summary>
     public int? DisplayOrder { get; set; }
 
