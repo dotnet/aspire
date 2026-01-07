@@ -139,29 +139,6 @@ internal static class CoreExports
 
     #endregion
 
-    #region Environment Configuration
-
-    /// <summary>
-    /// Adds an environment variable callback to a resource.
-    /// </summary>
-    /// <remarks>
-    /// The callback is invoked during resource startup, allowing dynamic environment
-    /// variable configuration based on runtime state. The callback receives a context
-    /// with access to environment variables and resource information.
-    /// </remarks>
-    /// <param name="resource">The resource builder handle.</param>
-    /// <param name="callback">A callback ID registered with the guest runtime.</param>
-    /// <returns>The same resource builder handle for chaining.</returns>
-    [AspireExport("withEnvironmentCallback", Description = "Adds an environment callback")]
-    public static IResourceBuilder<IResourceWithEnvironment> WithEnvironmentCallback(
-        IResourceBuilder<IResourceWithEnvironment> resource,
-        Func<EnvironmentCallbackContext, Task> callback)
-    {
-        return resource.WithEnvironment(callback);
-    }
-
-    #endregion
-
     #region Endpoint Configuration
 
     /// <summary>

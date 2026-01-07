@@ -253,9 +253,13 @@ internal static class AtsCapabilityScanner
     {
         var capabilities = new List<AtsCapabilityInfo>();
 
-        // Derive the type ID from {AssemblyName}/{TypeName}
+        // Derive the type ID from the full type name (uses namespace for consistency)
         var typeName = contextType.Name;
-        var typeId = $"{assemblyName}/{typeName}";
+        var typeId = AtsTypeMapping.DeriveTypeIdFromFullName(contextType.FullName);
+
+        // Extract the package (namespace) from the type ID for capability IDs
+        var slashIndex = typeId.IndexOf('/');
+        var package = slashIndex >= 0 ? typeId[..slashIndex] : assemblyName;
 
         // Scan properties
         foreach (var property in contextType.GetProperties())
@@ -275,13 +279,13 @@ internal static class AtsCapabilityScanner
             if (property.CanRead)
             {
                 var getMethodName = $"{typeName}.get{property.Name}";
-                var getCapabilityId = $"{assemblyName}/{getMethodName}";
+                var getCapabilityId = $"{package}/{getMethodName}";
 
                 capabilities.Add(new AtsCapabilityInfo
                 {
                     CapabilityId = getCapabilityId,
                     MethodName = getMethodName,
-                    Package = assemblyName,
+                    Package = package,
                     Description = $"Gets the {property.Name} property",
                     Parameters = [
                         new AtsParameterInfo
@@ -308,13 +312,13 @@ internal static class AtsCapabilityScanner
             if (property.CanWrite)
             {
                 var setMethodName = $"{typeName}.set{property.Name}";
-                var setCapabilityId = $"{assemblyName}/{setMethodName}";
+                var setCapabilityId = $"{package}/{setMethodName}";
 
                 capabilities.Add(new AtsCapabilityInfo
                 {
                     CapabilityId = setCapabilityId,
                     MethodName = setMethodName,
-                    Package = assemblyName,
+                    Package = package,
                     Description = $"Sets the {property.Name} property",
                     Parameters = [
                         new AtsParameterInfo

@@ -348,12 +348,15 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
 
         // First generate DistributedApplication class for build() return type
-        WriteLine("""
+        var applicationHandle = GetHandleTypeName(TypeId_Application);
+        var builderHandle = GetHandleTypeName(TypeId_Builder);
+
+        WriteLine($$"""
             /**
              * Represents a built distributed application ready to run.
              */
             export class DistributedApplication extends DistributedApplicationBase {
-                constructor(handle: ApplicationHandle, client: AspireClientRpc) {
+                constructor(handle: {{applicationHandle}}, client: AspireClientRpc) {
                     super(handle, client);
                 }
             }
@@ -374,7 +377,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
                 /**
                  * Runs the distributed application, starting all configured resources.
-                 * Chains through the promise for fluent usage: await builder.build().run()
+                 * Chains through the promise for fluent chaining: await builder.build().run()
                  */
                 run(): Promise<void> {
                     return this._promise.then(app => app.run());
@@ -384,19 +387,19 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
 
         // Now generate DistributedApplicationBuilder
-        WriteLine("""
+        WriteLine($$"""
             /**
              * Builder for creating distributed applications.
              * Use createBuilder() to get an instance.
              */
             export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {
-                constructor(handle: BuilderHandle, client: AspireClientRpc) {
+                constructor(handle: {{builderHandle}}, client: AspireClientRpc) {
                     super(handle, client);
                 }
 
                 /** @internal - actual async implementation */
                 async _buildInternal(): Promise<DistributedApplication> {
-                    const handle = await this._client.invokeCapability<ApplicationHandle>(
+                    const handle = await this._client.invokeCapability<{{applicationHandle}}>(
                         'Aspire.Hosting/build',
                         { builder: this._handle }
                     );
@@ -954,7 +957,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
     private void GenerateConnectionHelper()
     {
-        WriteLine("""
+        var builderHandle = GetHandleTypeName(TypeId_Builder);
+
+        WriteLine($$"""
             // ============================================================================
             // Connection Helper
             // ============================================================================
@@ -1003,7 +1008,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
              */
             export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
                 const client = await connect();
-                const handle = await client.invokeCapability<BuilderHandle>(
+                const handle = await client.invokeCapability<{{builderHandle}}>(
                     'Aspire.Hosting/createBuilder',
                     { args }
                 );
@@ -1531,27 +1536,14 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var slashIndex = typeId.LastIndexOf('/');
         var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
 
-        // Special cases for core types
-        if (typeName == "Builder")
-        {
-            return "BuilderHandle";
-        }
-        if (typeName == "Application")
-        {
-            return "ApplicationHandle";
-        }
-        if (typeName == "ExecutionContext")
-        {
-            return "ExecutionContextHandle";
-        }
-
-        // For interface types, keep the I prefix
+        // For interface types (starting with I followed by uppercase), use {TypeName}Handle
         if (typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]))
         {
             return $"{typeName}Handle";
         }
 
-        return $"{typeName}BuilderHandle";
+        // For concrete types, use {TypeName}Handle
+        return $"{typeName}Handle";
     }
 
     /// <summary>
