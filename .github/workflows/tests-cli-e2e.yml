@@ -19,6 +19,15 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      # In order to build the CLI E2E test project, we need to install the SDK and toolsets first.
+      # We don't want to run 'build.sh -restore' on the whole solution as it takes a long time.
+      # Instead, we create a temporary project file and use that.
+      - name: Install toolsets
+        run: |
+          mkdir -p ${{ github.workspace }}/artifacts/tmp
+          echo '<Project />' > ${{ github.workspace }}/artifacts/tmp/install-toolset.proj
+          ./build.sh --restore -projects ${{ github.workspace }}/artifacts/tmp/install-toolset.proj
+
       # Build the CLI E2E test project so we can discover tests
       - name: Build the CLI E2E test project
         run: >
@@ -26,7 +35,8 @@ jobs:
           --restore
           --build
           -c Release
-          -projects tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
+          -ci
+          -projects ${{ github.workspace }}/tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
           /p:GeneratePackageOnBuild=false
           /p:InstallBrowsersForPlaywright=false
 
@@ -39,7 +49,8 @@ jobs:
           --test
           /p:TestRunnerName=CliEndToEndTestRunsheetBuilder
           -c Release
-          -projects tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
+          -ci
+          -projects ${{ github.workspace }}/tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
           /p:Restore=false
           /p:Build=false
           /bl:${{ github.workspace }}/artifacts/log/Release/runsheet.binlog
