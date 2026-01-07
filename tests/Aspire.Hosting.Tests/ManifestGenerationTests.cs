@@ -381,7 +381,7 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
                     "REDIS_HOST": "{redis.bindings.tcp.host}",
                     "REDIS_PORT": "{redis.bindings.tcp.port}",
                     "REDIS_PASSWORD": "{redis-password.value}",
-                    "REDIS_URI": "redis://:{redis-password-uri-encoded.value}@{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+                    "REDIS_URI": "{redis.bindings.tcp.scheme}://:{redis-password-uri-encoded.value}@{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "POSTGRESDB_HOST": "{postgres.bindings.tcp.host}",
                     "POSTGRESDB_PORT": "{postgres.bindings.tcp.port}",
@@ -418,7 +418,7 @@ public class ManifestGenerationTests(ITestOutputHelper testOutputHelper)
                   },
                   "bindings": {
                     "tcp": {
-                      "scheme": "tcp",
+                      "scheme": "redis",
                       "protocol": "tcp",
                       "transport": "tcp",
                       "targetPort": 6379
