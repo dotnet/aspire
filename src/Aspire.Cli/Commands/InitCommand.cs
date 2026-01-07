@@ -115,26 +115,42 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         };
         Options.Add(channelOption);
 
-        var languageOption = new Option<string?>("--language", "-l");
-        languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
-        Options.Add(languageOption);
+        // Only add --language option when polyglot support is enabled
+        if (features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            var languageOption = new Option<string?>("--language", "-l");
+            languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
+            Options.Add(languageOption);
+        }
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-        // Get the language selection (from command line, config, or prompt)
-        var explicitLanguage = parseResult.GetValue<string?>("--language");
-        var selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
+        IAppHostProject selectedProject;
+
+        // Only do language selection when polyglot support is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            // Get the language selection (from command line, config, or prompt)
+            var explicitLanguage = parseResult.GetValue<string?>("--language");
+            selectedProject = await _languageService.GetOrPromptForProjectAsync(explicitLanguage, saveSelection: true, cancellationToken);
+
+            // For non-C# languages, skip solution detection and create polyglot apphost
+            if (selectedProject.LanguageId != KnownLanguageId.CSharp)
+            {
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMessage("information", $"Creating {selectedProject.DisplayName} AppHost...");
+                InteractionService.DisplayEmptyLine();
+                return await CreatePolyglotAppHostAsync(selectedProject, cancellationToken);
+            }
+        }
 
         // For C#, we need the .NET SDK
-        if (selectedProject.LanguageId == KnownLanguageId.CSharp)
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
-            if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
-            {
-                return ExitCodeConstants.SdkNotInstalled;
-            }
+            return ExitCodeConstants.SdkNotInstalled;
         }
 
         // Create the init context to build up a model of the operation
@@ -142,15 +158,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         // Use SolutionLocator to find solution files, walking up the directory tree
         initContext.SelectedSolutionFile = await _solutionLocator.FindSolutionFileAsync(_executionContext.WorkingDirectory, cancellationToken);
-
-        // For non-C# languages, skip solution detection and create polyglot apphost
-        if (selectedProject.LanguageId != KnownLanguageId.CSharp)
-        {
-            InteractionService.DisplayEmptyLine();
-            InteractionService.DisplayMessage("information", $"Creating {selectedProject.DisplayName} AppHost...");
-            InteractionService.DisplayEmptyLine();
-            return await CreatePolyglotAppHostAsync(selectedProject, cancellationToken);
-        }
 
         if (initContext.SelectedSolutionFile is not null)
         {

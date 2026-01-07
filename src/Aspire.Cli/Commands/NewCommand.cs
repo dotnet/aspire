@@ -118,9 +118,13 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         };
         Options.Add(channelOption);
 
-        var languageOption = new Option<string?>("--language", "-l");
-        languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
-        Options.Add(languageOption);
+        // Only add --language option when polyglot support is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
+        {
+            var languageOption = new Option<string?>("--language", "-l");
+            languageOption.Description = "The programming language for the AppHost (csharp, typescript, python)";
+            Options.Add(languageOption);
+        }
 
         _templates = templateProvider.GetTemplates();
 
@@ -151,16 +155,20 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-        // Check if language is explicitly specified
-        var explicitLanguage = parseResult.GetValue<string?>("--language");
-
-        // If a non-C# language is specified, create polyglot apphost
-        if (!string.IsNullOrWhiteSpace(explicitLanguage))
+        // Only check for language option when polyglot support is enabled
+        if (_features.IsFeatureEnabled(KnownFeatures.PolyglotSupportEnabled, false))
         {
-            var project = _projectFactory.GetProjectByLanguageId(explicitLanguage);
-            if (project is not null && project.LanguageId != KnownLanguageId.CSharp)
+            // Check if language is explicitly specified
+            var explicitLanguage = parseResult.GetValue<string?>("--language");
+
+            // If a non-C# language is specified, create polyglot apphost
+            if (!string.IsNullOrWhiteSpace(explicitLanguage))
             {
-                return await CreatePolyglotProjectAsync(parseResult, project, cancellationToken);
+                var project = _projectFactory.GetProjectByLanguageId(explicitLanguage);
+                if (project is not null && project.LanguageId != KnownLanguageId.CSharp)
+                {
+                    return await CreatePolyglotProjectAsync(parseResult, project, cancellationToken);
+                }
             }
         }
 

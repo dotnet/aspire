@@ -201,7 +201,7 @@ public class Program
         // AppHost project handlers.
         builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, DotNetAppHostProject>());
-        if (builder.Configuration.GetValue($"features:{KnownFeatures.TypeScriptSupportEnabled}", false))
+        if (builder.Configuration.GetValue($"features:{KnownFeatures.PolyglotSupportEnabled}", false))
         {
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, TypeScriptAppHostProject>());
         }

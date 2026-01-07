@@ -53,8 +53,15 @@ internal sealed class LanguageService : ILanguageService
     /// <inheritdoc />
     public async Task<IAppHostProject> PromptForProjectAsync(CancellationToken cancellationToken = default)
     {
-        var projects = _projectFactory.GetAllProjects()
-            .ToDictionary(p => p, p => p.DisplayName);
+        var projects = _projectFactory.GetAllProjects().ToList();
+
+        // If only one project is available, return it without prompting
+        if (projects.Count == 1)
+        {
+            return projects[0];
+        }
+
+        var projectDict = projects.ToDictionary(p => p, p => p.DisplayName);
 
         _interactionService.DisplayEmptyLine();
         _interactionService.DisplayMarkdown("""
@@ -67,7 +74,7 @@ internal sealed class LanguageService : ILanguageService
 
         var selected = await _interactionService.PromptForSelectionAsync(
             "Which language would you like to use?",
-            projects,
+            projectDict,
             kvp => kvp.Value,
             cancellationToken);
 
