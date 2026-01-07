@@ -22,7 +22,7 @@ The CI infrastructure uses a matrix strategy to fan out test execution:
 2. **Runsheet Generation**: A JSON runsheet entry is created for each unique test class
 3. **Parallel Execution**: GitHub Actions creates a separate job for each test class, running them in parallel on different agents
 
-```
+```plaintext
 ┌─────────────────────────────────────────────────────────────────┐
 │                    generate_cli_e2e_matrix                       │
 │    Discovers test classes and generates runsheet                 │
