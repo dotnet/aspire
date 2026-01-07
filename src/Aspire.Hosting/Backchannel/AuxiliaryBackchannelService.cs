@@ -172,7 +172,9 @@ internal sealed class AuxiliaryBackchannelService(
             hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
         }
         
-        var socketPath = Path.Combine(backchannelsDir, $"aux.sock.{hash}");
+        // Note: "aux" is a reserved device name on Windows < 11 (from DOS days: CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+        // Using "auxi" instead to avoid "SocketException: A socket operation encountered a dead network"
+        var socketPath = Path.Combine(backchannelsDir, $"auxi.sock.{hash}");
         return socketPath;
     }
 }

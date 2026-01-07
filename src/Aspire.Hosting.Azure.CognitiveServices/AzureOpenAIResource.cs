@@ -25,6 +25,11 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     public BicepOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
+    /// Gets the service endpoint URI expression for the Azure OpenAI resource.
+    /// </summary>
+    public BicepOutputReference Endpoint => new("endpoint", this);
+
+    /// <summary>
     /// Gets the "name" output reference for the resource.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
@@ -36,7 +41,7 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     /// Format: The Azure OpenAI endpoint URL.
     /// </remarks>
     public ReferenceExpression UriExpression =>
-      ReferenceExpression.Create($"{ConnectionString}");
+        ReferenceExpression.Create($"{Endpoint}");
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
