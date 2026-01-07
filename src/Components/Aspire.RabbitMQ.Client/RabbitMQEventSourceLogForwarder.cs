@@ -151,6 +151,12 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
         // https://github.com/dotnet/runtime/blob/15663b5a44d507e0c120f88b6e2e96f977ceac90/src/libraries/System.Private.CoreLib/src/System/Diagnostics/Tracing/EventSource.cs#L4153-L4158
         protected sealed override void OnEventSourceCreated(EventSource eventSource)
         {
+            // Defensive check for being passed a event source.
+            if (eventSource == null)
+            {
+                return;
+            }
+
             base.OnEventSourceCreated(eventSource);
 
             // Log will be null during base constructor call. Store registered event source to enable later when class is initialized.
