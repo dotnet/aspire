@@ -1,0 +1,156 @@
+# Executes CLI End-to-End tests with each test class running as a separate job
+name: CLI E2E Tests
+
+on:
+  workflow_call:
+    inputs:
+      versionOverrideArg:
+        required: false
+        type: string
+
+jobs:
+
+  generate_cli_e2e_matrix:
+    name: Generate CLI E2E test runsheet
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
+    outputs:
+      runsheet: ${{ steps.generate_cli_e2e_matrix.outputs.runsheet }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Build the CLI E2E test project so we can discover tests
+      - name: Build the CLI E2E test project
+        run: >
+          ./build.sh
+          --restore
+          --build
+          -c Release
+          -projects tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
+          /p:GeneratePackageOnBuild=false
+          /p:InstallBrowsersForPlaywright=false
+
+      - name: Generate test runsheet
+        id: generate_cli_e2e_matrix
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: >
+          ./build.sh
+          --test
+          /p:TestRunnerName=CliEndToEndTestRunsheetBuilder
+          -c Release
+          -projects tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
+          /p:Restore=false
+          /p:Build=false
+          /bl:${{ github.workspace }}/artifacts/log/Release/runsheet.binlog
+
+      - name: Upload logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: logs-cli-e2e-runsheet
+          path: |
+            ${{ github.workspace }}/artifacts/log/*/runsheet.binlog
+            ${{ github.workspace }}/artifacts/log/*/TestLogs/**
+            ${{ github.workspace }}/artifacts/tmp/*/combined_runsheet.json
+            ${{ github.workspace }}/artifacts/tmp/*/*.runsheet.json
+          retention-days: 5
+
+  build_packages:
+    name: Build packages
+    needs: [generate_cli_e2e_matrix]
+    if: ${{ github.repository_owner == 'dotnet' && needs.generate_cli_e2e_matrix.outputs.runsheet != '[]' }}
+    uses: ./.github/workflows/build-packages.yml
+    with:
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+
+  run_cli_e2e_tests:
+    name: CLI E2E Test
+    needs: [generate_cli_e2e_matrix, build_packages]
+    strategy:
+      fail-fast: false
+      matrix:
+        tests: ${{ fromJson(needs.generate_cli_e2e_matrix.outputs.runsheet) }}
+    if: ${{ github.repository_owner == 'dotnet' && !cancelled() && !failure() && needs.generate_cli_e2e_matrix.outputs.runsheet != '[]' }}
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      testShortName: ${{ matrix.tests.project }}
+      testProjectPath: tests/Aspire.Cli.EndToEndTests/Aspire.Cli.EndToEndTests.csproj
+      requiresNugets: true
+      requiresTestSdk: true
+      os: ubuntu-latest
+      testSessionTimeout: 30m
+      testHangTimeout: 15m
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class ${{ matrix.tests.filterClass }}"
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+
+  results:
+    if: ${{ always() && github.repository_owner == 'dotnet' }}
+    runs-on: ubuntu-latest
+    name: CLI E2E Final Results
+    needs: [generate_cli_e2e_matrix, build_packages, run_cli_e2e_tests]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Check if there were no tests to run
+      - name: Check if tests were run
+        id: check_tests
+        run: |
+          if [ "${{ needs.generate_cli_e2e_matrix.outputs.runsheet }}" = "[]" ]; then
+            echo "No CLI E2E tests found"
+            echo "tests_run=false" >> $GITHUB_OUTPUT
+          else
+            echo "tests_run=true" >> $GITHUB_OUTPUT
+          fi
+
+      # get all the test logs artifacts into a single directory
+      - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        if: steps.check_tests.outputs.tests_run == 'true'
+        with:
+          pattern: 'logs-*'
+          path: ${{ github.workspace }}/artifacts/all-logs
+
+      # Organize the .trx files by OS
+      - name: Organize test results by OS
+        if: steps.check_tests.outputs.tests_run == 'true'
+        shell: pwsh
+        run: |
+          $logDirectory = "${{ github.workspace }}/artifacts/all-logs"
+
+          # Create OS-specific directories
+          New-Item -ItemType Directory -Path "${{ github.workspace }}/testresults/ubuntu-latest" -Force
+
+          # Find all .trx files
+          $trxFiles = Get-ChildItem -Path $logDirectory -Filter *.trx -Recurse
+
+          # Copy each .trx file to the Linux folder (CLI E2E only runs on Linux)
+          foreach ($trxFile in $trxFiles) {
+              Copy-Item -Path $trxFile.FullName -Destination "${{ github.workspace }}/testresults/ubuntu-latest/" -Force
+          }
+
+      - name: Generate test results summary
+        if: steps.check_tests.outputs.tests_run == 'true'
+        run: >
+          ${{ github.workspace }}/dotnet.sh
+          run
+          --project ${{ github.workspace }}/tools/GenerateTestSummary/GenerateTestSummary.csproj
+          --
+          ${{ github.workspace }}/testresults
+          --combined
+
+      - name: Fail if any dependency failed
+        if: >-
+          ${{
+            always() && (
+              needs.generate_cli_e2e_matrix.result == 'failure' ||
+              needs.generate_cli_e2e_matrix.result == 'cancelled' ||
+              needs.run_cli_e2e_tests.result == 'failure' ||
+              needs.run_cli_e2e_tests.result == 'cancelled' ||
+              needs.run_cli_e2e_tests.result == 'skipped' ||
+              (needs.build_packages.result == 'failure') ||
+              (needs.build_packages.result == 'cancelled')
+            )
+          }}
+        run: |
+          echo "One or more dependent jobs failed."
+          exit 1
