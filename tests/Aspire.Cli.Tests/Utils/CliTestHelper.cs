@@ -396,7 +396,7 @@ internal sealed class TestOutputTextWriter : TextWriter
 
     public override void WriteLine(string? message)
     {
-        _outputHelper.WriteLine("CLI stdout: " + message);
+        _outputHelper.WriteLine(message!);
         if (message is not null)
         {
             Logs.Add(message);
