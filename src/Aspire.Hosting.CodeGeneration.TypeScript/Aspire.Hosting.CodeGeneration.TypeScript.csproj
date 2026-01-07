@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Aspire.Hosting.CodeGeneration.TypeScript</RootNamespace>
+    <!-- These are just for the CLI and are separate projects for layering purposes -->
     <IsPackable>false</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
