@@ -122,7 +122,7 @@ public static class AzureCognitiveServicesProjectExtensions
                 Value = project.Id
             });
             infra.Add(new ProvisioningOutput("name", typeof(string)) { Value = project.Name });
-            infra.Add(new ProvisioningOutput("connectionString", typeof(string))
+            infra.Add(new ProvisioningOutput("endpoint", typeof(string))
             {
                 Value = (BicepValue<string>)new IndexExpression((BicepExpression)project.Properties.Endpoints!, "AI Foundry API")
             });
@@ -224,11 +224,9 @@ public static class AzureCognitiveServicesProjectExtensions
 
         if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionString))
         {
-            builder.WithEnvironment(
-                resource.ConnectionStringEnvironmentVariable ?? "AZURE_AI_PROJECT_ENDPOINT",
-                resource.ConnectionStringExpression
-            );
-            builder.WithEnvironment("AGENT_PROJECT_RESOURCE_ID", resource.Id);
+            // Also inject the striaght URL as another env var, because the APIProjectClient
+            // does not accept a connection string format.
+            builder.WithEnvironment("AZURE_AI_PROJECT_ENDPOINT", resource.Endpoint);
         }
         if (builder is IResourceBuilder<IResourceWithWaitSupport> waitableBuilder)
         {

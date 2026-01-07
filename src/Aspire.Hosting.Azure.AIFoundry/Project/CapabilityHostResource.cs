@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure.AIFoundry;
 /// The Azure Cognitive Services project-level capability host resource.
 /// </summary>
 public class AzureCognitiveServicesProjectCapabilityHostResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure, AzureCognitiveServicesProjectResource parent) :
-    AzureResourceManagerAspireResourceWithParent<CognitiveServicesProjectCapabilityHost, AzureCognitiveServicesProjectResource>(name, configureInfrastructure, parent)
+    AzureProvisionableAspireResourceWithParent<CognitiveServicesProjectCapabilityHost, AzureCognitiveServicesProjectResource>(name, configureInfrastructure, parent)
 {
     internal AzureCosmosDBResource? CosmosDB { get; set; }
     internal AzureKeyVaultResource? KeyVault { get; set; }

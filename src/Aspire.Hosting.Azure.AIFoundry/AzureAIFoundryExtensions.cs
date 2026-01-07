@@ -42,6 +42,40 @@ public static class AzureAIFoundryExtensions
     }
 
     /// <summary>
+    /// Adds a reference to an Azure Cognitive Services default project to the destination resource.
+    ///
+    /// This adds both the standard environment variables (e.g. `ConnectionStrings__{name}={url}`) but also
+    /// the `AZURE_AI_PROJECT_ENDPOINT` environment variable.
+    /// </summary>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<AzureAIFoundryResource> foundry)
+        where TDestination : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(foundry);
+
+        // Add standard references and environment variables
+        ResourceBuilderExtensions.WithReference(builder, foundry);
+
+        var resource = foundry.Resource;
+
+        // Determine what to inject based on the annotation on the destination resource
+        var injectionAnnotation = builder.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var annotation) ? annotation : null;
+        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
+
+        if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionString))
+        {
+            // Also inject the striaght URL as another env var, because the APIProjectClient
+            // does not accept a connection string format.
+            builder.WithEnvironment("AZURE_AI_PROJECT_ENDPOINT", resource.AIFoundryApiEndpoint);
+        }
+        if (builder is IResourceBuilder<IResourceWithWaitSupport> waitableBuilder)
+        {
+            waitableBuilder.WaitFor(foundry);
+        }
+        return builder;
+    }
+
+    /// <summary>
     /// Adds and returns an Azure AI Foundry Deployment resource (e.g. an AI model) to the application model.
     /// </summary>
     /// <param name="builder">The Azure AI Foundry resource builder.</param>

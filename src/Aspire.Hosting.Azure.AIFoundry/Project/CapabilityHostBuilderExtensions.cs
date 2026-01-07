@@ -6,7 +6,6 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AIFoundry;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
-using Azure.Provisioning.Resources;
 
 namespace Aspire.Hosting;
 
@@ -33,10 +32,11 @@ public static class AzureCognitiveServicesCapabilityHostExtensions
         AzureCognitiveServicesProjectCapabilityHostResource? capabilityHostResource;
         void configureInfrastructure(AzureResourceInfrastructure infra)
         {
+            var aspireResource = infra.AspireResource as AzureCognitiveServicesProjectCapabilityHostResource ?? throw new InvalidOperationException("Aspire resource is not of expected type.");
+            var myBicepId = aspireResource.GetBicepIdentifier();
             var parent = AzureCognitiveServicesProjectResource.GetProvisionableResource(
                 infra,
                 project.GetBicepIdentifier()) ?? throw new InvalidOperationException($"Could not find parent Azure Cognitive Services project resource for project '{project.GetBicepIdentifier()}'.");
-            var myBicepId = infra.AspireResource.GetBicepIdentifier();
             var capabilityHost = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(
                 infra,
                 (identifier, resourceName) =>
@@ -48,39 +48,43 @@ public static class AzureCognitiveServicesCapabilityHostExtensions
                 },
                 infra =>
                 {
-                    var resource = new CognitiveServicesProjectCapabilityHost(infra.AspireResource.GetBicepIdentifier())
+                    var resource = new CognitiveServicesProjectCapabilityHost(myBicepId)
                     {
                         Parent = parent,
                         Name = name,
                         Properties = new CognitiveServicesCapabilityHostProperties
                         {
                             CapabilityHostKind = CapabilityHostKind.Agents,
-                            Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
+                            Tags = { { "aspire-resource-name", aspireResource.Name } }
                         }
                     };
                     return resource;
                 });
             infra.Add(new ProvisioningOutput("name", typeof(string)) { Value = capabilityHost.Name });
 
-            if (capabilityHostResource?.KeyVault != null)
+            if (aspireResource.KeyVault != null)
             {
-                capabilityHostResource.KeyVault.AddAsExistingResource(infra);
+                aspireResource.KeyVault.AddAsExistingResource(infra);
+                ;
                 // TODO: Add Key Vault connection to project and set connection property
             }
 
-            if (capabilityHostResource?.Storage != null)
+            if (aspireResource.Storage != null)
             {
-                capabilityHostResource.Storage.AddAsExistingResource(infra);
+                aspireResource.Storage.AddAsExistingResource(infra);
+                ;
                 // TODO: Add storage connection to project and set connection property
             }
-            if (capabilityHostResource?.CosmosDB != null)
+            if (aspireResource.CosmosDB != null)
             {
-                capabilityHostResource.CosmosDB.AddAsExistingResource(infra);
+                aspireResource.CosmosDB.AddAsExistingResource(infra);
+                ;
                 // TODO: Add CosmosDB connection to project and set connection property
             }
-            if (capabilityHostResource?.VirtualNetwork != null)
+            if (aspireResource.VirtualNetwork != null)
             {
-                capabilityHostResource.VirtualNetwork.AddAsExistingResource(infra);
+                aspireResource.VirtualNetwork.AddAsExistingResource(infra);
+                ;
                 // TODO: Configure capability host to use virtual network
             }
             // TODO: Add other resources as needed, like AI Search, AOAI

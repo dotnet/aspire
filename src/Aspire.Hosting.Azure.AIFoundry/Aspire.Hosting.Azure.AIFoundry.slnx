@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Aspire.Hosting.Azure.AIFoundry.csproj" />
+  <Project Path="..\..\tests\Aspire.Hosting.Azure.AIFoundry.Tests\Aspire.Hosting.Azure.AIFoundry.Tests.csproj" />
+  <!-- <Project Path="..\..\playground\AzureAIFoundryEndToEnd\AzureAIFoundryEndToEnd.AppHost\AzureAIFoundryEndToEnd.AppHost.csproj" /> -->
+  <!-- <Project Path="..\..\playground\FoundryAgentBasic\FoundryAgentBasic.AppHost\FoundryAgentBasic.AppHost.csproj" /> -->
+  <!-- <Project Path="..\..\playground\FoundryAgentEnterprise\FoundryAgentEnterprise.AppHost\FoundryAgentEnterprise.AppHost.csproj" /> -->
+</Solution>
