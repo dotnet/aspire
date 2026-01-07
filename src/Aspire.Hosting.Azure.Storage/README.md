@@ -144,7 +144,7 @@ The Queue resource inherits all properties from its parent `AzureQueueStorageRes
 | Property Name | Description |
 |---------------|-------------|
 | `QueueName` | The name of the queue |
-| `ConnectionString` | **Emulator only.** The connection string for the table storage service |
+| `ConnectionString` | **Emulator only.** The connection string for the queue storage service |
 
 ### Table Storage
 

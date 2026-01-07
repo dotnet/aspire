@@ -36,7 +36,7 @@ public class AzureWebPubSubResource(string name, Action<AzureResourceInfrastruct
     /// Gets the service endpoint URI expression for the Azure Web PubSub resource.
     /// </summary>
     /// <remarks>
-    /// Format: <c>https://{name}.search.windows.net</c>.
+    /// Format: <c>https://{name}.webpubsub.azure.com</c>.
     /// </remarks>
     public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Endpoint}");
 
