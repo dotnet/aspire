@@ -15,23 +15,55 @@ public sealed class McpServerEndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// Initializes a new instance of the <see cref="McpServerEndpointAnnotation"/> class.
     /// </summary>
-    /// <param name="endpointName">The name of the endpoint on the resource that hosts the MCP server.</param>
-    /// <param name="path">An optional path to append to the endpoint URL. Defaults to <c>"/mcp"</c>.</param>
-    public McpServerEndpointAnnotation(string endpointName, string? path = "/mcp")
+    /// <param name="endpointUrlResolver">A callback that resolves the MCP server endpoint URL from the resource.</param>
+    public McpServerEndpointAnnotation(Func<IResourceWithEndpoints, CancellationToken, Task<Uri?>> endpointUrlResolver)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
-
-        EndpointName = endpointName;
-        Path = path;
+        ArgumentNullException.ThrowIfNull(endpointUrlResolver);
+        EndpointUrlResolver = endpointUrlResolver;
     }
 
     /// <summary>
-    /// Gets the name of the endpoint on the resource that hosts the MCP server.
+    /// Gets the callback that resolves the MCP server endpoint URL from the resource.
     /// </summary>
-    public string EndpointName { get; }
+    public Func<IResourceWithEndpoints, CancellationToken, Task<Uri?>> EndpointUrlResolver { get; }
 
     /// <summary>
-    /// Gets the optional path to append to the endpoint URL.
+    /// Creates an <see cref="McpServerEndpointAnnotation"/> that resolves the MCP server URL from a named endpoint.
     /// </summary>
-    public string? Path { get; }
+    /// <param name="endpointName">The name of the endpoint on the resource that hosts the MCP server.</param>
+    /// <param name="path">An optional path to append to the endpoint URL. Defaults to <c>"/mcp"</c>.</param>
+    /// <returns>A new <see cref="McpServerEndpointAnnotation"/> instance.</returns>
+    public static McpServerEndpointAnnotation FromEndpoint(string endpointName, string? path = "/mcp")
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
+
+        return new McpServerEndpointAnnotation(async (resource, cancellationToken) =>
+        {
+            var endpoint = resource.GetEndpoint(endpointName);
+            if (!endpoint.Exists)
+            {
+                return null;
+            }
+
+            var baseUrl = await endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrEmpty(baseUrl))
+            {
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(path))
+            {
+                return new Uri(baseUrl, UriKind.Absolute);
+            }
+
+            var normalizedPath = path;
+            if (!normalizedPath.StartsWith("/", StringComparison.Ordinal))
+            {
+                normalizedPath = "/" + normalizedPath;
+            }
+
+            var combined = baseUrl.TrimEnd('/') + normalizedPath;
+            return new Uri(combined, UriKind.Absolute);
+        });
+    }
 }

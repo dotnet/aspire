@@ -268,22 +268,43 @@ internal sealed class DashboardMcpConnectionInfo
 }
 
 /// <summary>
-/// Represents a resource that exposes an MCP server and its available tools.
+/// Represents a snapshot of a resource in the application model, suitable for RPC communication.
 /// </summary>
-internal sealed class ResourceMcpTool
+internal sealed class ResourceSnapshot
 {
     /// <summary>
-    /// Gets the resource name.
+    /// Gets the unique name of the resource.
     /// </summary>
-    public required string ResourceName { get; init; }
+    public required string Name { get; init; }
 
     /// <summary>
-    /// Gets the MCP endpoint URL for the resource.
+    /// Gets the type of the resource (e.g., "Project", "Container", "Executable").
+    /// </summary>
+    public required string Type { get; init; }
+
+    /// <summary>
+    /// Gets the current state of the resource (e.g., "Running", "Stopped", "Starting").
+    /// </summary>
+    public string? State { get; init; }
+
+    /// <summary>
+    /// Gets the MCP server information if the resource exposes an MCP endpoint.
+    /// </summary>
+    public ResourceSnapshotMcpServer? McpServer { get; init; }
+}
+
+/// <summary>
+/// Represents MCP server information for a resource.
+/// </summary>
+internal sealed class ResourceSnapshotMcpServer
+{
+    /// <summary>
+    /// Gets the MCP endpoint URL.
     /// </summary>
     public required string EndpointUrl { get; init; }
 
     /// <summary>
-    /// Gets the tools exposed by the resource.
+    /// Gets the tools exposed by the MCP server.
     /// </summary>
     public required Tool[] Tools { get; init; }
 }

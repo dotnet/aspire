@@ -36,8 +36,11 @@ namespace Aspire.Cli.Backchannel;
 [JsonSerializable(typeof(AppHostProjectSearchResultPoco))]
 [JsonSerializable(typeof(DashboardMcpConnectionInfo))]
 [JsonSerializable(typeof(AppHostInformation))]
-[JsonSerializable(typeof(ResourceMcpTool))]
-[JsonSerializable(typeof(ResourceMcpTool[]))]
+[JsonSerializable(typeof(ResourceSnapshot))]
+[JsonSerializable(typeof(ResourceSnapshot[]))]
+[JsonSerializable(typeof(IAsyncEnumerable<ResourceSnapshot>))]
+[JsonSerializable(typeof(MessageFormatterEnumerableTracker.EnumeratorResults<ResourceSnapshot>))]
+[JsonSerializable(typeof(ResourceSnapshotMcpServer))]
 [JsonSerializable(typeof(Dictionary<string, JsonElement>))]
 internal partial class BackchannelJsonSerializerContext : JsonSerializerContext
 {

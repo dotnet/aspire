@@ -384,8 +384,9 @@ public static class PostgresBuilderExtensions
             {
                 context.EnvironmentVariables[PostgresMcpDatabaseUriEnvVarName] = builder.Resource.UriExpression;
             })
-            .WithAnnotation(new McpServerEndpointAnnotation(PostgresMcpContainerResource.PrimaryEndpointName, "/sse"))
-            .WithIconName("BrainCircuit"); // Show a BrainCircuit icon for MCP resources in the dashboard
+            .WithAnnotation(McpServerEndpointAnnotation.FromEndpoint(PostgresMcpContainerResource.PrimaryEndpointName, "/sse"))
+            .WithIconName("BrainCircuit") // Show a BrainCircuit icon for MCP resources in the dashboard
+            .WaitFor(builder);
 
         configureContainer?.Invoke(mcpContainerBuilder);
 
@@ -432,8 +433,9 @@ public static class PostgresBuilderExtensions
             {
                 context.EnvironmentVariables[PostgresMcpDatabaseUriEnvVarName] = builder.Resource.UriExpression;
             })
-            .WithAnnotation(new McpServerEndpointAnnotation(PostgresMcpContainerResource.PrimaryEndpointName, "/sse"))
-            .WithIconName("BrainCircuit"); // Show a BrainCircuit icon for MCP resources in the dashboard
+            .WithAnnotation(McpServerEndpointAnnotation.FromEndpoint(PostgresMcpContainerResource.PrimaryEndpointName, "/sse"))
+            .WithIconName("BrainCircuit") // Show a BrainCircuit icon for MCP resources in the dashboard
+            .WaitFor(builder);
 
         configureContainer?.Invoke(mcpContainerBuilder);
 

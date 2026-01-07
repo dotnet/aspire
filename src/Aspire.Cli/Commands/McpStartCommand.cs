@@ -297,26 +297,44 @@ internal sealed class McpStartCommand : BaseCommand
         {
             var connection = GetSelectedConnection();
 
-            var refreshedToolCount = 0;
-
             if (connection is not null)
             {
-                var resourceTools = await connection.ListResourceMcpToolsAsync(cancellationToken).ConfigureAwait(false);
+                // Collect initial snapshots from the stream
+                // The stream yields initial snapshots for all resources first
+                var resourcesWithTools = new List<ResourceSnapshot>();
+                var seenResources = new HashSet<string>(StringComparer.Ordinal);
 
-                _logger.LogDebug("Tools received: {Tools}", JsonSerializer.Serialize(resourceTools, typeof(ResourceMcpTool[]), BackchannelJsonSerializerContext.Default));
-
-                foreach (var resource in resourceTools)
+                await foreach (var snapshot in connection.WatchResourceSnapshotsAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    foreach (var tool in resource.Tools)
+                    // Stop after we've seen all resources once (initial batch)
+                    if (!seenResources.Add(snapshot.Name))
                     {
-                        var exposedName = $"{resource.ResourceName.Replace("-", "_")}_{tool.Name}";
-                        refreshedMap[exposedName] = (resource.ResourceName, tool);
-                        refreshedToolCount++;
+                        break;
+                    }
+
+                    if (snapshot.McpServer is not null)
+                    {
+                        resourcesWithTools.Add(snapshot);
+                    }
+                }
+
+                _logger.LogDebug("Resources with MCP tools received: {Count}", resourcesWithTools.Count);
+
+                foreach (var resource in resourcesWithTools)
+                {
+                    if (resource.McpServer is null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var tool in resource.McpServer.Tools)
+                    {
+                        var exposedName = $"{resource.Name.Replace("-", "_")}_{tool.Name}";
+                        refreshedMap[exposedName] = (resource.Name, tool);
 
                         _logger.LogDebug("{Tool}: {Description}", exposedName, tool.Description);
                     }
                 }
-
             }
 
         }

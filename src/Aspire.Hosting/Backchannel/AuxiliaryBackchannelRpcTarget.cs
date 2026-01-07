@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
@@ -118,67 +119,71 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     }
 
     /// <summary>
-    /// Lists MCP tools for all resources in the application model that are annotated with <see cref="McpServerEndpointAnnotation"/>.
+    /// Watches for resource snapshot changes and streams them to the client.
     /// </summary>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A list of resources that expose MCP servers and their available tools.</returns>
-    public async Task<ResourceMcpTool[]> ListResourceMcpToolsAsync(CancellationToken cancellationToken = default)
+    /// <returns>An async enumerable of resource snapshots as they change.</returns>
+    public async IAsyncEnumerable<ResourceSnapshot> WatchResourceSnapshotsAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var appModel = serviceProvider.GetService<DistributedApplicationModel>();
-        if (appModel is null)
+        var notificationService = serviceProvider.GetService<ResourceNotificationService>();
+        if (notificationService is null)
         {
-            logger.LogWarning("Application model not found.");
-            return [];
+            logger.LogWarning("ResourceNotificationService not found.");
+            yield break;
         }
 
-        var resources = appModel.Resources
-            .OfType<IResourceWithEndpoints>()
-            .Select(r => new
-            {
-                Resource = r,
-                HasAnnotation = r.TryGetLastAnnotation<McpServerEndpointAnnotation>(out var annotation),
-                Annotation = annotation
-            })
-            .Where(x => x.HasAnnotation)
-            .ToList();
+        var resourceEvents = notificationService.WatchAsync(cancellationToken);
 
-        if (resources.Count == 0)
+        await foreach (var resourceEvent in resourceEvents.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
-            return [];
-        }
-
-        var results = new List<ResourceMcpTool>(resources.Count);
-        foreach (var entry in resources)
-        {
-            var resource = entry.Resource;
-            var annotation = entry.Annotation!;
-
-            var endpointUri = await TryGetMcpEndpointUrlAsync(resource, annotation, cancellationToken).ConfigureAwait(false);
-            if (endpointUri is null)
+            // Skip the dashboard resource
+            if (StringComparers.ResourceName.Equals(resourceEvent.Resource.Name, KnownResourceNames.AspireDashboard))
             {
                 continue;
             }
 
-            var tools = await TryListToolsAsync(endpointUri, cancellationToken).ConfigureAwait(false);
-            if (tools is null)
+            var snapshot = await CreateResourceSnapshotFromEventAsync(resourceEvent, cancellationToken).ConfigureAwait(false);
+            if (snapshot is not null)
             {
-                continue;
+                yield return snapshot;
             }
+        }
+    }
 
-            if (logger.IsEnabled(LogLevel.Debug))
+    private async Task<ResourceSnapshot?> CreateResourceSnapshotFromEventAsync(
+        ResourceEvent resourceEvent,
+        CancellationToken cancellationToken)
+    {
+        var resource = resourceEvent.Resource;
+        var customSnapshot = resourceEvent.Snapshot;
+
+        // Get MCP server info if available
+        ResourceSnapshotMcpServer? mcpServer = null;
+        if (resource is IResourceWithEndpoints resourceWithEndpoints &&
+            resourceWithEndpoints.TryGetLastAnnotation<McpServerEndpointAnnotation>(out var mcpAnnotation))
+        {
+            var endpointUri = await mcpAnnotation.EndpointUrlResolver(resourceWithEndpoints, cancellationToken).ConfigureAwait(false);
+            if (endpointUri is not null)
             {
-                logger.LogDebug("Found {ToolsNumber} tools for {ResourceName}: {Tools}", tools.Length, resource.Name, string.Join(", ", tools.Select(x => x.Name)));
+                var tools = await TryListToolsAsync(endpointUri, cancellationToken).ConfigureAwait(false);
+                if (tools is not null)
+                {
+                    mcpServer = new ResourceSnapshotMcpServer
+                    {
+                        EndpointUrl = endpointUri.ToString(),
+                        Tools = tools
+                    };
+                }
             }
-
-            results.Add(new ResourceMcpTool
-            {
-                EndpointUrl = endpointUri.ToString(),
-                ResourceName = resource.Name,
-                Tools = tools
-            });
         }
 
-        return [.. results];
+        return new ResourceSnapshot
+        {
+            Name = resource.Name,
+            Type = customSnapshot.ResourceType,
+            State = customSnapshot.State?.Text,
+            McpServer = mcpServer
+        };
     }
 
     /// <summary>
@@ -218,7 +223,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             throw new InvalidOperationException($"Resource '{resourceName}' does not have an MCP endpoint annotation.");
         }
 
-        var endpointUri = await TryGetMcpEndpointUrlAsync(resource, annotation, cancellationToken).ConfigureAwait(false);
+        var endpointUri = await annotation.EndpointUrlResolver(resource, cancellationToken).ConfigureAwait(false);
         if (endpointUri is null)
         {
             throw new InvalidOperationException($"MCP endpoint for resource '{resourceName}' is not available.");
@@ -305,35 +310,6 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         }, CancellationToken.None);
 
         return Task.CompletedTask;
-    }
-
-    private static async Task<Uri?> TryGetMcpEndpointUrlAsync(IResourceWithEndpoints resource, McpServerEndpointAnnotation annotation, CancellationToken cancellationToken)
-    {
-        var endpoint = resource.GetEndpoint(annotation.EndpointName);
-        if (!endpoint.Exists)
-        {
-            return null;
-        }
-
-        var baseUrl = await endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
-        if (string.IsNullOrEmpty(baseUrl))
-        {
-            return null;
-        }
-
-        var path = annotation.Path;
-        if (string.IsNullOrEmpty(path))
-        {
-            return new Uri(baseUrl, UriKind.Absolute);
-        }
-
-        if (!path.StartsWith("/", StringComparison.Ordinal))
-        {
-            path = "/" + path;
-        }
-
-        var combined = baseUrl.TrimEnd('/') + path;
-        return new Uri(combined, UriKind.Absolute);
     }
 
     private async Task<Tool[]?> TryListToolsAsync(Uri endpointUri, CancellationToken cancellationToken)
