@@ -345,6 +345,38 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task DockerComposeSetsServicePullPolicy()
+    {
+        using var tempDir = new TestTempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
+
+        // Add a container with pull_policy set
+        builder.AddContainer("api", "my-api:latest")
+            .PublishAsDockerComposeService((_, composeService) =>
+            {
+                composeService.PullPolicy = "always";
+            });
+
+        var app = builder.Build();
+        app.Run();
+
+        var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
+        Assert.True(File.Exists(composePath));
+
+        var composeContent = File.ReadAllText(composePath);
+
+        // Verify pull_policy is in the output
+        Assert.Contains("pull_policy: \"always\"", composeContent);
+
+        await Verify(composeContent, "yaml");
+    }
+
+    [Fact]
     public async Task PublishAsync_WithDashboardEnabled_IncludesDashboardService()
     {
         using var tempDir = new TestTempDirectory();
