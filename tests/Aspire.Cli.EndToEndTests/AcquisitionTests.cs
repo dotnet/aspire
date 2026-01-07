@@ -33,18 +33,14 @@ public sealed class AcquisitionTests : IAsyncDisposable
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
         var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
 
-        _output.WriteLine($"Testing CLI from PR #{prNumber} (commit: {commitSha})");
+        _output.WriteLine($"Testing CLI from PR #{prNumber} (commit: {commitSha[..9]})");
 
-        // Create automation builder (handles recording path automatically)
+        // Create automation builder and run the CLI acquisition sequence
         await using var builder = await AspireCliAutomationBuilder.CreateAsync(
             workingDirectory: _workDirectory,
             recordingName: "acquisition-test",
             output: _output,
             prNumber: prNumber);
-
-        // Run the CLI acquisition and verification sequence
-        _output.WriteLine($"Downloading and installing Aspire CLI from PR #{prNumber}...");
-        _output.WriteLine($"Will verify version contains commit SHA: {commitSha}");
 
         await builder
             .PrepareEnvironment()

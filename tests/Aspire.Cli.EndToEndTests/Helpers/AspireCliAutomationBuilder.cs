@@ -12,10 +12,14 @@ namespace Aspire.Cli.EndToEndTests.Helpers;
 /// </summary>
 public sealed class AspireCliAutomationContext
 {
+    private readonly AspireCliAutomationBuilder _builder;
+
     internal AspireCliAutomationContext(
+        AspireCliAutomationBuilder builder,
         Hex1bTerminalInputSequenceBuilder sequenceBuilder,
         AspireTerminalSession session)
     {
+        _builder = builder;
         SequenceBuilder = sequenceBuilder;
         Session = session;
     }
@@ -29,6 +33,13 @@ public sealed class AspireCliAutomationContext
     /// The terminal session containing the terminal, process, and recorder.
     /// </summary>
     public AspireTerminalSession Session { get; }
+
+    /// <summary>
+    /// Increments the command sequence counter and returns the new value.
+    /// Call this after adding a command that will produce a prompt update.
+    /// </summary>
+    /// <returns>The new command sequence number.</returns>
+    public int IncrementCommandSequence() => _builder.IncrementCommandSequence();
 }
 
 /// <summary>
@@ -91,6 +102,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder PrepareEnvironment()
     {
+        _output?.WriteLine("Preparing shell environment with command tracking prompt...");
+
         const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo ✔ || echo ✘:$s)] \\$ \"'";
 
         _sequenceBuilder
@@ -142,17 +155,23 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder DownloadAndInstallAspireCli(int prNumber, TimeSpan? timeout = null)
     {
-        var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
+        _output?.WriteLine($"Downloading and installing Aspire CLI from PR #{prNumber}...");
 
-        _sequenceBuilder
-            .Type(command)
-            .Enter()
-            .WaitUntil(
-                snapshot => snapshot.GetScreenText().Contains("Successfully added aspire to", StringComparison.OrdinalIgnoreCase),
-                timeout ?? TimeSpan.FromMinutes(5));
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
 
-        _commandSequence++;
-        return WaitForSequence(_commandSequence, timeout);
+        return AddSequence(ctx =>
+        {
+            var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
+
+            ctx.SequenceBuilder
+                .Type(command)
+                .Enter()
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Successfully added aspire to", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            ctx.IncrementCommandSequence();
+        }).WaitForSequence(_commandSequence, timeout);
     }
 
     /// <summary>
@@ -161,32 +180,44 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder SourceAspireCliEnvironment()
     {
-        _sequenceBuilder
-            .Type("source ~/.bashrc")
-            .Enter()
-            .Wait(TimeSpan.FromMilliseconds(500));
+        _output?.WriteLine("Sourcing ~/.bashrc to add Aspire CLI to PATH...");
 
-        _commandSequence++;
-        return WaitForSequence(_commandSequence);
+        return AddSequence(ctx =>
+        {
+            ctx.SequenceBuilder
+                .Type("source ~/.bashrc")
+                .Enter()
+                .Wait(TimeSpan.FromMilliseconds(500));
+
+            ctx.IncrementCommandSequence();
+        }).WaitForSequence(_commandSequence);
     }
 
     /// <summary>
     /// Verifies the Aspire CLI installation by checking the version contains the expected commit SHA.
+    /// The commit SHA is trimmed to the first 9 characters for matching.
     /// </summary>
-    /// <param name="expectedCommitSha">The commit SHA to look for in the version output.</param>
+    /// <param name="expectedCommitSha">The full commit SHA (will be trimmed to 9 characters).</param>
     /// <param name="timeout">Maximum time to wait (default: 30 seconds).</param>
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder VerifyAspireCliVersion(string expectedCommitSha, TimeSpan? timeout = null)
     {
-        _sequenceBuilder
-            .Type("aspire --version")
-            .Enter()
-            .WaitUntil(
-                snapshot => snapshot.GetScreenText().Contains(expectedCommitSha, StringComparison.OrdinalIgnoreCase),
-                timeout ?? TimeSpan.FromSeconds(30));
+        // Use first 9 characters of the commit SHA for matching
+        var shortSha = expectedCommitSha.Length > 9 ? expectedCommitSha[..9] : expectedCommitSha;
 
-        _commandSequence++;
-        return WaitForSequence(_commandSequence);
+        _output?.WriteLine($"Verifying Aspire CLI version contains commit SHA: {shortSha}...");
+
+        return AddSequence(ctx =>
+        {
+            ctx.SequenceBuilder
+                .Type("aspire --version")
+                .Enter()
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains(shortSha, StringComparison.OrdinalIgnoreCase),
+                    timeout ?? TimeSpan.FromSeconds(30));
+
+            ctx.IncrementCommandSequence();
+        }).WaitForSequence(_commandSequence);
     }
 
     /// <summary>
@@ -211,10 +242,17 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder AddSequence(Action<AspireCliAutomationContext> configure)
     {
-        var context = new AspireCliAutomationContext(_sequenceBuilder, _session);
+        var context = new AspireCliAutomationContext(this, _sequenceBuilder, _session);
         configure(context);
         return this;
     }
+
+    /// <summary>
+    /// Increments the command sequence counter and returns the new value.
+    /// This is called internally by builder methods and can be used via <see cref="AspireCliAutomationContext.IncrementCommandSequence"/>.
+    /// </summary>
+    /// <returns>The new command sequence number.</returns>
+    internal int IncrementCommandSequence() => ++_commandSequence;
 
     /// <summary>
     /// Executes the automation sequence with built-in exception handling and assertions.
