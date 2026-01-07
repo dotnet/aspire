@@ -34,11 +34,6 @@ internal sealed class AzureAppServiceWebsiteContext(
     private AzureResourceInfrastructure? _infrastructure;
     public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
 
-    /// <summary>
-    /// Tracks resources that should only be created if they don't exist.
-    /// </summary>
-    internal List<string> OnlyIfNotExistsResources { get; } = new();
-
     // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
     // within the naming spec for the app service.
     private BicepValue<string> HostName => BicepFunction.Take(
@@ -328,7 +323,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if (isSlot && parentWebSite is not null && deploymentSlot is not null)
         {
-            var slot = new WebSiteSlot("webappslot")
+            var slot = new AspireWebSiteSlot("webappslot", addOnlyIfNotExistsDecorator)
             {
                 Parent = parentWebSite,
                 Name = deploymentSlot,
@@ -348,7 +343,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 },
             };
 
-            var slotContainer = new SiteSlotSiteContainer("mainContainerSlot")
+            var slotContainer = new AspireSiteSlotSiteContainer("mainContainerSlot", addOnlyIfNotExistsDecorator)
             {
                 Parent = slot,
                 Name = "main",
@@ -363,7 +358,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
         else
         {
-            var site = new WebSite("webapp")
+            var site = new AspireWebSite("webapp", addOnlyIfNotExistsDecorator)
             {
                 Name = name,
                 AppServicePlanId = appServicePlanParameter,
@@ -389,7 +384,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             };
 
             // Defining the main container for the app service
-            var siteContainer = new SiteContainer("mainContainer")
+            var siteContainer = new AspireSiteContainer("mainContainer", addOnlyIfNotExistsDecorator)
             {
                 Parent = site,
                 Name = "main",
@@ -408,11 +403,11 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             var targetPort = GetEndpointValue(mapping, EndpointProperty.TargetPort);
 
-            if (mainContainer is SiteContainer container)
+            if (mainContainer is AspireSiteContainer container)
             {
                 container.TargetPort = targetPort;
             }
-            else if (mainContainer is SiteSlotSiteContainer slotContainer)
+            else if (mainContainer is AspireSiteSlotSiteContainer slotContainer)
             {
                 slotContainer.TargetPort = targetPort;
             }
@@ -473,46 +468,34 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             var arrayExpression = new ArrayExpression([.. args.Select(a => a.Compile())]);
 
-            if (mainContainer is SiteContainer container)
+            if (mainContainer is AspireSiteContainer container)
             {
                 container.StartUpCommand = Join(arrayExpression, " ");
             }
-            else if (mainContainer is SiteSlotSiteContainer slotContainer)
+            else if (mainContainer is AspireSiteSlotSiteContainer slotContainer)
             {
                 slotContainer.StartUpCommand = Join(arrayExpression, " ");
             }
         }
 
-        // Add container and webapp - track if they should have @onlyIfNotExists() decorator
-        if (mainContainer is SiteContainer mainSiteContainer)
+        // Add container to infrastructure - decorator is handled by AspireSiteContainer/AspireSiteSlotSiteContainer
+        if (mainContainer is AspireSiteContainer mainSiteContainer)
         {
             infra.Add(mainSiteContainer);
-            if (addOnlyIfNotExistsDecorator)
-            {
-                // Track this resource for @onlyIfNotExists() decorator in post-processing
-                OnlyIfNotExistsResources.Add(mainSiteContainer.BicepIdentifier);
-            }
         }
-        else if (mainContainer is SiteSlotSiteContainer mainSiteSlotContainer)
+        else if (mainContainer is AspireSiteSlotSiteContainer mainSiteSlotContainer)
         {
             infra.Add(mainSiteSlotContainer);
-            // Slot containers are always created (never have decorator)
         }
 
-        // Add the webapp/slot resource
+        // Add the webapp/slot resource - decorator is handled by AspireWebSite/AspireWebSiteSlot
         if (webSite is WebSite siteToAdd)
         {
             infra.Add(siteToAdd);
-            if (addOnlyIfNotExistsDecorator)
-            {
-                // Track webapp for @onlyIfNotExists() decorator
-                OnlyIfNotExistsResources.Add(siteToAdd.BicepIdentifier);
-            }
         }
         else if (webSite is WebSiteSlot slotToAdd)
         {
             infra.Add(slotToAdd);
-            // Slots are always created (never have decorator)
         }
 
         var id = BicepFunction.Interpolate($"{acrMidParameter}").Compile().ToString();
@@ -718,9 +701,6 @@ internal sealed class AzureAppServiceWebsiteContext(
         BicepValue<string> deploymentSlot)
     {
         _infrastructure = infra;
-        
-        // Clear the list to avoid duplicates from previous builds
-        OnlyIfNotExistsResources.Clear();
 
         _ = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(infra);
         var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(infra);
