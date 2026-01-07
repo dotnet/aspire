@@ -126,7 +126,7 @@ public class DurableTaskResourceExtensionsTests
         Assert.True(dts.ApplicationBuilder.ExecutionContext.IsPublishMode);
 
         var ex = Assert.Throws<InvalidOperationException>(() => _ = dts.Resource.ConnectionStringExpression);
-        Assert.Contains("Unable to create the Durable Task Scheduler connection string", ex.Message);
+        Assert.Contains("Unable to resolve the Durable Task Scheduler connection string", ex.Message);
     }
 
     [Fact]
