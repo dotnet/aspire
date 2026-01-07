@@ -64,11 +64,4 @@
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0008</DiagnosticId>
-    <Target>F:Aspire.Hosting.ApplicationModel.ResourceUrlAnnotation.DisplayOrder</Target>
-    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
-    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
 </Suppressions>
