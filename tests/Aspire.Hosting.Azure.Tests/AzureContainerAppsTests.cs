@@ -1119,7 +1119,7 @@ public class AzureContainerAppsTests
 
         var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
 
-        Assert.Equal("The endpoint(s) 'foo' specify an unsupported protocol. Only TCP endpoints are supported in Azure Container Apps.", ex.Message);
+        Assert.Equal("The endpoint(s) 'udp' specify an unsupported protocol. Only TCP endpoints are supported in Azure Container Apps.", ex.Message);
     }
 
     [Fact]
