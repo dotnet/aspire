@@ -363,6 +363,8 @@ jobs:
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
           # PR number for CLI E2E tests that download artifacts from a PR
           GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          # GitHub token for CLI E2E tests to download artifacts
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Start heartbeat monitor in background
           ${{ env.DOTNET_SCRIPT }} ${{ github.workspace }}/tools/scripts/Heartbeat.cs &
@@ -403,6 +405,8 @@ jobs:
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
           # PR number for CLI E2E tests that download artifacts from a PR
           GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          # GitHub token for CLI E2E tests to download artifacts
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Start heartbeat monitor in background (output goes to console directly)
           $heartbeatProcess = Start-Process -FilePath "${{ env.DOTNET_SCRIPT }}" `
