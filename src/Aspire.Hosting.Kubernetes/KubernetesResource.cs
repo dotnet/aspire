@@ -353,7 +353,7 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
         EnvironmentVariables[key] = new(configExpression, value.ToString() ?? string.Empty);
     }
 
-    private async Task<object> ProcessValueAsync(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value)
+    private async Task<object> ProcessValueAsync(KubernetesEnvironmentContext context, DistributedApplicationExecutionContext executionContext, object value, bool embedded = false)
     {
         while (true)
         {
@@ -400,7 +400,7 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
 
                 var mapping = referencedResource.EndpointMappings[epExpr.Endpoint.EndpointName];
 
-                var val = GetEndpointValue(mapping, epExpr.Property);
+                var val = GetEndpointValue(mapping, epExpr.Property, embedded && epExpr.Property is EndpointProperty.Port or EndpointProperty.TargetPort);
 
                 return val;
             }
@@ -409,7 +409,7 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
             {
                 if (expr is { Format: "{0}", ValueProviders.Count: 1 })
                 {
-                    return (await ProcessValueAsync(context, executionContext, expr.ValueProviders[0]).ConfigureAwait(false)).ToString() ?? string.Empty;
+                    return (await ProcessValueAsync(context, executionContext, expr.ValueProviders[0], true).ConfigureAwait(false)).ToString() ?? string.Empty;
                 }
 
                 var args = new object[expr.ValueProviders.Count];
@@ -417,7 +417,7 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
 
                 foreach (var vp in expr.ValueProviders)
                 {
-                    var val = await ProcessValueAsync(context, executionContext, vp).ConfigureAwait(false);
+                    var val = await ProcessValueAsync(context, executionContext, vp, true).ConfigureAwait(false);
                     args[index++] = val ?? throw new InvalidOperationException("Value is null");
                 }
 
@@ -436,7 +436,7 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
         }
     }
 
-    private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
+    private static string GetEndpointValue(EndpointMapping mapping, EndpointProperty property, bool embedded = false)
     {
         var (scheme, _, host, port, _, _) = mapping;
 
@@ -444,9 +444,9 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
         {
             EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: GetPortSuffix()),
             EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
-            EndpointProperty.Port => port.ToScalar(),
+            EndpointProperty.Port => GetPort(),
             EndpointProperty.HostAndPort => GetHostValue(suffix: GetPortSuffix()),
-            EndpointProperty.TargetPort => port.ToScalar(),
+            EndpointProperty.TargetPort => GetPort(),
             EndpointProperty.Scheme => scheme,
             _ => throw new NotSupportedException(),
         };
@@ -456,6 +456,11 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
             return $"{prefix}{host}{suffix}";
         }
 
+        string GetPort()
+        {
+            return embedded ? port.Expression ?? port.ValueString ?? string.Empty : port.ToScalar();
+        }
+
         string GetPortSuffix()
         {
             var portValue = port switch
@@ -463,10 +468,12 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
                 _ when !string.IsNullOrWhiteSpace(port.Expression)
                   => port.Expression,
                 { ValueString: { } } => port.ValueString,
-                _ => string.Empty
+                _ => null
             };
 
-            return string.IsNullOrWhiteSpace(portValue) ? string.Empty : $":{portValue}";
+            return string.IsNullOrWhiteSpace(portValue)
+                 ? string.Empty
+                 : $":{portValue}";
         }
     }
 

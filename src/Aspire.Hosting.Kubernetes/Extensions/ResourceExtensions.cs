@@ -80,8 +80,9 @@ internal static class ResourceExtensions
             // If the value itself contains Helm expressions, use it directly in the template
             // Otherwise use the expression to reference values.yaml
             secret.StringData[kvp.Key] = kvp.Value.ValueContainsHelmExpression
-                                       ? kvp.Value.ValueString! //If it contains an expression, its not null
-                                       : kvp.Value.ToScalar();
+                                       ? kvp.Value.ValueString! // If it contains an expression, its not null
+                                       : kvp.Value.Expression   // All secret values are strings
+                                         ?? string.Empty;
             processedKeys.Add(kvp.Key);
         }
 
@@ -108,7 +109,10 @@ internal static class ResourceExtensions
 
         foreach (var kvp in context.EnvironmentVariables.Where(kvp => !processedKeys.Contains(kvp.Key)))
         {
-            configMap.Data[kvp.Key] = kvp.Value.ToScalar();
+            configMap.Data[kvp.Key] = kvp.Value.ValueContainsHelmExpression
+                                     ? kvp.Value.ValueString! // If it contains an expression, its not null
+                                     : kvp.Value.Expression   // All configmap values are strings
+                                       ?? string.Empty;
             processedKeys.Add(kvp.Key);
         }
 
