@@ -149,6 +149,7 @@ internal sealed class UserSecretsManagerFactory
             {
                 try
                 {
+                    // Wait up to timeout. If timeout is exceeded then continue anyway.
                     hasHandle = mutex.WaitOne(TimeSpan.FromSeconds(5));
                 }
                 catch (AbandonedMutexException)
