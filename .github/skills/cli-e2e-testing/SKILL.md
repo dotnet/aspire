@@ -13,6 +13,8 @@ CLI E2E tests use the Hex1b library to automate terminal sessions, simulating re
 
 **Location**: `tests/Aspire.Cli.EndToEndTests/`
 
+**Supported Platforms**: Linux, macOS, and Windows. The automation builder automatically uses the appropriate shell and commands for each platform.
+
 ## Key Components
 
 ### Helper Classes
@@ -34,7 +36,7 @@ await using var builder = await AspireCliAutomationBuilder.CreateAsync(
 
 await builder
     .PrepareEnvironment()
-    .DownloadAndInstallAspireCli(prNumber)
+    .InstallAspireCliFromPullRequest(prNumber)
     .SourceAspireCliEnvironment()
     .VerifyAspireCliVersion(commitSha)
     .ExitTerminal()
@@ -74,7 +76,7 @@ public async Task MyCliTest()
 
     await builder
         .PrepareEnvironment()
-        .DownloadAndInstallAspireCli(prNumber)
+        .InstallAspireCliFromPullRequest(prNumber)
         .SourceAspireCliEnvironment()
         .VerifyAspireCliVersion(commitSha)
         .ExitTerminal()
@@ -137,13 +139,14 @@ This enables `WaitForSequence()` to detect when commands complete and whether th
 
 ## DO: Use Built-in Methods When Available
 
-The builder provides high-level methods that handle command sequencing automatically:
+The builder provides high-level methods that handle command sequencing automatically.
+All methods are cross-platform and use appropriate shell commands for each OS.
 
 | Method | Description |
 |--------|-------------|
-| `PrepareEnvironment()` | Sets up tracking prompt |
-| `DownloadAndInstallAspireCli(prNumber, timeout?)` | Downloads and installs CLI from PR |
-| `SourceAspireCliEnvironment()` | Sources ~/.bashrc to add CLI to PATH |
+| `PrepareEnvironment()` | Sets up tracking prompt (bash on Linux/macOS, PowerShell on Windows) |
+| `InstallAspireCliFromPullRequest(prNumber, timeout?)` | Installs CLI from PR artifacts (uses appropriate script per OS) |
+| `SourceAspireCliEnvironment()` | Sources ~/.bashrc on Linux/macOS (no-op on Windows) |
 | `VerifyAspireCliVersion(commitSha, timeout?)` | Runs `aspire --version` and verifies SHA |
 | `WaitForSequence(timeout?)` | Waits for current command to complete |
 | `ExitTerminal()` | Types `exit` to close the shell |
@@ -182,9 +185,9 @@ The builder tracks command sequences internally:
 .WaitForSequence(2)
 
 // DO: Let the builder track sequences
-.PrepareEnvironment()          // Sequence 1
-.DownloadAndInstallAspireCli() // Sequence 2 (automatic)
-.SourceAspireCliEnvironment()  // Sequence 3 (automatic)
+.PrepareEnvironment()               // Sequence 1
+.InstallAspireCliFromPullRequest()  // Sequence 2 (automatic)
+.SourceAspireCliEnvironment()       // Sequence 3 (automatic, skipped on Windows)
 ```
 
 ## DON'T: Catch Exceptions from ExecuteAsync()

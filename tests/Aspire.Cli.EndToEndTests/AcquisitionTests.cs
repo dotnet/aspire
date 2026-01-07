@@ -44,7 +44,7 @@ public sealed class AcquisitionTests : IAsyncDisposable
 
         await builder
             .PrepareEnvironment()
-            .DownloadAndInstallAspireCli(prNumber)
+            .InstallAspireCliFromPullRequest(prNumber)
             .SourceAspireCliEnvironment()
             .VerifyAspireCliVersion(commitSha)
             .ExitTerminal()
