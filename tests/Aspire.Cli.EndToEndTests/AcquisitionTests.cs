@@ -220,39 +220,100 @@ public sealed class AcquisitionTests : IAsyncDisposable
         // - testresults/** (always uploaded)
         // - artifacts/log/test-logs/** (uploaded when TEST_LOG_PATH is set)
         //
-        // We prefer TEST_LOG_PATH if available, otherwise use the testresults directory
-        // which is always uploaded by the CI workflow.
+        // The workflow passes --results-directory ${{ github.workspace }}/testresults
+        // We try multiple approaches to find the correct path.
+
+        _output.WriteLine("Attempting to copy recordings to CI artifact location...");
 
         var testLogPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
-        var testResultsPath = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE") is { } workspace
-            ? Path.Combine(workspace, "testresults", "recordings")
-            : null;
+        var githubWorkspace = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
 
-        // Try TEST_LOG_PATH first, then fall back to testresults directory
-        var targetDir = !string.IsNullOrEmpty(testLogPath)
-            ? Path.Combine(testLogPath, "recordings")
-            : testResultsPath;
+        _output.WriteLine($"  TEST_LOG_PATH: {testLogPath ?? "(not set)"}");
+        _output.WriteLine($"  GITHUB_WORKSPACE: {githubWorkspace ?? "(not set)"}");
 
-        if (string.IsNullOrEmpty(targetDir))
+        // Build list of candidate paths to try
+        var candidatePaths = new List<string>();
+
+        // 1. TEST_LOG_PATH if set
+        if (!string.IsNullOrEmpty(testLogPath))
+        {
+            candidatePaths.Add(Path.Combine(testLogPath, "recordings"));
+        }
+
+        // 2. GITHUB_WORKSPACE/testresults/recordings
+        if (!string.IsNullOrEmpty(githubWorkspace))
+        {
+            candidatePaths.Add(Path.Combine(githubWorkspace, "testresults", "recordings"));
+        }
+
+        // 3. Walk up from current directory to find repo root with testresults
+        var currentDir = Directory.GetCurrentDirectory();
+        var searchDir = currentDir;
+        while (!string.IsNullOrEmpty(searchDir))
+        {
+            var testResultsDir = Path.Combine(searchDir, "testresults");
+            if (Directory.Exists(testResultsDir))
+            {
+                candidatePaths.Add(Path.Combine(testResultsDir, "recordings"));
+                break;
+            }
+            // Check for repo root markers
+            if (File.Exists(Path.Combine(searchDir, "Aspire.slnx")) ||
+                File.Exists(Path.Combine(searchDir, "global.json")))
+            {
+                candidatePaths.Add(Path.Combine(searchDir, "testresults", "recordings"));
+                break;
+            }
+            searchDir = Path.GetDirectoryName(searchDir);
+        }
+
+        if (candidatePaths.Count == 0)
         {
             _output.WriteLine("No CI artifact path available - recordings will not be uploaded");
             return;
         }
 
-        try
+        // Check if there are any recordings to copy
+        if (!Directory.Exists(_recordingsDirectory))
         {
-            Directory.CreateDirectory(targetDir);
-            foreach (var file in Directory.GetFiles(_recordingsDirectory, "*.cast"))
+            _output.WriteLine($"Recordings directory does not exist: {_recordingsDirectory}");
+            return;
+        }
+
+        var recordings = Directory.GetFiles(_recordingsDirectory, "*.cast");
+        if (recordings.Length == 0)
+        {
+            _output.WriteLine("No .cast files found to copy");
+            return;
+        }
+
+        _output.WriteLine($"Found {recordings.Length} recording(s) to copy");
+
+        // Try each candidate path until one succeeds
+        foreach (var targetDir in candidatePaths)
+        {
+            try
             {
-                var targetFile = Path.Combine(targetDir, Path.GetFileName(file));
-                File.Copy(file, targetFile, overwrite: true);
-                _output.WriteLine($"Copied recording to: {targetFile}");
+                _output.WriteLine($"  Trying: {targetDir}");
+                Directory.CreateDirectory(targetDir);
+
+                foreach (var file in recordings)
+                {
+                    var targetFile = Path.Combine(targetDir, Path.GetFileName(file));
+                    File.Copy(file, targetFile, overwrite: true);
+                    _output.WriteLine($"  ✓ Copied: {Path.GetFileName(file)} -> {targetFile}");
+                }
+
+                _output.WriteLine($"Successfully copied recordings to: {targetDir}");
+                return; // Success, no need to try other paths
+            }
+            catch (Exception ex)
+            {
+                _output.WriteLine($"  ✗ Failed: {ex.Message}");
             }
         }
-        catch (Exception ex)
-        {
-            _output.WriteLine($"Warning: Failed to copy recordings to test results: {ex.Message}");
-        }
+
+        _output.WriteLine("Warning: Failed to copy recordings to any CI artifact location");
     }
 
     public async ValueTask DisposeAsync()
