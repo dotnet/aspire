@@ -124,7 +124,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
         get
         {
             var builder = new ReferenceExpressionBuilder();
-            builder.Append($"{PrimaryEndpoint.Scheme}://");
+            builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.Scheme)}://");
 
             if (PasswordParameter is not null)
             {

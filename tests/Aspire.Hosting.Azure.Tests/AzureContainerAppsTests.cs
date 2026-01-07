@@ -7,6 +7,7 @@
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.AppContainers;
@@ -1103,14 +1104,14 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
-    public async Task NonTcpHttpOrUdpSchemeThrows()
+    public async Task NonTcpProtocolThrows()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         builder.AddAzureContainerAppEnvironment("env");
 
         builder.AddContainer("api", "myimage")
-            .WithEndpoint(scheme: "foo");
+            .WithEndpoint(protocol: ProtocolType.Udp);
 
         using var app = builder.Build();
 
@@ -1118,7 +1119,7 @@ public class AzureContainerAppsTests
 
         var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
 
-        Assert.Equal("The endpoint(s) 'foo' specify an unsupported scheme. The supported schemes are 'http', 'https', and 'tcp'.", ex.Message);
+        Assert.Equal("The endpoint(s) 'foo' specify an unsupported protocol. Only TCP endpoints are supported in Azure Container Apps.", ex.Message);
     }
 
     [Fact]
