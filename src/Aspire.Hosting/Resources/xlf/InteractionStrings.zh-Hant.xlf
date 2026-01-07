@@ -44,26 +44,26 @@
       </trans-unit>
       <trans-unit id="DeleteParameterMessage">
         <source>Are you sure you want to delete the value for parameter `{0}`? </source>
-        <target state="new">Are you sure you want to delete the value for parameter `{0}`? </target>
+        <target state="translated">確定要刪除參數 `{0}` 的值?</target>
         <note>Contains markdown. {0} is the parameter name.</note>
       </trans-unit>
       <trans-unit id="DeleteParameterMessageWithUserSecrets">
         <source>Are you sure you want to delete the value for parameter `{0}`?
 
 The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there.</source>
-        <target state="new">Are you sure you want to delete the value for parameter `{0}`?
+        <target state="translated">確定要刪除參數 `{0}` 的值?
 
-The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there.</target>
+值目前儲存於 [使用者祕密](https://learn.microsoft.com/aspnet/core/security/app-secrets)。您可以選擇也從該處刪除它。</target>
         <note>Contains markdown. {0} is the parameter name.</note>
       </trans-unit>
       <trans-unit id="DeleteParameterPrimaryButtonText">
         <source>Delete</source>
-        <target state="new">Delete</target>
+        <target state="translated">刪除</target>
         <note />
       </trans-unit>
       <trans-unit id="DeleteParameterTitle">
         <source>Delete parameter value</source>
-        <target state="new">Delete parameter value</target>
+        <target state="translated">刪除參數值</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">
@@ -83,12 +83,12 @@ The value is currently saved in [user secrets](https://learn.microsoft.com/aspne
       </trans-unit>
       <trans-unit id="ParametersInputsDeleteLabel">
         <source>Delete from user secrets</source>
-        <target state="new">Delete from user secrets</target>
+        <target state="translated">從使用者祕密刪除</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsMessage">
         <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.</source>
-        <target state="new">Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.</target>
+        <target state="translated">請提供未解析參數的值。參數可以儲存到 [使用者祕密](https://aka.ms/aspire/user-secrets) 供未來使用。</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="ParametersInputsMessagePublishMode">
@@ -108,7 +108,7 @@ The value is currently saved in [user secrets](https://learn.microsoft.com/aspne
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
         <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure.</source>
-        <target state="new">Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure.</target>
+        <target state="translated">需要在 AppHost 專案檔中設定 `UserSecretsId`。在 AppHost 目錄中執行 `dotnet user-secrets init` 以設定。</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
@@ -145,14 +145,14 @@ The value is currently saved in [user secrets](https://learn.microsoft.com/aspne
         <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
 
 New parameter values may not be used until dependent resources are restarted.</source>
-        <target state="new">Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+        <target state="translated">請提供參數的值。參數可以儲存到 [使用者祕密](https://learn.microsoft.com/aspnet/core/security/app-secrets) 供未來使用。
 
-New parameter values may not be used until dependent resources are restarted.</target>
+除非重新啟動相依資源，否則無法使用新的參數值。</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="SetParameterTitle">
         <source>Set parameter</source>
-        <target state="new">Set parameter</target>
+        <target state="translated">設定參數</target>
         <note />
       </trans-unit>
     </body>
