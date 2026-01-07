@@ -123,10 +123,10 @@ public class AtsTypeScriptCodeGeneratorTests
 
         // Assert parameters are captured
         // The builder parameter is skipped because TargetTypeId is inferred from the first parameter
-        // (IDistributedApplicationBuilder -> "aspire/Builder")
+        // (IDistributedApplicationBuilder -> "Aspire.Hosting/IDistributedApplicationBuilder")
         var addTestRedis = capabilities.First(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
         Assert.Equal(2, addTestRedis.Parameters.Count);
-        Assert.Equal("aspire/Builder", addTestRedis.TargetTypeId);
+        Assert.Equal("Aspire.Hosting/IDistributedApplicationBuilder", addTestRedis.TargetTypeId);
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "name" && p.AtsTypeId == "string");
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "port" && p.IsOptional);
     }
@@ -253,15 +253,15 @@ public class AtsTypeScriptCodeGeneratorTests
 
         Assert.NotNull(withOptionalString);
 
-        // Target should be aspire/IResource (from the constraint)
-        Assert.Equal("aspire/IResource", withOptionalString.TargetTypeId);
+        // Target should be IResource from the constraint (derived format)
+        Assert.Equal("Aspire.Hosting.ApplicationModel/IResource", withOptionalString.TargetTypeId);
     }
 
     [Fact]
     public void Scanner_WithOptionalString_ExpandsToTestRedis()
     {
         // This test verifies that WithOptionalString<T> where T : IResource
-        // has its ExpandedTargetTypeIds include aspire/TestRedis
+        // has its ExpandedTargetTypeIds include TestRedisResource
         using var context = new AssemblyLoaderContext();
         var capabilities = ScanCapabilitiesFromTestAssembly(context);
 
@@ -271,9 +271,9 @@ public class AtsTypeScriptCodeGeneratorTests
 
         Assert.NotNull(withOptionalString);
 
-        // Expanded targets should include aspire/TestRedis
+        // Expanded targets should include TestRedisResource (derived format)
         Assert.NotNull(withOptionalString.ExpandedTargetTypeIds);
-        Assert.Contains("aspire/TestRedis", withOptionalString.ExpandedTargetTypeIds);
+        Assert.Contains("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestRedisResource", withOptionalString.ExpandedTargetTypeIds);
     }
 
     [Fact]

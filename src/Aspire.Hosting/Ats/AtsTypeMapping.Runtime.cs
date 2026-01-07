@@ -20,15 +20,17 @@ public sealed partial class AtsTypeMapping
     {
         var fullNameToTypeId = new Dictionary<string, string>(StringComparer.Ordinal);
         var typeIdToFullName = new Dictionary<string, string>(StringComparer.Ordinal);
+        var exposePropertiesTypeIds = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var assembly in assemblies)
         {
-            ScanAssemblyRuntime(assembly, fullNameToTypeId, typeIdToFullName);
+            ScanAssemblyRuntime(assembly, fullNameToTypeId, typeIdToFullName, exposePropertiesTypeIds);
         }
 
         return new AtsTypeMapping(
             fullNameToTypeId.ToFrozenDictionary(StringComparer.Ordinal),
-            typeIdToFullName.ToFrozenDictionary(StringComparer.Ordinal));
+            typeIdToFullName.ToFrozenDictionary(StringComparer.Ordinal),
+            exposePropertiesTypeIds.ToFrozenSet(StringComparer.Ordinal));
     }
 
     /// <summary>
@@ -44,18 +46,30 @@ public sealed partial class AtsTypeMapping
     private static void ScanAssemblyRuntime(
         Assembly assembly,
         Dictionary<string, string> fullNameToTypeId,
-        Dictionary<string, string> typeIdToFullName)
+        Dictionary<string, string> typeIdToFullName,
+        HashSet<string> exposePropertiesTypeIds)
     {
+        var assemblyName = assembly.GetName().Name ?? "Unknown";
+
         // Scan assembly-level attributes
         foreach (var attr in assembly.GetCustomAttributes<AspireExportAttribute>())
         {
-            if (attr.Type != null && !string.IsNullOrEmpty(attr.AtsTypeId))
+            if (attr.Type != null)
             {
                 var fullName = attr.Type.FullName;
                 if (fullName != null)
                 {
-                    fullNameToTypeId[fullName] = attr.AtsTypeId;
-                    typeIdToFullName[attr.AtsTypeId] = fullName;
+                    // Derive type ID from the type's assembly and name
+                    var targetAssemblyName = attr.Type.Assembly.GetName().Name ?? assemblyName;
+                    var typeId = DeriveTypeId(targetAssemblyName, attr.Type.Name);
+
+                    fullNameToTypeId[fullName] = typeId;
+                    typeIdToFullName[typeId] = fullName;
+
+                    if (attr.ExposeProperties)
+                    {
+                        exposePropertiesTypeIds.Add(typeId);
+                    }
                 }
             }
         }
@@ -66,13 +80,21 @@ public sealed partial class AtsTypeMapping
             foreach (var type in assembly.GetTypes())
             {
                 var attr = type.GetCustomAttribute<AspireExportAttribute>();
-                if (attr != null && !string.IsNullOrEmpty(attr.AtsTypeId))
+                if (attr != null)
                 {
                     var fullName = type.FullName;
                     if (fullName != null)
                     {
-                        fullNameToTypeId[fullName] = attr.AtsTypeId;
-                        typeIdToFullName[attr.AtsTypeId] = fullName;
+                        // Derive type ID from assembly name and type name
+                        var typeId = DeriveTypeId(assemblyName, type.Name);
+
+                        fullNameToTypeId[fullName] = typeId;
+                        typeIdToFullName[typeId] = fullName;
+
+                        if (attr.ExposeProperties)
+                        {
+                            exposePropertiesTypeIds.Add(typeId);
+                        }
                     }
                 }
             }

@@ -24,7 +24,7 @@ public partial class AspireExportAnalyzer
         internal static readonly DiagnosticDescriptor s_invalidExportIdFormat = new(
             id: InvalidExportIdFormatId,
             title: "Invalid AspireExport ID format",
-            messageFormat: "Export ID '{0}' does not match the required format 'aspire/{{operation}}@{{version}}' or 'aspire.{{package}}/{{operation}}@{{version}}'",
+            messageFormat: "Export ID '{0}' is not a valid method name. Use a valid identifier (e.g., 'addRedis', 'withEnvironment').",
             category: "Design",
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,

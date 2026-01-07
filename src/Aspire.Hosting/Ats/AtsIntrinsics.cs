@@ -91,19 +91,13 @@ public static class AtsIntrinsics
 
     /// <summary>
     /// Gets the ATS type ID for a resource type.
-    /// Derived from CLR type name: RedisResource → "aspire/Redis"
+    /// Derived from CLR type: uses {AssemblyName}/{TypeName} format.
     /// </summary>
     public static string GetResourceTypeId(Type resourceType)
     {
         return s_resourceTypeCache.GetOrAdd(resourceType, static type =>
         {
-            // Strip "Resource" suffix if present
-            var name = type.Name;
-            if (name.EndsWith("Resource", StringComparison.Ordinal))
-            {
-                name = name[..^8];
-            }
-            return $"aspire/{name}";
+            return AtsTypeMapping.DeriveTypeId(type);
         });
     }
 

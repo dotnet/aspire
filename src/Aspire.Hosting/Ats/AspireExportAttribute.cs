@@ -4,11 +4,11 @@
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Marks a method, type, or assembly-level type mapping as an ATS (Aspire Type System) export.
+/// Marks a method, type, or assembly-level type as an ATS (Aspire Type System) export.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This attribute serves two purposes:
+/// This attribute serves multiple purposes:
 /// </para>
 /// <list type="number">
 /// <item>
@@ -20,9 +20,21 @@ namespace Aspire.Hosting;
 /// </item>
 /// <item>
 /// <description>
-/// <b>Type mapping (on types or assembly):</b> Maps a CLR type to an ATS type ID.
-/// Use <see cref="AtsTypeId"/> to specify the ATS type ID.
-/// For types you don't own, use assembly-level with <see cref="Type"/> property.
+/// <b>Type exports (on types):</b> Marks a type as an ATS-exported type.
+/// The type ID is automatically derived as <c>{AssemblyName}/{TypeName}</c>.
+/// For example: <c>RedisResource</c> in Aspire.Hosting.Redis becomes <c>Aspire.Hosting.Redis/RedisResource</c>.
+/// </description>
+/// </item>
+/// <item>
+/// <description>
+/// <b>Context types (on types with ExposeProperties):</b> When <see cref="ExposeProperties"/> is true,
+/// the type's properties are automatically exposed as get/set capabilities for use in callbacks.
+/// </description>
+/// </item>
+/// <item>
+/// <description>
+/// <b>External type exports (assembly-level):</b> For types you don't own, use assembly-level
+/// with <see cref="Type"/> property to include them in the ATS type system.
 /// </description>
 /// </item>
 /// </list>
@@ -34,12 +46,22 @@ namespace Aspire.Hosting;
 /// public static IResourceBuilder&lt;RedisResource&gt; AddRedis(...) { }
 /// // Scanner computes capability ID: Aspire.Hosting.Redis/addRedis
 ///
-/// // Type mapping on a type you own
-/// [AspireExport(AtsTypeId = "aspire/Redis")]
+/// // Type export - type ID derived as {AssemblyName}/{TypeName}
+/// [AspireExport]
 /// public class RedisResource : ContainerResource { }
+/// // Type ID: Aspire.Hosting.Redis/RedisResource
 ///
-/// // Assembly-level type mapping for types you don't own
-/// [assembly: AspireExport(typeof(IDistributedApplicationBuilder), AtsTypeId = "aspire/Builder")]
+/// // Context type with properties exposed as capabilities
+/// [AspireExport(ExposeProperties = true)]
+/// public class EnvironmentCallbackContext
+/// {
+///     public Dictionary&lt;string, object&gt; EnvironmentVariables { get; }
+///     // Exposed as: Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.getEnvironmentVariables
+/// }
+///
+/// // Assembly-level export for types you don't own
+/// [assembly: AspireExport(typeof(IConfiguration))]
+/// // Type ID: Microsoft.Extensions.Configuration.Abstractions/IConfiguration
 /// </code>
 /// </example>
 [AttributeUsage(
@@ -63,27 +85,29 @@ public sealed class AspireExportAttribute : Attribute
     }
 
     /// <summary>
-    /// Initializes a new instance for a type mapping (on types or assembly-level).
+    /// Initializes a new instance for a type export.
     /// </summary>
     /// <remarks>
-    /// Use this constructor when declaring a type mapping. Set <see cref="AtsTypeId"/> to specify
-    /// the ATS type ID. For assembly-level mappings, also set <see cref="Type"/>.
+    /// The type ID is automatically derived as <c>{AssemblyName}/{TypeName}</c>.
+    /// Set <see cref="ExposeProperties"/> to true for context types whose properties
+    /// should be exposed as get/set capabilities.
     /// </remarks>
     public AspireExportAttribute()
     {
     }
 
     /// <summary>
-    /// Initializes a new instance for an assembly-level type mapping.
+    /// Initializes a new instance for an assembly-level type export.
     /// </summary>
-    /// <param name="type">The CLR type to map to an ATS type ID.</param>
+    /// <param name="type">The CLR type to export to ATS.</param>
     /// <remarks>
     /// Use this constructor at assembly level for types you don't own.
-    /// Set <see cref="AtsTypeId"/> to specify the ATS type ID.
+    /// The type ID is derived as <c>{type.Assembly.Name}/{type.Name}</c>.
     /// </remarks>
     /// <example>
     /// <code>
-    /// [assembly: AspireExport(typeof(IDistributedApplicationBuilder), AtsTypeId = "aspire/Builder")]
+    /// [assembly: AspireExport(typeof(IConfiguration))]
+    /// // Type ID: Microsoft.Extensions.Configuration.Abstractions/IConfiguration
     /// </code>
     /// </example>
     public AspireExportAttribute(Type type)
@@ -99,35 +123,16 @@ public sealed class AspireExportAttribute : Attribute
     /// The full capability ID is computed as <c>{AssemblyName}/{Id}</c>.
     /// </para>
     /// <para>
-    /// This is null for type mappings.
+    /// This is null for type exports.
     /// </para>
     /// </remarks>
     public string? Id { get; }
 
     /// <summary>
-    /// Gets or sets the ATS type ID for type mappings.
+    /// Gets or sets the CLR type for assembly-level type exports.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// Use this to explicitly map a CLR type to an ATS type ID.
-    /// This avoids inference and string parsing in the scanner.
-    /// </para>
-    /// <para>
-    /// Examples:
-    /// <list type="bullet">
-    /// <item><description><c>"aspire/Builder"</c> for IDistributedApplicationBuilder</description></item>
-    /// <item><description><c>"aspire/Redis"</c> for RedisResource</description></item>
-    /// <item><description><c>"aspire/IResourceWithEnvironment"</c> for IResourceWithEnvironment</description></item>
-    /// </list>
-    /// </para>
-    /// </remarks>
-    public string? AtsTypeId { get; set; }
-
-    /// <summary>
-    /// Gets or sets the CLR type for assembly-level type mappings.
-    /// </summary>
-    /// <remarks>
-    /// Use this at assembly level to map types you don't own to ATS type IDs.
+    /// Use this at assembly level to export types you don't own to ATS.
     /// </remarks>
     public Type? Type { get; set; }
 
@@ -151,4 +156,26 @@ public sealed class AspireExportAttribute : Attribute
     /// </para>
     /// </remarks>
     public string? MethodName { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to expose properties of this type as ATS capabilities.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When true, the type's public instance properties that return ATS-compatible types
+    /// are automatically exposed as get/set capabilities.
+    /// </para>
+    /// <para>
+    /// Use this for context types passed to callbacks (like <c>EnvironmentCallbackContext</c>)
+    /// that provide access to runtime state.
+    /// </para>
+    /// <para>
+    /// Property capabilities are named as:
+    /// <list type="bullet">
+    /// <item><description><c>{AssemblyName}/{TypeName}.get{PropertyName}</c> for getters</description></item>
+    /// <item><description><c>{AssemblyName}/{TypeName}.set{PropertyName}</c> for setters (writable properties only)</description></item>
+    /// </list>
+    /// </para>
+    /// </remarks>
+    public bool ExposeProperties { get; set; }
 }

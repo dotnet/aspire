@@ -25,12 +25,12 @@ namespace Aspire.Hosting.Ats;
 internal static class ServiceExports
 {
     /// <summary>
-    /// Maps ATS type IDs to .NET types for service resolution.
+    /// Maps CLR type full names to .NET types for service resolution.
     /// </summary>
     private static readonly Dictionary<string, Type> s_serviceTypes = new()
     {
-        [AtsTypeMapping.TypeIds.ResourceNotificationService] = typeof(ResourceNotificationService),
-        [AtsTypeMapping.TypeIds.ResourceLoggerService] = typeof(ResourceLoggerService),
+        ["Aspire.Hosting.ApplicationModel.ResourceNotificationService"] = typeof(ResourceNotificationService),
+        ["Aspire.Hosting.ApplicationModel.ResourceLoggerService"] = typeof(ResourceLoggerService),
     };
 
     /// <summary>

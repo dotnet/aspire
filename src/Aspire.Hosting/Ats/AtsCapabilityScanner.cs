@@ -49,8 +49,8 @@ internal static class AtsCapabilityScanner
                 }
             }
 
-            // Check for [AspireContextType] - auto-generate property accessor capabilities
-            if (HasAspireContextTypeAttribute(type))
+            // Check for [AspireExport(ExposeProperties = true)] - auto-generate property accessor capabilities
+            if (HasExposePropertiesAttribute(type))
             {
                 var contextCapabilities = CreateContextTypeCapabilities(type, assembly.Name, typeMapping, typeResolver);
                 capabilities.AddRange(contextCapabilities);
@@ -393,7 +393,7 @@ internal static class AtsCapabilityScanner
             }
 
             var firstParamTypeId = MapToAtsTypeId(firstParamType, typeMapping, typeResolver);
-            if (firstParamTypeId != null && firstParamTypeId.StartsWith("aspire/"))
+            if (firstParamTypeId != null)
             {
                 extendsTypeId = firstParamTypeId;
             }
@@ -413,7 +413,7 @@ internal static class AtsCapabilityScanner
 
         // Get return type
         var returnTypeId = MapToAtsTypeId(method.ReturnType, typeMapping, typeResolver);
-        var returnsBuilder = returnTypeId != null && returnTypeId.StartsWith("aspire/");
+        var returnsBuilder = returnTypeId != null;
 
         return new AtsCapabilityInfo
         {
@@ -688,27 +688,11 @@ internal static class AtsCapabilityScanner
     {
         if (string.IsNullOrEmpty(typeFullName))
         {
-            return "aspire/Unknown";
+            return "Unknown/Unknown";
         }
 
-        // Get the simple name from full name (handle both '.' and '+' for nested types)
-        var lastDot = typeFullName.LastIndexOf('.');
-        var typeName = lastDot >= 0 ? typeFullName[(lastDot + 1)..] : typeFullName;
-
-        // For nested types (e.g., "OuterClass+InnerResource"), strip the outer class
-        var plusIndex = typeName.LastIndexOf('+');
-        if (plusIndex >= 0)
-        {
-            typeName = typeName[(plusIndex + 1)..];
-        }
-
-        // Strip "Resource" suffix
-        if (typeName.EndsWith("Resource"))
-        {
-            typeName = typeName[..^8];
-        }
-
-        return $"aspire/{typeName}";
+        // Use DeriveTypeIdFromFullName for consistent type ID derivation
+        return AtsTypeMapping.DeriveTypeIdFromFullName(typeFullName);
     }
 
     /// <summary>
@@ -878,10 +862,22 @@ internal static class AtsCapabilityScanner
             .FirstOrDefault(a => a.AttributeTypeFullName == AspireExportAttributeNames.FullName);
     }
 
-    private static bool HasAspireContextTypeAttribute(IAtsTypeInfo type)
+    /// <summary>
+    /// Checks if a type has [AspireExport(ExposeProperties = true)] attribute.
+    /// </summary>
+    private static bool HasExposePropertiesAttribute(IAtsTypeInfo type)
     {
-        return type.GetCustomAttributes()
-            .Any(a => a.AttributeTypeFullName == AspireExportAttributeNames.AspireContextTypeFullName);
+        foreach (var attr in type.GetCustomAttributes())
+        {
+            if (attr.AttributeTypeFullName == AspireExportAttributeNames.FullName)
+            {
+                if (attr.NamedArguments.TryGetValue("ExposeProperties", out var value) && value is true)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
 

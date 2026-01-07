@@ -12,11 +12,10 @@ namespace Aspire.Hosting.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public partial class AspireExportAnalyzer : DiagnosticAnalyzer
 {
-    // Matches: aspire/{operation}@{version} or aspire.{package}/{operation}@{version}
-    // Operations can contain dots for namespacing (e.g., Dictionary.set)
-    // Examples: aspire/addContainer@1, aspire.redis/addRedis@1, aspire/Dictionary.set@1
+    // Matches: valid method name (camelCase identifier, may contain dots for namespacing)
+    // Examples: addRedis, addContainer, Dictionary.set
     private static readonly Regex s_exportIdPattern = new(
-        @"^aspire(\.[a-z][a-z0-9]*)?\/[a-zA-Z][a-zA-Z0-9.]*@[0-9]+$",
+        @"^[a-zA-Z][a-zA-Z0-9.]*$",
         RegexOptions.Compiled);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => Diagnostics.SupportedDiagnostics;

@@ -64,7 +64,7 @@ public class AtsIntrinsicsTests
     {
         var typeId = AtsIntrinsics.GetTypeId(typeof(IDistributedApplicationBuilder));
 
-        Assert.Equal("aspire/Builder", typeId);
+        Assert.Equal("Aspire.Hosting/IDistributedApplicationBuilder", typeId);
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public class AtsIntrinsicsTests
     {
         var typeId = AtsIntrinsics.GetTypeId(typeof(DistributedApplication));
 
-        Assert.Equal("aspire/Application", typeId);
+        Assert.Equal("Aspire.Hosting/DistributedApplication", typeId);
     }
 
     [Fact]
@@ -115,11 +115,11 @@ public class AtsIntrinsicsTests
     }
 
     [Fact]
-    public void GetResourceTypeId_StripsResourceSuffix()
+    public void GetResourceTypeId_DerivesTypeIdFromAssemblyAndTypeName()
     {
         var typeId = AtsIntrinsics.GetResourceTypeId(typeof(ContainerResource));
 
-        Assert.Equal("aspire/Container", typeId);
+        Assert.Equal("Aspire.Hosting/ContainerResource", typeId);
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public class AtsIntrinsicsTests
     {
         var typeId = AtsIntrinsics.GetTypeId(typeof(ContainerResource));
 
-        Assert.Equal("aspire/Container", typeId);
+        Assert.Equal("Aspire.Hosting/ContainerResource", typeId);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class AtsIntrinsicsTests
     {
         var typeId = AtsIntrinsics.GetTypeId(typeof(IResourceBuilder<ContainerResource>));
 
-        Assert.Equal("aspire/Container", typeId);
+        Assert.Equal("Aspire.Hosting/ContainerResource", typeId);
     }
 
     // Interface type mapping tests
@@ -177,7 +177,7 @@ public class AtsIntrinsicsTests
     {
         var typeId = AtsIntrinsics.GetTypeId(typeof(IResource));
 
-        Assert.Equal("aspire/IResource", typeId);
+        Assert.Equal("Aspire.Hosting/IResource", typeId);
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public class AtsIntrinsicsTests
     {
         var typeId = AtsIntrinsics.GetTypeId(typeof(IResourceWithEnvironment));
 
-        Assert.Equal("aspire/IResourceWithEnvironment", typeId);
+        Assert.Equal("Aspire.Hosting/IResourceWithEnvironment", typeId);
     }
 
     private enum TestEnum { A, B }

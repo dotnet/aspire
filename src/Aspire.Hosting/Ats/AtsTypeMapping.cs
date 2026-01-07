@@ -12,7 +12,6 @@ internal static class AspireExportAttributeNames
 {
     public const string FullName = "Aspire.Hosting.AspireExportAttribute";
     public const string AspireCallbackFullName = "Aspire.Hosting.AspireCallbackAttribute";
-    public const string AspireContextTypeFullName = "Aspire.Hosting.AspireContextTypeAttribute";
 }
 
 /// <summary>
@@ -20,10 +19,7 @@ internal static class AspireExportAttributeNames
 /// </summary>
 /// <remarks>
 /// <para>
-/// This class centralizes all type mapping logic, replacing scattered inference and string parsing.
-/// It scans assemblies for [AspireExport] attributes with AtsTypeId set on types or at assembly level.
-/// </para>
-/// <para>
+/// Type IDs are automatically derived as <c>{AssemblyName}/{TypeName}</c>.
 /// The mapping is used by:
 /// <list type="bullet">
 /// <item><description>Code generation (to generate correct TypeScript/Python types)</description></item>
@@ -35,20 +31,24 @@ public sealed partial class AtsTypeMapping
 {
     private readonly FrozenDictionary<string, string> _fullNameToTypeId;
     private readonly FrozenDictionary<string, string> _typeIdToFullName;
+    private readonly FrozenSet<string> _exposePropertiesTypeIds;
 
     /// <summary>
     /// Gets an empty type mapping with no registered types.
     /// </summary>
     public static AtsTypeMapping Empty { get; } = new AtsTypeMapping(
         FrozenDictionary<string, string>.Empty,
-        FrozenDictionary<string, string>.Empty);
+        FrozenDictionary<string, string>.Empty,
+        FrozenSet<string>.Empty);
 
     private AtsTypeMapping(
         FrozenDictionary<string, string> fullNameToTypeId,
-        FrozenDictionary<string, string> typeIdToFullName)
+        FrozenDictionary<string, string> typeIdToFullName,
+        FrozenSet<string> exposePropertiesTypeIds)
     {
         _fullNameToTypeId = fullNameToTypeId;
         _typeIdToFullName = typeIdToFullName;
+        _exposePropertiesTypeIds = exposePropertiesTypeIds;
     }
 
     /// <summary>
@@ -56,23 +56,21 @@ public sealed partial class AtsTypeMapping
     /// </summary>
     /// <param name="assemblies">The assemblies to scan (as IAtsAssemblyInfo).</param>
     /// <returns>A type mapping containing all discovered type mappings.</returns>
-    /// <remarks>
-    /// This overload enables code sharing between runtime (System.Reflection) and
-    /// code-gen (RoType) paths by working with the abstracted interface.
-    /// </remarks>
     internal static AtsTypeMapping FromAssemblies(IEnumerable<IAtsAssemblyInfo> assemblies)
     {
         var fullNameToTypeId = new Dictionary<string, string>(StringComparer.Ordinal);
         var typeIdToFullName = new Dictionary<string, string>(StringComparer.Ordinal);
+        var exposePropertiesTypeIds = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var assembly in assemblies)
         {
-            ScanAssembly(assembly, fullNameToTypeId, typeIdToFullName);
+            ScanAssembly(assembly, fullNameToTypeId, typeIdToFullName, exposePropertiesTypeIds);
         }
 
         return new AtsTypeMapping(
             fullNameToTypeId.ToFrozenDictionary(StringComparer.Ordinal),
-            typeIdToFullName.ToFrozenDictionary(StringComparer.Ordinal));
+            typeIdToFullName.ToFrozenDictionary(StringComparer.Ordinal),
+            exposePropertiesTypeIds.ToFrozenSet(StringComparer.Ordinal));
     }
 
     /// <summary>
@@ -86,25 +84,60 @@ public sealed partial class AtsTypeMapping
     }
 
     /// <summary>
+    /// Derives an ATS type ID from an assembly name and type name.
+    /// </summary>
+    /// <param name="assemblyName">The assembly name.</param>
+    /// <param name="typeName">The type name (simple name, not full name).</param>
+    /// <returns>The derived type ID in format {AssemblyName}/{TypeName}.</returns>
+    public static string DeriveTypeId(string assemblyName, string typeName)
+    {
+        return $"{assemblyName}/{typeName}";
+    }
+
+    /// <summary>
+    /// Derives an ATS type ID from a CLR type.
+    /// </summary>
+    /// <param name="type">The CLR type.</param>
+    /// <returns>The derived type ID in format {AssemblyName}/{TypeName}.</returns>
+    public static string DeriveTypeId(Type type)
+    {
+        var assemblyName = type.Assembly.GetName().Name ?? "Unknown";
+        return DeriveTypeId(assemblyName, type.Name);
+    }
+
+    /// <summary>
+    /// Derives an ATS type ID from a type's full name by extracting assembly and type name.
+    /// </summary>
+    /// <param name="typeFullName">The type's full name (e.g., "Aspire.Hosting.ContainerResource").</param>
+    /// <returns>The derived type ID.</returns>
+    public static string DeriveTypeIdFromFullName(string typeFullName)
+    {
+        // Extract the namespace as assembly name approximation and type name
+        var lastDot = typeFullName.LastIndexOf('.');
+        if (lastDot > 0)
+        {
+            var namespacePart = typeFullName[..lastDot];
+            var typeName = typeFullName[(lastDot + 1)..];
+            return $"{namespacePart}/{typeName}";
+        }
+        return typeFullName;
+    }
+
+    /// <summary>
     /// Scans an assembly using the interface abstraction.
     /// </summary>
     private static void ScanAssembly(
         IAtsAssemblyInfo assembly,
         Dictionary<string, string> fullNameToTypeId,
-        Dictionary<string, string> typeIdToFullName)
+        Dictionary<string, string> typeIdToFullName,
+        HashSet<string> exposePropertiesTypeIds)
     {
+        var assemblyName = assembly.Name;
+
         // Scan assembly-level [AspireExport] attributes
         foreach (var attr in assembly.GetCustomAttributes())
         {
             if (attr.AttributeTypeFullName != AspireExportAttributeNames.FullName)
-            {
-                continue;
-            }
-
-            // Get AtsTypeId from named arguments
-            if (!attr.NamedArguments.TryGetValue("AtsTypeId", out var atsTypeIdObj) ||
-                atsTypeIdObj is not string atsTypeId ||
-                string.IsNullOrEmpty(atsTypeId))
             {
                 continue;
             }
@@ -126,10 +159,21 @@ public sealed partial class AtsTypeMapping
                 targetTypeFullName = typeNamed;
             }
 
-            if (!string.IsNullOrEmpty(targetTypeFullName))
+            if (string.IsNullOrEmpty(targetTypeFullName))
             {
-                fullNameToTypeId[targetTypeFullName] = atsTypeId;
-                typeIdToFullName[atsTypeId] = targetTypeFullName;
+                continue;
+            }
+
+            // Derive type ID from full name (uses namespace as assembly approximation)
+            var typeId = DeriveTypeIdFromFullName(targetTypeFullName);
+            fullNameToTypeId[targetTypeFullName] = typeId;
+            typeIdToFullName[typeId] = targetTypeFullName;
+
+            // Check for ExposeProperties
+            if (attr.NamedArguments.TryGetValue("ExposeProperties", out var exposeObj) &&
+                exposeObj is true)
+            {
+                exposePropertiesTypeIds.Add(typeId);
             }
         }
 
@@ -143,19 +187,21 @@ public sealed partial class AtsTypeMapping
                     continue;
                 }
 
-                // Get AtsTypeId from named arguments
-                if (!attr.NamedArguments.TryGetValue("AtsTypeId", out var atsTypeIdObj) ||
-                    atsTypeIdObj is not string atsTypeId ||
-                    string.IsNullOrEmpty(atsTypeId))
-                {
-                    continue;
-                }
-
+                // Type ID is derived from assembly name and type name
+                var typeId = DeriveTypeId(assemblyName, type.Name);
                 var fullName = type.FullName;
+
                 if (!string.IsNullOrEmpty(fullName))
                 {
-                    fullNameToTypeId[fullName] = atsTypeId;
-                    typeIdToFullName[atsTypeId] = fullName;
+                    fullNameToTypeId[fullName] = typeId;
+                    typeIdToFullName[typeId] = fullName;
+                }
+
+                // Check for ExposeProperties
+                if (attr.NamedArguments.TryGetValue("ExposeProperties", out var exposeObj) &&
+                    exposeObj is true)
+                {
+                    exposePropertiesTypeIds.Add(typeId);
                 }
             }
         }
@@ -264,42 +310,24 @@ public sealed partial class AtsTypeMapping
     public int Count => _fullNameToTypeId.Count;
 
     /// <summary>
-    /// Infers the ATS type ID for a resource type when no explicit mapping exists.
-    /// </summary>
-    private static string InferResourceTypeId(Type resourceType)
-    {
-        var typeName = resourceType.Name;
-
-        // Don't strip "Resource" suffix from interface types (IResource, IResourceWithXxx)
-        var isInterface = typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]);
-
-        // Strip "Resource" suffix if present (but not for interfaces)
-        if (!isInterface && typeName.EndsWith("Resource", StringComparison.Ordinal))
-        {
-            typeName = typeName[..^8];
-        }
-
-        return $"aspire/{typeName}";
-    }
-
-    /// <summary>
-    /// Gets the ATS type ID for a type, or infers one if not explicitly mapped.
+    /// Gets the ATS type ID for a type, deriving it from the assembly and type name if not explicitly mapped.
     /// </summary>
     /// <param name="type">The CLR type.</param>
-    /// <returns>The ATS type ID (explicit or inferred).</returns>
-    public string GetTypeIdOrInfer(Type type)
+    /// <returns>The ATS type ID (explicit or derived).</returns>
+    public string GetTypeIdOrDerive(Type type)
     {
-        return GetTypeId(type) ?? InferResourceTypeId(type);
+        return GetTypeId(type) ?? DeriveTypeId(type.Assembly.GetName().Name ?? "Unknown", type.Name);
     }
 
     /// <summary>
-    /// Gets the ATS type ID for a type using the interface abstraction, or infers one if not explicitly mapped.
+    /// Gets the ATS type ID for a type using the interface abstraction, deriving it if not explicitly mapped.
     /// </summary>
     /// <param name="type">The type (as IAtsTypeInfo).</param>
-    /// <returns>The ATS type ID (explicit or inferred).</returns>
-    internal string GetTypeIdOrInfer(IAtsTypeInfo type)
+    /// <param name="assemblyName">The assembly name for derivation.</param>
+    /// <returns>The ATS type ID (explicit or derived).</returns>
+    internal string GetTypeIdOrDerive(IAtsTypeInfo type, string assemblyName)
     {
-        return GetTypeId(type) ?? InferTypeId(type.Name);
+        return GetTypeId(type) ?? DeriveTypeId(assemblyName, type.Name);
     }
 
     /// <summary>
@@ -307,13 +335,11 @@ public sealed partial class AtsTypeMapping
     /// </summary>
     /// <param name="other">The other mapping to merge.</param>
     /// <returns>A new mapping containing all entries from both mappings.</returns>
-    /// <remarks>
-    /// If both mappings contain the same CLR type, the entry from <paramref name="other"/> takes precedence.
-    /// </remarks>
     public AtsTypeMapping Merge(AtsTypeMapping other)
     {
         var fullNameToTypeId = new Dictionary<string, string>(_fullNameToTypeId, StringComparer.Ordinal);
         var typeIdToFullName = new Dictionary<string, string>(_typeIdToFullName, StringComparer.Ordinal);
+        var exposePropertiesTypeIds = new HashSet<string>(_exposePropertiesTypeIds, StringComparer.Ordinal);
 
         foreach (var kvp in other._fullNameToTypeId)
         {
@@ -325,220 +351,146 @@ public sealed partial class AtsTypeMapping
             typeIdToFullName[kvp.Key] = kvp.Value;
         }
 
+        foreach (var typeId in other._exposePropertiesTypeIds)
+        {
+            exposePropertiesTypeIds.Add(typeId);
+        }
+
         return new AtsTypeMapping(
             fullNameToTypeId.ToFrozenDictionary(StringComparer.Ordinal),
-            typeIdToFullName.ToFrozenDictionary(StringComparer.Ordinal));
+            typeIdToFullName.ToFrozenDictionary(StringComparer.Ordinal),
+            exposePropertiesTypeIds.ToFrozenSet(StringComparer.Ordinal));
     }
-
-    #region Type ID Constants
-
-    /// <summary>
-    /// Well-known ATS type ID constants.
-    /// </summary>
-    public static class TypeIds
-    {
-        // Core types
-        /// <summary>The ATS type ID for IDistributedApplicationBuilder.</summary>
-        public const string Builder = "aspire/Builder";
-        /// <summary>The ATS type ID for DistributedApplication.</summary>
-        public const string Application = "aspire/Application";
-        /// <summary>The ATS type ID for DistributedApplicationExecutionContext.</summary>
-        public const string ExecutionContext = "aspire/ExecutionContext";
-
-        // Wrapper types (non-resource handles)
-        /// <summary>The ATS type ID for IConfiguration.</summary>
-        public const string Configuration = "aspire/Configuration";
-        /// <summary>The ATS type ID for IHostEnvironment.</summary>
-        public const string HostEnvironment = "aspire/HostEnvironment";
-        /// <summary>The ATS type ID for EnvironmentCallbackContext.</summary>
-        public const string EnvironmentContext = "aspire/EnvironmentContext";
-        /// <summary>The ATS type ID for ILogger.</summary>
-        public const string Logger = "aspire/Logger";
-        /// <summary>The ATS type ID for DistributedApplicationEventSubscription.</summary>
-        public const string EventSubscription = "aspire/EventSubscription";
-        /// <summary>The ATS type ID for IServiceProvider.</summary>
-        public const string ServiceProvider = "aspire/ServiceProvider";
-        /// <summary>The ATS type ID for ResourceNotificationService.</summary>
-        public const string ResourceNotificationService = "aspire/ResourceNotificationService";
-        /// <summary>The ATS type ID for ResourceLoggerService.</summary>
-        public const string ResourceLoggerService = "aspire/ResourceLoggerService";
-
-        // Reference types
-        /// <summary>The ATS type ID for EndpointReference.</summary>
-        public const string EndpointReference = "aspire/EndpointReference";
-        /// <summary>The ATS type ID for ReferenceExpression.</summary>
-        public const string ReferenceExpression = "aspire/ReferenceExpression";
-
-        // Resource interfaces
-        /// <summary>The ATS type ID for IResource.</summary>
-        public const string IResource = "aspire/IResource";
-        /// <summary>The ATS type ID for IResourceWithEnvironment.</summary>
-        public const string IResourceWithEnvironment = "aspire/IResourceWithEnvironment";
-        /// <summary>The ATS type ID for IResourceWithEndpoints.</summary>
-        public const string IResourceWithEndpoints = "aspire/IResourceWithEndpoints";
-        /// <summary>The ATS type ID for IResourceWithArgs.</summary>
-        public const string IResourceWithArgs = "aspire/IResourceWithArgs";
-        /// <summary>The ATS type ID for IResourceWithConnectionString.</summary>
-        public const string IResourceWithConnectionString = "aspire/IResourceWithConnectionString";
-        /// <summary>The ATS type ID for IResourceWithWaitSupport.</summary>
-        public const string IResourceWithWaitSupport = "aspire/IResourceWithWaitSupport";
-        /// <summary>The ATS type ID for IResourceWithParent.</summary>
-        public const string IResourceWithParent = "aspire/IResourceWithParent";
-
-        // Concrete resources
-        /// <summary>The ATS type ID for ContainerResource.</summary>
-        public const string Container = "aspire/Container";
-        /// <summary>The ATS type ID for ExecutableResource.</summary>
-        public const string Executable = "aspire/Executable";
-        /// <summary>The ATS type ID for ProjectResource.</summary>
-        public const string Project = "aspire/Project";
-        /// <summary>The ATS type ID for ParameterResource.</summary>
-        public const string Parameter = "aspire/Parameter";
-    }
-
-    #endregion
 
     #region Type Classification
 
     /// <summary>
-    /// Wrapper type IDs - non-resource types that get simple wrapper classes.
-    /// </summary>
-    private static readonly FrozenSet<string> s_wrapperTypeIds = FrozenSet.ToFrozenSet(
-    [
-        TypeIds.Configuration,
-        TypeIds.HostEnvironment,
-        TypeIds.ExecutionContext,
-        TypeIds.Logger,
-        TypeIds.EventSubscription,
-        TypeIds.ServiceProvider,
-        TypeIds.EnvironmentContext,
-        TypeIds.ResourceNotificationService,
-        TypeIds.ResourceLoggerService,
-    ]);
-
-    /// <summary>
-    /// Parameter name conventions for wrapper types.
-    /// </summary>
-    private static readonly FrozenDictionary<string, string> s_parameterNames =
-        new Dictionary<string, string>
-        {
-            [TypeIds.Builder] = "builder",
-            [TypeIds.Configuration] = "configuration",
-            [TypeIds.HostEnvironment] = "environment",
-            [TypeIds.ExecutionContext] = "context",
-            [TypeIds.EnvironmentContext] = "context",
-            [TypeIds.ServiceProvider] = "serviceProvider",
-            [TypeIds.ResourceNotificationService] = "notificationService",
-            [TypeIds.ResourceLoggerService] = "loggerService",
-        }.ToFrozenDictionary();
-
-    /// <summary>
-    /// Checks if a type ID represents a wrapper type (non-resource handle).
-    /// Wrapper types get simple wrapper classes in generated code, not builder classes.
+    /// Checks if a type ID represents a context type with exposed properties.
     /// </summary>
     /// <param name="typeId">The ATS type ID to check.</param>
-    /// <returns>True if the type ID represents a wrapper type.</returns>
-    public static bool IsWrapperType(string? typeId)
+    /// <returns>True if the type has ExposeProperties = true.</returns>
+    public bool IsContextType(string? typeId)
     {
-        return typeId != null && s_wrapperTypeIds.Contains(typeId);
+        return typeId != null && _exposePropertiesTypeIds.Contains(typeId);
     }
 
     /// <summary>
-    /// Checks if a type ID represents a resource builder type.
-    /// Resource builder types get builder classes with fluent chaining in generated code.
+    /// Checks if a CLR type full name represents an IDistributedApplicationBuilder.
     /// </summary>
-    /// <param name="typeId">The ATS type ID to check.</param>
-    /// <returns>True if the type ID represents a resource builder type.</returns>
+    public static bool IsBuilderType(string? fullName)
+    {
+        return fullName == "Aspire.Hosting.IDistributedApplicationBuilder";
+    }
+
+    /// <summary>
+    /// Checks if a CLR type full name represents a DistributedApplication.
+    /// </summary>
+    public static bool IsApplicationType(string? fullName)
+    {
+        return fullName == "Aspire.Hosting.DistributedApplication";
+    }
+
+    /// <summary>
+    /// Static helper to check if a type ID represents a wrapper type based on type ID format.
+    /// For use when no type mapping instance is available.
+    /// </summary>
+    public static bool IsWrapperType(string? typeId)
+    {
+        if (string.IsNullOrEmpty(typeId) || !typeId.Contains('/'))
+        {
+            return false;
+        }
+
+        // Extract type name from {Assembly}/{TypeName}
+        var slashIndex = typeId.LastIndexOf('/');
+        var typeName = typeId[(slashIndex + 1)..];
+
+        // Wrapper types are non-resource types like Configuration, Environment, Context, etc.
+        return typeName switch
+        {
+            "IConfiguration" => true,
+            "IHostEnvironment" => true,
+            "ILogger" => true,
+            "IServiceProvider" => true,
+            "DistributedApplicationExecutionContext" => true,
+            "EnvironmentCallbackContext" => true,
+            "ResourceNotificationService" => true,
+            "ResourceLoggerService" => true,
+            "DistributedApplicationEventSubscription" => true,
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// Static helper to check if a type ID represents a resource builder type based on type ID format.
+    /// For use when no type mapping instance is available.
+    /// </summary>
     public static bool IsResourceBuilderType(string? typeId)
     {
-        if (string.IsNullOrEmpty(typeId))
+        if (string.IsNullOrEmpty(typeId) || !typeId.Contains('/'))
         {
             return false;
         }
 
-        if (!typeId.StartsWith("aspire/", StringComparison.Ordinal))
-        {
-            return false;
-        }
-
+        // Not a resource builder if it's a wrapper type
         if (IsWrapperType(typeId))
         {
             return false;
         }
 
-        // Interface types (IResource, IResourceWithXxx)
-        if (typeId.StartsWith("aspire/IResource", StringComparison.Ordinal))
+        // Extract type name from {Assembly}/{TypeName}
+        var slashIndex = typeId.LastIndexOf('/');
+        var typeName = typeId[(slashIndex + 1)..];
+
+        // IResource interfaces
+        if (typeName.StartsWith("IResource", StringComparison.Ordinal))
         {
             return true;
         }
 
-        // Well-known concrete resources
-        if (typeId == TypeIds.Container ||
-            typeId == TypeIds.Executable ||
-            typeId == TypeIds.Project ||
-            typeId == TypeIds.Parameter)
+        // Concrete resource types (ends with Resource)
+        if (typeName.EndsWith("Resource", StringComparison.Ordinal))
         {
             return true;
         }
 
-        // Custom resources follow pattern: aspire/Xxx (no dots, not a wrapper)
-        // Exclude reference types and special types
-        if (typeId == TypeIds.EndpointReference ||
-            typeId == TypeIds.ReferenceExpression ||
-            typeId == TypeIds.Builder ||
-            typeId == TypeIds.Application)
+        // Check for reference types (EndpointReference, etc.) - these are NOT resource builders
+        if (typeName == "EndpointReference" || typeName == "ReferenceExpression")
         {
             return false;
         }
 
-        // Any other aspire/ type without dots is likely a resource type
-        return !typeId.Contains('.');
+        return false;
     }
 
     /// <summary>
-    /// Gets the conventional parameter name for a type ID.
-    /// Used in generated code for method parameters.
+    /// Static helper to get the conventional parameter name for a type ID.
+    /// For use when no type mapping instance is available.
     /// </summary>
-    /// <param name="typeId">The ATS type ID.</param>
-    /// <returns>The conventional parameter name.</returns>
     public static string GetParameterName(string? typeId)
     {
-        if (typeId == null)
+        if (string.IsNullOrEmpty(typeId) || !typeId.Contains('/'))
         {
             return "handle";
         }
 
-        if (s_parameterNames.TryGetValue(typeId, out var name))
+        // Extract type name from {Assembly}/{TypeName}
+        var slashIndex = typeId.LastIndexOf('/');
+        var typeName = typeId[(slashIndex + 1)..];
+
+        return typeName switch
         {
-            return name;
-        }
-
-        if (IsResourceBuilderType(typeId))
-        {
-            return "builder";
-        }
-
-        return "handle";
-    }
-
-    /// <summary>
-    /// Infers the ATS type ID from a CLR type name.
-    /// Used when no explicit mapping exists.
-    /// </summary>
-    /// <param name="typeName">The CLR type name (not full name).</param>
-    /// <returns>The inferred ATS type ID.</returns>
-    public static string InferTypeId(string typeName)
-    {
-        // Don't strip "Resource" suffix from interface types (IResource, IResourceWithXxx)
-        var isInterface = typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]);
-
-        // Strip "Resource" suffix if present (but not for interfaces)
-        if (!isInterface && typeName.EndsWith("Resource", StringComparison.Ordinal))
-        {
-            typeName = typeName[..^8];
-        }
-
-        return $"aspire/{typeName}";
+            "IDistributedApplicationBuilder" => "builder",
+            "IConfiguration" => "configuration",
+            "IHostEnvironment" => "environment",
+            "DistributedApplicationExecutionContext" => "context",
+            "EnvironmentCallbackContext" => "context",
+            "IServiceProvider" => "serviceProvider",
+            "ResourceNotificationService" => "notificationService",
+            "ResourceLoggerService" => "loggerService",
+            _ when IsResourceBuilderType(typeId) => "builder",
+            _ => "handle"
+        };
     }
 
     #endregion

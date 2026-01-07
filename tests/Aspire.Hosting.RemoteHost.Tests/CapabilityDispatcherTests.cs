@@ -364,7 +364,7 @@ internal static class TestCapabilities
 /// <summary>
 /// Test context type for context type tests.
 /// </summary>
-[AspireContextType]
+[AspireExport(ExposeProperties = true)]
 internal sealed class TestContextType
 {
     public string Name { get; set; } = "default-name";
@@ -378,7 +378,7 @@ internal sealed class TestContextType
 /// <summary>
 /// Test context type to verify context properties work.
 /// </summary>
-[AspireContextType]
+[AspireExport(ExposeProperties = true)]
 internal sealed class VersionedContextType
 {
     public string Value { get; set; } = "v2";

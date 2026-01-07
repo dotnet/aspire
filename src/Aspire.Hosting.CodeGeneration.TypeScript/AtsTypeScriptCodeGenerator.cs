@@ -46,26 +46,26 @@ internal sealed class BuilderModel
 /// </para>
 /// <para>
 /// <b>Handle Types:</b>
+/// Type IDs use the format <c>{AssemblyName}/{TypeName}</c>.
 /// <list type="table">
 ///   <listheader>
 ///     <term>ATS Type ID</term>
 ///     <description>TypeScript Type</description>
 ///   </listheader>
-///   <item><term><c>aspire/Builder</c></term><description><c>BuilderHandle</c> (alias for <c>Handle&lt;'aspire/Builder'&gt;</c>)</description></item>
-///   <item><term><c>aspire/Application</c></term><description><c>ApplicationHandle</c></description></item>
-///   <item><term><c>aspire/ExecutionContext</c></term><description><c>ExecutionContextHandle</c></description></item>
-///   <item><term><c>aspire/Redis</c></term><description><c>RedisBuilderHandle</c></description></item>
-///   <item><term><c>aspire/Container</c></term><description><c>ContainerBuilderHandle</c></description></item>
-///   <item><term><c>aspire/IResource</c></term><description><c>IResourceHandle</c></description></item>
-///   <item><term><c>aspire/IResourceWithEnvironment</c></term><description><c>IResourceWithEnvironmentHandle</c></description></item>
+///   <item><term><c>Aspire.Hosting/IDistributedApplicationBuilder</c></term><description><c>BuilderHandle</c></description></item>
+///   <item><term><c>Aspire.Hosting/DistributedApplication</c></term><description><c>ApplicationHandle</c></description></item>
+///   <item><term><c>Aspire.Hosting/DistributedApplicationExecutionContext</c></term><description><c>ExecutionContextHandle</c></description></item>
+///   <item><term><c>Aspire.Hosting.Redis/RedisResource</c></term><description><c>RedisResourceBuilderHandle</c></description></item>
+///   <item><term><c>Aspire.Hosting/ContainerResource</c></term><description><c>ContainerResourceBuilderHandle</c></description></item>
+///   <item><term><c>Aspire.Hosting.ApplicationModel/IResource</c></term><description><c>IResourceHandle</c></description></item>
 /// </list>
 /// </para>
 /// <para>
 /// <b>Handle Type Naming Rules:</b>
 /// <list type="bullet">
-///   <item><description>Core types (<c>aspire/Builder</c>, <c>aspire/Application</c>): Use type name + "Handle"</description></item>
-///   <item><description>Interface types (<c>aspire/IResource*</c>): Use interface name + "Handle" (keep the I prefix)</description></item>
-///   <item><description>Resource types (<c>aspire/Redis</c>, etc.): Use type name + "BuilderHandle"</description></item>
+///   <item><description>Core types: Use type name + "Handle"</description></item>
+///   <item><description>Interface types: Use interface name + "Handle" (keep the I prefix)</description></item>
+///   <item><description>Resource types: Use type name + "BuilderHandle"</description></item>
 /// </list>
 /// </para>
 /// <para>
@@ -82,8 +82,8 @@ internal sealed class BuilderModel
 /// <para>
 /// <b>Builder Class Generation:</b>
 /// <list type="bullet">
-///   <item><description><c>aspire/Redis</c> → <c>RedisBuilder</c> class with <c>RedisBuilderPromise</c> thenable wrapper</description></item>
-///   <item><description><c>aspire/IResource</c> → <c>ResourceBuilderBase</c> abstract class (interface types get "BuilderBase" suffix)</description></item>
+///   <item><description><c>Aspire.Hosting.Redis/RedisResource</c> → <c>RedisResourceBuilder</c> class with <c>RedisResourceBuilderPromise</c> thenable wrapper</description></item>
+///   <item><description><c>Aspire.Hosting.ApplicationModel/IResource</c> → <c>ResourceBuilderBase</c> abstract class (interface types get "BuilderBase" suffix)</description></item>
 ///   <item><description>Concrete builders extend interface builders based on type hierarchy</description></item>
 /// </list>
 /// </para>
@@ -99,6 +99,20 @@ internal sealed class BuilderModel
 public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 {
     private TextWriter _writer = null!;
+
+    // Well-known type IDs using the derived format: {AssemblyName}/{TypeName}
+    private const string TypeId_Builder = "Aspire.Hosting/IDistributedApplicationBuilder";
+    private const string TypeId_Application = "Aspire.Hosting/DistributedApplication";
+    private const string TypeId_ExecutionContext = "Aspire.Hosting/DistributedApplicationExecutionContext";
+    private const string TypeId_EnvironmentContext = "Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext";
+    private const string TypeId_EndpointReference = "Aspire.Hosting.ApplicationModel/EndpointReference";
+    private const string TypeId_Container = "Aspire.Hosting/ContainerResource";
+
+    /// <summary>
+    /// Checks if a type ID represents an ATS handle type (not a primitive).
+    /// Handle types have the format {AssemblyName}/{TypeName} (contain a '/').
+    /// </summary>
+    private static bool IsHandleType(string? typeId) => !string.IsNullOrEmpty(typeId) && typeId.Contains('/');
 
     /// <inheritdoc />
     public string Language => "TypeScript";
@@ -177,14 +191,14 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var allBuilders = CreateBuilderModels(capabilities);
         var entryPoints = GetEntryPointCapabilities(capabilities);
 
-        // Extract the DistributedApplicationBuilder's capabilities (TargetTypeId = "aspire/Builder")
-        var distributedAppBuilder = allBuilders.FirstOrDefault(b => b.TypeId == AtsTypeMapping.TypeIds.Builder);
+        // Extract the DistributedApplicationBuilder's capabilities
+        var distributedAppBuilder = allBuilders.FirstOrDefault(b => b.TypeId == TypeId_Builder);
         var builderMethods = distributedAppBuilder?.Capabilities ?? [];
 
         // Resource builders are all other builders (not the main builder or application)
         var builders = allBuilders
-            .Where(b => b.TypeId != AtsTypeMapping.TypeIds.Builder &&
-                        b.TypeId != AtsTypeMapping.TypeIds.Application)
+            .Where(b => b.TypeId != TypeId_Builder &&
+                        b.TypeId != TypeId_Application)
             .ToList();
 
         // Entry point methods that don't extend any type go on AspireClient
@@ -200,26 +214,26 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             {
                 typeIds.Add(cap.TargetTypeId);
             }
-            if (!string.IsNullOrEmpty(cap.ReturnTypeId) && cap.ReturnTypeId.StartsWith("aspire/", StringComparison.Ordinal))
+            if (IsHandleType(cap.ReturnTypeId))
             {
-                typeIds.Add(cap.ReturnTypeId);
+                typeIds.Add(cap.ReturnTypeId!);
             }
             // Add parameter type IDs (for types like IResourceBuilder<IResource>)
             foreach (var param in cap.Parameters)
             {
-                if (!string.IsNullOrEmpty(param.AtsTypeId) && param.AtsTypeId.StartsWith("aspire/", StringComparison.Ordinal))
+                if (IsHandleType(param.AtsTypeId))
                 {
-                    typeIds.Add(param.AtsTypeId);
+                    typeIds.Add(param.AtsTypeId!);
                 }
             }
         }
 
         // Add core type IDs
-        typeIds.Add(AtsTypeMapping.TypeIds.Builder);
-        typeIds.Add(AtsTypeMapping.TypeIds.Application);
-        typeIds.Add(AtsTypeMapping.TypeIds.ExecutionContext);
-        typeIds.Add(AtsTypeMapping.TypeIds.EnvironmentContext);
-        typeIds.Add(AtsTypeMapping.TypeIds.EndpointReference);
+        typeIds.Add(TypeId_Builder);
+        typeIds.Add(TypeId_Application);
+        typeIds.Add(TypeId_ExecutionContext);
+        typeIds.Add(TypeId_EnvironmentContext);
+        typeIds.Add(TypeId_EndpointReference);
 
         // Generate handle type aliases
         GenerateHandleTypeAliases(typeIds);
@@ -233,7 +247,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Separate builders into categories:
         // 1. Context types: types with IsContextProperty capabilities (get/set methods)
-        // 2. Resource builders: aspire/IResource*, aspire/Container, etc.
+        // 2. Resource builders: IResource*, ContainerResource, etc.
         // 3. Wrapper types: other non-resource types (Configuration, HostEnvironment)
         var contextTypes = builders.Where(b => contextTypeIds.Contains(b.TypeId)).ToList();
         var resourceBuilders = builders.Where(b => !contextTypeIds.Contains(b.TypeId) && AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
@@ -308,17 +322,21 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
     private static string GetTypeDescription(string typeId)
     {
+        // Extract the type name from the type ID (after the '/')
+        var slashIndex = typeId.LastIndexOf('/');
+        var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+
         return typeId switch
         {
-            _ when typeId == AtsTypeMapping.TypeIds.Builder => "Handle to IDistributedApplicationBuilder",
-            _ when typeId == AtsTypeMapping.TypeIds.Application => "Handle to DistributedApplication",
-            _ when typeId == AtsTypeMapping.TypeIds.ExecutionContext => "Handle to DistributedApplicationExecutionContext",
-            _ when typeId == AtsTypeMapping.TypeIds.EnvironmentContext => "Handle to EnvironmentCallbackContext",
-            _ when typeId == AtsTypeMapping.TypeIds.EndpointReference => "Handle to EndpointReference",
-            _ when typeId == AtsTypeMapping.TypeIds.Container => "Handle to IResourceBuilder<ContainerResource>",
-            _ when typeId.StartsWith("aspire/IResource", StringComparison.Ordinal) =>
-                $"Handle to IResourceBuilder<{typeId[7..]}>",
-            _ => $"Handle to IResourceBuilder<{typeId[7..]}Resource>"
+            _ when typeId == TypeId_Builder => "Handle to IDistributedApplicationBuilder",
+            _ when typeId == TypeId_Application => "Handle to DistributedApplication",
+            _ when typeId == TypeId_ExecutionContext => "Handle to DistributedApplicationExecutionContext",
+            _ when typeId == TypeId_EnvironmentContext => "Handle to EnvironmentCallbackContext",
+            _ when typeId == TypeId_EndpointReference => "Handle to EndpointReference",
+            _ when typeId == TypeId_Container => "Handle to IResourceBuilder<ContainerResource>",
+            _ when typeName.StartsWith("IResource", StringComparison.Ordinal) =>
+                $"Handle to IResourceBuilder<{typeName}>",
+            _ => $"Handle to IResourceBuilder<{typeName}>"
         };
     }
 
@@ -851,7 +869,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             "boolean" => "boolean",
             "any" => "unknown",
             "callback" => "(context: EnvironmentContextHandle) => Promise<void>",
-            _ when atsTypeId.StartsWith("aspire/", StringComparison.Ordinal) =>
+            _ when IsHandleType(atsTypeId) =>
                 GetHandleTypeName(atsTypeId),
             _ when atsTypeId.EndsWith("[]", StringComparison.Ordinal) =>
                 $"{MapAtsTypeToTypeScript(atsTypeId[..^2], false)}[]",
@@ -881,7 +899,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             "string" => "string",
             "number" => "number",
             "boolean" => "boolean",
-            _ when callbackReturnTypeId.StartsWith("aspire/", StringComparison.Ordinal) =>
+            _ when IsHandleType(callbackReturnTypeId) =>
                 GetHandleTypeName(callbackReturnTypeId),
             _ => "unknown"
         };
@@ -1299,8 +1317,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private static string DeriveContextClassName(string typeId)
     {
         // Extract the type name from the type ID
-        // e.g., "aspire.test/TestContext" -> "TestContext"
-        // e.g., "aspire/EnvironmentContext" -> "EnvironmentContext"
+        // e.g., "Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext" -> "EnvironmentCallbackContext"
         var lastSlash = typeId.LastIndexOf('/');
         var typeName = lastSlash >= 0 ? typeId[(lastSlash + 1)..] : typeId;
 
@@ -1404,8 +1421,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private static List<BuilderModel> CreateBuilderModels(List<AtsCapabilityInfo> capabilities)
     {
         // Group capabilities by expanded target type IDs
-        // A capability targeting aspire/IResource with ExpandedTargetTypeIds = [aspire/TestRedis]
-        // will be assigned to aspire/TestRedis (the concrete type)
+        // A capability targeting IResource with ExpandedTargetTypeIds = [Aspire.Hosting.Redis/RedisResource]
+        // will be assigned to Aspire.Hosting.Redis/RedisResource (the concrete type)
         var capabilitiesByTypeId = new Dictionary<string, List<AtsCapabilityInfo>>();
 
         foreach (var cap in capabilities)
@@ -1417,9 +1434,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 continue;
             }
 
-            // Accept any aspire type (aspire/, aspire.xxx/) for builder models
-            // Context types may use package-specific prefixes like "aspire.test/"
-            if (!targetType.StartsWith("aspire", StringComparison.Ordinal))
+            // Accept any handle type (has format Assembly/TypeName)
+            if (!IsHandleType(targetType))
             {
                 continue;
             }
