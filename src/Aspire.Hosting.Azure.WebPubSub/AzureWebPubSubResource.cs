@@ -32,6 +32,14 @@ public class AzureWebPubSubResource(string name, Action<AzureResourceInfrastruct
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{Endpoint}");
 
+    /// <summary>
+    /// Gets the service endpoint URI expression for the Azure Web PubSub resource.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>https://{name}.search.windows.net</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Endpoint}");
+
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
@@ -63,6 +71,6 @@ public class AzureWebPubSubResource(string name, Action<AzureResourceInfrastruct
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        yield return new("Uri", ReferenceExpression.Create($"{Endpoint}"));
+        yield return new("Uri", UriExpression);
     }
 }
