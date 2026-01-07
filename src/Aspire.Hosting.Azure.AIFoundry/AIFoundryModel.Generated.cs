@@ -1856,7 +1856,7 @@ public partial class AIFoundryModel
         ///     <b>Key model capabilities</b>
         ///   </para>
         ///   <para>gpt-3.5-turbo is available for use with the Chat Completions API. gpt-3.5-turbo Instruct has similar capabilities to text-davinci-003 using the Completions API instead of the Chat Completions API.</para>
-        ///   <para>To learn more about how to interact with gpt-3.5-turbo and the Chat Completions API check out our Markdig.Syntax.Inlines.HtmlInlinein-depth how-to.Markdig.Syntax.Inlines.HtmlInline</para>
+        ///   <para>To learn more about how to interact with gpt-3.5-turbo and the Chat Completions API check out our <see href="https://learn.microsoft.com/azure/ai-services/openai/how-to/chatgpt?tabs=python&amp;pivots=programming-language-chat-completions">in-depth how-to.</see>in-depth how-to.</para>
         ///   <para>
         ///     <b>Use cases</b>
         ///   </para>
@@ -1913,7 +1913,7 @@ public partial class AIFoundryModel
         ///   <para>Model Availability</para>
         ///   <para>Max Request (tokens)</para>
         ///   <para>Training Data (up to)</para>
-        ///   <para>gpt-35-turboMarkdig.Syntax.Inlines.HtmlInline1Markdig.Syntax.Inlines.HtmlInline (0301)</para>
+        ///   <para>gpt-35-turbo<i>1</i>1 (0301)</para>
         ///   <para>East US, France Central, South Central US, UK South, West Europe</para>
         ///   <para>4,096</para>
         ///   <para>Sep 2021</para>
@@ -1933,7 +1933,8 @@ public partial class AIFoundryModel
         ///   <para>Australia East, Canada East, France Central, South India, Sweden Central, UK South, West US</para>
         ///   <para>Input: 16,385 Output: 4,096</para>
         ///   <para>Sep 2021</para>
-        ///   <para>Markdig.Syntax.Inlines.HtmlInline1Markdig.Syntax.Inlines.HtmlInline This model will accept requests &gt; 4,096 tokens. It is not recommended to exceed the 4,096 input token limit as the newer version of the model are capped at 4,096 tokens. If you encounter issues when exceeding 4,096 input tokens with this model this configuration is not officially supported.</para>
+        ///   <para>
+        ///     <i>1</i>1 This model will accept requests &gt; 4,096 tokens. It is not recommended to exceed the 4,096 input token limit as the newer version of the model are capped at 4,096 tokens. If you encounter issues when exceeding 4,096 input tokens with this model this configuration is not officially supported.</para>
         ///   <para>
         ///     <b>Optimizing model performance</b>
         ///   </para>
@@ -2079,7 +2080,7 @@ public partial class AIFoundryModel
         ///   <para>Model Availability</para>
         ///   <para>Max Request (tokens)</para>
         ///   <para>Training Data (up to)</para>
-        ///   <para>gpt-35-turboMarkdig.Syntax.Inlines.HtmlInline1Markdig.Syntax.Inlines.HtmlInline (0301)</para>
+        ///   <para>gpt-35-turbo<i>1</i>1 (0301)</para>
         ///   <para>East US, France Central, South Central US, UK South, West Europe</para>
         ///   <para>4,096</para>
         ///   <para>Sep 2021</para>
@@ -2099,7 +2100,8 @@ public partial class AIFoundryModel
         ///   <para>Australia East, Canada East, France Central, South India, Sweden Central, UK South, West US</para>
         ///   <para>Input: 16,385 Output: 4,096</para>
         ///   <para>Sep 2021</para>
-        ///   <para>Markdig.Syntax.Inlines.HtmlInline1Markdig.Syntax.Inlines.HtmlInline This model will accept requests &gt; 4,096 tokens. It is not recommended to exceed the 4,096 input token limit as the newer version of the model are capped at 4,096 tokens. If you encounter issues when exceeding 4,096 input tokens with this model this configuration is not officially supported.</para>
+        ///   <para>
+        ///     <i>1</i>1 This model will accept requests &gt; 4,096 tokens. It is not recommended to exceed the 4,096 input token limit as the newer version of the model are capped at 4,096 tokens. If you encounter issues when exceeding 4,096 input tokens with this model this configuration is not officially supported.</para>
         ///   <para>
         ///     <b>Optimizing model performance</b>
         ///   </para>
@@ -2107,7 +2109,7 @@ public partial class AIFoundryModel
         ///   <para>
         ///     <b>Additional assets</b>
         ///   </para>
-        ///   <para>To learn more about how to interact with GPT-3.5 Turbo and the Chat Completions API check out our Markdig.Syntax.Inlines.HtmlInlinein-depth how-to.Markdig.Syntax.Inlines.HtmlInline</para>
+        ///   <para>To learn more about how to interact with GPT-3.5 Turbo and the Chat Completions API check out our <see href="https://learn.microsoft.com/azure/ai-services/openai/how-to/chatgpt?tabs=python&amp;pivots=programming-language-chat-completions">in-depth how-to.</see>in-depth how-to.</para>
         ///   <para>
         ///     <b>Training disclosure</b>
         ///   </para>

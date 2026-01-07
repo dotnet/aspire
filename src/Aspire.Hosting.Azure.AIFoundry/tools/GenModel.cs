@@ -376,6 +376,31 @@ static IEnumerable<object> ConvertInline(Inline inline)
         case LineBreakInline lineBreakInline:
             yield return lineBreakInline.IsHard ? new XElement("br") : " ";
             yield break;
+        case HtmlInline htmlInline:
+        {
+            var tag = htmlInline.Tag;
+            if (tag is not null)
+            {
+                // Skip closing tags - they're handled by CollectHtmlElementContent
+                if (tag.StartsWith("</", StringComparison.Ordinal))
+                {
+                    yield break;
+                }
+
+                // Parse the HTML tag generically
+                var parsedTag = ParseHtmlTag(tag);
+                if (parsedTag is not null)
+                {
+                    var textContent = CollectHtmlElementContent(htmlInline, parsedTag.Value.TagName);
+                    var converted = ConvertHtmlTagToXml(parsedTag.Value.TagName, parsedTag.Value.Attributes, textContent);
+                    if (converted is not null)
+                    {
+                        yield return converted;
+                    }
+                }
+            }
+            yield break;
+        }
         default:
         {
             if (inline is ContainerInline containerInline)
@@ -396,6 +421,93 @@ static IEnumerable<object> ConvertInline(Inline inline)
 
             yield break;
         }
+    }
+}
+
+static string CollectHtmlElementContent(HtmlInline startTag, string elementName)
+{
+    var content = new StringBuilder();
+    var current = startTag.NextSibling;
+    var closingTag = $"</{elementName}>";
+
+    while (current is not null)
+    {
+        if (current is HtmlInline html && html.Tag is not null &&
+            html.Tag.StartsWith(closingTag, StringComparison.OrdinalIgnoreCase))
+        {
+            break;
+        }
+
+        if (current is LiteralInline literal)
+        {
+            content.Append(literal.Content.ToString());
+        }
+        else if (current is HtmlInline)
+        {
+            // Skip nested HTML tags
+        }
+        else
+        {
+            content.Append(current.ToString());
+        }
+
+        current = current.NextSibling;
+    }
+
+    return content.ToString();
+}
+
+static (string TagName, Dictionary<string, string> Attributes)? ParseHtmlTag(string tag)
+{
+    // Regex to extract tag name and attributes
+    var match = ModelClassGenerator.HtmlTagName().Match(tag);
+    if (!match.Success)
+    {
+        return null;
+    }
+
+    var tagName = match.Groups[1].Value;
+    var attrText = match.Groups[2].Value;
+    var attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    // Simple regex to extract key="value" or key='value' pairs
+    var attrMatches = ModelClassGenerator.HtmlAttribute().Matches(attrText);
+    foreach (Match attr in attrMatches)
+    {
+        var name = attr.Groups[1].Value;
+        var value = attr.Groups[2].Value;
+        attributes[name] = value;
+    }
+
+    return (tagName, attributes);
+}
+
+static object? ConvertHtmlTagToXml(string tagName, Dictionary<string, string> attributes, string textContent)
+{
+    switch (tagName.ToLowerInvariant())
+    {
+        case "sup":
+            // Convert <sup> to italics
+            if (!string.IsNullOrEmpty(textContent))
+            {
+                return new XElement("i", textContent);
+            }
+            return null;
+
+        case "a":
+            // Convert <a href="XXX"> to <see href="XXX">
+            if (attributes.TryGetValue("href", out var href) && !string.IsNullOrEmpty(href))
+            {
+                var seeElement = new XElement("see", new XAttribute("href", href));
+                seeElement.Value = !string.IsNullOrEmpty(textContent) ? textContent : href;
+                return seeElement;
+            }
+            // If no href, just return the text content
+            return !string.IsNullOrEmpty(textContent) ? textContent : null;
+
+        default:
+            // Unknown tags - throw away the tag and return just the text content
+            return !string.IsNullOrEmpty(textContent) ? textContent : null;
     }
 }
 
@@ -542,12 +654,17 @@ static bool IsVisible(string? invisibleUntil)
 
 public partial class ModelClassGenerator
 {
-
     [GeneratedRegex("([a-z0-9])([A-Z])")]
     public static partial Regex LowerToUpper();
 
     [GeneratedRegex("([a-zA-Z])([0-9])")]
     public static partial Regex LetterToDigit();
+
+    [GeneratedRegex(@"<(\w+)([^>]*)>")]
+    public static partial Regex HtmlTagName();
+
+    [GeneratedRegex(@"(\w+)\s*=\s*[""']([^""']*)[""']")]
+    public static partial Regex HtmlAttribute();
 }
 
 public class ModelClient : IDisposable
