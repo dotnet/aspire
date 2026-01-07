@@ -44,7 +44,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         Assert.Null(endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("tcp", endpoint.Transport);
-        Assert.Equal("tcp", endpoint.UriScheme);
+        Assert.Equal("redis", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(RedisContainerImageTags.Tag, containerAnnotation.Tag);
@@ -72,7 +72,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(9813, endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("tcp", endpoint.Transport);
-        Assert.Equal("tcp", endpoint.UriScheme);
+        Assert.Equal("redis", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(RedisContainerImageTags.Tag, containerAnnotation.Tag);
@@ -94,7 +94,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value},ssl=false", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value},ssl=false", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={myRedis-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={myRedis-password.value},ssl=false", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("localhost:2000", connectionString);
     }
 
@@ -142,7 +142,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value},ssl=false",
               "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
               "entrypoint": "/bin/sh",
               "args": [
@@ -154,7 +154,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
               },
               "bindings": {
                 "tcp": {
-                  "scheme": "tcp",
+                  "scheme": "redis",
                   "protocol": "tcp",
                   "transport": "tcp",
                   "targetPort": 6379
@@ -176,7 +176,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},ssl=false",
               "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
               "entrypoint": "/bin/sh",
               "args": [
@@ -185,7 +185,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
               ],
               "bindings": {
                 "tcp": {
-                  "scheme": "tcp",
+                  "scheme": "redis",
                   "protocol": "tcp",
                   "transport": "tcp",
                   "targetPort": 6379
@@ -211,7 +211,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={pass.value}",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={pass.value},ssl=false",
               "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
               "entrypoint": "/bin/sh",
               "args": [
@@ -223,7 +223,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
               },
               "bindings": {
                 "tcp": {
-                  "scheme": "tcp",
+                  "scheme": "redis",
                   "protocol": "tcp",
                   "transport": "tcp",
                   "targetPort": 6379
@@ -246,7 +246,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={pass.value}",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={pass.value},ssl=false",
               "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
               "entrypoint": "/bin/sh",
               "args": [
@@ -258,7 +258,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
               },
               "bindings": {
                 "tcp": {
-                  "scheme": "tcp",
+                  "scheme": "redis",
                   "protocol": "tcp",
                   "transport": "tcp",
                   "targetPort": 6379
@@ -476,13 +476,13 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
         if (withPassword)
         {
-            Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
-            Assert.Equal($"localhost:5001,password={password}", connectionString);
+            Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value},ssl=false", connectionStringResource.ConnectionStringExpression.ValueExpression);
+            Assert.Equal($"localhost:5001,password={password},ssl=false", connectionString);
         }
         else
         {
-            Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
-            Assert.Equal($"localhost:5001", connectionString);
+            Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},ssl=false", connectionStringResource.ConnectionStringExpression.ValueExpression);
+            Assert.Equal($"localhost:5001,ssl=false", connectionString);
         }
     }
 
@@ -703,7 +703,7 @@ public class AddRedisTests(ITestOutputHelper testOutputHelper)
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value},ssl=false", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith($"localhost:5001,password={password}", connectionString);
     }
 
