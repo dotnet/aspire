@@ -201,7 +201,10 @@ public class Program
         // AppHost project handlers.
         builder.Services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, DotNetAppHostProject>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, TypeScriptAppHostProject>());
+        if (builder.Configuration.GetValue($"features:{KnownFeatures.TypeScriptSupportEnabled}", false))
+        {
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, TypeScriptAppHostProject>());
+        }
 
         // Environment checking services.
         builder.Services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
