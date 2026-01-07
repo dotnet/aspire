@@ -45,13 +45,14 @@ foreach ($className in $classNames) {
     $linuxBinLog = $RelativeTestBinLog -replace 'Cli\.EndToEnd', "Cli.EndToEnd.$shortName"
 
     # Only generate Linux runsheet since Hex1b requires Linux
+    # Note: CLI E2E tests download the CLI via PR download scripts, so they don't need built packages
     $runsheetLinux = @{
         label = "l: Cli.E2E.$shortName"
         project = "Cli.EndToEnd.$shortName"
         os = "ubuntu-latest"
-        command = "./eng/build.sh -restore -build -test -projects `"$RelativeTestProjectPath`" /bl:`"$linuxBinLog`" -c $Configuration -ci /p:TestsRunningOutsideOfRepo=true -- $filterArg"
-        requiresNugets = $true
-        requiresTestSdk = $true
+        command = "./eng/build.sh -restore -build -test -projects `"$RelativeTestProjectPath`" /bl:`"$linuxBinLog`" -c $Configuration -ci -- $filterArg"
+        requiresNugets = $false
+        requiresTestSdk = $false
         filterClass = $className
     }
 
