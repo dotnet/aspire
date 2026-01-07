@@ -486,8 +486,10 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
                 CreateInteractionService(),
                 serviceProvider.GetRequiredService<ILogger<ParameterProcessor>>(),
                 executionContext,
-                deploymentStateManager: new MockDeploymentStateManager()),
-            Options.Create(dashboardOptions ?? new())
+                deploymentStateManager: new MockDeploymentStateManager(),
+                userSecretsManager: UserSecrets.NoopUserSecretsManager.Instance),
+            Options.Create(dashboardOptions ?? new()),
+            serviceProvider.GetRequiredService<ILogger<ApplicationOrchestrator>>()
         );
     }
 
@@ -510,6 +512,11 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
         }
 
         public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }

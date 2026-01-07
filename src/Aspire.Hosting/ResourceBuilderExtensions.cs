@@ -2209,25 +2209,12 @@ public static class ResourceBuilderExtensions
 
         if (commandOptions.UpdateState is null)
         {
-            var targetRunning = false;
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
+            commandOptions.UpdateState = context =>
             {
-                var rns = e.Services.GetRequiredService<ResourceNotificationService>();
-                _ = Task.Run(async () =>
-                {
-                    await foreach (var resourceEvent in rns.WatchAsync(ct).WithCancellation(ct))
-                    {
-                        if (resourceEvent.Resource == endpoint.Resource)
-                        {
-                            var resourceState = resourceEvent.Snapshot.State?.Text;
-                            targetRunning = resourceState == KnownResourceStates.Running || resourceState == KnownResourceStates.RuntimeUnhealthy;
-                        }
-                    }
-                }, ct);
-
-                return Task.CompletedTask;
-            });
-            commandOptions.UpdateState = context => targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+                var resourceState = context.ResourceSnapshot.State?.Text;
+                var targetRunning = resourceState == KnownResourceStates.Running || resourceState == KnownResourceStates.RuntimeUnhealthy;
+                return targetRunning ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+            };
         }
 
         builder.WithCommand(commandName, displayName,

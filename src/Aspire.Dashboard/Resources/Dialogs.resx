@@ -271,6 +271,9 @@
   <data name="SettingsRemoveAllButtonText" xml:space="preserve">
     <value>Remove all</value>
   </data>
+  <data name="SettingsExportAllButtonText" xml:space="preserve">
+    <value>Export all</value>
+  </data>
   <data name="TextVisualizerSecretWarningTitle" xml:space="preserve">
     <value>Sensitive value hidden</value>
   </data>

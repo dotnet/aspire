@@ -13,7 +13,9 @@ namespace Aspire.Dashboard.Otlp.Model.Serialization;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    WriteIndented = false)]
+    WriteIndented = false,
+    ReadCommentHandling = JsonCommentHandling.Skip,
+    AllowTrailingCommas = true)]
 [JsonSerializable(typeof(OtlpAnyValueJson))]
 [JsonSerializable(typeof(OtlpArrayValueJson))]
 [JsonSerializable(typeof(OtlpKeyValueListJson))]
@@ -67,6 +69,17 @@ internal sealed partial class OtlpJsonSerializerContext : JsonSerializerContext
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         WriteIndented = false,
+        TypeInfoResolver = Default
+    };
+
+    /// <summary>
+    /// Gets the serializer options for OTLP JSON serialization with indented output.
+    /// </summary>
+    public static JsonSerializerOptions IndentedOptions { get; } = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = true,
         TypeInfoResolver = Default
     };
 }

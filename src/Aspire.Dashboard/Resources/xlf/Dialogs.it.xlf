@@ -582,6 +582,11 @@
         <target state="translated">Versione: {0}</target>
         <note>{0} is the dashboard version string</note>
       </trans-unit>
+      <trans-unit id="SettingsExportAllButtonText">
+        <source>Export all</source>
+        <target state="translated">Esporta tutto</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
         <source>Remove all</source>
         <target state="translated">Rimuovi tutto</target>

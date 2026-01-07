@@ -1,5 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -11,6 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an expression that might be made up of multiple resource properties. For example,
 /// a connection string might be made up of a host, port, and password from different endpoints.
 /// </summary>
+[DebuggerDisplay("ReferenceExpression = {ValueExpression}, Providers = {ValueProviders.Count}")]
 public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>

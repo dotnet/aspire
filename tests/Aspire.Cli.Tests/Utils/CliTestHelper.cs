@@ -107,7 +107,6 @@ internal static class CliTestHelper
         services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
         services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
         services.AddSingleton<IEnvironmentCheck, ContainerRuntimeCheck>();
-        services.AddSingleton<IEnvironmentCheck, DockerEngineCheck>();
         services.AddSingleton<IEnvironmentChecker, EnvironmentChecker>();
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
