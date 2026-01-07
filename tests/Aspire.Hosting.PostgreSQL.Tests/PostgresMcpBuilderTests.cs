@@ -13,7 +13,7 @@ namespace Aspire.Hosting.PostgreSQL.Tests;
 public class PostgresMcpBuilderTests
 {
     [Fact]
-    public void WithPostgresMcpOnServerAddsContainerResourceWithMcpEndpointAnnotation()
+    public async Task WithPostgresMcpOnServerAddsContainerResourceWithMcpEndpointAnnotation()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -33,8 +33,11 @@ public class PostgresMcpBuilderTests
         Assert.Equal(8000, endpoint.TargetPort);
 
         var mcpAnnotation = Assert.Single(mcpContainer.Annotations.OfType<McpServerEndpointAnnotation>());
-        Assert.Equal(PostgresMcpContainerResource.PrimaryEndpointName, mcpAnnotation.EndpointName);
-        Assert.Equal("/sse", mcpAnnotation.Path);
+
+        var resolvedUri = await mcpAnnotation.EndpointUrlResolver(mcpContainer, CancellationToken.None);
+
+        Assert.NotNull(resolvedUri);
+        Assert.Equal("http://postgres-mcp.dev.internal:8000/sse", resolvedUri!.ToString());
     }
 
     [Fact]

@@ -10,15 +10,14 @@ namespace Aspire.Cli.Tests.Backchannel;
 public class BackchannelJsonSerializerContextTests
 {
     [Fact]
-    public void JsonSerializerOptionsCanSerializeAndDeserializeResourceMcpTools()
+    public void JsonSerializerOptionsCanSerializeAndDeserializeResourceSnapshotMcpServers()
     {
         var options = BackchannelJsonSerializerContext.CreateJsonSerializerOptions();
 
-        var tools = new ResourceMcpTool[]
+        var servers = new Aspire.Cli.Backchannel.ResourceSnapshotMcpServer[]
         {
             new()
             {
-                ResourceName = "postgres",
                 EndpointUrl = "http://localhost:8000",
                 Tools =
                 [
@@ -32,12 +31,11 @@ public class BackchannelJsonSerializerContextTests
             }
         };
 
-        var json = JsonSerializer.Serialize(tools, options);
-        var roundTripped = JsonSerializer.Deserialize<ResourceMcpTool[]>(json, options);
+        var json = JsonSerializer.Serialize(servers, options);
+        var roundTripped = JsonSerializer.Deserialize<Aspire.Cli.Backchannel.ResourceSnapshotMcpServer[]>(json, options);
 
         Assert.NotNull(roundTripped);
         Assert.Single(roundTripped);
-        Assert.Equal("postgres", roundTripped[0].ResourceName);
         Assert.Equal("http://localhost:8000", roundTripped[0].EndpointUrl);
         Assert.Single(roundTripped[0].Tools);
         Assert.Equal("query", roundTripped[0].Tools[0].Name);
