@@ -20,7 +20,7 @@ namespace Aspire.Hosting.Azure;
 /// This also functions as an Aspire compute environment resource for deployment.
 /// </summary>
 public class AzureCognitiveServicesProjectResource :
-    AzureResourceManagerAspireResourceWithParent<CognitiveServicesProject, AzureAIFoundryResource>,
+    AzureProvisionableAspireResourceWithParent<CognitiveServicesProject, AzureAIFoundryResource>,
     IResourceWithConnectionString,
     IAzureComputeEnvironmentResource,
     IAzureContainerRegistry
@@ -116,23 +116,18 @@ public class AzureCognitiveServicesProjectResource :
     public BicepOutputReference Id => new("id", this);
 
     /// <summary>
-    /// Gets the connection string template for the manifest for the resource.
+    /// Gets the .NET-style connection string for the project API endpoint.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{ConnectionString}");
+    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"Endpoint={Endpoint}");
 
     /// <summary>
-    /// Gets the "connectionString" output reference from the Azure Cognitive Services project resource.
+    /// Gets the "endpoint" output reference from the Azure Cognitive Services project resource.
     ///
     /// This will be used to instantiate the AI project clients.
     ///
     /// Will be of the format https:/{accountName}.services.ai.azure.com/api/projects/{projectName}?api-version={apiVersion}
     /// </summary>
-    public BicepOutputReference ConnectionString => new("connectionString", this);
-
-    /// <summary>
-    /// Gets the name of the environment variable to use for the connection string.
-    /// </summary>
-    public string ConnectionStringEnvironmentVariable { get; } = "AZURE_AI_PROJECT_ENDPOINT";
+    public BicepOutputReference Endpoint => new("endpoint", this);
 
     internal BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
     internal BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
@@ -155,7 +150,7 @@ public class AzureCognitiveServicesProjectResource :
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
-        return ReferenceExpression.Create($"{ConnectionString}/agents/{resource.Name}");
+        return ReferenceExpression.Create($"{Endpoint}/agents/{resource.Name}");
     }
 
     /// <summary>

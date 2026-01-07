@@ -151,7 +151,7 @@ public class AzureHostedAgentResource : Resource, IComputeResource, IResourceWit
     {
         ArgumentNullException.ThrowIfNull(project);
 
-        var projectEndpoint = await project.ConnectionString.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+        var projectEndpoint = await project.Endpoint.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
         if (string.IsNullOrEmpty(projectEndpoint))
         {
             throw new InvalidOperationException($"Project '{project.Name}' does not have a valid connection string.");

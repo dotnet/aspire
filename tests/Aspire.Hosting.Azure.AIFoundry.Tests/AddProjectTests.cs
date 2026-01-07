@@ -3,8 +3,9 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+// using Aspire.Hosting.Azure.AIFoundry;
 
-namespace Aspire.Hosting.Azure.CognitiveServices.Tests;
+namespace Aspire.Hosting.Azure.AIFoundry.Tests;
 
 public class AddProjectTests
 {
@@ -16,7 +17,7 @@ public class AddProjectTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         // Act
-        var resourceBuilder = builder.AddAzureCognitiveServicesAccount("account")
+        var resourceBuilder = builder.AddAzureAIFoundry("account")
             .AddProject(name);
 
         // Assert
@@ -31,7 +32,7 @@ public class AddProjectTests
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
-        var project = builder.AddAzureCognitiveServicesAccount("test-account")
+        var project = builder.AddAzureAIFoundry("test-account")
             .AddProject("test-project");
 
         var pyapp = builder.AddPythonApp("app", "./app.py", "main:app")
@@ -55,7 +56,7 @@ public class AddProjectTests
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
-        var project = builder.AddAzureCognitiveServicesAccount("test-account")
+        var project = builder.AddAzureAIFoundry("test-account")
             .AddProject("test-project");
 
         var pyapp = builder.AddPythonApp("app", "./app.py", "main:app")

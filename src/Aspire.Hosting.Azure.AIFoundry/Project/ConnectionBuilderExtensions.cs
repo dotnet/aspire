@@ -196,53 +196,19 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
         {
             throw new InvalidOperationException("Cannot create a AI Foundry project connection to an emulator Application Insights resource.");
         }
-        var name = $"connection-{Guid.NewGuid():N}";
         // Configuration based on https://github.com/azure-ai-foundry/foundry-samples/blob/cdd5453240ca8d1a6ac25d4bc66475fc4a49f56e/infrastructure/infrastructure-setup-bicep/01-connections/connection-application-insights.bicep
-        // We use raw Bicep here because Azure.Provisioning.CognitiveServices does not support the "AppInsights" connection category yet (as of 2026-01-06).
-        return builder.ApplicationBuilder.AddBicepTemplateString(
-            name,
-            $$"""
-            @description('Name of AI Foundry resource')
-            param aiFoundryName string
-
-            @description('Connection name')
-            param connectionName string
-
-            @description('App Insights Name')
-            param appInsightsName string
-
-            resource aiFoundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
-                name: aiFoundryName
-                scope: resourceGroup()
+        // We use a custom subclass here because Azure.Provisioning.CognitiveServices does not support the "AppInsights" connection category yet (as of 2026-01-06).
+        return builder.AddConnection($"connection-{Guid.NewGuid():N}", (infra) => new AppInsightsConnectionProperties()
+        {
+            Target = appInsights.Id.AsProvisioningParameter(infra),
+            IsSharedToAll = false,
+            CredentialsKey = appInsights.ConnectionString.AsProvisioningParameter(infra),
+            Metadata =
+            {
+                { "ApiType", "Azure" },
+                { "ResourceId", appInsights.Id.AsProvisioningParameter(infra) }
             }
-
-            resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
-                name: appInsightsName
-                scope: resourceGroup()
-            }
-
-            resource connection 'Microsoft.CognitiveServices/accounts/connections@2025-09-01-preview' = {
-                name: connectionName
-                parent: aiFoundry
-                properties: {
-                    category: 'AppInsights'
-                    target: appInsights.id
-                    authType: 'ApiKey'
-                    isSharedToAll: true
-                    credentials: {
-                        key: appInsights.properties.ConnectionString
-                    }
-                    metadata: {
-                        ApiType: 'Azure'
-                        ResourceId: appInsights.id
-                    }
-                }
-            }
-            """
-        )
-            .WithParameter("aiFoundryName", builder.Resource.NameOutputReference)
-            .WithParameter("connectionName", name)
-            .WithParameter("appInsightsName", appInsights.NameOutputReference);
+        });
     }
 
     /// <summary>
@@ -274,51 +240,19 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
         {
             throw new InvalidOperationException("Cannot create a AI Foundry project connection to an emulator Key Vault.");
         }
-        var name = $"connection-{Guid.NewGuid():N}";
         // Configuration based on https://github.com/azure-ai-foundry/foundry-samples/blob/9551912af4d4fdb8ea73e996145e940a7e369c84/infrastructure/infrastructure-setup-bicep/01-connections/connection-key-vault.bicep
-        // We use raw Bicep here because Azure.Provisioning.CognitiveServices does not support the "AzureKeyVault" connection category yet (as of 2026-01-06).
-        return builder.ApplicationBuilder.AddBicepTemplateString(
-            name,
-            $$"""
-            @description('Name of AI Foundry resource')
-            param aiFoundryName string
-
-            @description('Connection name')
-            param connectionName string
-
-            @description('KeyVault Name')
-            param keyVaultName string
-
-            resource aiFoundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
-                name: aiFoundryName
-                scope: resourceGroup()
+        // We use a custom subclass because Azure.Provisioning.CognitiveServices does not support the "AzureKeyVault" connection category yet (as of 2026-01-06).
+        // We also swap `ManagedIdentity` auth type for `AccountManagedIdentity`, because the latter seems to be an error in the Bicep template.
+        return builder.AddConnection($"connection-{Guid.NewGuid():N}", (infra) => new AzureKeyVaultConnectionProperties()
+        {
+            Target = keyVault.Id.AsProvisioningParameter(infra),
+            IsSharedToAll = true,
+            Metadata =
+            {
+                { "ApiType", "Azure" },
+                { "ResourceId", keyVault.Id.AsProvisioningParameter(infra) }
             }
-
-            resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
-                name: keyVaultName
-                scope: resourceGroup()
-            }
-
-            resource connection 'Microsoft.CognitiveServices/accounts/connections@2025-09-01-preview' = {
-                name: connectionName
-                parent: aiFoundry
-                properties: {
-                    category: 'AzureKeyVault'
-                    target: keyVault.id
-                    authType: 'AccountManagedIdentity'
-                    isSharedToAll: true
-                    metadata: {
-                        ApiType: 'Azure'
-                        ResourceId: keyVault.id
-                        location: keyVault.location
-                    }
-                }
-            }
-            """
-        )
-            .WithParameter("aiFoundryName", builder.Resource.NameOutputReference)
-            .WithParameter("connectionName", name)
-            .WithParameter("keyVaultName", keyVault.NameOutputReference);
+        });
     }
 
     /// <summary>

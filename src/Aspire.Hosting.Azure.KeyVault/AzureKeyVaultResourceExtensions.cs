@@ -40,17 +40,17 @@ public static partial class AzureKeyVaultResourceExtensions
     /// <example>
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// var vault = builder.AddAzureKeyVault("vault");
-    /// 
+    ///
     /// // Add a secret from a parameter
     /// var secret = builder.AddParameter("secretParam", secret: true);
     /// vault.AddSecret("my-secret", secret);
-    /// 
+    ///
     /// // Add a secret from a reference expression
     /// var connectionString = ReferenceExpression.Create($"Server={server};Database={db}");
     /// vault.AddSecret("connection-string", connectionString);
-    /// 
+    ///
     /// // Get a reference to an existing secret
     /// var existingSecret = vault.GetSecret("existing-secret");
     /// </code>
@@ -118,6 +118,12 @@ public static partial class AzureKeyVaultResourceExtensions
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = keyVault.Name });
+
+            // We need to output ID to bind to Foundry connections.
+            infrastructure.Add(new ProvisioningOutput("id", typeof(string))
+            {
+                Value = keyVault.Id
+            });
         };
 
         var resource = new AzureKeyVaultResource(name, configureInfrastructure);
@@ -141,7 +147,7 @@ public static partial class AzureKeyVaultResourceExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var vault = builder.AddAzureKeyVault("vault");
-    /// 
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithRoleAssignments(vault, KeyVaultBuiltInRole.KeyVaultReader)
     ///   .WithReference(vault);

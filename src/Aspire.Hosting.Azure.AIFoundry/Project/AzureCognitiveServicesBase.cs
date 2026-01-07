@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure.AIFoundry;
 /// <summary>
 /// An Aspire wrapper around an Azure.Provisioning.ProvisionableResource.
 /// </summary>
-public abstract class AzureResourceManagerAspireResource<T>(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
+public abstract class AzureProvisionableAspireResource<T>(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure)
     where T : ProvisionableResource
 {
@@ -39,8 +39,7 @@ public abstract class AzureResourceManagerAspireResource<T>(string name, Action<
             return existing;
         }
         var created = FromExisting(bicepIdentifier);
-        // If Aspire resource`this` has an ExistingResourceAnnotation, update Provisionable resource `created`
-        // to match it (name and resource group). Otherwise continue using as is.
+        // Try to keep annotation and `created` in sync
         if (!TryApplyExistingResourceAnnotation(this, infra, created))
         {
             SetName(created, this.NameOutputReference.AsProvisioningParameter(infra));
@@ -52,37 +51,24 @@ public abstract class AzureResourceManagerAspireResource<T>(string name, Action<
     /// <summary>
     /// Sets the name of the provisionable resource.
     ///
-    /// This is needed because not all provisionable resources have a name property with a setter.
+    /// This is needed because not all ProvisionableResource classes have a name
+    /// property with a setter, and we can't put a type bound on T to require it.
     /// </summary>
     public abstract void SetName(T provisionableResource, BicepValue<string> name);
 
     /// <summary>
-    /// Sets the name of the provisionable resource.
+    /// Gets the Azure.Provisioning resource from an existing Bicep identifier.
     ///
-    /// This is needed because not all provisionable resources have a name property with a setter.
+    /// Because static methods can't be abstract, this is an instance method.
     /// </summary>
     public abstract T FromExisting(string bicepIdentifier);
-
-    // /// <summary>
-    // /// Gets a Provisionable resource from existing resource.
-    // /// </summary>
-    // /// <param name="bicepIdentifier"></param>
-    // /// <param name="resourceName"></param>
-    // /// <returns></returns>
-    // /// <exception cref="InvalidOperationException"></exception>
-    // public static T GetProvisionableFromExisting(string bicepIdentifier, BicepValue<string> resourceName)
-    // {
-    //     var fromExisting = typeof(T).GetMethod("FromExisting", BindingFlags.Public | BindingFlags.Static) ?? throw new InvalidOperationException($"Type '{typeof(T).FullName}' does not have a public static FromExisting method.");
-    //     var result = (T)(fromExisting.Invoke(null, [bicepIdentifier]) ?? throw new InvalidOperationException($"FromExisting method on type '{typeof(T).FullName}' returned null."));
-    //     return result;
-    // }
 }
 
 /// <summary>
-/// An AzureResourceManagerResource that also is IResourceWithParent.
+/// An AzureProvisionableAspireResource that also is IResourceWithParent.
 /// </summary>
-public abstract class AzureResourceManagerAspireResourceWithParent<T, P>(string name, Action<AzureResourceInfrastructure> configureInfrastructure, P parent) :
-    AzureResourceManagerAspireResource<T>(name, configureInfrastructure), IResourceWithParent<P>
+public abstract class AzureProvisionableAspireResourceWithParent<T, P>(string name, Action<AzureResourceInfrastructure> configureInfrastructure, P parent) :
+    AzureProvisionableAspireResource<T>(name, configureInfrastructure), IResourceWithParent<P>
     where T : ProvisionableResource
     where P : AzureProvisioningResource
 {
@@ -93,9 +79,9 @@ public abstract class AzureResourceManagerAspireResourceWithParent<T, P>(string 
 }
 
 /// <summary>
-/// Extension methods for <see cref="AzureResourceManagerAspireResource{T}"/>.
+/// Extension methods for <see cref="AzureProvisionableAspireResource{T}"/>.
 /// </summary>
-public static class AzureResourceManagerResourceExtensions
+public static class AzureProvisionableAspireResourceExtensions
 {
     /// <summary>
     /// Configure the underlying Azure ProvisioningResource for situations
@@ -107,12 +93,12 @@ public static class AzureResourceManagerResourceExtensions
     /// <param name="configure">An callback to configure the Provisionable resource.</param>
     /// <returns>The resource builder.</returns>
     public static IResourceBuilder<A> WithConfiguration<A, P>(this IResourceBuilder<A> builder, Action<P> configure)
-        where A : AzureResourceManagerAspireResource<P>
+        where A : AzureProvisionableAspireResource<P>
         where P : ProvisionableResource
     {
         builder.ConfigureInfrastructure(infra =>
         {
-            var r = AzureResourceManagerAspireResource<P>.GetProvisionableResource(infra, builder.Resource.GetBicepIdentifier()) ?? throw new InvalidOperationException($"Provisionable resource for Aspire resource '{builder.Resource.Name}' not found in infrastructure.");
+            var r = AzureProvisionableAspireResource<P>.GetProvisionableResource(infra, builder.Resource.GetBicepIdentifier()) ?? throw new InvalidOperationException($"Provisionable resource for Aspire resource '{builder.Resource.Name}' not found in infrastructure.");
             configure(r);
         });
         return builder;
