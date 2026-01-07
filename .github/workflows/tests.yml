@@ -173,6 +173,13 @@ jobs:
       requiresNugets: true
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
+  cli_e2e_tests:
+    name: CLI E2E Tests
+    uses: ./.github/workflows/tests-cli-e2e.yml
+    needs: build_packages
+    with:
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+
   extension_tests_win:
     name: Run VS Code extension tests (Windows)
     runs-on: windows-latest
@@ -203,6 +210,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Final Test Results
     needs: [
+      cli_e2e_tests,
       endtoend_tests,
       extension_tests_win,
       integrations_test_lin,
