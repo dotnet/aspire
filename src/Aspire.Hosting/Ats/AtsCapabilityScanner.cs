@@ -406,6 +406,15 @@ internal static class AtsCapabilityScanner
             ? callbackAttr.FixedArguments[0] as string
             : null;
 
+        // Extract callback signature if this is a callback parameter
+        IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters = null;
+        string? callbackReturnTypeId = null;
+
+        if (isCallback)
+        {
+            (callbackParameters, callbackReturnTypeId) = ExtractCallbackSignature(paramType, typeMapping, typeResolver);
+        }
+
         // Check if nullable (Nullable<T>)
         var isNullable = paramType.GenericTypeDefinitionFullName == "System.Nullable`1" ||
                          param.TypeFullName.StartsWith("System.Nullable`1");
@@ -418,8 +427,65 @@ internal static class AtsCapabilityScanner
             IsNullable = isNullable,
             IsCallback = isCallback,
             CallbackId = callbackId,
+            CallbackParameters = callbackParameters,
+            CallbackReturnTypeId = callbackReturnTypeId,
             DefaultValue = param.DefaultValue
         };
+    }
+
+    /// <summary>
+    /// Extracts the callback signature (parameters and return type) from a delegate type.
+    /// </summary>
+    private static (IReadOnlyList<AtsCallbackParameterInfo>? Parameters, string? ReturnTypeId) ExtractCallbackSignature(
+        IAtsTypeInfo delegateType,
+        AtsTypeMapping typeMapping,
+        IAtsTypeResolver? typeResolver)
+    {
+        // Find the Invoke method on the delegate type
+        var invokeMethod = delegateType.GetMethods().FirstOrDefault(m => m.Name == "Invoke");
+        if (invokeMethod is null)
+        {
+            return (null, null);
+        }
+
+        // Extract parameters
+        var parameters = new List<AtsCallbackParameterInfo>();
+        foreach (var param in invokeMethod.GetParameters())
+        {
+            var paramAtsTypeId = MapToAtsTypeId(param.ParameterType, typeMapping, typeResolver) ?? "any";
+            parameters.Add(new AtsCallbackParameterInfo
+            {
+                Name = param.Name,
+                AtsTypeId = paramAtsTypeId
+            });
+        }
+
+        // Extract return type
+        var returnTypeFullName = invokeMethod.ReturnTypeFullName;
+        string returnTypeId;
+
+        if (returnTypeFullName == "System.Void")
+        {
+            returnTypeId = "void";
+        }
+        else if (returnTypeFullName == "System.Threading.Tasks.Task")
+        {
+            returnTypeId = "task";
+        }
+        else if (returnTypeFullName.StartsWith("System.Threading.Tasks.Task`1"))
+        {
+            // Task<T> - get the inner type
+            var innerType = invokeMethod.ReturnType.GetGenericArguments().FirstOrDefault();
+            returnTypeId = innerType is not null
+                ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? "any"
+                : "task";
+        }
+        else
+        {
+            returnTypeId = MapToAtsTypeId(invokeMethod.ReturnType, typeMapping, typeResolver) ?? "any";
+        }
+
+        return (parameters, returnTypeId);
     }
 
     /// <summary>

@@ -66,7 +66,36 @@ public sealed class AtsParameterInfo
     public string? CallbackId { get; init; }
 
     /// <summary>
+    /// Gets or sets the parameters of the callback delegate.
+    /// Only populated when <see cref="IsCallback"/> is true.
+    /// </summary>
+    public IReadOnlyList<AtsCallbackParameterInfo>? CallbackParameters { get; init; }
+
+    /// <summary>
+    /// Gets or sets the ATS type ID for the callback's return type.
+    /// Only populated when <see cref="IsCallback"/> is true.
+    /// "void" indicates no return value, "task" indicates async with no result.
+    /// </summary>
+    public string? CallbackReturnTypeId { get; init; }
+
+    /// <summary>
     /// Gets or sets the default value for optional parameters.
     /// </summary>
     public object? DefaultValue { get; init; }
+}
+
+/// <summary>
+/// Represents a parameter in a callback delegate signature.
+/// </summary>
+public sealed class AtsCallbackParameterInfo
+{
+    /// <summary>
+    /// Gets or sets the parameter name.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets or sets the ATS type ID for this parameter.
+    /// </summary>
+    public required string AtsTypeId { get; init; }
 }

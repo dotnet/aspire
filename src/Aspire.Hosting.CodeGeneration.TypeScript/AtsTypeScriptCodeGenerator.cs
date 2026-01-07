@@ -445,7 +445,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         foreach (var param in capability.Parameters)
         {
-            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback);
+            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback, param.CallbackParameters, param.CallbackReturnTypeId);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
             paramDefs.Add($"{param.Name}{optional}: {tsType}");
             paramArgs.Add(param.Name);
@@ -568,7 +568,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         foreach (var param in capability.Parameters)
         {
-            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback);
+            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback, param.CallbackParameters, param.CallbackReturnTypeId);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
 
             paramDefs.Add($"{param.Name}{optional}: {tsType}");
@@ -606,10 +606,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var callbackParams = capability.Parameters.Where(p => p.IsCallback).ToList();
         foreach (var callbackParam in callbackParams)
         {
-            WriteLine($"        const {callbackParam.Name}Id = registerCallback(async (contextData: unknown) => {{");
-            WriteLine($"            const context = wrapIfHandle(contextData) as EnvironmentContextHandle;");
-            WriteLine($"            await {callbackParam.Name}(context);");
-            WriteLine("        });");
+            GenerateCallbackRegistration(callbackParam);
         }
 
         if (returnsBuilder)
@@ -678,7 +675,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
             var paramDefs = capability.Parameters.Select(p =>
             {
-                var tsType = MapAtsTypeToTypeScript(p.AtsTypeId, p.IsCallback);
+                var tsType = MapAtsTypeToTypeScript(p.AtsTypeId, p.IsCallback, p.CallbackParameters, p.CallbackReturnTypeId);
                 var optional = p.IsOptional || p.IsNullable ? "?" : "";
                 return $"{p.Name}{optional}: {tsType}";
             });
@@ -736,7 +733,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         foreach (var param in capability.Parameters)
         {
-            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback);
+            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback, param.CallbackParameters, param.CallbackReturnTypeId);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
             paramDefs.Add($"{param.Name}{optional}: {tsType}");
             paramArgs.Add(param.Name);
@@ -822,9 +819,14 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
     private static string MapAtsTypeToTypeScript(string atsTypeId, bool isCallback)
     {
+        return MapAtsTypeToTypeScript(atsTypeId, isCallback, null, null);
+    }
+
+    private static string MapAtsTypeToTypeScript(string atsTypeId, bool isCallback, IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters, string? callbackReturnTypeId)
+    {
         if (isCallback)
         {
-            return "(context: EnvironmentContextHandle) => Promise<void>";
+            return GenerateCallbackTypeSignature(callbackParameters, callbackReturnTypeId);
         }
 
         return atsTypeId switch
@@ -840,6 +842,81 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 $"{MapAtsTypeToTypeScript(atsTypeId[..^2], false)}[]",
             _ => "unknown"
         };
+    }
+
+    private static string GenerateCallbackTypeSignature(IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters, string? callbackReturnTypeId)
+    {
+        // Build parameter list
+        var paramList = new List<string>();
+        if (callbackParameters is not null)
+        {
+            foreach (var param in callbackParameters)
+            {
+                var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, false);
+                paramList.Add($"{param.Name}: {tsType}");
+            }
+        }
+
+        var paramsString = paramList.Count > 0 ? string.Join(", ", paramList) : "";
+
+        // Determine return type
+        var returnType = callbackReturnTypeId switch
+        {
+            null or "void" or "task" => "void",
+            "string" => "string",
+            "number" => "number",
+            "boolean" => "boolean",
+            _ when callbackReturnTypeId.StartsWith("aspire/", StringComparison.Ordinal) =>
+                GetHandleTypeName(callbackReturnTypeId),
+            _ => "unknown"
+        };
+
+        // Callbacks are always async in TypeScript
+        return $"({paramsString}) => Promise<{returnType}>";
+    }
+
+    private void GenerateCallbackRegistration(AtsParameterInfo callbackParam)
+    {
+        var callbackParameters = callbackParam.CallbackParameters;
+
+        if (callbackParameters is null || callbackParameters.Count == 0)
+        {
+            // No parameters - simple callback
+            WriteLine($"        const {callbackParam.Name}Id = registerCallback(async () => {{");
+            WriteLine($"            await {callbackParam.Name}();");
+            WriteLine("        });");
+        }
+        else if (callbackParameters.Count == 1)
+        {
+            // Single parameter callback
+            var param = callbackParameters[0];
+            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, false);
+            WriteLine($"        const {callbackParam.Name}Id = registerCallback(async ({param.Name}Data: unknown) => {{");
+            WriteLine($"            const {param.Name} = wrapIfHandle({param.Name}Data) as {tsType};");
+            WriteLine($"            await {callbackParam.Name}({param.Name});");
+            WriteLine("        });");
+        }
+        else
+        {
+            // Multi-parameter callback - .NET sends as { p0, p1, ... }
+            var paramNames = callbackParameters.Select((p, i) => $"p{i}").ToList();
+            var destructure = string.Join(", ", paramNames);
+
+            WriteLine($"        const {callbackParam.Name}Id = registerCallback(async (argsData: unknown) => {{");
+            WriteLine($"            const args = argsData as {{ {destructure}: unknown }};");
+
+            var callArgs = new List<string>();
+            for (var i = 0; i < callbackParameters.Count; i++)
+            {
+                var param = callbackParameters[i];
+                var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, false);
+                WriteLine($"            const {param.Name} = wrapIfHandle(args.p{i}) as {tsType};");
+                callArgs.Add(param.Name);
+            }
+
+            WriteLine($"            await {callbackParam.Name}({string.Join(", ", callArgs)});");
+            WriteLine("        });");
+        }
     }
 
     private void GenerateConnectionHelper()
@@ -1005,7 +1082,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 continue;
             }
 
-            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback);
+            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback, param.CallbackParameters, param.CallbackReturnTypeId);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
             paramDefs.Add($"{param.Name}{optional}: {tsType}");
             paramArgs.Add(param.Name);
