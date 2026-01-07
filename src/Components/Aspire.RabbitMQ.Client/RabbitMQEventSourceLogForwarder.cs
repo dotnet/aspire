@@ -138,7 +138,7 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
             _log = log;
             _level = level;
 
-            // Enable any event sources that were created before this listener.
+            // Enable any event sources that were created before this listener. Safe to do now that _level is set.
             foreach (EventSource eventSource in _eventSources)
             {
                 OnEventSourceCreated(eventSource);
