@@ -54,11 +54,12 @@ Aspire exposes each property as an environment variable named `[RESOURCE]_[PROPE
 
 ## MCP (Model Context Protocol) Support
 
-The PostgreSQL hosting integration provides support for adding an MCP sidecar container that enables AI agents to interact with PostgreSQL databases. This is enabled by calling `WithPostgresMcp()` on the PostgreSQL server or database resources.
+The PostgreSQL hosting integration provides support for adding an MCP sidecar container that enables AI agents to interact with PostgreSQL databases. This is enabled by calling `WithPostgresMcp()` on a PostgreSQL database resource.
 
 ```csharp
-var pg = builder.AddPostgres("pg");
-pg.WithPostgresMcp();
+var db = builder.AddPostgres("pg")
+                .AddDatabase("mydb")
+                .WithPostgresMcp();
 ```
 
 The PostgreSQL MCP server is currently powered by [Postgres MCP Pro](https://github.com/crystaldba/postgres-mcp)) and provides tools

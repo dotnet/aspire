@@ -3,14 +3,12 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db1 = builder.AddAzurePostgresFlexibleServer("pg")
-                 .RunAsContainer(static x =>
-                 {
 #pragma warning disable ASPIREPOSTGRES001
-                     x.WithPostgresMcp();
+var db1 = builder.AddAzurePostgresFlexibleServer("pg")
+                 .RunAsContainer()
+                 .AddDatabase("db1")
+                 .WithPostgresMcp();
 #pragma warning restore ASPIREPOSTGRES001
-                 })
-                 .AddDatabase("db1");
 
 // .NET 
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("dotnet")

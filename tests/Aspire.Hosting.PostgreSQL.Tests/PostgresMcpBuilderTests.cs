@@ -13,11 +13,12 @@ namespace Aspire.Hosting.PostgreSQL.Tests;
 public class PostgresMcpBuilderTests
 {
     [Fact]
-    public async Task WithPostgresMcpOnServerAddsContainerResourceWithMcpEndpointAnnotation()
+    public async Task WithPostgresMcpOnDatabaseAddsContainerResourceWithMcpEndpointAnnotation()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
         appBuilder.AddPostgres("postgres")
+            .AddDatabase("db")
             .WithPostgresMcp();
 
         using var app = appBuilder.Build();
@@ -25,7 +26,7 @@ public class PostgresMcpBuilderTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var mcpContainer = Assert.Single(appModel.Resources.OfType<PostgresMcpContainerResource>());
-        Assert.Equal("postgres-mcp", mcpContainer.Name);
+        Assert.Equal("db-mcp", mcpContainer.Name);
 
         var endpoint = Assert.Single(mcpContainer.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(PostgresMcpContainerResource.PrimaryEndpointName, endpoint.Name);
@@ -37,30 +38,7 @@ public class PostgresMcpBuilderTests
         var resolvedUri = await mcpAnnotation.EndpointUrlResolver(mcpContainer, CancellationToken.None);
 
         Assert.NotNull(resolvedUri);
-        Assert.Equal("http://postgres-mcp.dev.internal:8000/sse", resolvedUri!.ToString());
-    }
-
-    [Fact]
-    public async Task WithPostgresMcpOnServerSetsDatabaseUriEnvironmentVariable()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-
-        var pass = appBuilder.AddParameter("pass", "p@ssw0rd1");
-
-        appBuilder.AddPostgres("postgres", password: pass)
-            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5432))
-            .WithPostgresMcp();
-
-        using var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var server = Assert.Single(appModel.Resources.OfType<PostgresServerResource>());
-        var mcpContainer = Assert.Single(appModel.Resources.OfType<PostgresMcpContainerResource>());
-
-        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mcpContainer, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
-
-        var databaseUri = Assert.Single(env, e => e.Key == "DATABASE_URI");
-        Assert.Equal("postgresql://postgres:p%40ssw0rd1@postgres.dev.internal:5432", databaseUri.Value);
+        Assert.Equal("http://db-mcp.dev.internal:8000/sse", resolvedUri!.ToString());
     }
 
     [Fact]
@@ -88,14 +66,15 @@ public class PostgresMcpBuilderTests
     }
 
     [Fact]
-    public void WithPostgresMcpCanBeCalledMultipleTimesWithoutDuplicateResources()
+    public void WithPostgresMcpOnDatabaseCanBeCalledMultipleTimesWithoutDuplicateResources()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        var postgres = appBuilder.AddPostgres("postgres");
+        var db = appBuilder.AddPostgres("postgres")
+            .AddDatabase("db");
 
-        postgres.WithPostgresMcp();
-        postgres.WithPostgresMcp();
+        db.WithPostgresMcp();
+        db.WithPostgresMcp();
 
         using var app = appBuilder.Build();
 
@@ -108,10 +87,11 @@ public class PostgresMcpBuilderTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        var postgres = appBuilder.AddPostgres("postgres");
+        var db = appBuilder.AddPostgres("postgres")
+            .AddDatabase("db");
 
-        postgres.WithPostgresMcp(containerName: "postgres-mcp-a");
-        postgres.WithPostgresMcp(containerName: "postgres-mcp-b");
+        db.WithPostgresMcp(containerName: "postgres-mcp-a");
+        db.WithPostgresMcp(containerName: "postgres-mcp-b");
 
         using var app = appBuilder.Build();
 
