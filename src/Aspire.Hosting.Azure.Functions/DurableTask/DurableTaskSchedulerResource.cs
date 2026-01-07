@@ -44,7 +44,7 @@ public sealed class DurableTaskSchedulerResource(string name) : Resource(name), 
             };
         }
 
-        throw new InvalidOperationException("Unable to create the Durable Task Scheduler connection string.");
+        throw new InvalidOperationException($"Unable to resolve the Durable Task Scheduler connection string. Configure the scheduler using {nameof(DurableTaskResourceExtensions.RunAsEmulator)}() or {nameof(DurableTaskResourceExtensions.RunAsExisting)}(connectionString) before accessing {nameof(ConnectionStringExpression)}.");
     }
 
     private ReferenceExpression CreateDashboardEndpoint()

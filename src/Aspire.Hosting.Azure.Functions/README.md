@@ -81,9 +81,9 @@ builder.Build().Run();
 
 When a Scheduler runs as an emulator, Aspire automatically provides:
 
-* A "Scheduler Dashboard" URL for the scheduler resource.
-* A "Task Hub Dashboard" URL for each Task Hub resource.
-* A `DTS_TASK_HUB_NAMES` environment variable on the emulator container listing the Task Hub names associated with that scheduler.
+- A "Scheduler Dashboard" URL for the scheduler resource.
+- A "Task Hub Dashboard" URL for each Task Hub resource.
+- A `DTS_TASK_HUB_NAMES` environment variable on the emulator container listing the Task Hub names associated with that scheduler.
 
 ### Use an existing Scheduler
 
@@ -100,6 +100,10 @@ var scheduler = builder.AddDurableTaskScheduler("scheduler")
 var taskHubName = builder.AddParameter("taskhub-name", "mytaskhub");
 var taskHub = scheduler.AddTaskHub("taskhub").WithTaskHubName(taskHubName);
 ```
+## Additional documentation
+
+- https://learn.microsoft.com/azure/azure-functions
+- https://learn.microsoft.com/azure/azure-functions/durable/durable-task-scheduler/durable-task-scheduler
 
 ## Feedback & contributing
 

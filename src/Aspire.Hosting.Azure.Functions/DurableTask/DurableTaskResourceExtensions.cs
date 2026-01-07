@@ -213,7 +213,9 @@ public static class DurableTaskResourceExtensions
                     await notifications.PublishUpdateAsync(r, snapshot => snapshot with
                     {
                         State = KnownResourceStates.Running,
-                        Urls = [new("dashboard", url ?? throw new InvalidOperationException("URL cannot be null"), false) { DisplayProperties = new() { DisplayName = "Task Hub Dashboard" } }]
+                        Urls = url is not null
+                            ? [new("dashboard", url, false) { DisplayProperties = new() { DisplayName = "Task Hub Dashboard" } }]
+                            : []
                     }).ConfigureAwait(false);
                 });
         }

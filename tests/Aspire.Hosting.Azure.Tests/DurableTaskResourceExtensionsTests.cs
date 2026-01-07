@@ -73,8 +73,6 @@ public class DurableTaskResourceExtensionsTests
         string expectedConnectionString = $"{dtsConnectionString};TaskHub={expectedTaskHubName}";
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var connectionStringParameter = builder.AddParameter("dts-connection-string", expectedConnectionString);
-
         var dts = builder
             .AddDurableTaskScheduler("dts")
             .RunAsExisting(dtsConnectionString);

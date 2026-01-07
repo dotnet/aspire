@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "AzureFunctionsEndToEnd_Functions": {
+    "AzureFunctionsWithDts_Functions": {
       "commandName": "Project",
       "commandLineArgs": "--port 7071",
       "launchBrowser": false
