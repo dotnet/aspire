@@ -24,7 +24,7 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class McpStartCommand : BaseCommand
 {
-    private readonly Dictionary<string, CliMcpTool> _tools;
+    private readonly Dictionary<string, CliMcpTool> _knownTools;
     private string? _selectedAppHostPath;
     private Dictionary<string, (string ResourceName, Tool Tool)>? _resourceToolMap;
     private McpServer? _server;
@@ -40,7 +40,7 @@ internal sealed class McpStartCommand : BaseCommand
         _executionContext = executionContext;
         _loggerFactory = loggerFactory;
         _logger = logger;
-        _tools = new Dictionary<string, CliMcpTool>
+        _knownTools = new Dictionary<string, CliMcpTool>
         {
             [KnownMcpTools.ListResources] = new ListResourcesTool(),
             [KnownMcpTools.ListConsoleLogs] = new ListConsoleLogsTool(),
@@ -79,8 +79,14 @@ internal sealed class McpStartCommand : BaseCommand
         };
 
         await using var server = McpServer.Create(new StdioServerTransport("aspire-mcp-server"), options);
+
+        // Keep a reference to the server for sending notifications
         _server = server;
+
+        // Starts the MCP server, it's blocking until cancellation is requested
         await server.RunAsync(cancellationToken);
+
+        // Clear the server reference on exit
         _server = null;
 
         return ExitCodeConstants.Success;
@@ -94,7 +100,7 @@ internal sealed class McpStartCommand : BaseCommand
 
         var tools = new List<Tool>();
 
-        tools.AddRange(_tools.Values.Select(tool => new Tool
+        tools.AddRange(_knownTools.Values.Select(tool => new Tool
         {
             Name = tool.Name,
             Description = tool.Description,
@@ -136,7 +142,7 @@ internal sealed class McpStartCommand : BaseCommand
         _logger.LogDebug("MCP CallTool request received for tool: {ToolName}", toolName);
 
         // Known tools?
-        if (_tools.TryGetValue(toolName, out var tool))
+        if (_knownTools.TryGetValue(toolName, out var tool))
         {
             // Handle tools that don't need an MCP connection to the AppHost
             if (KnownMcpTools.IsLocalTool(toolName))
@@ -349,7 +355,7 @@ internal sealed class McpStartCommand : BaseCommand
             _resourceToolMap = refreshedMap;
         }
 
-        return _resourceToolMap.Count + _tools.Count;
+        return _resourceToolMap.Count + _knownTools.Count;
     }
 
     /// <summary>

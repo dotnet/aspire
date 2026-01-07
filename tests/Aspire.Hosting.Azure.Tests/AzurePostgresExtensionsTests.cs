@@ -361,10 +361,11 @@ public class AzurePostgresExtensionsTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        var user = builder.AddParameter("user", "postgres");
         var pass = builder.AddParameter("pass", "p@ssw0rd1");
 
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres")
-            .WithPasswordAuthentication(password: pass)
+            .WithPasswordAuthentication(userName: user, password: pass)
             .RunAsContainer(c =>
             {
                 c.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5432));
