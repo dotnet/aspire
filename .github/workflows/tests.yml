@@ -175,6 +175,7 @@ jobs:
 
   cli_e2e_tests:
     name: CLI E2E Tests
+    needs: build_packages
     uses: ./.github/workflows/tests-cli-e2e.yml
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
