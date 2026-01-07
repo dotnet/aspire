@@ -20,17 +20,19 @@ public class CallbackProxyTests
     }
 
     [Fact]
-    public void CreateProxy_ReturnsNullForDelegateWithoutAttribute()
+    public void CreateProxy_ReturnsDelegateForAnyDelegateType()
     {
         using var factory = CreateFactory();
 
+        // All delegate types are now accepted - no attribute required
         var result = factory.CreateProxy("callback1", typeof(Action));
 
-        Assert.Null(result);
+        Assert.NotNull(result);
+        Assert.IsAssignableFrom<Action>(result);
     }
 
     [Fact]
-    public void CreateProxy_ReturnsDelegateForAttributedType()
+    public void CreateProxy_ReturnsDelegateForCustomType()
     {
         using var factory = CreateFactory();
 
@@ -223,26 +225,19 @@ public class CallbackProxyTests
         return new AtsCallbackProxyFactory(invoker ?? new TestCallbackInvoker(), handles);
     }
 
-    // Test delegates with [AspireCallback] attribute
-    [AspireCallback("test/callback")]
+    // Test delegates - any delegate type is now treated as a callback
     public delegate Task TestCallback(string value);
 
-    [AspireCallback("test/callbackNoArgs")]
     public delegate Task TestCallbackNoArgs();
 
-    [AspireCallback("test/callbackWithIntResult")]
     public delegate Task<int> TestCallbackWithIntResult();
 
-    [AspireCallback("test/callbackWithString")]
     public delegate Task TestCallbackWithString(string value);
 
-    [AspireCallback("test/callbackWithMultipleParams")]
     public delegate Task TestCallbackWithMultipleParams(string name, int count);
 
-    [AspireCallback("test/callbackWithStringResult")]
     public delegate Task<string> TestCallbackWithStringResult(string input);
 
-    [AspireCallback("test/callbackWithCancellation")]
     public delegate Task TestCallbackWithCancellation(string value, CancellationToken cancellationToken);
 }
 

@@ -155,7 +155,7 @@ internal static class CoreExports
     [AspireExport("withEnvironmentCallback", Description = "Adds an environment callback")]
     public static IResourceBuilder<IResourceWithEnvironment> WithEnvironmentCallback(
         IResourceBuilder<IResourceWithEnvironment> resource,
-        [AspireCallback("Aspire.Hosting/EnvironmentCallback")] Func<EnvironmentCallbackContext, Task> callback)
+        Func<EnvironmentCallbackContext, Task> callback)
     {
         return resource.WithEnvironment(callback);
     }

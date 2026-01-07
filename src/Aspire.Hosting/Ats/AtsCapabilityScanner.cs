@@ -291,7 +291,6 @@ internal static class AtsCapabilityScanner
                             IsOptional = false,
                             IsNullable = false,
                             IsCallback = false,
-                            CallbackId = null,
                             DefaultValue = null
                         }
                     ],
@@ -325,7 +324,6 @@ internal static class AtsCapabilityScanner
                             IsOptional = false,
                             IsNullable = false,
                             IsCallback = false,
-                            CallbackId = null,
                             DefaultValue = null
                         },
                         new AtsParameterInfo
@@ -335,7 +333,6 @@ internal static class AtsCapabilityScanner
                             IsOptional = false,
                             IsNullable = false,
                             IsCallback = false,
-                            CallbackId = null,
                             DefaultValue = null
                         }
                     ],
@@ -439,13 +436,8 @@ internal static class AtsCapabilityScanner
         var paramType = param.ParameterType;
         var atsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver) ?? "any";
 
-        // Check for [AspireCallback] attribute
-        var callbackAttr = param.GetCustomAttributes()
-            .FirstOrDefault(a => a.AttributeTypeFullName == AspireExportAttributeNames.AspireCallbackFullName);
-        var isCallback = callbackAttr != null;
-        var callbackId = isCallback && callbackAttr!.FixedArguments.Count > 0
-            ? callbackAttr.FixedArguments[0] as string
-            : null;
+        // Check if this is a delegate type (callbacks are inferred from delegate types)
+        var isCallback = IsDelegateType(paramType);
 
         // Extract callback signature if this is a callback parameter
         IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters = null;
@@ -467,11 +459,30 @@ internal static class AtsCapabilityScanner
             IsOptional = param.IsOptional,
             IsNullable = isNullable,
             IsCallback = isCallback,
-            CallbackId = callbackId,
             CallbackParameters = callbackParameters,
             CallbackReturnTypeId = callbackReturnTypeId,
             DefaultValue = param.DefaultValue
         };
+    }
+
+    /// <summary>
+    /// Checks if a type is a delegate type.
+    /// </summary>
+    private static bool IsDelegateType(IAtsTypeInfo type)
+    {
+        // Check base type hierarchy for System.MulticastDelegate
+        var baseType = type.BaseTypeFullName;
+        while (baseType != null)
+        {
+            if (baseType == "System.MulticastDelegate")
+            {
+                return true;
+            }
+            // For abstraction, we can't walk further up the hierarchy
+            // but MulticastDelegate is the direct base for all delegates
+            break;
+        }
+        return false;
     }
 
     /// <summary>

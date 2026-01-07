@@ -220,15 +220,12 @@ internal sealed class CapabilityDispatcher
 
                 if (args != null && args.TryGetPropertyValue(paramName, out var argNode))
                 {
-                    // Check for [AspireCallback] on the parameter
-                    var callbackAttr = param.GetCustomAttribute<AspireCallbackAttribute>();
                     var context = new AtsMarshaller.UnmarshalContext
                     {
                         Handles = handles,
                         CallbackProxyFactory = _callbackProxyFactory,
                         CapabilityId = capabilityId,
-                        ParameterName = paramName,
-                        CallbackId = callbackAttr?.CallbackId
+                        ParameterName = paramName
                     };
                     methodArgs[i] = AtsMarshaller.UnmarshalFromJson(argNode, param.ParameterType, context);
                 }

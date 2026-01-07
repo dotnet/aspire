@@ -316,13 +316,13 @@ public sealed class ContainerMountOptions
 
 ### Callbacks
 
-Guest-provided functions the host can invoke during execution:
+Guest-provided functions the host can invoke during execution. Callbacks are automatically inferred from delegate parameters:
 
 ```csharp
 [AspireExport("withEnvironmentCallback")]
 public static IResourceBuilder<T> WithEnvironmentCallback<T>(
     this IResourceBuilder<T> resource,
-    [AspireCallback("Aspire.Hosting/EnvironmentCallback")] Func<EnvironmentCallbackContext, Task> callback)
+    Func<EnvironmentCallbackContext, Task> callback)  // Delegate = callback
     where T : IResourceWithEnvironment
 // Scanner computes: Aspire.Hosting/withEnvironmentCallback
 ```

@@ -26,10 +26,10 @@ public sealed class AtsParameterInfo
     /// </list>
     /// </para>
     /// <para>
-    /// For handle types, this is the ATS type ID:
+    /// For handle types, this is the ATS type ID in format <c>{Assembly}/{Type}</c>:
     /// <list type="bullet">
-    ///   <item><description><c>aspire/Builder</c> - for IDistributedApplicationBuilder</description></item>
-    ///   <item><description><c>aspire/Redis</c> - for IResourceBuilder&lt;RedisResource&gt;</description></item>
+    ///   <item><description><c>Aspire.Hosting/IDistributedApplicationBuilder</c> - for IDistributedApplicationBuilder</description></item>
+    ///   <item><description><c>Aspire.Hosting.Redis/RedisResource</c> - for IResourceBuilder&lt;RedisResource&gt;</description></item>
     /// </list>
     /// </para>
     /// <para>
@@ -50,20 +50,12 @@ public sealed class AtsParameterInfo
 
     /// <summary>
     /// Gets or sets whether this parameter is a callback delegate.
+    /// Callbacks are inferred from delegate types (Func, Action, custom delegates).
     /// </summary>
     /// <remarks>
     /// Callbacks are registered via <c>registerCallback()</c> and invoked by the host.
     /// </remarks>
     public bool IsCallback { get; init; }
-
-    /// <summary>
-    /// Gets or sets the callback ID from [AspireCallback] attribute.
-    /// </summary>
-    /// <remarks>
-    /// Only set when <see cref="IsCallback"/> is true.
-    /// Example: <c>aspire/EnvironmentCallback</c>
-    /// </remarks>
-    public string? CallbackId { get; init; }
 
     /// <summary>
     /// Gets or sets the parameters of the callback delegate.

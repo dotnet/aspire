@@ -131,13 +131,9 @@ internal sealed class AtsParameterInfo
 
     /// <summary>
     /// Gets or sets whether this parameter is a callback delegate.
+    /// Callbacks are inferred from delegate types (Func, Action, custom delegates).
     /// </summary>
     public bool IsCallback { get; init; }
-
-    /// <summary>
-    /// Gets or sets the callback ID from [AspireCallback] attribute.
-    /// </summary>
-    public string? CallbackId { get; init; }
 
     /// <summary>
     /// Gets or sets the parameters of the callback delegate.

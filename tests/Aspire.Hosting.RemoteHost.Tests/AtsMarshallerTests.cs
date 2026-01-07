@@ -363,7 +363,9 @@ public class AtsMarshallerTests
         var jsonObj = (JsonObject)result;
         Assert.NotNull(jsonObj["$handle"]);
         Assert.NotNull(jsonObj["$type"]);
-        Assert.Contains("List<Int32>", jsonObj["$type"]!.GetValue<string>());
+        // Type ID is derived from assembly and type name
+        var typeId = jsonObj["$type"]!.GetValue<string>();
+        Assert.Contains("List", typeId);
     }
 
     [Fact]
@@ -379,7 +381,9 @@ public class AtsMarshallerTests
         var jsonObj = (JsonObject)result;
         Assert.NotNull(jsonObj["$handle"]);
         Assert.NotNull(jsonObj["$type"]);
-        Assert.Contains("Dictionary<Int32>", jsonObj["$type"]!.GetValue<string>());
+        // Type ID is derived from assembly and type name
+        var typeId = jsonObj["$type"]!.GetValue<string>();
+        Assert.Contains("Dictionary", typeId);
     }
 
     [Fact]

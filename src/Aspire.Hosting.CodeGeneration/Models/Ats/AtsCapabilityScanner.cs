@@ -134,7 +134,6 @@ public static class AtsCapabilityScanner
             IsOptional = shared.IsOptional,
             IsNullable = shared.IsNullable,
             IsCallback = shared.IsCallback,
-            CallbackId = shared.CallbackId,
             CallbackParameters = shared.CallbackParameters?.Select(p => new AtsCallbackParameterInfo
             {
                 Name = p.Name,

@@ -10,7 +10,7 @@ namespace Aspire.Hosting.RemoteHost.Ats;
 
 /// <summary>
 /// Creates delegate proxies for ATS callbacks that invoke the remote client.
-/// Only works with delegates marked with [AspireCallback].
+/// Works with any delegate type.
 /// </summary>
 internal sealed class AtsCallbackProxyFactory : IDisposable
 {
@@ -36,21 +36,13 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
 
     /// <summary>
     /// Creates a delegate proxy that invokes a callback on the remote client.
-    /// The delegate type must have the [AspireCallback] attribute.
     /// </summary>
     /// <param name="callbackId">The callback ID registered on the client.</param>
-    /// <param name="delegateType">The delegate type to create (must have [AspireCallback]).</param>
+    /// <param name="delegateType">The delegate type to create.</param>
     /// <returns>A delegate that invokes the remote callback, or null if the type is not valid.</returns>
     public Delegate? CreateProxy(string callbackId, Type delegateType)
     {
         if (!typeof(Delegate).IsAssignableFrom(delegateType))
-        {
-            return null;
-        }
-
-        // Verify the delegate has [AspireCallback] attribute
-        var callbackAttr = delegateType.GetCustomAttribute<AspireCallbackAttribute>();
-        if (callbackAttr == null)
         {
             return null;
         }

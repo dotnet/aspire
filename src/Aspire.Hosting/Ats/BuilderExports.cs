@@ -141,7 +141,7 @@ internal static class BuilderExports
     [AspireExport("subscribeBeforeStart", Description = "Subscribes to the BeforeStart lifecycle event")]
     public static DistributedApplicationEventSubscription SubscribeBeforeStart(
         IDistributedApplicationBuilder builder,
-        [AspireCallback("Aspire.Hosting/BeforeStartCallback")] Func<IServiceProvider, Task> callback)
+        Func<IServiceProvider, Task> callback)
     {
         return builder.Eventing.Subscribe<BeforeStartEvent>(async (@event, ct) =>
         {
@@ -162,7 +162,7 @@ internal static class BuilderExports
     [AspireExport("subscribeAfterResourcesCreated", Description = "Subscribes to the AfterResourcesCreated lifecycle event")]
     public static DistributedApplicationEventSubscription SubscribeAfterResourcesCreated(
         IDistributedApplicationBuilder builder,
-        [AspireCallback("Aspire.Hosting/AfterResourcesCreatedCallback")] Func<IServiceProvider, Task> callback)
+        Func<IServiceProvider, Task> callback)
     {
         return builder.Eventing.Subscribe<AfterResourcesCreatedEvent>(async (@event, ct) =>
         {

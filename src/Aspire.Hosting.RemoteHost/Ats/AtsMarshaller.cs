@@ -22,11 +22,6 @@ internal static class AtsMarshaller
         public AtsCallbackProxyFactory? CallbackProxyFactory { get; init; }
         public string? CapabilityId { get; init; }
         public string? ParameterName { get; init; }
-        /// <summary>
-        /// Optional callback ID from [AspireCallback] on the parameter.
-        /// Used when the delegate type doesn't have the attribute.
-        /// </summary>
-        public string? CallbackId { get; init; }
     }
 
     private static readonly JsonSerializerOptions s_jsonOptions = new()
@@ -197,7 +192,7 @@ internal static class AtsMarshaller
 
     /// <summary>
     /// Unmarshals a JSON node to a .NET object of the specified type.
-    /// Handles: primitives, arrays, lists, dictionaries, [AspireDto] types, [AspireCallback] delegates.
+    /// Handles: primitives, arrays, lists, dictionaries, [AspireDto] types, and delegate callbacks.
     /// </summary>
     /// <param name="node">The JSON node to unmarshal.</param>
     /// <param name="targetType">The target .NET type.</param>
@@ -232,38 +227,33 @@ internal static class AtsMarshaller
             return exprRef.ToReferenceExpression(context.Handles, capabilityId, paramName);
         }
 
-        // Handle callbacks - delegate types with [AspireCallback] attribute (on type or parameter)
+        // Handle callbacks - any delegate type is treated as a callback
         if (typeof(Delegate).IsAssignableFrom(targetType))
         {
-            var callbackAttr = targetType.GetCustomAttribute<AspireCallbackAttribute>();
-            // Check if callback is marked (either on delegate type or via context from parameter)
-            if (callbackAttr != null || context.CallbackId != null)
+            // Callback ID is passed as a string
+            if (node is JsonValue callbackValue && callbackValue.TryGetValue<string>(out var callbackId))
             {
-                // Callback ID is passed as a string
-                if (node is JsonValue callbackValue && callbackValue.TryGetValue<string>(out var callbackId))
-                {
-                    if (context.CallbackProxyFactory == null)
-                    {
-                        throw CapabilityException.InvalidArgument(
-                            capabilityId, paramName,
-                            "Callbacks are not supported (no callback proxy factory configured)");
-                    }
-
-                    var proxy = context.CallbackProxyFactory.CreateProxy(callbackId, targetType);
-                    if (proxy == null)
-                    {
-                        throw CapabilityException.InvalidArgument(
-                            capabilityId, paramName,
-                            $"Failed to create callback proxy for type '{targetType.Name}'");
-                    }
-                    return proxy;
-                }
-                else
+                if (context.CallbackProxyFactory == null)
                 {
                     throw CapabilityException.InvalidArgument(
                         capabilityId, paramName,
-                        "Callback parameter must be a string callback ID");
+                        "Callbacks are not supported (no callback proxy factory configured)");
                 }
+
+                var proxy = context.CallbackProxyFactory.CreateProxy(callbackId, targetType);
+                if (proxy == null)
+                {
+                    throw CapabilityException.InvalidArgument(
+                        capabilityId, paramName,
+                        $"Failed to create callback proxy for type '{targetType.Name}'");
+                }
+                return proxy;
+            }
+            else
+            {
+                throw CapabilityException.InvalidArgument(
+                    capabilityId, paramName,
+                    "Callback parameter must be a string callback ID");
             }
         }
 

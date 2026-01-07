@@ -346,14 +346,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
     {
         var type = parameter.Type;
 
-        // Check if parameter has AspireCallbackAttribute - callbacks are allowed
-        if (HasAspireCallbackAttribute(parameter, wellKnownTypes))
-        {
-            return true;
-        }
-
-        // Delegate types (Func<>, Action<>) without AspireCallbackAttribute are still allowed
-        // as they might be used for callbacks
+        // Delegate types (Func<>, Action<>, custom delegates) are allowed as callbacks
         if (IsDelegateType(type))
         {
             return true;
@@ -366,26 +359,6 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         }
 
         return IsAtsCompatibleValueType(type, wellKnownTypes);
-    }
-
-    private static bool HasAspireCallbackAttribute(IParameterSymbol parameter, WellKnownTypes wellKnownTypes)
-    {
-        try
-        {
-            var callbackAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_AspireCallbackAttribute);
-            foreach (var attr in parameter.GetAttributes())
-            {
-                if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, callbackAttribute))
-                {
-                    return true;
-                }
-            }
-        }
-        catch (InvalidOperationException)
-        {
-            // Type not found
-        }
-        return false;
     }
 
     private static bool IsDelegateType(ITypeSymbol type)
