@@ -67,7 +67,7 @@ internal static class CliTestHelper
         var configuration = configBuilder.Build();
         services.AddSingleton<IConfiguration>(configuration);
 
-        services.AddLogging();
+        services.AddLogging().AddXunitLogging(outputHelper);
 
         services.AddMemoryCache();
 
@@ -396,7 +396,7 @@ internal sealed class TestOutputTextWriter : TextWriter
 
     public override void WriteLine(string? message)
     {
-        _outputHelper.WriteLine(message!);
+        _outputHelper.WriteLine("CLI stdout: " + message);
         if (message is not null)
         {
             Logs.Add(message);
