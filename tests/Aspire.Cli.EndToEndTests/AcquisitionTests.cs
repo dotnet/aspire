@@ -71,10 +71,28 @@ public sealed class AcquisitionTests : IAsyncDisposable
             return;
         }
 
-        // Get PR number from environment variable (set by CI)
-        // The get-aspire-cli-pr.sh script requires a valid PR number - it doesn't support main branch
-        var prNumberStr = Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER")
-            ?? Environment.GetEnvironmentVariable("PR_NUMBER");
+        // Get PR number from environment variable (set by CI in run-tests.yml)
+        // GitHub Actions provides this via github.event.pull_request.number
+        // We also check GITHUB_REF for refs/pull/XXX/merge format as a fallback
+        var prNumberStr = Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER");
+
+        // Fallback: parse from GITHUB_REF (format: refs/pull/123/merge)
+        if (string.IsNullOrEmpty(prNumberStr))
+        {
+            var githubRef = Environment.GetEnvironmentVariable("GITHUB_REF");
+            if (!string.IsNullOrEmpty(githubRef) && githubRef.StartsWith("refs/pull/", StringComparison.OrdinalIgnoreCase))
+            {
+                // Extract PR number from refs/pull/123/merge
+                var parts = githubRef.Split('/');
+                if (parts.Length >= 3)
+                {
+                    prNumberStr = parts[2];
+                }
+            }
+        }
+
+        _output.WriteLine($"GITHUB_PR_NUMBER: {Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER") ?? "(not set)"}");
+        _output.WriteLine($"GITHUB_REF: {Environment.GetEnvironmentVariable("GITHUB_REF") ?? "(not set)"}");
 
         if (string.IsNullOrEmpty(prNumberStr) || !int.TryParse(prNumberStr, out var prNumber))
         {
