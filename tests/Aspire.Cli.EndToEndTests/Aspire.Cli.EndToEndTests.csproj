@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <IsUnitTestProject>true</IsUnitTestProject>
     <OutputType>Exe</OutputType>
 
     <!-- Disable strong name signing because Hex1b package is not signed -->

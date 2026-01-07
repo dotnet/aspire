@@ -7,7 +7,7 @@
          ./build.sh -test /p:TestRunnerName=CliEndToEndTestRunsheetBuilder -c Release
 
     This runsheet builder:
-    1. Executes the test assembly with --list-tests to get all test methods
+    1. Executes the test assembly with the list-tests argument to get all test methods
     2. Extracts unique test class names from the output
     3. Generates a JSON runsheet entry for each test class
     4. Each test class runs as a separate GitHub Actions job
@@ -90,56 +90,10 @@
       <_RequiresNugets>true</_RequiresNugets>
       <_RequiresTestSdk>true</_RequiresTestSdk>
 
-      <_ExtractTestClassesScript>$(ArtifactsTmpDir)/extract-cli-e2e-test-classes.ps1</_ExtractTestClassesScript>
-      <_ExtractTestClassesCommand>
-        # Read the test list output
-        $testOutput = Get-Content -Path '%(TestToRun.ResultsStdOutPath)' -Raw
-
-        # Extract test class names using regex (format: Namespace.ClassName.MethodName or Namespace.ClassName.MethodName(params))
-        $pattern = '^\s*(Aspire\.Cli\.EndToEndTests\.[^\.\(]+)'
-        $matches = [regex]::Matches($testOutput, $pattern, 'Multiline')
-
-        # Get unique class names
-        $classNames = $matches | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
-
-        if ($classNames.Count -eq 0) {
-            Write-Host "No test classes found"
-            exit 0
-        }
-
-        Write-Host "Found $($classNames.Count) test class(es):"
-        $classNames | ForEach-Object { Write-Host "  - $_" }
-
-        # Generate a runsheet entry for each test class
-        foreach ($className in $classNames) {
-            $shortName = $className -replace '^Aspire\.Cli\.EndToEndTests\.', ''
-            $filterArg = "--filter-class `"$className`""
-
-            # Only generate Linux runsheet since Hex1b requires Linux
-            $runsheetLinux = @{
-                label = "l: Cli.E2E.$shortName"
-                project = "Cli.EndToEnd.$shortName"
-                os = "ubuntu-latest"
-                command = "./eng/build.sh -restore -build -test -projects `"$(_RelativeTestProjectPath)`" /bl:`"$(_RelativeTestBinLog -replace 'Cli\.EndToEnd', "Cli.EndToEnd.$shortName")`" -c $(Configuration) -ci /p:TestsRunningOutsideOfRepo=true -- $filterArg"
-                requiresNugets = $true
-                requiresTestSdk = $true
-            }
-
-            $jsonLinux = $runsheetLinux | ConvertTo-Json -Compress
-            $outputFileLinux = "$(ArtifactsTmpDir)/Cli.EndToEnd.$shortName.linux.runsheet.json"
-            $jsonLinux | Set-Content -Path $outputFileLinux -Encoding UTF8
-            Write-Host "Generated runsheet: $outputFileLinux"
-        }
-      </_ExtractTestClassesCommand>
+      <_ExtractTestClassesScript>$(MSBuildThisFileDirectory)extract-test-classes.ps1</_ExtractTestClassesScript>
     </PropertyGroup>
 
-    <WriteLinesToFile
-            Condition=" '$(_HasTests)' == 'true' "
-            File="$(_ExtractTestClassesScript)"
-            Lines="$(_ExtractTestClassesCommand)"
-            Overwrite="true" />
-
-    <Exec Command="pwsh -File $(_ExtractTestClassesScript)"
+    <Exec Command="pwsh -File $(_ExtractTestClassesScript) -TestOutputPath '%(TestToRun.ResultsStdOutPath)' -ArtifactsTmpDir '$(ArtifactsTmpDir)' -RelativeTestProjectPath '$(_RelativeTestProjectPath)' -RelativeTestBinLog '$(_RelativeTestBinLog)' -Configuration '$(Configuration)'"
           Condition=" '$(_HasTests)' == 'true' "
           ConsoleToMSBuild="true">
       <Output TaskParameter="ConsoleOutput" PropertyName="_ExtractOutput" />
