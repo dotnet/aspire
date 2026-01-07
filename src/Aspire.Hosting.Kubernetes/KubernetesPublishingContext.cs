@@ -5,6 +5,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
+//using Aspire.Hosting.Kubernetes.Helm;
 using Aspire.Hosting.Kubernetes.Resources;
 using Aspire.Hosting.Kubernetes.Yaml;
 using Aspire.Hosting.Yaml;
@@ -114,7 +115,7 @@ internal sealed class KubernetesPublishingContext(
 
     private async Task AddValuesToHelmSectionAsync(
         IResource resource,
-        Dictionary<string, KubernetesResource.HelmExpressionWithValue> contextItems,
+        Dictionary<string, KubernetesResource.HelmValue> contextItems,
         string helmKey)
     {
         if (contextItems.Count <= 0 || _helmValues[helmKey] is not Dictionary<string, object> helmSection)
@@ -126,14 +127,16 @@ internal sealed class KubernetesPublishingContext(
 
         foreach (var (key, helmExpressionWithValue) in contextItems)
         {
-            object? value;
-            //Port numbers WILL contain helm expressions
+
             if (helmExpressionWithValue.ValueContainsHelmExpression)
             {
-                value = helmExpressionWithValue.StringValue!.RemoveHelmTypeConversion();
+                continue;
             }
+
+            object? value;
+
             // If there's a parameter source, resolve its value asynchronously
-            else if (helmExpressionWithValue.ParameterSource is ParameterResource parameter)
+            if (helmExpressionWithValue.ParameterSource is ParameterResource parameter)
             {
                 value = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
             }

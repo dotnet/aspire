@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Resources;
 
@@ -80,9 +79,9 @@ internal static class ResourceExtensions
         {
             // If the value itself contains Helm expressions, use it directly in the template
             // Otherwise use the expression to reference values.yaml
-            secret.StringData[kvp.Key] = (kvp.Value.StringValue?.ContainsHelmExpression() == true)
-                ? kvp.Value.StringValue
-                : kvp.Value.HelmExpression;
+            secret.StringData[kvp.Key] = kvp.Value.ValueContainsHelmExpression
+                                       ? kvp.Value.ValueString! //If it contains an expression, its not null
+                                       : kvp.Value.ToScalar();
             processedKeys.Add(kvp.Key);
         }
 
@@ -109,7 +108,7 @@ internal static class ResourceExtensions
 
         foreach (var kvp in context.EnvironmentVariables.Where(kvp => !processedKeys.Contains(kvp.Key)))
         {
-            configMap.Data[kvp.Key] = kvp.Value.HelmExpression;
+            configMap.Data[kvp.Key] = kvp.Value.ToScalar();
             processedKeys.Add(kvp.Key);
         }
 
@@ -143,23 +142,13 @@ internal static class ResourceExtensions
                 new()
                 {
                     Name = mapping.Name,
-                    Port = new(mapping.Port),
-                    TargetPort = new(mapping.Port),
+                    Port = new(mapping.Port.ToScalar()),
+                    TargetPort = new(mapping.Port.ToScalar()),
                     Protocol = mapping.Protocol,
                 });
         }
 
         return service;
-    }
-
-    internal static string ToProtocolName(this EndpointAnnotation endpoint)
-    {
-        return endpoint.Protocol switch
-        {
-            ProtocolType.Tcp => "TCP",
-            ProtocolType.Udp => "UDP",
-            _ => throw new InvalidOperationException($"Unsupported protocol: {endpoint.Protocol}")
-        };
     }
 
     private static PodTemplateSpecV1 ToPodTemplateSpec(this IResource resource, KubernetesResource context)
@@ -281,7 +270,7 @@ internal static class ResourceExtensions
                 new()
                 {
                     Name = mapping.Name,
-                    ContainerPort = new(mapping.Port),
+                    ContainerPort = new(mapping.Port.ToScalar()),
                     Protocol = mapping.Protocol,
                 });
         }

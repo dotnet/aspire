@@ -1,4 +1,4 @@
-﻿---
+---
 apiVersion: "v1"
 kind: "ConfigMap"
 metadata:
@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: "aspire-hosting-tests"
     app.kubernetes.io/component: "api"
-    app.kubernetes.io/instance: "{{.Release.Name}}"
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
 data:
   PROJECT1_HTTP: "{{ .Values.config.api.PROJECT1_HTTP }}"
   services__project1__http__0: "{{ .Values.config.api.services__project1__http__0 }}"

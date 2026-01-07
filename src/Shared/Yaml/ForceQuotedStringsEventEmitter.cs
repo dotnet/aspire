@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#if KUBERNETES
+using Aspire.Hosting.Kubernetes.Extensions;
+#endif
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.EventEmitters;
@@ -51,29 +54,20 @@ internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
 
         if (item.ShouldApply() && eventInfo.Source.Type == typeof(string))
         {
-            if (IsTypedExpression((string?)eventInfo.Source.Value))
+            eventInfo = new(eventInfo.Source)
             {
-                eventInfo = new(eventInfo.Source)
-                {
-                    Style = ScalarStyle.ForcePlain,
-                };
-            }
-            else
-            {
-                eventInfo = new(eventInfo.Source)
-                {
-                    Style = ScalarStyle.DoubleQuoted,
-                };
-            }
+#if KUBERNETES
+                Style = eventInfo.Source.Value is string value
+                        && value.IsHelmNonStringExpression()
+                      ? ScalarStyle.ForcePlain
+                      : ScalarStyle.DoubleQuoted,
+#else
+                Style = ScalarStyle.DoubleQuoted,
+#endif
+            };
         }
 
         base.Emit(eventInfo, emitter);
-
-        static bool IsTypedExpression(string? value)
-            => !string.IsNullOrEmpty(value)
-               && value.StartsWith("{{")
-               && value.Contains('|')
-               && value.EndsWith("}}");
     }
 
     /// <summary>

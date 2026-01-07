@@ -4,7 +4,6 @@
 using System.Text.RegularExpressions;
 
 namespace Aspire.Hosting.Kubernetes.Extensions;
-
 internal static partial class HelmExtensions
 {
     private const string DeploymentKey = "deployment";
@@ -18,8 +17,9 @@ internal static partial class HelmExtensions
     public const string ConfigKey = "config";
     public const string TemplateFileSeparator = "---";
 
-    public const string ExpressionStart = "{{";
-    public const string ExpressionEnd = "}}";
+    public const string StartDelimiter = "{{";
+    public const string EndDelimiter = "}}";
+    public const string PipelineDelimiter = "|";
 
     /// <summary>
     /// Converts the specified resource name into a Helm configuration section name.
@@ -31,29 +31,17 @@ internal static partial class HelmExtensions
     public static string ToHelmValuesSectionName(this string resourceName)
         => $"{resourceName.Replace("-", "_")}";
 
-    public static string AddHelmTypeConversion<T>(this string parameterName, string resourceName)
-    {
-        var sectionName = $"{ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName();
-        return typeof(T) switch
-        {
-            var t when t == typeof(int) => $"{ExpressionStart} {sectionName} | int {ExpressionEnd}",
-            var t when t == typeof(float) => $"{ExpressionStart} {sectionName} | float64 {ExpressionEnd}",
-            var t when t == typeof(long) => $"{ExpressionStart} {sectionName} | int64 {ExpressionEnd}",
-            _ => $"{ExpressionStart} {sectionName} {ExpressionEnd}"
-        };
-    }
-
-    public static string RemoveHelmTypeConversion(this string helmExpression)
-        => SupportedHelmTypeConversion().Replace(helmExpression, $" {ExpressionEnd}");
+    public static string ToHelmExpression(this string expression)
+        => $"{StartDelimiter} {expression} {EndDelimiter}";
 
     public static string ToHelmParameterExpression(this string parameterName, string resourceName)
-        => $"{ExpressionStart} {ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName} {ExpressionEnd}".ToHelmValuesSectionName();
+        => ToHelmExpression($"{ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName());
 
     public static string ToHelmSecretExpression(this string parameterName, string resourceName)
-        => $"{ExpressionStart} {ValuesSegment}.{SecretsKey}.{resourceName}.{parameterName} {ExpressionEnd}".ToHelmValuesSectionName();
+        => ToHelmExpression($"{ValuesSegment}.{SecretsKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName());
 
     public static string ToHelmConfigExpression(this string parameterName, string resourceName)
-        => $"{ExpressionStart} {ValuesSegment}.{ConfigKey}.{resourceName}.{parameterName} {ExpressionEnd}".ToHelmValuesSectionName();
+        => ToHelmExpression($"{ValuesSegment}.{ConfigKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName());
 
     public static string ToHelmChartName(this string applicationName)
         => applicationName.ToLower().Replace("_", "-").Replace(".", "-");
@@ -90,11 +78,29 @@ internal static partial class HelmExtensions
         => $"{resourceName.ToKubernetesResourceName()}-{volumeName}-{PvKey}";
 
     public static bool ContainsHelmExpression(this string value)
-        => value.Contains($"{ExpressionStart} {ValuesSegment}.", StringComparison.Ordinal);
+        => ExpressionPattern().IsMatch(value);
 
-    public static bool ContainsHelmSecretExpression(this string value)
-        => value.Contains($"{ExpressionStart} {ValuesSegment}.{SecretsKey}.", StringComparison.Ordinal);
+    public static bool ContainsHelmValuesExpression(this string value)
+        => ExpressionPattern().IsMatch(value)
+        && value.Contains($"{ValuesSegment}.", StringComparison.Ordinal);
 
-    [GeneratedRegex(@$"\s\|\s(int|float64|int64)\s{ExpressionEnd}$", RegexOptions.Compiled)]
-    private static partial Regex SupportedHelmTypeConversion();
+    public static bool ContainsHelmValuesSecretExpression(this string value)
+        => ExpressionPattern().IsMatch(value)
+            && value.Contains($"{ValuesSegment}.{SecretsKey}.", StringComparison.Ordinal);
+
+    public static bool IsHelmNonStringExpression(this string value)
+    {
+        return ScalarExpressionPattern().IsMatch(value)
+            && EndWithNonStringTypePattern().IsMatch(value);
+    }
+
+    [GeneratedRegex(@"(\|\s*(int|int64|float64))\s*\}\}")]
+    private static partial Regex EndWithNonStringTypePattern();
+
+    [GeneratedRegex(@"(?<=(?:^\{\{|)\s*)(?:[^{}]+?)(?=(?:\}\}$))")]
+    internal static partial Regex ScalarExpressionPattern();
+
+    [GeneratedRegex(@"((?<=(?:\{\{|)\s*)(?:[^{}]+?)(?=(?:\}\})))")]
+    internal static partial Regex ExpressionPattern();
+
 }
