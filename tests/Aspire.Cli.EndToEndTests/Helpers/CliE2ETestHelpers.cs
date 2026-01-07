@@ -5,6 +5,7 @@ using Hex1b.Terminal;
 #pragma warning disable IDE0005 // Incorrectly flagged as unused due to types spread across namespaces
 using Hex1b.Terminal.Automation;
 #pragma warning restore IDE0005
+using Xunit;
 
 namespace Aspire.Cli.EndToEndTests.Helpers;
 
@@ -91,8 +92,60 @@ public sealed class AspireTerminalOptions
 /// <summary>
 /// Helper methods for creating and managing Hex1b terminal sessions for Aspire CLI testing.
 /// </summary>
-public static class AspireHex1bHelpers
+public static class CliE2ETestHelpers
 {
+    /// <summary>
+    /// Gets the PR number from the GITHUB_PR_NUMBER environment variable.
+    /// Asserts that the variable is set and contains a valid integer.
+    /// </summary>
+    /// <returns>The PR number.</returns>
+    public static int GetRequiredPrNumber()
+    {
+        var prNumberStr = Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER");
+        Assert.False(string.IsNullOrEmpty(prNumberStr), "GITHUB_PR_NUMBER environment variable must be set.");
+        Assert.True(int.TryParse(prNumberStr, out var prNumber), $"GITHUB_PR_NUMBER must be a valid integer, got: {prNumberStr}");
+        return prNumber;
+    }
+
+    /// <summary>
+    /// Gets the commit SHA from the GITHUB_SHA environment variable.
+    /// Asserts that the variable is set.
+    /// </summary>
+    /// <returns>The commit SHA.</returns>
+    public static string GetRequiredCommitSha()
+    {
+        var commitSha = Environment.GetEnvironmentVariable("GITHUB_SHA");
+        Assert.False(string.IsNullOrEmpty(commitSha), "GITHUB_SHA environment variable must be set.");
+        return commitSha;
+    }
+
+    /// <summary>
+    /// Gets the path for storing asciinema recordings that will be uploaded as CI artifacts.
+    /// In CI, this returns a path under $GITHUB_WORKSPACE/testresults/recordings/.
+    /// Locally, this returns a path under the system temp directory.
+    /// </summary>
+    /// <param name="testName">The name of the test (used as the recording filename).</param>
+    /// <returns>The full path to the .cast recording file.</returns>
+    public static string GetTestResultsRecordingPath(string testName)
+    {
+        var githubWorkspace = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
+        string recordingsDir;
+
+        if (!string.IsNullOrEmpty(githubWorkspace))
+        {
+            // CI environment - write directly to test results for artifact upload
+            recordingsDir = Path.Combine(githubWorkspace, "testresults", "recordings");
+        }
+        else
+        {
+            // Local development - use temp directory
+            recordingsDir = Path.Combine(Path.GetTempPath(), "aspire-cli-e2e", "recordings");
+        }
+
+        Directory.CreateDirectory(recordingsDir);
+        return Path.Combine(recordingsDir, $"{testName}.cast");
+    }
+
     /// <summary>
     /// Creates a new terminal session with all components configured for Aspire CLI testing.
     /// </summary>
@@ -166,69 +219,6 @@ public static class AspireHex1bHelpers
             RecordingPath = recordingPath,
             RecordingTitle = title
         });
-    }
-
-    /// <summary>
-    /// Checks if the current platform supports Hex1b PTY operations.
-    /// </summary>
-    /// <returns>True if the platform is supported (Linux or macOS).</returns>
-    public static bool IsPlatformSupported()
-    {
-        return OperatingSystem.IsLinux() || OperatingSystem.IsMacOS();
-    }
-
-    /// <summary>
-    /// Gets the skip reason message for unsupported platforms.
-    /// </summary>
-    /// <returns>A message explaining why the test was skipped.</returns>
-    public static string GetPlatformSkipReason()
-    {
-        return "Hex1b PTY requires Linux or macOS.";
-    }
-
-    /// <summary>
-    /// Waits for the terminal to show a shell prompt.
-    /// </summary>
-    /// <param name="terminal">The terminal to wait on.</param>
-    /// <param name="timeout">Maximum time to wait.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if a prompt was detected, false if timed out.</returns>
-    public static async Task<bool> WaitForShellPromptAsync(
-        Hex1bTerminal terminal,
-        TimeSpan? timeout = null,
-        CancellationToken cancellationToken = default)
-    {
-        timeout ??= TimeSpan.FromSeconds(10);
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-        while (stopwatch.Elapsed < timeout)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            using var snapshot = terminal.CreateSnapshot();
-            var content = snapshot.GetScreenText();
-
-            // Common shell prompt indicators
-            if (content.Contains('$') || content.Contains('#') || content.Contains('>'))
-            {
-                return true;
-            }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken);
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Gets the current terminal screen content.
-    /// </summary>
-    /// <param name="terminal">The terminal to read from.</param>
-    /// <returns>The current screen text.</returns>
-    public static string GetScreenContent(Hex1bTerminal terminal)
-    {
-        using var snapshot = terminal.CreateSnapshot();
-        return snapshot.GetScreenText();
     }
 
     /// <summary>
