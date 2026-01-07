@@ -154,6 +154,7 @@ internal sealed class UserSecretsManagerFactory
                 }
                 catch (AbandonedMutexException)
                 {
+                    // The wait completed because a thread exited without releasing a mutex.
                     hasHandle = true;
                 }
 
