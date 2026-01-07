@@ -72,18 +72,18 @@ public sealed class AcquisitionTests : IAsyncDisposable
         }
 
         // Get PR number from environment variable (set by CI)
+        // The get-aspire-cli-pr.sh script requires a valid PR number - it doesn't support main branch
         var prNumberStr = Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER")
             ?? Environment.GetEnvironmentVariable("PR_NUMBER");
 
-        int? prNumber = null;
-        if (!string.IsNullOrEmpty(prNumberStr) && int.TryParse(prNumberStr, out var parsed))
+        if (string.IsNullOrEmpty(prNumberStr) || !int.TryParse(prNumberStr, out var prNumber))
         {
-            prNumber = parsed;
+            _output.WriteLine("Skipping test: No PR number available. Set GITHUB_PR_NUMBER or PR_NUMBER environment variable.");
+            _output.WriteLine("The get-aspire-cli-pr.sh script requires a valid PR number to download CLI artifacts.");
+            return;
         }
 
-        _output.WriteLine(prNumber.HasValue
-            ? $"Testing CLI from PR #{prNumber}"
-            : "Testing CLI from main branch");
+        _output.WriteLine($"Testing CLI from PR #{prNumber}");
 
         // Set up the asciinema recording file
         var castFile = Path.Combine(_recordingsDirectory, "acquisition-test.cast");
@@ -92,7 +92,7 @@ public sealed class AcquisitionTests : IAsyncDisposable
         await using var session = await AspireHex1bHelpers.CreateAcquisitionTestSessionAsync(
             workingDirectory: _workDirectory,
             recordingPath: castFile,
-            prNumber: prNumber);
+            prNumber);
 
         var terminal = session.Terminal;
         var process = session.Process;
@@ -113,7 +113,7 @@ public sealed class AcquisitionTests : IAsyncDisposable
             await pathSequence.ApplyAsync(terminal);
 
             // Step 2: Download and install Aspire CLI
-            _output.WriteLine("Downloading and installing Aspire CLI...");
+            _output.WriteLine($"Downloading and installing Aspire CLI from PR #{prNumber}...");
             var installSequence = new Hex1bTerminalInputSequenceBuilder()
                 .DownloadAndInstallAspireCli(prNumber)
                 .Build();
@@ -216,25 +216,42 @@ public sealed class AcquisitionTests : IAsyncDisposable
 
     private void CopyRecordingsToTestResults()
     {
-        // Try to copy recordings to a location that will be picked up by CI artifacts
+        // CI artifacts upload paths from run-tests.yml:
+        // - testresults/** (always uploaded)
+        // - artifacts/log/test-logs/** (uploaded when TEST_LOG_PATH is set)
+        //
+        // We prefer TEST_LOG_PATH if available, otherwise use the testresults directory
+        // which is always uploaded by the CI workflow.
+
         var testLogPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
-        if (!string.IsNullOrEmpty(testLogPath))
+        var testResultsPath = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE") is { } workspace
+            ? Path.Combine(workspace, "testresults", "recordings")
+            : null;
+
+        // Try TEST_LOG_PATH first, then fall back to testresults directory
+        var targetDir = !string.IsNullOrEmpty(testLogPath)
+            ? Path.Combine(testLogPath, "recordings")
+            : testResultsPath;
+
+        if (string.IsNullOrEmpty(targetDir))
         {
-            var targetDir = Path.Combine(testLogPath, "recordings");
-            try
+            _output.WriteLine("No CI artifact path available - recordings will not be uploaded");
+            return;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(targetDir);
+            foreach (var file in Directory.GetFiles(_recordingsDirectory, "*.cast"))
             {
-                Directory.CreateDirectory(targetDir);
-                foreach (var file in Directory.GetFiles(_recordingsDirectory, "*.cast"))
-                {
-                    var targetFile = Path.Combine(targetDir, Path.GetFileName(file));
-                    File.Copy(file, targetFile, overwrite: true);
-                    _output.WriteLine($"Copied recording to: {targetFile}");
-                }
+                var targetFile = Path.Combine(targetDir, Path.GetFileName(file));
+                File.Copy(file, targetFile, overwrite: true);
+                _output.WriteLine($"Copied recording to: {targetFile}");
             }
-            catch (Exception ex)
-            {
-                _output.WriteLine($"Warning: Failed to copy recordings to test results: {ex.Message}");
-            }
+        }
+        catch (Exception ex)
+        {
+            _output.WriteLine($"Warning: Failed to copy recordings to test results: {ex.Message}");
         }
     }
 

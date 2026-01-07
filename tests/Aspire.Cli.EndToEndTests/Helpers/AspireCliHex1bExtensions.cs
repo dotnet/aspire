@@ -24,17 +24,17 @@ internal static class AspireCliHex1bExtensions
 {
     /// <summary>
     /// Downloads and installs the Aspire CLI for a specific PR number using the official PR download script.
+    /// The script requires a valid PR number - it does not support downloading from main branch.
     /// </summary>
     /// <param name="builder">The input sequence builder.</param>
-    /// <param name="prNumber">The PR number to download. If null, downloads the latest from main.</param>
+    /// <param name="prNumber">The PR number to download (required).</param>
     /// <returns>The builder for chaining.</returns>
+    /// <exception cref="ArgumentException">Thrown when prNumber is not provided.</exception>
     public static Hex1bTerminalInputSequenceBuilder DownloadAndInstallAspireCli(
         this Hex1bTerminalInputSequenceBuilder builder,
-        int? prNumber = null)
+        int prNumber)
     {
-        var command = prNumber.HasValue
-            ? $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}"
-            : "curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- main";
+        var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
 
         return builder
             .Type(command)
