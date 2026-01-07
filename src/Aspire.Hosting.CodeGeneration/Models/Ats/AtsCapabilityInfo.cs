@@ -142,8 +142,20 @@ public sealed class AtsCapabilityInfo
     /// objects passed to callbacks.
     /// </para>
     /// <para>
-    /// Example: <c>aspire/EnvironmentContext.executionContext@1</c>
+    /// Example: <c>aspire/EnvironmentContext.getExecutionContext</c>
     /// </para>
     /// </remarks>
     public bool IsContextProperty { get; init; }
+
+    /// <summary>
+    /// Gets or sets whether this is a property getter (vs setter).
+    /// Only meaningful when <see cref="IsContextProperty"/> is true.
+    /// </summary>
+    public bool IsContextPropertyGetter { get; init; }
+
+    /// <summary>
+    /// Gets or sets whether this is a property setter (vs getter).
+    /// Only meaningful when <see cref="IsContextProperty"/> is true.
+    /// </summary>
+    public bool IsContextPropertySetter { get; init; }
 }

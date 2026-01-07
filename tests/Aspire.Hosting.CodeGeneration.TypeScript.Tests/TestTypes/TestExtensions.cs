@@ -395,7 +395,7 @@ public class TestPersistenceAnnotation : IResourceAnnotation
 /// Test callback context for WithCustomCallback.
 /// Also used to verify [AspireContextType] scanning.
 /// </summary>
-[AspireContextType("aspire.test/TestContext")]
+[AspireContextType]
 public class TestCallbackContext
 {
     public string? Name { get; set; }

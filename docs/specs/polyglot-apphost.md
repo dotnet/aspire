@@ -336,16 +336,16 @@ Callbacks are passed as string IDs:
 
 ### Context Types
 
-Objects passed to callbacks with auto-exposed properties:
+Objects passed to callbacks with auto-exposed properties. The type ID is automatically derived from `{AssemblyName}/{TypeName}`:
 
 ```csharp
-[AspireContextType("aspire/EnvironmentContext")]
+[AspireContextType]  // Type ID = Aspire.Hosting/EnvironmentCallbackContext
 public class EnvironmentCallbackContext
 {
-    // Auto-exposed as "Aspire.Hosting/EnvironmentContext.environmentVariables"
+    // Auto-exposed as "Aspire.Hosting/EnvironmentCallbackContext.getEnvironmentVariables"
     public Dictionary<string, object> EnvironmentVariables { get; }
 
-    // Auto-exposed as "Aspire.Hosting/EnvironmentContext.executionContext"
+    // Auto-exposed as "Aspire.Hosting/EnvironmentCallbackContext.getExecutionContext"
     public DistributedApplicationExecutionContext ExecutionContext { get; }
 }
 ```

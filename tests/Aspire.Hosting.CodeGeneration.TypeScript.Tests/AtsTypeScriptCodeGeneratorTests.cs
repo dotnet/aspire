@@ -142,7 +142,8 @@ public class AtsTypeScriptCodeGeneratorTests
         var contextCapabilities = capabilities.Where(c => c.IsContextProperty).ToList();
 
         // Assert context type property capabilities are discovered
-        // TestCallbackContext has [AspireContextType("aspire.test/TestContext")]
+        // TestCallbackContext has [AspireContextType] - type ID is derived as {AssemblyName}/{TypeName}
+        // = Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext
         // with Name (string) and Value (int) properties
         //
         // Note: Context type scanning requires the AspireContextTypeAttribute to be resolvable
@@ -155,20 +156,39 @@ public class AtsTypeScriptCodeGeneratorTests
             return;
         }
 
-        var nameCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestContext.name");
-        Assert.NotNull(nameCapability);
-        Assert.True(nameCapability.IsContextProperty);
-        Assert.Equal("TestContext.name", nameCapability.MethodName);  // Method name includes type name to avoid collisions
-        Assert.Equal("string", nameCapability.ReturnTypeId);
-        Assert.Equal("aspire.test/TestContext", nameCapability.TargetTypeId);
-        Assert.Single(nameCapability.Parameters);
-        Assert.Equal("context", nameCapability.Parameters[0].Name);
+        // Test getter capability for Name property
+        var nameGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.getName");
+        Assert.NotNull(nameGetterCapability);
+        Assert.True(nameGetterCapability.IsContextProperty);
+        Assert.True(nameGetterCapability.IsContextPropertyGetter);
+        Assert.Equal("TestCallbackContext.getName", nameGetterCapability.MethodName);
+        Assert.Equal("string", nameGetterCapability.ReturnTypeId);
+        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext", nameGetterCapability.TargetTypeId);
+        Assert.Single(nameGetterCapability.Parameters);
+        Assert.Equal("context", nameGetterCapability.Parameters[0].Name);
 
-        var valueCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestContext.value");
-        Assert.NotNull(valueCapability);
-        Assert.True(valueCapability.IsContextProperty);
-        Assert.Equal("TestContext.value", valueCapability.MethodName);  // Method name includes type name to avoid collisions
-        Assert.Equal("number", valueCapability.ReturnTypeId);
+        // Test setter capability for Name property (writable)
+        var nameSetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.setName");
+        Assert.NotNull(nameSetterCapability);
+        Assert.True(nameSetterCapability.IsContextProperty);
+        Assert.True(nameSetterCapability.IsContextPropertySetter);
+        Assert.Equal("TestCallbackContext.setName", nameSetterCapability.MethodName);
+        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext", nameSetterCapability.ReturnTypeId); // Returns context for fluent chaining
+        Assert.Equal(2, nameSetterCapability.Parameters.Count); // context + value
+
+        // Test getter capability for Value property
+        var valueGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.getValue");
+        Assert.NotNull(valueGetterCapability);
+        Assert.True(valueGetterCapability.IsContextProperty);
+        Assert.True(valueGetterCapability.IsContextPropertyGetter);
+        Assert.Equal("TestCallbackContext.getValue", valueGetterCapability.MethodName);
+        Assert.Equal("number", valueGetterCapability.ReturnTypeId);
+
+        // Test setter capability for Value property (writable)
+        var valueSetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.setValue");
+        Assert.NotNull(valueSetterCapability);
+        Assert.True(valueSetterCapability.IsContextProperty);
+        Assert.True(valueSetterCapability.IsContextPropertySetter);
 
         // CancellationToken - the type mapping is in Aspire.Hosting assembly.
         // Since the test only loads the test assembly's type mapping, CancellationToken

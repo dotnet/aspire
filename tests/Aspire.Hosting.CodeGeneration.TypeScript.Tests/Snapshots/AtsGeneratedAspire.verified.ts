@@ -24,8 +24,8 @@ import {
 // Handle Type Aliases
 // ============================================================================
 
-/** Handle to IResourceBuilder<test/TestContextResource> */
-export type TestContextBuilderHandle = Handle<'aspire.test/TestContext'>;
+/** Handle to IResourceBuilder<Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContextResource> */
+export type TestCallbackContextBuilderHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext'>;
 
 /** Handle to DistributedApplication */
 export type ApplicationHandle = Handle<'aspire/Application'>;

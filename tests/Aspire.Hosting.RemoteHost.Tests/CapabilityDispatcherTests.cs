@@ -187,10 +187,11 @@ public class CapabilityDispatcherTests
     {
         var dispatcher = CreateDispatcher(typeof(TestContextType).Assembly);
 
-        // Properties should be registered with camelCase names
-        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContext.name"));
-        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContext.count"));
-        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContext.isEnabled"));
+        // Properties should be registered with getter capabilities using derived type IDs
+        // Type ID = {AssemblyName}/{TypeName} = Aspire.Hosting.RemoteHost.Tests/TestContextType
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContextType.getName"));
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContextType.getCount"));
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContextType.getIsEnabled"));
     }
 
     [Fact]
@@ -199,7 +200,7 @@ public class CapabilityDispatcherTests
         var dispatcher = CreateDispatcher(typeof(TestContextType).Assembly);
 
         // IDisposable is not ATS-compatible, so this property should be skipped
-        Assert.False(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContext.nonAtsProperty"));
+        Assert.False(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestContextType.getNonAtsProperty"));
     }
 
     [Fact]
@@ -210,11 +211,11 @@ public class CapabilityDispatcherTests
 
         // Create and register a context object
         var context = new TestContextType { Name = "test-name", Count = 100 };
-        var handleId = handles.Register(context, "test/TestContext");
+        var handleId = handles.Register(context, "Aspire.Hosting.RemoteHost.Tests/TestContextType");
         var args = new JsonObject { ["context"] = new JsonObject { ["$handle"] = handleId } };
 
-        var nameResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContext.name", args);
-        var countResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContext.count", args);
+        var nameResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContextType.getName", args);
+        var countResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContextType.getCount", args);
 
         Assert.NotNull(nameResult);
         Assert.Equal("test-name", nameResult.GetValue<string>());
@@ -228,7 +229,7 @@ public class CapabilityDispatcherTests
         var dispatcher = CreateDispatcher(typeof(TestContextType).Assembly);
 
         var ex = Assert.Throws<CapabilityException>(() =>
-            dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContext.name", null));
+            dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContextType.getName", null));
 
         Assert.Equal(AtsErrorCodes.InvalidArgument, ex.Error.Code);
         Assert.Contains("context", ex.Message);
@@ -241,7 +242,7 @@ public class CapabilityDispatcherTests
         var args = new JsonObject { ["context"] = "not-a-handle" };
 
         var ex = Assert.Throws<CapabilityException>(() =>
-            dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContext.name", args));
+            dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContextType.getName", args));
 
         Assert.Equal(AtsErrorCodes.InvalidArgument, ex.Error.Code);
     }
@@ -250,10 +251,10 @@ public class CapabilityDispatcherTests
     public void Invoke_ContextTypePropertyThrowsWhenHandleNotFound()
     {
         var dispatcher = CreateDispatcher(typeof(TestContextType).Assembly);
-        var args = new JsonObject { ["context"] = new JsonObject { ["$handle"] = "test/TestContext:999" } };
+        var args = new JsonObject { ["context"] = new JsonObject { ["$handle"] = "Aspire.Hosting.RemoteHost.Tests/TestContextType:999" } };
 
         var ex = Assert.Throws<CapabilityException>(() =>
-            dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContext.name", args));
+            dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestContextType.getName", args));
 
         Assert.Equal(AtsErrorCodes.HandleNotFound, ex.Error.Code);
     }
@@ -263,8 +264,8 @@ public class CapabilityDispatcherTests
     {
         var dispatcher = CreateDispatcher(typeof(VersionedContextType).Assembly);
 
-        // Versioned context type properties should also be registered
-        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/VersionedContext.value"));
+        // Versioned context type properties should also be registered with derived type ID
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/VersionedContextType.getValue"));
     }
 
     // Async capability handler tests
@@ -363,7 +364,7 @@ internal static class TestCapabilities
 /// <summary>
 /// Test context type for context type tests.
 /// </summary>
-[AspireContextType("test/TestContext")]
+[AspireContextType]
 internal sealed class TestContextType
 {
     public string Name { get; set; } = "default-name";
@@ -377,7 +378,7 @@ internal sealed class TestContextType
 /// <summary>
 /// Test context type to verify context properties work.
 /// </summary>
-[AspireContextType("test/VersionedContext")]
+[AspireContextType]
 internal sealed class VersionedContextType
 {
     public string Value { get; set; } = "v2";

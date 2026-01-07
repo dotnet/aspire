@@ -261,6 +261,7 @@ internal sealed class RuntimePropertyInfo : IAtsPropertyInfo
     public string PropertyTypeFullName => _prop.PropertyType.FullName ?? _prop.PropertyType.Name;
     public IAtsTypeInfo PropertyType => new RuntimeTypeInfo(_prop.PropertyType);
     public bool CanRead => _prop.CanRead;
+    public bool CanWrite => _prop.CanWrite;
     public bool IsStatic => _prop.GetMethod?.IsStatic ?? _prop.SetMethod?.IsStatic ?? false;
 }
 

@@ -50,10 +50,9 @@ internal static class AtsCapabilityScanner
             }
 
             // Check for [AspireContextType] - auto-generate property accessor capabilities
-            var contextAttr = GetAspireContextTypeAttribute(type);
-            if (contextAttr != null)
+            if (HasAspireContextTypeAttribute(type))
             {
-                var contextCapabilities = CreateContextTypeCapabilities(type, contextAttr, assembly.Name, typeMapping, typeResolver);
+                var contextCapabilities = CreateContextTypeCapabilities(type, assembly.Name, typeMapping, typeResolver);
                 capabilities.AddRange(contextCapabilities);
             }
 
@@ -248,65 +247,107 @@ internal static class AtsCapabilityScanner
 
     private static List<AtsCapabilityInfo> CreateContextTypeCapabilities(
         IAtsTypeInfo contextType,
-        IAtsAttributeInfo contextAttr,
         string assemblyName,
         AtsTypeMapping typeMapping,
         IAtsTypeResolver? typeResolver)
     {
         var capabilities = new List<AtsCapabilityInfo>();
 
-        // Get the type ID from first constructor argument
-        if (contextAttr.FixedArguments.Count == 0 || contextAttr.FixedArguments[0] is not string typeId)
-        {
-            return capabilities;
-        }
+        // Derive the type ID from {AssemblyName}/{TypeName}
+        var typeName = contextType.Name;
+        var typeId = $"{assemblyName}/{typeName}";
 
         // Scan properties
         foreach (var property in contextType.GetProperties())
         {
-            if (!property.CanRead || property.IsStatic)
+            if (property.IsStatic)
             {
                 continue;
             }
 
             var propertyTypeId = MapToAtsTypeId(property.PropertyType, typeMapping, typeResolver);
-            if (propertyTypeId == "any")
+            if (propertyTypeId is null or "any")
             {
                 continue;
             }
 
-            var propertyName = char.ToLowerInvariant(property.Name[0]) + property.Name[1..];
-            // Extract type name from typeId (e.g., "aspire.test/TestContext" -> "TestContext")
-            var typeName = typeId.Contains('/') ? typeId[(typeId.LastIndexOf('/') + 1)..] : typeId;
-            // New format: {AssemblyName}/{TypeName}.{propertyName}
-            var methodName = $"{typeName}.{propertyName}";
-            var capabilityId = $"{assemblyName}/{methodName}";
-
-            capabilities.Add(new AtsCapabilityInfo
+            // Generate getter capability if property is readable
+            if (property.CanRead)
             {
-                CapabilityId = capabilityId,
-                MethodName = methodName,
-                Package = assemblyName,
-                Description = $"Gets the {property.Name} property",
-                Parameters = [
-                    new AtsParameterInfo
-                    {
-                        Name = "context",
-                        AtsTypeId = typeId,
-                        IsOptional = false,
-                        IsNullable = false,
-                        IsCallback = false,
-                        CallbackId = null,
-                        DefaultValue = null
-                    }
-                ],
-                ReturnTypeId = propertyTypeId,
-                IsExtensionMethod = false,
-                OriginalTargetTypeId = typeId,
-                ReturnsBuilder = false,
-                IsContextProperty = true,
-                SourceProperty = property // Store source property for runtime dispatch
-            });
+                var getMethodName = $"{typeName}.get{property.Name}";
+                var getCapabilityId = $"{assemblyName}/{getMethodName}";
+
+                capabilities.Add(new AtsCapabilityInfo
+                {
+                    CapabilityId = getCapabilityId,
+                    MethodName = getMethodName,
+                    Package = assemblyName,
+                    Description = $"Gets the {property.Name} property",
+                    Parameters = [
+                        new AtsParameterInfo
+                        {
+                            Name = "context",
+                            AtsTypeId = typeId,
+                            IsOptional = false,
+                            IsNullable = false,
+                            IsCallback = false,
+                            CallbackId = null,
+                            DefaultValue = null
+                        }
+                    ],
+                    ReturnTypeId = propertyTypeId,
+                    IsExtensionMethod = false,
+                    OriginalTargetTypeId = typeId,
+                    ReturnsBuilder = false,
+                    IsContextProperty = true,
+                    IsContextPropertyGetter = true,
+                    SourceProperty = property
+                });
+            }
+
+            // Generate setter capability if property is writable
+            if (property.CanWrite)
+            {
+                var setMethodName = $"{typeName}.set{property.Name}";
+                var setCapabilityId = $"{assemblyName}/{setMethodName}";
+
+                capabilities.Add(new AtsCapabilityInfo
+                {
+                    CapabilityId = setCapabilityId,
+                    MethodName = setMethodName,
+                    Package = assemblyName,
+                    Description = $"Sets the {property.Name} property",
+                    Parameters = [
+                        new AtsParameterInfo
+                        {
+                            Name = "context",
+                            AtsTypeId = typeId,
+                            IsOptional = false,
+                            IsNullable = false,
+                            IsCallback = false,
+                            CallbackId = null,
+                            DefaultValue = null
+                        },
+                        new AtsParameterInfo
+                        {
+                            Name = "value",
+                            AtsTypeId = propertyTypeId,
+                            IsOptional = false,
+                            IsNullable = false,
+                            IsCallback = false,
+                            CallbackId = null,
+                            DefaultValue = null
+                        }
+                    ],
+                    ReturnTypeId = typeId, // Returns the context for fluent chaining
+                    IsExtensionMethod = false,
+                    OriginalTargetTypeId = typeId,
+                    ReturnsBuilder = false,
+                    IsContextProperty = true,
+                    IsContextPropertySetter = true,
+                    SourceProperty = property
+                });
+            }
         }
 
         return capabilities;
@@ -837,10 +878,10 @@ internal static class AtsCapabilityScanner
             .FirstOrDefault(a => a.AttributeTypeFullName == AspireExportAttributeNames.FullName);
     }
 
-    private static IAtsAttributeInfo? GetAspireContextTypeAttribute(IAtsTypeInfo type)
+    private static bool HasAspireContextTypeAttribute(IAtsTypeInfo type)
     {
         return type.GetCustomAttributes()
-            .FirstOrDefault(a => a.AttributeTypeFullName == AspireExportAttributeNames.AspireContextTypeFullName);
+            .Any(a => a.AttributeTypeFullName == AspireExportAttributeNames.AspireContextTypeFullName);
     }
 }
 

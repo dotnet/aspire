@@ -151,6 +151,9 @@ internal interface IAtsPropertyInfo
     /// <summary>Gets whether this property has a getter.</summary>
     bool CanRead { get; }
 
+    /// <summary>Gets whether this property has a setter.</summary>
+    bool CanWrite { get; }
+
     /// <summary>Gets whether this is a static property.</summary>
     bool IsStatic { get; }
 }

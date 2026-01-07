@@ -224,13 +224,28 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Generate handle type aliases
         GenerateHandleTypeAliases(typeIds);
 
-        // Separate resource builders from wrapper types
-        // Resource builders: aspire/IResource*, aspire/Container, aspire/Executable, etc.
-        // Wrapper types: aspire/Configuration, aspire/HostEnvironment, aspire/ExecutionContext
-        var resourceBuilders = builders.Where(b => AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
-        var wrapperTypes = builders.Where(b => !AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
+        // Identify context types (those with IsContextProperty capabilities)
+        var contextTypeIds = new HashSet<string>(
+            capabilities
+                .Where(c => c.IsContextProperty && !string.IsNullOrEmpty(c.TargetTypeId))
+                .Select(c => c.TargetTypeId!),
+            StringComparer.Ordinal);
 
-        // Generate wrapper classes first (Configuration, Environment, ExecutionContext)
+        // Separate builders into categories:
+        // 1. Context types: types with IsContextProperty capabilities (get/set methods)
+        // 2. Resource builders: aspire/IResource*, aspire/Container, etc.
+        // 3. Wrapper types: other non-resource types (Configuration, HostEnvironment)
+        var contextTypes = builders.Where(b => contextTypeIds.Contains(b.TypeId)).ToList();
+        var resourceBuilders = builders.Where(b => !contextTypeIds.Contains(b.TypeId) && AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
+        var wrapperTypes = builders.Where(b => !contextTypeIds.Contains(b.TypeId) && !AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
+
+        // Generate context type classes (with fluent get/set methods)
+        foreach (var contextType in contextTypes)
+        {
+            GenerateContextTypeClass(contextType);
+        }
+
+        // Generate wrapper classes (Configuration, Environment, ExecutionContext)
         foreach (var wrapperType in wrapperTypes)
         {
             GenerateWrapperClass(wrapperType);
@@ -1058,6 +1073,247 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
+    /// Generates a context type class with fluent get/set methods.
+    /// Context types are types marked with [AspireContextType] that have property accessors.
+    /// </summary>
+    private void GenerateContextTypeClass(BuilderModel contextType)
+    {
+        var handleType = GetHandleTypeName(contextType.TypeId);
+        var className = DeriveContextClassName(contextType.TypeId);
+        var promiseClassName = $"{className}Promise";
+
+        WriteLine("// ============================================================================");
+        WriteLine($"// {className}");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        // Generate the main context class
+        WriteLine($"/**");
+        WriteLine($" * Context type for {contextType.TypeId}.");
+        WriteLine($" * Provides fluent property access via get/set methods.");
+        WriteLine($" */");
+        WriteLine($"export class {className} {{");
+        WriteLine($"    constructor(private _handle: {handleType}, private _client: AspireClientRpc) {{}}");
+        WriteLine();
+        WriteLine($"    /** Gets the underlying handle */");
+        WriteLine($"    get handle(): {handleType} {{ return this._handle; }}");
+        WriteLine();
+
+        // Separate getters and setters
+        var getters = contextType.Capabilities.Where(c => c.IsContextPropertyGetter).ToList();
+        var setters = contextType.Capabilities.Where(c => c.IsContextPropertySetter).ToList();
+
+        // Generate getter methods
+        foreach (var getter in getters)
+        {
+            GenerateContextGetterMethod(getter);
+        }
+
+        // Generate internal setter methods (for thenable chaining)
+        foreach (var setter in setters)
+        {
+            GenerateContextSetterInternalMethod(setter, className);
+        }
+
+        // Generate public fluent setter methods (return thenable)
+        foreach (var setter in setters)
+        {
+            GenerateContextSetterPublicMethod(setter, promiseClassName);
+        }
+
+        WriteLine("}");
+        WriteLine();
+
+        // Generate thenable promise class for fluent chaining
+        GenerateContextTypePromiseClass(className, promiseClassName, getters, setters);
+    }
+
+    /// <summary>
+    /// Generates a getter method on a context type class.
+    /// </summary>
+    private void GenerateContextGetterMethod(AtsCapabilityInfo getter)
+    {
+        // Extract property name from method name (e.g., "TestContext.getName" -> "getName")
+        var methodName = getter.MethodName.Contains('.')
+            ? getter.MethodName[(getter.MethodName.LastIndexOf('.') + 1)..]
+            : getter.MethodName;
+
+        var returnType = MapAtsTypeToTypeScript(getter.ReturnTypeId ?? "unknown", false);
+
+        // Generate JSDoc
+        if (!string.IsNullOrEmpty(getter.Description))
+        {
+            WriteLine($"    /** {getter.Description} */");
+        }
+
+        WriteLine($"    async {methodName}(): Promise<{returnType}> {{");
+        WriteLine($"        return await this._client.invokeCapability<{returnType}>(");
+        WriteLine($"            '{getter.CapabilityId}',");
+        WriteLine($"            {{ context: this._handle }}");
+        WriteLine("        );");
+        WriteLine("    }");
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Generates the internal setter method (returns the class, not thenable).
+    /// </summary>
+    private void GenerateContextSetterInternalMethod(AtsCapabilityInfo setter, string className)
+    {
+        // Extract property name from method name (e.g., "TestContext.setName" -> "setName")
+        var methodName = setter.MethodName.Contains('.')
+            ? setter.MethodName[(setter.MethodName.LastIndexOf('.') + 1)..]
+            : setter.MethodName;
+
+        // Get the value parameter (second parameter after context)
+        var valueParam = setter.Parameters.FirstOrDefault(p => p.Name == "value");
+        if (valueParam == null)
+        {
+            return;
+        }
+
+        var valueType = MapAtsTypeToTypeScript(valueParam.AtsTypeId, false);
+        var handleType = GetHandleTypeName(setter.ReturnTypeId ?? setter.TargetTypeId ?? "unknown");
+
+        WriteLine($"    /** @internal */");
+        WriteLine($"    async _{methodName}Internal(value: {valueType}): Promise<{className}> {{");
+        WriteLine($"        const result = await this._client.invokeCapability<{handleType}>(");
+        WriteLine($"            '{setter.CapabilityId}',");
+        WriteLine($"            {{ context: this._handle, value }}");
+        WriteLine("        );");
+        WriteLine($"        return new {className}(result, this._client);");
+        WriteLine("    }");
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Generates the public fluent setter method (returns thenable).
+    /// </summary>
+    private void GenerateContextSetterPublicMethod(AtsCapabilityInfo setter, string promiseClassName)
+    {
+        // Extract property name from method name (e.g., "TestContext.setName" -> "setName")
+        var methodName = setter.MethodName.Contains('.')
+            ? setter.MethodName[(setter.MethodName.LastIndexOf('.') + 1)..]
+            : setter.MethodName;
+
+        // Get the value parameter (second parameter after context)
+        var valueParam = setter.Parameters.FirstOrDefault(p => p.Name == "value");
+        if (valueParam == null)
+        {
+            return;
+        }
+
+        var valueType = MapAtsTypeToTypeScript(valueParam.AtsTypeId, false);
+
+        // Generate JSDoc
+        if (!string.IsNullOrEmpty(setter.Description))
+        {
+            WriteLine($"    /** {setter.Description} */");
+        }
+
+        WriteLine($"    {methodName}(value: {valueType}): {promiseClassName} {{");
+        WriteLine($"        return new {promiseClassName}(this._{methodName}Internal(value));");
+        WriteLine("    }");
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Generates the thenable promise class for a context type.
+    /// </summary>
+    private void GenerateContextTypePromiseClass(
+        string className,
+        string promiseClassName,
+        List<AtsCapabilityInfo> getters,
+        List<AtsCapabilityInfo> setters)
+    {
+        WriteLine($"/**");
+        WriteLine($" * Thenable wrapper for {className} that enables fluent chaining.");
+        WriteLine($" * @example");
+        WriteLine($" * await context.setName(\"foo\").setValue(42);");
+        WriteLine($" */");
+        WriteLine($"export class {promiseClassName} implements PromiseLike<{className}> {{");
+        WriteLine($"    constructor(private _promise: Promise<{className}>) {{}}");
+        WriteLine();
+
+        // Generate then method
+        WriteLine($"    then<TResult1 = {className}, TResult2 = never>(");
+        WriteLine($"        onfulfilled?: ((value: {className}) => TResult1 | PromiseLike<TResult1>) | null,");
+        WriteLine($"        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null");
+        WriteLine($"    ): PromiseLike<TResult1 | TResult2> {{");
+        WriteLine($"        return this._promise.then(onfulfilled, onrejected);");
+        WriteLine("    }");
+        WriteLine();
+
+        // Generate chained getter methods
+        foreach (var getter in getters)
+        {
+            var methodName = getter.MethodName.Contains('.')
+                ? getter.MethodName[(getter.MethodName.LastIndexOf('.') + 1)..]
+                : getter.MethodName;
+            var returnType = MapAtsTypeToTypeScript(getter.ReturnTypeId ?? "unknown", false);
+
+            if (!string.IsNullOrEmpty(getter.Description))
+            {
+                WriteLine($"    /** {getter.Description} */");
+            }
+            WriteLine($"    {methodName}(): Promise<{returnType}> {{");
+            WriteLine($"        return this._promise.then(ctx => ctx.{methodName}());");
+            WriteLine("    }");
+            WriteLine();
+        }
+
+        // Generate chained setter methods
+        foreach (var setter in setters)
+        {
+            var methodName = setter.MethodName.Contains('.')
+                ? setter.MethodName[(setter.MethodName.LastIndexOf('.') + 1)..]
+                : setter.MethodName;
+
+            var valueParam = setter.Parameters.FirstOrDefault(p => p.Name == "value");
+            if (valueParam == null)
+            {
+                continue;
+            }
+
+            var valueType = MapAtsTypeToTypeScript(valueParam.AtsTypeId, false);
+
+            if (!string.IsNullOrEmpty(setter.Description))
+            {
+                WriteLine($"    /** {setter.Description} */");
+            }
+            WriteLine($"    {methodName}(value: {valueType}): {promiseClassName} {{");
+            WriteLine($"        return new {promiseClassName}(");
+            WriteLine($"            this._promise.then(ctx => ctx._{methodName}Internal(value))");
+            WriteLine("        );");
+            WriteLine("    }");
+            WriteLine();
+        }
+
+        WriteLine("}");
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Derives a context class name from a type ID.
+    /// </summary>
+    private static string DeriveContextClassName(string typeId)
+    {
+        // Extract the type name from the type ID
+        // e.g., "aspire.test/TestContext" -> "TestContext"
+        // e.g., "aspire/EnvironmentContext" -> "EnvironmentContext"
+        var lastSlash = typeId.LastIndexOf('/');
+        var typeName = lastSlash >= 0 ? typeId[(lastSlash + 1)..] : typeId;
+
+        // Ensure it ends with "Context" for clarity
+        if (!typeName.EndsWith("Context", StringComparison.Ordinal))
+        {
+            typeName += "Context";
+        }
+
+        return typeName;
+    }
+
+    /// <summary>
     /// Generates a method on a wrapper class.
     /// </summary>
     private void GenerateWrapperMethod(AtsCapabilityInfo capability)
@@ -1161,7 +1417,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 continue;
             }
 
-            if (!targetType.StartsWith("aspire/", StringComparison.Ordinal))
+            // Accept any aspire type (aspire/, aspire.xxx/) for builder models
+            // Context types may use package-specific prefixes like "aspire.test/"
+            if (!targetType.StartsWith("aspire", StringComparison.Ordinal))
             {
                 continue;
             }

@@ -115,35 +115,88 @@ internal sealed class CapabilityDispatcher
         var capabilityId = capability.CapabilityId;
         var prop = property; // Capture for closure
 
-        CapabilityHandler handler = (args, handles) =>
+        if (capability.IsContextPropertyGetter)
         {
-            // The context object is passed as the first argument
-            if (args == null || !args.TryGetPropertyValue("context", out var contextNode))
+            // Getter capability
+            CapabilityHandler getterHandler = (args, handles) =>
             {
-                throw CapabilityException.InvalidArgument(capabilityId, "context", "Missing required argument 'context'");
-            }
+                if (args == null || !args.TryGetPropertyValue("context", out var contextNode))
+                {
+                    throw CapabilityException.InvalidArgument(capabilityId, "context", "Missing required argument 'context'");
+                }
 
-            var handleRef = HandleRef.FromJsonNode(contextNode);
-            if (handleRef == null)
+                var handleRef = HandleRef.FromJsonNode(contextNode);
+                if (handleRef == null)
+                {
+                    throw CapabilityException.InvalidArgument(capabilityId, "context", "Argument 'context' must be a handle reference");
+                }
+
+                if (!handles.TryGet(handleRef.HandleId, out var contextObj, out _))
+                {
+                    throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
+                }
+
+                var value = prop.GetValue(contextObj);
+                return AtsMarshaller.MarshalToJson(value, handles);
+            };
+
+            _capabilities[capabilityId] = new CapabilityRegistration
             {
-                throw CapabilityException.InvalidArgument(capabilityId, "context", "Argument 'context' must be a handle reference");
-            }
-
-            if (!handles.TryGet(handleRef.HandleId, out var contextObj, out _))
-            {
-                throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
-            }
-
-            var value = prop.GetValue(contextObj);
-            return AtsMarshaller.MarshalToJson(value, handles);
-        };
-
-        _capabilities[capabilityId] = new CapabilityRegistration
+                CapabilityId = capabilityId,
+                Handler = getterHandler,
+                Description = capability.Description ?? $"Gets the {property.Name} property"
+            };
+        }
+        else if (capability.IsContextPropertySetter)
         {
-            CapabilityId = capabilityId,
-            Handler = handler,
-            Description = capability.Description ?? $"Gets the {property.Name} property"
-        };
+            // Setter capability - returns the context handle for fluent chaining
+            CapabilityHandler setterHandler = (args, handles) =>
+            {
+                if (args == null || !args.TryGetPropertyValue("context", out var contextNode))
+                {
+                    throw CapabilityException.InvalidArgument(capabilityId, "context", "Missing required argument 'context'");
+                }
+
+                var handleRef = HandleRef.FromJsonNode(contextNode);
+                if (handleRef == null)
+                {
+                    throw CapabilityException.InvalidArgument(capabilityId, "context", "Argument 'context' must be a handle reference");
+                }
+
+                if (!handles.TryGet(handleRef.HandleId, out var contextObj, out var typeId))
+                {
+                    throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
+                }
+
+                if (!args.TryGetPropertyValue("value", out var valueNode))
+                {
+                    throw CapabilityException.InvalidArgument(capabilityId, "value", "Missing required argument 'value'");
+                }
+
+                var unmarshalContext = new AtsMarshaller.UnmarshalContext
+                {
+                    Handles = handles,
+                    CapabilityId = capabilityId,
+                    ParameterName = "value"
+                };
+                var value = AtsMarshaller.UnmarshalFromJson(valueNode, prop.PropertyType, unmarshalContext);
+                prop.SetValue(contextObj, value);
+
+                // Return the context handle for fluent chaining
+                return new JsonObject
+                {
+                    ["$handle"] = handleRef.HandleId,
+                    ["$type"] = typeId
+                };
+            };
+
+            _capabilities[capabilityId] = new CapabilityRegistration
+            {
+                CapabilityId = capabilityId,
+                Handler = setterHandler,
+                Description = capability.Description ?? $"Sets the {property.Name} property"
+            };
+        }
     }
 
     /// <summary>

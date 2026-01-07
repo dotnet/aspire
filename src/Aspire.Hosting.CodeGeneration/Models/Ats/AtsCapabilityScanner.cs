@@ -119,7 +119,9 @@ public static class AtsCapabilityScanner
             TargetTypeId = shared.OriginalTargetTypeId,
             ExpandedTargetTypeIds = shared.ExpandedTargetTypeIds.ToList(),
             ReturnsBuilder = shared.ReturnsBuilder,
-            IsContextProperty = shared.IsContextProperty
+            IsContextProperty = shared.IsContextProperty,
+            IsContextPropertyGetter = shared.IsContextPropertyGetter,
+            IsContextPropertySetter = shared.IsContextPropertySetter
         };
     }
 

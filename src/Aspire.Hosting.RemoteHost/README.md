@@ -193,9 +193,9 @@ Capabilities are discovered by scanning assemblies for:
        int? port = null)
    ```
 
-2. **[AspireContextType]** - Types whose properties are exposed as capabilities:
+2. **[AspireContextType]** - Types whose properties are exposed as capabilities. The type ID is derived as `{AssemblyName}/{TypeName}`:
    ```csharp
-   [AspireContextType("aspire/Configuration")]
+   [AspireContextType]  // Type ID = Aspire.Hosting/ConfigurationContext
    public class ConfigurationContext
    {
        public string? ConnectionString { get; set; }

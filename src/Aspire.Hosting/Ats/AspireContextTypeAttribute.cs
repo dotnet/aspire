@@ -13,6 +13,11 @@ namespace Aspire.Hosting;
 /// are automatically exposed as exports.
 /// </para>
 /// <para>
+/// The type ID is automatically derived as <c>{AssemblyName}/{TypeName}</c>.
+/// For example, <c>EnvironmentCallbackContext</c> in <c>Aspire.Hosting</c> becomes
+/// <c>Aspire.Hosting/EnvironmentCallbackContext</c>.
+/// </para>
+/// <para>
 /// ATS-compatible property types include:
 /// <list type="bullet">
 /// <item>Primitives (string, int, bool, etc.)</item>
@@ -28,13 +33,13 @@ namespace Aspire.Hosting;
 /// </remarks>
 /// <example>
 /// <code>
-/// [AspireContextType("aspire/EnvironmentContext")]
+/// [AspireContextType]
 /// public class EnvironmentCallbackContext
 /// {
-///     // Auto-exposed as "aspire/EnvironmentContext.environmentVariables@1"
+///     // Auto-exposed as "Aspire.Hosting/EnvironmentCallbackContext.getEnvironmentVariables"
 ///     public Dictionary&lt;string, object&gt; EnvironmentVariables { get; }
 ///
-///     // Auto-exposed as "aspire/EnvironmentContext.executionContext@1"
+///     // Auto-exposed as "Aspire.Hosting/EnvironmentCallbackContext.getExecutionContext"
 ///     public DistributedApplicationExecutionContext ExecutionContext { get; }
 ///
 ///     // Skipped - ILogger is not an ATS type
@@ -47,25 +52,9 @@ public sealed class AspireContextTypeAttribute : Attribute
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AspireContextTypeAttribute"/> class.
+    /// The type ID is automatically derived as <c>{AssemblyName}/{TypeName}</c>.
     /// </summary>
-    /// <param name="id">
-    /// The globally unique type identifier for this context type.
-    /// Should follow the format: <c>aspire/{TypeName}</c>
-    /// For example: <c>aspire/EnvironmentContext</c>
-    /// </param>
-    public AspireContextTypeAttribute(string id)
+    public AspireContextTypeAttribute()
     {
-        Id = id ?? throw new ArgumentNullException(nameof(id));
     }
-
-    /// <summary>
-    /// Gets the globally unique type identifier.
-    /// </summary>
-    public string Id { get; }
-
-    /// <summary>
-    /// Gets or sets the API version for the auto-generated property exports.
-    /// Defaults to 1.
-    /// </summary>
-    public int Version { get; set; } = 1;
 }

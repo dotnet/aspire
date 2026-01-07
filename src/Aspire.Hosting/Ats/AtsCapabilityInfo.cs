@@ -90,6 +90,18 @@ internal sealed class AtsCapabilityInfo
     /// Gets or sets whether this is an auto-generated property accessor.
     /// </summary>
     public bool IsContextProperty { get; init; }
+
+    /// <summary>
+    /// Gets or sets whether this is a property getter (vs setter).
+    /// Only meaningful when <see cref="IsContextProperty"/> is true.
+    /// </summary>
+    public bool IsContextPropertyGetter { get; init; }
+
+    /// <summary>
+    /// Gets or sets whether this is a property setter (vs getter).
+    /// Only meaningful when <see cref="IsContextProperty"/> is true.
+    /// </summary>
+    public bool IsContextPropertySetter { get; init; }
 }
 
 /// <summary>

@@ -271,6 +271,7 @@ internal sealed class RoPropertyInfoWrapper : IAtsPropertyInfo
     public string PropertyTypeFullName => _prop.PropertyType.FullName;
     public IAtsTypeInfo PropertyType => new RoTypeInfoWrapper(_prop.PropertyType);
     public bool CanRead => _prop.CanRead;
+    public bool CanWrite => _prop.CanWrite;
     public bool IsStatic => _prop.IsStatic;
 }
 
