@@ -74,14 +74,17 @@ public sealed class AspireTerminalOptions
     public bool CaptureInput { get; init; } = true;
 
     /// <summary>
-    /// Shell to use. Defaults to /bin/bash.
+    /// Shell to use. Defaults to pwsh on Windows, /bin/bash on Linux/macOS.
     /// </summary>
-    public string Shell { get; init; } = "/bin/bash";
+    public string Shell { get; init; } = OperatingSystem.IsWindows() ? "pwsh" : "/bin/bash";
 
     /// <summary>
-    /// Shell arguments. Defaults to ["--norc", "--noprofile"] for a clean environment.
+    /// Shell arguments. Defaults to ["-NoProfile", "-NoLogo"] on Windows,
+    /// ["--norc", "--noprofile"] on Linux/macOS for a clean environment.
     /// </summary>
-    public string[] ShellArgs { get; init; } = ["--norc", "--noprofile"];
+    public string[] ShellArgs { get; init; } = OperatingSystem.IsWindows()
+        ? ["-NoProfile", "-NoLogo"]
+        : ["--norc", "--noprofile"];
 
     /// <summary>
     /// Whether to inherit environment variables from the parent process.
@@ -95,27 +98,47 @@ public sealed class AspireTerminalOptions
 public static class CliE2ETestHelpers
 {
     /// <summary>
-    /// Gets the PR number from the GITHUB_PR_NUMBER environment variable.
-    /// Asserts that the variable is set and contains a valid integer.
+    /// Gets whether the tests are running in CI (GitHub Actions) vs locally.
+    /// When running locally, some commands are replaced with echo stubs.
     /// </summary>
-    /// <returns>The PR number.</returns>
+    public static bool IsRunningInCI =>
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER")) &&
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_SHA"));
+
+    /// <summary>
+    /// Gets the PR number from the GITHUB_PR_NUMBER environment variable.
+    /// When running locally (not in CI), returns a dummy value (0) for testing.
+    /// </summary>
+    /// <returns>The PR number, or 0 when running locally.</returns>
     public static int GetRequiredPrNumber()
     {
         var prNumberStr = Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER");
-        Assert.False(string.IsNullOrEmpty(prNumberStr), "GITHUB_PR_NUMBER environment variable must be set.");
+
+        if (string.IsNullOrEmpty(prNumberStr))
+        {
+            // Running locally - return dummy value
+            return 0;
+        }
+
         Assert.True(int.TryParse(prNumberStr, out var prNumber), $"GITHUB_PR_NUMBER must be a valid integer, got: {prNumberStr}");
         return prNumber;
     }
 
     /// <summary>
     /// Gets the commit SHA from the GITHUB_SHA environment variable.
-    /// Asserts that the variable is set.
+    /// When running locally (not in CI), returns a dummy value for testing.
     /// </summary>
-    /// <returns>The commit SHA.</returns>
+    /// <returns>The commit SHA, or a dummy value when running locally.</returns>
     public static string GetRequiredCommitSha()
     {
         var commitSha = Environment.GetEnvironmentVariable("GITHUB_SHA");
-        Assert.False(string.IsNullOrEmpty(commitSha), "GITHUB_SHA environment variable must be set.");
+
+        if (string.IsNullOrEmpty(commitSha))
+        {
+            // Running locally - return dummy value
+            return "local0000";
+        }
+
         return commitSha;
     }
 

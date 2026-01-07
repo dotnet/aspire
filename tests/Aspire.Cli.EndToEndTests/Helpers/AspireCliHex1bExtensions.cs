@@ -17,20 +17,33 @@ internal static class AspireCliHex1bExtensions
     /// Prepares the shell environment with a custom prompt that tracks command count and exit status.
     /// This makes it easier to detect when commands complete. The prompt format is:
     /// [N ✔] $ (success) or [N ✘:code] $ (failure)
+    /// Works on both bash (Linux/macOS) and PowerShell (Windows).
     /// </summary>
     /// <param name="builder">The input sequence builder.</param>
     /// <returns>The builder for chaining.</returns>
     public static Hex1bTerminalInputSequenceBuilder PrepareEnvironment(
         this Hex1bTerminalInputSequenceBuilder builder)
     {
-        // Set up a prompt that shows command count and exit status
-        // This makes it easy to detect when a command has completed
-        const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo ✔ || echo ✘:$s)] \\$ \"'";
+        if (OperatingSystem.IsWindows())
+        {
+            // PowerShell prompt setup
+            const string promptSetup = "$global:CMDCOUNT=0; function prompt { $s=$?; $global:CMDCOUNT++; \"[$global:CMDCOUNT $(if($s){'✔'}else{\"✘:$LASTEXITCODE\"})] PS> \" }";
 
-        return builder
-            .Type(promptSetup)
-            .Enter()
-            .Wait(TimeSpan.FromMilliseconds(500));
+            return builder
+                .Type(promptSetup)
+                .Enter()
+                .Wait(TimeSpan.FromMilliseconds(500));
+        }
+        else
+        {
+            // Bash prompt setup
+            const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo ✔ || echo ✘:$s)] \\$ \"'";
+
+            return builder
+                .Type(promptSetup)
+                .Enter()
+                .Wait(TimeSpan.FromMilliseconds(500));
+        }
     }
 
     /// <summary>
@@ -72,19 +85,29 @@ internal static class AspireCliHex1bExtensions
     }
 
     /// <summary>
-    /// Downloads and installs the Aspire CLI for a specific PR number using the official PR download script.
-    /// Waits for the installation to complete (up to 5 minutes by default).
+    /// Installs the Aspire CLI from a specific pull request's build artifacts.
+    /// Uses the appropriate installation script for the current platform.
     /// </summary>
     /// <param name="builder">The input sequence builder.</param>
     /// <param name="prNumber">The PR number to download.</param>
     /// <param name="timeout">Maximum time to wait for installation (default: 5 minutes).</param>
     /// <returns>The builder for chaining.</returns>
-    public static Hex1bTerminalInputSequenceBuilder DownloadAndInstallAspireCli(
+    public static Hex1bTerminalInputSequenceBuilder InstallAspireCliFromPullRequest(
         this Hex1bTerminalInputSequenceBuilder builder,
         int prNumber,
         TimeSpan? timeout = null)
     {
-        var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
+        string command;
+        if (OperatingSystem.IsWindows())
+        {
+            // PowerShell installation command
+            command = $"iex \"& {{ $(irm https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.ps1) }} {prNumber}\"";
+        }
+        else
+        {
+            // Bash installation command
+            command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
+        }
 
         return builder
             .Type(command)
@@ -96,13 +119,20 @@ internal static class AspireCliHex1bExtensions
 
     /// <summary>
     /// Sources the Aspire CLI environment to make the 'aspire' command available in the current shell.
-    /// On Linux, this sources ~/.bashrc which contains the PATH updates from the installer.
+    /// On Linux/macOS, this sources ~/.bashrc which contains the PATH updates from the installer.
+    /// On Windows, this is a no-op as the PowerShell installer updates PATH directly.
     /// </summary>
     /// <param name="builder">The input sequence builder.</param>
     /// <returns>The builder for chaining.</returns>
     public static Hex1bTerminalInputSequenceBuilder SourceAspireCliEnvironment(
         this Hex1bTerminalInputSequenceBuilder builder)
     {
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows, the PowerShell installer already updates the current session's PATH
+            return builder;
+        }
+
         // The installer adds aspire to ~/.dotnet/tools and updates ~/.bashrc
         // We need to source ~/.bashrc to pick up the PATH changes
         return builder
