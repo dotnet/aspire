@@ -103,18 +103,56 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
                            await computerEnv.DeploymentSlotParameter.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
                     }
 
-                    // Build the Azure App Service website name
+                    // Build the Azure App Service website name with truncation that preserves slot names
                     var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
-                    var hostName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
-                    
+                    const int maxHostNameLength = 60;
+                    var baseHostName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
+                    string hostName;
+
                     if (!string.IsNullOrWhiteSpace(deploymentSlot))
                     {
-                        hostName += $"-{deploymentSlot}";
-                    }
+                        var slotPart = $"-{deploymentSlot}";
+                        var maxBaseLength = maxHostNameLength - slotPart.Length;
 
-                    if (hostName.Length > 60)
+                        if (maxBaseLength <= 0)
+                        {
+                            // Slot name alone exceeds max length, truncate the combined string
+                            var combined = baseHostName + slotPart;
+                            hostName = combined.Length > maxHostNameLength
+                                ? combined[..maxHostNameLength]
+                                : combined;
+                        }
+                        else
+                        {
+                            var truncatedBase = baseHostName.Length > maxBaseLength
+                                ? baseHostName[..maxBaseLength]
+                                : baseHostName;
+
+                            // If we truncated, try to cut at a hyphen to avoid partial words
+                            if (truncatedBase.Length == maxBaseLength && baseHostName.Length > maxBaseLength)
+                            {
+                                var lastHyphen = truncatedBase.LastIndexOf('-');
+                                if (lastHyphen > 0)
+                                {
+                                    truncatedBase = truncatedBase[..lastHyphen];
+                                }
+                            }
+
+                            hostName = $"{truncatedBase}{slotPart}";
+                        }
+                    }
+                    else
                     {
-                        hostName = hostName.Substring(0, 60);
+                        hostName = baseHostName;
+
+                        if (hostName.Length > maxHostNameLength)
+                        {
+                            var truncated = hostName[..maxHostNameLength];
+                            var lastHyphen = truncated.LastIndexOf('-');
+                            hostName = lastHyphen > 0
+                                ? truncated[..lastHyphen]
+                                : truncated;
+                        }
                     }
                     
                     var endpoint = $"https://{hostName}.azurewebsites.net";
@@ -165,75 +203,21 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     /// </summary>
     public IResource TargetResource { get; }
 
-    /// <summary>
-    /// Gets the list of resource identifiers that should have the @onlyIfNotExists() decorator.
-    /// </summary>
-    internal List<string> OnlyIfNotExistsResources { get; } = new();
-
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {
         // Generate the base bicep template file
-        var templateFile = base.GetBicepTemplateFile(directory, deleteTemporaryFileOnDispose);
-        
-        // Get the website context which was used during ConfigureInfrastructure
-        // The context tracks resources that need the @onlyIfNotExists() decorator
-        var websiteContext = FindWebsiteContext();
-        if (websiteContext is not null && websiteContext.OnlyIfNotExistsResources.Count > 0)
-        {
-            // Copy resource identifiers from context to this resource for post-processing
-            OnlyIfNotExistsResources.Clear();
-            foreach (var resourceIdentifier in websiteContext.OnlyIfNotExistsResources)
-            {
-                OnlyIfNotExistsResources.Add(resourceIdentifier);
-            }
-            
-            // Post-process the bicep file to inject @onlyIfNotExists() decorators
-            var bicepContent = File.ReadAllText(templateFile.Path);
-            var processedBicep = AppService.BicepDecoratorWriter.InjectOnlyIfNotExistsDecorators(OnlyIfNotExistsResources, bicepContent);
-            File.WriteAllText(templateFile.Path, processedBicep);
-        }
-        
-        return templateFile;
+        // The @onlyIfNotExists() decorator is now added directly in the Compile() override
+        // of ConditionalWebSite and ConditionalSiteContainer classes
+        return base.GetBicepTemplateFile(directory, deleteTemporaryFileOnDispose);
     }
 
     /// <inheritdoc/>
     public override string GetBicepTemplateString()
     {
         // Generate the base bicep template
-        var baseBicep = base.GetBicepTemplateString();
-        
-        // Get the website context which was used during ConfigureInfrastructure
-        // The context tracks resources that should have @onlyIfNotExists() decorator
-        var websiteContext = FindWebsiteContext();
-        if (websiteContext is not null)
-        {
-            // Copy resources from context to this resource for post-processing
-            OnlyIfNotExistsResources.Clear();
-            foreach (var resourceIdentifier in websiteContext.OnlyIfNotExistsResources)
-            {
-                OnlyIfNotExistsResources.Add(resourceIdentifier);
-            }
-        }
-        
-        // Post-process to inject @onlyIfNotExists() decorators
-        var processedBicep = AppService.BicepDecoratorWriter.InjectOnlyIfNotExistsDecorators(OnlyIfNotExistsResources, baseBicep);
-        
-        return processedBicep;
-    }
-
-    private AppService.AzureAppServiceWebsiteContext? FindWebsiteContext()
-    {
-        // Find the Azure App Service environment from the target resource's deployment target annotation
-        var deploymentTargetAnnotation = TargetResource.GetDeploymentTargetAnnotation();
-        if (deploymentTargetAnnotation?.ComputeEnvironment is AzureAppServiceEnvironmentResource computerEnv)
-        {
-            if (computerEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
-            {
-                return environmentContextAnnotation.EnvironmentContext.TryGetWebsiteContext(TargetResource);
-            }
-        }
-
-        return null;
+        // The @onlyIfNotExists() decorator is now added directly in the Compile() override
+        // of ConditionalWebSite and ConditionalSiteContainer classes
+        return base.GetBicepTemplateString();
     }
 }

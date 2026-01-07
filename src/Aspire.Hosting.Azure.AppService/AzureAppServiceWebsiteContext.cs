@@ -34,11 +34,6 @@ internal sealed class AzureAppServiceWebsiteContext(
     private AzureResourceInfrastructure? _infrastructure;
     public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
 
-    /// <summary>
-    /// Tracks resources that should only be created if they don't exist.
-    /// </summary>
-    internal List<string> OnlyIfNotExistsResources { get; } = new();
-
     // Naming the app service is globally unique (domain names), so we use the resource group ID to create a unique name
     // within the naming spec for the app service.
     private BicepValue<string> HostName => BicepFunction.Take(
@@ -358,41 +353,44 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
         else
         {
-            var site = new WebSite("webapp")
+            // Use ConditionalWebSite when we need @onlyIfNotExists() decorator
+            WebSite site = addOnlyIfNotExistsDecorator
+                ? new ConditionalWebSite("webapp")
+                : new WebSite("webapp");
+
+            site.Name = name;
+            site.AppServicePlanId = appServicePlanParameter;
+            // Creating the app service with new sidecar configuration
+            site.SiteConfig = new SiteConfigProperties()
             {
-                Name = name,
-                AppServicePlanId = appServicePlanParameter,
-                // Creating the app service with new sidecar configuration
-                SiteConfig = new SiteConfigProperties()
-                {
-                    LinuxFxVersion = "SITECONTAINERS",
-                    AcrUserManagedIdentityId = acrClientIdParameter,
-                    UseManagedIdentityCreds = true,
-                    // Setting NumberOfWorkers to maximum allowed value for Premium SKU
-                    // https://learn.microsoft.com/en-us/azure/app-service/manage-scale-up
-                    // This is required due to use of feature PerSiteScaling for the App Service plan
-                    // We want the web apps to scale normally as defined for the app service plan
-                    // so setting the maximum number of workers to the maximum allowed for Premium V2 SKU.
-                    NumberOfWorkers = 30,
-                    AppSettings = []
-                },
-                Identity = new ManagedServiceIdentity()
-                {
-                    ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
-                    UserAssignedIdentities = []
-                },
+                LinuxFxVersion = "SITECONTAINERS",
+                AcrUserManagedIdentityId = acrClientIdParameter,
+                UseManagedIdentityCreds = true,
+                // Setting NumberOfWorkers to maximum allowed value for Premium SKU
+                // https://learn.microsoft.com/en-us/azure/app-service/manage-scale-up
+                // This is required due to use of feature PerSiteScaling for the App Service plan
+                // We want the web apps to scale normally as defined for the app service plan
+                // so setting the maximum number of workers to the maximum allowed for Premium V2 SKU.
+                NumberOfWorkers = 30,
+                AppSettings = []
+            };
+            site.Identity = new ManagedServiceIdentity()
+            {
+                ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
+                UserAssignedIdentities = []
             };
 
-            // Defining the main container for the app service
-            var siteContainer = new SiteContainer("mainContainer")
-            {
-                Parent = site,
-                Name = "main",
-                Image = containerImage,
-                AuthType = SiteContainerAuthType.UserAssigned,
-                UserManagedIdentityClientId = acrClientIdParameter,
-                IsMain = true
-            };
+            // Use ConditionalSiteContainer when we need @onlyIfNotExists() decorator
+            SiteContainer siteContainer = addOnlyIfNotExistsDecorator
+                ? new ConditionalSiteContainer("mainContainer")
+                : new SiteContainer("mainContainer");
+
+            siteContainer.Parent = site;
+            siteContainer.Name = "main";
+            siteContainer.Image = containerImage;
+            siteContainer.AuthType = SiteContainerAuthType.UserAssigned;
+            siteContainer.UserManagedIdentityClientId = acrClientIdParameter;
+            siteContainer.IsMain = true;
 
             webSite = site;
             mainContainer = siteContainer;
@@ -472,36 +470,24 @@ internal sealed class AzureAppServiceWebsiteContext(
             }
         }
 
-        // Add container and webapp - track if they should have @onlyIfNotExists() decorator
+        // Add container and webapp
         if (mainContainer is SiteContainer mainSiteContainer)
         {
             infra.Add(mainSiteContainer);
-            if (addOnlyIfNotExistsDecorator)
-            {
-                // Track this resource for @onlyIfNotExists() decorator in post-processing
-                OnlyIfNotExistsResources.Add(mainSiteContainer.BicepIdentifier);
-            }
         }
         else if (mainContainer is SiteSlotSiteContainer mainSiteSlotContainer)
         {
             infra.Add(mainSiteSlotContainer);
-            // Slot containers are always created (never have decorator)
         }
 
         // Add the webapp/slot resource
         if (webSite is WebSite siteToAdd)
         {
             infra.Add(siteToAdd);
-            if (addOnlyIfNotExistsDecorator)
-            {
-                // Track webapp for @onlyIfNotExists() decorator
-                OnlyIfNotExistsResources.Add(siteToAdd.BicepIdentifier);
-            }
         }
         else if (webSite is WebSiteSlot slotToAdd)
         {
             infra.Add(slotToAdd);
-            // Slots are always created (never have decorator)
         }
 
         var id = BicepFunction.Interpolate($"{acrMidParameter}").Compile().ToString();
@@ -690,7 +676,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     /// <summary>
     /// Builds both the main website and a deployment slot for manifest publishing.
-    /// Uses @onlyIfNotExistsDecorator to create webapp and mainContainer only if they don't exist.
+    /// Uses @onlyIfNotExists() decorator to create webapp and mainContainer only if they don't exist.
     /// Slot and slot container are always created.
     /// </summary>
     /// <param name="infra">The Azure resource infrastructure.</param>
@@ -700,9 +686,6 @@ internal sealed class AzureAppServiceWebsiteContext(
         BicepValue<string> deploymentSlot)
     {
         _infrastructure = infra;
-        
-        // Clear the list to avoid duplicates from previous builds
-        OnlyIfNotExistsResources.Clear();
 
         _ = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(infra);
         var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(infra);
