@@ -19,7 +19,7 @@ namespace Aspire.Hosting.RemoteHost.Ats;
 ///   "$expr": {
 ///     "format": "redis://{0}:{1}",
 ///     "valueProviders": [
-///       { "$handle": "aspire/EndpointReference:1" },
+///       { "$handle": "Aspire.Hosting.ApplicationModel/EndpointReference:1" },
 ///       "6379"
 ///     ]
 ///   }

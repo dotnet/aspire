@@ -9,7 +9,7 @@ namespace Aspire.Hosting.CodeGeneration.Models.Ats;
 public sealed class AtsTypeInfo
 {
     /// <summary>
-    /// Gets the ATS type ID for this type (e.g., "aspire/Redis", "aspire/IResourceWithEnvironment").
+    /// Gets the ATS type ID for this type (e.g., "Aspire.Hosting.Redis/RedisResource", "Aspire.Hosting/IResourceWithEnvironment").
     /// </summary>
     public required string AtsTypeId { get; init; }
 

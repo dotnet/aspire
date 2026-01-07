@@ -123,7 +123,7 @@ internal static class AtsCapabilityScanner
 
     /// <summary>
     /// Expands capability targets from interface types to concrete types.
-    /// For capabilities targeting an interface (e.g., "aspire/IResourceWithEnvironment"),
+    /// For capabilities targeting an interface (e.g., "Aspire.Hosting/IResourceWithEnvironment"),
     /// this populates ExpandedTargetTypeIds with all concrete types implementing that interface.
     /// </summary>
     private static void ExpandCapabilityTargets(

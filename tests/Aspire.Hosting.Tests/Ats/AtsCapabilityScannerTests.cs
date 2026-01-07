@@ -127,8 +127,8 @@ public class AtsCapabilityScannerTests
 
         var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
 
-        // Should infer aspire/Test from TestResource
-        Assert.Equal("aspire/Test", result);
+        // Should derive type ID from TestResource's full name
+        Assert.Equal("Aspire.Hosting.Tests.Ats/AtsCapabilityScannerTests+TestResource", result);
     }
 
     [Fact]

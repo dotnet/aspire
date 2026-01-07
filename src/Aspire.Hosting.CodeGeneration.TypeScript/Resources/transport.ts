@@ -18,7 +18,7 @@ export type CallbackFunction = (args: unknown) => unknown | Promise<unknown>;
 export interface MarshalledHandle {
     /** The handle ID (format: "{typeId}:{instanceId}") */
     $handle: string;
-    /** The ATS type ID (e.g., "aspire/Builder", "aspire.redis/RedisBuilder") */
+    /** The ATS type ID (e.g., "Aspire.Hosting/IDistributedApplicationBuilder", "Aspire.Hosting.Redis/RedisResource") */
     $type: string;
 }
 
@@ -100,7 +100,7 @@ export function isMarshalledHandle(value: unknown): value is MarshalledHandle {
  * A typed handle to a .NET object in the ATS system.
  * Handles are opaque references that can be passed to capabilities.
  *
- * @typeParam T - The ATS type ID (e.g., "aspire/Builder")
+ * @typeParam T - The ATS type ID (e.g., "Aspire.Hosting/IDistributedApplicationBuilder")
  */
 export class Handle<T extends string = string> {
     private readonly _handleId: string;

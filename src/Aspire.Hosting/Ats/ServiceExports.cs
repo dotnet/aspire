@@ -17,8 +17,8 @@ namespace Aspire.Hosting.Ats;
 /// <para>
 /// <strong>Available Services:</strong>
 /// <list type="bullet">
-///   <item><description><c>aspire/ResourceNotificationService</c> - Resource state notifications</description></item>
-///   <item><description><c>aspire/ResourceLoggerService</c> - Resource-specific logging</description></item>
+///   <item><description><c>Aspire.Hosting.ApplicationModel/ResourceNotificationService</c> - Resource state notifications</description></item>
+///   <item><description><c>Aspire.Hosting.ApplicationModel/ResourceLoggerService</c> - Resource-specific logging</description></item>
 /// </list>
 /// </para>
 /// </remarks>
@@ -84,13 +84,13 @@ internal static class ServiceExports
     /// // Get ResourceNotificationService by ATS type ID
     /// const notifications = await client.invoke("Aspire.Hosting/getService", {
     ///     serviceProvider,
-    ///     typeId: "aspire/ResourceNotificationService"
+    ///     typeId: "Aspire.Hosting.ApplicationModel/ResourceNotificationService"
     /// });
     /// </code>
     /// </para>
     /// </remarks>
     /// <param name="serviceProvider">The service provider handle.</param>
-    /// <param name="typeId">The ATS type ID (e.g., "aspire/ResourceNotificationService").</param>
+    /// <param name="typeId">The ATS type ID (e.g., "Aspire.Hosting.ApplicationModel/ResourceNotificationService").</param>
     /// <returns>A handle to the service, or null if not found.</returns>
     [AspireExport("getService", Description = "Gets a service by ATS type ID")]
     public static object? GetService(IServiceProvider serviceProvider, string typeId)

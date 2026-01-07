@@ -18,7 +18,7 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/testMethod@1", Description = "Test method")]
+                [AspireExport("testMethod", Description = "Test method")]
                 public static string TestMethod() => "test";
             }
             """, []);
@@ -27,7 +27,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task ValidExportWithPackagePrefix_NoDiagnostics()
+    public async Task ValidExportWithCamelCase_NoDiagnostics()
     {
         var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
             using Aspire.Hosting;
@@ -36,7 +36,7 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire.redis/addRedis@1", Description = "Add Redis")]
+                [AspireExport("addRedis", Description = "Add Redis")]
                 public static string AddRedis() => "test";
             }
             """, []);
@@ -54,7 +54,7 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/Dictionary.set@1", Description = "Dictionary set")]
+                [AspireExport("Dictionary.set", Description = "Dictionary set")]
                 public static void DictionarySet() { }
             }
             """, []);
@@ -74,7 +74,7 @@ public class AspireExportAnalyzerTests
 
             public class TestExports
             {
-                [AspireExport("aspire/instanceMethod@1")]
+                [AspireExport("instanceMethod")]
                 public string InstanceMethod() => "test";
             }
             """,
@@ -84,7 +84,7 @@ public class AspireExportAnalyzerTests
     }
 
     [Fact]
-    public async Task InvalidIdFormat_MissingVersion_ReportsASPIRE008()
+    public async Task InvalidIdFormat_WithSlash_ReportsASPIRE008()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_invalidExportIdFormat;
 
@@ -95,17 +95,17 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/noVersion")]
-                public static string NoVersion() => "test";
+                [AspireExport("aspire/methodName")]
+                public static string MethodWithSlash() => "test";
             }
             """,
-            [CompilerError(diagnostic.Id).WithLocation(7, 6).WithMessage("Export ID 'aspire/noVersion' does not match the required format 'aspire/{operation}@{version}' or 'aspire.{package}/{operation}@{version}'")]);
+            [CompilerError(diagnostic.Id).WithLocation(7, 6).WithMessage("Export ID 'aspire/methodName' is not a valid method name. Use a valid identifier (e.g., 'addRedis', 'withEnvironment').")]);
 
         await test.RunAsync();
     }
 
     [Fact]
-    public async Task InvalidIdFormat_InvalidPrefix_ReportsASPIRE008()
+    public async Task InvalidIdFormat_WithAtSymbol_ReportsASPIRE008()
     {
         var diagnostic = AspireExportAnalyzer.Diagnostics.s_invalidExportIdFormat;
 
@@ -116,11 +116,11 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("invalid/prefix@1")]
-                public static string InvalidPrefix() => "test";
+                [AspireExport("method@1")]
+                public static string MethodWithAt() => "test";
             }
             """,
-            [CompilerError(diagnostic.Id).WithLocation(7, 6).WithMessage("Export ID 'invalid/prefix@1' does not match the required format 'aspire/{operation}@{version}' or 'aspire.{package}/{operation}@{version}'")]);
+            [CompilerError(diagnostic.Id).WithLocation(7, 6).WithMessage("Export ID 'method@1' is not a valid method name. Use a valid identifier (e.g., 'addRedis', 'withEnvironment').")]);
 
         await test.RunAsync();
     }
@@ -138,7 +138,7 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/invalidReturn@1")]
+                [AspireExport("invalidReturn")]
                 public static Stream InvalidReturn() => Stream.Null;
             }
             """,
@@ -160,7 +160,7 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/invalidParam@1")]
+                [AspireExport("invalidParam")]
                 public static void InvalidParam(Stream stream) { }
             }
             """,
@@ -179,7 +179,7 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/primitives@1")]
+                [AspireExport("primitives")]
                 public static int Primitives(string s, int i, bool b, double d, long l) => i;
             }
             """, []);
@@ -197,7 +197,7 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/nullables@1")]
+                [AspireExport("nullables")]
                 public static int? Nullables(int? i, bool? b) => i;
             }
             """, []);
@@ -216,10 +216,10 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/asyncMethod@1")]
+                [AspireExport("asyncMethod")]
                 public static Task AsyncMethod() => Task.CompletedTask;
 
-                [AspireExport("aspire/asyncMethodWithResult@1")]
+                [AspireExport("asyncMethodWithResult")]
                 public static Task<string> AsyncMethodWithResult() => Task.FromResult("test");
             }
             """, []);
@@ -239,7 +239,7 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/enumMethod@1")]
+                [AspireExport("enumMethod")]
                 public static MyEnum EnumMethod(MyEnum value) => value;
             }
             """, []);
@@ -258,7 +258,7 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/withCallback@1")]
+                [AspireExport("withCallback")]
                 public static void WithCallback(Func<string, int> callback) { }
             }
             """, []);
@@ -276,7 +276,7 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/builderMethod@1")]
+                [AspireExport("builderMethod")]
                 public static void BuilderMethod(IDistributedApplicationBuilder builder) { }
             }
             """, []);
@@ -294,7 +294,7 @@ public class AspireExportAnalyzerTests
 
             public static class TestExports
             {
-                [AspireExport("aspire/paramsMethod@1")]
+                [AspireExport("paramsMethod")]
                 public static void ParamsMethod(params string[] args) { }
             }
             """, []);

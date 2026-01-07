@@ -10,8 +10,8 @@ export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './t
 // Handle Type Aliases (Core)
 // ============================================================================
 
-export type BuilderHandle = Handle<'aspire/Builder'>;
-export type ApplicationHandle = Handle<'aspire/Application'>;
+export type BuilderHandle = Handle<'Aspire.Hosting/IDistributedApplicationBuilder'>;
+export type ApplicationHandle = Handle<'Aspire.Hosting/DistributedApplication'>;
 
 // ============================================================================
 // Reference Expression
@@ -26,8 +26,8 @@ export type ApplicationHandle = Handle<'aspire/Application'>;
  *   "$expr": {
  *     "format": "redis://{0}:{1}",
  *     "valueProviders": [
- *       { "$handle": "aspire/EndpointReference:1" },
- *       { "$handle": "aspire/EndpointReference:2" }
+ *       { "$handle": "Aspire.Hosting.ApplicationModel/EndpointReference:1" },
+ *       { "$handle": "Aspire.Hosting.ApplicationModel/EndpointReference:2" }
  *     ]
  *   }
  * }

@@ -55,7 +55,7 @@ internal sealed class AtsCapabilityInfo
 
     /// <summary>
     /// Gets or sets the original (declared) ATS type ID that this capability targets.
-    /// May be an interface type (e.g., "aspire/IResourceWithEnvironment").
+    /// May be an interface type (e.g., "Aspire.Hosting/IResourceWithEnvironment").
     /// </summary>
     public string? OriginalTargetTypeId { get; init; }
 

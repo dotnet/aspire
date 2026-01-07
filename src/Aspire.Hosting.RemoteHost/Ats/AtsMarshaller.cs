@@ -164,8 +164,8 @@ internal static class AtsMarshaller
             if (genericArgs.Length == 1)
             {
                 // Marshal as a handle so list operations can mutate it
-                var elementTypeName = genericArgs[0].Name;
-                return handles.Marshal(value, $"aspire/List<{elementTypeName}>");
+                var typeId = Hosting.Ats.AtsTypeMapping.DeriveTypeId(type);
+                return handles.Marshal(value, typeId);
             }
         }
 
@@ -176,8 +176,8 @@ internal static class AtsMarshaller
             if (genericArgs.Length == 2 && genericArgs[0] == typeof(string))
             {
                 // Marshal as a handle so dictionary operations can mutate it
-                var valueTypeName = genericArgs[1].Name;
-                return handles.Marshal(value, $"aspire/Dictionary<{valueTypeName}>");
+                var typeId = Hosting.Ats.AtsTypeMapping.DeriveTypeId(type);
+                return handles.Marshal(value, typeId);
             }
         }
 
@@ -190,9 +190,9 @@ internal static class AtsMarshaller
         }
 
         // Non-DTO complex objects are marshaled as handles
-        // This ensures only explicitly marked types cross the serialization boundary
-        var typeId = $"aspire.core/{type.Name}";
-        return handles.Marshal(value, typeId);
+        // Use the derived type ID format: {AssemblyName}/{TypeName}
+        var fallbackTypeId = Hosting.Ats.AtsTypeMapping.DeriveTypeId(type);
+        return handles.Marshal(value, fallbackTypeId);
     }
 
     /// <summary>

@@ -69,7 +69,7 @@ public sealed class AtsCapabilityInfo
     public required IReadOnlyList<AtsParameterInfo> Parameters { get; init; }
 
     /// <summary>
-    /// Gets or sets the ATS type ID for the return type (e.g., "aspire/Redis", "string").
+    /// Gets or sets the ATS type ID for the return type (e.g., "Aspire.Hosting.Redis/RedisResource", "string").
     /// </summary>
     /// <remarks>
     /// <para>
@@ -91,16 +91,16 @@ public sealed class AtsCapabilityInfo
 
     /// <summary>
     /// Gets or sets the original (declared) ATS type ID that this capability targets.
-    /// May be an interface type (e.g., "aspire/IResourceWithEnvironment").
+    /// May be an interface type (e.g., "Aspire.Hosting/IResourceWithEnvironment").
     /// </summary>
     /// <remarks>
     /// <para>
     /// This is the ATS type ID of the first parameter, indicating what type this capability operates on.
     /// Used to determine which builder class(es) the method should be generated on:
     /// <list type="bullet">
-    ///   <item><description><c>aspire/Builder</c> → method goes on <c>DistributedApplicationBuilder</c></description></item>
-    ///   <item><description><c>aspire/Redis</c> → method goes on <c>RedisBuilder</c></description></item>
-    ///   <item><description><c>aspire/IResourceWithEnvironment</c> → method goes on all builders implementing that interface</description></item>
+    ///   <item><description><c>Aspire.Hosting/IDistributedApplicationBuilder</c> → method goes on <c>DistributedApplicationBuilder</c></description></item>
+    ///   <item><description><c>Aspire.Hosting.Redis/RedisResource</c> → method goes on <c>RedisBuilder</c></description></item>
+    ///   <item><description><c>Aspire.Hosting/IResourceWithEnvironment</c> → method goes on all builders implementing that interface</description></item>
     /// </list>
     /// </para>
     /// <para>
@@ -133,16 +133,16 @@ public sealed class AtsCapabilityInfo
 
     /// <summary>
     /// Gets or sets whether this capability is an auto-generated property accessor
-    /// for an [AspireContextType] type.
+    /// for a type marked with <c>[AspireExport(ExposeProperties = true)]</c>.
     /// </summary>
     /// <remarks>
     /// <para>
     /// Context property capabilities are auto-generated from types marked with
-    /// <c>[AspireContextType]</c>. They provide access to properties on context
+    /// <c>[AspireExport(ExposeProperties = true)]</c>. They provide access to properties on context
     /// objects passed to callbacks.
     /// </para>
     /// <para>
-    /// Example: <c>aspire/EnvironmentContext.getExecutionContext</c>
+    /// Example: <c>Aspire.Hosting/EnvironmentCallbackContext.getExecutionContext</c>
     /// </para>
     /// </remarks>
     public bool IsContextProperty { get; init; }
