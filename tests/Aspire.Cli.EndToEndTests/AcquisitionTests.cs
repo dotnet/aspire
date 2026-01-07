@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.EndToEndTests.Helpers;
-using Hex1b.Terminal.Automation;
 using Xunit;
 
 namespace Aspire.Cli.EndToEndTests;
@@ -13,37 +12,8 @@ namespace Aspire.Cli.EndToEndTests;
 /// </summary>
 public sealed class AcquisitionTests : IAsyncDisposable
 {
-    private static readonly string[] s_installSuccessPatterns =
-    [
-        "Aspire CLI installed successfully",
-        "aspire is already installed",
-        "Installation complete"
-    ];
-
-    private static readonly string[] s_installErrorPatterns =
-    [
-        "Error:",
-        "Failed to",
-        "curl: ",
-        "command not found",
-        "No such file or directory"
-    ];
-
-    private static readonly string[] s_versionSuccessPatterns =
-    [
-        "aspire version"  // Output format: "aspire version X.Y.Z+hash"
-    ];
-
-    private static readonly string[] s_versionErrorPatterns =
-    [
-        "command not found",
-        "not recognized",
-        "No such file"
-    ];
-
     private readonly ITestOutputHelper _output;
     private readonly string _workDirectory;
-    private readonly string _recordingsDirectory;
 
     public AcquisitionTests(ITestOutputHelper output)
     {
@@ -53,285 +23,36 @@ public sealed class AcquisitionTests : IAsyncDisposable
         _workDirectory = Path.Combine(Path.GetTempPath(), "aspire-cli-e2e", Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_workDirectory);
 
-        // Create recordings directory for asciinema recordings
-        _recordingsDirectory = Path.Combine(_workDirectory, "recordings");
-        Directory.CreateDirectory(_recordingsDirectory);
-
         _output.WriteLine($"Work directory: {_workDirectory}");
-        _output.WriteLine($"Recordings directory: {_recordingsDirectory}");
     }
 
     [Fact]
     public async Task DownloadAndVerifyAspireCliFromPR()
     {
-        // Skip on non-Linux/macOS platforms since Hex1b PTY requires them
-        if (!AspireHex1bHelpers.IsPlatformSupported())
-        {
-            _output.WriteLine($"Skipping test: {AspireHex1bHelpers.GetPlatformSkipReason()}");
-            return;
-        }
+        // Get PR number and commit SHA from environment variables (set by CI in run-tests.yml)
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
 
-        // Get PR number from environment variable (set by CI in run-tests.yml)
-        // GitHub Actions provides this via github.event.pull_request.number
-        // We also check GITHUB_REF for refs/pull/XXX/merge format as a fallback
-        var prNumberStr = Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER");
+        _output.WriteLine($"Testing CLI from PR #{prNumber} (commit: {commitSha})");
 
-        // Fallback: parse from GITHUB_REF (format: refs/pull/123/merge)
-        if (string.IsNullOrEmpty(prNumberStr))
-        {
-            var githubRef = Environment.GetEnvironmentVariable("GITHUB_REF");
-            if (!string.IsNullOrEmpty(githubRef) && githubRef.StartsWith("refs/pull/", StringComparison.OrdinalIgnoreCase))
-            {
-                // Extract PR number from refs/pull/123/merge
-                var parts = githubRef.Split('/');
-                if (parts.Length >= 3)
-                {
-                    prNumberStr = parts[2];
-                }
-            }
-        }
-
-        _output.WriteLine($"GITHUB_PR_NUMBER: {Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER") ?? "(not set)"}");
-        _output.WriteLine($"GITHUB_REF: {Environment.GetEnvironmentVariable("GITHUB_REF") ?? "(not set)"}");
-
-        if (string.IsNullOrEmpty(prNumberStr) || !int.TryParse(prNumberStr, out var prNumber))
-        {
-            _output.WriteLine("Skipping test: No PR number available. Set GITHUB_PR_NUMBER or PR_NUMBER environment variable.");
-            _output.WriteLine("The get-aspire-cli-pr.sh script requires a valid PR number to download CLI artifacts.");
-            return;
-        }
-
-        _output.WriteLine($"Testing CLI from PR #{prNumber}");
-
-        // Set up the asciinema recording file
-        var castFile = Path.Combine(_recordingsDirectory, "acquisition-test.cast");
-
-        // Create terminal session using helper
-        await using var session = await AspireHex1bHelpers.CreateAcquisitionTestSessionAsync(
+        // Create automation builder (handles recording path automatically)
+        await using var builder = await AspireCliAutomationBuilder.CreateAsync(
             workingDirectory: _workDirectory,
-            recordingPath: castFile,
-            prNumber);
+            recordingName: "acquisition-test",
+            output: _output,
+            prNumber: prNumber);
 
-        var terminal = session.Terminal;
-        var process = session.Process;
-        var recorder = session.Recorder;
+        // Run the CLI acquisition and verification sequence
+        _output.WriteLine($"Downloading and installing Aspire CLI from PR #{prNumber}...");
+        _output.WriteLine($"Will verify version contains commit SHA: {commitSha}");
 
-        _output.WriteLine("Terminal started, beginning automation sequence...");
-
-        try
-        {
-            // Wait for shell to initialize
-            await Task.Delay(TimeSpan.FromSeconds(1));
-
-            // Step 1: Set up PATH for aspire CLI
-            _output.WriteLine("Setting up PATH...");
-            var pathSequence = new Hex1bTerminalInputSequenceBuilder()
-                .SourceAspireCliEnvironment()
-                .Build();
-            await pathSequence.ApplyAsync(terminal);
-
-            // Step 2: Download and install Aspire CLI
-            _output.WriteLine($"Downloading and installing Aspire CLI from PR #{prNumber}...");
-            var installSequence = new Hex1bTerminalInputSequenceBuilder()
-                .DownloadAndInstallAspireCli(prNumber)
-                .Build();
-            await installSequence.ApplyAsync(terminal);
-
-            // Wait for installation to complete (up to 10 minutes)
-            var installResult = await terminal.WaitUntilAsync(
-                s_installSuccessPatterns,
-                s_installErrorPatterns,
-                timeout: TimeSpan.FromMinutes(10),
-                pollInterval: TimeSpan.FromSeconds(2));
-
-            if (installResult.IsError)
-            {
-                _output.WriteLine($"Installation failed with error pattern: {installResult.MatchedPattern}");
-                _output.WriteLine("Terminal content:");
-                _output.WriteLine(installResult.TerminalContent);
-                Assert.Fail($"CLI installation failed: {installResult.MatchedPattern}");
-            }
-
-            if (!installResult.Success)
-            {
-                _output.WriteLine("Installation timed out. Terminal content:");
-                _output.WriteLine(installResult.TerminalContent);
-                Assert.Fail("CLI installation timed out after 10 minutes");
-            }
-
-            _output.WriteLine($"Installation succeeded, matched: {installResult.MatchedPattern}");
-
-            // Step 3: Verify CLI is installed by checking version
-            _output.WriteLine("Verifying Aspire CLI installation...");
-            var verifySequence = new Hex1bTerminalInputSequenceBuilder()
-                .VerifyAspireCliInstalled()
-                .Build();
-            await verifySequence.ApplyAsync(terminal);
-
-            // Wait for version output (up to 30 seconds)
-            var versionResult = await terminal.WaitUntilAsync(
-                s_versionSuccessPatterns,
-                s_versionErrorPatterns,
-                timeout: TimeSpan.FromSeconds(30),
-                pollInterval: TimeSpan.FromMilliseconds(500));
-
-            if (versionResult.IsError)
-            {
-                _output.WriteLine($"Version check failed with error pattern: {versionResult.MatchedPattern}");
-                _output.WriteLine("Terminal content:");
-                _output.WriteLine(versionResult.TerminalContent);
-                Assert.Fail($"CLI version check failed: {versionResult.MatchedPattern}");
-            }
-
-            if (!versionResult.Success)
-            {
-                _output.WriteLine("Version check timed out. Terminal content:");
-                _output.WriteLine(versionResult.TerminalContent);
-                Assert.Fail("CLI version check timed out");
-            }
-
-            _output.WriteLine($"Version check succeeded, matched: {versionResult.MatchedPattern}");
-            _output.WriteLine("Terminal content:");
-            _output.WriteLine(versionResult.TerminalContent);
-
-            // Step 4: Exit the terminal
-            _output.WriteLine("Exiting terminal...");
-            var exitSequence = new Hex1bTerminalInputSequenceBuilder()
-                .ExitTerminal()
-                .Build();
-            await exitSequence.ApplyAsync(terminal);
-
-            // Wait for the process to exit
-            var exitCode = await AspireHex1bHelpers.WaitForExitAsync(process, TimeSpan.FromSeconds(10));
-            _output.WriteLine($"Terminal process exited with code: {exitCode?.ToString() ?? "killed"}");
-        }
-        catch (OperationCanceledException)
-        {
-            _output.WriteLine("Test timed out, killing process...");
-            process.Kill();
-            throw;
-        }
-        finally
-        {
-            // Flush the recorder to ensure all data is written
-            if (recorder is not null)
-            {
-                await recorder.FlushAsync();
-                _output.WriteLine($"Asciinema recording saved to: {castFile}");
-            }
-
-            // Copy recording to test results location if available
-            CopyRecordingsToTestResults();
-        }
-
-        // Verify the recording was created
-        Assert.True(File.Exists(castFile), $"Expected asciinema recording at {castFile}");
-
-        var castContent = await File.ReadAllTextAsync(castFile);
-        Assert.NotEmpty(castContent);
-        _output.WriteLine($"Recording size: {castContent.Length} bytes");
-    }
-
-    private void CopyRecordingsToTestResults()
-    {
-        // CI artifacts upload paths from run-tests.yml:
-        // - testresults/** (always uploaded)
-        // - artifacts/log/test-logs/** (uploaded when TEST_LOG_PATH is set)
-        //
-        // The workflow passes --results-directory ${{ github.workspace }}/testresults
-        // We try multiple approaches to find the correct path.
-
-        _output.WriteLine("Attempting to copy recordings to CI artifact location...");
-
-        var testLogPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
-        var githubWorkspace = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
-
-        _output.WriteLine($"  TEST_LOG_PATH: {testLogPath ?? "(not set)"}");
-        _output.WriteLine($"  GITHUB_WORKSPACE: {githubWorkspace ?? "(not set)"}");
-
-        // Build list of candidate paths to try
-        var candidatePaths = new List<string>();
-
-        // 1. TEST_LOG_PATH if set
-        if (!string.IsNullOrEmpty(testLogPath))
-        {
-            candidatePaths.Add(Path.Combine(testLogPath, "recordings"));
-        }
-
-        // 2. GITHUB_WORKSPACE/testresults/recordings
-        if (!string.IsNullOrEmpty(githubWorkspace))
-        {
-            candidatePaths.Add(Path.Combine(githubWorkspace, "testresults", "recordings"));
-        }
-
-        // 3. Walk up from current directory to find repo root with testresults
-        var currentDir = Directory.GetCurrentDirectory();
-        var searchDir = currentDir;
-        while (!string.IsNullOrEmpty(searchDir))
-        {
-            var testResultsDir = Path.Combine(searchDir, "testresults");
-            if (Directory.Exists(testResultsDir))
-            {
-                candidatePaths.Add(Path.Combine(testResultsDir, "recordings"));
-                break;
-            }
-            // Check for repo root markers
-            if (File.Exists(Path.Combine(searchDir, "Aspire.slnx")) ||
-                File.Exists(Path.Combine(searchDir, "global.json")))
-            {
-                candidatePaths.Add(Path.Combine(searchDir, "testresults", "recordings"));
-                break;
-            }
-            searchDir = Path.GetDirectoryName(searchDir);
-        }
-
-        if (candidatePaths.Count == 0)
-        {
-            _output.WriteLine("No CI artifact path available - recordings will not be uploaded");
-            return;
-        }
-
-        // Check if there are any recordings to copy
-        if (!Directory.Exists(_recordingsDirectory))
-        {
-            _output.WriteLine($"Recordings directory does not exist: {_recordingsDirectory}");
-            return;
-        }
-
-        var recordings = Directory.GetFiles(_recordingsDirectory, "*.cast");
-        if (recordings.Length == 0)
-        {
-            _output.WriteLine("No .cast files found to copy");
-            return;
-        }
-
-        _output.WriteLine($"Found {recordings.Length} recording(s) to copy");
-
-        // Try each candidate path until one succeeds
-        foreach (var targetDir in candidatePaths)
-        {
-            try
-            {
-                _output.WriteLine($"  Trying: {targetDir}");
-                Directory.CreateDirectory(targetDir);
-
-                foreach (var file in recordings)
-                {
-                    var targetFile = Path.Combine(targetDir, Path.GetFileName(file));
-                    File.Copy(file, targetFile, overwrite: true);
-                    _output.WriteLine($"  ✓ Copied: {Path.GetFileName(file)} -> {targetFile}");
-                }
-
-                _output.WriteLine($"Successfully copied recordings to: {targetDir}");
-                return; // Success, no need to try other paths
-            }
-            catch (Exception ex)
-            {
-                _output.WriteLine($"  ✗ Failed: {ex.Message}");
-            }
-        }
-
-        _output.WriteLine("Warning: Failed to copy recordings to any CI artifact location");
+        await builder
+            .PrepareEnvironment()
+            .DownloadAndInstallAspireCli(prNumber)
+            .SourceAspireCliEnvironment()
+            .VerifyAspireCliVersion(commitSha)
+            .ExitTerminal()
+            .ExecuteAsync();
     }
 
     public async ValueTask DisposeAsync()

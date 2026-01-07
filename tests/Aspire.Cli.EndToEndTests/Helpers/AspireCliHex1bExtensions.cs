@@ -3,73 +3,132 @@
 
 using Hex1b.Terminal;
 using Hex1b.Terminal.Automation;
+using Xunit;
 
 namespace Aspire.Cli.EndToEndTests.Helpers;
 
 /// <summary>
-/// Result of a WaitUntil operation.
-/// </summary>
-public sealed class WaitUntilResult
-{
-    public bool Success { get; init; }
-    public string? MatchedPattern { get; init; }
-    public bool IsError { get; init; }
-    public string TerminalContent { get; init; } = string.Empty;
-}
-
-/// <summary>
 /// Extension methods for Hex1b terminal automation to simplify Aspire CLI operations.
+/// These extend the fluent sequence builder to keep the API concise.
 /// </summary>
 internal static class AspireCliHex1bExtensions
 {
     /// <summary>
-    /// Downloads and installs the Aspire CLI for a specific PR number using the official PR download script.
-    /// The script requires a valid PR number - it does not support downloading from main branch.
+    /// Prepares the shell environment with a custom prompt that tracks command count and exit status.
+    /// This makes it easier to detect when commands complete. The prompt format is:
+    /// [N ✔] $ (success) or [N ✘:code] $ (failure)
     /// </summary>
     /// <param name="builder">The input sequence builder.</param>
-    /// <param name="prNumber">The PR number to download (required).</param>
     /// <returns>The builder for chaining.</returns>
-    /// <exception cref="ArgumentException">Thrown when prNumber is not provided.</exception>
+    public static Hex1bTerminalInputSequenceBuilder PrepareEnvironment(
+        this Hex1bTerminalInputSequenceBuilder builder)
+    {
+        // Set up a prompt that shows command count and exit status
+        // This makes it easy to detect when a command has completed
+        const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo ✔ || echo ✘:$s)] \\$ \"'";
+
+        return builder
+            .Type(promptSetup)
+            .Enter()
+            .Wait(TimeSpan.FromMilliseconds(500));
+    }
+
+    /// <summary>
+    /// Waits for a specific command sequence number to appear in the prompt.
+    /// The prompt format is [N ✔] $ (success) or [N ✘:code] $ (failure).
+    /// If the command succeeded (✔), returns normally. If it failed (✘), throws an exception.
+    /// </summary>
+    /// <param name="builder">The input sequence builder.</param>
+    /// <param name="sequenceNumber">The command sequence number to wait for.</param>
+    /// <param name="timeout">Maximum time to wait (default: 5 minutes).</param>
+    /// <returns>The builder for chaining.</returns>
+    /// <exception cref="TerminalCommandFailedException">Thrown if the command failed (prompt shows ✘).</exception>
+    public static Hex1bTerminalInputSequenceBuilder WaitForSequence(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        int sequenceNumber,
+        TimeSpan? timeout = null)
+    {
+        var successPattern = $"[{sequenceNumber} ✔]";
+        var failurePattern = $"[{sequenceNumber} ✘";
+
+        return builder.WaitUntil(
+            snapshot =>
+            {
+                var text = snapshot.GetScreenText();
+
+                // Check for failure first
+                if (text.Contains(failurePattern, StringComparison.Ordinal))
+                {
+                    throw new TerminalCommandFailedException(
+                        $"Command {sequenceNumber} failed.",
+                        snapshot,
+                        sequenceNumber);
+                }
+
+                // Check for success
+                return text.Contains(successPattern, StringComparison.Ordinal);
+            },
+            timeout ?? TimeSpan.FromMinutes(5));
+    }
+
+    /// <summary>
+    /// Downloads and installs the Aspire CLI for a specific PR number using the official PR download script.
+    /// Waits for the installation to complete (up to 5 minutes by default).
+    /// </summary>
+    /// <param name="builder">The input sequence builder.</param>
+    /// <param name="prNumber">The PR number to download.</param>
+    /// <param name="timeout">Maximum time to wait for installation (default: 5 minutes).</param>
+    /// <returns>The builder for chaining.</returns>
     public static Hex1bTerminalInputSequenceBuilder DownloadAndInstallAspireCli(
         this Hex1bTerminalInputSequenceBuilder builder,
-        int prNumber)
+        int prNumber,
+        TimeSpan? timeout = null)
     {
         var command = $"curl -fsSL https://raw.githubusercontent.com/dotnet/aspire/main/eng/scripts/get-aspire-cli-pr.sh | bash -s -- {prNumber}";
 
         return builder
             .Type(command)
-            .Enter();
-        // Note: Don't add Wait here - caller should use WaitUntilAsync to wait for completion
-    }
-
-    /// <summary>
-    /// Verifies the Aspire CLI installation by running 'aspire --version'.
-    /// </summary>
-    /// <param name="builder">The input sequence builder.</param>
-    /// <returns>The builder for chaining.</returns>
-    public static Hex1bTerminalInputSequenceBuilder VerifyAspireCliInstalled(
-        this Hex1bTerminalInputSequenceBuilder builder)
-    {
-        return builder
-            .Type("aspire --version")
-            .Enter();
-        // Note: Don't add Wait here - caller should use WaitUntilAsync to wait for output
+            .Enter()
+            .WaitUntil(
+                snapshot => snapshot.GetScreenText().Contains("Successfully added aspire to", StringComparison.OrdinalIgnoreCase),
+                timeout ?? TimeSpan.FromMinutes(5));
     }
 
     /// <summary>
     /// Sources the Aspire CLI environment to make the 'aspire' command available in the current shell.
+    /// On Linux, this sources ~/.bashrc which contains the PATH updates from the installer.
     /// </summary>
     /// <param name="builder">The input sequence builder.</param>
     /// <returns>The builder for chaining.</returns>
     public static Hex1bTerminalInputSequenceBuilder SourceAspireCliEnvironment(
         this Hex1bTerminalInputSequenceBuilder builder)
     {
-        // The installer adds aspire to ~/.dotnet/tools, which should already be in PATH
-        // But we may need to source the profile or rehash
+        // The installer adds aspire to ~/.dotnet/tools and updates ~/.bashrc
+        // We need to source ~/.bashrc to pick up the PATH changes
         return builder
-            .Type("export PATH=\"$HOME/.dotnet/tools:$PATH\"")
+            .Type("source ~/.bashrc")
             .Enter()
             .Wait(TimeSpan.FromMilliseconds(500));
+    }
+
+    /// <summary>
+    /// Verifies the Aspire CLI installation by running 'aspire --version' and waiting for the expected commit SHA.
+    /// </summary>
+    /// <param name="builder">The input sequence builder.</param>
+    /// <param name="expectedCommitSha">The commit SHA to look for in the version output.</param>
+    /// <param name="timeout">Maximum time to wait for version output (default: 30 seconds).</param>
+    /// <returns>The builder for chaining.</returns>
+    public static Hex1bTerminalInputSequenceBuilder VerifyAspireCliVersion(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        string expectedCommitSha,
+        TimeSpan? timeout = null)
+    {
+        return builder
+            .Type("aspire --version")
+            .Enter()
+            .WaitUntil(
+                snapshot => snapshot.GetScreenText().Contains(expectedCommitSha, StringComparison.OrdinalIgnoreCase),
+                timeout ?? TimeSpan.FromSeconds(30));
     }
 
     /// <summary>
@@ -87,76 +146,43 @@ internal static class AspireCliHex1bExtensions
     }
 
     /// <summary>
-    /// Waits until the terminal content matches one of the success patterns or error patterns.
-    /// Scans the terminal buffer periodically until a match is found or timeout is reached.
+    /// Applies the built sequence to the terminal, handling exceptions and asserting on failures.
+    /// This method catches <see cref="TerminalCommandFailedException"/> and <see cref="TimeoutException"/>,
+    /// logs the terminal content, and fails the test with a descriptive message.
     /// </summary>
-    /// <param name="terminal">The Hex1b terminal instance.</param>
-    /// <param name="successPatterns">Patterns that indicate success.</param>
-    /// <param name="errorPatterns">Patterns that indicate an error.</param>
-    /// <param name="timeout">Maximum time to wait.</param>
-    /// <param name="pollInterval">How often to scan the terminal buffer.</param>
+    /// <param name="sequence">The built input sequence to apply.</param>
+    /// <param name="terminal">The terminal to apply the sequence to.</param>
+    /// <param name="output">Optional test output helper for logging.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Result indicating whether success/error pattern was found.</returns>
-    public static async Task<WaitUntilResult> WaitUntilAsync(
-        this Hex1bTerminal terminal,
-        string[] successPatterns,
-        string[] errorPatterns,
-        TimeSpan timeout,
-        TimeSpan? pollInterval = null,
+    public static async Task ApplyWithAssertionsAsync(
+        this Hex1bTerminalInputSequence sequence,
+        Hex1bTerminal terminal,
+        ITestOutputHelper? output = null,
         CancellationToken cancellationToken = default)
     {
-        var interval = pollInterval ?? TimeSpan.FromMilliseconds(500);
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-        while (stopwatch.Elapsed < timeout)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            await sequence.ApplyAsync(terminal, cancellationToken);
+        }
+        catch (TerminalCommandFailedException ex)
+        {
+            output?.WriteLine($"Command {ex.CommandSequence} failed.");
+            output?.WriteLine("Terminal content:");
+            output?.WriteLine(ex.TerminalContent);
 
-            // CreateSnapshot() auto-flushes pending output and gives us a consistent view
+            Assert.Fail($"Command {ex.CommandSequence} failed. Terminal content:\n{ex.TerminalContent}");
+        }
+        catch (TimeoutException ex)
+        {
+            output?.WriteLine($"Operation timed out: {ex.Message}");
+
+            // Grab a final snapshot to include in the failure message
             using var snapshot = terminal.CreateSnapshot();
             var content = snapshot.GetScreenText();
+            output?.WriteLine("Final terminal content:");
+            output?.WriteLine(content);
 
-            // Check for error patterns first
-            foreach (var pattern in errorPatterns)
-            {
-                if (content.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-                {
-                    return new WaitUntilResult
-                    {
-                        Success = false,
-                        IsError = true,
-                        MatchedPattern = pattern,
-                        TerminalContent = content
-                    };
-                }
-            }
-
-            // Check for success patterns
-            foreach (var pattern in successPatterns)
-            {
-                if (content.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-                {
-                    return new WaitUntilResult
-                    {
-                        Success = true,
-                        IsError = false,
-                        MatchedPattern = pattern,
-                        TerminalContent = content
-                    };
-                }
-            }
-
-            await Task.Delay(interval, cancellationToken);
+            Assert.Fail($"Test timed out. Terminal content:\n{content}");
         }
-
-        // Timeout - return failure with current content
-        using var finalSnapshot = terminal.CreateSnapshot();
-        return new WaitUntilResult
-        {
-            Success = false,
-            IsError = false,
-            MatchedPattern = null,
-            TerminalContent = finalSnapshot.GetScreenText()
-        };
     }
 }
