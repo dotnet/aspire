@@ -84,14 +84,20 @@ public async Task MyCliTest()
 
 ## DO: Use AddSequence() for Custom Operations
 
-When you need to run custom commands not covered by built-in methods:
+When you need to run custom commands not covered by built-in methods, use `AddSequence()` with `IncrementCommandSequence()`:
 
 ```csharp
 await builder
     .PrepareEnvironment()
-    .AddSequence(ctx => ctx.SequenceBuilder
-        .Type("aspire new starter --name MyApp")
-        .Enter())
+    .AddSequence(ctx =>
+    {
+        ctx.SequenceBuilder
+            .Type("aspire new starter --name MyApp")
+            .Enter();
+
+        // Increment the command counter so WaitForSequence knows which prompt to wait for
+        ctx.IncrementCommandSequence();
+    })
     .WaitForSequence(timeout: TimeSpan.FromMinutes(2))
     .ExitTerminal()
     .ExecuteAsync();
@@ -100,6 +106,9 @@ await builder
 The context provides access to:
 - `SequenceBuilder`: The underlying `Hex1bTerminalInputSequenceBuilder`
 - `Session`: The `AspireTerminalSession` for direct terminal access if needed
+- `IncrementCommandSequence()`: Increments the command counter (call after typing a command that produces a prompt)
+
+**Important**: Always call `IncrementCommandSequence()` after adding a command that will update the prompt, then follow with `WaitForSequence()` to wait for completion.
 
 ## DO: Always Call ExecuteAsync() at the End
 

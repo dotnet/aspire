@@ -113,9 +113,10 @@ internal static class AspireCliHex1bExtensions
 
     /// <summary>
     /// Verifies the Aspire CLI installation by running 'aspire --version' and waiting for the expected commit SHA.
+    /// The commit SHA is trimmed to the first 9 characters for matching.
     /// </summary>
     /// <param name="builder">The input sequence builder.</param>
-    /// <param name="expectedCommitSha">The commit SHA to look for in the version output.</param>
+    /// <param name="expectedCommitSha">The full commit SHA (will be trimmed to 9 characters).</param>
     /// <param name="timeout">Maximum time to wait for version output (default: 30 seconds).</param>
     /// <returns>The builder for chaining.</returns>
     public static Hex1bTerminalInputSequenceBuilder VerifyAspireCliVersion(
@@ -123,11 +124,14 @@ internal static class AspireCliHex1bExtensions
         string expectedCommitSha,
         TimeSpan? timeout = null)
     {
+        // Use first 9 characters of the commit SHA for matching
+        var shortSha = expectedCommitSha.Length > 9 ? expectedCommitSha[..9] : expectedCommitSha;
+
         return builder
             .Type("aspire --version")
             .Enter()
             .WaitUntil(
-                snapshot => snapshot.GetScreenText().Contains(expectedCommitSha, StringComparison.OrdinalIgnoreCase),
+                snapshot => snapshot.GetScreenText().Contains(shortSha, StringComparison.OrdinalIgnoreCase),
                 timeout ?? TimeSpan.FromSeconds(30));
     }
 
