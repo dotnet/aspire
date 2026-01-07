@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../DoctorCommandStrings.resx">
+    <body>
+      <trans-unit id="CheckingPrerequisites">
+        <source>Checking Aspire environment...</source>
+        <target state="translated">Verificando o ambiente do Aspire...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerCategoryHeader">
+        <source>Container Runtime</source>
+        <target state="translated">Runtime do Contêiner</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Diagnose Aspire environment issues and verify setup</source>
+        <target state="translated">Diagnosticar problemas de ambiente do Aspire e verificar a configuração</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DetailedPrerequisitesLink">
+        <source>For detailed prerequisites: https://aka.ms/aspire-prerequisites</source>
+        <target state="translated">Para obter os pré-requisitos detalhados: https://aka.ms/aspire-prerequisites</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentCategoryHeader">
+        <source>Environment</source>
+        <target state="translated">Ambiente</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentCheckHeader">
+        <source>Aspire Environment Check</source>
+        <target state="translated">Verificação de Ambiente do Aspire</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonOptionDescription">
+        <source>Output results as JSON for tooling integration</source>
+        <target state="translated">Resultados de saída como JSON para integração de ferramentas</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SdkCategoryHeader">
+        <source>.NET SDK</source>
+        <target state="translated">SDK do .NET</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SummaryFormat">
+        <source>Summary: {0} passed, {1} warnings, {2} failed</source>
+        <target state="translated">Resumo: {0} aprovado, {1} avisos, {2} falha</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

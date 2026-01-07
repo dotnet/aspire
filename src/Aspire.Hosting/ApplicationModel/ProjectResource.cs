@@ -8,6 +8,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
@@ -19,6 +20,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a specified .NET project.
 /// </summary>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
 public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery, IResourceWithWaitSupport, IResourceWithProbes,
     IComputeResource, IContainerFilesDestinationResource
 {
@@ -282,5 +284,16 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
             logger.LogDebug(ex, "Error getting ContainerWorkingDirectory. Using default /app");
             return "/app";
         }
+    }
+
+    private string DebuggerToString()
+    {
+        var path = "<unknown>";
+        if (this.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
+        {
+            path = metadata.ProjectPath;
+        }
+
+        return $@"Type = {GetType().Name}, Name = ""{Name}"", Path = ""{path}""";
     }
 }

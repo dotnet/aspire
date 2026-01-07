@@ -47,9 +47,13 @@ namespace Aspire.Hosting.Azure
 
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
         public BicepOutputReference VaultUri { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
 
         public System.Threading.Tasks.ValueTask<string?> GetConnectionStringAsync(System.Threading.CancellationToken cancellationToken = default) { throw null; }
 
@@ -63,6 +67,8 @@ namespace Aspire.Hosting.Azure
         string ApplicationModel.IManifestExpressionProvider.ValueExpression { get { throw null; } }
 
         IAzureKeyVaultResource IAzureKeyVaultSecretReference.Resource { get { throw null; } }
+
+        ApplicationModel.IResource? IAzureKeyVaultSecretReference.SecretOwner { get { throw null; } set { } }
 
         public AzureKeyVaultResource Parent { get { throw null; } }
 

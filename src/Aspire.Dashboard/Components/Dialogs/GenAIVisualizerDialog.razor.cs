@@ -14,6 +14,7 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.OpenApi;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
@@ -322,6 +323,12 @@ public partial class GenAIVisualizerDialog : ComponentBase, IComponentWithTeleme
                 return "download";
             }
         }
+    }
+
+    private static string FormatSchemaType(IOpenApiSchema? schema)
+    {
+        var typeNames = GenAISchemaHelpers.ConvertTypeToNames(schema);
+        return string.Join(", ", typeNames);
     }
 
     public void Dispose()

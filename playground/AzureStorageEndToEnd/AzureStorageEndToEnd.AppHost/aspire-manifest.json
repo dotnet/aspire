@@ -49,8 +49,13 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "BLOBS_URI": "{storage.outputs.blobEndpoint}",
         "ConnectionStrings__foocontainer": "{foocontainer.connectionString}",
-        "ConnectionStrings__myqueue": "{myqueue.connectionString}"
+        "FOOCONTAINER_URI": "{storage2.outputs.blobEndpoint}",
+        "FOOCONTAINER_BLOBCONTAINERNAME": "foo-container",
+        "ConnectionStrings__myqueue": "{myqueue.connectionString}",
+        "MYQUEUE_URI": "{storage.outputs.queueEndpoint}",
+        "MYQUEUE_QUEUENAME": "my-queue"
       },
       "bindings": {
         "http": {

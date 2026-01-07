@@ -175,6 +175,15 @@ public static class OtlpHelpers
         return DateTime.UnixEpoch.AddTicks(ticks);
     }
 
+    /// <summary>
+    /// Converts a DateTime to Unix nanoseconds.
+    /// </summary>
+    public static ulong DateTimeToUnixNanoseconds(DateTime dateTime)
+    {
+        var timeSinceEpoch = dateTime.ToUniversalTime() - DateTime.UnixEpoch;
+        return (ulong)timeSinceEpoch.Ticks * TimeSpan.NanosecondsPerTick;
+    }
+
     private static long NanosecondsToTicks(ulong nanoseconds)
     {
         return (long)(nanoseconds / TimeSpan.NanosecondsPerTick);

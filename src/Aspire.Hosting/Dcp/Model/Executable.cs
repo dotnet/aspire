@@ -46,6 +46,12 @@ internal sealed class ExecutableSpec
     public string? ExecutionType { get; set; }
 
     /// <summary>
+    /// Fallback execution types in case the primary execution type is not supported or startup fails.
+    /// </summary>
+    [JsonPropertyName("fallbackExecutionTypes")]
+    public List<string>? FallbackExecutionTypes { get; set; }
+
+    /// <summary>
     /// Health probes to be run for the Executable.
     /// </summary>
     [JsonPropertyName("healthProbes")]

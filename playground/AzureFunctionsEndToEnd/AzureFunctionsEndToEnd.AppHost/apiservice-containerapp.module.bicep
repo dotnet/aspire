@@ -13,7 +13,11 @@ param apiservice_containerport string
 
 param eventhubs_outputs_eventhubsendpoint string
 
+param eventhubs_outputs_eventhubshostname string
+
 param messaging_outputs_servicebusendpoint string
+
+param messaging_outputs_servicebushostname string
 
 param cosmosdb_outputs_connectionstring string
 
@@ -74,7 +78,27 @@ resource apiservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: 'Endpoint=${eventhubs_outputs_eventhubsendpoint};EntityPath=myhub'
             }
             {
+              name: 'MYHUB_HOST'
+              value: eventhubs_outputs_eventhubshostname
+            }
+            {
+              name: 'MYHUB_URI'
+              value: eventhubs_outputs_eventhubsendpoint
+            }
+            {
+              name: 'MYHUB_EVENTHUBNAME'
+              value: 'myhub'
+            }
+            {
               name: 'ConnectionStrings__messaging'
+              value: messaging_outputs_servicebusendpoint
+            }
+            {
+              name: 'MESSAGING_HOST'
+              value: messaging_outputs_servicebushostname
+            }
+            {
+              name: 'MESSAGING_URI'
               value: messaging_outputs_servicebusendpoint
             }
             {
@@ -82,11 +106,23 @@ resource apiservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: cosmosdb_outputs_connectionstring
             }
             {
+              name: 'COSMOSDB_URI'
+              value: cosmosdb_outputs_connectionstring
+            }
+            {
               name: 'ConnectionStrings__queue'
               value: storage_outputs_queueendpoint
             }
             {
+              name: 'QUEUE_URI'
+              value: storage_outputs_queueendpoint
+            }
+            {
               name: 'ConnectionStrings__blob'
+              value: storage_outputs_blobendpoint
+            }
+            {
+              name: 'BLOB_URI'
               value: storage_outputs_blobendpoint
             }
             {
