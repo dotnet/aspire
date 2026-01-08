@@ -73,8 +73,12 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 _logger.LogDebug("Playwright MCP server is already configured");
             }
 
-            // Try to add agent instructions applicator (only once across all scanners)
-            CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+            // Try to add skill file applicator for OpenCode
+            CommonAgentApplicators.TryAddSkillFileApplicator(
+                context,
+                context.RepositoryRoot,
+                Path.Combine(".opencode", "skill", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
+                "Create Aspire development skill file (.opencode/skill/aspire-development/SKILL.md)");
         }
         else
         {
@@ -94,8 +98,12 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                     context,
                     ct => ApplyPlaywrightMcpConfigurationAsync(configDirectory, ct));
                 
-                // Try to add agent instructions applicator (only once across all scanners)
-                CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+                // Try to add skill file applicator for OpenCode
+                CommonAgentApplicators.TryAddSkillFileApplicator(
+                    context,
+                    context.RepositoryRoot,
+                    Path.Combine(".opencode", "skill", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
+                    "Create Aspire development skill file (.opencode/skill/aspire-development/SKILL.md)");
             }
             else
             {

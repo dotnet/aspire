@@ -79,8 +79,12 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                 _logger.LogDebug("Playwright MCP server is already configured");
             }
 
-            // Try to add agent instructions applicator (only once across all scanners)
-            CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+            // Try to add skill file applicator for Claude Code
+            CommonAgentApplicators.TryAddSkillFileApplicator(
+                context,
+                context.RepositoryRoot,
+                Path.Combine(".claude", "skills", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
+                "Create Aspire development skill file (.claude/skills/aspire-development/SKILL.md)");
         }
         else
         {
@@ -116,8 +120,12 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                     _logger.LogDebug("Playwright MCP server is already configured");
                 }
 
-                // Try to add agent instructions applicator (only once across all scanners)
-                CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+                // Try to add skill file applicator for Claude Code
+                CommonAgentApplicators.TryAddSkillFileApplicator(
+                    context,
+                    context.RepositoryRoot,
+                    Path.Combine(".claude", "skills", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
+                    "Create Aspire development skill file (.claude/skills/aspire-development/SKILL.md)");
             }
             else
             {
