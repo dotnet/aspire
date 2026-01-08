@@ -1123,7 +1123,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Import.
+        ///   Looks up a localized string similar to Import logs and telemetry.
         /// </summary>
         public static string SettingsImportButtonText {
             get {

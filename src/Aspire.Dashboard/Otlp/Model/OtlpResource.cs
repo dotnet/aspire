@@ -27,6 +27,21 @@ public class OtlpResource
     // Traces uses uninstrumented peers, structured logs and metrics don't.
     public bool UninstrumentedPeer { get; private set; }
 
+    /// <summary>
+    /// Indicates whether this resource has structured logs.
+    /// </summary>
+    public bool HasLogs { get; internal set; }
+
+    /// <summary>
+    /// Indicates whether this resource has traces.
+    /// </summary>
+    public bool HasTraces { get; internal set; }
+
+    /// <summary>
+    /// Indicates whether this resource has metrics.
+    /// </summary>
+    public bool HasMetrics { get; internal set; }
+
     public ResourceKey ResourceKey => new ResourceKey(ResourceName, InstanceId);
 
     private readonly ReaderWriterLockSlim _metricsLock = new();

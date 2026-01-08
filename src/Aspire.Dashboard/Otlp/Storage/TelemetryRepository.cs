@@ -323,6 +323,7 @@ public sealed class TelemetryRepository : IDisposable
             }
 
             AddLogsCore(context, resourceView, rl.ScopeLogs);
+            SetResourceHasLogs(resourceView.Resource, true);
         }
 
         RaiseSubscriptionChanged(_logSubscriptions);
@@ -623,6 +624,33 @@ public sealed class TelemetryRepository : IDisposable
         return false;
     }
 
+    private void SetResourceHasLogs(OtlpResource resource, bool value)
+    {
+        if (resource.HasLogs != value)
+        {
+            resource.HasLogs = value;
+            RaiseSubscriptionChanged(_resourceSubscriptions);
+        }
+    }
+
+    private void SetResourceHasTraces(OtlpResource resource, bool value)
+    {
+        if (resource.HasTraces != value)
+        {
+            resource.HasTraces = value;
+            RaiseSubscriptionChanged(_resourceSubscriptions);
+        }
+    }
+
+    private void SetResourceHasMetrics(OtlpResource resource, bool value)
+    {
+        if (resource.HasMetrics != value)
+        {
+            resource.HasMetrics = value;
+            RaiseSubscriptionChanged(_resourceSubscriptions);
+        }
+    }
+
     /// <summary>
     /// Clears selected telemetry signals for specified resources.
     /// </summary>
@@ -640,9 +668,9 @@ public sealed class TelemetryRepository : IDisposable
                 continue;
             }
 
-            var clearStructuredLogs = dataTypes.Contains(AspireDataType.StructuredLogs);
-            var clearTraces = dataTypes.Contains(AspireDataType.Traces);
-            var clearMetrics = dataTypes.Contains(AspireDataType.Metrics);
+            var clearStructuredLogs = IsDataTypeSelected(dataTypes, AspireDataType.StructuredLogs);
+            var clearTraces = IsDataTypeSelected(dataTypes, AspireDataType.Traces);
+            var clearMetrics = IsDataTypeSelected(dataTypes, AspireDataType.Metrics);
 
             if (clearStructuredLogs)
             {
@@ -659,11 +687,17 @@ public sealed class TelemetryRepository : IDisposable
                 ClearMetrics(otlpResource.ResourceKey);
             }
 
-            // If all telemetry types are cleared, remove the resource itself
-            if (clearStructuredLogs && clearTraces && clearMetrics)
+            // If Resource flag is set, remove the resource itself
+            if (dataTypes.Contains(AspireDataType.Resource))
             {
-                _resources.TryRemove(otlpResource.ResourceKey, out _);
+                ClearResource(otlpResource.ResourceKey);
             }
+        }
+
+        static bool IsDataTypeSelected(HashSet<AspireDataType> dataTypes, AspireDataType dataType)
+        {
+            // Always remove everything if the resource is being removed.
+            return dataTypes.Contains(dataType) || dataTypes.Contains(AspireDataType.Resource);
         }
     }
 
@@ -693,6 +727,12 @@ public sealed class TelemetryRepository : IDisposable
                         _traces.RemoveAt(i);
                         continue;
                     }
+                }
+
+                // Update HasTraces flag for cleared resources
+                foreach (var resource in resources)
+                {
+                    SetResourceHasTraces(resource, false);
                 }
             }
         }
@@ -731,6 +771,12 @@ public sealed class TelemetryRepository : IDisposable
                         continue;
                     }
                 }
+
+                // Update HasLogs flag for cleared resources
+                foreach (var resource in resources)
+                {
+                    SetResourceHasLogs(resource, false);
+                }
             }
         }
         finally
@@ -739,6 +785,14 @@ public sealed class TelemetryRepository : IDisposable
         }
 
         RaiseSubscriptionChanged(_logSubscriptions);
+    }
+
+    private void ClearResource(ResourceKey resourceKey)
+    {
+        if (_resources.TryRemove(resourceKey, out _))
+        {
+            RaiseSubscriptionChanged(_resourceSubscriptions);
+        }
     }
 
     public void ClearMetrics(ResourceKey? resourceKey = null)
@@ -756,6 +810,7 @@ public sealed class TelemetryRepository : IDisposable
         foreach (var resource in resources)
         {
             resource.ClearMetrics();
+            SetResourceHasMetrics(resource, false);
         }
 
         RaiseSubscriptionChanged(_metricsSubscriptions);
@@ -940,6 +995,7 @@ public sealed class TelemetryRepository : IDisposable
             }
 
             resourceView.Resource.AddMetrics(context, rm.ScopeMetrics);
+            SetResourceHasMetrics(resourceView.Resource, true);
         }
 
         RaiseSubscriptionChanged(_metricsSubscriptions);
@@ -968,6 +1024,7 @@ public sealed class TelemetryRepository : IDisposable
             }
 
             AddTracesCore(context, resourceView, rs.ScopeSpans);
+            SetResourceHasTraces(resourceView.Resource, true);
         }
 
         RaiseSubscriptionChanged(_tracesSubscriptions);

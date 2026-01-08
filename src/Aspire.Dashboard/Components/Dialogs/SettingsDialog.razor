@@ -41,22 +41,6 @@
                               aria-label="@Loc[nameof(Dialogs.ManageDataManageButtonText)]">
                     @Loc[nameof(Dialogs.ManageDataManageButtonText)]
                 </FluentButton>
-                <FluentInputFile AnchorId="import-button"
-                                 DragDropZoneVisible="false"
-                                 Accept=".zip,.json"
-                                 Multiple="false"
-                                 MaximumFileSize="@(100 * 1024 * 1024)"
-                                 Mode="InputFileMode.SaveToTemporaryFolder"
-                                 OnCompleted="OnInputFileCompleted"
-                                 OnProgressChange="OnInputFileProgressChange"
-                                 />
-                <FluentButton Id="import-button"
-                              IconStart="@(new Icons.Regular.Size16.ArrowUpload())"
-                              Loading="@_isImporting"
-                              Title="@Loc[nameof(Dialogs.SettingsImportButtonText)]"
-                              aria-label="@Loc[nameof(Dialogs.SettingsImportButtonText)]">
-                    @Loc[nameof(Dialogs.SettingsImportButtonText)]
-                </FluentButton>
             </div>
         </div>
 

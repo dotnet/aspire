@@ -41,6 +41,9 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     public required TelemetryExportService TelemetryExportService { get; init; }
 
     [Inject]
+    public required TelemetryImportService TelemetryImportService { get; init; }
+
+    [Inject]
     public required IJSRuntime JS { get; init; }
 
     [Inject]
@@ -60,6 +63,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     private Task? _resourceSubscriptionTask;
     private FluentDataGrid<ManageDataGridItem>? _dataGrid;
     private bool _isExporting;
+    private bool _isImporting;
     private Subscription? _logsSubscription;
     private Subscription? _tracesSubscription;
     private Subscription? _metricsSubscription;
@@ -321,6 +325,8 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);
 
+    private string GetOtlpResourceName(OtlpResource resource) => OtlpResource.GetResourceName(resource, TelemetryRepository.GetResources());
+
     private string GetDataTypeDisplayName(AspireDataType dataType) => dataType switch
     {
         AspireDataType.ConsoleLogs => Loc[nameof(Resources.Dialogs.ManageDataConsoleLogs)],
@@ -498,6 +504,36 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             };
             await ConsoleLogsManager.UpdateFiltersAsync(filters);
         }
+
+        await OnTelemetryChangedAsync();
+    }
+
+    private void OnInputFileProgressChange(FluentInputFileEventArgs args)
+    {
+        _isImporting = true;
+    }
+
+    private async Task OnInputFileCompleted(IEnumerable<FluentInputFileEventArgs> args)
+    {
+        try
+        {
+            var files = args.ToList();
+
+            foreach (var file in files)
+            {
+                if (file.LocalFile is not null)
+                {
+                    using var fileStream = file.LocalFile.OpenRead();
+                    await TelemetryImportService.ImportAsync(file.Name, fileStream, CancellationToken.None);
+                    await OnTelemetryChangedAsync();
+                }
+            }
+        }
+        finally
+        {
+            _isImporting = false;
+            StateHasChanged();
+        }
     }
 
     private async Task ExportSelectedAsync()
@@ -538,6 +574,20 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
                 result[resourceName] = dataTypes;
             }
             dataTypes.Add(dataType);
+        }
+
+        // If all available data types for a resource are selected, add the Resource flag
+        // to indicate the resource itself should be removed
+        foreach (var (resourceName, dataTypes) in result)
+        {
+            if (_resourceDataRows.TryGetValue(resourceName, out var resourceRow))
+            {
+                var allAvailableSelected = resourceRow.TelemetryData.All(d => dataTypes.Contains(d.DataType));
+                if (allAvailableSelected)
+                {
+                    dataTypes.Add(AspireDataType.Resource);
+                }
+            }
         }
 
         return result;

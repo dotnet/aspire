@@ -275,7 +275,7 @@
     <value>Export all</value>
   </data>
   <data name="SettingsImportButtonText" xml:space="preserve">
-    <value>Import</value>
+    <value>Import logs and telemetry</value>
   </data>
   <data name="TextVisualizerSecretWarningTitle" xml:space="preserve">
     <value>Sensitive value hidden</value>

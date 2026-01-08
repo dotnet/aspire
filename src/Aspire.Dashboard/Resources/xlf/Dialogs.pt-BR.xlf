@@ -638,8 +638,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
-        <source>Import</source>
-        <target state="new">Import</target>
+        <source>Import logs and telemetry</source>
+        <target state="new">Import logs and telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
