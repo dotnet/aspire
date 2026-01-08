@@ -24,36 +24,27 @@ import {
 // Handle Type Aliases
 // ============================================================================
 
-/** Handle to EndpointReference */
-export type EndpointReferenceHandle = Handle<'Aspire.Hosting.ApplicationModel/EndpointReference'>;
+/** Handle to TestCallbackContext */
+export type TestCallbackContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext'>;
 
-/** Handle to EnvironmentCallbackContext */
-export type EnvironmentCallbackContextHandle = Handle<'Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext'>;
+/** Handle to TestRedisResource */
+export type TestRedisResourceHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource'>;
 
-/** Handle to IResourceBuilder<IResource> */
-export type IResourceHandle = Handle<'Aspire.Hosting.ApplicationModel/IResource'>;
-
-/** Handle to IResourceBuilder<TestCallbackContext> */
-export type TestCallbackContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext'>;
-
-/** Handle to IResourceBuilder<TestRedisResource> */
-export type TestRedisResourceHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestRedisResource'>;
+/** Handle to IResource */
+export type IResourceHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource'>;
 
 /** Handle to DistributedApplication */
-export type DistributedApplicationHandle = Handle<'Aspire.Hosting/DistributedApplication'>;
-
-/** Handle to DistributedApplicationExecutionContext */
-export type DistributedApplicationExecutionContextHandle = Handle<'Aspire.Hosting/DistributedApplicationExecutionContext'>;
+export type DistributedApplicationHandle = Handle<'Aspire.Hosting/Aspire.Hosting.DistributedApplication'>;
 
 /** Handle to IDistributedApplicationBuilder */
-export type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/IDistributedApplicationBuilder'>;
+export type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder'>;
 
 // ============================================================================
 // TestCallbackContext
 // ============================================================================
 
 /**
- * Context type for Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.
+ * Context type for Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext.
  * Provides fluent property access via get/set methods.
  */
 export class TestCallbackContext {
@@ -214,79 +205,79 @@ export class DistributedApplicationBuilder extends DistributedApplicationBuilder
     /**
      * Adds a test Redis resource
      */
-    addTestRedis(name: string, port?: number): TestRedisResourceBuilderPromise {
+    addTestRedis(name: string, port?: number): TestRedisResourcePromise {
         const promise = this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis',
             { builder: this._handle, name, port }
-        ).then(handle => new TestRedisResourceBuilder(handle, this._client));
-        return new TestRedisResourceBuilderPromise(promise);
+        ).then(handle => new TestRedisResource(handle, this._client));
+        return new TestRedisResourcePromise(promise);
     }
 }
 
 // ============================================================================
-// TestRedisResourceBuilder
+// TestRedisResource
 // ============================================================================
 
-export class TestRedisResourceBuilder extends ResourceBuilderBase<TestRedisResourceHandle> {
+export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHandle> {
     constructor(handle: TestRedisResourceHandle, client: AspireClientRpc) {
         super(handle, client);
     }
 
     /** Configures the Redis resource with persistence */
     /** @internal */
-    async _withPersistenceInternal(mode?: unknown): Promise<TestRedisResourceBuilder> {
+    async _withPersistenceInternal(mode?: unknown): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withPersistence',
             { builder: this._handle, mode }
         );
-        return new TestRedisResourceBuilder(result, this._client);
+        return new TestRedisResource(result, this._client);
     }
 
-    withPersistence(mode?: unknown): TestRedisResourceBuilderPromise {
-        return new TestRedisResourceBuilderPromise(this._withPersistenceInternal(mode));
+    withPersistence(mode?: unknown): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withPersistenceInternal(mode));
     }
 
     /** Adds an optional string parameter */
     /** @internal */
-    async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<TestRedisResourceBuilder> {
+    async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString',
             { builder: this._handle, value, enabled }
         );
-        return new TestRedisResourceBuilder(result, this._client);
+        return new TestRedisResource(result, this._client);
     }
 
-    withOptionalString(value?: string, enabled?: boolean): TestRedisResourceBuilderPromise {
-        return new TestRedisResourceBuilderPromise(this._withOptionalStringInternal(value, enabled));
+    withOptionalString(value?: string, enabled?: boolean): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withOptionalStringInternal(value, enabled));
     }
 
 }
 
 /**
- * Thenable wrapper for TestRedisResourceBuilder that enables fluent chaining.
+ * Thenable wrapper for TestRedisResource that enables fluent chaining.
  * @example
  * await builder.addSomething().withX().withY();
  */
-export class TestRedisResourceBuilderPromise implements PromiseLike<TestRedisResourceBuilder> {
-    constructor(private _promise: Promise<TestRedisResourceBuilder>) {}
+export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> {
+    constructor(private _promise: Promise<TestRedisResource>) {}
 
-    then<TResult1 = TestRedisResourceBuilder, TResult2 = never>(
-        onfulfilled?: ((value: TestRedisResourceBuilder) => TResult1 | PromiseLike<TResult1>) | null,
+    then<TResult1 = TestRedisResource, TResult2 = never>(
+        onfulfilled?: ((value: TestRedisResource) => TResult1 | PromiseLike<TResult1>) | null,
         onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
     ): PromiseLike<TResult1 | TResult2> {
         return this._promise.then(onfulfilled, onrejected);
     }
 
     /** Configures the Redis resource with persistence */
-    withPersistence(mode?: unknown): TestRedisResourceBuilderPromise {
-        return new TestRedisResourceBuilderPromise(
+    withPersistence(mode?: unknown): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(
             this._promise.then(b => b._withPersistenceInternal(mode))
         );
     }
 
     /** Adds an optional string parameter */
-    withOptionalString(value?: string, enabled?: boolean): TestRedisResourceBuilderPromise {
-        return new TestRedisResourceBuilderPromise(
+    withOptionalString(value?: string, enabled?: boolean): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(
             this._promise.then(b => b._withOptionalStringInternal(value, enabled))
         );
     }

@@ -16,6 +16,9 @@ internal interface IAtsTypeInfo
     /// <summary>Gets the simple name of the type (e.g., "String").</summary>
     string Name { get; }
 
+    /// <summary>Gets the name of the assembly that contains this type.</summary>
+    string? AssemblyName { get; }
+
     /// <summary>Gets whether this type is an interface.</summary>
     bool IsInterface { get; }
 

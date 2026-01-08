@@ -123,10 +123,10 @@ public class AtsTypeScriptCodeGeneratorTests
 
         // Assert parameters are captured
         // The builder parameter is skipped because TargetTypeId is inferred from the first parameter
-        // (IDistributedApplicationBuilder -> "Aspire.Hosting/IDistributedApplicationBuilder")
+        // (IDistributedApplicationBuilder -> "Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder")
         var addTestRedis = capabilities.First(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
         Assert.Equal(2, addTestRedis.Parameters.Count);
-        Assert.Equal("Aspire.Hosting/IDistributedApplicationBuilder", addTestRedis.TargetTypeId);
+        Assert.Equal("Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder", addTestRedis.TargetTypeId);
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "name" && p.AtsTypeId == "string");
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "port" && p.IsOptional);
     }
@@ -158,13 +158,14 @@ public class AtsTypeScriptCodeGeneratorTests
 
         // Test getter capability for Name property (camelCase, no "get" prefix)
         // Note: Capability IDs use namespace-based package (Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes)
+        // But TargetTypeId uses the new format {AssemblyName}/{FullTypeName}
         var nameGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.name");
         Assert.NotNull(nameGetterCapability);
         Assert.True(nameGetterCapability.IsContextProperty);
         Assert.True(nameGetterCapability.IsContextPropertyGetter);
         Assert.Equal("TestCallbackContext.name", nameGetterCapability.MethodName);
         Assert.Equal("string", nameGetterCapability.ReturnTypeId);
-        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext", nameGetterCapability.TargetTypeId);
+        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", nameGetterCapability.TargetTypeId);
         Assert.Single(nameGetterCapability.Parameters);
         Assert.Equal("context", nameGetterCapability.Parameters[0].Name);
 
@@ -174,7 +175,7 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.True(nameSetterCapability.IsContextProperty);
         Assert.True(nameSetterCapability.IsContextPropertySetter);
         Assert.Equal("TestCallbackContext.setName", nameSetterCapability.MethodName);
-        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext", nameSetterCapability.ReturnTypeId); // Returns context for fluent chaining
+        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", nameSetterCapability.ReturnTypeId); // Returns context for fluent chaining
         Assert.Equal(2, nameSetterCapability.Parameters.Count); // context + value
 
         // Test getter capability for Value property (camelCase, no "get" prefix)
@@ -244,7 +245,7 @@ public class AtsTypeScriptCodeGeneratorTests
     public void Scanner_WithOptionalString_TargetsIResource()
     {
         // This test verifies that WithOptionalString<T> where T : IResource
-        // correctly targets aspire/IResource
+        // correctly targets IResource using the new {AssemblyName}/{FullTypeName} format
         using var context = new AssemblyLoaderContext();
         var capabilities = ScanCapabilitiesFromTestAssembly(context);
 
@@ -254,8 +255,8 @@ public class AtsTypeScriptCodeGeneratorTests
 
         Assert.NotNull(withOptionalString);
 
-        // Target should be IResource from the constraint (derived format)
-        Assert.Equal("Aspire.Hosting.ApplicationModel/IResource", withOptionalString.TargetTypeId);
+        // Target should be IResource from the constraint (new format: {AssemblyName}/{FullTypeName})
+        Assert.Equal("Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource", withOptionalString.TargetTypeId);
     }
 
     [Fact]
@@ -272,9 +273,9 @@ public class AtsTypeScriptCodeGeneratorTests
 
         Assert.NotNull(withOptionalString);
 
-        // Expanded targets should include TestRedisResource (derived format)
+        // Expanded targets should include TestRedisResource (new format: {AssemblyName}/{FullTypeName})
         Assert.NotNull(withOptionalString.ExpandedTargetTypeIds);
-        Assert.Contains("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestRedisResource", withOptionalString.ExpandedTargetTypeIds);
+        Assert.Contains("Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", withOptionalString.ExpandedTargetTypeIds);
     }
 
     [Fact]

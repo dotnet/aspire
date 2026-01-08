@@ -84,43 +84,25 @@ public sealed partial class AtsTypeMapping
     }
 
     /// <summary>
-    /// Derives an ATS type ID from an assembly name and type name.
+    /// Derives an ATS type ID from an assembly name and full type name.
     /// </summary>
     /// <param name="assemblyName">The assembly name.</param>
-    /// <param name="typeName">The type name (simple name, not full name).</param>
-    /// <returns>The derived type ID in format {AssemblyName}/{TypeName}.</returns>
-    public static string DeriveTypeId(string assemblyName, string typeName)
+    /// <param name="fullTypeName">The full type name including namespace (e.g., "Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext").</param>
+    /// <returns>The derived type ID in format {AssemblyName}/{FullTypeName}.</returns>
+    public static string DeriveTypeId(string assemblyName, string fullTypeName)
     {
-        return $"{assemblyName}/{typeName}";
+        return $"{assemblyName}/{fullTypeName}";
     }
 
     /// <summary>
     /// Derives an ATS type ID from a CLR type.
     /// </summary>
     /// <param name="type">The CLR type.</param>
-    /// <returns>The derived type ID in format {AssemblyName}/{TypeName}.</returns>
+    /// <returns>The derived type ID in format {AssemblyName}/{FullTypeName}.</returns>
     public static string DeriveTypeId(Type type)
     {
         var assemblyName = type.Assembly.GetName().Name ?? "Unknown";
-        return DeriveTypeId(assemblyName, type.Name);
-    }
-
-    /// <summary>
-    /// Derives an ATS type ID from a type's full name by extracting assembly and type name.
-    /// </summary>
-    /// <param name="typeFullName">The type's full name (e.g., "Aspire.Hosting.ContainerResource").</param>
-    /// <returns>The derived type ID.</returns>
-    public static string DeriveTypeIdFromFullName(string typeFullName)
-    {
-        // Extract the namespace as assembly name approximation and type name
-        var lastDot = typeFullName.LastIndexOf('.');
-        if (lastDot > 0)
-        {
-            var namespacePart = typeFullName[..lastDot];
-            var typeName = typeFullName[(lastDot + 1)..];
-            return $"{namespacePart}/{typeName}";
-        }
-        return typeFullName;
+        return DeriveTypeId(assemblyName, type.FullName ?? type.Name);
     }
 
     /// <summary>
@@ -164,8 +146,8 @@ public sealed partial class AtsTypeMapping
                 continue;
             }
 
-            // Derive type ID from full name (uses namespace as assembly approximation)
-            var typeId = DeriveTypeIdFromFullName(targetTypeFullName);
+            // Derive type ID from assembly name and full type name
+            var typeId = DeriveTypeId(assemblyName, targetTypeFullName);
             fullNameToTypeId[targetTypeFullName] = typeId;
             typeIdToFullName[typeId] = targetTypeFullName;
 
@@ -187,15 +169,16 @@ public sealed partial class AtsTypeMapping
                     continue;
                 }
 
-                // Type ID is derived from assembly name and type name
-                var typeId = DeriveTypeId(assemblyName, type.Name);
+                // Type ID is derived from assembly name and full type name
                 var fullName = type.FullName;
-
-                if (!string.IsNullOrEmpty(fullName))
+                if (string.IsNullOrEmpty(fullName))
                 {
-                    fullNameToTypeId[fullName] = typeId;
-                    typeIdToFullName[typeId] = fullName;
+                    continue;
                 }
+
+                var typeId = DeriveTypeId(assemblyName, fullName);
+                fullNameToTypeId[fullName] = typeId;
+                typeIdToFullName[typeId] = fullName;
 
                 // Check for ExposeProperties
                 if (attr.NamedArguments.TryGetValue("ExposeProperties", out var exposeObj) &&
@@ -316,7 +299,7 @@ public sealed partial class AtsTypeMapping
     /// <returns>The ATS type ID (explicit or derived).</returns>
     public string GetTypeIdOrDerive(Type type)
     {
-        return GetTypeId(type) ?? DeriveTypeId(type.Assembly.GetName().Name ?? "Unknown", type.Name);
+        return GetTypeId(type) ?? DeriveTypeId(type.Assembly.GetName().Name ?? "Unknown", type.FullName ?? type.Name);
     }
 
     /// <summary>
@@ -327,7 +310,7 @@ public sealed partial class AtsTypeMapping
     /// <returns>The ATS type ID (explicit or derived).</returns>
     internal string GetTypeIdOrDerive(IAtsTypeInfo type, string assemblyName)
     {
-        return GetTypeId(type) ?? DeriveTypeId(assemblyName, type.Name);
+        return GetTypeId(type) ?? DeriveTypeId(assemblyName, type.FullName);
     }
 
     /// <summary>

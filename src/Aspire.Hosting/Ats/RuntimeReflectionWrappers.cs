@@ -22,6 +22,7 @@ internal sealed class RuntimeTypeInfo : IAtsTypeInfo
 
     public string FullName => _type.FullName ?? _type.Name;
     public string Name => _type.Name;
+    public string? AssemblyName => _type.Assembly.GetName().Name;
     public bool IsInterface => _type.IsInterface;
     public bool IsGenericType => _type.IsGenericType;
     public bool IsEnum => _type.IsEnum;

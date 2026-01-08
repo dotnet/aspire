@@ -254,13 +254,13 @@ internal static class AtsCapabilityScanner
     {
         var capabilities = new List<AtsCapabilityInfo>();
 
-        // Derive the type ID from the full type name (uses namespace for consistency)
+        // Derive the type ID from assembly name and full type name
         var typeName = contextType.Name;
-        var typeId = AtsTypeMapping.DeriveTypeIdFromFullName(contextType.FullName);
+        var typeId = AtsTypeMapping.DeriveTypeId(contextType.AssemblyName ?? assemblyName, contextType.FullName);
 
-        // Extract the package (namespace) from the type ID for capability IDs
-        var slashIndex = typeId.IndexOf('/');
-        var package = slashIndex >= 0 ? typeId[..slashIndex] : assemblyName;
+        // Extract the package (namespace) from the full type name for capability IDs
+        var lastDot = contextType.FullName.LastIndexOf('.');
+        var package = lastDot >= 0 ? contextType.FullName[..lastDot] : assemblyName;
 
         // Check for ExposeProperties and ExposeMethods flags
         var exposeAllProperties = HasExposePropertiesAttribute(contextType);
@@ -608,8 +608,9 @@ internal static class AtsCapabilityScanner
         foreach (var param in invokeMethod.GetParameters())
         {
             // For callback parameters, if type can't be mapped, derive a handle type ID
-            var paramAtsTypeId = MapToAtsTypeId(param.ParameterType, typeMapping, typeResolver)
-                ?? AtsTypeMapping.DeriveTypeIdFromFullName(param.ParameterType.FullName);
+            var paramType = param.ParameterType;
+            var paramAtsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver)
+                ?? AtsTypeMapping.DeriveTypeId(paramType.AssemblyName ?? "Unknown", paramType.FullName);
             parameters.Add(new AtsCallbackParameterInfo
             {
                 Name = param.Name,
@@ -674,7 +675,7 @@ internal static class AtsCapabilityScanner
             {
                 var paramType = genericArgs[i];
                 var paramAtsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver)
-                    ?? AtsTypeMapping.DeriveTypeIdFromFullName(paramType.FullName);
+                    ?? AtsTypeMapping.DeriveTypeId(paramType.AssemblyName ?? "Unknown", paramType.FullName);
                 parameters.Add(new AtsCallbackParameterInfo
                 {
                     Name = $"arg{i}",
@@ -693,7 +694,7 @@ internal static class AtsCapabilityScanner
             {
                 var paramType = genericArgs[i];
                 var paramAtsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver)
-                    ?? AtsTypeMapping.DeriveTypeIdFromFullName(paramType.FullName);
+                    ?? AtsTypeMapping.DeriveTypeId(paramType.AssemblyName ?? "Unknown", paramType.FullName);
                 parameters.Add(new AtsCallbackParameterInfo
                 {
                     Name = $"arg{i}",
@@ -877,7 +878,7 @@ internal static class AtsCapabilityScanner
                     return typeMapping.GetTypeId(constraints[0]) ?? InferResourceTypeId(constraints[0]);
                 }
             }
-            return typeMapping.GetTypeId(resourceType.FullName) ?? InferResourceTypeId(resourceType.FullName);
+            return typeMapping.GetTypeId(resourceType) ?? InferResourceTypeId(resourceType);
         }
 
         // Fallback: Check by type name for IResourceBuilder<T>
@@ -902,7 +903,7 @@ internal static class AtsCapabilityScanner
                     }
                 }
 
-                return typeMapping.GetTypeId(resType.FullName) ?? InferResourceTypeId(resType.FullName);
+                return typeMapping.GetTypeId(resType) ?? InferResourceTypeId(resType);
             }
         }
 
@@ -951,6 +952,11 @@ internal static class AtsCapabilityScanner
         return "any";
     }
 
+    private static string InferResourceTypeId(IAtsTypeInfo type)
+    {
+        return AtsTypeMapping.DeriveTypeId(type.AssemblyName ?? "Unknown", type.FullName);
+    }
+
     private static string InferResourceTypeId(string? typeFullName)
     {
         if (string.IsNullOrEmpty(typeFullName))
@@ -958,8 +964,14 @@ internal static class AtsCapabilityScanner
             return "Unknown/Unknown";
         }
 
-        // Use DeriveTypeIdFromFullName for consistent type ID derivation
-        return AtsTypeMapping.DeriveTypeIdFromFullName(typeFullName);
+        // Fallback: extract namespace as assembly approximation for types not available as IAtsTypeInfo
+        var lastDot = typeFullName.LastIndexOf('.');
+        if (lastDot > 0)
+        {
+            var namespacePart = typeFullName[..lastDot];
+            return $"{namespacePart}/{typeFullName}";
+        }
+        return $"Unknown/{typeFullName}";
     }
 
     /// <summary>
@@ -1027,7 +1039,7 @@ internal static class AtsCapabilityScanner
         // GetInterfaces() returns all interfaces (including inherited for RoTypeInfoWrapper)
         foreach (var iface in type.GetInterfaces())
         {
-            var ifaceTypeId = typeMapping.GetTypeId(iface.FullName) ?? InferResourceTypeId(iface.FullName);
+            var ifaceTypeId = typeMapping.GetTypeId(iface) ?? InferResourceTypeId(iface);
             allInterfaces.Add(ifaceTypeId);
         }
 
@@ -1102,7 +1114,7 @@ internal static class AtsCapabilityScanner
         }
 
         // Get the type ID for this resource
-        var typeId = typeMapping.GetTypeId(resourceType.FullName) ?? InferResourceTypeId(resourceType.FullName);
+        var typeId = typeMapping.GetTypeId(resourceType) ?? InferResourceTypeId(resourceType);
 
         // Add to dictionary if not already present
         if (!discoveredTypes.ContainsKey(typeId))

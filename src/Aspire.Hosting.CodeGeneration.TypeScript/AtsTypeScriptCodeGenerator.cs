@@ -104,13 +104,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     // Used to resolve parameter types to wrapper classes instead of handle types
     private readonly Dictionary<string, string> _wrapperClassNames = new(StringComparer.Ordinal);
 
-    // Well-known type IDs using the derived format: {AssemblyName}/{TypeName}
-    private const string TypeId_Builder = "Aspire.Hosting/IDistributedApplicationBuilder";
-    private const string TypeId_Application = "Aspire.Hosting/DistributedApplication";
-    private const string TypeId_ExecutionContext = "Aspire.Hosting/DistributedApplicationExecutionContext";
-    private const string TypeId_EnvironmentContext = "Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext";
-    private const string TypeId_EndpointReference = "Aspire.Hosting.ApplicationModel/EndpointReference";
-    private const string TypeId_Container = "Aspire.Hosting/ContainerResource";
+    // Well-known type IDs using the derived format: {AssemblyName}/{FullTypeName}
+    private const string TypeId_Builder = "Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder";
+    private const string TypeId_Application = "Aspire.Hosting/Aspire.Hosting.DistributedApplication";
 
     /// <summary>
     /// Checks if a type ID represents an ATS handle type (not a primitive).
@@ -232,12 +228,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
         }
 
-        // Add core type IDs
+        // Add core type IDs (these are always needed even if no capabilities target them)
         typeIds.Add(TypeId_Builder);
         typeIds.Add(TypeId_Application);
-        typeIds.Add(TypeId_ExecutionContext);
-        typeIds.Add(TypeId_EnvironmentContext);
-        typeIds.Add(TypeId_EndpointReference);
 
         // Generate handle type aliases
         GenerateHandleTypeAliases(typeIds);
@@ -262,7 +255,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         _wrapperClassNames.Clear();
         foreach (var contextType in contextTypes)
         {
-            _wrapperClassNames[contextType.TypeId] = DeriveContextClassName(contextType.TypeId);
+            _wrapperClassNames[contextType.TypeId] = DeriveClassName(contextType.TypeId);
         }
         foreach (var builder in resourceBuilders)
         {
@@ -270,17 +263,10 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
         foreach (var wrapper in wrapperTypes)
         {
-            _wrapperClassNames[wrapper.TypeId] = DeriveWrapperClassName(wrapper.TypeId);
+            _wrapperClassNames[wrapper.TypeId] = DeriveClassName(wrapper.TypeId);
         }
         // Add ReferenceExpression (defined in base.ts, not generated)
-        _wrapperClassNames["Aspire.Hosting.ApplicationModel/ReferenceExpression"] = "ReferenceExpression";
-
-        // Add namespace-based type ID aliases for context types
-        // Callback parameter type IDs use namespace-based format (from DeriveTypeIdFromFullName)
-        // while type-level [AspireExport] uses assembly-based format (from DeriveTypeId)
-        // We need both to match callback parameters to their wrapper classes
-        _wrapperClassNames[TypeId_EnvironmentContext] = "EnvironmentCallbackContext";
-        _wrapperClassNames[TypeId_ExecutionContext] = "DistributedApplicationExecutionContext";
+        _wrapperClassNames["Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression"] = "ReferenceExpression";
 
         // Generate context type classes (with fluent get/set methods)
         foreach (var contextType in contextTypes)
@@ -351,22 +337,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
     private static string GetTypeDescription(string typeId)
     {
-        // Extract the type name from the type ID (after the '/')
-        var slashIndex = typeId.LastIndexOf('/');
-        var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
-
-        return typeId switch
-        {
-            _ when typeId == TypeId_Builder => "Handle to IDistributedApplicationBuilder",
-            _ when typeId == TypeId_Application => "Handle to DistributedApplication",
-            _ when typeId == TypeId_ExecutionContext => "Handle to DistributedApplicationExecutionContext",
-            _ when typeId == TypeId_EnvironmentContext => "Handle to EnvironmentCallbackContext",
-            _ when typeId == TypeId_EndpointReference => "Handle to EndpointReference",
-            _ when typeId == TypeId_Container => "Handle to IResourceBuilder<ContainerResource>",
-            _ when typeName.StartsWith("IResource", StringComparison.Ordinal) =>
-                $"Handle to IResourceBuilder<{typeName}>",
-            _ => $"Handle to IResourceBuilder<{typeName}>"
-        };
+        var typeName = ExtractSimpleTypeName(typeId);
+        return $"Handle to {typeName}";
     }
 
     private void GenerateDistributedApplicationBuilder(List<AtsCapabilityInfo> methods, List<BuilderModel> resourceBuilders, List<BuilderModel> wrapperTypes)
@@ -450,7 +422,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // - Other methods (return void or primitives)
         var propertyMethods = methods
             .Where(m => !string.IsNullOrEmpty(m.ReturnTypeId) &&
-                        AtsTypeMapping.IsWrapperType(m.ReturnTypeId) &&
+                        _wrapperClassNames.ContainsKey(m.ReturnTypeId) &&
                         m.Parameters.Count == 0)  // Property getters have no additional params
             .ToList();
 
@@ -475,7 +447,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private void GenerateBuilderPropertyGetter(AtsCapabilityInfo capability)
     {
         var returnTypeId = capability.ReturnTypeId!;
-        var wrapperClassName = DeriveWrapperClassName(returnTypeId);
+        var wrapperClassName = DeriveClassName(returnTypeId);
         var handleType = GetHandleTypeName(returnTypeId);
 
         // Derive property name from method name (getConfiguration -> configuration)
@@ -521,7 +493,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Check if return type is a wrapper type
         BuilderModel? wrapperInfo = null;
-        if (!string.IsNullOrEmpty(capability.ReturnTypeId) && AtsTypeMapping.IsWrapperType(capability.ReturnTypeId))
+        if (!string.IsNullOrEmpty(capability.ReturnTypeId) && _wrapperClassNames.ContainsKey(capability.ReturnTypeId))
         {
             wrapperInfo = wrapperTypes.FirstOrDefault(w => w.TypeId == capability.ReturnTypeId);
         }
@@ -899,40 +871,18 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             return GenerateCallbackTypeSignature(callbackParameters, callbackReturnTypeId);
         }
 
-        // Check if this type has a generated wrapper class (exact type ID match)
+        // Check for wrapper class (exact match)
         if (_wrapperClassNames.TryGetValue(atsTypeId, out var wrapperClassName))
         {
             return wrapperClassName;
         }
 
-        // Type IDs may differ in package (namespace vs assembly name) but have the same type name
-        // e.g., "Aspire.Hosting/EnvironmentCallbackContext" vs "Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext"
-        // Try to match by type name if exact type ID match fails
-        var slashIndex = atsTypeId.LastIndexOf('/');
-        if (slashIndex > 0)
-        {
-            var typeName = atsTypeId[(slashIndex + 1)..];
-            foreach (var kvp in _wrapperClassNames)
-            {
-                // Check if the wrapper class name matches the type name from the type ID
-                if (kvp.Value.Equals(typeName, StringComparison.Ordinal))
-                {
-                    return kvp.Value;
-                }
-            }
-        }
-
         return atsTypeId switch
         {
-            "string" => "string",
-            "number" => "number",
-            "boolean" => "boolean",
             "any" => "unknown",
-            _ when IsHandleType(atsTypeId) =>
-                GetHandleTypeName(atsTypeId),  // Fallback for types without wrappers
-            _ when atsTypeId.EndsWith("[]", StringComparison.Ordinal) =>
-                $"{MapAtsTypeToTypeScript(atsTypeId[..^2], false)}[]",
-            _ => "unknown"
+            _ when IsHandleType(atsTypeId) => GetHandleTypeName(atsTypeId),
+            _ when atsTypeId.EndsWith("[]", StringComparison.Ordinal) => $"{MapAtsTypeToTypeScript(atsTypeId[..^2], false)}[]",
+            _ => atsTypeId  // Pass through primitives (string, number, boolean) as-is
         };
     }
 
@@ -1161,7 +1111,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private void GenerateWrapperClass(BuilderModel wrapperType)
     {
         var handleType = GetHandleTypeName(wrapperType.TypeId);
-        var className = DeriveWrapperClassName(wrapperType.TypeId);
+        var className = DeriveClassName(wrapperType.TypeId);
 
         WriteLine("// ============================================================================");
         WriteLine($"// {className}");
@@ -1195,7 +1145,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private void GenerateContextTypeClass(BuilderModel contextType)
     {
         var handleType = GetHandleTypeName(contextType.TypeId);
-        var className = DeriveContextClassName(contextType.TypeId);
+        var className = DeriveClassName(contextType.TypeId);
         var promiseClassName = $"{className}Promise";
 
         WriteLine("// ============================================================================");
@@ -1473,25 +1423,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
-    /// Derives a context class name from a type ID.
-    /// </summary>
-    private static string DeriveContextClassName(string typeId)
-    {
-        // Extract the type name from the type ID
-        // e.g., "Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext" -> "EnvironmentCallbackContext"
-        var lastSlash = typeId.LastIndexOf('/');
-        var typeName = lastSlash >= 0 ? typeId[(lastSlash + 1)..] : typeId;
-
-        // Ensure it ends with "Context" for clarity
-        if (!typeName.EndsWith("Context", StringComparison.Ordinal))
-        {
-            typeName += "Context";
-        }
-
-        return typeName;
-    }
-
-    /// <summary>
     /// Generates a method on a wrapper class.
     /// </summary>
     private void GenerateWrapperMethod(AtsCapabilityInfo capability)
@@ -1554,23 +1485,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
     }
 
-    /// <summary>
-    /// Derives a wrapper class name from a type ID.
-    /// </summary>
-    private static string DeriveWrapperClassName(string typeId)
-    {
-        var slashIndex = typeId.LastIndexOf('/');
-        var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
-
-        return typeName switch
-        {
-            "HostEnvironment" => "Environment",
-            "ExecutionContext" => "ExecutionContext",
-            "EnvironmentContext" => "EnvironmentContext",
-            _ => typeName
-        };
-    }
-
     // ============================================================================
     // Builder Model Helpers (replaces AtsBuilderModelFactory)
     // ============================================================================
@@ -1631,7 +1545,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var builders = new List<BuilderModel>();
         foreach (var (typeId, typeCapabilities) in capabilitiesByTypeId)
         {
-            var builderClassName = DeriveBuilderClassName(typeId);
+            var builderClassName = DeriveClassName(typeId);
             var isInterface = IsInterfaceType(typeId);
 
             // Deduplicate capabilities by CapabilityId to avoid duplicate methods
@@ -1667,21 +1581,20 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
-    /// Derives the builder class name from an ATS type ID.
+    /// Derives the class name from an ATS type ID.
+    /// For interfaces like IResource, strips the leading 'I'.
     /// </summary>
-    private static string DeriveBuilderClassName(string typeId)
+    private static string DeriveClassName(string typeId)
     {
-        var slashIndex = typeId.LastIndexOf('/');
-        var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+        var typeName = ExtractSimpleTypeName(typeId);
 
-        // Handle interface types
-        if (typeName.StartsWith("IResource", StringComparison.Ordinal))
+        // Strip leading 'I' from interface types
+        if (typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]))
         {
-            typeName = typeName[1..]; // Remove leading 'I'
-            return $"{typeName}BuilderBase";
+            return typeName[1..];
         }
 
-        return $"{typeName}Builder";
+        return typeName;
     }
 
     /// <summary>
@@ -1689,23 +1602,14 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// </summary>
     private static string GetHandleTypeName(string typeId)
     {
-        var slashIndex = typeId.LastIndexOf('/');
-        var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+        var typeName = ExtractSimpleTypeName(typeId);
 
         // Sanitize generic types like "Dict<String,Object>" -> "DictStringObject"
-        // Remove angle brackets and commas to make valid TypeScript identifier
         typeName = typeName
             .Replace("<", "", StringComparison.Ordinal)
             .Replace(">", "", StringComparison.Ordinal)
             .Replace(",", "", StringComparison.Ordinal);
 
-        // For interface types (starting with I followed by uppercase), use {TypeName}Handle
-        if (typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]))
-        {
-            return $"{typeName}Handle";
-        }
-
-        // For concrete types, use {TypeName}Handle
         return $"{typeName}Handle";
     }
 
@@ -1714,8 +1618,23 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// </summary>
     private static bool IsInterfaceType(string typeId)
     {
-        var slashIndex = typeId.LastIndexOf('/');
-        var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+        var typeName = ExtractSimpleTypeName(typeId);
         return typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]);
+    }
+
+    /// <summary>
+    /// Extracts the simple type name from a type ID.
+    /// </summary>
+    /// <example>
+    /// "Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource" → "IResource"
+    /// "Aspire.Hosting/Aspire.Hosting.DistributedApplication" → "DistributedApplication"
+    /// </example>
+    private static string ExtractSimpleTypeName(string typeId)
+    {
+        var slashIndex = typeId.LastIndexOf('/');
+        var fullTypeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+
+        var dotIndex = fullTypeName.LastIndexOf('.');
+        return dotIndex >= 0 ? fullTypeName[(dotIndex + 1)..] : fullTypeName;
     }
 }
