@@ -333,6 +333,92 @@ public class AzureUserAssignedIdentityTests
     }
 
     [Fact]
+    public void GetUserAssignedIdentity_ReturnsIdentity_ForContainerAppEnvironment()
+    {
+        // Arrange
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddAzureContainerAppEnvironment("cae");
+
+        // Act
+        var identity = env.GetUserAssignedIdentity();
+
+        // Assert
+        Assert.NotNull(identity);
+        Assert.Equal("cae-identity", identity.Name);
+    }
+
+    [Fact]
+    public void GetUserAssignedIdentity_ReturnsIdentity_ForAppServiceEnvironment()
+    {
+        // Arrange
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        // Act
+        var identity = builder.AddAzureAppServiceEnvironment("appservice").GetUserAssignedIdentity();
+
+        // Assert
+        Assert.NotNull(identity);
+        Assert.Equal("appservice-identity", identity.Name);
+    }
+
+    [Fact]
+    public async Task EnvironmentUserAssignedIdentity_IsIncludedInModel()
+    {
+        // Arrange
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("cae");
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Act - Find the automatically created identity
+        var identityResources = model.Resources.OfType<AzureUserAssignedIdentityResource>().ToList();
+
+        // Assert - Should have exactly one identity (the one created for the environment)
+        var identity = Assert.Single(identityResources);
+        Assert.Equal("cae-identity", identity.Name);
+
+        // Verify the environment has a reference to it
+        var envResource = Assert.Single(model.Resources.OfType<AzureContainerAppEnvironmentResource>());
+        Assert.Same(identity, envResource.UserAssignedIdentity);
+    }
+
+    [Fact]
+    public async Task EnvironmentUserAssignedIdentity_CanBeUsedForRoleAssignments()
+    {
+        // Arrange
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddAzureContainerAppEnvironment("cae");
+        var storage = builder.AddAzureStorage("mystorage");
+
+        // Get the identity from the environment and assign roles to it
+        var identity = env.GetUserAssignedIdentity();
+        Assert.NotNull(identity);
+        
+        builder.CreateResourceBuilder(identity)
+            .WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataOwner);
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the role assignment resource was created
+        var roleAssignmentResource = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(),
+            r => r.Name == "cae-identity-roles-mystorage");
+
+        // Get the Bicep for verification
+        var (_, roleBicep) = await GetManifestWithBicep(roleAssignmentResource, skipPreparer: true);
+
+        await Verify(roleBicep, extension: "bicep");
+    }
+
+    [Fact]
     public void AddAsExistingResource_ShouldBeIdempotent_ForAzureUserAssignedIdentityResource()
     {
         // Arrange
