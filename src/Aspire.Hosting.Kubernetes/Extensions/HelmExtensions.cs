@@ -94,7 +94,7 @@ internal static partial class HelmExtensions
             && EndWithNonStringTypePattern().IsMatch(value);
     }
 
-    [GeneratedRegex(@"(\|\s*(int|int64|float64))\s*\}\}")]
+    [GeneratedRegex(@"\{\{[^}]*\|\s*(int|int64|float64)\s*\}\}")]
     private static partial Regex EndWithNonStringTypePattern();
 
     [GeneratedRegex(@"(?<=^\{\{\s*)(?:[^{}]+?)(?=(?:\}\}$))")]
