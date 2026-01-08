@@ -92,6 +92,7 @@ await builder
     .AddSequence(ctx =>
     {
         ctx.SequenceBuilder
+            .WriteTestLog(_output, "Creating new Aspire project...")
             .Type("aspire new starter --name MyApp")
             .Enter()
             .WaitUntil(
@@ -107,6 +108,33 @@ The context provides access to:
 - `Session`: The `AspireTerminalSession` for direct terminal access if needed
 
 Use `WaitUntil()` to wait for specific output patterns in the terminal.
+
+## DO: Use WriteTestLog() for Deferred Logging
+
+The `WriteTestLog()` extension method writes log messages during sequence execution (not build time),
+including the current terminal snapshot:
+
+```csharp
+ctx.SequenceBuilder
+    .WriteTestLog(_output, "About to run command...")
+    .Type("my-command")
+    .Enter()
+    .WriteTestLog(_output, "Command completed");
+```
+
+This outputs:
+```
+[LOG] About to run command...
+[TERMINAL]
+<current terminal screen content>
+--------------------------------------------------------------------------------
+```
+
+Use `Callback()` for arbitrary deferred actions:
+
+```csharp
+ctx.SequenceBuilder.Callback(() => _output?.WriteLine("Simple message"));
+```
 
 ## DO: Always Call ExecuteAsync() at the End
 
@@ -146,6 +174,14 @@ All methods are cross-platform and use appropriate shell commands for each OS.
 | `VerifyAspireCliVersion(commitSha, timeout?)` | Runs `aspire --version` and verifies SHA |
 | `ExitTerminal()` | Types `exit` to close the shell |
 | `AddSequence(ctx => ...)` | Custom operations using the underlying Hex1b builder |
+
+### Extension Methods for Hex1bTerminalInputSequenceBuilder
+
+| Method | Description |
+|--------|-------------|
+| `WriteTestLog(output, message)` | Logs message with terminal snapshot during execution |
+| `Callback(action)` | Executes arbitrary action during sequence execution |
+| `WaitUntil(predicate, timeout)` | Waits for terminal content to match predicate |
 
 ## DO: Get Environment Variables Using Helpers
 
@@ -218,6 +254,7 @@ public AspireCliAutomationBuilder MyNewOperation(
     return AddSequence(ctx =>
     {
         ctx.SequenceBuilder
+            .WriteTestLog(_output, $"Running my-command with {arg}...")
             .Type($"aspire my-command {arg}")
             .Enter()
             .WaitUntil(
@@ -229,9 +266,10 @@ public AspireCliAutomationBuilder MyNewOperation(
 
 Key points:
 1. Use `AddSequence()` to add the operation
-2. Type the command and press Enter
-3. Use `WaitUntil()` with a specific output pattern
-4. Return the builder for fluent chaining
+2. Use `WriteTestLog()` for deferred logging with terminal snapshots
+3. Type the command and press Enter
+4. Use `WaitUntil()` with a specific output pattern
+5. Return the builder for fluent chaining
 
 ## CI Configuration
 
