@@ -527,7 +527,7 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
             Expression = expression;
             Value = value;
             ValueType = value?.GetType();
-            ParameterSource = null!;
+            ParameterSource = null;
         }
 
         public HelmValue(string expression, ParameterResource parameterSource)
