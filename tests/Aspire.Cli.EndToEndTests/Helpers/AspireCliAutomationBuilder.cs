@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Hex1b.Input;
 using Hex1b.Terminal.Automation;
 using Xunit;
 
@@ -49,6 +50,15 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     }
 
     /// <summary>
+    /// Writes a test log message and flushes the recording.
+    /// This is a convenience method that passes the session's recorder.
+    /// </summary>
+    private void WriteLog(Hex1bTerminalInputSequenceBuilder builder, string message)
+    {
+        builder.WriteTestLog(_output, message, _session.Recorder);
+    }
+
+    /// <summary>
     /// Creates a new automation builder with a configured terminal session.
     /// </summary>
     /// <param name="workingDirectory">Working directory for the terminal.</param>
@@ -92,7 +102,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     {
         return AddSequence(ctx =>
         {
-            ctx.SequenceBuilder.WriteTestLog(_output, "Preparing shell environment with command tracking prompt...");
+            WriteLog(ctx.SequenceBuilder, "Preparing shell environment with command tracking prompt...");
 
             if (OperatingSystem.IsWindows())
             {
@@ -134,7 +144,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         {
             if (isCI)
             {
-                ctx.SequenceBuilder.WriteTestLog(_output, $"Installing Aspire CLI from PR #{prNumber}...");
+                WriteLog(ctx.SequenceBuilder, $"Installing Aspire CLI from PR #{prNumber}...");
 
                 string command;
                 if (OperatingSystem.IsWindows())
@@ -152,16 +162,12 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Type(command)
                     .Enter()
                     .WaitUntil(
-                        snapshot => { 
-                            var screenText = snapshot.GetScreenText();
-                            _output?.WriteLine($"Current terminal output:\n{screenText}");
-                            return screenText.Contains("Aspire CLI successfully installed to:", StringComparison.OrdinalIgnoreCase);
-                        },
+                        snapshot => snapshot.GetScreenText().Contains("Aspire CLI successfully installed to:", StringComparison.OrdinalIgnoreCase),
                         effectiveTimeout);
             }
             else
             {
-                ctx.SequenceBuilder.WriteTestLog(_output, $"[LOCAL] Simulating Aspire CLI install from PR #{prNumber}...");
+                WriteLog(ctx.SequenceBuilder, $"[LOCAL] Simulating Aspire CLI install from PR #{prNumber}...");
 
                 // Local testing - just echo
                 var echoCommand = OperatingSystem.IsWindows()
@@ -191,7 +197,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
             // Use a callback so the message appears at execution time
             return AddSequence(ctx =>
             {
-                ctx.SequenceBuilder.WriteTestLog(_output, "Skipping environment sourcing on Windows (PATH already updated)...");
+                WriteLog(ctx.SequenceBuilder, "Skipping environment sourcing on Windows (PATH already updated)...");
             });
         }
 
@@ -201,7 +207,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         {
             if (isCI)
             {
-                ctx.SequenceBuilder.WriteTestLog(_output, "Sourcing ~/.bashrc to add Aspire CLI to PATH...");
+                WriteLog(ctx.SequenceBuilder, "Sourcing ~/.bashrc to add Aspire CLI to PATH...");
 
                 ctx.SequenceBuilder
                     .Type("source ~/.bashrc")
@@ -210,7 +216,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
             }
             else
             {
-                ctx.SequenceBuilder.WriteTestLog(_output, "[LOCAL] Simulating environment sourcing...");
+                WriteLog(ctx.SequenceBuilder, "[LOCAL] Simulating environment sourcing...");
 
                 ctx.SequenceBuilder
                     .Type("echo '[LOCAL] Would source ~/.bashrc'")
@@ -239,7 +245,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         {
             if (isCI)
             {
-                ctx.SequenceBuilder.WriteTestLog(_output,
+                WriteLog(ctx.SequenceBuilder,
                     $"Verifying Aspire CLI version contains commit SHA.\n" +
                     $"  Full SHA:    {expectedCommitSha}\n" +
                     $"  Short SHA:   {shortSha}\n" +
@@ -249,16 +255,12 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Type("aspire --version")
                     .Enter()
                     .WaitUntil(
-                        snapshot => {
-                            var screenText = snapshot.GetScreenText();
-                            _output?.WriteLine($"Current terminal output:\n{screenText}");
-                            return screenText.Contains(versionSha, StringComparison.OrdinalIgnoreCase);
-                        },
+                        snapshot => snapshot.GetScreenText().Contains(versionSha, StringComparison.OrdinalIgnoreCase),
                         timeout ?? TimeSpan.FromSeconds(30));
             }
             else
             {
-                ctx.SequenceBuilder.WriteTestLog(_output, $"[LOCAL] Simulating version check for SHA: {versionSha}...");
+                WriteLog(ctx.SequenceBuilder, $"[LOCAL] Simulating version check for SHA: {versionSha}...");
 
                 // Local testing - just echo
                 var echoCommand = OperatingSystem.IsWindows()
@@ -270,6 +272,556 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Enter()
                     .Wait(TimeSpan.FromMilliseconds(500));
             }
+        });
+    }
+
+    /// <summary>
+    /// Creates a new Aspire Starter project using 'aspire new aspire-starter'.
+    /// Prompts: "Enter the output path" → "Do you want to create a test project?" (No)
+    /// </summary>
+    /// <param name="projectName">The name of the project to create.</param>
+    /// <param name="timeout">Maximum time to wait for project creation (default: 5 minutes).</param>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder CreateAspireStarterProject(string projectName, TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+
+        return AddSequence(ctx =>
+        {
+            WriteLog(ctx.SequenceBuilder, $"Creating Aspire Starter project: {projectName}...");
+
+            ctx.SequenceBuilder
+                .Type($"aspire new aspire-starter --name {projectName}")
+                .Enter();
+
+            // Wait for "Enter the output path" prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("output path", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Detected output path prompt, accepting default...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for "Do you want to create a test project?" prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("test project", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Detected test project prompt, selecting No...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for completion
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Project created successfully", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Aspire Starter project created successfully!");
+        });
+    }
+
+    /// <summary>
+    /// Creates a new Aspire TypeScript/C# Starter project using 'aspire new aspire-ts-cs-starter'.
+    /// Prompts: "Enter the output path" only
+    /// </summary>
+    /// <param name="projectName">The name of the project to create.</param>
+    /// <param name="timeout">Maximum time to wait for project creation (default: 5 minutes).</param>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder CreateAspireTypeScriptCSharpStarterProject(string projectName, TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+
+        return AddSequence(ctx =>
+        {
+            WriteLog(ctx.SequenceBuilder, $"Creating Aspire TypeScript/C# Starter project: {projectName}...");
+
+            ctx.SequenceBuilder
+                .Type($"aspire new aspire-ts-cs-starter --name {projectName}")
+                .Enter();
+
+            // Wait for "Enter the output path" prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("output path", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Detected output path prompt, accepting default...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for completion
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Project created successfully", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Aspire TypeScript/C# Starter project created successfully!");
+        });
+    }
+
+    /// <summary>
+    /// Creates a new Aspire Python Starter project using 'aspire new aspire-py-starter'.
+    /// Prompts: "Enter the output path" → "Use Redis Cache" (Yes)
+    /// </summary>
+    /// <param name="projectName">The name of the project to create.</param>
+    /// <param name="timeout">Maximum time to wait for project creation (default: 5 minutes).</param>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder CreateAspirePythonStarterProject(string projectName, TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+
+        return AddSequence(ctx =>
+        {
+            WriteLog(ctx.SequenceBuilder, $"Creating Aspire Python Starter project: {projectName}...");
+
+            ctx.SequenceBuilder
+                .Type($"aspire new aspire-py-starter --name {projectName}")
+                .Enter();
+
+            // Wait for "Enter the output path" prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("output path", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Detected output path prompt, accepting default...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for "Use Redis Cache" prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Redis Cache", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Detected Redis Cache prompt, accepting default (Yes)...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for completion
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Project created successfully", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Aspire Python Starter project created successfully!");
+        });
+    }
+
+    /// <summary>
+    /// Creates a new Aspire AppHost Single-File project using 'aspire new aspire-apphost-singlefile'.
+    /// Prompts: "Enter the output path" only
+    /// </summary>
+    /// <param name="projectName">The name of the project to create.</param>
+    /// <param name="timeout">Maximum time to wait for project creation (default: 5 minutes).</param>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder CreateAspireAppHostSingleFileProject(string projectName, TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+
+        return AddSequence(ctx =>
+        {
+            WriteLog(ctx.SequenceBuilder, $"Creating Aspire AppHost Single-File project: {projectName}...");
+
+            ctx.SequenceBuilder
+                .Type($"aspire new aspire-apphost-singlefile --name {projectName}")
+                .Enter();
+
+            // Wait for "Enter the output path" prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("output path", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Detected output path prompt, accepting default...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for completion
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Project created successfully", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Aspire AppHost Single-File project created successfully!");
+        });
+    }
+
+    /// <summary>
+    /// Creates a new Aspire Starter project interactively using 'aspire new' without arguments.
+    /// Prompts: Select template → Project name → Output path → dev.localhost URLs → Redis Cache → Test project
+    /// </summary>
+    /// <param name="projectName">The name of the project to create.</param>
+    /// <param name="timeout">Maximum time to wait for project creation (default: 5 minutes).</param>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder CreateAspireStarterProjectInteractively(string projectName, TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+
+        return AddSequence(ctx =>
+        {
+            WriteLog(ctx.SequenceBuilder, $"Creating Aspire Starter project interactively: {projectName}...");
+
+            ctx.SequenceBuilder
+                .Type("aspire new")
+                .Enter();
+
+            // Wait for template selection
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Select a template", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Selecting 'Starter App (ASP.NET Core/Blazor)'...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter(); // First option is selected by default
+
+            // Wait for project name prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("project name", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, $"Entering project name: {projectName}...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Type(projectName).Enter();
+
+            // Wait for output path prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("output path", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default output path...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for dev.localhost URLs prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("dev.localhost", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default dev.localhost URLs option (No)...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for Redis Cache prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Redis Cache", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default Redis Cache option (Yes)...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for test project prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("test project", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default test project option (No)...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for completion
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Project created successfully", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Aspire Starter project created interactively!");
+        });
+    }
+
+    /// <summary>
+    /// Creates a new Aspire TypeScript/C# Starter project interactively using 'aspire new' without arguments.
+    /// Prompts: Select template → Project name → Output path → dev.localhost URLs → Redis Cache
+    /// </summary>
+    /// <param name="projectName">The name of the project to create.</param>
+    /// <param name="timeout">Maximum time to wait for project creation (default: 5 minutes).</param>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder CreateAspireTypeScriptCSharpStarterProjectInteractively(string projectName, TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+
+        return AddSequence(ctx =>
+        {
+            WriteLog(ctx.SequenceBuilder, $"Creating Aspire TypeScript/C# Starter project interactively: {projectName}...");
+
+            ctx.SequenceBuilder
+                .Type("aspire new")
+                .Enter();
+
+            // Wait for template selection
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Select a template", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Selecting 'Starter App (ASP.NET Core/React)'...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Key(Hex1bKey.DownArrow).Enter(); // Second option
+
+            // Wait for project name prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("project name", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, $"Entering project name: {projectName}...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Type(projectName).Enter();
+
+            // Wait for output path prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("output path", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default output path...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for dev.localhost URLs prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("dev.localhost", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default dev.localhost URLs option (No)...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for Redis Cache prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Redis Cache", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default Redis Cache option (Yes)...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for completion
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Project created successfully", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Aspire TypeScript/C# Starter project created interactively!");
+        });
+    }
+
+    /// <summary>
+    /// Creates a new Aspire Python Starter project interactively using 'aspire new' without arguments.
+    /// Prompts: Select template → Project name → Output path → dev.localhost URLs → Redis Cache
+    /// </summary>
+    /// <param name="projectName">The name of the project to create.</param>
+    /// <param name="timeout">Maximum time to wait for project creation (default: 5 minutes).</param>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder CreateAspirePythonStarterProjectInteractively(string projectName, TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+
+        return AddSequence(ctx =>
+        {
+            WriteLog(ctx.SequenceBuilder, $"Creating Aspire Python Starter project interactively: {projectName}...");
+
+            ctx.SequenceBuilder
+                .Type("aspire new")
+                .Enter();
+
+            // Wait for template selection
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Select a template", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Selecting 'Starter App (FastAPI/React)'...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Key(Hex1bKey.DownArrow).Key(Hex1bKey.DownArrow).Enter(); // Third option
+
+            // Wait for project name prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("project name", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, $"Entering project name: {projectName}...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Type(projectName).Enter();
+
+            // Wait for output path prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("output path", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default output path...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for dev.localhost URLs prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("dev.localhost", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default dev.localhost URLs option (No)...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for Redis Cache prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Redis Cache", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default Redis Cache option (Yes)...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for completion
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Project created successfully", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Aspire Python Starter project created interactively!");
+        });
+    }
+
+    /// <summary>
+    /// Creates a new Aspire AppHost Single-File project interactively using 'aspire new' without arguments.
+    /// Prompts: Select template → Project name → Output path
+    /// </summary>
+    /// <param name="projectName">The name of the project to create.</param>
+    /// <param name="timeout">Maximum time to wait for project creation (default: 5 minutes).</param>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder CreateAspireAppHostSingleFileProjectInteractively(string projectName, TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+
+        return AddSequence(ctx =>
+        {
+            WriteLog(ctx.SequenceBuilder, $"Creating Aspire AppHost Single-File project interactively: {projectName}...");
+
+            ctx.SequenceBuilder
+                .Type("aspire new")
+                .Enter();
+
+            // Wait for template selection
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Select a template", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Selecting 'Empty AppHost'...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Key(Hex1bKey.DownArrow).Key(Hex1bKey.DownArrow).Key(Hex1bKey.DownArrow).Enter(); // Fourth option
+
+            // Wait for project name prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("project name", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, $"Entering project name: {projectName}...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Type(projectName).Enter();
+
+            // Wait for output path prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("output path", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default output path...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for dev.localhost URLs prompt
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("dev.localhost", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Accepting default dev.localhost URLs option (No)...");
+            ctx.SequenceBuilder.Wait(TimeSpan.FromSeconds(1)).Enter();
+
+            // Wait for completion
+            ctx.SequenceBuilder
+                .WaitUntil(
+                    snapshot => snapshot.GetScreenText().Contains("Project created successfully", StringComparison.OrdinalIgnoreCase),
+                    effectiveTimeout);
+
+            WriteLog(ctx.SequenceBuilder, "Aspire AppHost Single-File project created interactively!");
+        });
+    }
+
+    /// <summary>
+    /// Runs an Aspire project using the 'aspire run' command.
+    /// Waits for the dashboard URL to appear, indicating the app is running.
+    /// </summary>
+    /// <param name="projectName">The name of the project to run (used to navigate to the AppHost directory).</param>
+    /// <param name="isSingleFile">Whether this is a single-file project (no subfolder structure).</param>
+    /// <param name="timeout">Maximum time to wait for the project to start (default: 5 minutes).</param>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder RunAspireProject(string projectName, bool isSingleFile = false, TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+
+        return AddSequence(ctx =>
+        {
+            string cdCommand;
+            if (isSingleFile)
+            {
+                WriteLog(ctx.SequenceBuilder, $"Navigating to {projectName} (single-file project) and running...");
+                cdCommand = OperatingSystem.IsWindows()
+                    ? $"cd {projectName}"
+                    : $"cd {projectName}";
+            }
+            else
+            {
+                WriteLog(ctx.SequenceBuilder, $"Navigating to {projectName}.AppHost and running Aspire project...");
+                cdCommand = OperatingSystem.IsWindows()
+                    ? $"cd {projectName}\\{projectName}.AppHost"
+                    : $"cd {projectName}/{projectName}.AppHost";
+            }
+
+            ctx.SequenceBuilder
+                .Type(cdCommand)
+                .Enter()
+                .Wait(TimeSpan.FromSeconds(1));
+
+            WriteLog(ctx.SequenceBuilder, "Starting 'aspire run'...");
+
+            ctx.SequenceBuilder
+                .Type("aspire run")
+                .Enter()
+                .WaitUntil(
+                    snapshot =>
+                    {
+                        var screenText = snapshot.GetScreenText();
+                        // Wait for the dashboard URL to appear, indicating the app is running
+                        return screenText.Contains("Login to the dashboard at", StringComparison.OrdinalIgnoreCase)
+                            || screenText.Contains("Now listening on:", StringComparison.OrdinalIgnoreCase)
+                            || screenText.Contains("dashboard", StringComparison.OrdinalIgnoreCase) && screenText.Contains("http", StringComparison.OrdinalIgnoreCase);
+                    },
+                    effectiveTimeout);
+        });
+    }
+
+    /// <summary>
+    /// Stops a running Aspire project by sending Ctrl+C.
+    /// Waits for the process to shut down gracefully.
+    /// </summary>
+    /// <param name="timeout">Maximum time to wait for the project to stop (default: 30 seconds).</param>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder StopAspireProject(TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(30);
+
+        return AddSequence(ctx =>
+        {
+            WriteLog(ctx.SequenceBuilder, "Sending Ctrl+C to stop the Aspire project...");
+
+            // Send Ctrl+C to interrupt the running process
+            ctx.SequenceBuilder
+                .Ctrl().Key(Hex1bKey.C)
+                .WaitUntil(
+                    snapshot =>
+                    {
+                        var screenText = snapshot.GetScreenText();
+                        // Wait for the prompt to reappear or a shutdown message
+                        return screenText.Contains('$')
+                            || screenText.Contains("PS>", StringComparison.OrdinalIgnoreCase)
+                            || screenText.Contains("Shutdown completed", StringComparison.OrdinalIgnoreCase)
+                            || screenText.Contains("Application is shutting down", StringComparison.OrdinalIgnoreCase);
+                    },
+                    effectiveTimeout);
         });
     }
 
@@ -319,6 +871,12 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         catch (TimeoutException ex)
         {
             _output?.WriteLine($"Operation timed out: {ex.Message}");
+
+            // Flush recording to ensure we capture the state at timeout
+            if (_session.Recorder is not null)
+            {
+                await _session.Recorder.FlushAsync(CancellationToken.None);
+            }
 
             using var snapshot = _session.Terminal.CreateSnapshot();
             var content = snapshot.GetScreenText();
