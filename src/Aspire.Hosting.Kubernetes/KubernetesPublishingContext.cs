@@ -127,7 +127,6 @@ internal sealed class KubernetesPublishingContext(
 
         foreach (var (key, helmExpressionWithValue) in contextItems)
         {
-
             if (helmExpressionWithValue.ValueContainsHelmExpression)
             {
                 continue;
