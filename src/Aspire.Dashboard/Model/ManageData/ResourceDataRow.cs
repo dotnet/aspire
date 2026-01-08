@@ -25,7 +25,10 @@ public sealed class ResourceDataRow
     /// </summary>
     public required string Name { get; init; }
 
-    public List<DataRow> Data { get; set; } = [];
+    /// <summary>
+    /// Gets telemetry data for this resource row.
+    /// </summary>
+    public List<TelemetryDataRow> TelemetryData { get; set; } = [];
 
     /// <summary>
     /// Gets whether this resource is telemetry-only (no corresponding ResourceViewModel).

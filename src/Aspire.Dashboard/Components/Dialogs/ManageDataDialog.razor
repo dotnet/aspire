@@ -7,10 +7,12 @@
 @using Resources = Aspire.Dashboard.Resources.Resources
 @using Dialogs = Aspire.Dashboard.Resources.Dialogs
 
-<div style="max-height: 44vh; overflow-y: auto;">
+<div style="height: 44vh; overflow-y: auto;">
     <FluentDataGrid @ref="_dataGrid"
                     Items="@GetGridItems()"
-                    RowSize="DataGridRowSize.Medium"
+                    ItemSize="46"
+                    Virtualize="true"
+                    GenerateHeader="GenerateHeaderOption.Sticky"
                     GridTemplateColumns="2fr 1fr"
                     TGridItem="ManageDataGridItem"
                     OnRowClick="@OnRowClicked"
@@ -21,8 +23,8 @@
             <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]">
                 <HeaderCellItemTemplate>
                     <div style="display: flex; justify-content: flex-start;">
-                        <div class="col-title" style="width: calc(100% - 10px);">
-                            <div class="col-title-text name-title-text">
+                        <div style="width: calc(100% - 10px);">
+                            <div class="name-title-text">
                                 <FluentButton Appearance="Appearance.Lightweight"
                                               IconEnd="@GetHeaderCheckboxIcon()"
                                               OnClick="OnSelectAllClicked"
@@ -41,7 +43,7 @@
                         @if (context.IsResourceRow && context.ResourceRow is not null)
                         {
                             <span @onclick:stopPropagation="true" class="main-grid-expand-container @(IsResourceExpanded(context.ResourceRow.Name) ? "main-grid-expanded" : "main-grid-collapsed")">
-                                @if (context.ResourceRow.Data.Count > 0)
+                                @if (context.ResourceRow.TelemetryData.Count > 0)
                                 {
                                     <FluentButton Appearance="Appearance.Lightweight"
                                                   Class="main-grid-expand-button"
@@ -91,11 +93,13 @@
                 @if (context.IsResourceRow && context.ResourceRow is not null)
                 {
                     <span @onclick:stopPropagation="true">
-                        @foreach (var dataRow in context.ResourceRow.Data)
+                        @foreach (var dataRow in context.ResourceRow.TelemetryData)
                         {
                             <FluentButton Appearance="Appearance.Lightweight"
                                           IconEnd="@dataRow.Icon"
                                           OnClick="@(() => NavigateToDataPage(dataRow))"
+                                          Title="@GetDataTypeDisplayName(dataRow.DataType)"
+                                          aria-label="@GetDataTypeDisplayName(dataRow.DataType)"
                                           Style="margin-right: 4px;" />
                         }
                     </span>

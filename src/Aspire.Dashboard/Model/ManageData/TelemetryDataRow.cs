@@ -6,9 +6,9 @@ using Microsoft.FluentUI.AspNetCore.Components;
 namespace Aspire.Dashboard.Model.ManageData;
 
 /// <summary>
-/// Represents a nested data row within a resource row.
+/// Represents a nested telemetry data row within a resource row.
 /// </summary>
-public sealed class DataRow
+public sealed class TelemetryDataRow
 {
     /// <summary>
     /// The type of data this row represents.

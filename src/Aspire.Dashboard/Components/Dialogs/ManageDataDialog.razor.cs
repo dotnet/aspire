@@ -113,7 +113,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             _resourceDataRows[resource.Name] = CreateResourceDataRow(resource);
 
             // Select all data types for new resources by default
-            SelectAllDataTypesForResource(resource.Name, _resourceDataRows[resource.Name].Data);
+            SelectAllDataTypesForResource(resource.Name, _resourceDataRows[resource.Name].TelemetryData);
         }
 
         // Listen for updates and apply.
@@ -132,7 +132,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
                         if (isNewResource)
                         {
                             // Select all data types for new resources by default
-                            SelectAllDataTypesForResource(resource.Name, _resourceDataRows[resource.Name].Data);
+                            SelectAllDataTypesForResource(resource.Name, _resourceDataRows[resource.Name].TelemetryData);
                         }
                     }
                     else if (changeType == ResourceViewModelChangeType.Delete)
@@ -158,10 +158,10 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
 
     private ResourceDataRow CreateResourceDataRow(ResourceViewModel resource)
     {
-        var data = new List<DataRow>();
+        var data = new List<TelemetryDataRow>();
 
         // Add console logs for resources with ResourceViewModel (no count available)
-        data.Add(new DataRow { DataType = AspireDataType.ConsoleLogs, DataCount = null, Icon = new Icons.Regular.Size16.SlideText(), Url = DashboardUrls.ConsoleLogsUrl(resource: resource.Name) });
+        data.Add(new TelemetryDataRow { DataType = AspireDataType.ConsoleLogs, DataCount = null, Icon = new Icons.Regular.Size16.SlideText(), Url = DashboardUrls.ConsoleLogsUrl(resource: resource.Name) });
 
         var otlpResource = TelemetryRepository.GetResourceByCompositeName(resource.Name);
         if (otlpResource is not null)
@@ -174,13 +174,13 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             Resource = resource,
             OtlpResource = otlpResource,
             Name = resource.Name,
-            Data = data
+            TelemetryData = data
         };
     }
 
     private ResourceDataRow CreateTelemetryOnlyResourceDataRow(OtlpResource otlpResource)
     {
-        var data = new List<DataRow>();
+        var data = new List<TelemetryDataRow>();
         var resourceName = otlpResource.ResourceKey.GetCompositeName();
         PopulateDataRows(data, otlpResource.ResourceKey, resourceName);
 
@@ -189,11 +189,11 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             Resource = null,
             OtlpResource = otlpResource,
             Name = otlpResource.ResourceKey.GetCompositeName(),
-            Data = data
+            TelemetryData = data
         };
     }
 
-    private void PopulateDataRows(List<DataRow> data, ResourceKey resourceKey, string resourceName)
+    private void PopulateDataRows(List<TelemetryDataRow> data, ResourceKey resourceKey, string resourceName)
     {
         // Check for logs
         var logsResult = TelemetryRepository.GetLogs(new GetLogsContext
@@ -205,7 +205,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         });
         if (logsResult.TotalItemCount > 0)
         {
-            data.Add(new DataRow { DataType = AspireDataType.StructuredLogs, DataCount = logsResult.TotalItemCount, Icon = new Icons.Regular.Size16.SlideTextSparkle(), Url = DashboardUrls.StructuredLogsUrl(resource: resourceName) });
+            data.Add(new TelemetryDataRow { DataType = AspireDataType.StructuredLogs, DataCount = logsResult.TotalItemCount, Icon = new Icons.Regular.Size16.SlideTextSparkle(), Url = DashboardUrls.StructuredLogsUrl(resource: resourceName) });
         }
 
         // Check for traces
@@ -219,14 +219,14 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         });
         if (tracesResult.PagedResult.TotalItemCount > 0)
         {
-            data.Add(new DataRow { DataType = AspireDataType.Traces, DataCount = tracesResult.PagedResult.TotalItemCount, Icon = new Icons.Regular.Size16.GanttChart(), Url = DashboardUrls.TracesUrl(resource: resourceName) });
+            data.Add(new TelemetryDataRow { DataType = AspireDataType.Traces, DataCount = tracesResult.PagedResult.TotalItemCount, Icon = new Icons.Regular.Size16.GanttChart(), Url = DashboardUrls.TracesUrl(resource: resourceName) });
         }
 
         // Check for metrics (instruments)
         var instruments = TelemetryRepository.GetInstrumentsSummaries(resourceKey);
         if (instruments.Count > 0)
         {
-            data.Add(new DataRow { DataType = AspireDataType.Metrics, DataCount = instruments.Count, Icon = new Icons.Regular.Size16.ChartMultiple(), Url = DashboardUrls.MetricsUrl(resource: resourceName) });
+            data.Add(new TelemetryDataRow { DataType = AspireDataType.Metrics, DataCount = instruments.Count, Icon = new Icons.Regular.Size16.ChartMultiple(), Url = DashboardUrls.MetricsUrl(resource: resourceName) });
         }
     }
 
@@ -250,7 +250,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             // If expanded, add nested data rows
             if (_expandedResourceNames.Contains(resourceRow.Name))
             {
-                foreach (var dataRow in resourceRow.Data)
+                foreach (var dataRow in resourceRow.TelemetryData)
                 {
                     items.Add(new ManageDataGridItem
                     {
@@ -282,7 +282,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
                 _resourceDataRows[compositeName] = row;
 
                 // Select all data types for new telemetry-only resources by default
-                SelectAllDataTypesForResource(compositeName, row.Data);
+                SelectAllDataTypesForResource(compositeName, row.TelemetryData);
             }
         }
     }
@@ -352,7 +352,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         {
             foreach (var row in _resourceDataRows.Values)
             {
-                SelectAllDataTypesForResource(row.Name, row.Data);
+                SelectAllDataTypesForResource(row.Name, row.TelemetryData);
             }
         }
         else
@@ -368,7 +368,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
 
         if (shouldSelect)
         {
-            SelectAllDataTypesForResource(row.Name, row.Data);
+            SelectAllDataTypesForResource(row.Name, row.TelemetryData);
         }
         else
         {
@@ -396,7 +396,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     {
         foreach (var row in _resourceDataRows.Values)
         {
-            foreach (var dataRow in row.Data)
+            foreach (var dataRow in row.TelemetryData)
             {
                 if (!_selectedRows.Contains((row.Name, dataRow.DataType)))
                 {
@@ -420,14 +420,14 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     /// </summary>
     private bool AreAllDataRowsSelected(ResourceDataRow row)
     {
-        foreach (var dataRow in row.Data)
+        foreach (var dataRow in row.TelemetryData)
         {
             if (!_selectedRows.Contains((row.Name, dataRow.DataType)))
             {
                 return false;
             }
         }
-        return row.Data.Count > 0;
+        return row.TelemetryData.Count > 0;
     }
 
     /// <summary>
@@ -435,7 +435,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     /// </summary>
     private bool AreNoDataRowsSelected(ResourceDataRow row)
     {
-        foreach (var dataRow in row.Data)
+        foreach (var dataRow in row.TelemetryData)
         {
             if (_selectedRows.Contains((row.Name, dataRow.DataType)))
             {
@@ -471,7 +471,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         return _iconIndeterminate;
     }
 
-    private void NavigateToDataPage(DataRow dataRow)
+    private void NavigateToDataPage(TelemetryDataRow dataRow)
     {
         NavigationManager.NavigateTo(dataRow.Url);
     }
@@ -543,7 +543,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         return result;
     }
 
-    private void SelectAllDataTypesForResource(string resourceName, List<DataRow> dataRows)
+    private void SelectAllDataTypesForResource(string resourceName, List<TelemetryDataRow> dataRows)
     {
         foreach (var dataRow in dataRows)
         {

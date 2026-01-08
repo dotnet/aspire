@@ -9,7 +9,7 @@ namespace Aspire.Dashboard.Model.ManageData;
 public sealed class ManageDataGridItem
 {
     public ResourceDataRow? ResourceRow { get; init; }
-    public DataRow? NestedRow { get; init; }
+    public TelemetryDataRow? NestedRow { get; init; }
     public string? ParentResourceName { get; init; }
 
     public int Depth { get; init; }
