@@ -90,10 +90,10 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder PrepareEnvironment()
     {
-        _output?.WriteLine("Preparing shell environment with command tracking prompt...");
-
         return AddSequence(ctx =>
         {
+            ctx.SequenceBuilder.WriteTestLog(_output, "Preparing shell environment with command tracking prompt...");
+
             if (OperatingSystem.IsWindows())
             {
                 // PowerShell prompt setup
@@ -128,22 +128,14 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     public AspireCliAutomationBuilder InstallAspireCliFromPullRequest(int prNumber, TimeSpan? timeout = null)
     {
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-
-        if (isCI)
-        {
-            _output?.WriteLine($"Installing Aspire CLI from PR #{prNumber}...");
-        }
-        else
-        {
-            _output?.WriteLine($"[LOCAL] Simulating Aspire CLI install from PR #{prNumber}...");
-        }
-
         var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(10);
 
         return AddSequence(ctx =>
         {
             if (isCI)
             {
+                ctx.SequenceBuilder.WriteTestLog(_output, $"Installing Aspire CLI from PR #{prNumber}...");
+
                 string command;
                 if (OperatingSystem.IsWindows())
                 {
@@ -165,6 +157,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
             }
             else
             {
+                ctx.SequenceBuilder.WriteTestLog(_output, $"[LOCAL] Simulating Aspire CLI install from PR #{prNumber}...");
+
                 // Local testing - just echo
                 var echoCommand = OperatingSystem.IsWindows()
                     ? $"Write-Host '[LOCAL] Would install Aspire CLI from PR #{prNumber}'"
@@ -190,25 +184,21 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         if (OperatingSystem.IsWindows())
         {
             // On Windows, the PowerShell installer already updates the current session's PATH
-            _output?.WriteLine("Skipping environment sourcing on Windows (PATH already updated)...");
-            return this;
+            // Use a callback so the message appears at execution time
+            return AddSequence(ctx =>
+            {
+                ctx.SequenceBuilder.WriteTestLog(_output, "Skipping environment sourcing on Windows (PATH already updated)...");
+            });
         }
 
         var isCI = CliE2ETestHelpers.IsRunningInCI;
-
-        if (isCI)
-        {
-            _output?.WriteLine("Sourcing ~/.bashrc to add Aspire CLI to PATH...");
-        }
-        else
-        {
-            _output?.WriteLine("[LOCAL] Simulating environment sourcing...");
-        }
 
         return AddSequence(ctx =>
         {
             if (isCI)
             {
+                ctx.SequenceBuilder.WriteTestLog(_output, "Sourcing ~/.bashrc to add Aspire CLI to PATH...");
+
                 ctx.SequenceBuilder
                     .Type("source ~/.bashrc")
                     .Enter()
@@ -216,6 +206,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
             }
             else
             {
+                ctx.SequenceBuilder.WriteTestLog(_output, "[LOCAL] Simulating environment sourcing...");
+
                 ctx.SequenceBuilder
                     .Type("echo '[LOCAL] Would source ~/.bashrc'")
                     .Enter()
@@ -238,19 +230,12 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         var shortSha = expectedCommitSha.Length > 9 ? expectedCommitSha[..9] : expectedCommitSha;
         var isCI = CliE2ETestHelpers.IsRunningInCI;
 
-        if (isCI)
-        {
-            _output?.WriteLine($"Verifying Aspire CLI version contains commit SHA: {shortSha}...");
-        }
-        else
-        {
-            _output?.WriteLine($"[LOCAL] Simulating version check for SHA: {shortSha}...");
-        }
-
         return AddSequence(ctx =>
         {
             if (isCI)
             {
+                ctx.SequenceBuilder.WriteTestLog(_output, $"Verifying Aspire CLI version contains commit SHA: {shortSha}...");
+
                 ctx.SequenceBuilder
                     .Type("aspire --version")
                     .Enter()
@@ -260,6 +245,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
             }
             else
             {
+                ctx.SequenceBuilder.WriteTestLog(_output, $"[LOCAL] Simulating version check for SHA: {shortSha}...");
+
                 // Local testing - just echo
                 var echoCommand = OperatingSystem.IsWindows()
                     ? $"Write-Host '[LOCAL] Would verify aspire --version contains {shortSha}'"

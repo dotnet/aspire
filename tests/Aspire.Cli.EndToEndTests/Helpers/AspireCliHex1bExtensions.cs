@@ -14,6 +14,54 @@ namespace Aspire.Cli.EndToEndTests.Helpers;
 internal static class AspireCliHex1bExtensions
 {
     /// <summary>
+    /// Adds a callback step that executes during sequence application.
+    /// Use this for logging, assertions, or any side effects that should happen
+    /// at execution time rather than build time.
+    /// </summary>
+    /// <param name="builder">The input sequence builder.</param>
+    /// <param name="callback">The action to execute during sequence application.</param>
+    /// <returns>The builder for chaining.</returns>
+    public static Hex1bTerminalInputSequenceBuilder Callback(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        Action callback)
+    {
+        return builder.WaitUntil(_ =>
+        {
+            callback();
+            return true;
+        }, TimeSpan.FromMilliseconds(1));
+    }
+
+    /// <summary>
+    /// Writes a test log message along with the current terminal snapshot.
+    /// Use this for debugging and tracing test execution. The log includes
+    /// both the message and the current terminal screen content.
+    /// </summary>
+    /// <param name="builder">The input sequence builder.</param>
+    /// <param name="output">The test output helper for logging.</param>
+    /// <param name="message">The message to log.</param>
+    /// <returns>The builder for chaining.</returns>
+    public static Hex1bTerminalInputSequenceBuilder WriteTestLog(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        ITestOutputHelper? output,
+        string message)
+    {
+        if (output is null)
+        {
+            return builder;
+        }
+
+        return builder.WaitUntil(snapshot =>
+        {
+            var terminalText = snapshot.GetScreenText();
+            output.WriteLine($"[LOG] {message}");
+            output.WriteLine($"[TERMINAL]\n{terminalText}");
+            output.WriteLine(new string('-', 80));
+            return true;
+        }, TimeSpan.FromMilliseconds(1));
+    }
+
+    /// <summary>
     /// Prepares the shell environment with a custom prompt that tracks command count and exit status.
     /// This makes it easier to detect when commands complete. The prompt format is:
     /// [N ✔] $ (success) or [N ✘:code] $ (failure)
