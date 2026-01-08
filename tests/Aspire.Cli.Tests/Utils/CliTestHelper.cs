@@ -67,7 +67,7 @@ internal static class CliTestHelper
         var configuration = configBuilder.Build();
         services.AddSingleton<IConfiguration>(configuration);
 
-        services.AddLogging();
+        services.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)).AddXunitLogging(outputHelper);
 
         services.AddMemoryCache();
 

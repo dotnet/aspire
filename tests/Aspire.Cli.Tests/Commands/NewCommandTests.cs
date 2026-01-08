@@ -13,6 +13,7 @@ using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.TestUtilities;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
@@ -40,8 +41,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     public async Task NewCommandInteractiveFlowSmokeTest()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
-
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
             // Set of options that we'll give when prompted.
             options.NewCommandPrompterFactory = (sp) =>
             {
@@ -75,7 +76,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<NewCommand>();
         var result = command.Parse("new aspire-starter --use-redis-cache --test-framework None");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
     }
 
