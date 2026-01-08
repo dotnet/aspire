@@ -186,6 +186,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// Sources the Aspire CLI environment to make the 'aspire' command available.
     /// On Linux/macOS, this sources ~/.bashrc. On Windows, this is a no-op as
     /// the PowerShell installer modifies the PATH directly in the current session.
+    /// Also explicitly sets ASPIRE_PLAYGROUND=true to enable interactive mode in CI.
     /// When running locally (not in CI), uses an echo command for testing.
     /// </summary>
     /// <returns>The builder for chaining.</returns>
@@ -194,10 +195,15 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         if (OperatingSystem.IsWindows())
         {
             // On Windows, the PowerShell installer already updates the current session's PATH
-            // Use a callback so the message appears at execution time
+            // But we still need to set ASPIRE_PLAYGROUND for interactive mode
             return AddSequence(ctx =>
             {
-                WriteLog(ctx.SequenceBuilder, "Skipping environment sourcing on Windows (PATH already updated)...");
+                WriteLog(ctx.SequenceBuilder, "Setting ASPIRE_PLAYGROUND=true for interactive mode on Windows...");
+
+                ctx.SequenceBuilder
+                    .Type("$env:ASPIRE_PLAYGROUND='true'")
+                    .Enter()
+                    .Wait(TimeSpan.FromSeconds(1));
             });
         }
 
@@ -207,19 +213,22 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         {
             if (isCI)
             {
-                WriteLog(ctx.SequenceBuilder, "Sourcing ~/.bashrc to add Aspire CLI to PATH...");
+                WriteLog(ctx.SequenceBuilder, "Sourcing ~/.bashrc and setting ASPIRE_PLAYGROUND=true for interactive mode...");
 
+                // Source bashrc first, then export ASPIRE_PLAYGROUND to ensure it persists
+                // after bashrc potentially resets the environment
                 ctx.SequenceBuilder
-                    .Type("source ~/.bashrc")
+                    .Type("source ~/.bashrc && export ASPIRE_PLAYGROUND=true")
                     .Enter()
                     .Wait(TimeSpan.FromSeconds(1));
             }
             else
             {
-                WriteLog(ctx.SequenceBuilder, "[LOCAL] Simulating environment sourcing...");
+                WriteLog(ctx.SequenceBuilder, "[LOCAL] Setting ASPIRE_PLAYGROUND=true for interactive mode...");
 
+                // Even locally, set ASPIRE_PLAYGROUND for interactive mode testing
                 ctx.SequenceBuilder
-                    .Type("echo '[LOCAL] Would source ~/.bashrc'")
+                    .Type("export ASPIRE_PLAYGROUND=true")
                     .Enter()
                     .Wait(TimeSpan.FromMilliseconds(500));
             }
