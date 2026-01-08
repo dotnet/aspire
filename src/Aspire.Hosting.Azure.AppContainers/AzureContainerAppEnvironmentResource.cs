@@ -175,6 +175,11 @@ public class AzureContainerAppEnvironmentResource :
     /// </summary>
     internal AzureContainerRegistryResource? DefaultContainerRegistry { get; set; }
 
+    /// <summary>
+    /// Gets or sets the user-assigned managed identity associated with this compute environment.
+    /// </summary>
+    public AzureUserAssignedIdentityResource? UserAssignedIdentity { get; set; }
+
     ReferenceExpression IContainerRegistry.Name => GetContainerRegistry()?.Name ?? ReferenceExpression.Create($"{ContainerRegistryName}");
 
     ReferenceExpression IContainerRegistry.Endpoint => GetContainerRegistry()?.Endpoint ?? ReferenceExpression.Create($"{ContainerRegistryUrl}");

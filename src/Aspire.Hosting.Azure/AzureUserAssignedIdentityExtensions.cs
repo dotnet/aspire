@@ -68,4 +68,25 @@ public static class AzureUserAssignedIdentityExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Gets the user-assigned managed identity associated with the Azure compute environment.
+    /// </summary>
+    /// <typeparam name="T">The type of the Azure compute environment resource.</typeparam>
+    /// <param name="builder">The builder for the Azure compute environment resource.</param>
+    /// <returns>The <see cref="AzureUserAssignedIdentityResource"/> associated with the environment, or <c>null</c> if none is configured.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
+    /// <remarks>
+    /// This method retrieves the user-assigned managed identity that was automatically created
+    /// for the Azure compute environment. This identity can be used to assign roles and permissions
+    /// for resources that the environment needs to access.
+    /// </remarks>
+    public static AzureUserAssignedIdentityResource? GetUserAssignedIdentity<T>(
+        this IResourceBuilder<T> builder)
+        where T : IAzureComputeEnvironmentResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.Resource.UserAssignedIdentity;
+    }
 }

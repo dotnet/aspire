@@ -82,12 +82,21 @@ public static class AzureContainerAppExtensions
                 infra.Add(resourceToken);
             }
 
-            var identity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_mi"))
+            // Use the user-assigned identity from the environment resource
+            UserAssignedIdentity identity;
+            if (appEnvResource.UserAssignedIdentity is not null)
             {
-                Tags = tags
-            };
-
-            infra.Add(identity);
+                identity = (UserAssignedIdentity)appEnvResource.UserAssignedIdentity.AddAsExistingResource(infra);
+            }
+            else
+            {
+                // Fallback: create identity inline if not provided (shouldn't happen normally)
+                identity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{appEnvResource.Name}_mi"))
+                {
+                    Tags = tags
+                };
+                infra.Add(identity);
+            }
 
             AzureProvisioningResource? registry = null;
             if (appEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) &&
@@ -332,6 +341,11 @@ public static class AzureContainerAppExtensions
         var defaultRegistry = CreateDefaultAzureContainerRegistry(builder, registryName, containerAppEnvResource);
         containerAppEnvResource.DefaultContainerRegistry = defaultRegistry;
 
+        // Create the default user-assigned identity resource
+        var identityName = $"{name}-identity";
+        var defaultIdentity = CreateDefaultAzureUserAssignedIdentity(builder, identityName);
+        containerAppEnvResource.UserAssignedIdentity = defaultIdentity;
+
         // Create the resource builder first, then attach the registry to avoid recreating builders
         var appEnvBuilder = builder.ExecutionContext.IsRunMode
             // HACK: We need to return a valid resource builder for the container app environment
@@ -435,6 +449,16 @@ public static class AzureContainerAppExtensions
         };
 
         var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            builder.AddResource(resource);
+        }
+        return resource;
+    }
+
+    private static AzureUserAssignedIdentityResource CreateDefaultAzureUserAssignedIdentity(IDistributedApplicationBuilder builder, string name)
+    {
+        var resource = new AzureUserAssignedIdentityResource(name);
         if (builder.ExecutionContext.IsPublishMode)
         {
             builder.AddResource(resource);

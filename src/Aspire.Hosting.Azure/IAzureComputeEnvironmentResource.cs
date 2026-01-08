@@ -10,4 +10,8 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 public interface IAzureComputeEnvironmentResource : IComputeEnvironmentResource
 {
+    /// <summary>
+    /// Gets the user-assigned managed identity associated with this compute environment.
+    /// </summary>
+    AzureUserAssignedIdentityResource? UserAssignedIdentity { get; }
 }

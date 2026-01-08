@@ -48,6 +48,10 @@ public static partial class AzureAppServiceEnvironmentExtensions
         var registryName = $"{name}-acr";
         var defaultRegistry = CreateDefaultAzureContainerRegistry(builder, registryName);
 
+        // Create the default user-assigned identity resource
+        var identityName = $"{name}-identity";
+        var defaultIdentity = CreateDefaultAzureUserAssignedIdentity(builder, identityName);
+
         var resource = new AzureAppServiceEnvironmentResource(name, static infra =>
         {
             var prefix = infra.AspireResource.Name;
@@ -64,12 +68,21 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             infra.Add(tags);
 
-            var identity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-mi"))
+            // Use the user-assigned identity from the environment resource
+            UserAssignedIdentity identity;
+            if (resource.UserAssignedIdentity is not null)
             {
-                Tags = tags
-            };
-
-            infra.Add(identity);
+                identity = (UserAssignedIdentity)resource.UserAssignedIdentity.AddAsExistingResource(infra);
+            }
+            else
+            {
+                // Fallback: create identity inline if not provided (shouldn't happen normally)
+                identity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-mi"))
+                {
+                    Tags = tags
+                };
+                infra.Add(identity);
+            }
 
             AzureProvisioningResource? registry = null;
             if (resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) &&
@@ -214,7 +227,8 @@ public static partial class AzureAppServiceEnvironmentExtensions
             }
         })
         {
-            DefaultContainerRegistry = defaultRegistry
+            DefaultContainerRegistry = defaultRegistry,
+            UserAssignedIdentity = defaultIdentity
         };
 
         // Create the resource builder first, then attach the registry to avoid recreating builders
@@ -341,6 +355,16 @@ public static partial class AzureAppServiceEnvironmentExtensions
         };
 
         var resource = new AzureContainerRegistryResource(name, configureInfrastructure);
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            builder.AddResource(resource);
+        }
+        return resource;
+    }
+
+    private static AzureUserAssignedIdentityResource CreateDefaultAzureUserAssignedIdentity(IDistributedApplicationBuilder builder, string name)
+    {
+        var resource = new AzureUserAssignedIdentityResource(name);
         if (builder.ExecutionContext.IsPublishMode)
         {
             builder.AddResource(resource);
