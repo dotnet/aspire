@@ -211,3 +211,201 @@ export class ResourceBuilderBase<THandle extends Handle = Handle> {
 
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 }
+
+// ============================================================================
+// AspireList<T> - Mutable List Wrapper
+// ============================================================================
+
+/**
+ * Wrapper for a mutable .NET List<T>.
+ * Provides array-like methods that invoke capabilities on the underlying collection.
+ *
+ * @example
+ * ```typescript
+ * const items = await resource.getItems(); // Returns AspireList<ItemBuilder>
+ * const count = await items.count();
+ * const first = await items.get(0);
+ * await items.add(newItem);
+ * ```
+ */
+export class AspireList<T> {
+    constructor(
+        private readonly _handle: Handle,
+        private readonly _client: AspireClient,
+        private readonly _typeId: string
+    ) {}
+
+    /**
+     * Gets the number of elements in the list.
+     */
+    async count(): Promise<number> {
+        return await this._client.invokeCapability(`${this._typeId}/count`, {
+            list: this._handle
+        }) as number;
+    }
+
+    /**
+     * Gets the element at the specified index.
+     */
+    async get(index: number): Promise<T> {
+        return await this._client.invokeCapability(`${this._typeId}/get`, {
+            list: this._handle,
+            index
+        }) as T;
+    }
+
+    /**
+     * Adds an element to the end of the list.
+     */
+    async add(item: T): Promise<void> {
+        await this._client.invokeCapability(`${this._typeId}/add`, {
+            list: this._handle,
+            item
+        });
+    }
+
+    /**
+     * Removes the element at the specified index.
+     */
+    async removeAt(index: number): Promise<void> {
+        await this._client.invokeCapability(`${this._typeId}/removeAt`, {
+            list: this._handle,
+            index
+        });
+    }
+
+    /**
+     * Clears all elements from the list.
+     */
+    async clear(): Promise<void> {
+        await this._client.invokeCapability(`${this._typeId}/clear`, {
+            list: this._handle
+        });
+    }
+
+    /**
+     * Converts the list to an array (creates a copy).
+     */
+    async toArray(): Promise<T[]> {
+        return await this._client.invokeCapability(`${this._typeId}/toArray`, {
+            list: this._handle
+        }) as T[];
+    }
+
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+}
+
+// ============================================================================
+// AspireDict<K, V> - Mutable Dictionary Wrapper
+// ============================================================================
+
+/**
+ * Wrapper for a mutable .NET Dictionary<K, V>.
+ * Provides object-like methods that invoke capabilities on the underlying collection.
+ *
+ * @example
+ * ```typescript
+ * const config = await resource.getConfig(); // Returns AspireDict<string, string>
+ * const value = await config.get("key");
+ * await config.set("key", "value");
+ * const hasKey = await config.containsKey("key");
+ * ```
+ */
+export class AspireDict<K, V> {
+    constructor(
+        private readonly _handle: Handle,
+        private readonly _client: AspireClient,
+        private readonly _typeId: string
+    ) {}
+
+    /**
+     * Gets the number of key-value pairs in the dictionary.
+     */
+    async count(): Promise<number> {
+        return await this._client.invokeCapability(`${this._typeId}/count`, {
+            dict: this._handle
+        }) as number;
+    }
+
+    /**
+     * Gets the value associated with the specified key.
+     * @throws If the key is not found.
+     */
+    async get(key: K): Promise<V> {
+        return await this._client.invokeCapability(`${this._typeId}/get`, {
+            dict: this._handle,
+            key
+        }) as V;
+    }
+
+    /**
+     * Sets the value for the specified key.
+     */
+    async set(key: K, value: V): Promise<void> {
+        await this._client.invokeCapability(`${this._typeId}/set`, {
+            dict: this._handle,
+            key,
+            value
+        });
+    }
+
+    /**
+     * Determines whether the dictionary contains the specified key.
+     */
+    async containsKey(key: K): Promise<boolean> {
+        return await this._client.invokeCapability(`${this._typeId}/containsKey`, {
+            dict: this._handle,
+            key
+        }) as boolean;
+    }
+
+    /**
+     * Removes the value with the specified key.
+     * @returns True if the element was removed; false if the key was not found.
+     */
+    async remove(key: K): Promise<boolean> {
+        return await this._client.invokeCapability(`${this._typeId}/remove`, {
+            dict: this._handle,
+            key
+        }) as boolean;
+    }
+
+    /**
+     * Clears all key-value pairs from the dictionary.
+     */
+    async clear(): Promise<void> {
+        await this._client.invokeCapability(`${this._typeId}/clear`, {
+            dict: this._handle
+        });
+    }
+
+    /**
+     * Gets all keys in the dictionary.
+     */
+    async keys(): Promise<K[]> {
+        return await this._client.invokeCapability(`${this._typeId}/keys`, {
+            dict: this._handle
+        }) as K[];
+    }
+
+    /**
+     * Gets all values in the dictionary.
+     */
+    async values(): Promise<V[]> {
+        return await this._client.invokeCapability(`${this._typeId}/values`, {
+            dict: this._handle
+        }) as V[];
+    }
+
+    /**
+     * Converts the dictionary to a plain object (creates a copy).
+     * Only works when K is string.
+     */
+    async toObject(): Promise<Record<string, V>> {
+        return await this._client.invokeCapability(`${this._typeId}/toObject`, {
+            dict: this._handle
+        }) as Record<string, V>;
+    }
+
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+}

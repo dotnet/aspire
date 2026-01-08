@@ -10,7 +10,7 @@ public enum AtsTypeCategory
 {
     /// <summary>
     /// Primitive types that serialize directly to JSON values.
-    /// Examples: string, number, boolean, datetime, guid.
+    /// Examples: string, number, boolean, datetime, guid, enum.
     /// </summary>
     Primitive,
 
@@ -29,28 +29,24 @@ public enum AtsTypeCategory
     /// <summary>
     /// Callback types (delegates) that are registered and invoked by ID.
     /// </summary>
-    Callback
-}
-
-/// <summary>
-/// Kinds of ATS types for code generation.
-/// </summary>
-public enum AtsTypeKind
-{
-    /// <summary>
-    /// Primitive types (string, number, boolean, datetime, etc.).
-    /// </summary>
-    Primitive,
+    Callback,
 
     /// <summary>
-    /// Interface types (IResource, IResourceWithEnvironment, etc.).
+    /// Readonly array/collection types that serialize as JSON arrays (copied).
+    /// Examples: T[], IReadOnlyList&lt;T&gt;, IReadOnlyCollection&lt;T&gt;.
     /// </summary>
-    Interface,
+    Array,
 
     /// <summary>
-    /// Concrete types (RedisResource, ContainerResource, etc.).
+    /// Mutable list types that are handles to .NET List&lt;T&gt;.
     /// </summary>
-    ConcreteType
+    List,
+
+    /// <summary>
+    /// Dictionary types that serialize as JSON objects.
+    /// Mutable dictionaries are handles; readonly dictionaries are copied.
+    /// </summary>
+    Dict
 }
 
 /// <summary>
@@ -168,6 +164,12 @@ public static class AtsConstants
     /// </summary>
     public const string Uri = "uri";
 
+    /// <summary>
+    /// Enum type ID prefix. Maps from .NET enum types.
+    /// Full format: "enum:{FullTypeName}". Serializes to JSON string (enum name).
+    /// </summary>
+    public const string EnumPrefix = "enum:";
+
     #endregion
 
     #region Well-known Type IDs
@@ -211,6 +213,13 @@ public static class AtsConstants
     #region Collection Type ID Helpers
 
     /// <summary>
+    /// Creates an array type ID for the given element type.
+    /// </summary>
+    /// <param name="elementType">The element type ID.</param>
+    /// <returns>The array type ID.</returns>
+    public static string ArrayTypeId(string elementType) => $"{elementType}[]";
+
+    /// <summary>
     /// Creates a List type ID for the given element type.
     /// </summary>
     /// <param name="elementType">The element type ID.</param>
@@ -224,6 +233,41 @@ public static class AtsConstants
     /// <param name="valueType">The value type ID.</param>
     /// <returns>The Dict type ID.</returns>
     public static string DictTypeId(string keyType, string valueType) => $"{AspireHostingAssembly}/Dict<{keyType},{valueType}>";
+
+    /// <summary>
+    /// Creates an enum type ID for the given enum type full name.
+    /// </summary>
+    /// <param name="enumFullName">The full name of the enum type.</param>
+    /// <returns>The enum type ID.</returns>
+    public static string EnumTypeId(string enumFullName) => $"{EnumPrefix}{enumFullName}";
+
+    /// <summary>
+    /// Checks if a type ID represents an enum type.
+    /// </summary>
+    /// <param name="typeId">The ATS type ID to check.</param>
+    /// <returns>True if the type is an enum.</returns>
+    public static bool IsEnum(string? typeId) => typeId?.StartsWith(EnumPrefix, StringComparison.Ordinal) == true;
+
+    /// <summary>
+    /// Checks if a type ID represents an array type.
+    /// </summary>
+    /// <param name="typeId">The ATS type ID to check.</param>
+    /// <returns>True if the type is an array.</returns>
+    public static bool IsArray(string? typeId) => typeId?.EndsWith("[]", StringComparison.Ordinal) == true;
+
+    /// <summary>
+    /// Checks if a type ID represents a List type.
+    /// </summary>
+    /// <param name="typeId">The ATS type ID to check.</param>
+    /// <returns>True if the type is a List.</returns>
+    public static bool IsList(string? typeId) => typeId?.Contains("/List<", StringComparison.Ordinal) == true;
+
+    /// <summary>
+    /// Checks if a type ID represents a Dict type.
+    /// </summary>
+    /// <param name="typeId">The ATS type ID to check.</param>
+    /// <returns>True if the type is a Dict.</returns>
+    public static bool IsDict(string? typeId) => typeId?.Contains("/Dict<", StringComparison.Ordinal) == true;
 
     #endregion
 
@@ -279,9 +323,24 @@ public static class AtsConstants
             return AtsTypeCategory.Callback;
         }
 
-        if (IsPrimitive(typeId))
+        if (IsPrimitive(typeId) || IsEnum(typeId))
         {
             return AtsTypeCategory.Primitive;
+        }
+
+        if (IsArray(typeId))
+        {
+            return AtsTypeCategory.Array;
+        }
+
+        if (IsList(typeId))
+        {
+            return AtsTypeCategory.List;
+        }
+
+        if (IsDict(typeId))
+        {
+            return AtsTypeCategory.Dict;
         }
 
         // For handle-format types, we default to Handle.

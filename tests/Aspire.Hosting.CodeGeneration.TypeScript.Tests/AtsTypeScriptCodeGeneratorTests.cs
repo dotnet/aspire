@@ -127,7 +127,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var addTestRedis = capabilities.First(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
         Assert.Equal(2, addTestRedis.Parameters.Count);
         Assert.Equal("Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder", addTestRedis.TargetTypeId);
-        Assert.Contains(addTestRedis.Parameters, p => p.Name == "name" && p.AtsTypeId == "string");
+        Assert.Contains(addTestRedis.Parameters, p => p.Name == "name" && p.Type?.TypeId == "string");
         Assert.Contains(addTestRedis.Parameters, p => p.Name == "port" && p.IsOptional);
     }
 
@@ -138,8 +138,10 @@ public class AtsTypeScriptCodeGeneratorTests
         using var context = new AssemblyLoaderContext();
         var capabilities = ScanCapabilitiesFromTestAssembly(context);
 
-        // Check for any context property capabilities (those with IsContextProperty = true)
-        var contextCapabilities = capabilities.Where(c => c.IsContextProperty).ToList();
+        // Check for any context property capabilities (those with PropertyGetter or PropertySetter kind)
+        var contextCapabilities = capabilities.Where(c =>
+            c.CapabilityKind == AtsCapabilityKind.PropertyGetter ||
+            c.CapabilityKind == AtsCapabilityKind.PropertySetter).ToList();
 
         // Assert context type property capabilities are discovered
         // TestCallbackContext has [AspireContextType] - type ID is derived as {AssemblyName}/{TypeName}
@@ -161,10 +163,9 @@ public class AtsTypeScriptCodeGeneratorTests
         // But TargetTypeId uses the new format {AssemblyName}/{FullTypeName}
         var nameGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.name");
         Assert.NotNull(nameGetterCapability);
-        Assert.True(nameGetterCapability.IsContextProperty);
-        Assert.True(nameGetterCapability.IsContextPropertyGetter);
+        Assert.Equal(AtsCapabilityKind.PropertyGetter, nameGetterCapability.CapabilityKind);
         Assert.Equal("TestCallbackContext.name", nameGetterCapability.MethodName);
-        Assert.Equal("string", nameGetterCapability.ReturnTypeId);
+        Assert.Equal("string", nameGetterCapability.ReturnType?.TypeId);
         Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", nameGetterCapability.TargetTypeId);
         Assert.Single(nameGetterCapability.Parameters);
         Assert.Equal("context", nameGetterCapability.Parameters[0].Name);
@@ -172,25 +173,22 @@ public class AtsTypeScriptCodeGeneratorTests
         // Test setter capability for Name property (writable)
         var nameSetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setName");
         Assert.NotNull(nameSetterCapability);
-        Assert.True(nameSetterCapability.IsContextProperty);
-        Assert.True(nameSetterCapability.IsContextPropertySetter);
+        Assert.Equal(AtsCapabilityKind.PropertySetter, nameSetterCapability.CapabilityKind);
         Assert.Equal("TestCallbackContext.setName", nameSetterCapability.MethodName);
-        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", nameSetterCapability.ReturnTypeId); // Returns context for fluent chaining
+        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext", nameSetterCapability.ReturnType?.TypeId); // Returns context for fluent chaining
         Assert.Equal(2, nameSetterCapability.Parameters.Count); // context + value
 
         // Test getter capability for Value property (camelCase, no "get" prefix)
         var valueGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.value");
         Assert.NotNull(valueGetterCapability);
-        Assert.True(valueGetterCapability.IsContextProperty);
-        Assert.True(valueGetterCapability.IsContextPropertyGetter);
+        Assert.Equal(AtsCapabilityKind.PropertyGetter, valueGetterCapability.CapabilityKind);
         Assert.Equal("TestCallbackContext.value", valueGetterCapability.MethodName);
-        Assert.Equal("number", valueGetterCapability.ReturnTypeId);
+        Assert.Equal("number", valueGetterCapability.ReturnType?.TypeId);
 
         // Test setter capability for Value property (writable)
         var valueSetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setValue");
         Assert.NotNull(valueSetterCapability);
-        Assert.True(valueSetterCapability.IsContextProperty);
-        Assert.True(valueSetterCapability.IsContextPropertySetter);
+        Assert.Equal(AtsCapabilityKind.PropertySetter, valueSetterCapability.CapabilityKind);
 
         // CancellationToken - the type mapping is in Aspire.Hosting assembly.
         // Since the test only loads the test assembly's type mapping, CancellationToken

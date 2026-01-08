@@ -38,7 +38,8 @@ public sealed class AtsParameterInfo
     /// For callbacks, this is <c>callback</c> with <see cref="IsCallback"/> set to true.
     /// </para>
     /// </remarks>
-    public required string AtsTypeId { get; init; }
+    [Obsolete("Use Type.TypeId instead")]
+    public string AtsTypeId { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the type category (Primitive, Handle, Dto, Callback).
@@ -52,20 +53,19 @@ public sealed class AtsParameterInfo
     ///   <item><description><see cref="AtsTypeCategory.Callback"/> - Registered callback delegate</description></item>
     /// </list>
     /// </remarks>
+    [Obsolete("Use Type.Category instead")]
     public AtsTypeCategory TypeCategory { get; init; }
 
     /// <summary>
-    /// Gets or sets the type kind (Primitive, Interface, ConcreteType).
+    /// Gets or sets the type reference with full type metadata.
     /// </summary>
     /// <remarks>
-    /// Indicates the kind of type for code generation:
-    /// <list type="bullet">
-    ///   <item><description><see cref="AtsTypeKind.Primitive"/> - Primitive types (string, number, boolean, etc.)</description></item>
-    ///   <item><description><see cref="AtsTypeKind.Interface"/> - Interface types (IResource, IResourceWithEnvironment, etc.)</description></item>
-    ///   <item><description><see cref="AtsTypeKind.ConcreteType"/> - Concrete types (RedisResource, ContainerResource, etc.)</description></item>
-    /// </list>
+    /// <para>
+    /// Provides the type category (Primitive, Handle, Dto, Callback, Array, List, Dict)
+    /// and additional metadata like IsInterface for Handle types or ElementType for collections.
+    /// </para>
     /// </remarks>
-    public AtsTypeKind TypeKind { get; init; }
+    public AtsTypeRef? Type { get; init; }
 
     /// <summary>
     /// Gets or sets whether this parameter is optional.

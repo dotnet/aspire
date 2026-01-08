@@ -80,7 +80,19 @@ public sealed class AtsCapabilityInfo
     /// For primitive returns, this is the primitive type name.
     /// </para>
     /// </remarks>
+    [Obsolete("Use ReturnType instead")]
     public string? ReturnTypeId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the return type reference with full type metadata.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Provides the type category (Primitive, Handle, Dto, Callback, Array, List, Dict)
+    /// and additional metadata like IsInterface for Handle types or ElementType for collections.
+    /// </para>
+    /// </remarks>
+    public AtsTypeRef? ReturnType { get; init; }
 
     /// <summary>
     /// Gets or sets whether this is an extension method.

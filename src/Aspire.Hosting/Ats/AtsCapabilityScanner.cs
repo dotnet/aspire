@@ -287,12 +287,21 @@ internal static class AtsCapabilityScanner
                 continue;
             }
 
+            var propertyTypeRef = CreateTypeRef(property.PropertyType, typeMapping, typeResolver);
             var propertyTypeId = MapToAtsTypeId(property.PropertyType, typeMapping, typeResolver);
             if (propertyTypeId is null)
             {
                 // Skip properties with unmapped types
                 continue;
             }
+
+            // Create type ref for the context type
+            var contextTypeRef = new AtsTypeRef
+            {
+                TypeId = typeId,
+                Category = AtsTypeCategory.Handle,
+                IsInterface = contextType.IsInterface
+            };
 
             // Get custom method name from attribute if specified
             var customMethodName = memberExportAttr?.NamedArguments.TryGetValue("Id", out var idObj) == true
@@ -317,14 +326,20 @@ internal static class AtsCapabilityScanner
                         new AtsParameterInfo
                         {
                             Name = "context",
+#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
                             AtsTypeId = typeId,
+#pragma warning restore CS0618
+                            Type = contextTypeRef,
                             IsOptional = false,
                             IsNullable = false,
                             IsCallback = false,
                             DefaultValue = null
                         }
                     ],
+#pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
                     ReturnTypeId = propertyTypeId,
+#pragma warning restore CS0618
+                    ReturnType = propertyTypeRef,
                     IsExtensionMethod = false,
                     OriginalTargetTypeId = typeId,
                     ReturnsBuilder = false,
@@ -351,7 +366,10 @@ internal static class AtsCapabilityScanner
                         new AtsParameterInfo
                         {
                             Name = "context",
+#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
                             AtsTypeId = typeId,
+#pragma warning restore CS0618
+                            Type = contextTypeRef,
                             IsOptional = false,
                             IsNullable = false,
                             IsCallback = false,
@@ -360,14 +378,20 @@ internal static class AtsCapabilityScanner
                         new AtsParameterInfo
                         {
                             Name = "value",
+#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
                             AtsTypeId = propertyTypeId,
+#pragma warning restore CS0618
+                            Type = propertyTypeRef,
                             IsOptional = false,
                             IsNullable = false,
                             IsCallback = false,
                             DefaultValue = null
                         }
                     ],
+#pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
                     ReturnTypeId = typeId, // Returns the context for fluent chaining
+#pragma warning restore CS0618
+                    ReturnType = contextTypeRef,
                     IsExtensionMethod = false,
                     OriginalTargetTypeId = typeId,
                     ReturnsBuilder = false,
@@ -381,6 +405,14 @@ internal static class AtsCapabilityScanner
         // Scan instance methods if ExposeMethods is true
         if (exposeAllMethods)
         {
+            // Create context type ref once for all methods
+            var instanceContextTypeRef = new AtsTypeRef
+            {
+                TypeId = typeId,
+                Category = AtsTypeCategory.Handle,
+                IsInterface = contextType.IsInterface
+            };
+
             foreach (var method in contextType.GetMethods())
             {
                 // Skip static methods, non-public, and special methods
@@ -414,7 +446,10 @@ internal static class AtsCapabilityScanner
                     new AtsParameterInfo
                     {
                         Name = "context",
+#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
                         AtsTypeId = typeId,
+#pragma warning restore CS0618
+                        Type = instanceContextTypeRef,
                         IsOptional = false,
                         IsNullable = false,
                         IsCallback = false,
@@ -449,6 +484,7 @@ internal static class AtsCapabilityScanner
                 }
 
                 // Get return type
+                var returnTypeRef = CreateTypeRef(method.ReturnType, typeMapping, typeResolver);
                 var returnTypeId = MapToAtsTypeId(method.ReturnType, typeMapping, typeResolver);
 
                 capabilities.Add(new AtsCapabilityInfo
@@ -458,7 +494,10 @@ internal static class AtsCapabilityScanner
                     Package = package,
                     Description = $"Invokes the {method.Name} method",
                     Parameters = paramInfos,
+#pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
                     ReturnTypeId = returnTypeId,
+#pragma warning restore CS0618
+                    ReturnType = returnTypeRef,
                     IsExtensionMethod = false,
                     OriginalTargetTypeId = typeId,
                     ReturnsBuilder = false,
@@ -543,6 +582,7 @@ internal static class AtsCapabilityScanner
         }
 
         // Get return type
+        var returnTypeRef = CreateTypeRef(method.ReturnType, typeMapping, typeResolver);
         var returnTypeId = MapToAtsTypeId(method.ReturnType, typeMapping, typeResolver);
         var returnsBuilder = returnTypeId != null;
 
@@ -553,7 +593,10 @@ internal static class AtsCapabilityScanner
             Package = package,
             Description = description,
             Parameters = paramInfos,
+#pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
             ReturnTypeId = returnTypeId,
+#pragma warning restore CS0618
+            ReturnType = returnTypeRef,
             IsExtensionMethod = isExtensionMethod,
             OriginalTargetTypeId = extendsTypeId,
             ReturnsBuilder = returnsBuilder,
@@ -571,6 +614,9 @@ internal static class AtsCapabilityScanner
 
         // Check if this is a delegate type (callbacks are inferred from delegate types)
         var isCallback = IsDelegateType(paramType);
+
+        // Create type reference
+        var typeRef = CreateTypeRef(paramType, typeMapping, typeResolver);
 
         // Map the type - return null if unmapped (unless it's a callback)
         var atsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver);
@@ -593,15 +639,19 @@ internal static class AtsCapabilityScanner
         var isNullable = paramType.GenericTypeDefinitionFullName == "System.Nullable`1" ||
                          param.TypeFullName.StartsWith("System.Nullable`1");
 
-        // Determine type kind
-        var typeKind = DetermineTypeKind(atsTypeId, paramType);
+        // For callbacks, create a callback type ref
+        var finalTypeRef = isCallback
+            ? new AtsTypeRef { TypeId = "callback", Category = AtsTypeCategory.Callback }
+            : typeRef;
 
         return new AtsParameterInfo
         {
             Name = string.IsNullOrEmpty(param.Name) ? $"arg{paramIndex}" : param.Name,
+#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
             AtsTypeId = isCallback ? "callback" : atsTypeId!,
             TypeCategory = AtsConstants.GetCategory(atsTypeId, isCallback),
-            TypeKind = typeKind,
+#pragma warning restore CS0618
+            Type = finalTypeRef,
             IsOptional = param.IsOptional,
             IsNullable = isNullable,
             IsCallback = isCallback,
@@ -609,27 +659,6 @@ internal static class AtsCapabilityScanner
             CallbackReturnTypeId = callbackReturnTypeId,
             DefaultValue = param.DefaultValue
         };
-    }
-
-    /// <summary>
-    /// Determines the ATS type kind for a type.
-    /// </summary>
-    private static AtsTypeKind DetermineTypeKind(string? atsTypeId, IAtsTypeInfo type)
-    {
-        // Check if primitive
-        if (AtsConstants.IsPrimitive(atsTypeId))
-        {
-            return AtsTypeKind.Primitive;
-        }
-
-        // Check if interface
-        if (type.IsInterface)
-        {
-            return AtsTypeKind.Interface;
-        }
-
-        // Everything else is a concrete type
-        return AtsTypeKind.ConcreteType;
     }
 
     /// <summary>
@@ -896,6 +925,12 @@ internal static class AtsCapabilityScanner
             return AtsConstants.Uri;
         }
 
+        // Handle enum types
+        if (type.IsEnum)
+        {
+            return AtsConstants.EnumTypeId(typeFullName);
+        }
+
         // Handle Nullable<T>
         if (type.GenericTypeDefinitionFullName == "System.Nullable`1" ||
             typeFullName.StartsWith("System.Nullable`1"))
@@ -1033,6 +1068,323 @@ internal static class AtsCapabilityScanner
         }
 
         // No mapping found - return null to indicate unmapped type
+        return null;
+    }
+
+    /// <summary>
+    /// Creates an AtsTypeRef from a CLR type with full type metadata.
+    /// </summary>
+    public static AtsTypeRef? CreateTypeRef(
+        IAtsTypeInfo? type,
+        AtsTypeMapping typeMapping,
+        IAtsTypeResolver? typeResolver)
+    {
+        if (type == null)
+        {
+            return null;
+        }
+
+        var typeFullName = type.FullName;
+        if (string.IsNullOrEmpty(typeFullName))
+        {
+            return null;
+        }
+
+        // Handle void - no type ref
+        if (typeFullName == "System.Void")
+        {
+            return null;
+        }
+
+        // Handle Task (async void) - no type ref
+        if (typeFullName == "System.Threading.Tasks.Task")
+        {
+            return null;
+        }
+
+        // Handle Task<T> - unwrap to inner type
+        if (type.GenericTypeDefinitionFullName == "System.Threading.Tasks.Task`1" ||
+            typeFullName.StartsWith("System.Threading.Tasks.Task`1"))
+        {
+            var genericArgs = type.GetGenericArguments().ToList();
+            if (genericArgs.Count > 0)
+            {
+                return CreateTypeRef(genericArgs[0], typeMapping, typeResolver);
+            }
+            return null;
+        }
+
+        // Handle Nullable<T> - unwrap to inner type
+        if (type.GenericTypeDefinitionFullName == "System.Nullable`1" ||
+            typeFullName.StartsWith("System.Nullable`1"))
+        {
+            var genericArgs = type.GetGenericArguments().ToList();
+            if (genericArgs.Count > 0)
+            {
+                return CreateTypeRef(genericArgs[0], typeMapping, typeResolver);
+            }
+            return null;
+        }
+
+        // Handle primitives
+        if (typeFullName == "System.String")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.String, Category = AtsTypeCategory.Primitive };
+        }
+        if (typeFullName == "System.Char")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.Char, Category = AtsTypeCategory.Primitive };
+        }
+        if (typeFullName == "System.Boolean")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.Boolean, Category = AtsTypeCategory.Primitive };
+        }
+        if (typeFullName is "System.Int32" or "System.Int64" or "System.Double" or
+            "System.Single" or "System.Int16" or "System.Byte" or "System.Decimal" or
+            "System.UInt16" or "System.UInt32" or "System.UInt64" or "System.SByte")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.Number, Category = AtsTypeCategory.Primitive };
+        }
+
+        // Handle date/time types
+        if (typeFullName == "System.DateTime")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.DateTime, Category = AtsTypeCategory.Primitive };
+        }
+        if (typeFullName == "System.DateTimeOffset")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.DateTimeOffset, Category = AtsTypeCategory.Primitive };
+        }
+        if (typeFullName == "System.DateOnly")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.DateOnly, Category = AtsTypeCategory.Primitive };
+        }
+        if (typeFullName == "System.TimeOnly")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.TimeOnly, Category = AtsTypeCategory.Primitive };
+        }
+        if (typeFullName == "System.TimeSpan")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.TimeSpan, Category = AtsTypeCategory.Primitive };
+        }
+
+        // Handle other scalar types
+        if (typeFullName == "System.Guid")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.Guid, Category = AtsTypeCategory.Primitive };
+        }
+        if (typeFullName == "System.Uri")
+        {
+            return new AtsTypeRef { TypeId = AtsConstants.Uri, Category = AtsTypeCategory.Primitive };
+        }
+
+        // Handle enum types
+        if (type.IsEnum)
+        {
+            return new AtsTypeRef
+            {
+                TypeId = AtsConstants.EnumTypeId(typeFullName),
+                Category = AtsTypeCategory.Primitive
+            };
+        }
+
+        // Handle Dictionary<K,V> - mutable dictionary
+        if (type.GenericTypeDefinitionFullName == "System.Collections.Generic.Dictionary`2" ||
+            type.GenericTypeDefinitionFullName == "System.Collections.Generic.IDictionary`2" ||
+            typeFullName.StartsWith("System.Collections.Generic.Dictionary`2") ||
+            typeFullName.StartsWith("System.Collections.Generic.IDictionary`2"))
+        {
+            var genericArgs = type.GetGenericArguments().ToList();
+            if (genericArgs.Count == 2)
+            {
+                var keyTypeRef = CreateTypeRef(genericArgs[0], typeMapping, typeResolver);
+                var valueTypeRef = CreateTypeRef(genericArgs[1], typeMapping, typeResolver);
+                if (keyTypeRef != null && valueTypeRef != null)
+                {
+                    return new AtsTypeRef
+                    {
+                        TypeId = AtsConstants.DictTypeId(keyTypeRef.TypeId, valueTypeRef.TypeId),
+                        Category = AtsTypeCategory.Dict,
+                        KeyType = keyTypeRef,
+                        ValueType = valueTypeRef,
+                        IsReadOnly = false
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Handle IReadOnlyDictionary<K,V> - immutable dictionary (serialized copy)
+        if (type.GenericTypeDefinitionFullName == "System.Collections.Generic.IReadOnlyDictionary`2" ||
+            typeFullName.StartsWith("System.Collections.Generic.IReadOnlyDictionary`2"))
+        {
+            var genericArgs = type.GetGenericArguments().ToList();
+            if (genericArgs.Count == 2)
+            {
+                var keyTypeRef = CreateTypeRef(genericArgs[0], typeMapping, typeResolver);
+                var valueTypeRef = CreateTypeRef(genericArgs[1], typeMapping, typeResolver);
+                if (keyTypeRef != null && valueTypeRef != null)
+                {
+                    return new AtsTypeRef
+                    {
+                        TypeId = AtsConstants.DictTypeId(keyTypeRef.TypeId, valueTypeRef.TypeId),
+                        Category = AtsTypeCategory.Dict,
+                        KeyType = keyTypeRef,
+                        ValueType = valueTypeRef,
+                        IsReadOnly = true
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Handle List<T> - mutable list
+        if (type.GenericTypeDefinitionFullName == "System.Collections.Generic.List`1" ||
+            type.GenericTypeDefinitionFullName == "System.Collections.Generic.IList`1" ||
+            typeFullName.StartsWith("System.Collections.Generic.List`1") ||
+            typeFullName.StartsWith("System.Collections.Generic.IList`1"))
+        {
+            var genericArgs = type.GetGenericArguments().ToList();
+            if (genericArgs.Count == 1)
+            {
+                var elementTypeRef = CreateTypeRef(genericArgs[0], typeMapping, typeResolver);
+                if (elementTypeRef != null)
+                {
+                    return new AtsTypeRef
+                    {
+                        TypeId = AtsConstants.ListTypeId(elementTypeRef.TypeId),
+                        Category = AtsTypeCategory.List,
+                        ElementType = elementTypeRef
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Handle IReadOnlyList<T>, IReadOnlyCollection<T> - immutable (serialized copy as array)
+        if (type.GenericTypeDefinitionFullName == "System.Collections.Generic.IReadOnlyList`1" ||
+            type.GenericTypeDefinitionFullName == "System.Collections.Generic.IReadOnlyCollection`1" ||
+            typeFullName.StartsWith("System.Collections.Generic.IReadOnlyList`1") ||
+            typeFullName.StartsWith("System.Collections.Generic.IReadOnlyCollection`1"))
+        {
+            var genericArgs = type.GetGenericArguments().ToList();
+            if (genericArgs.Count == 1)
+            {
+                var elementTypeRef = CreateTypeRef(genericArgs[0], typeMapping, typeResolver);
+                if (elementTypeRef != null)
+                {
+                    return new AtsTypeRef
+                    {
+                        TypeId = AtsConstants.ArrayTypeId(elementTypeRef.TypeId),
+                        Category = AtsTypeCategory.Array,
+                        ElementType = elementTypeRef,
+                        IsReadOnly = true
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Handle arrays - serialized copy
+        if (type.IsArray)
+        {
+            var elementType = type.GetElementType();
+            if (elementType != null)
+            {
+                var elementTypeRef = CreateTypeRef(elementType, typeMapping, typeResolver);
+                if (elementTypeRef != null)
+                {
+                    return new AtsTypeRef
+                    {
+                        TypeId = AtsConstants.ArrayTypeId(elementTypeRef.TypeId),
+                        Category = AtsTypeCategory.Array,
+                        ElementType = elementTypeRef,
+                        IsReadOnly = true
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Handle IResourceBuilder<T>
+        if (typeResolver != null && typeResolver.TryGetResourceBuilderTypeArgument(type, out var resourceType) && resourceType != null)
+        {
+            var resolvedType = resourceType;
+            // If T is a generic parameter, use its constraint type instead
+            if (resourceType.IsGenericParameter)
+            {
+                var constraints = resourceType.GetGenericParameterConstraintFullNames().ToList();
+                if (constraints.Count > 0)
+                {
+                    var constraintTypeId = typeMapping.GetTypeId(constraints[0]) ?? InferResourceTypeId(constraints[0]);
+                    return new AtsTypeRef
+                    {
+                        TypeId = constraintTypeId,
+                        Category = AtsTypeCategory.Handle,
+                        IsInterface = true // Constraints are typically interfaces
+                    };
+                }
+            }
+
+            var typeId = typeMapping.GetTypeId(resolvedType) ?? InferResourceTypeId(resolvedType);
+            return new AtsTypeRef
+            {
+                TypeId = typeId,
+                Category = AtsTypeCategory.Handle,
+                IsInterface = resolvedType.IsInterface
+            };
+        }
+
+        // Fallback: Check by type name for IResourceBuilder<T>
+        if (type.GenericTypeDefinitionFullName == "Aspire.Hosting.ApplicationModel.IResourceBuilder`1" ||
+            typeFullName.StartsWith("Aspire.Hosting.ApplicationModel.IResourceBuilder`1"))
+        {
+            var genericArgs = type.GetGenericArguments().ToList();
+            if (genericArgs.Count > 0)
+            {
+                var resType = genericArgs[0];
+
+                // If T is a generic parameter, use the constraint type
+                if (resType.IsGenericParameter)
+                {
+                    var constraints = resType.GetGenericParameterConstraintFullNames().ToList();
+                    if (constraints.Count > 0)
+                    {
+                        var constraintTypeId = typeMapping.GetTypeId(constraints[0]) ?? InferResourceTypeId(constraints[0]);
+                        return new AtsTypeRef
+                        {
+                            TypeId = constraintTypeId,
+                            Category = AtsTypeCategory.Handle,
+                            IsInterface = true
+                        };
+                    }
+                }
+
+                var typeId = typeMapping.GetTypeId(resType) ?? InferResourceTypeId(resType);
+                return new AtsTypeRef
+                {
+                    TypeId = typeId,
+                    Category = AtsTypeCategory.Handle,
+                    IsInterface = resType.IsInterface
+                };
+            }
+        }
+
+        // Try explicit mapping for other types
+        var mappedTypeId = typeMapping.GetTypeId(typeFullName);
+        if (mappedTypeId != null)
+        {
+            // Determine if it's a DTO or Handle based on type mapping metadata
+            // For now, assume explicitly mapped types are Handles
+            return new AtsTypeRef
+            {
+                TypeId = mappedTypeId,
+                Category = AtsTypeCategory.Handle,
+                IsInterface = type.IsInterface
+            };
+        }
+
+        // No mapping found
         return null;
     }
 

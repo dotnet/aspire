@@ -8,6 +8,7 @@ using SharedScanner = Aspire.Hosting.Ats.AtsCapabilityScanner;
 using SharedCapabilityInfo = Aspire.Hosting.Ats.AtsCapabilityInfo;
 using SharedParameterInfo = Aspire.Hosting.Ats.AtsParameterInfo;
 using SharedTypeInfo = Aspire.Hosting.Ats.AtsTypeInfo;
+using SharedTypeRef = Aspire.Hosting.Ats.AtsTypeRef;
 
 namespace Aspire.Hosting.CodeGeneration.Models.Ats;
 
@@ -114,7 +115,10 @@ public static class AtsCapabilityScanner
             Package = shared.Package,
             Description = shared.Description,
             Parameters = shared.Parameters.Select(ConvertParameter).ToList(),
+#pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
             ReturnTypeId = shared.ReturnTypeId,
+#pragma warning restore CS0618
+            ReturnType = ConvertTypeRef(shared.ReturnType),
             IsExtensionMethod = shared.IsExtensionMethod,
             TargetTypeId = shared.OriginalTargetTypeId,
             ExpandedTargetTypeIds = shared.ExpandedTargetTypeIds.ToList(),
@@ -129,9 +133,11 @@ public static class AtsCapabilityScanner
         return new AtsParameterInfo
         {
             Name = shared.Name,
+#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
             AtsTypeId = shared.AtsTypeId,
             TypeCategory = shared.TypeCategory,
-            TypeKind = shared.TypeKind,
+#pragma warning restore CS0618
+            Type = ConvertTypeRef(shared.Type),
             IsOptional = shared.IsOptional,
             IsNullable = shared.IsNullable,
             IsCallback = shared.IsCallback,
@@ -142,6 +148,25 @@ public static class AtsCapabilityScanner
             }).ToList(),
             CallbackReturnTypeId = shared.CallbackReturnTypeId,
             DefaultValue = shared.DefaultValue
+        };
+    }
+
+    private static AtsTypeRef? ConvertTypeRef(SharedTypeRef? shared)
+    {
+        if (shared == null)
+        {
+            return null;
+        }
+
+        return new AtsTypeRef
+        {
+            TypeId = shared.TypeId,
+            Category = shared.Category,
+            IsInterface = shared.IsInterface,
+            ElementType = ConvertTypeRef(shared.ElementType),
+            KeyType = ConvertTypeRef(shared.KeyType),
+            ValueType = ConvertTypeRef(shared.ValueType),
+            IsReadOnly = shared.IsReadOnly
         };
     }
 
