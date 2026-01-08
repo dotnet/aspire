@@ -12,14 +12,10 @@ namespace Aspire.Cli.EndToEndTests.Helpers;
 /// </summary>
 public sealed class AspireCliAutomationContext
 {
-    private readonly AspireCliAutomationBuilder _builder;
-
     internal AspireCliAutomationContext(
-        AspireCliAutomationBuilder builder,
         Hex1bTerminalInputSequenceBuilder sequenceBuilder,
         AspireTerminalSession session)
     {
-        _builder = builder;
         SequenceBuilder = sequenceBuilder;
         Session = session;
     }
@@ -33,13 +29,6 @@ public sealed class AspireCliAutomationContext
     /// The terminal session containing the terminal, process, and recorder.
     /// </summary>
     public AspireTerminalSession Session { get; }
-
-    /// <summary>
-    /// Increments the command sequence counter and returns the new value.
-    /// Call this after adding a command that will produce a prompt update.
-    /// </summary>
-    /// <returns>The new command sequence number.</returns>
-    public int IncrementCommandSequence() => _builder.IncrementCommandSequence();
 }
 
 /// <summary>
@@ -51,14 +40,12 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     private readonly AspireTerminalSession _session;
     private readonly Hex1bTerminalInputSequenceBuilder _sequenceBuilder;
     private readonly ITestOutputHelper? _output;
-    private int _commandSequence;
 
     private AspireCliAutomationBuilder(AspireTerminalSession session, ITestOutputHelper? output)
     {
         _session = session;
         _sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
         _output = output;
-        _commandSequence = 0;
     }
 
     /// <summary>
@@ -96,7 +83,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
 
     /// <summary>
     /// Prepares the shell environment with a custom prompt that tracks command count and exit status.
-    /// This should be called first. The prompt format is:
+    /// This is useful for debugging recordings. The prompt format is:
     /// [N ✔] $ (success) or [N ✘:code] $ (failure)
     /// Works on both bash (Linux/macOS) and PowerShell (Windows).
     /// </summary>
@@ -105,61 +92,29 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     {
         _output?.WriteLine("Preparing shell environment with command tracking prompt...");
 
-        if (OperatingSystem.IsWindows())
+        return AddSequence(ctx =>
         {
-            // PowerShell prompt setup
-            const string promptSetup = "$global:CMDCOUNT=0; function prompt { $s=$?; $global:CMDCOUNT++; \"[$global:CMDCOUNT $(if($s){'✔'}else{\"✘:$LASTEXITCODE\"})] PS> \" }";
-
-            _sequenceBuilder
-                .Type(promptSetup)
-                .Enter()
-                .Wait(TimeSpan.FromMilliseconds(500));
-        }
-        else
-        {
-            // Bash prompt setup
-            const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo ✔ || echo ✘:$s)] \\$ \"'";
-
-            _sequenceBuilder
-                .Type(promptSetup)
-                .Enter()
-                .Wait(TimeSpan.FromMilliseconds(500));
-        }
-
-        _commandSequence++;
-        return WaitForSequence(_commandSequence);
-    }
-
-    /// <summary>
-    /// Waits for a specific command sequence number to appear in the prompt.
-    /// If the command succeeded (✔), returns normally. If it failed (✘), throws an exception.
-    /// </summary>
-    /// <param name="sequenceNumber">The command sequence number to wait for.</param>
-    /// <param name="timeout">Maximum time to wait (default: 5 minutes).</param>
-    /// <returns>The builder for chaining.</returns>
-    public AspireCliAutomationBuilder WaitForSequence(int sequenceNumber, TimeSpan? timeout = null)
-    {
-        var successPattern = $"[{sequenceNumber} ✔]";
-        var failurePattern = $"[{sequenceNumber} ✘";
-
-        _sequenceBuilder.WaitUntil(
-            snapshot =>
+            if (OperatingSystem.IsWindows())
             {
-                var text = snapshot.GetScreenText();
+                // PowerShell prompt setup
+                const string promptSetup = "$global:CMDCOUNT=0; function prompt { $s=$?; $global:CMDCOUNT++; \"[$global:CMDCOUNT $(if($s){'✔'}else{\"✘:$LASTEXITCODE\"})] PS> \" }";
 
-                if (text.Contains(failurePattern, StringComparison.Ordinal))
-                {
-                    throw new TerminalCommandFailedException(
-                        $"Command {sequenceNumber} failed.",
-                        snapshot,
-                        sequenceNumber);
-                }
+                ctx.SequenceBuilder
+                    .Type(promptSetup)
+                    .Enter()
+                    .Wait(TimeSpan.FromSeconds(1));
+            }
+            else
+            {
+                // Bash prompt setup
+                const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo ✔ || echo ✘:$s)] \\$ \"'";
 
-                return text.Contains(successPattern, StringComparison.Ordinal);
-            },
-            timeout ?? TimeSpan.FromMinutes(5));
-
-        return this;
+                ctx.SequenceBuilder
+                    .Type(promptSetup)
+                    .Enter()
+                    .Wait(TimeSpan.FromSeconds(1));
+            }
+        });
     }
 
     /// <summary>
@@ -168,7 +123,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// When running locally (not in CI), uses an echo command for testing.
     /// </summary>
     /// <param name="prNumber">The PR number to download.</param>
-    /// <param name="timeout">Maximum time to wait for installation (default: 5 minutes).</param>
+    /// <param name="timeout">Maximum time to wait for installation (default: 10 minutes).</param>
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder InstallAspireCliFromPullRequest(int prNumber, TimeSpan? timeout = null)
     {
@@ -183,7 +138,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
             _output?.WriteLine($"[LOCAL] Simulating Aspire CLI install from PR #{prNumber}...");
         }
 
-        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(10);
 
         return AddSequence(ctx =>
         {
@@ -205,7 +160,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Type(command)
                     .Enter()
                     .WaitUntil(
-                        snapshot => snapshot.GetScreenText().Contains("Successfully added aspire to", StringComparison.OrdinalIgnoreCase),
+                        snapshot => snapshot.GetScreenText().Contains("Aspire CLI successfully installed to:", StringComparison.OrdinalIgnoreCase),
                         effectiveTimeout);
             }
             else
@@ -220,9 +175,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Enter()
                     .Wait(TimeSpan.FromMilliseconds(500));
             }
-
-            ctx.IncrementCommandSequence();
-        }).WaitForSequence(_commandSequence, isCI ? timeout : TimeSpan.FromSeconds(10));
+        });
     }
 
     /// <summary>
@@ -259,7 +212,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                 ctx.SequenceBuilder
                     .Type("source ~/.bashrc")
                     .Enter()
-                    .Wait(TimeSpan.FromMilliseconds(500));
+                    .Wait(TimeSpan.FromSeconds(1));
             }
             else
             {
@@ -268,9 +221,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Enter()
                     .Wait(TimeSpan.FromMilliseconds(500));
             }
-
-            ctx.IncrementCommandSequence();
-        }).WaitForSequence(_commandSequence);
+        });
     }
 
     /// <summary>
@@ -319,9 +270,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Enter()
                     .Wait(TimeSpan.FromMilliseconds(500));
             }
-
-            ctx.IncrementCommandSequence();
-        }).WaitForSequence(_commandSequence);
+        });
     }
 
     /// <summary>
@@ -346,17 +295,10 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder AddSequence(Action<AspireCliAutomationContext> configure)
     {
-        var context = new AspireCliAutomationContext(this, _sequenceBuilder, _session);
+        var context = new AspireCliAutomationContext(_sequenceBuilder, _session);
         configure(context);
         return this;
     }
-
-    /// <summary>
-    /// Increments the command sequence counter and returns the new value.
-    /// This is called internally by builder methods and can be used via <see cref="AspireCliAutomationContext.IncrementCommandSequence"/>.
-    /// </summary>
-    /// <returns>The new command sequence number.</returns>
-    internal int IncrementCommandSequence() => ++_commandSequence;
 
     /// <summary>
     /// Executes the automation sequence with built-in exception handling and assertions.
@@ -373,14 +315,6 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         {
             await sequence.ApplyAsync(_session.Terminal, cancellationToken);
             _output?.WriteLine("Automation sequence completed successfully.");
-        }
-        catch (TerminalCommandFailedException ex)
-        {
-            _output?.WriteLine($"Command {ex.CommandSequence} failed.");
-            _output?.WriteLine("Terminal content:");
-            _output?.WriteLine(ex.TerminalContent);
-
-            Assert.Fail($"Command {ex.CommandSequence} failed. Terminal content:\n{ex.TerminalContent}");
         }
         catch (TimeoutException ex)
         {

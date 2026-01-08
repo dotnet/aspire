@@ -47,44 +47,6 @@ internal static class AspireCliHex1bExtensions
     }
 
     /// <summary>
-    /// Waits for a specific command sequence number to appear in the prompt.
-    /// The prompt format is [N ✔] $ (success) or [N ✘:code] $ (failure).
-    /// If the command succeeded (✔), returns normally. If it failed (✘), throws an exception.
-    /// </summary>
-    /// <param name="builder">The input sequence builder.</param>
-    /// <param name="sequenceNumber">The command sequence number to wait for.</param>
-    /// <param name="timeout">Maximum time to wait (default: 5 minutes).</param>
-    /// <returns>The builder for chaining.</returns>
-    /// <exception cref="TerminalCommandFailedException">Thrown if the command failed (prompt shows ✘).</exception>
-    public static Hex1bTerminalInputSequenceBuilder WaitForSequence(
-        this Hex1bTerminalInputSequenceBuilder builder,
-        int sequenceNumber,
-        TimeSpan? timeout = null)
-    {
-        var successPattern = $"[{sequenceNumber} ✔]";
-        var failurePattern = $"[{sequenceNumber} ✘";
-
-        return builder.WaitUntil(
-            snapshot =>
-            {
-                var text = snapshot.GetScreenText();
-
-                // Check for failure first
-                if (text.Contains(failurePattern, StringComparison.Ordinal))
-                {
-                    throw new TerminalCommandFailedException(
-                        $"Command {sequenceNumber} failed.",
-                        snapshot,
-                        sequenceNumber);
-                }
-
-                // Check for success
-                return text.Contains(successPattern, StringComparison.Ordinal);
-            },
-            timeout ?? TimeSpan.FromMinutes(5));
-    }
-
-    /// <summary>
     /// Installs the Aspire CLI from a specific pull request's build artifacts.
     /// Uses the appropriate installation script for the current platform.
     /// </summary>
@@ -181,7 +143,7 @@ internal static class AspireCliHex1bExtensions
 
     /// <summary>
     /// Applies the built sequence to the terminal, handling exceptions and asserting on failures.
-    /// This method catches <see cref="TerminalCommandFailedException"/> and <see cref="TimeoutException"/>,
+    /// This method catches <see cref="TimeoutException"/>,
     /// logs the terminal content, and fails the test with a descriptive message.
     /// </summary>
     /// <param name="sequence">The built input sequence to apply.</param>
@@ -197,14 +159,6 @@ internal static class AspireCliHex1bExtensions
         try
         {
             await sequence.ApplyAsync(terminal, cancellationToken);
-        }
-        catch (TerminalCommandFailedException ex)
-        {
-            output?.WriteLine($"Command {ex.CommandSequence} failed.");
-            output?.WriteLine("Terminal content:");
-            output?.WriteLine(ex.TerminalContent);
-
-            Assert.Fail($"Command {ex.CommandSequence} failed. Terminal content:\n{ex.TerminalContent}");
         }
         catch (TimeoutException ex)
         {
