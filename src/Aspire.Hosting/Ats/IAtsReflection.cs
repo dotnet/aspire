@@ -58,6 +58,9 @@ internal interface IAtsTypeInfo
     /// <summary>Gets the full name of the array element type, or null if not an array.</summary>
     string? GetElementTypeFullName();
 
+    /// <summary>Gets the array element type as IAtsTypeInfo, or null if not an array.</summary>
+    IAtsTypeInfo? GetElementType();
+
     /// <summary>Gets the full names of generic parameter constraints (for type parameters).</summary>
     IEnumerable<string> GetGenericParameterConstraintFullNames();
 
@@ -156,6 +159,9 @@ internal interface IAtsPropertyInfo
 
     /// <summary>Gets whether this is a static property.</summary>
     bool IsStatic { get; }
+
+    /// <summary>Gets all custom attributes on this property.</summary>
+    IEnumerable<IAtsAttributeInfo> GetCustomAttributes();
 }
 
 /// <summary>

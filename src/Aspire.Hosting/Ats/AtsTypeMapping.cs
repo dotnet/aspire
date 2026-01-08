@@ -11,6 +11,7 @@ namespace Aspire.Hosting.Ats;
 internal static class AspireExportAttributeNames
 {
     public const string FullName = "Aspire.Hosting.AspireExportAttribute";
+    public const string IgnoreFullName = "Aspire.Hosting.AspireExportIgnoreAttribute";
 }
 
 /// <summary>

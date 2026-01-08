@@ -156,36 +156,37 @@ public class AtsTypeScriptCodeGeneratorTests
             return;
         }
 
-        // Test getter capability for Name property
-        var nameGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.getName");
+        // Test getter capability for Name property (camelCase, no "get" prefix)
+        // Note: Capability IDs use namespace-based package (Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes)
+        var nameGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.name");
         Assert.NotNull(nameGetterCapability);
         Assert.True(nameGetterCapability.IsContextProperty);
         Assert.True(nameGetterCapability.IsContextPropertyGetter);
-        Assert.Equal("TestCallbackContext.getName", nameGetterCapability.MethodName);
+        Assert.Equal("TestCallbackContext.name", nameGetterCapability.MethodName);
         Assert.Equal("string", nameGetterCapability.ReturnTypeId);
-        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext", nameGetterCapability.TargetTypeId);
+        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext", nameGetterCapability.TargetTypeId);
         Assert.Single(nameGetterCapability.Parameters);
         Assert.Equal("context", nameGetterCapability.Parameters[0].Name);
 
         // Test setter capability for Name property (writable)
-        var nameSetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.setName");
+        var nameSetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setName");
         Assert.NotNull(nameSetterCapability);
         Assert.True(nameSetterCapability.IsContextProperty);
         Assert.True(nameSetterCapability.IsContextPropertySetter);
         Assert.Equal("TestCallbackContext.setName", nameSetterCapability.MethodName);
-        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext", nameSetterCapability.ReturnTypeId); // Returns context for fluent chaining
+        Assert.Equal("Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext", nameSetterCapability.ReturnTypeId); // Returns context for fluent chaining
         Assert.Equal(2, nameSetterCapability.Parameters.Count); // context + value
 
-        // Test getter capability for Value property
-        var valueGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.getValue");
+        // Test getter capability for Value property (camelCase, no "get" prefix)
+        var valueGetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.value");
         Assert.NotNull(valueGetterCapability);
         Assert.True(valueGetterCapability.IsContextProperty);
         Assert.True(valueGetterCapability.IsContextPropertyGetter);
-        Assert.Equal("TestCallbackContext.getValue", valueGetterCapability.MethodName);
+        Assert.Equal("TestCallbackContext.value", valueGetterCapability.MethodName);
         Assert.Equal("number", valueGetterCapability.ReturnTypeId);
 
         // Test setter capability for Value property (writable)
-        var valueSetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.setValue");
+        var valueSetterCapability = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setValue");
         Assert.NotNull(valueSetterCapability);
         Assert.True(valueSetterCapability.IsContextProperty);
         Assert.True(valueSetterCapability.IsContextPropertySetter);

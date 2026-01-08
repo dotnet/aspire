@@ -100,6 +100,10 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 {
     private TextWriter _writer = null!;
 
+    // Mapping of typeId -> wrapper class name for all generated wrapper types
+    // Used to resolve parameter types to wrapper classes instead of handle types
+    private readonly Dictionary<string, string> _wrapperClassNames = new(StringComparer.Ordinal);
+
     // Well-known type IDs using the derived format: {AssemblyName}/{TypeName}
     private const string TypeId_Builder = "Aspire.Hosting/IDistributedApplicationBuilder";
     private const string TypeId_Application = "Aspire.Hosting/DistributedApplication";
@@ -238,10 +242,10 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Generate handle type aliases
         GenerateHandleTypeAliases(typeIds);
 
-        // Identify context types (those with IsContextProperty capabilities)
+        // Identify context types (those with IsContextProperty or IsContextMethod capabilities)
         var contextTypeIds = new HashSet<string>(
             capabilities
-                .Where(c => c.IsContextProperty && !string.IsNullOrEmpty(c.TargetTypeId))
+                .Where(c => (c.IsContextProperty || c.IsContextMethod) && !string.IsNullOrEmpty(c.TargetTypeId))
                 .Select(c => c.TargetTypeId!),
             StringComparer.Ordinal);
 
@@ -252,6 +256,31 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var contextTypes = builders.Where(b => contextTypeIds.Contains(b.TypeId)).ToList();
         var resourceBuilders = builders.Where(b => !contextTypeIds.Contains(b.TypeId) && AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
         var wrapperTypes = builders.Where(b => !contextTypeIds.Contains(b.TypeId) && !AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
+
+        // Build wrapper class name mapping for type resolution
+        // This allows parameter types to use wrapper class names instead of handle types
+        _wrapperClassNames.Clear();
+        foreach (var contextType in contextTypes)
+        {
+            _wrapperClassNames[contextType.TypeId] = DeriveContextClassName(contextType.TypeId);
+        }
+        foreach (var builder in resourceBuilders)
+        {
+            _wrapperClassNames[builder.TypeId] = builder.BuilderClassName;
+        }
+        foreach (var wrapper in wrapperTypes)
+        {
+            _wrapperClassNames[wrapper.TypeId] = DeriveWrapperClassName(wrapper.TypeId);
+        }
+        // Add ReferenceExpression (defined in base.ts, not generated)
+        _wrapperClassNames["Aspire.Hosting.ApplicationModel/ReferenceExpression"] = "ReferenceExpression";
+
+        // Add namespace-based type ID aliases for context types
+        // Callback parameter type IDs use namespace-based format (from DeriveTypeIdFromFullName)
+        // while type-level [AspireExport] uses assembly-based format (from DeriveTypeId)
+        // We need both to match callback parameters to their wrapper classes
+        _wrapperClassNames[TypeId_EnvironmentContext] = "EnvironmentCallbackContext";
+        _wrapperClassNames[TypeId_ExecutionContext] = "DistributedApplicationExecutionContext";
 
         // Generate context type classes (with fluent get/set methods)
         foreach (var contextType in contextTypes)
@@ -614,6 +643,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 // Callbacks need to be wrapped with registerCallback
                 paramArgs.Add($"callback: {param.Name}Id");
             }
+            else if (_wrapperClassNames.ContainsKey(param.AtsTypeId))
+            {
+                // Parameter is a wrapper type - extract its handle for the capability call
+                paramArgs.Add($"{param.Name}: {param.Name}._handle");
+            }
             else
             {
                 paramArgs.Add($"{param.Name}");
@@ -853,16 +887,39 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
     }
 
-    private static string MapAtsTypeToTypeScript(string atsTypeId, bool isCallback)
+    private string MapAtsTypeToTypeScript(string atsTypeId, bool isCallback)
     {
         return MapAtsTypeToTypeScript(atsTypeId, isCallback, null, null);
     }
 
-    private static string MapAtsTypeToTypeScript(string atsTypeId, bool isCallback, IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters, string? callbackReturnTypeId)
+    private string MapAtsTypeToTypeScript(string atsTypeId, bool isCallback, IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters, string? callbackReturnTypeId)
     {
         if (isCallback)
         {
             return GenerateCallbackTypeSignature(callbackParameters, callbackReturnTypeId);
+        }
+
+        // Check if this type has a generated wrapper class (exact type ID match)
+        if (_wrapperClassNames.TryGetValue(atsTypeId, out var wrapperClassName))
+        {
+            return wrapperClassName;
+        }
+
+        // Type IDs may differ in package (namespace vs assembly name) but have the same type name
+        // e.g., "Aspire.Hosting/EnvironmentCallbackContext" vs "Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext"
+        // Try to match by type name if exact type ID match fails
+        var slashIndex = atsTypeId.LastIndexOf('/');
+        if (slashIndex > 0)
+        {
+            var typeName = atsTypeId[(slashIndex + 1)..];
+            foreach (var kvp in _wrapperClassNames)
+            {
+                // Check if the wrapper class name matches the type name from the type ID
+                if (kvp.Value.Equals(typeName, StringComparison.Ordinal))
+                {
+                    return kvp.Value;
+                }
+            }
         }
 
         return atsTypeId switch
@@ -871,16 +928,15 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             "number" => "number",
             "boolean" => "boolean",
             "any" => "unknown",
-            "callback" => "(context: EnvironmentContextHandle) => Promise<void>",
             _ when IsHandleType(atsTypeId) =>
-                GetHandleTypeName(atsTypeId),
+                GetHandleTypeName(atsTypeId),  // Fallback for types without wrappers
             _ when atsTypeId.EndsWith("[]", StringComparison.Ordinal) =>
                 $"{MapAtsTypeToTypeScript(atsTypeId[..^2], false)}[]",
             _ => "unknown"
         };
     }
 
-    private static string GenerateCallbackTypeSignature(IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters, string? callbackReturnTypeId)
+    private string GenerateCallbackTypeSignature(IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters, string? callbackReturnTypeId)
     {
         // Build parameter list
         var paramList = new List<string>();
@@ -895,17 +951,28 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         var paramsString = paramList.Count > 0 ? string.Join(", ", paramList) : "";
 
-        // Determine return type
-        var returnType = callbackReturnTypeId switch
+        // Determine return type - use wrapper mapping for handle types
+        string returnType;
+        if (callbackReturnTypeId is null or "void" or "task")
         {
-            null or "void" or "task" => "void",
-            "string" => "string",
-            "number" => "number",
-            "boolean" => "boolean",
-            _ when IsHandleType(callbackReturnTypeId) =>
-                GetHandleTypeName(callbackReturnTypeId),
-            _ => "unknown"
-        };
+            returnType = "void";
+        }
+        else if (_wrapperClassNames.TryGetValue(callbackReturnTypeId, out var wrapperClassName))
+        {
+            returnType = wrapperClassName;
+        }
+        else
+        {
+            returnType = callbackReturnTypeId switch
+            {
+                "string" => "string",
+                "number" => "number",
+                "boolean" => "boolean",
+                _ when IsHandleType(callbackReturnTypeId) =>
+                    GetHandleTypeName(callbackReturnTypeId),
+                _ => "unknown"
+            };
+        }
 
         // Callbacks are always async in TypeScript
         return $"({paramsString}) => Promise<{returnType}>";
@@ -927,8 +994,22 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             // Single parameter callback
             var param = callbackParameters[0];
             var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, false);
+
             WriteLine($"        const {callbackParam.Name}Id = registerCallback(async ({param.Name}Data: unknown) => {{");
-            WriteLine($"            const {param.Name} = wrapIfHandle({param.Name}Data) as {tsType};");
+
+            if (_wrapperClassNames.TryGetValue(param.AtsTypeId, out var wrapperClassName))
+            {
+                // For types with wrapper classes, create an instance of the wrapper
+                var handleType = GetHandleTypeName(param.AtsTypeId);
+                WriteLine($"            const {param.Name}Handle = wrapIfHandle({param.Name}Data) as {handleType};");
+                WriteLine($"            const {param.Name} = new {wrapperClassName}({param.Name}Handle, this._client);");
+            }
+            else
+            {
+                // For raw handle types, just wrap and cast
+                WriteLine($"            const {param.Name} = wrapIfHandle({param.Name}Data) as {tsType};");
+            }
+
             WriteLine($"            await {callbackParam.Name}({param.Name});");
             WriteLine("        });");
         }
@@ -946,7 +1027,19 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             {
                 var param = callbackParameters[i];
                 var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, false);
-                WriteLine($"            const {param.Name} = wrapIfHandle(args.p{i}) as {tsType};");
+
+                if (_wrapperClassNames.TryGetValue(param.AtsTypeId, out var wrapperClassName))
+                {
+                    // For types with wrapper classes, create an instance of the wrapper
+                    var handleType = GetHandleTypeName(param.AtsTypeId);
+                    WriteLine($"            const {param.Name}Handle = wrapIfHandle(args.p{i}) as {handleType};");
+                    WriteLine($"            const {param.Name} = new {wrapperClassName}({param.Name}Handle, this._client);");
+                }
+                else
+                {
+                    // For raw handle types, just wrap and cast
+                    WriteLine($"            const {param.Name} = wrapIfHandle(args.p{i}) as {tsType};");
+                }
                 callArgs.Add(param.Name);
             }
 
@@ -1122,9 +1215,10 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($"    get handle(): {handleType} {{ return this._handle; }}");
         WriteLine();
 
-        // Separate getters and setters
+        // Separate getters, setters, and instance methods
         var getters = contextType.Capabilities.Where(c => c.IsContextPropertyGetter).ToList();
         var setters = contextType.Capabilities.Where(c => c.IsContextPropertySetter).ToList();
+        var methods = contextType.Capabilities.Where(c => c.IsContextMethod).ToList();
 
         // Generate getter methods
         foreach (var getter in getters)
@@ -1142,6 +1236,12 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         foreach (var setter in setters)
         {
             GenerateContextSetterPublicMethod(setter, promiseClassName);
+        }
+
+        // Generate instance methods
+        foreach (var method in methods)
+        {
+            GenerateContextMethod(method);
         }
 
         WriteLine("}");
@@ -1173,6 +1273,62 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($"        return await this._client.invokeCapability<{returnType}>(");
         WriteLine($"            '{getter.CapabilityId}',");
         WriteLine($"            {{ context: this._handle }}");
+        WriteLine("        );");
+        WriteLine("    }");
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Generates a context instance method (from ExposeMethods=true).
+    /// </summary>
+    private void GenerateContextMethod(AtsCapabilityInfo method)
+    {
+        // Extract method name from capability (e.g., "TestContext.doSomething" -> "doSomething")
+        var methodName = method.MethodName.Contains('.')
+            ? method.MethodName[(method.MethodName.LastIndexOf('.') + 1)..]
+            : method.MethodName;
+
+        // Build parameter list (skip "context" parameter which is implicit)
+        var paramDefs = new List<string>();
+        var paramArgs = new List<string> { "context: this._handle" };
+
+        foreach (var param in method.Parameters.Where(p => p.Name != "context"))
+        {
+            var tsType = MapAtsTypeToTypeScript(param.AtsTypeId, param.IsCallback, param.CallbackParameters, param.CallbackReturnTypeId);
+            var optional = param.IsOptional || param.IsNullable ? "?" : "";
+            paramDefs.Add($"{param.Name}{optional}: {tsType}");
+            paramArgs.Add(param.Name);
+        }
+
+        var paramsString = string.Join(", ", paramDefs);
+        var argsObject = $"{{ {string.Join(", ", paramArgs)} }}";
+
+        // Determine return type
+        var returnType = method.ReturnTypeId != null
+            ? MapAtsTypeToTypeScript(method.ReturnTypeId, false)
+            : "void";
+
+        // Generate JSDoc
+        if (!string.IsNullOrEmpty(method.Description))
+        {
+            WriteLine($"    /** {method.Description} */");
+        }
+
+        // Generate async method
+        Write($"    async {methodName}(");
+        Write(paramsString);
+        WriteLine($"): Promise<{returnType}> {{");
+
+        if (returnType == "void")
+        {
+            WriteLine($"        await this._client.invokeCapability<void>(");
+        }
+        else
+        {
+            WriteLine($"        return await this._client.invokeCapability<{returnType}>(");
+        }
+        WriteLine($"            '{method.CapabilityId}',");
+        WriteLine($"            {argsObject}");
         WriteLine("        );");
         WriteLine("    }");
         WriteLine();
@@ -1535,6 +1691,13 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     {
         var slashIndex = typeId.LastIndexOf('/');
         var typeName = slashIndex >= 0 ? typeId[(slashIndex + 1)..] : typeId;
+
+        // Sanitize generic types like "Dict<String,Object>" -> "DictStringObject"
+        // Remove angle brackets and commas to make valid TypeScript identifier
+        typeName = typeName
+            .Replace("<", "", StringComparison.Ordinal)
+            .Replace(">", "", StringComparison.Ordinal)
+            .Replace(",", "", StringComparison.Ordinal);
 
         // For interface types (starting with I followed by uppercase), use {TypeName}Handle
         if (typeName.StartsWith('I') && typeName.Length > 1 && char.IsUpper(typeName[1]))

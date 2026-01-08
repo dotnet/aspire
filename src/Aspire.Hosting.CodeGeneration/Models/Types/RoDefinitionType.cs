@@ -363,6 +363,9 @@ public sealed class RoDefinitionType : RoType
 
                 var propertyName = _reader.GetString(propertyDef.Name);
 
+                // Load custom attributes for this property
+                var customAttributes = LoadPropertyCustomAttributes(propertyHandle);
+
                 properties.Add(new RoPropertyInfo
                 {
                     Name = propertyName,
@@ -370,7 +373,8 @@ public sealed class RoDefinitionType : RoType
                     DeclaringType = this,
                     CanRead = hasPublicGetter,
                     CanWrite = hasPublicSetter,
-                    IsStatic = isStatic
+                    IsStatic = isStatic,
+                    CustomAttributes = customAttributes
                 });
             }
             catch
@@ -380,6 +384,70 @@ public sealed class RoDefinitionType : RoType
         }
 
         return properties;
+    }
+
+    private List<RoCustomAttributeData> LoadPropertyCustomAttributes(PropertyDefinitionHandle propertyHandle)
+    {
+        var list = new List<RoCustomAttributeData>();
+        var propertyDef = _reader.GetPropertyDefinition(propertyHandle);
+        var provider = new CustomAttributeTypeProvider(_reader);
+
+        foreach (var attrHandle in propertyDef.GetCustomAttributes())
+        {
+            try
+            {
+                var customAttribute = _reader.GetCustomAttribute(attrHandle);
+                RoType? attributeType = null;
+
+                switch (customAttribute.Constructor.Kind)
+                {
+                    case HandleKind.MethodDefinition:
+                        {
+                            var ctorMethod = _reader.GetMethodDefinition((MethodDefinitionHandle)customAttribute.Constructor);
+                            var declaringTypeHandle = ctorMethod.GetDeclaringType();
+                            var typeDef = _reader.GetTypeDefinition(declaringTypeHandle);
+                            var name = _reader.GetString(typeDef.Name);
+                            var ns = typeDef.Namespace.IsNil ? string.Empty : _reader.GetString(typeDef.Namespace);
+                            var fullName = string.IsNullOrEmpty(ns) ? name : $"{ns}.{name}";
+                            attributeType = DeclaringAssembly.AssemblyLoaderContext.GetType(fullName);
+                            break;
+                        }
+                    case HandleKind.MemberReference:
+                        {
+                            var memberRef = _reader.GetMemberReference((MemberReferenceHandle)customAttribute.Constructor);
+                            var parent = memberRef.Parent;
+                            var fullName = parent.GetTypeName(_reader);
+
+                            if (fullName is not null)
+                            {
+                                attributeType = DeclaringAssembly.AssemblyLoaderContext.GetType(fullName);
+                            }
+                            break;
+                        }
+                }
+
+                var val = customAttribute.DecodeValue(provider);
+
+                var fixedArgs = val.FixedArguments.Select(a => a.Value).ToArray();
+                var namedArgs = val.NamedArguments.Select(na => new KeyValuePair<string, object>(na.Name!, na.Value!)).ToArray();
+
+                if (attributeType is not null)
+                {
+                    list.Add(new RoCustomAttributeData
+                    {
+                        AttributeType = attributeType,
+                        FixedArguments = fixedArgs,
+                        NamedArguments = namedArgs
+                    });
+                }
+            }
+            catch
+            {
+                // Skip attributes that can't be resolved
+            }
+        }
+
+        return list;
     }
 
     private IReadOnlyList<RoType> LoadGenericArguments()

@@ -85,9 +85,15 @@ internal sealed class CapabilityDispatcher
                         var property = ((RuntimePropertyInfo)capability.SourceProperty).UnderlyingProperty;
                         RegisterContextTypeProperty(capability, property);
                     }
+                    else if (capability.IsContextMethod && capability.SourceMethod != null)
+                    {
+                        // Context type method capability (instance method)
+                        var method = ((RuntimeMethodInfo)capability.SourceMethod).UnderlyingMethod;
+                        RegisterContextTypeMethod(capability, method);
+                    }
                     else if (capability.SourceMethod != null)
                     {
-                        // Method capability
+                        // Static method capability
                         var method = ((RuntimeMethodInfo)capability.SourceMethod).UnderlyingMethod;
                         RegisterFromCapability(capability, method);
                     }
@@ -197,6 +203,115 @@ internal sealed class CapabilityDispatcher
                 Description = capability.Description ?? $"Sets the {property.Name} property"
             };
         }
+    }
+
+    /// <summary>
+    /// Registers a context type method capability (instance method).
+    /// </summary>
+    private void RegisterContextTypeMethod(AtsCapabilityInfo capability, MethodInfo method)
+    {
+        var capabilityId = capability.CapabilityId;
+        var parameters = method.GetParameters();
+
+        CapabilityHandler handler = (args, handles) =>
+        {
+            // First parameter is always "context" - the instance to invoke on
+            if (args == null || !args.TryGetPropertyValue("context", out var contextNode))
+            {
+                throw CapabilityException.InvalidArgument(capabilityId, "context", "Missing required argument 'context'");
+            }
+
+            var handleRef = HandleRef.FromJsonNode(contextNode);
+            if (handleRef == null)
+            {
+                throw CapabilityException.InvalidArgument(capabilityId, "context", "Argument 'context' must be a handle reference");
+            }
+
+            if (!handles.TryGet(handleRef.HandleId, out var contextObj, out _))
+            {
+                throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
+            }
+
+            // Build method arguments from the remaining parameters
+            var methodArgs = new object?[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var param = parameters[i];
+                var paramName = param.Name ?? $"arg{i}";
+
+                if (args.TryGetPropertyValue(paramName, out var argNode))
+                {
+                    var context = new AtsMarshaller.UnmarshalContext
+                    {
+                        Handles = handles,
+                        CallbackProxyFactory = _callbackProxyFactory,
+                        CapabilityId = capabilityId,
+                        ParameterName = paramName
+                    };
+                    methodArgs[i] = AtsMarshaller.UnmarshalFromJson(argNode, param.ParameterType, context);
+                }
+                else if (param.HasDefaultValue)
+                {
+                    methodArgs[i] = param.DefaultValue;
+                }
+                else
+                {
+                    throw CapabilityException.InvalidArgument(
+                        capabilityId, paramName, $"Missing required argument '{paramName}'");
+                }
+            }
+
+            // Handle generic methods - resolve type parameters from actual arguments
+            var methodToInvoke = method;
+            if (method.ContainsGenericParameters)
+            {
+                methodToInvoke = GenericMethodResolver.MakeGenericMethodFromArgs(method, methodArgs);
+            }
+
+            object? result;
+            try
+            {
+                // Invoke instance method on the context object
+                result = methodToInvoke.Invoke(contextObj, methodArgs);
+            }
+            catch (TargetInvocationException tie) when (tie.InnerException is not null)
+            {
+                throw tie.InnerException;
+            }
+
+            // Handle async methods
+            if (result is Task task)
+            {
+                try
+                {
+                    task.GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(ex.Message, ex);
+                }
+
+                var taskType = task.GetType();
+                if (taskType.IsGenericType)
+                {
+                    var resultProperty = taskType.GetProperty("Result");
+                    result = resultProperty?.GetValue(task);
+                }
+                else
+                {
+                    result = null;
+                }
+            }
+
+            return ConvertResult(result, handles);
+        };
+
+        _capabilities[capabilityId] = new CapabilityRegistration
+        {
+            CapabilityId = capabilityId,
+            Handler = handler,
+            Description = capability.Description ?? $"Invokes the {method.Name} method"
+        };
     }
 
     /// <summary>

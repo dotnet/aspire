@@ -25,25 +25,25 @@ import {
 // ============================================================================
 
 /** Handle to EndpointReference */
-export type EndpointReferenceBuilderHandle = Handle<'Aspire.Hosting.ApplicationModel/EndpointReference'>;
+export type EndpointReferenceHandle = Handle<'Aspire.Hosting.ApplicationModel/EndpointReference'>;
 
 /** Handle to EnvironmentCallbackContext */
-export type EnvironmentCallbackContextBuilderHandle = Handle<'Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext'>;
+export type EnvironmentCallbackContextHandle = Handle<'Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext'>;
 
 /** Handle to IResourceBuilder<IResource> */
 export type IResourceHandle = Handle<'Aspire.Hosting.ApplicationModel/IResource'>;
 
-/** Handle to IResourceBuilder<TestRedisResource> */
-export type TestRedisResourceBuilderHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestRedisResource'>;
-
 /** Handle to IResourceBuilder<TestCallbackContext> */
-export type TestCallbackContextBuilderHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext'>;
+export type TestCallbackContextHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext'>;
+
+/** Handle to IResourceBuilder<TestRedisResource> */
+export type TestRedisResourceHandle = Handle<'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestRedisResource'>;
 
 /** Handle to DistributedApplication */
-export type DistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/DistributedApplication'>;
+export type DistributedApplicationHandle = Handle<'Aspire.Hosting/DistributedApplication'>;
 
 /** Handle to DistributedApplicationExecutionContext */
-export type DistributedApplicationExecutionContextBuilderHandle = Handle<'Aspire.Hosting/DistributedApplicationExecutionContext'>;
+export type DistributedApplicationExecutionContextHandle = Handle<'Aspire.Hosting/DistributedApplicationExecutionContext'>;
 
 /** Handle to IDistributedApplicationBuilder */
 export type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/IDistributedApplicationBuilder'>;
@@ -53,35 +53,35 @@ export type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/IDistr
 // ============================================================================
 
 /**
- * Context type for Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.
+ * Context type for Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.
  * Provides fluent property access via get/set methods.
  */
 export class TestCallbackContext {
-    constructor(private _handle: TestCallbackContextBuilderHandle, private _client: AspireClientRpc) {}
+    constructor(private _handle: TestCallbackContextHandle, private _client: AspireClientRpc) {}
 
     /** Gets the underlying handle */
-    get handle(): TestCallbackContextBuilderHandle { return this._handle; }
+    get handle(): TestCallbackContextHandle { return this._handle; }
 
     /** Gets the Name property */
-    async getName(): Promise<string> {
+    async name(): Promise<string> {
         return await this._client.invokeCapability<string>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.getName',
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.name',
             { context: this._handle }
         );
     }
 
     /** Gets the Value property */
-    async getValue(): Promise<number> {
+    async value(): Promise<number> {
         return await this._client.invokeCapability<number>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.getValue',
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.value',
             { context: this._handle }
         );
     }
 
     /** @internal */
     async _setNameInternal(value: string): Promise<TestCallbackContext> {
-        const result = await this._client.invokeCapability<TestCallbackContextBuilderHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.setName',
+        const result = await this._client.invokeCapability<TestCallbackContextHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setName',
             { context: this._handle, value }
         );
         return new TestCallbackContext(result, this._client);
@@ -89,8 +89,8 @@ export class TestCallbackContext {
 
     /** @internal */
     async _setValueInternal(value: number): Promise<TestCallbackContext> {
-        const result = await this._client.invokeCapability<TestCallbackContextBuilderHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/TestCallbackContext.setValue',
+        const result = await this._client.invokeCapability<TestCallbackContextHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setValue',
             { context: this._handle, value }
         );
         return new TestCallbackContext(result, this._client);
@@ -124,13 +124,13 @@ export class TestCallbackContextPromise implements PromiseLike<TestCallbackConte
     }
 
     /** Gets the Name property */
-    getName(): Promise<string> {
-        return this._promise.then(ctx => ctx.getName());
+    name(): Promise<string> {
+        return this._promise.then(ctx => ctx.name());
     }
 
     /** Gets the Value property */
-    getValue(): Promise<number> {
-        return this._promise.then(ctx => ctx.getValue());
+    value(): Promise<number> {
+        return this._promise.then(ctx => ctx.value());
     }
 
     /** Sets the Name property */
@@ -157,7 +157,7 @@ export class TestCallbackContextPromise implements PromiseLike<TestCallbackConte
  * Represents a built distributed application ready to run.
  */
 export class DistributedApplication extends DistributedApplicationBase {
-    constructor(handle: ApplicationHandle, client: AspireClientRpc) {
+    constructor(handle: DistributedApplicationHandle, client: AspireClientRpc) {
         super(handle, client);
     }
 }
@@ -178,7 +178,7 @@ export class DistributedApplicationPromise implements PromiseLike<DistributedApp
 
     /**
      * Runs the distributed application, starting all configured resources.
-     * Chains through the promise for fluent usage: await builder.build().run()
+     * Chains through the promise for fluent chaining: await builder.build().run()
      */
     run(): Promise<void> {
         return this._promise.then(app => app.run());
@@ -190,13 +190,13 @@ export class DistributedApplicationPromise implements PromiseLike<DistributedApp
  * Use createBuilder() to get an instance.
  */
 export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {
-    constructor(handle: BuilderHandle, client: AspireClientRpc) {
+    constructor(handle: IDistributedApplicationBuilderHandle, client: AspireClientRpc) {
         super(handle, client);
     }
 
     /** @internal - actual async implementation */
     async _buildInternal(): Promise<DistributedApplication> {
-        const handle = await this._client.invokeCapability<ApplicationHandle>(
+        const handle = await this._client.invokeCapability<DistributedApplicationHandle>(
             'Aspire.Hosting/build',
             { builder: this._handle }
         );
@@ -215,7 +215,7 @@ export class DistributedApplicationBuilder extends DistributedApplicationBuilder
      * Adds a test Redis resource
      */
     addTestRedis(name: string, port?: number): TestRedisResourceBuilderPromise {
-        const promise = this._client.invokeCapability<TestRedisResourceBuilderHandle>(
+        const promise = this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis',
             { builder: this._handle, name, port }
         ).then(handle => new TestRedisResourceBuilder(handle, this._client));
@@ -227,15 +227,15 @@ export class DistributedApplicationBuilder extends DistributedApplicationBuilder
 // TestRedisResourceBuilder
 // ============================================================================
 
-export class TestRedisResourceBuilder extends ResourceBuilderBase<TestRedisResourceBuilderHandle> {
-    constructor(handle: TestRedisResourceBuilderHandle, client: AspireClientRpc) {
+export class TestRedisResourceBuilder extends ResourceBuilderBase<TestRedisResourceHandle> {
+    constructor(handle: TestRedisResourceHandle, client: AspireClientRpc) {
         super(handle, client);
     }
 
     /** Configures the Redis resource with persistence */
     /** @internal */
     async _withPersistenceInternal(mode?: unknown): Promise<TestRedisResourceBuilder> {
-        const result = await this._client.invokeCapability<TestRedisResourceBuilderHandle>(
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withPersistence',
             { builder: this._handle, mode }
         );
@@ -249,7 +249,7 @@ export class TestRedisResourceBuilder extends ResourceBuilderBase<TestRedisResou
     /** Adds an optional string parameter */
     /** @internal */
     async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<TestRedisResourceBuilder> {
-        const result = await this._client.invokeCapability<TestRedisResourceBuilderHandle>(
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString',
             { builder: this._handle, value, enabled }
         );
@@ -341,7 +341,7 @@ export async function connect(): Promise<AspireClientRpc> {
  */
 export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
     const client = await connect();
-    const handle = await client.invokeCapability<BuilderHandle>(
+    const handle = await client.invokeCapability<IDistributedApplicationBuilderHandle>(
         'Aspire.Hosting/createBuilder',
         { args }
     );

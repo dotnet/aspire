@@ -102,6 +102,14 @@ internal sealed class AtsCapabilityInfo
     /// Only meaningful when <see cref="IsContextProperty"/> is true.
     /// </summary>
     public bool IsContextPropertySetter { get; init; }
+
+    /// <summary>
+    /// Gets or sets whether this is an auto-generated instance method accessor.
+    /// </summary>
+    /// <remarks>
+    /// This is set when <c>ExposeMethods = true</c> on a type's [AspireExport] attribute.
+    /// </remarks>
+    public bool IsContextMethod { get; init; }
 }
 
 /// <summary>

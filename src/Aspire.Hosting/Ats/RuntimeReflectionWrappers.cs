@@ -85,6 +85,12 @@ internal sealed class RuntimeTypeInfo : IAtsTypeInfo
         return _type.GetElementType()?.FullName;
     }
 
+    public IAtsTypeInfo? GetElementType()
+    {
+        var elementType = _type.GetElementType();
+        return elementType != null ? new RuntimeTypeInfo(elementType) : null;
+    }
+
     public IEnumerable<string> GetGenericParameterConstraintFullNames()
     {
         if (!_type.IsGenericParameter)
@@ -263,6 +269,14 @@ internal sealed class RuntimePropertyInfo : IAtsPropertyInfo
     public bool CanRead => _prop.CanRead;
     public bool CanWrite => _prop.CanWrite;
     public bool IsStatic => _prop.GetMethod?.IsStatic ?? _prop.SetMethod?.IsStatic ?? false;
+
+    public IEnumerable<IAtsAttributeInfo> GetCustomAttributes()
+    {
+        foreach (var attr in _prop.GetCustomAttributesData())
+        {
+            yield return new RuntimeAttributeInfo(attr);
+        }
+    }
 }
 
 /// <summary>

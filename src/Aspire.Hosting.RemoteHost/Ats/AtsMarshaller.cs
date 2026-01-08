@@ -141,7 +141,7 @@ internal static class AtsMarshaller
             return JsonValue.Create(value);
         }
 
-        // Arrays - marshal each element recursively
+        // Arrays - serialize as JSON array (snapshot/copy)
         if (type.IsArray)
         {
             var jsonArray = new JsonArray();
@@ -152,6 +152,40 @@ internal static class AtsMarshaller
             return jsonArray;
         }
 
+        // Check for immutable collection interfaces first - serialize as copies
+        // IReadOnlyList<T>, IReadOnlyCollection<T> -> serialize as JSON array
+        if (type.IsGenericType)
+        {
+            var genericDef = type.GetGenericTypeDefinition();
+            var genericArgs = type.GetGenericArguments();
+
+            // IReadOnlyDictionary<K,V> - serialize as JSON object (copy)
+            if (typeof(IReadOnlyDictionary<,>).MakeGenericType(genericArgs).IsAssignableFrom(type) &&
+                !typeof(IDictionary).IsAssignableFrom(type)) // Exclude mutable Dictionary<K,V>
+            {
+                // Serialize as JSON object - immutable copy
+                var jsonObj = new JsonObject();
+                foreach (var kvp in (dynamic)value)
+                {
+                    string key = kvp.Key.ToString();
+                    jsonObj[key] = MarshalToJson(kvp.Value, handles);
+                }
+                return jsonObj;
+            }
+
+            // IReadOnlyList<T>, IReadOnlyCollection<T> - serialize as JSON array (copy)
+            if ((genericDef == typeof(IReadOnlyList<>) || genericDef == typeof(IReadOnlyCollection<>)) &&
+                !typeof(IList).IsAssignableFrom(type)) // Exclude mutable List<T>
+            {
+                var jsonArray = new JsonArray();
+                foreach (var item in (IEnumerable)value)
+                {
+                    jsonArray.Add(MarshalToJson(item, handles));
+                }
+                return jsonArray;
+            }
+        }
+
         // IList<T> (including List<T>) - marshal as a handle to support mutation
         if (value is IList && type.IsGenericType)
         {
@@ -159,7 +193,8 @@ internal static class AtsMarshaller
             if (genericArgs.Length == 1)
             {
                 // Marshal as a handle so list operations can mutate it
-                var typeId = Hosting.Ats.AtsTypeMapping.DeriveTypeId(type);
+                // Use special type IDs for collection handles
+                var typeId = $"Aspire.Hosting/List<{genericArgs[0].Name}>";
                 return handles.Marshal(value, typeId);
             }
         }
@@ -171,7 +206,8 @@ internal static class AtsMarshaller
             if (genericArgs.Length == 2 && genericArgs[0] == typeof(string))
             {
                 // Marshal as a handle so dictionary operations can mutate it
-                var typeId = Hosting.Ats.AtsTypeMapping.DeriveTypeId(type);
+                // Use special type ID for Dict handles
+                var typeId = $"Aspire.Hosting/Dict<string,{genericArgs[1].Name}>";
                 return handles.Marshal(value, typeId);
             }
         }

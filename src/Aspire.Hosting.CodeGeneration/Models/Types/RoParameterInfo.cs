@@ -7,7 +7,7 @@ using static Aspire.Hosting.CodeGeneration.Models.Types.SrmTypeShape;
 
 namespace Aspire.Hosting.CodeGeneration.Models.Types;
 
-public sealed class RoParameterInfo
+public sealed class RoParameterInfo : IRoParameterInfo
 {
     private readonly ParameterHandle _parameterHandle;
     private readonly Parameter _parameter;

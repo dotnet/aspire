@@ -32,6 +32,12 @@ public sealed class RoConstructedGenericType : RoType
     public override IReadOnlyList<RoType> GetGenericArguments() => _genericTypeArguments;
     public override IReadOnlyList<RoType> GenericTypeArguments => _genericTypeArguments;
     public override bool ContainsGenericParameters => _genericTypeArguments.Any(a => a.ContainsGenericParameters);
+    public override RoType? BaseType => _genericTypeDefinition.BaseType;
+
+    public override IReadOnlyList<RoMethod> Methods =>
+        _genericTypeDefinition.Methods
+            .Select(m => (RoMethod)new RoSubstitutedMethod(m, this, _genericTypeArguments))
+            .ToList();
 
     public override RoType MakeGenericType(params RoType[] typeArguments)
     {

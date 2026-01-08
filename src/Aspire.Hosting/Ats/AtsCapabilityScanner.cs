@@ -49,8 +49,9 @@ internal static class AtsCapabilityScanner
                 }
             }
 
-            // Check for [AspireExport(ExposeProperties = true)] - auto-generate property accessor capabilities
-            if (HasExposePropertiesAttribute(type))
+            // Check for [AspireExport(ExposeProperties = true)] or [AspireExport(ExposeMethods = true)]
+            // Auto-generate property/method accessor capabilities
+            if (HasExposePropertiesAttribute(type) || HasExposeMethodsAttribute(type))
             {
                 var contextCapabilities = CreateContextTypeCapabilities(type, assembly.Name, typeMapping, typeResolver);
                 capabilities.AddRange(contextCapabilities);
@@ -261,10 +262,27 @@ internal static class AtsCapabilityScanner
         var slashIndex = typeId.IndexOf('/');
         var package = slashIndex >= 0 ? typeId[..slashIndex] : assemblyName;
 
+        // Check for ExposeProperties and ExposeMethods flags
+        var exposeAllProperties = HasExposePropertiesAttribute(contextType);
+        var exposeAllMethods = HasExposeMethodsAttribute(contextType);
+
         // Scan properties
         foreach (var property in contextType.GetProperties())
         {
             if (property.IsStatic)
+            {
+                continue;
+            }
+
+            // Check for [AspireExportIgnore]
+            if (HasExportIgnoreAttribute(property))
+            {
+                continue;
+            }
+
+            // Check if property should be exported (either via ExposeProperties=true or member-level [AspireExport])
+            var memberExportAttr = GetAspireExportAttribute(property);
+            if (!exposeAllProperties && memberExportAttr == null)
             {
                 continue;
             }
@@ -275,10 +293,17 @@ internal static class AtsCapabilityScanner
                 continue;
             }
 
+            // Get custom method name from attribute if specified
+            var customMethodName = memberExportAttr?.NamedArguments.TryGetValue("Id", out var idObj) == true
+                ? idObj as string
+                : null;
+
             // Generate getter capability if property is readable
+            // Naming: {TypeName}.{propertyName} (camelCase, no "get" prefix)
             if (property.CanRead)
             {
-                var getMethodName = $"{typeName}.get{property.Name}";
+                var camelCaseName = ToCamelCase(property.Name);
+                var getMethodName = customMethodName ?? $"{typeName}.{camelCaseName}";
                 var getCapabilityId = $"{package}/{getMethodName}";
 
                 capabilities.Add(new AtsCapabilityInfo
@@ -309,6 +334,7 @@ internal static class AtsCapabilityScanner
             }
 
             // Generate setter capability if property is writable
+            // Naming: {TypeName}.set{PropertyName} (keep "set" prefix, PascalCase property name)
             if (property.CanWrite)
             {
                 var setMethodName = $"{typeName}.set{property.Name}";
@@ -347,6 +373,77 @@ internal static class AtsCapabilityScanner
                     IsContextProperty = true,
                     IsContextPropertySetter = true,
                     SourceProperty = property
+                });
+            }
+        }
+
+        // Scan instance methods if ExposeMethods is true
+        if (exposeAllMethods)
+        {
+            foreach (var method in contextType.GetMethods())
+            {
+                // Skip static methods, non-public, and special methods
+                if (method.IsStatic || !method.IsPublic)
+                {
+                    continue;
+                }
+
+                // Skip property accessors and special runtime methods
+                if (method.Name.StartsWith("get_") || method.Name.StartsWith("set_") ||
+                    method.Name == "GetType" || method.Name == "ToString" ||
+                    method.Name == "Equals" || method.Name == "GetHashCode")
+                {
+                    continue;
+                }
+
+                // Check for [AspireExportIgnore]
+                if (HasExportIgnoreAttribute(method))
+                {
+                    continue;
+                }
+
+                // Generate method capability
+                var camelCaseMethodName = ToCamelCase(method.Name);
+                var methodCapabilityName = $"{typeName}.{camelCaseMethodName}";
+                var methodCapabilityId = $"{package}/{methodCapabilityName}";
+
+                // Build parameters (first parameter is the context/instance)
+                var paramInfos = new List<AtsParameterInfo>
+                {
+                    new AtsParameterInfo
+                    {
+                        Name = "context",
+                        AtsTypeId = typeId,
+                        IsOptional = false,
+                        IsNullable = false,
+                        IsCallback = false,
+                        DefaultValue = null
+                    }
+                };
+
+                var paramIndex = 0;
+                foreach (var param in method.GetParameters())
+                {
+                    paramInfos.Add(CreateParameterInfo(param, paramIndex, typeMapping, typeResolver));
+                    paramIndex++;
+                }
+
+                // Get return type
+                var returnTypeId = MapToAtsTypeId(method.ReturnType, typeMapping, typeResolver);
+
+                capabilities.Add(new AtsCapabilityInfo
+                {
+                    CapabilityId = methodCapabilityId,
+                    MethodName = methodCapabilityName,
+                    Package = package,
+                    Description = $"Invokes the {method.Name} method",
+                    Parameters = paramInfos,
+                    ReturnTypeId = returnTypeId,
+                    IsExtensionMethod = false,
+                    OriginalTargetTypeId = typeId,
+                    ReturnsBuilder = false,
+                    IsContextMethod = true,
+                    SourceMethod = method
                 });
             }
         }
@@ -501,14 +598,18 @@ internal static class AtsCapabilityScanner
         var invokeMethod = delegateType.GetMethods().FirstOrDefault(m => m.Name == "Invoke");
         if (invokeMethod is null)
         {
-            return (null, null);
+            // Fallback for well-known delegate types when Invoke method isn't available
+            // (e.g., when loading from reference assemblies without full type definitions)
+            return ExtractWellKnownDelegateSignature(delegateType, typeMapping, typeResolver);
         }
 
         // Extract parameters
         var parameters = new List<AtsCallbackParameterInfo>();
         foreach (var param in invokeMethod.GetParameters())
         {
-            var paramAtsTypeId = MapToAtsTypeId(param.ParameterType, typeMapping, typeResolver) ?? "any";
+            // For callback parameters, if type can't be mapped, derive a handle type ID
+            var paramAtsTypeId = MapToAtsTypeId(param.ParameterType, typeMapping, typeResolver)
+                ?? AtsTypeMapping.DeriveTypeIdFromFullName(param.ParameterType.FullName);
             parameters.Add(new AtsCallbackParameterInfo
             {
                 Name = param.Name,
@@ -542,6 +643,93 @@ internal static class AtsCapabilityScanner
         }
 
         return (parameters, returnTypeId);
+    }
+
+    /// <summary>
+    /// Extracts signature from well-known delegate types based on their generic type definition.
+    /// Used as fallback when the Invoke method isn't available from metadata.
+    /// </summary>
+    private static (IReadOnlyList<AtsCallbackParameterInfo>? Parameters, string? ReturnTypeId) ExtractWellKnownDelegateSignature(
+        IAtsTypeInfo delegateType,
+        AtsTypeMapping typeMapping,
+        IAtsTypeResolver? typeResolver)
+    {
+        var genericDefFullName = delegateType.GenericTypeDefinitionFullName;
+        if (string.IsNullOrEmpty(genericDefFullName))
+        {
+            return (null, null);
+        }
+
+        var genericArgs = delegateType.GetGenericArguments().ToList();
+        if (genericArgs.Count == 0)
+        {
+            return (null, null);
+        }
+
+        // Action<T>, Action<T1, T2>, etc. - all params are inputs, void return
+        if (genericDefFullName.StartsWith("System.Action`"))
+        {
+            var parameters = new List<AtsCallbackParameterInfo>();
+            for (var i = 0; i < genericArgs.Count; i++)
+            {
+                var paramType = genericArgs[i];
+                var paramAtsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver)
+                    ?? AtsTypeMapping.DeriveTypeIdFromFullName(paramType.FullName);
+                parameters.Add(new AtsCallbackParameterInfo
+                {
+                    Name = $"arg{i}",
+                    AtsTypeId = paramAtsTypeId
+                });
+            }
+            return (parameters, "void");
+        }
+
+        // Func<TResult>, Func<T, TResult>, Func<T1, T2, TResult>, etc.
+        // Last generic arg is return type, rest are parameters
+        if (genericDefFullName.StartsWith("System.Func`"))
+        {
+            var parameters = new List<AtsCallbackParameterInfo>();
+            for (var i = 0; i < genericArgs.Count - 1; i++)
+            {
+                var paramType = genericArgs[i];
+                var paramAtsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver)
+                    ?? AtsTypeMapping.DeriveTypeIdFromFullName(paramType.FullName);
+                parameters.Add(new AtsCallbackParameterInfo
+                {
+                    Name = $"arg{i}",
+                    AtsTypeId = paramAtsTypeId
+                });
+            }
+
+            var returnType = genericArgs[^1];
+            var returnTypeFullName = returnType.FullName;
+            string returnTypeId;
+
+            if (returnTypeFullName == "System.Void")
+            {
+                returnTypeId = "void";
+            }
+            else if (returnTypeFullName == "System.Threading.Tasks.Task")
+            {
+                returnTypeId = "task";
+            }
+            else if (returnTypeFullName.StartsWith("System.Threading.Tasks.Task`1"))
+            {
+                // Task<T> - get the inner type
+                var innerType = returnType.GetGenericArguments().FirstOrDefault();
+                returnTypeId = innerType is not null
+                    ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? "any"
+                    : "task";
+            }
+            else
+            {
+                returnTypeId = MapToAtsTypeId(returnType, typeMapping, typeResolver) ?? "any";
+            }
+
+            return (parameters, returnTypeId);
+        }
+
+        return (null, null);
     }
 
     /// <summary>
@@ -611,6 +799,70 @@ internal static class AtsCapabilityScanner
             {
                 return MapToAtsTypeId(genericArgs[0], typeMapping, typeResolver);
             }
+        }
+
+        // Handle Dictionary<K,V> - mutable dictionary, return as Dict handle
+        if (type.GenericTypeDefinitionFullName == "System.Collections.Generic.Dictionary`2" ||
+            type.GenericTypeDefinitionFullName == "System.Collections.Generic.IDictionary`2" ||
+            typeFullName.StartsWith("System.Collections.Generic.Dictionary`2") ||
+            typeFullName.StartsWith("System.Collections.Generic.IDictionary`2"))
+        {
+            var genericArgs = type.GetGenericArguments().ToList();
+            if (genericArgs.Count == 2)
+            {
+                var keyTypeName = genericArgs[0].Name;
+                var valueTypeName = genericArgs[1].Name;
+                return $"Aspire.Hosting/Dict<{keyTypeName},{valueTypeName}>";
+            }
+        }
+
+        // Handle IReadOnlyDictionary<K,V> - immutable, return as regular object (serialized copy)
+        if (type.GenericTypeDefinitionFullName == "System.Collections.Generic.IReadOnlyDictionary`2" ||
+            typeFullName.StartsWith("System.Collections.Generic.IReadOnlyDictionary`2"))
+        {
+            return "object"; // Serialized as JSON object copy
+        }
+
+        // Handle List<T> - mutable list, return as List handle
+        if (type.GenericTypeDefinitionFullName == "System.Collections.Generic.List`1" ||
+            type.GenericTypeDefinitionFullName == "System.Collections.Generic.IList`1" ||
+            typeFullName.StartsWith("System.Collections.Generic.List`1") ||
+            typeFullName.StartsWith("System.Collections.Generic.IList`1"))
+        {
+            var genericArgs = type.GetGenericArguments().ToList();
+            if (genericArgs.Count == 1)
+            {
+                var elementTypeName = genericArgs[0].Name;
+                return $"Aspire.Hosting/List<{elementTypeName}>";
+            }
+        }
+
+        // Handle IReadOnlyList<T>, IReadOnlyCollection<T> - immutable, return as array (serialized copy)
+        if (type.GenericTypeDefinitionFullName == "System.Collections.Generic.IReadOnlyList`1" ||
+            type.GenericTypeDefinitionFullName == "System.Collections.Generic.IReadOnlyCollection`1" ||
+            typeFullName.StartsWith("System.Collections.Generic.IReadOnlyList`1") ||
+            typeFullName.StartsWith("System.Collections.Generic.IReadOnlyCollection`1"))
+        {
+            var genericArgs = type.GetGenericArguments().ToList();
+            if (genericArgs.Count == 1)
+            {
+                var elementTypeId = MapToAtsTypeId(genericArgs[0], typeMapping, typeResolver);
+                // Only export if element type is a known ATS type
+                return elementTypeId != null ? $"{elementTypeId}[]" : null;
+            }
+        }
+
+        // Handle arrays - return as typed array (serialized copy)
+        if (type.IsArray)
+        {
+            var elementType = type.GetElementType();
+            if (elementType != null)
+            {
+                var elementTypeId = MapToAtsTypeId(elementType, typeMapping, typeResolver);
+                // Only export if element type is a known ATS type
+                return elementTypeId != null ? $"{elementTypeId}[]" : null;
+            }
+            return null;
         }
 
         // Handle IResourceBuilder<T> - use resolver if available for accurate type checking
@@ -893,6 +1145,63 @@ internal static class AtsCapabilityScanner
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Checks if a type has [AspireExport(ExposeMethods = true)] attribute.
+    /// </summary>
+    private static bool HasExposeMethodsAttribute(IAtsTypeInfo type)
+    {
+        foreach (var attr in type.GetCustomAttributes())
+        {
+            if (attr.AttributeTypeFullName == AspireExportAttributeNames.FullName)
+            {
+                if (attr.NamedArguments.TryGetValue("ExposeMethods", out var value) && value is true)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if a property has [AspireExportIgnore] attribute.
+    /// </summary>
+    private static bool HasExportIgnoreAttribute(IAtsPropertyInfo property)
+    {
+        return property.GetCustomAttributes()
+            .Any(a => a.AttributeTypeFullName == AspireExportAttributeNames.IgnoreFullName);
+    }
+
+    /// <summary>
+    /// Checks if a method has [AspireExportIgnore] attribute.
+    /// </summary>
+    private static bool HasExportIgnoreAttribute(IAtsMethodInfo method)
+    {
+        return method.GetCustomAttributes()
+            .Any(a => a.AttributeTypeFullName == AspireExportAttributeNames.IgnoreFullName);
+    }
+
+    /// <summary>
+    /// Gets [AspireExport] attribute from a property (for member-level export).
+    /// </summary>
+    private static IAtsAttributeInfo? GetAspireExportAttribute(IAtsPropertyInfo property)
+    {
+        return property.GetCustomAttributes()
+            .FirstOrDefault(a => a.AttributeTypeFullName == AspireExportAttributeNames.FullName);
+    }
+
+    /// <summary>
+    /// Converts a PascalCase property name to camelCase.
+    /// </summary>
+    private static string ToCamelCase(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return name;
+        }
+        return char.ToLowerInvariant(name[0]) + name[1..];
     }
 }
 

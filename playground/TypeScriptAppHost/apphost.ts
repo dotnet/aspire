@@ -2,7 +2,7 @@
 // This demonstrates the new ATS capability-based API with fluent builder pattern.
 // Run with: aspire run
 
-import { createBuilder, refExpr } from './.modules/aspire.js';
+import { createBuilder, refExpr, EnvironmentCallbackContextHandle } from './.modules/aspire.js';
 
 console.log("Aspire TypeScript AppHost starting...\n");
 
@@ -22,9 +22,19 @@ const port = 6379;
 const redisUrl = refExpr`redis://localhost:${port}`;
 console.log(`✅ Created reference expression: ${redisUrl}`);
 
+// Add container with environment callback to demonstrate the new callback API
+// Note: The callback receives a handle. Future improvement: auto-wrap into context class.
 const api = await builder
-    .addContainer("api", "mcr.microsoft.com/dotnet/samples:aspnetapp");
-console.log("✅ Added API container");
+    .addContainer("api", "mcr.microsoft.com/dotnet/samples:aspnetapp")
+    .withEnvironmentCallback(async (ctx: EnvironmentCallbackContextHandle) => {
+        console.log(`  📋 Environment callback invoked for API container`);
+
+        // TODO: Once the code generator wraps handles into context classes:
+        // const execContext = await ctx.executionContext();
+        // const vars = await ctx.environmentVariables();
+        // await vars.set("MY_CUSTOM_VAR", "Hello from TypeScript!");
+    });
+console.log("✅ Added API container with environment callback");
 
 // Build and run - fully fluent!
 console.log("\n🚀 Building and running...\n");

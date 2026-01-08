@@ -56,7 +56,17 @@ namespace Aspire.Hosting;
 /// public class EnvironmentCallbackContext
 /// {
 ///     public Dictionary&lt;string, object&gt; EnvironmentVariables { get; }
-///     // Exposed as: Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.getEnvironmentVariables
+///     // Getter: Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.environmentVariables
+///     // Setter: Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.setEnvironmentVariables
+/// }
+///
+/// // Member-level opt-in with ignore for specific members
+/// [AspireExport(ExposeProperties = true)]
+/// public class SomeContext
+/// {
+///     public string Name { get; }  // Exposed
+///     [AspireExportIgnore]
+///     public ILogger Logger { get; }  // Not exposed
 /// }
 ///
 /// // Assembly-level export for types you don't own
@@ -65,7 +75,7 @@ namespace Aspire.Hosting;
 /// </code>
 /// </example>
 [AttributeUsage(
-    AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Assembly,
+    AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Assembly | AttributeTargets.Property,
     Inherited = false,
     AllowMultiple = true)]
 public sealed class AspireExportAttribute : Attribute
@@ -163,7 +173,7 @@ public sealed class AspireExportAttribute : Attribute
     /// <remarks>
     /// <para>
     /// When true, the type's public instance properties that return ATS-compatible types
-    /// are automatically exposed as get/set capabilities.
+    /// are automatically exposed as get/set capabilities (unless marked with <see cref="AspireExportIgnoreAttribute"/>).
     /// </para>
     /// <para>
     /// Use this for context types passed to callbacks (like <c>EnvironmentCallbackContext</c>)
@@ -172,10 +182,25 @@ public sealed class AspireExportAttribute : Attribute
     /// <para>
     /// Property capabilities are named as:
     /// <list type="bullet">
-    /// <item><description><c>{AssemblyName}/{TypeName}.get{PropertyName}</c> for getters</description></item>
-    /// <item><description><c>{AssemblyName}/{TypeName}.set{PropertyName}</c> for setters (writable properties only)</description></item>
+    /// <item><description><c>{Package}/{TypeName}.{propertyName}</c> for getters (camelCase property name)</description></item>
+    /// <item><description><c>{Package}/{TypeName}.set{PropertyName}</c> for setters (writable properties only)</description></item>
     /// </list>
     /// </para>
     /// </remarks>
     public bool ExposeProperties { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to expose public instance methods of this type as ATS capabilities.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When true, the type's public instance methods are automatically exposed as capabilities
+    /// (unless marked with <see cref="AspireExportIgnoreAttribute"/>).
+    /// </para>
+    /// <para>
+    /// Method capabilities are named as <c>{Package}/{TypeName}.{methodName}</c> (camelCase method name).
+    /// The first parameter of the capability will be a handle to the instance.
+    /// </para>
+    /// </remarks>
+    public bool ExposeMethods { get; set; }
 }

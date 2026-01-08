@@ -93,6 +93,12 @@ internal sealed class RoTypeInfoWrapper : IAtsTypeInfo
         return _type.GetElementType()?.FullName;
     }
 
+    public IAtsTypeInfo? GetElementType()
+    {
+        var elementType = _type.GetElementType();
+        return elementType != null ? new RoTypeInfoWrapper(elementType) : null;
+    }
+
     public IEnumerable<string> GetGenericParameterConstraintFullNames()
     {
         if (!_type.IsGenericParameter)
@@ -175,9 +181,20 @@ internal sealed class RoMethodInfoWrapper : IAtsMethodInfo
 
     public IEnumerable<IAtsParameterInfo> GetParameters()
     {
-        foreach (var param in _method.Parameters)
+        // For substituted methods (from constructed generic types), use the substituted parameters
+        if (_method is RoSubstitutedMethod substitutedMethod)
         {
-            yield return new RoParameterInfoWrapper(param);
+            foreach (var param in substitutedMethod.ParametersSubstituted)
+            {
+                yield return new RoParameterInterfaceWrapper(param);
+            }
+        }
+        else
+        {
+            foreach (var param in _method.Parameters)
+            {
+                yield return new RoParameterInfoWrapper(param);
+            }
         }
     }
 
@@ -253,6 +270,34 @@ internal sealed class RoParameterInfoWrapper : IAtsParameterInfo
 }
 
 /// <summary>
+/// Wraps <see cref="IRoParameterInfo"/> (interface) to implement <see cref="IAtsParameterInfo"/>.
+/// Used for substituted parameters from constructed generic types.
+/// </summary>
+internal sealed class RoParameterInterfaceWrapper : IAtsParameterInfo
+{
+    private readonly IRoParameterInfo _param;
+
+    public RoParameterInterfaceWrapper(IRoParameterInfo param)
+    {
+        _param = param ?? throw new ArgumentNullException(nameof(param));
+    }
+
+    public string Name => string.IsNullOrEmpty(_param.Name) ? "arg" : _param.Name;
+    public string TypeFullName => _param.ParameterType.FullName;
+    public IAtsTypeInfo ParameterType => new RoTypeInfoWrapper(_param.ParameterType);
+    public bool IsOptional => _param.IsOptional;
+    public object? DefaultValue => _param.RawDefaultValue;
+
+    public IEnumerable<IAtsAttributeInfo> GetCustomAttributes()
+    {
+        foreach (var attr in _param.GetCustomAttributes())
+        {
+            yield return new RoAttributeInfoWrapper(attr);
+        }
+    }
+}
+
+/// <summary>
 /// Wraps <see cref="RoPropertyInfo"/> to implement <see cref="IAtsPropertyInfo"/>.
 /// </summary>
 internal sealed class RoPropertyInfoWrapper : IAtsPropertyInfo
@@ -273,6 +318,14 @@ internal sealed class RoPropertyInfoWrapper : IAtsPropertyInfo
     public bool CanRead => _prop.CanRead;
     public bool CanWrite => _prop.CanWrite;
     public bool IsStatic => _prop.IsStatic;
+
+    public IEnumerable<IAtsAttributeInfo> GetCustomAttributes()
+    {
+        foreach (var attr in _prop.GetCustomAttributes())
+        {
+            yield return new RoAttributeInfoWrapper(attr);
+        }
+    }
 }
 
 /// <summary>

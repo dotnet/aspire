@@ -15,5 +15,15 @@ public class RoPropertyInfo
     public bool CanWrite { get; init; }
     public bool IsStatic { get; init; }
 
+    /// <summary>
+    /// Gets the custom attributes applied to this property.
+    /// </summary>
+    public IReadOnlyList<RoCustomAttributeData> CustomAttributes { get; init; } = [];
+
+    /// <summary>
+    /// Gets the custom attributes applied to this property.
+    /// </summary>
+    public IEnumerable<RoCustomAttributeData> GetCustomAttributes() => CustomAttributes;
+
     public override string ToString() => $"{(IsStatic ? "static " : "")}{PropertyType.Name} {Name}";
 }
