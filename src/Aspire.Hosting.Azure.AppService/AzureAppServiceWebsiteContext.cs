@@ -886,6 +886,11 @@ internal sealed class AzureAppServiceWebsiteContext(
     /// <param name="stickyConfigNames">The set of deployment slot app settings</param>
     private void AddStickySlotSettings(WebSite? parentWebSite, HashSet<string> stickyConfigNames)
     {
+        if (stickyConfigNames.Count == 0)
+        {
+            return;
+        }
+
         SlotConfigNames slotConfigNames = new("slotConfigNames")
         {
             Parent = parentWebSite

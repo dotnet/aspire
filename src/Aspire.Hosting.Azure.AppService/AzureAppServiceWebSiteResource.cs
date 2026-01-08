@@ -243,22 +243,25 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             60 :
             MaxWebSitePrefixLengthWithSlot;
 
-        if (websiteName.Length > maxWebSiteLength)
+        websiteName = TruncateToMaxLength(websiteName, maxWebSiteLength);
+
+        if (string.IsNullOrWhiteSpace(deploymentSlot))
         {
-            websiteName = websiteName.Substring(0, maxWebSiteLength);
+            return websiteName;
         }
 
-        if (!string.IsNullOrWhiteSpace(deploymentSlot))
-        {
-            websiteName += $"-{deploymentSlot}";
+        websiteName += $"-{deploymentSlot}";
 
-            if (websiteName.Length > MaxHostPrefixLengthWithSlot)
-            {
-                websiteName = websiteName.Substring(0, MaxHostPrefixLengthWithSlot);
-            }
+        return TruncateToMaxLength(websiteName, MaxHostPrefixLengthWithSlot);
+    }
+
+    private static string TruncateToMaxLength(string value, int maxLength)
+    {
+        if (value.Length <= maxLength)
+        {
+            return value;
         }
-        
-        return websiteName;
+        return value.Substring(0, maxLength);
     }
 
     private const string AzureManagementScope = "https://management.azure.com/.default";
