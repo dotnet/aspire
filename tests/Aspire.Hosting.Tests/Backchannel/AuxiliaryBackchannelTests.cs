@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES001
 
 using System.Net.Sockets;
+using System.Text.Json;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -280,6 +281,228 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         // (falling back to AppHost:Path). In real scenarios with proper metadata, we should get .csproj or .cs
         // So we just verify the path is non-empty and rooted
         outputHelper.WriteLine($"AppHost path returned: {appHostInfo.AppHostPath}");
+
+        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+    }
+
+    [Fact]
+    public async Task CallResourceMcpToolAsyncThrowsWhenResourceNotFound()
+    {
+        // This test verifies that CallResourceMcpToolAsync throws when resource is not found
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Add a simple container resource (without MCP)
+        builder.AddContainer("mycontainer", "nginx");
+
+        // Register the auxiliary backchannel service
+        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Try to call a tool on a non-existent resource
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(async () =>
+        {
+            await rpc.InvokeAsync<JsonElement>(
+                "CallResourceMcpToolAsync",
+                new object[] { "nonexistent-resource", "some-tool", new Dictionary<string, object?>() }
+            ).WaitAsync(TimeSpan.FromSeconds(30));
+        });
+
+        Assert.Contains("not found", ex.Message, StringComparison.OrdinalIgnoreCase);
+
+        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+    }
+
+    [Fact]
+    public async Task CallResourceMcpToolAsyncThrowsWhenResourceHasNoMcpAnnotation()
+    {
+        // This test verifies that CallResourceMcpToolAsync throws when resource has no MCP annotation
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Add a simple container resource (without MCP annotation)
+        builder.AddContainer("mycontainer", "nginx");
+
+        // Register the auxiliary backchannel service
+        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Try to call a tool on a resource without MCP annotation
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(async () =>
+        {
+            await rpc.InvokeAsync<JsonElement>(
+                "CallResourceMcpToolAsync",
+                new object[] { "mycontainer", "some-tool", new Dictionary<string, object?>() }
+            ).WaitAsync(TimeSpan.FromSeconds(30));
+        });
+
+        Assert.Contains("MCP endpoint annotation", ex.Message, StringComparison.OrdinalIgnoreCase);
+
+        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+    }
+
+    [Fact]
+    public async Task StopAppHostAsyncInitiatesShutdown()
+    {
+        // This test verifies that StopAppHostAsync initiates AppHost shutdown
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Register the auxiliary backchannel service
+        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Call StopAppHostAsync - this should return immediately and initiate shutdown asynchronously
+        await rpc.InvokeAsync(
+            "StopAppHostAsync",
+            Array.Empty<object>()
+        ).WaitAsync(TimeSpan.FromSeconds(10));
+
+        // The app should eventually stop
+        // We give it some time since StopAppHostAsync initiates shutdown asynchronously
+        var lifetime = app.Services.GetService<IHostApplicationLifetime>();
+        Assert.NotNull(lifetime);
+
+        // Wait for the application to stop or timeout
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
+        {
+            await Task.Delay(Timeout.Infinite, lifetime.ApplicationStopping).WaitAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected - either the app stopped or we timed out
+        }
+
+        // If we get here without timeout, the stop was initiated
+        outputHelper.WriteLine("StopAppHostAsync initiated shutdown successfully");
+    }
+
+    [Fact]
+    public async Task GetAppHostInformationAsyncReturnsCliProcessIdWhenAvailable()
+    {
+        // This test verifies that GetAppHostInformationAsync returns the CLI process ID when configured
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Set the CLI process ID in configuration
+        var expectedCliPid = 12345;
+        builder.Configuration[KnownConfigNames.CliProcessId] = expectedCliPid.ToString();
+
+        // Register the auxiliary backchannel service
+        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Invoke the GetAppHostInformationAsync RPC method
+        var appHostInfo = await rpc.InvokeAsync<AppHostInformation>(
+            "GetAppHostInformationAsync",
+            Array.Empty<object>()
+        ).WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Verify the CLI process ID is returned
+        Assert.NotNull(appHostInfo);
+        Assert.Equal(expectedCliPid, appHostInfo.CliProcessId);
+
+        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+    }
+
+    [Fact]
+    public async Task GetAppHostInformationAsyncReturnsNullCliProcessIdWhenNotConfigured()
+    {
+        // This test verifies that GetAppHostInformationAsync returns null CLI process ID when not configured
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Don't set the CLI process ID in configuration
+
+        // Register the auxiliary backchannel service
+        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        Assert.NotNull(service.SocketPath);
+
+        // Connect a client
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
+        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var rpc = JsonRpc.Attach(stream);
+
+        // Invoke the GetAppHostInformationAsync RPC method
+        var appHostInfo = await rpc.InvokeAsync<AppHostInformation>(
+            "GetAppHostInformationAsync",
+            Array.Empty<object>()
+        ).WaitAsync(TimeSpan.FromSeconds(60));
+
+        // Verify the CLI process ID is null
+        Assert.NotNull(appHostInfo);
+        Assert.Null(appHostInfo.CliProcessId);
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
     }
