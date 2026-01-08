@@ -13,5 +13,5 @@ public interface IAzureComputeEnvironmentResource : IComputeEnvironmentResource
     /// <summary>
     /// Gets the Azure Container Registry resource used by this compute environment.
     /// </summary>
-    IAzureContainerRegistryResource ContainerRegistry { get; }
+    IAzureContainerRegistryResource ContainerRegistry { get => throw new NotImplementedException(); }
 }
