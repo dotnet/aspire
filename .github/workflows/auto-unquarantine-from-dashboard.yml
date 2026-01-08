@@ -1,0 +1,140 @@
+name: Auto-Unquarantine Tests From Dashboard
+
+on:
+  workflow_dispatch:
+    inputs:
+      dashboard_issue_number:
+        description: 'Dashboard issue number to parse for quarantined tests'
+        required: false
+        default: '8813'
+        type: string
+      min_total_runs:
+        description: 'Minimum total runs required for a test row to be considered'
+        required: false
+        default: '80'
+        type: string
+      max_failed_percent:
+        description: 'Maximum allowed failure percentage (0 means 0.0%)'
+        required: false
+        default: '0'
+        type: string
+      max_recent_failed:
+        description: 'Maximum allowed absolute count of recent failures (0 means none)'
+        required: false
+        default: '0'
+        type: string
+      batch_size:
+        description: 'Maximum number of tests per batch when invoking test-disabler'
+        required: false
+        default: '20'
+        type: string
+
+  schedule:
+    # Run every Monday at 2:00 AM UTC
+    - cron: '0 2 * * 1'
+
+# Prevent concurrent runs to avoid conflicts
+concurrency:
+  group: auto-unquarantine-from-dashboard
+  cancel-in-progress: false
+
+permissions:
+  issues: write
+
+jobs:
+  invoke_agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      DASHBOARD_ISSUE_NUMBER: ${{ inputs.dashboard_issue_number || '8813' }}
+      MIN_TOTAL_RUNS: ${{ inputs.min_total_runs || '80' }}
+      MAX_FAILED_PERCENT: ${{ inputs.max_failed_percent || '0' }}
+      MAX_RECENT_FAILED: ${{ inputs.max_recent_failed || '0' }}
+      BATCH_SIZE: ${{ inputs.batch_size || '20' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read agent instructions
+        id: read_agent
+        run: |
+          AGENT_FILE=".github/agents/auto-unquarantine-from-dashboard.md"
+          if [ ! -f "$AGENT_FILE" ]; then
+            echo "Error: Agent file not found at $AGENT_FILE"
+            exit 1
+          fi
+
+          echo "Reading agent instructions from $AGENT_FILE"
+
+          # Read the agent file content
+          AGENT_CONTENT=$(cat "$AGENT_FILE")
+
+          # Save to output for use in next step
+          EOF="EOF_$(date +%s%N)"
+          echo "agent_content<<$EOF" >> "$GITHUB_OUTPUT"
+          echo "$AGENT_CONTENT" >> "$GITHUB_OUTPUT"
+          echo "$EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create issue and assign to agent
+        id: create_issue
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          AGENT_CONTENT: ${{ steps.read_agent.outputs.agent_content }}
+          DASHBOARD_ISSUE_NUMBER: ${{ env.DASHBOARD_ISSUE_NUMBER }}
+          MIN_TOTAL_RUNS: ${{ env.MIN_TOTAL_RUNS }}
+          MAX_FAILED_PERCENT: ${{ env.MAX_FAILED_PERCENT }}
+          MAX_RECENT_FAILED: ${{ env.MAX_RECENT_FAILED }}
+          BATCH_SIZE: ${{ env.BATCH_SIZE }}
+        with:
+          script: |
+            const agentContent = process.env.AGENT_CONTENT;
+            const dashboardIssueNumber = process.env.DASHBOARD_ISSUE_NUMBER;
+            const minTotalRuns = process.env.MIN_TOTAL_RUNS;
+            const maxFailedPercent = process.env.MAX_FAILED_PERCENT;
+            const maxRecentFailed = process.env.MAX_RECENT_FAILED;
+            const batchSize = process.env.BATCH_SIZE;
+            const runId = context.runId;
+            const workflow = context.workflow;
+
+            // Build issue title
+            const issueTitle = '[automated] Auto-Unquarantine Tests From Dashboard';
+
+            // Build issue body with context and parameters
+            const issueBody = `## Auto-Unquarantine From Dashboard Task
+
+This is an automated task to identify and unquarantine tests from the quarantined tests dashboard issue.
+
+**Configuration:**
+- Dashboard issue: #${dashboardIssueNumber}
+- Minimum total runs: ${minTotalRuns}
+- Maximum failed percent: ${maxFailedPercent}
+- Maximum recent failed (absolute): ${maxRecentFailed}
+- Batch size: ${batchSize}
+- Triggered by: ${workflow}
+- Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}
+
+---
+
+${agentContent}`;
+
+            // Create the issue and assign to copilot agent
+            console.log('Creating issue with title:', issueTitle);
+            const { data: issue } = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issueTitle,
+              body: issueBody,
+              assignees: ['copilot-swe-agent'],
+              labels: ['area-testing', 'automated']
+            });
+
+            console.log(`Successfully created issue #${issue.number}: ${issue.html_url}`);
+            core.setOutput('issue_url', issue.html_url);
+            core.setOutput('issue_number', issue.number);
+
+      - name: Post summary
+        run: |
+          echo "✅ Successfully created auto-unquarantine-from-dashboard task"
+          echo "Issue: ${{ steps.create_issue.outputs.issue_url }}"
+          echo "The copilot agent will process the task, call the test-disabler agent in batches, and create a PR if suitable tests are found."
