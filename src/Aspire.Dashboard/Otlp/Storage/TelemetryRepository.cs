@@ -776,6 +776,7 @@ public sealed class TelemetryRepository : IDisposable
                 foreach (var resource in resources)
                 {
                     SetResourceHasLogs(resource, false);
+                    _resourceUnviewedErrorLogs.Remove(resource.ResourceKey);
                 }
             }
         }

@@ -64,38 +64,27 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     private FluentDataGrid<ManageDataGridItem>? _dataGrid;
     private bool _isExporting;
     private bool _isImporting;
-    private Subscription? _logsSubscription;
-    private Subscription? _tracesSubscription;
-    private Subscription? _metricsSubscription;
     private Subscription? _resourcesSubscription;
 
     protected override async Task OnInitializedAsync()
     {
         // Subscribe to telemetry changes
         _resourcesSubscription = TelemetryRepository.OnNewResources(OnTelemetryChangedAsync);
-        _logsSubscription = TelemetryRepository.OnNewLogs(resourceKey: null, SubscriptionType.Other, OnTelemetryChangedAsync);
-        _tracesSubscription = TelemetryRepository.OnNewTraces(resourceKey: null, SubscriptionType.Other, OnTelemetryChangedAsync);
-        _metricsSubscription = TelemetryRepository.OnNewMetrics(resourceKey: null, SubscriptionType.Other, OnTelemetryChangedAsync);
 
         if (DashboardClient.IsEnabled)
         {
             await SubscribeResourcesAsync();
         }
+
+        // Initialize telemetry-only resources
+        UpdateData();
     }
 
     private async Task OnTelemetryChangedAsync()
     {
         await InvokeAsync(async () =>
         {
-            // Recreate all data rows from _resourceByName with updated telemetry counts
-            foreach (var (resourceName, resource) in _resourceByName)
-            {
-                if (_resourceDataRows.TryGetValue(resourceName, out _))
-                {
-                    var newRow = CreateResourceDataRow(resource);
-                    _resourceDataRows[resourceName] = newRow;
-                }
-            }
+            UpdateData();
 
             if (_dataGrid is not null)
             {
@@ -104,6 +93,54 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
 
             StateHasChanged();
         });
+    }
+
+    private void UpdateData()
+    {
+        // Capture which resources have all data types selected before rebuilding
+        var resourcesWithAllSelected = _resourceDataRows.Values
+            .Where(AreAllDataRowsSelected)
+            .Select(r => r.Name)
+            .ToHashSet(StringComparers.ResourceName);
+        var existingResourceNames = new HashSet<string>(_resourceDataRows.Keys, StringComparers.ResourceName);
+
+        _resourceDataRows.Clear();
+
+        // Recreate all resource rows from _resourceByName
+        foreach (var (resourceName, resource) in _resourceByName)
+        {
+            _resourceDataRows[resourceName] = CreateResourceDataRow(resource);
+
+            // If all data types were previously selected, select any new ones
+            if (resourcesWithAllSelected.Contains(resourceName))
+            {
+                SelectAllDataTypesForResource(resourceName, _resourceDataRows[resourceName].TelemetryData);
+            }
+        }
+
+        // Add telemetry-only resources
+        foreach (var otlpResource in TelemetryRepository.GetResources())
+        {
+            var compositeName = otlpResource.ResourceKey.GetCompositeName();
+
+            // Skip if this is already a resource from DashboardClient
+            if (_resourceByName.ContainsKey(compositeName))
+            {
+                continue;
+            }
+
+            var isNewResource = !existingResourceNames.Contains(compositeName);
+            _resourceDataRows[compositeName] = CreateTelemetryOnlyResourceDataRow(otlpResource);
+
+            // Select all data types for new resources, or if all data types were previously selected
+            if (isNewResource || resourcesWithAllSelected.Contains(compositeName))
+            {
+                SelectAllDataTypesForResource(compositeName, _resourceDataRows[compositeName].TelemetryData);
+            }
+        }
+
+        // Remove selections for resources that no longer exist
+        _selectedRows.RemoveWhere(r => !_resourceDataRows.ContainsKey(r.ResourceName));
     }
 
     private async Task SubscribeResourcesAsync()
@@ -164,13 +201,13 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     {
         var data = new List<TelemetryDataRow>();
 
-        // Add console logs for resources with ResourceViewModel (no count available)
-        data.Add(new TelemetryDataRow { DataType = AspireDataType.ConsoleLogs, DataCount = null, Icon = new Icons.Regular.Size16.SlideText(), Url = DashboardUrls.ConsoleLogsUrl(resource: resource.Name) });
+        // Add console logs for resources with ResourceViewModel
+        data.Add(CreateTelemetryDataRow(AspireDataType.ConsoleLogs, resource.Name));
 
         var otlpResource = TelemetryRepository.GetResourceByCompositeName(resource.Name);
         if (otlpResource is not null)
         {
-            PopulateDataRows(data, otlpResource.ResourceKey, resource.Name);
+            PopulateDataRows(data, otlpResource, resource.Name);
         }
 
         return new ResourceDataRow
@@ -182,11 +219,11 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         };
     }
 
-    private ResourceDataRow CreateTelemetryOnlyResourceDataRow(OtlpResource otlpResource)
+    private static ResourceDataRow CreateTelemetryOnlyResourceDataRow(OtlpResource otlpResource)
     {
         var data = new List<TelemetryDataRow>();
         var resourceName = otlpResource.ResourceKey.GetCompositeName();
-        PopulateDataRows(data, otlpResource.ResourceKey, resourceName);
+        PopulateDataRows(data, otlpResource, resourceName);
 
         return new ResourceDataRow
         {
@@ -197,48 +234,38 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         };
     }
 
-    private void PopulateDataRows(List<TelemetryDataRow> data, ResourceKey resourceKey, string resourceName)
+    private static void PopulateDataRows(List<TelemetryDataRow> data, OtlpResource otlpResource, string resourceName)
     {
-        // Check for logs
-        var logsResult = TelemetryRepository.GetLogs(new GetLogsContext
+        if (otlpResource.HasLogs)
         {
-            ResourceKey = resourceKey,
-            StartIndex = 0,
-            Count = 0,
-            Filters = []
-        });
-        if (logsResult.TotalItemCount > 0)
-        {
-            data.Add(new TelemetryDataRow { DataType = AspireDataType.StructuredLogs, DataCount = logsResult.TotalItemCount, Icon = new Icons.Regular.Size16.SlideTextSparkle(), Url = DashboardUrls.StructuredLogsUrl(resource: resourceName) });
+            data.Add(CreateTelemetryDataRow(AspireDataType.StructuredLogs, resourceName));
         }
 
-        // Check for traces
-        var tracesResult = TelemetryRepository.GetTraces(new GetTracesRequest
+        if (otlpResource.HasTraces)
         {
-            ResourceKey = resourceKey,
-            StartIndex = 0,
-            Count = 0,
-            FilterText = "",
-            Filters = []
-        });
-        if (tracesResult.PagedResult.TotalItemCount > 0)
-        {
-            data.Add(new TelemetryDataRow { DataType = AspireDataType.Traces, DataCount = tracesResult.PagedResult.TotalItemCount, Icon = new Icons.Regular.Size16.GanttChart(), Url = DashboardUrls.TracesUrl(resource: resourceName) });
+            data.Add(CreateTelemetryDataRow(AspireDataType.Traces, resourceName));
         }
 
-        // Check for metrics (instruments)
-        var instruments = TelemetryRepository.GetInstrumentsSummaries(resourceKey);
-        if (instruments.Count > 0)
+        if (otlpResource.HasMetrics)
         {
-            data.Add(new TelemetryDataRow { DataType = AspireDataType.Metrics, DataCount = instruments.Count, Icon = new Icons.Regular.Size16.ChartMultiple(), Url = DashboardUrls.MetricsUrl(resource: resourceName) });
+            data.Add(CreateTelemetryDataRow(AspireDataType.Metrics, resourceName));
         }
+    }
+
+    private static TelemetryDataRow CreateTelemetryDataRow(AspireDataType dataType, string resourceName)
+    {
+        return dataType switch
+        {
+            AspireDataType.ConsoleLogs => new TelemetryDataRow { DataType = AspireDataType.ConsoleLogs, Icon = new Icons.Regular.Size16.SlideText(), Url = DashboardUrls.ConsoleLogsUrl(resource: resourceName) },
+            AspireDataType.StructuredLogs => new TelemetryDataRow { DataType = AspireDataType.StructuredLogs, Icon = new Icons.Regular.Size16.SlideTextSparkle(), Url = DashboardUrls.StructuredLogsUrl(resource: resourceName) },
+            AspireDataType.Traces => new TelemetryDataRow { DataType = AspireDataType.Traces, Icon = new Icons.Regular.Size16.GanttChart(), Url = DashboardUrls.TracesUrl(resource: resourceName) },
+            AspireDataType.Metrics => new TelemetryDataRow { DataType = AspireDataType.Metrics, Icon = new Icons.Regular.Size16.ChartMultiple(), Url = DashboardUrls.MetricsUrl(resource: resourceName) },
+            _ => throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null)
+        };
     }
 
     private IQueryable<ManageDataGridItem> GetGridItems()
     {
-        // Merge telemetry-only resources into the data rows
-        MergeTelemetryOnlyResources();
-
         var items = new List<ManageDataGridItem>();
 
         // Sort by display name (works for both ResourceViewModel resources and telemetry-only resources)
@@ -267,28 +294,6 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
         }
 
         return items.AsQueryable();
-    }
-
-    private void MergeTelemetryOnlyResources()
-    {
-        // Get all telemetry resources
-        var telemetryResources = TelemetryRepository.GetResources();
-
-        foreach (var otlpResource in telemetryResources)
-        {
-            var compositeName = otlpResource.ResourceKey.GetCompositeName();
-
-            // Check if this resource already exists in our dictionary
-            if (!_resourceDataRows.ContainsKey(compositeName))
-            {
-                // This is a telemetry-only resource, add it
-                var row = CreateTelemetryOnlyResourceDataRow(otlpResource);
-                _resourceDataRows[compositeName] = row;
-
-                // Select all data types for new telemetry-only resources by default
-                SelectAllDataTypesForResource(compositeName, row.TelemetryData);
-            }
-        }
     }
 
     private void OnRowClicked(FluentDataGridRow<ManageDataGridItem> row)
@@ -609,9 +614,6 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     public async ValueTask DisposeAsync()
     {
         _resourcesSubscription?.Dispose();
-        _logsSubscription?.Dispose();
-        _tracesSubscription?.Dispose();
-        _metricsSubscription?.Dispose();
 
         await _cts.CancelAsync();
 

@@ -10,6 +10,10 @@
     align-items: center;
 }
 
+::deep .resource-name-container {
+    display: inline-flex;
+}
+
 .button-container {
     display: grid;
     grid-template-columns: 1fr auto;

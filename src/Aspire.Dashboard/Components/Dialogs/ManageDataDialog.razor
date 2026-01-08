@@ -28,6 +28,7 @@
                                 <FluentButton Appearance="Appearance.Lightweight"
                                               IconEnd="@GetHeaderCheckboxIcon()"
                                               OnClick="OnSelectAllClicked"
+                                              Disabled="@(_resourceDataRows.Count == 0)"
                                               style="margin-right: 8px;" />
                                 @ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]
                             </div>
@@ -67,11 +68,14 @@
                             {
                                 @* Telemetry-only resource - display with default icon *@
                                 <span class="resource-name-container">
-                                    <FluentIcon Width="16px"
-                                                Class="resource-icon"
-                                                Color="Color.Custom"
-                                                CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(context.ResourceRow.Name)"
-                                                Value="@(new Icons.Filled.Size16.Book())" />
+                                    @* Do this to trim significant whitespace so there isn't a space added between icon and text *@
+                                    @{
+                                        <FluentIcon Width="16px"
+                                                    Class="resource-icon"
+                                                    Color="Color.Custom"
+                                                    CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(context.ResourceRow.Name)"
+                                                    Value="@(new Icons.Filled.Size16.Book())" />
+                                    }
                                     <span class="resource-name-text">@GetOtlpResourceName(context.ResourceRow.OtlpResource)</span>
                                 </span>
                             }
@@ -117,12 +121,14 @@
         <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowDownload())"
                       OnClick="ExportSelectedAsync"
                       Loading="@_isExporting"
+                      Disabled="@AreNoneSelected()"
                       Title="@Loc[nameof(Dialogs.ManageDataExportButtonText)]"
                       aria-label="@Loc[nameof(Dialogs.ManageDataExportButtonText)]">
             @Loc[nameof(Dialogs.ManageDataExportButtonText)]
         </FluentButton>
         <FluentButton IconStart="@(new Icons.Regular.Size16.Delete())"
                       OnClick="RemoveSelectedAsync"
+                      Disabled="@AreNoneSelected()"
                       Title="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]"
                       aria-label="@Loc[nameof(Dialogs.ManageDataRemoveButtonText)]">
             @Loc[nameof(Dialogs.ManageDataRemoveButtonText)]
