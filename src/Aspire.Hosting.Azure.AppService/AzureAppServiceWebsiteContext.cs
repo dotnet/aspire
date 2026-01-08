@@ -266,9 +266,21 @@ internal sealed class AzureAppServiceWebsiteContext(
             UpdateHostNameForSlot(deploymentSlotValue);
         }
 
-        if (deploymentSlotValue is not null && buildWebAppAndSlot)
+        // For manifest publishing with deployment slot, always generate both webapp and slot
+        // with conditional container deployment based on firstDeployment parameter
+        bool isManifestPublishing = environmentContext.ExecutionContext.Operation == DistributedApplicationOperation.Publish;
+        if (deploymentSlotValue is not null && (buildWebAppAndSlot || isManifestPublishing))
         {
-            BuildWebSiteAndSlot(infra, deploymentSlotValue!);
+            if (isManifestPublishing && !buildWebAppAndSlot)
+            {
+                // Manifest publishing mode: generate both webapp and slot with conditional container deployment
+                BuildWebSiteAndSlotForManifest(infra, deploymentSlotValue!);
+            }
+            else
+            {
+                // Deployment mode: generate both webapp and slot (first deployment)
+                BuildWebSiteAndSlot(infra, deploymentSlotValue!);
+            }
             return;
         }
 
@@ -287,6 +299,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     /// <param name="isSlot">Indicates whether this is a deployment slot.</param>
     /// <param name="parentWebSite">The parent website when creating a slot.</param>
     /// <param name="deploymentSlot">The deployment slot name.</param>
+    /// <param name="addOnlyIfNotExistsDecorator">If true, adds @onlyIfNotExists() decorator to webapp and container resources.</param>
     /// <returns>A dynamic object representing either a WebSite or WebSiteSlot.</returns>
     private object CreateAndConfigureWebSite(
     AzureResourceInfrastructure infra,
@@ -297,14 +310,15 @@ internal sealed class AzureAppServiceWebsiteContext(
     ProvisioningParameter containerImage,
     bool isSlot = false,
     WebSite? parentWebSite = null,
-    BicepValue<string>? deploymentSlot = null)
+    BicepValue<string>? deploymentSlot = null,
+    bool addOnlyIfNotExistsDecorator = false)
     {
         object webSite;
         object mainContainer;
 
         if (isSlot && parentWebSite is not null && deploymentSlot is not null)
         {
-            var slot = new WebSiteSlot("webappslot")
+            var slot = new AspireWebSiteSlot("webappslot", addOnlyIfNotExistsDecorator)
             {
                 Parent = parentWebSite,
                 Name = deploymentSlot,
@@ -324,7 +338,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 },
             };
 
-            var slotContainer = new SiteSlotSiteContainer("mainContainerSlot")
+            var slotContainer = new AspireSiteSlotSiteContainer("mainContainerSlot", addOnlyIfNotExistsDecorator)
             {
                 Parent = slot,
                 Name = "main",
@@ -339,7 +353,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
         else
         {
-            var site = new WebSite("webapp")
+            var site = new AspireWebSite("webapp", addOnlyIfNotExistsDecorator)
             {
                 Name = name,
                 AppServicePlanId = appServicePlanParameter,
@@ -365,7 +379,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             };
 
             // Defining the main container for the app service
-            var siteContainer = new SiteContainer("mainContainer")
+            var siteContainer = new AspireSiteContainer("mainContainer", addOnlyIfNotExistsDecorator)
             {
                 Parent = site,
                 Name = "main",
@@ -384,11 +398,11 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             var targetPort = GetEndpointValue(mapping, EndpointProperty.TargetPort);
 
-            if (mainContainer is SiteContainer container)
+            if (mainContainer is AspireSiteContainer container)
             {
                 container.TargetPort = targetPort;
             }
-            else if (mainContainer is SiteSlotSiteContainer slotContainer)
+            else if (mainContainer is AspireSiteSlotSiteContainer slotContainer)
             {
                 slotContainer.TargetPort = targetPort;
             }
@@ -443,23 +457,34 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             var arrayExpression = new ArrayExpression([.. args.Select(a => a.Compile())]);
 
-            if (mainContainer is SiteContainer container)
+            if (mainContainer is AspireSiteContainer container)
             {
                 container.StartUpCommand = Join(arrayExpression, " ");
             }
-            else if (mainContainer is SiteSlotSiteContainer slotContainer)
+            else if (mainContainer is AspireSiteSlotSiteContainer slotContainer)
             {
                 slotContainer.StartUpCommand = Join(arrayExpression, " ");
             }
         }
 
-        if (mainContainer is SiteContainer mainSiteContainer)
+        // Add container to infrastructure - decorator is handled by AspireSiteContainer/AspireSiteSlotSiteContainer
+        if (mainContainer is AspireSiteContainer mainSiteContainer)
         {
             infra.Add(mainSiteContainer);
         }
-        else if (mainContainer is SiteSlotSiteContainer mainSiteSlotContainer)
+        else if (mainContainer is AspireSiteSlotSiteContainer mainSiteSlotContainer)
         {
             infra.Add(mainSiteSlotContainer);
+        }
+
+        // Add the webapp/slot resource - decorator is handled by AspireWebSite/AspireWebSiteSlot
+        if (webSite is WebSite siteToAdd)
+        {
+            infra.Add(siteToAdd);
+        }
+        else if (webSite is WebSiteSlot slotToAdd)
+        {
+            infra.Add(slotToAdd);
         }
 
         var id = BicepFunction.Interpolate($"{acrMidParameter}").Compile().ToString();
@@ -642,6 +667,68 @@ internal sealed class AzureAppServiceWebsiteContext(
                 {
                     customizeWebSiteAnnotation.Configure(infra, site);
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds both the main website and a deployment slot for manifest publishing.
+    /// Uses @onlyIfNotExistsDecorator to create webapp and mainContainer only if they don't exist.
+    /// Slot and slot container are always created.
+    /// </summary>
+    /// <param name="infra">The Azure resource infrastructure.</param>
+    /// <param name="deploymentSlot">The deployment slot name.</param>
+    private void BuildWebSiteAndSlotForManifest(
+        AzureResourceInfrastructure infra,
+        BicepValue<string> deploymentSlot)
+    {
+        _infrastructure = infra;
+
+        _ = environmentContext.Environment.ContainerRegistryUrl.AsProvisioningParameter(infra);
+        var appServicePlanParameter = environmentContext.Environment.PlanIdOutputReference.AsProvisioningParameter(infra);
+        var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
+        var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
+        var containerImage = AllocateParameter(new ContainerImageReference(Resource));
+
+        // Main site - created with @onlyIfNotExists() decorator (created only if doesn't exist)
+        var webSite = (WebSite)CreateAndConfigureWebSite(
+            infra,
+            HostName,
+            appServicePlanParameter,
+            acrMidParameter,
+            acrClientIdParameter,
+            containerImage,
+            isSlot: false,
+            addOnlyIfNotExistsDecorator: true);
+
+        // Slot - always created (no decorator)
+        var webSiteSlot = (WebSiteSlot)CreateAndConfigureWebSite(
+            infra,
+            deploymentSlot,
+            appServicePlanParameter,
+            acrMidParameter,
+            acrClientIdParameter,
+            containerImage,
+            isSlot: true,
+            parentWebSite: (WebSite)webSite,
+            deploymentSlot: deploymentSlot,
+            addOnlyIfNotExistsDecorator: false);
+
+        // Allow users to customize the website
+        if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
+        {
+            foreach (var customizeWebSiteAnnotation in customizeWebSiteAnnotations)
+            {
+                customizeWebSiteAnnotation.Configure(infra, webSite);
+            }
+        }
+
+        // Allow users to customize the slot
+        if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteSlotCustomizationAnnotation>(out var customizeWebSiteSlotAnnotations))
+        {
+            foreach (var customizeWebSiteSlotAnnotation in customizeWebSiteSlotAnnotations)
+            {
+                customizeWebSiteSlotAnnotation.Configure(infra, webSiteSlot);
             }
         }
     }
