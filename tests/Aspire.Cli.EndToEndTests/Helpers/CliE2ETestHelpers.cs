@@ -103,7 +103,7 @@ public static class CliE2ETestHelpers
     /// </summary>
     public static bool IsRunningInCI =>
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER")) &&
-        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_SHA"));
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_PR_HEAD_SHA"));
 
     /// <summary>
     /// Gets the PR number from the GITHUB_PR_NUMBER environment variable.
@@ -125,13 +125,14 @@ public static class CliE2ETestHelpers
     }
 
     /// <summary>
-    /// Gets the commit SHA from the GITHUB_SHA environment variable.
+    /// Gets the commit SHA from the GITHUB_PR_HEAD_SHA environment variable.
+    /// This is the actual PR head commit, not the merge commit (GITHUB_SHA).
     /// When running locally (not in CI), returns a dummy value for testing.
     /// </summary>
     /// <returns>The commit SHA, or a dummy value when running locally.</returns>
     public static string GetRequiredCommitSha()
     {
-        var commitSha = Environment.GetEnvironmentVariable("GITHUB_SHA");
+        var commitSha = Environment.GetEnvironmentVariable("GITHUB_PR_HEAD_SHA");
 
         if (string.IsNullOrEmpty(commitSha))
         {

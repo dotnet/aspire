@@ -152,7 +152,11 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Type(command)
                     .Enter()
                     .WaitUntil(
-                        snapshot => snapshot.GetScreenText().Contains("Aspire CLI successfully installed to:", StringComparison.OrdinalIgnoreCase),
+                        snapshot => { 
+                            var screenText = snapshot.GetScreenText();
+                            _output?.WriteLine($"Current terminal output:\n{screenText}");
+                            return screenText.Contains("Aspire CLI successfully installed to:", StringComparison.OrdinalIgnoreCase);
+                        },
                         effectiveTimeout);
             }
             else
@@ -234,13 +238,20 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         {
             if (isCI)
             {
-                ctx.SequenceBuilder.WriteTestLog(_output, $"Verifying Aspire CLI version contains commit SHA: {shortSha}...");
+                ctx.SequenceBuilder.WriteTestLog(_output,
+                    $"Verifying Aspire CLI version contains commit SHA.\n" +
+                    $"  Full SHA:  {expectedCommitSha}\n" +
+                    $"  Short SHA: {shortSha} (searching for this)");
 
                 ctx.SequenceBuilder
                     .Type("aspire --version")
                     .Enter()
                     .WaitUntil(
-                        snapshot => snapshot.GetScreenText().Contains(shortSha, StringComparison.OrdinalIgnoreCase),
+                        snapshot => {
+                            var screenText = snapshot.GetScreenText();
+                            _output?.WriteLine($"Current terminal output:\n{screenText}");
+                            return screenText.Contains(shortSha, StringComparison.OrdinalIgnoreCase);
+                        },
                         timeout ?? TimeSpan.FromSeconds(30));
             }
             else

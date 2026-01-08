@@ -189,7 +189,7 @@ Use `CliE2ETestHelpers` for CI environment variables with built-in assertions:
 
 ```csharp
 var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();   // GITHUB_PR_NUMBER
-var commitSha = CliE2ETestHelpers.GetRequiredCommitSha(); // GITHUB_SHA
+var commitSha = CliE2ETestHelpers.GetRequiredCommitSha(); // GITHUB_PR_HEAD_SHA
 ```
 
 ## DON'T: Manually Manage Terminal Sessions
@@ -275,7 +275,7 @@ Key points:
 
 Environment variables set in `run-tests.yml`:
 - `GITHUB_PR_NUMBER`: PR number for downloading CLI artifacts
-- `GITHUB_SHA`: Commit SHA for version verification
+- `GITHUB_PR_HEAD_SHA`: PR head commit SHA for version verification (not the merge commit)
 - `GH_TOKEN`: GitHub token for API access
 - `GITHUB_WORKSPACE`: Workspace root for artifact paths
 
