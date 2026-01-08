@@ -15,6 +15,8 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 {
     private const string OpenCodeConfigFileName = "opencode.jsonc";
     private const string AspireServerName = "aspire";
+    private static readonly string s_skillFilePath = Path.Combine(".opencode", "skill", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md");
+    private const string SkillFileDescription = "Create Aspire development skill file (.opencode/skill/aspire-development/SKILL.md)";
 
     private readonly IOpenCodeCliRunner _openCodeCliRunner;
     private readonly ILogger<OpenCodeAgentEnvironmentScanner> _logger;
@@ -77,8 +79,8 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             CommonAgentApplicators.TryAddSkillFileApplicator(
                 context,
                 context.RepositoryRoot,
-                Path.Combine(".opencode", "skill", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
-                "Create Aspire development skill file (.opencode/skill/aspire-development/SKILL.md)");
+                s_skillFilePath,
+                SkillFileDescription);
         }
         else
         {
@@ -102,8 +104,8 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 CommonAgentApplicators.TryAddSkillFileApplicator(
                     context,
                     context.RepositoryRoot,
-                    Path.Combine(".opencode", "skill", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
-                    "Create Aspire development skill file (.opencode/skill/aspire-development/SKILL.md)");
+                    s_skillFilePath,
+                    SkillFileDescription);
             }
             else
             {

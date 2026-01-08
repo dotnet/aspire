@@ -16,6 +16,8 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     private const string VsCodeFolderName = ".vscode";
     private const string McpConfigFileName = "mcp.json";
     private const string AspireServerName = "aspire";
+    private static readonly string s_skillFilePath = Path.Combine(".github", "skills", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md");
+    private const string SkillFileDescription = "Create Aspire development skill file (.github/skills/aspire-development/SKILL.md)";
 
     private readonly IVsCodeCliRunner _vsCodeCliRunner;
     private readonly CliExecutionContext _executionContext;
@@ -79,8 +81,8 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             CommonAgentApplicators.TryAddSkillFileApplicator(
                 context,
                 context.RepositoryRoot,
-                Path.Combine(".github", "skills", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
-                "Create Aspire development skill file (.github/skills/aspire-development/SKILL.md)");
+                s_skillFilePath,
+                SkillFileDescription);
         }
         else if (await IsVsCodeAvailableAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -100,8 +102,8 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
             CommonAgentApplicators.TryAddSkillFileApplicator(
                 context,
                 context.RepositoryRoot,
-                Path.Combine(".github", "skills", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
-                "Create Aspire development skill file (.github/skills/aspire-development/SKILL.md)");
+                s_skillFilePath,
+                SkillFileDescription);
         }
         else
         {

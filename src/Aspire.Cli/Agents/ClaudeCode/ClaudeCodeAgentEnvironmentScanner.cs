@@ -16,6 +16,8 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     private const string ClaudeCodeFolderName = ".claude";
     private const string McpConfigFileName = ".mcp.json";
     private const string AspireServerName = "aspire";
+    private static readonly string s_skillFilePath = Path.Combine(".claude", "skills", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md");
+    private const string SkillFileDescription = "Create Aspire development skill file (.claude/skills/aspire-development/SKILL.md)";
 
     private readonly IClaudeCodeCliRunner _claudeCodeCliRunner;
     private readonly CliExecutionContext _executionContext;
@@ -83,8 +85,8 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
             CommonAgentApplicators.TryAddSkillFileApplicator(
                 context,
                 context.RepositoryRoot,
-                Path.Combine(".claude", "skills", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
-                "Create Aspire development skill file (.claude/skills/aspire-development/SKILL.md)");
+                s_skillFilePath,
+                SkillFileDescription);
         }
         else
         {
@@ -124,8 +126,8 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                 CommonAgentApplicators.TryAddSkillFileApplicator(
                     context,
                     context.RepositoryRoot,
-                    Path.Combine(".claude", "skills", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
-                    "Create Aspire development skill file (.claude/skills/aspire-development/SKILL.md)");
+                    s_skillFilePath,
+                    SkillFileDescription);
             }
             else
             {
