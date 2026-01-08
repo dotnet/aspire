@@ -1,9 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.IO.Compression;
+using System.Text.Json;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Tests.Shared;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
@@ -451,5 +455,126 @@ public sealed class TelemetryExportServiceTests
         Assert.NotNull(meter2Scope);
         Assert.NotNull(meter2Scope.Metrics);
         Assert.Single(meter2Scope.Metrics);
+    }
+
+    [Fact]
+    public async Task ExportSelectedAsync_ExportsOnlySelectedDataTypesForSpecificResources()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var dashboardClient = new TestDashboardClient();
+        var exportService = new TelemetryExportService(repository, dashboardClient);
+
+        // Add test data for three resources
+        AddTestData(repository, "resource1", "111");
+        AddTestData(repository, "resource2", "222");
+        AddTestData(repository, "resource3", "333");
+        AddTestData(repository, "resource4", "444");
+
+        // Act - Export only structured logs for resource1, only traces for resource2, all types for resource3
+        var selectedResources = new Dictionary<string, HashSet<AspireDataType>>
+        {
+            ["resource1-111"] = [AspireDataType.StructuredLogs],
+            ["resource2-222"] = [AspireDataType.Traces],
+            ["resource3-333"] = [AspireDataType.StructuredLogs, AspireDataType.Traces, AspireDataType.Metrics]
+        };
+
+        using var memoryStream = await exportService.ExportSelectedAsync(selectedResources, CancellationToken.None);
+
+        // Assert - Verify the zip archive contents
+        using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Read);
+        var entryNames = archive.Entries.Select(e => e.FullName).OrderBy(e => e).ToList();
+
+        // Verify exactly 5 entries: resource1 (logs), resource2 (traces), resource3 (logs, traces, metrics)
+        // resource4 is not selected so should not be exported
+        Assert.Collection(entryNames,
+            e => Assert.Equal("metrics/resource3.json", e),
+            e => Assert.Equal("structuredlogs/resource1.json", e),
+            e => Assert.Equal("structuredlogs/resource3.json", e),
+            e => Assert.Equal("traces/resource2.json", e),
+            e => Assert.Equal("traces/resource3.json", e));
+
+        // Verify the content of the exported structured logs for resource1
+        var resource1LogsEntry = archive.Entries.First(e => e.FullName.Contains("structuredlogs") && e.FullName.Contains("resource1"));
+        using var logStream = resource1LogsEntry.Open();
+        var logsData = await JsonSerializer.DeserializeAsync<OtlpLogsDataJson>(logStream);
+        var logRecord = logsData?.ResourceLogs?.FirstOrDefault()?.ScopeLogs?.FirstOrDefault()?.LogRecords?.FirstOrDefault();
+        Assert.NotNull(logRecord);
+        Assert.Equal("log-resource1-111", logRecord.Body?.StringValue);
+
+        // Verify the content of the exported traces for resource2
+        var resource2TracesEntry = archive.Entries.First(e => e.FullName.Contains("traces") && e.FullName.Contains("resource2"));
+        using var traceStream = resource2TracesEntry.Open();
+        var tracesData = await JsonSerializer.DeserializeAsync<OtlpTracesDataJson>(traceStream);
+        var span = tracesData?.ResourceSpans?.FirstOrDefault()?.ScopeSpans?.FirstOrDefault()?.Spans?.FirstOrDefault();
+        Assert.NotNull(span);
+        Assert.Contains("resource2-222", span.Name);
+
+        // Verify the content of the exported metrics for resource3
+        var resource3MetricsEntry = archive.Entries.First(e => e.FullName.Contains("metrics") && e.FullName.Contains("resource3"));
+        using var metricsStream = resource3MetricsEntry.Open();
+        var metricsData = await JsonSerializer.DeserializeAsync<OtlpMetricsDataJson>(metricsStream);
+        var metric = metricsData?.ResourceMetrics?.FirstOrDefault()?.ScopeMetrics?.FirstOrDefault()?.Metrics?.FirstOrDefault();
+        Assert.NotNull(metric);
+        Assert.Equal("metric-resource3-333", metric.Name);
+    }
+
+    private static void AddTestData(TelemetryRepository repository, string resourceName, string instanceId)
+    {
+        var compositeName = $"{resourceName}-{instanceId}";
+
+        repository.AddLogs(new AddContext(), new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: resourceName, instanceId: instanceId),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(1), message: $"log-{compositeName}") }
+                    }
+                }
+            }
+        });
+
+        repository.AddTraces(new AddContext(), new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: resourceName, instanceId: instanceId),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: compositeName, spanId: $"{compositeName}-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        repository.AddMetrics(new AddContext(), new RepeatedField<OpenTelemetry.Proto.Metrics.V1.ResourceMetrics>()
+        {
+            new OpenTelemetry.Proto.Metrics.V1.ResourceMetrics
+            {
+                Resource = CreateResource(name: resourceName, instanceId: instanceId),
+                ScopeMetrics =
+                {
+                    new OpenTelemetry.Proto.Metrics.V1.ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: $"metric-{compositeName}", value: 1, startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
     }
 }

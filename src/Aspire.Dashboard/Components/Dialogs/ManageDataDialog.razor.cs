@@ -86,7 +86,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             // Recreate all data rows from _resourceByName with updated telemetry counts
             foreach (var (resourceName, resource) in _resourceByName)
             {
-                if (_resourceDataRows.TryGetValue(resourceName, out var existingRow))
+                if (_resourceDataRows.TryGetValue(resourceName, out _))
                 {
                     var newRow = CreateResourceDataRow(resource);
                     _resourceDataRows[resourceName] = newRow;
