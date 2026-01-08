@@ -47,7 +47,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     public BicepValue<string> GetSlotHostName(BicepValue<string> deploymentSlot)
     {
         var websitePrefix = BicepFunction.Take(
-            BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), AzureAppServiceWebSiteResource.MaxWebSitePrefixLengthWithSlot);
+            BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), AzureAppServiceWebSiteResource.MaxWebSiteNamePrefixLengthWithSlot);
 
         return BicepFunction.Take(
             BicepFunction.Interpolate($"{websitePrefix}-{BicepFunction.ToLower(deploymentSlot)}"), AzureAppServiceWebSiteResource.MaxHostPrefixLengthWithSlot);
