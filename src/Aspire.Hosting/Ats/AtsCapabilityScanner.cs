@@ -288,7 +288,7 @@ internal static class AtsCapabilityScanner
             }
 
             var propertyTypeId = MapToAtsTypeId(property.PropertyType, typeMapping, typeResolver);
-            if (propertyTypeId is null or "any")
+            if (propertyTypeId is null or AtsConstants.Any)
             {
                 continue;
             }
@@ -535,7 +535,7 @@ internal static class AtsCapabilityScanner
         IAtsTypeResolver? typeResolver)
     {
         var paramType = param.ParameterType;
-        var atsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver) ?? "any";
+        var atsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver) ?? AtsConstants.Any;
 
         // Check if this is a delegate type (callbacks are inferred from delegate types)
         var isCallback = IsDelegateType(paramType);
@@ -624,23 +624,23 @@ internal static class AtsCapabilityScanner
 
         if (returnTypeFullName == "System.Void")
         {
-            returnTypeId = "void";
+            returnTypeId = AtsConstants.Void;
         }
         else if (returnTypeFullName == "System.Threading.Tasks.Task")
         {
-            returnTypeId = "task";
+            returnTypeId = AtsConstants.Void;
         }
         else if (returnTypeFullName.StartsWith("System.Threading.Tasks.Task`1"))
         {
             // Task<T> - get the inner type
             var innerType = invokeMethod.ReturnType.GetGenericArguments().FirstOrDefault();
             returnTypeId = innerType is not null
-                ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? "any"
-                : "task";
+                ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? AtsConstants.Any
+                : AtsConstants.Void;
         }
         else
         {
-            returnTypeId = MapToAtsTypeId(invokeMethod.ReturnType, typeMapping, typeResolver) ?? "any";
+            returnTypeId = MapToAtsTypeId(invokeMethod.ReturnType, typeMapping, typeResolver) ?? AtsConstants.Any;
         }
 
         return (parameters, returnTypeId);
@@ -682,7 +682,7 @@ internal static class AtsCapabilityScanner
                     AtsTypeId = paramAtsTypeId
                 });
             }
-            return (parameters, "void");
+            return (parameters, AtsConstants.Void);
         }
 
         // Func<TResult>, Func<T, TResult>, Func<T1, T2, TResult>, etc.
@@ -708,23 +708,23 @@ internal static class AtsCapabilityScanner
 
             if (returnTypeFullName == "System.Void")
             {
-                returnTypeId = "void";
+                returnTypeId = AtsConstants.Void;
             }
             else if (returnTypeFullName == "System.Threading.Tasks.Task")
             {
-                returnTypeId = "task";
+                returnTypeId = AtsConstants.Void;
             }
             else if (returnTypeFullName.StartsWith("System.Threading.Tasks.Task`1"))
             {
                 // Task<T> - get the inner type
                 var innerType = returnType.GetGenericArguments().FirstOrDefault();
                 returnTypeId = innerType is not null
-                    ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? "any"
-                    : "task";
+                    ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? AtsConstants.Any
+                    : AtsConstants.Void;
             }
             else
             {
-                returnTypeId = MapToAtsTypeId(returnType, typeMapping, typeResolver) ?? "any";
+                returnTypeId = MapToAtsTypeId(returnType, typeMapping, typeResolver) ?? AtsConstants.Any;
             }
 
             return (parameters, returnTypeId);
@@ -779,16 +779,16 @@ internal static class AtsCapabilityScanner
         // Handle primitives
         if (typeFullName == "System.String")
         {
-            return "string";
+            return AtsConstants.String;
         }
         if (typeFullName == "System.Boolean")
         {
-            return "boolean";
+            return AtsConstants.Boolean;
         }
         if (typeFullName is "System.Int32" or "System.Int64" or "System.Double" or
             "System.Single" or "System.Int16" or "System.Byte")
         {
-            return "number";
+            return AtsConstants.Number;
         }
 
         // Handle Nullable<T>
@@ -813,7 +813,7 @@ internal static class AtsCapabilityScanner
             {
                 var keyTypeName = genericArgs[0].Name;
                 var valueTypeName = genericArgs[1].Name;
-                return $"Aspire.Hosting/Dict<{keyTypeName},{valueTypeName}>";
+                return AtsConstants.DictTypeId(keyTypeName, valueTypeName);
             }
         }
 
@@ -834,7 +834,7 @@ internal static class AtsCapabilityScanner
             if (genericArgs.Count == 1)
             {
                 var elementTypeName = genericArgs[0].Name;
-                return $"Aspire.Hosting/List<{elementTypeName}>";
+                return AtsConstants.ListTypeId(elementTypeName);
             }
         }
 
@@ -927,7 +927,7 @@ internal static class AtsCapabilityScanner
             }
         }
 
-        return "any";
+        return AtsConstants.Any;
     }
 
     private static string InferTypeId(string typeFullName)
@@ -935,21 +935,21 @@ internal static class AtsCapabilityScanner
         // Handle primitives
         if (typeFullName == "System.String")
         {
-            return "string";
+            return AtsConstants.String;
         }
 
         if (typeFullName == "System.Boolean")
         {
-            return "boolean";
+            return AtsConstants.Boolean;
         }
 
         if (typeFullName is "System.Int32" or "System.Int64" or "System.Double" or
             "System.Single" or "System.Int16" or "System.Byte")
         {
-            return "number";
+            return AtsConstants.Number;
         }
 
-        return "any";
+        return AtsConstants.Any;
     }
 
     private static string InferResourceTypeId(IAtsTypeInfo type)

@@ -104,9 +104,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     // Used to resolve parameter types to wrapper classes instead of handle types
     private readonly Dictionary<string, string> _wrapperClassNames = new(StringComparer.Ordinal);
 
-    // Well-known type IDs using the derived format: {AssemblyName}/{FullTypeName}
-    private const string TypeId_Builder = "Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder";
-    private const string TypeId_Application = "Aspire.Hosting/Aspire.Hosting.DistributedApplication";
+    // Well-known type IDs - use AtsConstants for canonical values
+    private const string TypeId_Builder = AtsConstants.BuilderTypeId;
+    private const string TypeId_Application = AtsConstants.ApplicationTypeId;
 
     /// <summary>
     /// Checks if a type ID represents an ATS handle type (not a primitive).
@@ -253,7 +253,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             _wrapperClassNames[typeClass.TypeId] = DeriveClassName(typeClass.TypeId);
         }
         // Add ReferenceExpression (defined in base.ts, not generated)
-        _wrapperClassNames["Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression"] = "ReferenceExpression";
+        _wrapperClassNames[AtsConstants.ReferenceExpressionTypeId] = "ReferenceExpression";
 
         // Generate type classes (context types and wrapper types)
         foreach (var typeClass in typeClasses)
@@ -382,7 +382,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 /** @internal - actual async implementation */
                 async _buildInternal(): Promise<DistributedApplication> {
                     const handle = await this._client.invokeCapability<{{applicationHandle}}>(
-                        'Aspire.Hosting/build',
+                        '{{AtsConstants.BuildCapability}}',
                         { builder: this._handle }
                     );
                     return new DistributedApplication(handle, this._client);
@@ -860,7 +860,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         return atsTypeId switch
         {
-            "any" => "unknown",
+            AtsConstants.Any => "unknown",
             _ when IsHandleType(atsTypeId) => GetHandleTypeName(atsTypeId),
             _ when atsTypeId.EndsWith("[]", StringComparison.Ordinal) => $"{MapAtsTypeToTypeScript(atsTypeId[..^2], false)}[]",
             _ => atsTypeId  // Pass through primitives (string, number, boolean) as-is
@@ -884,7 +884,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Determine return type - use wrapper mapping for handle types
         string returnType;
-        if (callbackReturnTypeId is null or "void" or "task")
+        if (callbackReturnTypeId is null or AtsConstants.Void)
         {
             returnType = "void";
         }
@@ -896,9 +896,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         {
             returnType = callbackReturnTypeId switch
             {
-                "string" => "string",
-                "number" => "number",
-                "boolean" => "boolean",
+                AtsConstants.String => "string",
+                AtsConstants.Number => "number",
+                AtsConstants.Boolean => "boolean",
                 _ when IsHandleType(callbackReturnTypeId) =>
                     GetHandleTypeName(callbackReturnTypeId),
                 _ => "unknown"
@@ -1033,7 +1033,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
                 const client = await connect();
                 const handle = await client.invokeCapability<{{builderHandle}}>(
-                    'Aspire.Hosting/createBuilder',
+                    '{{AtsConstants.CreateBuilderCapability}}',
                     { args }
                 );
                 return new DistributedApplicationBuilder(handle, client);

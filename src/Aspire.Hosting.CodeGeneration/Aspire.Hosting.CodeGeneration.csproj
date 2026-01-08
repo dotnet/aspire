@@ -17,6 +17,7 @@
     <Compile Include="..\Aspire.Hosting\Ats\AtsCapabilityScanner.cs" Link="Ats\AtsCapabilityScanner.cs" />
     <Compile Include="..\Aspire.Hosting\Ats\AtsCapabilityInfo.cs" Link="Ats\AtsCapabilityInfo.cs" />
     <Compile Include="..\Aspire.Hosting\Ats\AtsTypeMapping.cs" Link="Ats\AtsTypeMapping.cs" />
+    <Compile Include="..\Aspire.Hosting\Ats\AtsConstants.cs" Link="Ats\AtsConstants.cs" />
   </ItemGroup>
 
 </Project>
