@@ -44,8 +44,7 @@ export type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/Aspire
 // ============================================================================
 
 /**
- * Context type for Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext.
- * Provides fluent property access via get/set methods.
+ * Type class for TestCallbackContext.
  */
 export class TestCallbackContext {
     constructor(private _handle: TestCallbackContextHandle, private _client: AspireClientRpc) {}

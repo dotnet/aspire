@@ -235,53 +235,34 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Generate handle type aliases
         GenerateHandleTypeAliases(typeIds);
 
-        // Identify context types (those with IsContextProperty or IsContextMethod capabilities)
-        var contextTypeIds = new HashSet<string>(
-            capabilities
-                .Where(c => (c.IsContextProperty || c.IsContextMethod) && !string.IsNullOrEmpty(c.TargetTypeId))
-                .Select(c => c.TargetTypeId!),
-            StringComparer.Ordinal);
-
         // Separate builders into categories:
-        // 1. Context types: types with IsContextProperty capabilities (get/set methods)
-        // 2. Resource builders: IResource*, ContainerResource, etc.
-        // 3. Wrapper types: other non-resource types (Configuration, HostEnvironment)
-        var contextTypes = builders.Where(b => contextTypeIds.Contains(b.TypeId)).ToList();
-        var resourceBuilders = builders.Where(b => !contextTypeIds.Contains(b.TypeId) && AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
-        var wrapperTypes = builders.Where(b => !contextTypeIds.Contains(b.TypeId) && !AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
+        // 1. Resource builders: IResource*, ContainerResource, etc.
+        // 2. Type classes: everything else (context types, wrapper types)
+        var resourceBuilders = builders.Where(b => AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
+        var typeClasses = builders.Where(b => !AtsTypeMapping.IsResourceBuilderType(b.TypeId)).ToList();
 
         // Build wrapper class name mapping for type resolution
         // This allows parameter types to use wrapper class names instead of handle types
         _wrapperClassNames.Clear();
-        foreach (var contextType in contextTypes)
-        {
-            _wrapperClassNames[contextType.TypeId] = DeriveClassName(contextType.TypeId);
-        }
         foreach (var builder in resourceBuilders)
         {
             _wrapperClassNames[builder.TypeId] = builder.BuilderClassName;
         }
-        foreach (var wrapper in wrapperTypes)
+        foreach (var typeClass in typeClasses)
         {
-            _wrapperClassNames[wrapper.TypeId] = DeriveClassName(wrapper.TypeId);
+            _wrapperClassNames[typeClass.TypeId] = DeriveClassName(typeClass.TypeId);
         }
         // Add ReferenceExpression (defined in base.ts, not generated)
         _wrapperClassNames["Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression"] = "ReferenceExpression";
 
-        // Generate context type classes (with fluent get/set methods)
-        foreach (var contextType in contextTypes)
+        // Generate type classes (context types and wrapper types)
+        foreach (var typeClass in typeClasses)
         {
-            GenerateContextTypeClass(contextType);
-        }
-
-        // Generate wrapper classes (Configuration, Environment, ExecutionContext)
-        foreach (var wrapperType in wrapperTypes)
-        {
-            GenerateWrapperClass(wrapperType);
+            GenerateTypeClass(typeClass);
         }
 
         // Generate DistributedApplicationBuilder class
-        GenerateDistributedApplicationBuilder(builderMethods, resourceBuilders, wrapperTypes);
+        GenerateDistributedApplicationBuilder(builderMethods, resourceBuilders, typeClasses);
 
         // Generate resource builder classes
         foreach (var builder in resourceBuilders)
@@ -341,7 +322,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         return $"Handle to {typeName}";
     }
 
-    private void GenerateDistributedApplicationBuilder(List<AtsCapabilityInfo> methods, List<BuilderModel> resourceBuilders, List<BuilderModel> wrapperTypes)
+    private void GenerateDistributedApplicationBuilder(List<AtsCapabilityInfo> methods, List<BuilderModel> resourceBuilders, List<BuilderModel> typeClasses)
     {
         WriteLine("// ============================================================================");
         WriteLine("// DistributedApplicationBuilder");
@@ -437,7 +418,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Generate methods that extend IDistributedApplicationBuilder
         foreach (var capability in otherMethods)
         {
-            GenerateDistributedApplicationBuilderMethod(capability, resourceBuilders, wrapperTypes);
+            GenerateDistributedApplicationBuilderMethod(capability, resourceBuilders, typeClasses);
         }
 
         WriteLine("}");
@@ -472,7 +453,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine("    }");
     }
 
-    private void GenerateDistributedApplicationBuilderMethod(AtsCapabilityInfo capability, List<BuilderModel> resourceBuilders, List<BuilderModel> wrapperTypes)
+    private void GenerateDistributedApplicationBuilderMethod(AtsCapabilityInfo capability, List<BuilderModel> resourceBuilders, List<BuilderModel> typeClasses)
     {
         var methodName = capability.MethodName;
 
@@ -495,7 +476,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         BuilderModel? wrapperInfo = null;
         if (!string.IsNullOrEmpty(capability.ReturnTypeId) && _wrapperClassNames.ContainsKey(capability.ReturnTypeId))
         {
-            wrapperInfo = wrapperTypes.FirstOrDefault(w => w.TypeId == capability.ReturnTypeId);
+            wrapperInfo = typeClasses.FirstOrDefault(w => w.TypeId == capability.ReturnTypeId);
         }
 
         // Determine return type for resource builders
@@ -1106,57 +1087,30 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
-    /// Generates a simple wrapper class for non-resource types like Configuration, Environment.
+    /// Generates a type class (context type or wrapper type).
+    /// If the type has setters, generates fluent Promise class for chaining.
     /// </summary>
-    private void GenerateWrapperClass(BuilderModel wrapperType)
+    private void GenerateTypeClass(BuilderModel model)
     {
-        var handleType = GetHandleTypeName(wrapperType.TypeId);
-        var className = DeriveClassName(wrapperType.TypeId);
+        var handleType = GetHandleTypeName(model.TypeId);
+        var className = DeriveClassName(model.TypeId);
 
         WriteLine("// ============================================================================");
         WriteLine($"// {className}");
         WriteLine("// ============================================================================");
         WriteLine();
 
-        WriteLine($"/**");
-        WriteLine($" * Wrapper class for {wrapperType.TypeId}.");
-        WriteLine($" */");
-        WriteLine($"export class {className} {{");
-        WriteLine($"    constructor(private _handle: {handleType}, private _client: AspireClientRpc) {{}}");
-        WriteLine();
-        WriteLine($"    /** Gets the underlying handle */");
-        WriteLine($"    get handle(): {handleType} {{ return this._handle; }}");
-        WriteLine();
+        // Separate capabilities by type
+        var getters = model.Capabilities.Where(c => c.IsContextPropertyGetter).ToList();
+        var setters = model.Capabilities.Where(c => c.IsContextPropertySetter).ToList();
+        var contextMethods = model.Capabilities.Where(c => c.IsContextMethod).ToList();
+        var otherMethods = model.Capabilities.Where(c => !c.IsContextPropertyGetter && !c.IsContextPropertySetter && !c.IsContextMethod).ToList();
 
-        // Generate methods for each capability
-        foreach (var capability in wrapperType.Capabilities)
-        {
-            GenerateWrapperMethod(capability);
-        }
-
-        WriteLine("}");
-        WriteLine();
-    }
-
-    /// <summary>
-    /// Generates a context type class with fluent get/set methods.
-    /// Context types are types marked with [AspireContextType] that have property accessors.
-    /// </summary>
-    private void GenerateContextTypeClass(BuilderModel contextType)
-    {
-        var handleType = GetHandleTypeName(contextType.TypeId);
-        var className = DeriveClassName(contextType.TypeId);
+        var hasSetters = setters.Count > 0;
         var promiseClassName = $"{className}Promise";
 
-        WriteLine("// ============================================================================");
-        WriteLine($"// {className}");
-        WriteLine("// ============================================================================");
-        WriteLine();
-
-        // Generate the main context class
         WriteLine($"/**");
-        WriteLine($" * Context type for {contextType.TypeId}.");
-        WriteLine($" * Provides fluent property access via get/set methods.");
+        WriteLine($" * Type class for {className}.");
         WriteLine($" */");
         WriteLine($"export class {className} {{");
         WriteLine($"    constructor(private _handle: {handleType}, private _client: AspireClientRpc) {{}}");
@@ -1164,11 +1118,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($"    /** Gets the underlying handle */");
         WriteLine($"    get handle(): {handleType} {{ return this._handle; }}");
         WriteLine();
-
-        // Separate getters, setters, and instance methods
-        var getters = contextType.Capabilities.Where(c => c.IsContextPropertyGetter).ToList();
-        var setters = contextType.Capabilities.Where(c => c.IsContextPropertySetter).ToList();
-        var methods = contextType.Capabilities.Where(c => c.IsContextMethod).ToList();
 
         // Generate getter methods
         foreach (var getter in getters)
@@ -1176,29 +1125,39 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             GenerateContextGetterMethod(getter);
         }
 
-        // Generate internal setter methods (for thenable chaining)
-        foreach (var setter in setters)
+        // Generate setter methods (with fluent chaining if setters exist)
+        if (hasSetters)
         {
-            GenerateContextSetterInternalMethod(setter, className);
+            foreach (var setter in setters)
+            {
+                GenerateContextSetterInternalMethod(setter, className);
+            }
+            foreach (var setter in setters)
+            {
+                GenerateContextSetterPublicMethod(setter, promiseClassName);
+            }
         }
 
-        // Generate public fluent setter methods (return thenable)
-        foreach (var setter in setters)
-        {
-            GenerateContextSetterPublicMethod(setter, promiseClassName);
-        }
-
-        // Generate instance methods
-        foreach (var method in methods)
+        // Generate context methods
+        foreach (var method in contextMethods)
         {
             GenerateContextMethod(method);
+        }
+
+        // Generate other methods (wrapper-style)
+        foreach (var method in otherMethods)
+        {
+            GenerateWrapperMethod(method);
         }
 
         WriteLine("}");
         WriteLine();
 
-        // Generate thenable promise class for fluent chaining
-        GenerateContextTypePromiseClass(className, promiseClassName, getters, setters);
+        // Generate Promise class for fluent chaining if there are setters
+        if (hasSetters)
+        {
+            GenerateContextTypePromiseClass(className, promiseClassName, getters, setters);
+        }
     }
 
     /// <summary>
