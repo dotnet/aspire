@@ -288,8 +288,9 @@ internal static class AtsCapabilityScanner
             }
 
             var propertyTypeId = MapToAtsTypeId(property.PropertyType, typeMapping, typeResolver);
-            if (propertyTypeId is null or AtsConstants.Any)
+            if (propertyTypeId is null)
             {
+                // Skip properties with unmapped types
                 continue;
             }
 
@@ -422,10 +423,29 @@ internal static class AtsCapabilityScanner
                 };
 
                 var paramIndex = 0;
+                var hasUnmappedRequiredParam = false;
                 foreach (var param in method.GetParameters())
                 {
-                    paramInfos.Add(CreateParameterInfo(param, paramIndex, typeMapping, typeResolver));
+                    var paramInfo = CreateParameterInfo(param, paramIndex, typeMapping, typeResolver);
+                    if (paramInfo is null)
+                    {
+                        // Parameter type couldn't be mapped - skip if required
+                        if (!param.IsOptional)
+                        {
+                            hasUnmappedRequiredParam = true;
+                            break;
+                        }
+                        // Skip optional parameters with unmapped types
+                        continue;
+                    }
+                    paramInfos.Add(paramInfo);
                     paramIndex++;
+                }
+
+                // Skip capability if a required parameter couldn't be mapped
+                if (hasUnmappedRequiredParam)
+                {
+                    continue;
                 }
 
                 // Get return type
@@ -505,7 +525,19 @@ internal static class AtsCapabilityScanner
         var paramIndex = 0;
         foreach (var param in paramList)
         {
-            paramInfos.Add(CreateParameterInfo(param, paramIndex, typeMapping, typeResolver));
+            var paramInfo = CreateParameterInfo(param, paramIndex, typeMapping, typeResolver);
+            if (paramInfo is null)
+            {
+                // Parameter type couldn't be mapped - skip if required
+                if (!param.IsOptional)
+                {
+                    // Required parameter with unmapped type - skip this capability
+                    return null;
+                }
+                // Skip optional parameters with unmapped types
+                continue;
+            }
+            paramInfos.Add(paramInfo);
             paramIndex++;
         }
 
@@ -528,17 +560,24 @@ internal static class AtsCapabilityScanner
         };
     }
 
-    private static AtsParameterInfo CreateParameterInfo(
+    private static AtsParameterInfo? CreateParameterInfo(
         IAtsParameterInfo param,
         int paramIndex,
         AtsTypeMapping typeMapping,
         IAtsTypeResolver? typeResolver)
     {
         var paramType = param.ParameterType;
-        var atsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver) ?? AtsConstants.Any;
 
         // Check if this is a delegate type (callbacks are inferred from delegate types)
         var isCallback = IsDelegateType(paramType);
+
+        // Map the type - return null if unmapped (unless it's a callback)
+        var atsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver);
+        if (atsTypeId is null && !isCallback)
+        {
+            // Can't map this parameter type - skip it
+            return null;
+        }
 
         // Extract callback signature if this is a callback parameter
         IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters = null;
@@ -556,7 +595,8 @@ internal static class AtsCapabilityScanner
         return new AtsParameterInfo
         {
             Name = string.IsNullOrEmpty(param.Name) ? $"arg{paramIndex}" : param.Name,
-            AtsTypeId = isCallback ? "callback" : atsTypeId,
+            AtsTypeId = isCallback ? "callback" : atsTypeId!,
+            TypeCategory = AtsConstants.GetCategory(atsTypeId, isCallback),
             IsOptional = param.IsOptional,
             IsNullable = isNullable,
             IsCallback = isCallback,
@@ -635,12 +675,13 @@ internal static class AtsCapabilityScanner
             // Task<T> - get the inner type
             var innerType = invokeMethod.ReturnType.GetGenericArguments().FirstOrDefault();
             returnTypeId = innerType is not null
-                ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? AtsConstants.Any
+                ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? AtsConstants.Void
                 : AtsConstants.Void;
         }
         else
         {
-            returnTypeId = MapToAtsTypeId(invokeMethod.ReturnType, typeMapping, typeResolver) ?? AtsConstants.Any;
+            // For unmapped return types, use void (callback return might not be used)
+            returnTypeId = MapToAtsTypeId(invokeMethod.ReturnType, typeMapping, typeResolver) ?? AtsConstants.Void;
         }
 
         return (parameters, returnTypeId);
@@ -719,12 +760,13 @@ internal static class AtsCapabilityScanner
                 // Task<T> - get the inner type
                 var innerType = returnType.GetGenericArguments().FirstOrDefault();
                 returnTypeId = innerType is not null
-                    ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? AtsConstants.Any
+                    ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? AtsConstants.Void
                     : AtsConstants.Void;
             }
             else
             {
-                returnTypeId = MapToAtsTypeId(returnType, typeMapping, typeResolver) ?? AtsConstants.Any;
+                // For unmapped return types, use void (callback return might not be used)
+                returnTypeId = MapToAtsTypeId(returnType, typeMapping, typeResolver) ?? AtsConstants.Void;
             }
 
             return (parameters, returnTypeId);
@@ -781,14 +823,51 @@ internal static class AtsCapabilityScanner
         {
             return AtsConstants.String;
         }
+        if (typeFullName == "System.Char")
+        {
+            return AtsConstants.Char;
+        }
         if (typeFullName == "System.Boolean")
         {
             return AtsConstants.Boolean;
         }
         if (typeFullName is "System.Int32" or "System.Int64" or "System.Double" or
-            "System.Single" or "System.Int16" or "System.Byte")
+            "System.Single" or "System.Int16" or "System.Byte" or "System.Decimal" or
+            "System.UInt16" or "System.UInt32" or "System.UInt64" or "System.SByte")
         {
             return AtsConstants.Number;
+        }
+
+        // Handle date/time types
+        if (typeFullName == "System.DateTime")
+        {
+            return AtsConstants.DateTime;
+        }
+        if (typeFullName == "System.DateTimeOffset")
+        {
+            return AtsConstants.DateTimeOffset;
+        }
+        if (typeFullName == "System.DateOnly")
+        {
+            return AtsConstants.DateOnly;
+        }
+        if (typeFullName == "System.TimeOnly")
+        {
+            return AtsConstants.TimeOnly;
+        }
+        if (typeFullName == "System.TimeSpan")
+        {
+            return AtsConstants.TimeSpan;
+        }
+
+        // Handle other scalar types
+        if (typeFullName == "System.Guid")
+        {
+            return AtsConstants.Guid;
+        }
+        if (typeFullName == "System.Uri")
+        {
+            return AtsConstants.Uri;
         }
 
         // Handle Nullable<T>
@@ -927,29 +1006,66 @@ internal static class AtsCapabilityScanner
             }
         }
 
-        return AtsConstants.Any;
+        // No mapping found - return null to indicate unmapped type
+        return null;
     }
 
-    private static string InferTypeId(string typeFullName)
+    private static string? InferTypeId(string typeFullName)
     {
         // Handle primitives
         if (typeFullName == "System.String")
         {
             return AtsConstants.String;
         }
-
+        if (typeFullName == "System.Char")
+        {
+            return AtsConstants.Char;
+        }
         if (typeFullName == "System.Boolean")
         {
             return AtsConstants.Boolean;
         }
-
         if (typeFullName is "System.Int32" or "System.Int64" or "System.Double" or
-            "System.Single" or "System.Int16" or "System.Byte")
+            "System.Single" or "System.Int16" or "System.Byte" or "System.Decimal" or
+            "System.UInt16" or "System.UInt32" or "System.UInt64" or "System.SByte")
         {
             return AtsConstants.Number;
         }
 
-        return AtsConstants.Any;
+        // Handle date/time types
+        if (typeFullName == "System.DateTime")
+        {
+            return AtsConstants.DateTime;
+        }
+        if (typeFullName == "System.DateTimeOffset")
+        {
+            return AtsConstants.DateTimeOffset;
+        }
+        if (typeFullName == "System.DateOnly")
+        {
+            return AtsConstants.DateOnly;
+        }
+        if (typeFullName == "System.TimeOnly")
+        {
+            return AtsConstants.TimeOnly;
+        }
+        if (typeFullName == "System.TimeSpan")
+        {
+            return AtsConstants.TimeSpan;
+        }
+
+        // Handle other scalar types
+        if (typeFullName == "System.Guid")
+        {
+            return AtsConstants.Guid;
+        }
+        if (typeFullName == "System.Uri")
+        {
+            return AtsConstants.Uri;
+        }
+
+        // No mapping found
+        return null;
     }
 
     private static string InferResourceTypeId(IAtsTypeInfo type)

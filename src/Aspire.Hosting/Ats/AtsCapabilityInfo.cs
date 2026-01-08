@@ -128,6 +128,11 @@ internal sealed class AtsParameterInfo
     public required string AtsTypeId { get; init; }
 
     /// <summary>
+    /// Gets or sets the type category (Primitive, Handle, Dto, Callback).
+    /// </summary>
+    public AtsTypeCategory TypeCategory { get; init; }
+
+    /// <summary>
     /// Gets or sets whether this parameter is optional.
     /// </summary>
     public bool IsOptional { get; init; }
@@ -152,7 +157,7 @@ internal sealed class AtsParameterInfo
     /// <summary>
     /// Gets or sets the ATS type ID for the callback's return type.
     /// Only populated when <see cref="IsCallback"/> is true.
-    /// "void" indicates no return value, "task" indicates async with no result.
+    /// "void" indicates no return value.
     /// </summary>
     public string? CallbackReturnTypeId { get; init; }
 

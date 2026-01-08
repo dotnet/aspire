@@ -860,10 +860,28 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         return atsTypeId switch
         {
-            AtsConstants.Any => "unknown",
+            // Primitives map directly to TypeScript types
+            AtsConstants.String or AtsConstants.Char => "string",
+            AtsConstants.Number => "number",
+            AtsConstants.Boolean => "boolean",
+            AtsConstants.Void => "void",
+
+            // Date/time types serialize to string or number in JSON
+            AtsConstants.DateTime or AtsConstants.DateTimeOffset or
+            AtsConstants.DateOnly or AtsConstants.TimeOnly => "string",
+            AtsConstants.TimeSpan => "number",  // milliseconds
+
+            // Other scalar types serialize to string
+            AtsConstants.Guid or AtsConstants.Uri => "string",
+
+            // Handle types get typed wrappers
             _ when IsHandleType(atsTypeId) => GetHandleTypeName(atsTypeId),
+
+            // Arrays
             _ when atsTypeId.EndsWith("[]", StringComparison.Ordinal) => $"{MapAtsTypeToTypeScript(atsTypeId[..^2], false)}[]",
-            _ => atsTypeId  // Pass through primitives (string, number, boolean) as-is
+
+            // Fallback - pass through unknown types
+            _ => atsTypeId
         };
     }
 
@@ -882,27 +900,15 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         var paramsString = paramList.Count > 0 ? string.Join(", ", paramList) : "";
 
-        // Determine return type - use wrapper mapping for handle types
+        // Determine return type - use MapAtsTypeToTypeScript for consistent mapping
         string returnType;
         if (callbackReturnTypeId is null or AtsConstants.Void)
         {
             returnType = "void";
         }
-        else if (_wrapperClassNames.TryGetValue(callbackReturnTypeId, out var wrapperClassName))
-        {
-            returnType = wrapperClassName;
-        }
         else
         {
-            returnType = callbackReturnTypeId switch
-            {
-                AtsConstants.String => "string",
-                AtsConstants.Number => "number",
-                AtsConstants.Boolean => "boolean",
-                _ when IsHandleType(callbackReturnTypeId) =>
-                    GetHandleTypeName(callbackReturnTypeId),
-                _ => "unknown"
-            };
+            returnType = MapAtsTypeToTypeScript(callbackReturnTypeId, false);
         }
 
         // Callbacks are always async in TypeScript
