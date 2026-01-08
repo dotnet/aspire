@@ -6,6 +6,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -318,6 +319,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task CallResourceMcpToolAsyncThrowsWhenResourceNotFound()
     {
         // This test verifies that CallResourceMcpToolAsync throws when resource is not found
@@ -332,7 +334,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
@@ -341,7 +343,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         // Connect a client
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
 
         using var stream = new NetworkStream(socket, ownsSocket: true);
         using var rpc = JsonRpc.Attach(stream);
@@ -352,21 +354,22 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
             await rpc.InvokeAsync<JsonElement>(
                 "CallResourceMcpToolAsync",
                 new object[] { "nonexistent-resource", "some-tool", new Dictionary<string, object?>() }
-            ).WaitAsync(TimeSpan.FromSeconds(30));
+            ).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
         });
 
         Assert.Contains("not found", ex.Message, StringComparison.OrdinalIgnoreCase);
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task CallResourceMcpToolAsyncThrowsWhenResourceHasNoMcpAnnotation()
     {
         // This test verifies that CallResourceMcpToolAsync throws when resource has no MCP annotation
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
 
-        // Add a simple container resource (without MCP annotation)
+        // Add a simple container resource (without MCP)
         builder.AddContainer("mycontainer", "nginx");
 
         // Register the auxiliary backchannel service
@@ -375,7 +378,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
@@ -384,7 +387,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         // Connect a client
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
 
         using var stream = new NetworkStream(socket, ownsSocket: true);
         using var rpc = JsonRpc.Attach(stream);
@@ -395,12 +398,12 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
             await rpc.InvokeAsync<JsonElement>(
                 "CallResourceMcpToolAsync",
                 new object[] { "mycontainer", "some-tool", new Dictionary<string, object?>() }
-            ).WaitAsync(TimeSpan.FromSeconds(30));
+            ).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
         });
 
         Assert.Contains("MCP endpoint annotation", ex.Message, StringComparison.OrdinalIgnoreCase);
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
     }
 
     [Fact]
@@ -415,7 +418,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         using var app = builder.Build();
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(60));
+        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
 
         // Get the service
         var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
@@ -424,7 +427,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         // Connect a client
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(service.SocketPath);
-        await socket.ConnectAsync(endpoint).WaitAsync(TimeSpan.FromSeconds(60));
+        await socket.ConnectAsync(endpoint).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
 
         using var stream = new NetworkStream(socket, ownsSocket: true);
         using var rpc = JsonRpc.Attach(stream);
@@ -433,7 +436,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         await rpc.InvokeAsync(
             "StopAppHostAsync",
             Array.Empty<object>()
-        ).WaitAsync(TimeSpan.FromSeconds(10));
+        ).WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
 
         // The app should eventually stop
         // We give it some time since StopAppHostAsync initiates shutdown asynchronously
@@ -441,7 +444,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         Assert.NotNull(lifetime);
 
         // Wait for the application to stop or timeout
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var cts = new CancellationTokenSource(TestConstants.DefaultTimeoutTimeSpan);
         try
         {
             await Task.Delay(Timeout.Infinite, lifetime.ApplicationStopping).WaitAsync(cts.Token);
