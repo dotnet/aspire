@@ -35,6 +35,33 @@ public class AzureAppServiceEnvironmentResource :
             var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
 
+            var dashboardGetHostNameStep = new PipelineStep
+            {
+                Name = $"fetch-dashboard-hostname-for-{name}",
+                Action = async ctx =>
+                {
+                    if (!this.EnableDashboard)
+                    {
+                        return;
+                    }
+
+                    var dashboardName = await this.DashboardNameReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
+
+                    if (string.IsNullOrEmpty(dashboardName))
+                    {
+                        return;
+                    }
+
+                    var hostName = await AzureAppServiceWebSiteResource.GetDnlHostNameAsync(dashboardName, "Site", ctx).ConfigureAwait(false);
+                    this.DashboardUri = $"https://{hostName}";
+                },
+                Tags = ["fetch-dashboard-hostname"],
+                DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
+                RequiredBySteps = ["print-dashboard-url-" + name]
+            };
+
+            steps.Add(dashboardGetHostNameStep);
+
             // Add print-dashboard-url step
             var printDashboardUrlStep = new PipelineStep
             {
@@ -86,6 +113,11 @@ public class AzureAppServiceEnvironmentResource :
         // This is where we wire up the build steps created by the resources
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
         {
+            // Make print-summary step depend on provisioning of this environment
+            var fetchDashboardHost = context.GetSteps(this, "fetch-dashboard-hostname");
+            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
+            fetchDashboardHost.DependsOn(provisionSteps);
+
             // Wire up build step dependencies
             // Build steps are created by ProjectResource and ContainerResource
             foreach (var computeResource in context.Model.GetComputeResources())
@@ -117,17 +149,14 @@ public class AzureAppServiceEnvironmentResource :
 
             // Make print-summary step depend on provisioning of this environment
             var printSummarySteps = context.GetSteps(this, "print-summary");
-            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            printSummarySteps.DependsOn(provisionSteps);
+            printSummarySteps.DependsOn(fetchDashboardHost);
         }));
     }
 
     private async Task PrintDashboardUrlAsync(PipelineStepContext context)
     {
-        var dashboardUri = await DashboardUriReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
-
         await context.ReportingStep.CompleteAsync(
-            $"Dashboard available at [{dashboardUri}]({dashboardUri})",
+            $"Dashboard available at [{DashboardUri}]({DashboardUri})",
             CompletionState.Completed,
             context.CancellationToken).ConfigureAwait(false);
     }
@@ -146,6 +175,11 @@ public class AzureAppServiceEnvironmentResource :
     /// Gets the suffix added to each web app created in this App Service Environment.
     /// </summary>
     internal BicepOutputReference WebSiteSuffix => new("webSiteSuffix", this);
+
+    /// <summary>
+    /// Gets or sets the prefix used to identify environment resources.
+    /// </summary>
+    internal string EnvironmentPrefix { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
@@ -184,14 +218,24 @@ public class AzureAppServiceEnvironmentResource :
     internal string? DeploymentSlot { get; set; }
 
     /// <summary>
+    /// Enables or disables regional DNL host name for the App Service Environment.
+    /// </summary>
+    internal bool EnableRegionalDnlHostName { get; set; }
+
+    /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
-    /// Gets the URI of the App Service Environment dashboard.
+    /// Gets the name of the App Service Environment dashboard.
     /// </summary>
-    public BicepOutputReference DashboardUriReference => new("AZURE_APP_SERVICE_DASHBOARD_URI", this);
+    public BicepOutputReference DashboardNameReference => new("AZURE_APP_SERVICE_DASHBOARD_NAME_PREFIX", this);
+
+    /// <summary>
+    /// Contains Dashboard Uri after deployment.
+    /// </summary>
+    public string? DashboardUri { get; set; }
 
     /// <summary>
     /// Gets the Application Insights Instrumentation Key.
@@ -234,7 +278,17 @@ public class AzureAppServiceEnvironmentResource :
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
-        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.azurewebsites.net");
+
+        if (!this.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
+        {
+            throw new InvalidOperationException("Azure App Service Environment context annotation is missing.");
+        }
+
+        var context = environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(resource);
+        bool isSlot = DeploymentSlot is not null || DeploymentSlotParameter is not null;
+        var hostName = context.GetWebsiteHostName(isSlot);
+
+        return ReferenceExpression.Create($"https://{hostName.Value}");
     }
 
     /// <inheritdoc/>
