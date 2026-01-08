@@ -81,6 +81,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             return null;
         }
 
+        // Find the dashboard resource
         if (appModel.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is not IResourceWithEndpoints dashboardResource)
         {
             logger.LogDebug("Dashboard resource not found in application model.");
@@ -283,12 +284,14 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         _ = cancellationToken; // Unused but kept for API consistency
         logger.LogInformation("Received request to stop AppHost");
 
+        // Start a background task to delay the stop by 500ms to allow the RPC response to be sent
         _ = Task.Run(async () =>
         {
             try
             {
                 await Task.Delay(500, CancellationToken.None).ConfigureAwait(false);
 
+                // Cancel inflight RPC calls in AppHostRpcTarget before stopping
                 var appHostRpcTarget = serviceProvider.GetService<AppHostRpcTarget>();
                 appHostRpcTarget?.CancelInflightRpcCalls();
 

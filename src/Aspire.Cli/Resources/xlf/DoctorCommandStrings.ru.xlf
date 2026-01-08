@@ -4,47 +4,47 @@
     <body>
       <trans-unit id="CheckingPrerequisites">
         <source>Checking Aspire environment...</source>
-        <target state="new">Checking Aspire environment...</target>
+        <target state="translated">Проверка среды Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerCategoryHeader">
         <source>Container Runtime</source>
-        <target state="new">Container Runtime</target>
+        <target state="translated">Среда выполнения контейнера</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Diagnose Aspire environment issues and verify setup</source>
-        <target state="new">Diagnose Aspire environment issues and verify setup</target>
+        <target state="translated">Диагностика проблем среды Aspire и проверка настройки</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailedPrerequisitesLink">
         <source>For detailed prerequisites: https://aka.ms/aspire-prerequisites</source>
-        <target state="new">For detailed prerequisites: https://aka.ms/aspire-prerequisites</target>
+        <target state="translated">Подробнее о предварительных требованиях: https://aka.ms/aspire-prerequisites</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentCategoryHeader">
         <source>Environment</source>
-        <target state="new">Environment</target>
+        <target state="translated">Среда</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentCheckHeader">
         <source>Aspire Environment Check</source>
-        <target state="new">Aspire Environment Check</target>
+        <target state="translated">Проверка среды Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonOptionDescription">
         <source>Output results as JSON for tooling integration</source>
-        <target state="new">Output results as JSON for tooling integration</target>
+        <target state="translated">Вывод результатов в формате JSON для интеграции с инструментами</target>
         <note />
       </trans-unit>
       <trans-unit id="SdkCategoryHeader">
         <source>.NET SDK</source>
-        <target state="new">.NET SDK</target>
+        <target state="translated">Пакет SDK .NET</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryFormat">
         <source>Summary: {0} passed, {1} warnings, {2} failed</source>
-        <target state="new">Summary: {0} passed, {1} warnings, {2} failed</target>
+        <target state="translated">Сводка: {0} успешно, предупреждений: {1}, {2} с ошибками</target>
         <note />
       </trans-unit>
     </body>

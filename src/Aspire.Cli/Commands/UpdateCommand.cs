@@ -283,8 +283,18 @@ internal sealed class UpdateCommand : BaseCommand
             await ExtractAndUpdateAsync(archivePath, cancellationToken);
 
             // Save the selected channel to global settings for future use with 'aspire new' and 'aspire init'
-            await _configurationService.SetConfigurationAsync("channel", channel, isGlobal: true, cancellationToken);
-            _logger.LogDebug("Saved global channel setting: {Channel}", channel);
+            // For stable channel, clear the setting to leave it blank (like the install scripts do)
+            // For other channels (staging, daily), save the channel name
+            if (string.Equals(channel, PackageChannelNames.Stable, StringComparison.OrdinalIgnoreCase))
+            {
+                await _configurationService.DeleteConfigurationAsync("channel", isGlobal: true, cancellationToken);
+                _logger.LogDebug("Cleared global channel setting for stable channel");
+            }
+            else
+            {
+                await _configurationService.SetConfigurationAsync("channel", channel, isGlobal: true, cancellationToken);
+                _logger.LogDebug("Saved global channel setting: {Channel}", channel);
+            }
 
             return 0;
         }

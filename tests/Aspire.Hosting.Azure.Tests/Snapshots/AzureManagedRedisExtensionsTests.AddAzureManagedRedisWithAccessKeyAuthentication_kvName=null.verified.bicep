@@ -11,6 +11,7 @@ resource redis_cache 'Microsoft.Cache/redisEnterprise@2025-07-01' = {
   }
   properties: {
     minimumTlsVersion: '1.2'
+    publicNetworkAccess: 'Enabled'
   }
 }
 

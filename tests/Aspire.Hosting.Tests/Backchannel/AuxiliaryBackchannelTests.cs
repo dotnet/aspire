@@ -6,6 +6,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StreamJsonRpc;
@@ -283,6 +284,37 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
         outputHelper.WriteLine($"AppHost path returned: {appHostInfo.AppHostPath}");
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(60));
+    }
+
+    [Fact]
+    public async Task SocketPathUsesAuxiPrefix()
+    {
+        // This test verifies that the socket path uses "auxi.sock." prefix instead of "aux.sock."
+        // to avoid Windows reserved device name issues (AUX is reserved on Windows < 11)
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(outputHelper);
+
+        // Register the auxiliary backchannel service
+        builder.Services.AddSingleton<AuxiliaryBackchannelService>();
+        builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<AuxiliaryBackchannelService>());
+
+        using var app = builder.Build();
+
+        await app.StartAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+
+        // Get the service
+        var service = app.Services.GetRequiredService<AuxiliaryBackchannelService>();
+        Assert.NotNull(service.SocketPath);
+
+        // Verify that the socket path uses "auxi.sock." prefix
+        var fileName = Path.GetFileName(service.SocketPath);
+        Assert.StartsWith("auxi.sock.", fileName);
+        
+        // Verify that the socket file can be created (not blocked by Windows reserved names)
+        Assert.True(File.Exists(service.SocketPath), $"Socket file should exist at: {service.SocketPath}");
+
+        outputHelper.WriteLine($"Socket path: {service.SocketPath}");
+
+        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
     }
 
     [Fact]
