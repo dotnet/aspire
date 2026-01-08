@@ -69,18 +69,19 @@ jobs:
           Write-Host "Computed VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX"
           "VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX" | Out-File -FilePath $Env:GITHUB_OUTPUT -Append -Encoding utf8
 
-  tests:
-    uses: ./.github/workflows/tests.yml
-    name: Tests
+  build_cli_archives:
+    uses: ./.github/workflows/build-cli-native-archives.yml
+    name: Build native CLI archives
     needs: [prepare_for_ci]
     if: ${{ github.repository_owner == 'dotnet' && needs.prepare_for_ci.outputs.skip_workflow != 'true' }}
     with:
       versionOverrideArg: ${{ needs.prepare_for_ci.outputs.VERSION_SUFFIX_OVERRIDE }}
 
-  build_cli_archives:
-    uses: ./.github/workflows/build-cli-native-archives.yml
-    name: Build native CLI archives
-    needs: [prepare_for_ci]
+  tests:
+    uses: ./.github/workflows/tests.yml
+    name: Tests
+    # CLI E2E tests need the native CLI archives to be built first
+    needs: [prepare_for_ci, build_cli_archives]
     if: ${{ github.repository_owner == 'dotnet' && needs.prepare_for_ci.outputs.skip_workflow != 'true' }}
     with:
       versionOverrideArg: ${{ needs.prepare_for_ci.outputs.VERSION_SUFFIX_OVERRIDE }}
