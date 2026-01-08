@@ -239,18 +239,30 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var websiteSuffix = await computerEnv.WebSiteSuffix.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
         var websiteName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
 
-        if (!string.IsNullOrWhiteSpace(deploymentSlot))
+        if (string.IsNullOrWhiteSpace(deploymentSlot))
         {
-            websiteName += $"-{deploymentSlot}";
+            return TruncateToMaxLength(websiteName, 60);
         }
 
-        if (websiteName.Length > 60)
+        websiteName = TruncateToMaxLength(websiteName, MaxWebSiteNamePrefixLengthWithSlot);
+        websiteName += $"-{deploymentSlot}";
+
+        return TruncateToMaxLength(websiteName, MaxHostPrefixLengthWithSlot);
+    }
+
+    private static string TruncateToMaxLength(string value, int maxLength)
+    {
+        if (value.Length <= maxLength)
         {
-            websiteName = websiteName.Substring(0, 60);
+            return value;
         }
-        return websiteName;
+        return value.Substring(0, maxLength);
     }
 
     private const string AzureManagementScope = "https://management.azure.com/.default";
     private const string AzureManagementEndpoint = "https://management.azure.com/";
+    // For Azure App Service, the maximum length for a host name is 63 characters. With slot, the host name is 59 characters, with 4 characters reserved for random slot suffix (very edge case).
+    // Source of truth: https://msazure.visualstudio.com/One/_git/AAPT-Antares-Websites?path=%2Fsrc%2FHosting%2FAdministrationService%2FMicrosoft.Web.Hosting.Administration.Api%2FCommonConstants.cs&_a=contents&version=GBdev
+    internal const int MaxHostPrefixLengthWithSlot = 59;
+    internal const int MaxWebSiteNamePrefixLengthWithSlot = 40;
 }
