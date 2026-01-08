@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Azure.AppContainers;
 /// Represents an Azure Container App Environment resource.
 /// </summary>
 public class AzureContainerAppEnvironmentResource :
-    AzureProvisioningResource, IAzureComputeEnvironmentWithContainerRegistry, IAzureContainerRegistry
+    AzureProvisioningResource, IAzureComputeEnvironmentResource, IAzureContainerRegistry
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureContainerAppEnvironmentResource"/> class.
@@ -179,6 +179,8 @@ public class AzureContainerAppEnvironmentResource :
 
     ReferenceExpression IContainerRegistry.Endpoint => GetContainerRegistry()?.Endpoint ?? ReferenceExpression.Create($"{ContainerRegistryUrl}");
 
+    IAzureContainerRegistryResource IAzureComputeEnvironmentResource.ContainerRegistry => ContainerRegistry;
+
     private IContainerRegistry? GetContainerRegistry()
     {
         // Check for explicit container registry reference annotation
@@ -191,7 +193,9 @@ public class AzureContainerAppEnvironmentResource :
         return DefaultContainerRegistry;
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Gets the Azure Container Registry resource used by this Azure Container App Environment resource.
+    /// </summary>
     public AzureContainerRegistryResource ContainerRegistry
     {
         get
