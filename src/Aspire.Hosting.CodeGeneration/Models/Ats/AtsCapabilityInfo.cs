@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Ats;
+
 namespace Aspire.Hosting.CodeGeneration.Models.Ats;
 
 /// <summary>
@@ -132,42 +134,32 @@ public sealed class AtsCapabilityInfo
     public bool ReturnsBuilder { get; init; }
 
     /// <summary>
-    /// Gets or sets whether this capability is an auto-generated property accessor
-    /// for a type marked with <c>[AspireExport(ExposeProperties = true)]</c>.
+    /// Gets or sets the kind of capability (Method, PropertyGetter, PropertySetter, InstanceMethod).
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Context property capabilities are auto-generated from types marked with
-    /// <c>[AspireExport(ExposeProperties = true)]</c>. They provide access to properties on context
-    /// objects passed to callbacks.
+    /// Replaces the boolean flags IsContextProperty, IsContextPropertyGetter, IsContextPropertySetter, IsContextMethod.
     /// </para>
-    /// <para>
-    /// Example: <c>Aspire.Hosting/EnvironmentCallbackContext.getExecutionContext</c>
-    /// </para>
+    /// <list type="bullet">
+    ///   <item><description><see cref="AtsCapabilityKind.Method"/> - Regular extension method capability</description></item>
+    ///   <item><description><see cref="AtsCapabilityKind.PropertyGetter"/> - Property getter from ExposeProperties=true</description></item>
+    ///   <item><description><see cref="AtsCapabilityKind.PropertySetter"/> - Property setter from ExposeProperties=true</description></item>
+    ///   <item><description><see cref="AtsCapabilityKind.InstanceMethod"/> - Instance method from ExposeMethods=true</description></item>
+    /// </list>
     /// </remarks>
-    public bool IsContextProperty { get; init; }
+    public AtsCapabilityKind CapabilityKind { get; init; }
 
     /// <summary>
-    /// Gets or sets whether this is a property getter (vs setter).
-    /// Only meaningful when <see cref="IsContextProperty"/> is true.
-    /// </summary>
-    public bool IsContextPropertyGetter { get; init; }
-
-    /// <summary>
-    /// Gets or sets whether this is a property setter (vs getter).
-    /// Only meaningful when <see cref="IsContextProperty"/> is true.
-    /// </summary>
-    public bool IsContextPropertySetter { get; init; }
-
-    /// <summary>
-    /// Gets or sets whether this is an auto-generated instance method accessor.
+    /// Gets or sets the owning type name for property/method capabilities.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Context method capabilities are auto-generated from types marked with
-    /// <c>[AspireExport(ExposeMethods = true)]</c>. They provide access to methods on context
-    /// objects passed to callbacks.
+    /// For PropertyGetter, PropertySetter, and InstanceMethod capabilities, this is the
+    /// type name that owns the property/method (e.g., "TestCallbackContext").
+    /// </para>
+    /// <para>
+    /// For regular Method capabilities, this is null.
     /// </para>
     /// </remarks>
-    public bool IsContextMethod { get; init; }
+    public string? OwningTypeName { get; init; }
 }

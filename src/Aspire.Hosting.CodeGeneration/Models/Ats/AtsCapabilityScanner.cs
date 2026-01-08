@@ -119,9 +119,8 @@ public static class AtsCapabilityScanner
             TargetTypeId = shared.OriginalTargetTypeId,
             ExpandedTargetTypeIds = shared.ExpandedTargetTypeIds.ToList(),
             ReturnsBuilder = shared.ReturnsBuilder,
-            IsContextProperty = shared.IsContextProperty,
-            IsContextPropertyGetter = shared.IsContextPropertyGetter,
-            IsContextPropertySetter = shared.IsContextPropertySetter
+            CapabilityKind = shared.CapabilityKind,
+            OwningTypeName = shared.OwningTypeName
         };
     }
 
@@ -131,6 +130,8 @@ public static class AtsCapabilityScanner
         {
             Name = shared.Name,
             AtsTypeId = shared.AtsTypeId,
+            TypeCategory = shared.TypeCategory,
+            TypeKind = shared.TypeKind,
             IsOptional = shared.IsOptional,
             IsNullable = shared.IsNullable,
             IsCallback = shared.IsCallback,

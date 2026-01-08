@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Ats;
+
 namespace Aspire.Hosting.CodeGeneration.Models.Ats;
 
 /// <summary>
@@ -37,6 +39,33 @@ public sealed class AtsParameterInfo
     /// </para>
     /// </remarks>
     public required string AtsTypeId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the type category (Primitive, Handle, Dto, Callback).
+    /// </summary>
+    /// <remarks>
+    /// Indicates how this type should be serialized/deserialized:
+    /// <list type="bullet">
+    ///   <item><description><see cref="AtsTypeCategory.Primitive"/> - Serializes directly to JSON values</description></item>
+    ///   <item><description><see cref="AtsTypeCategory.Handle"/> - Opaque reference to .NET object</description></item>
+    ///   <item><description><see cref="AtsTypeCategory.Dto"/> - Serializes as JSON object</description></item>
+    ///   <item><description><see cref="AtsTypeCategory.Callback"/> - Registered callback delegate</description></item>
+    /// </list>
+    /// </remarks>
+    public AtsTypeCategory TypeCategory { get; init; }
+
+    /// <summary>
+    /// Gets or sets the type kind (Primitive, Interface, ConcreteType).
+    /// </summary>
+    /// <remarks>
+    /// Indicates the kind of type for code generation:
+    /// <list type="bullet">
+    ///   <item><description><see cref="AtsTypeKind.Primitive"/> - Primitive types (string, number, boolean, etc.)</description></item>
+    ///   <item><description><see cref="AtsTypeKind.Interface"/> - Interface types (IResource, IResourceWithEnvironment, etc.)</description></item>
+    ///   <item><description><see cref="AtsTypeKind.ConcreteType"/> - Concrete types (RedisResource, ContainerResource, etc.)</description></item>
+    /// </list>
+    /// </remarks>
+    public AtsTypeKind TypeKind { get; init; }
 
     /// <summary>
     /// Gets or sets whether this parameter is optional.

@@ -328,8 +328,8 @@ internal static class AtsCapabilityScanner
                     IsExtensionMethod = false,
                     OriginalTargetTypeId = typeId,
                     ReturnsBuilder = false,
-                    IsContextProperty = true,
-                    IsContextPropertyGetter = true,
+                    CapabilityKind = AtsCapabilityKind.PropertyGetter,
+                    OwningTypeName = typeName,
                     SourceProperty = property
                 });
             }
@@ -371,8 +371,8 @@ internal static class AtsCapabilityScanner
                     IsExtensionMethod = false,
                     OriginalTargetTypeId = typeId,
                     ReturnsBuilder = false,
-                    IsContextProperty = true,
-                    IsContextPropertySetter = true,
+                    CapabilityKind = AtsCapabilityKind.PropertySetter,
+                    OwningTypeName = typeName,
                     SourceProperty = property
                 });
             }
@@ -462,7 +462,8 @@ internal static class AtsCapabilityScanner
                     IsExtensionMethod = false,
                     OriginalTargetTypeId = typeId,
                     ReturnsBuilder = false,
-                    IsContextMethod = true,
+                    CapabilityKind = AtsCapabilityKind.InstanceMethod,
+                    OwningTypeName = typeName,
                     SourceMethod = method
                 });
             }
@@ -592,11 +593,15 @@ internal static class AtsCapabilityScanner
         var isNullable = paramType.GenericTypeDefinitionFullName == "System.Nullable`1" ||
                          param.TypeFullName.StartsWith("System.Nullable`1");
 
+        // Determine type kind
+        var typeKind = DetermineTypeKind(atsTypeId, paramType);
+
         return new AtsParameterInfo
         {
             Name = string.IsNullOrEmpty(param.Name) ? $"arg{paramIndex}" : param.Name,
             AtsTypeId = isCallback ? "callback" : atsTypeId!,
             TypeCategory = AtsConstants.GetCategory(atsTypeId, isCallback),
+            TypeKind = typeKind,
             IsOptional = param.IsOptional,
             IsNullable = isNullable,
             IsCallback = isCallback,
@@ -604,6 +609,27 @@ internal static class AtsCapabilityScanner
             CallbackReturnTypeId = callbackReturnTypeId,
             DefaultValue = param.DefaultValue
         };
+    }
+
+    /// <summary>
+    /// Determines the ATS type kind for a type.
+    /// </summary>
+    private static AtsTypeKind DetermineTypeKind(string? atsTypeId, IAtsTypeInfo type)
+    {
+        // Check if primitive
+        if (AtsConstants.IsPrimitive(atsTypeId))
+        {
+            return AtsTypeKind.Primitive;
+        }
+
+        // Check if interface
+        if (type.IsInterface)
+        {
+            return AtsTypeKind.Interface;
+        }
+
+        // Everything else is a concrete type
+        return AtsTypeKind.ConcreteType;
     }
 
     /// <summary>

@@ -87,29 +87,19 @@ internal sealed class AtsCapabilityInfo
     internal IAtsPropertyInfo? SourceProperty { get; set; }
 
     /// <summary>
-    /// Gets or sets whether this is an auto-generated property accessor.
+    /// Gets or sets the kind of capability (Method, PropertyGetter, PropertySetter, InstanceMethod).
     /// </summary>
-    public bool IsContextProperty { get; init; }
+    public AtsCapabilityKind CapabilityKind { get; init; }
 
     /// <summary>
-    /// Gets or sets whether this is a property getter (vs setter).
-    /// Only meaningful when <see cref="IsContextProperty"/> is true.
-    /// </summary>
-    public bool IsContextPropertyGetter { get; init; }
-
-    /// <summary>
-    /// Gets or sets whether this is a property setter (vs getter).
-    /// Only meaningful when <see cref="IsContextProperty"/> is true.
-    /// </summary>
-    public bool IsContextPropertySetter { get; init; }
-
-    /// <summary>
-    /// Gets or sets whether this is an auto-generated instance method accessor.
+    /// Gets or sets the owning type name for property/method capabilities.
     /// </summary>
     /// <remarks>
-    /// This is set when <c>ExposeMethods = true</c> on a type's [AspireExport] attribute.
+    /// For PropertyGetter, PropertySetter, and InstanceMethod capabilities, this is the
+    /// type name that owns the property/method (e.g., "TestCallbackContext").
+    /// For regular Method capabilities, this is null.
     /// </remarks>
-    public bool IsContextMethod { get; init; }
+    public string? OwningTypeName { get; init; }
 }
 
 /// <summary>
@@ -131,6 +121,11 @@ internal sealed class AtsParameterInfo
     /// Gets or sets the type category (Primitive, Handle, Dto, Callback).
     /// </summary>
     public AtsTypeCategory TypeCategory { get; init; }
+
+    /// <summary>
+    /// Gets or sets the type kind (Primitive, Interface, ConcreteType).
+    /// </summary>
+    public AtsTypeKind TypeKind { get; init; }
 
     /// <summary>
     /// Gets or sets whether this parameter is optional.

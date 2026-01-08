@@ -1106,11 +1106,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine("// ============================================================================");
         WriteLine();
 
-        // Separate capabilities by type
-        var getters = model.Capabilities.Where(c => c.IsContextPropertyGetter).ToList();
-        var setters = model.Capabilities.Where(c => c.IsContextPropertySetter).ToList();
-        var contextMethods = model.Capabilities.Where(c => c.IsContextMethod).ToList();
-        var otherMethods = model.Capabilities.Where(c => !c.IsContextPropertyGetter && !c.IsContextPropertySetter && !c.IsContextMethod).ToList();
+        // Separate capabilities by type using CapabilityKind enum
+        var getters = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.PropertyGetter).ToList();
+        var setters = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.PropertySetter).ToList();
+        var contextMethods = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.InstanceMethod).ToList();
+        var otherMethods = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.Method).ToList();
 
         var hasSetters = setters.Count > 0;
         var promiseClassName = $"{className}Promise";
@@ -1171,8 +1171,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// </summary>
     private void GenerateContextGetterMethod(AtsCapabilityInfo getter)
     {
-        // Extract property name from method name (e.g., "TestContext.getName" -> "getName")
-        var methodName = getter.MethodName.Contains('.')
+        // Use OwningTypeName if available to extract method name, otherwise parse from MethodName
+        var methodName = !string.IsNullOrEmpty(getter.OwningTypeName) && getter.MethodName.Contains('.')
             ? getter.MethodName[(getter.MethodName.LastIndexOf('.') + 1)..]
             : getter.MethodName;
 
@@ -1198,8 +1198,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// </summary>
     private void GenerateContextMethod(AtsCapabilityInfo method)
     {
-        // Extract method name from capability (e.g., "TestContext.doSomething" -> "doSomething")
-        var methodName = method.MethodName.Contains('.')
+        // Use OwningTypeName if available to extract method name, otherwise parse from MethodName
+        var methodName = !string.IsNullOrEmpty(method.OwningTypeName) && method.MethodName.Contains('.')
             ? method.MethodName[(method.MethodName.LastIndexOf('.') + 1)..]
             : method.MethodName;
 
@@ -1254,8 +1254,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// </summary>
     private void GenerateContextSetterInternalMethod(AtsCapabilityInfo setter, string className)
     {
-        // Extract property name from method name (e.g., "TestContext.setName" -> "setName")
-        var methodName = setter.MethodName.Contains('.')
+        // Use OwningTypeName if available to extract method name, otherwise parse from MethodName
+        var methodName = !string.IsNullOrEmpty(setter.OwningTypeName) && setter.MethodName.Contains('.')
             ? setter.MethodName[(setter.MethodName.LastIndexOf('.') + 1)..]
             : setter.MethodName;
 
@@ -1285,8 +1285,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// </summary>
     private void GenerateContextSetterPublicMethod(AtsCapabilityInfo setter, string promiseClassName)
     {
-        // Extract property name from method name (e.g., "TestContext.setName" -> "setName")
-        var methodName = setter.MethodName.Contains('.')
+        // Use OwningTypeName if available to extract method name, otherwise parse from MethodName
+        var methodName = !string.IsNullOrEmpty(setter.OwningTypeName) && setter.MethodName.Contains('.')
             ? setter.MethodName[(setter.MethodName.LastIndexOf('.') + 1)..]
             : setter.MethodName;
 
@@ -1341,7 +1341,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Generate chained getter methods
         foreach (var getter in getters)
         {
-            var methodName = getter.MethodName.Contains('.')
+            var methodName = !string.IsNullOrEmpty(getter.OwningTypeName) && getter.MethodName.Contains('.')
                 ? getter.MethodName[(getter.MethodName.LastIndexOf('.') + 1)..]
                 : getter.MethodName;
             var returnType = MapAtsTypeToTypeScript(getter.ReturnTypeId ?? "unknown", false);
@@ -1359,7 +1359,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Generate chained setter methods
         foreach (var setter in setters)
         {
-            var methodName = setter.MethodName.Contains('.')
+            var methodName = !string.IsNullOrEmpty(setter.OwningTypeName) && setter.MethodName.Contains('.')
                 ? setter.MethodName[(setter.MethodName.LastIndexOf('.') + 1)..]
                 : setter.MethodName;
 

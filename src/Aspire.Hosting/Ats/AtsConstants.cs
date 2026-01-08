@@ -33,6 +33,53 @@ public enum AtsTypeCategory
 }
 
 /// <summary>
+/// Kinds of ATS types for code generation.
+/// </summary>
+public enum AtsTypeKind
+{
+    /// <summary>
+    /// Primitive types (string, number, boolean, datetime, etc.).
+    /// </summary>
+    Primitive,
+
+    /// <summary>
+    /// Interface types (IResource, IResourceWithEnvironment, etc.).
+    /// </summary>
+    Interface,
+
+    /// <summary>
+    /// Concrete types (RedisResource, ContainerResource, etc.).
+    /// </summary>
+    ConcreteType
+}
+
+/// <summary>
+/// Kinds of ATS capabilities for code generation.
+/// </summary>
+public enum AtsCapabilityKind
+{
+    /// <summary>
+    /// Regular extension method capability.
+    /// </summary>
+    Method,
+
+    /// <summary>
+    /// Property getter capability (from ExposeProperties=true).
+    /// </summary>
+    PropertyGetter,
+
+    /// <summary>
+    /// Property setter capability (from ExposeProperties=true).
+    /// </summary>
+    PropertySetter,
+
+    /// <summary>
+    /// Instance method capability (from ExposeMethods=true).
+    /// </summary>
+    InstanceMethod
+}
+
+/// <summary>
 /// Constants for ATS (Aspire Type System) type IDs and capability IDs.
 /// </summary>
 public static class AtsConstants
