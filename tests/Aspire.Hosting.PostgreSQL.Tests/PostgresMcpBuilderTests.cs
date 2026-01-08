@@ -55,6 +55,10 @@ public class PostgresMcpBuilderTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var mcpContainer = Assert.Single(appModel.Resources.OfType<PostgresMcpContainerResource>());
 
+        // Allocate the MCP container's endpoint so GetValueAsync can resolve
+        var mcpEndpoint = Assert.Single(mcpContainer.Annotations.OfType<EndpointAnnotation>());
+        mcpEndpoint.AllocatedEndpoint = new AllocatedEndpoint(mcpEndpoint, "db-mcp.dev.internal", 8000);
+
         var mcpAnnotation = Assert.Single(mcpContainer.Annotations.OfType<McpServerEndpointAnnotation>());
 
         var resolvedUri = await mcpAnnotation.EndpointUrlResolver(mcpContainer, CancellationToken.None);
