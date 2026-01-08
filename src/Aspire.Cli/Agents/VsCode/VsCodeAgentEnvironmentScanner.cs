@@ -75,8 +75,12 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 _logger.LogDebug("Playwright MCP server is already configured in .vscode/mcp.json");
             }
 
-            // Try to add agent instructions applicator (only once across all scanners)
-            CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+            // Try to add skill file applicator for GitHub Copilot
+            CommonAgentApplicators.TryAddSkillFileApplicator(
+                context,
+                context.RepositoryRoot,
+                Path.Combine(".github", "skills", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
+                "Create Aspire development skill file (.github/skills/aspire-development/SKILL.md)");
         }
         else if (await IsVsCodeAvailableAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -92,8 +96,12 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 context,
                 ct => ApplyPlaywrightMcpConfigurationAsync(targetVsCodeFolder, ct));
             
-            // Try to add agent instructions applicator (only once across all scanners)
-            CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+            // Try to add skill file applicator for GitHub Copilot
+            CommonAgentApplicators.TryAddSkillFileApplicator(
+                context,
+                context.RepositoryRoot,
+                Path.Combine(".github", "skills", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md"),
+                "Create Aspire development skill file (.github/skills/aspire-development/SKILL.md)");
         }
         else
         {
