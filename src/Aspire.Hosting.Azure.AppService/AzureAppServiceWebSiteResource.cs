@@ -114,60 +114,6 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
             steps.Add(updateProvisionableResourceStep);
 
-            var dashboardGetHostNameStep = new PipelineStep
-            {
-                Name = $"fetch-dashboard-hostname-for-{targetResource.Name}",
-                Action = async ctx =>
-                {
-                    var computeEnv = (AzureAppServiceEnvironmentResource)deploymentTargetAnnotation.ComputeEnvironment!;
-
-                    if (!computeEnv.EnableDashboard)
-                    {
-                        return;
-                    }
-
-                    if (computeEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentDashboardUriAnnotation>(out var dashboardUriAnnotation))
-                    {
-                        ctx.ReportingStep.Log(LogLevel.Information, $"Dashboard URI already configured: {dashboardUriAnnotation.DashboardUri}", false);
-                        return;
-                    }
-
-                    var dashboardName = await computeEnv.DashboardNameReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false);
-                    int maxLength = computeEnv.EnableRegionalDnlHostName
-                        ? MaxWebsiteNameLengthWithDnl
-                        : MaxWebsiteNameLength;
-
-                    if (string.IsNullOrWhiteSpace(dashboardName))
-                    {
-                        ctx.ReportingStep.Log(LogLevel.Warning, $"No dashboard name configured on the environment resource", false);
-                        return;
-                    }
-
-                    if (dashboardName.Length > maxLength)
-                    {
-                        dashboardName = dashboardName.Substring(0, maxLength);
-                    }
-
-                    var hostName = await GetDnlHostNameAsync(dashboardName, "Site", ctx).ConfigureAwait(false);
-
-                    ctx.ReportingStep.Log(LogLevel.Information, $"Fetched host name for dashboard website: {hostName}", false);
-
-                    if (!computeEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentDashboardUriAnnotation>(out _))
-                    {
-                        computeEnv.Annotations.Add(new AzureAppServiceEnvironmentDashboardUriAnnotation($"https://{hostName}"));
-                    }
-
-                    if (computeEnv.TryGetLastAnnotation<AzureAppServiceEnvironmentContextAnnotation>(out var environmentContextAnnotation))
-                    {
-                        environmentContextAnnotation.EnvironmentContext.GetAppServiceContext(TargetResource).SetDashboardUri($"https://{hostName}");
-                    }
-                },
-                Tags = ["fetch-dashboard-hostname"],
-                DependsOnSteps = new List<string> { "create-provisioning-context" },
-            };
-
-            steps.Add(dashboardGetHostNameStep);
-
             var websiteGetHostNameStep = new PipelineStep
             {
                 Name = $"fetch-{targetResource.Name}-hostname",
@@ -296,11 +242,11 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             var checkWebsiteExistsSteps = context.GetSteps(this, "check-website-exists");
             var updateWebsiteResourceSteps = context.GetSteps(this, "update-website-provisionable-resource");
             var fetchWebsiteHostNameSteps = context.GetSteps(this, "fetch-website-hostname");
-            var fetchDashboardHostNameSteps = context.GetSteps(this, "fetch-dashboard-hostname");
+            var fetchDashboardHost = context.GetSteps(this, "fetch-dashboard-hostname");
             fetchWebsiteHostNameSteps.DependsOn(checkWebsiteExistsSteps);
             updateWebsiteResourceSteps.DependsOn(fetchWebsiteHostNameSteps);
             provisionSteps.DependsOn(updateWebsiteResourceSteps);
-            provisionSteps.DependsOn(fetchDashboardHostNameSteps);
+            provisionSteps.DependsOn(fetchDashboardHost);
 
             // Ensure summary step runs after provision
             context.GetSteps(this, "print-summary").DependsOn(provisionSteps);
@@ -427,40 +373,40 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
         var computeEnv = (AzureAppServiceEnvironmentResource)TargetResource.GetDeploymentTargetAnnotation()!.ComputeEnvironment!;
         var websiteSuffix = await computeEnv.WebSiteSuffix.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
         var websiteName = $"{TargetResource.Name.ToLowerInvariant()}-{websiteSuffix}";
-        int maxLength = enableRegionalDnl
-            ? MaxWebsiteNameLengthWithDnl
-            : MaxWebsiteNameLength;
 
-        if (websiteName.Length > maxLength)
+        if (enableRegionalDnl)
         {
-            websiteName = websiteName.Substring(0, maxLength);
-        }
-
-        if (!string.IsNullOrWhiteSpace(deploymentSlot))
-        {
-           int maxDeploymentSlotLength = enableRegionalDnl
-                ? MaxDeploymentSlotNameLengthWithDnl
-                : MaxDeploymentSlotNameLength;
-
-            int websiteMaxLengthWithSlot = enableRegionalDnl
-                ? MaxWebsiteHostNameLengthWithSlotAndDnl
-                : MaxWebsiteNameLengthWithSlot;
-
-            if (websiteName.Length > websiteMaxLengthWithSlot)
+            if (string.IsNullOrWhiteSpace(deploymentSlot))
             {
-                websiteName = websiteName.Substring(0, websiteMaxLengthWithSlot);
+                return TruncateToMaxLength(websiteName, MaxWebsiteNameLengthWithDnl); // truncate to 43 characters
+            }
+            websiteName = TruncateToMaxLength(websiteName, MaxWebsiteHostNameLengthWithSlotAndDnl);
+            var trimmedSlotName = TruncateToMaxLength(deploymentSlot, MaxDeploymentSlotNameLengthWithDnl);
+            websiteName += $"-{trimmedSlotName}";
+
+            return websiteName;
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(deploymentSlot))
+            {
+                return TruncateToMaxLength(websiteName, 60);
             }
 
-            if (deploymentSlot.Length > maxDeploymentSlotLength)
-            {
-                deploymentSlot = deploymentSlot.Substring(0, maxDeploymentSlotLength);
-            }
+            websiteName = TruncateToMaxLength(websiteName, MaxWebSiteNamePrefixLengthWithSlot);
+            websiteName += $"-{deploymentSlot}";
 
-            websiteName = $"{websiteName}-{deploymentSlot}";
-            context.Logger.LogInformation("Using deployment slot '{DeploymentSlot}' for website '{WebsiteName}'", deploymentSlot, websiteName);
+            return TruncateToMaxLength(websiteName, MaxHostPrefixLengthWithSlot);
         }
+    }
 
-        return websiteName;
+    internal static string TruncateToMaxLength(string value, int maxLength)
+    {
+        if (value.Length <= maxLength)
+        {
+            return value;
+        }
+        return value.Substring(0, maxLength);
     }
 
     // <TODO> Fix for other clouds </TODO>
@@ -470,9 +416,11 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
 
     // Length constraints
     internal const int MaxWebsiteNameLength = 60;
+    internal const int MaxWebSiteNamePrefixLengthWithSlot = 40;
+    internal const int MaxHostPrefixLengthWithSlot = 59;
+
+    // Length constraints with DNL (region suffix is 17 characters including hyphen)
     internal const int MaxWebsiteNameLengthWithDnl = 43;
-    internal const int MaxWebsiteNameLengthWithSlot = 41;
     internal const int MaxWebsiteHostNameLengthWithSlotAndDnl = 23;
-    internal const int MaxDeploymentSlotNameLength = 21;
     internal const int MaxDeploymentSlotNameLengthWithDnl = 18;
 }

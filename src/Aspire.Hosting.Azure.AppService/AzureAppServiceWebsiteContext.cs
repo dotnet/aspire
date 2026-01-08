@@ -68,16 +68,9 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
     }
 
-    public void SetDashboardUri(string dashboardUri)
-    {
-        _dashboardUriParameter.Value = dashboardUri;
-    }
-
     private readonly ProvisioningParameter _websiteHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteHostName", typeof(string));
 
     private readonly ProvisioningParameter _websiteSlotHostNameParameter = new ProvisioningParameter($"{resource.Name}websiteSlotHostName", typeof(string));
-
-    private readonly ProvisioningParameter _dashboardUriParameter = new ProvisioningParameter($"dashboardUri", typeof(string));
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
     {
@@ -299,7 +292,6 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         _infrastructure = infra;
         infra.Add(_websiteHostNameParameter);
-        infra.Add(_dashboardUriParameter);
 
         // Check for deployment slot
         // If specified, update hostnames to endpoint references
@@ -806,7 +798,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
         appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
         appSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
-        appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = _dashboardUriParameter });
+        appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = environmentContext.Environment.DashboardUri! });
         appSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
 
         var websiteRaName = BicepFunction.CreateGuid(id, contributorId, websiteRaId);
