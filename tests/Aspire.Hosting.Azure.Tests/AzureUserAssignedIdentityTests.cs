@@ -69,19 +69,21 @@ public class AzureUserAssignedIdentityTests
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         await ExecuteBeforeStartHooksAsync(app, default);
 
+        // Verify resources - now includes the identity created for the environment
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
-            r => Assert.IsType<AzureContainerRegistryResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r), // cae-acr (default registry for environment)
+            r => Assert.IsType<AzureUserAssignedIdentityResource>(r), // cae-identity (identity for environment)
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
-            r => Assert.IsType<AzureContainerRegistryResource>(r),
-            r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r), // myregistry
+            r => Assert.IsType<AzureUserAssignedIdentityResource>(r), // myidentity
             r =>
             {
                 Assert.IsType<AzureProvisioningResource>(r);
                 Assert.Equal("myidentity-roles-myregistry", r.Name);
             });
 
-        var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>());
+        var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>(), r => r.Name == "myidentity");
         var (_, identityBicep) = await GetManifestWithBicep(identityResource, skipPreparer: true);
 
         var registryResource = Assert.Single(model.Resources.OfType<AzureContainerRegistryResource>(), r => r.Name == "myregistry");
@@ -114,9 +116,11 @@ public class AzureUserAssignedIdentityTests
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Check that only one AzureUserAssignedIdentityResource is created, the one that we explicitly constructed
-        var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>());
-        Assert.Equal("myidentity", identityResource.Name);
+        // Check that we have two AzureUserAssignedIdentityResource: one for the environment and one we explicitly created
+        var identityResources = model.Resources.OfType<AzureUserAssignedIdentityResource>().ToList();
+        Assert.Equal(2, identityResources.Count);
+        Assert.Contains(identityResources, r => r.Name == "cae-identity"); // automatically created for environment
+        Assert.Contains(identityResources, r => r.Name == "myidentity"); // explicitly created
 
         // Check for IComputeResource having the correct identity
         var computeResource = Assert.Single(model.Resources.OfType<IComputeResource>(), r => r.Name == "myapp");
@@ -135,7 +139,7 @@ public class AzureUserAssignedIdentityTests
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var env = builder.AddAzureContainerAppEnvironment("cae");
+        builder.AddAzureContainerAppEnvironment("cae");
 
         // Use Azure Storage instead of Container Registry to test role assignments on WithReference
         var storage = builder.AddAzureStorage("mystorage");
@@ -151,19 +155,19 @@ public class AzureUserAssignedIdentityTests
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Validate that only the resources we expect to see are in the model
+        // Validate that only the resources we expect to see are in the model - now includes environment identity
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
-            r => Assert.IsType<AzureContainerRegistryResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r), // cae-acr
+            r => Assert.IsType<AzureUserAssignedIdentityResource>(r), // cae-identity
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
-            r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
+            r => Assert.IsType<AzureUserAssignedIdentityResource>(r), // myidentity
             r => Assert.IsType<ProjectResource>(r),
             r => Assert.IsType<AzureProvisioningResource>(r));
 
-        // Verify the identity resource is the only one that exists
-        var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>());
-        Assert.Equal("myidentity", identityResource.Name);
+        // Verify the identity resource is the one we explicitly created
+        var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>(), r => r.Name == "myidentity");
 
         // Verify the compute resource has the identity annotation
         var computeResource = Assert.Single(model.Resources.OfType<IComputeResource>(), r => r.Name == "myapp");
@@ -191,7 +195,7 @@ public class AzureUserAssignedIdentityTests
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var env = builder.AddAzureAppServiceEnvironment("appservice");
+        builder.AddAzureAppServiceEnvironment("appservice");
 
         // Use Azure Storage instead of Container Registry
         var storage = builder.AddAzureStorage("mystorage");
@@ -207,19 +211,19 @@ public class AzureUserAssignedIdentityTests
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Validate that only the resources we expect to see are in the model
+        // Validate that only the resources we expect to see are in the model - now includes environment identity
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
-            r => Assert.IsType<AzureContainerRegistryResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r), // appservice-acr
+            r => Assert.IsType<AzureUserAssignedIdentityResource>(r), // appservice-identity
             r => Assert.IsType<AzureAppServiceEnvironmentResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
-            r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
+            r => Assert.IsType<AzureUserAssignedIdentityResource>(r), // myidentity
             r => Assert.IsType<ProjectResource>(r),
             r => Assert.IsType<AzureProvisioningResource>(r));
 
-        // Verify the identity resource is the only one that exists
-        var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>());
-        Assert.Equal("myidentity", identityResource.Name);
+        // Verify the identity resource is the one we explicitly created
+        var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>(), r => r.Name == "myidentity");
 
         // Verify the compute resource has the identity annotation
         var computeResource = Assert.Single(model.Resources.OfType<IComputeResource>(), r => r.Name == "myapp");
@@ -264,7 +268,7 @@ public class AzureUserAssignedIdentityTests
         // Arrange
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var env = builder.AddAzureContainerAppEnvironment("cae");
+        builder.AddAzureContainerAppEnvironment("cae");
 
         // Use Azure Storage instead of Container Registry
         var storage = builder.AddAzureStorage("mystorage");
@@ -284,21 +288,21 @@ public class AzureUserAssignedIdentityTests
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Validate that only the resources we expect to see are in the model
+        // Validate that only the resources we expect to see are in the model - now includes environment identity
         Assert.Collection(model.Resources,
             r => Assert.IsType<AzureEnvironmentResource>(r),
-            r => Assert.IsType<AzureContainerRegistryResource>(r),
+            r => Assert.IsType<AzureContainerRegistryResource>(r), // cae-acr
+            r => Assert.IsType<AzureUserAssignedIdentityResource>(r), // cae-identity
             r => Assert.IsType<AzureContainerAppEnvironmentResource>(r),
             r => Assert.IsType<AzureStorageResource>(r),
-            r => Assert.IsType<AzureUserAssignedIdentityResource>(r),
+            r => Assert.IsType<AzureUserAssignedIdentityResource>(r), // myidentity
             r => Assert.IsType<ProjectResource>(r),
             r => Assert.IsType<ProjectResource>(r),
             r => Assert.True(r is AzureProvisioningResource { Name: "myapp-roles-mystorage" }),
             r => Assert.True(r is AzureProvisioningResource { Name: "myapp2-roles-mystorage" }));
 
-        // Verify the identity resource is the only one that exists
-        var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>());
-        Assert.Equal("myidentity", identityResource.Name);
+        // Verify the identity resource is the one we explicitly created
+        var identityResource = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>(), r => r.Name == "myidentity");
 
         // Verify that both compute resources have the same identity annotation
         var computeResource = Assert.Single(model.Resources.OfType<IComputeResource>(), r => r.Name == "myapp");
