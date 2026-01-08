@@ -33,30 +33,64 @@ internal static class AspireCliHex1bExtensions
     }
 
     /// <summary>
+    /// Flushes the asciinema recording to disk.
+    /// This ensures that the recording is saved even if the test times out or fails.
+    /// Call this periodically during long-running operations.
+    /// </summary>
+    /// <param name="builder">The input sequence builder.</param>
+    /// <param name="recorder">The asciinema recorder to flush.</param>
+    /// <returns>The builder for chaining.</returns>
+    public static Hex1bTerminalInputSequenceBuilder FlushRecording(
+        this Hex1bTerminalInputSequenceBuilder builder,
+        AsciinemaRecorder? recorder)
+    {
+        if (recorder is null)
+        {
+            return builder;
+        }
+
+        return builder.WaitUntil(_ =>
+        {
+            recorder.FlushAsync().GetAwaiter().GetResult();
+            return true;
+        }, TimeSpan.FromMilliseconds(1));
+    }
+
+    /// <summary>
     /// Writes a test log message along with the current terminal snapshot.
     /// Use this for debugging and tracing test execution. The log includes
     /// both the message and the current terminal screen content.
+    /// Also flushes the recording to ensure it's saved even on timeout/failure.
     /// </summary>
     /// <param name="builder">The input sequence builder.</param>
     /// <param name="output">The test output helper for logging.</param>
     /// <param name="message">The message to log.</param>
+    /// <param name="recorder">Optional asciinema recorder to flush after logging.</param>
     /// <returns>The builder for chaining.</returns>
     public static Hex1bTerminalInputSequenceBuilder WriteTestLog(
         this Hex1bTerminalInputSequenceBuilder builder,
         ITestOutputHelper? output,
-        string message)
+        string message,
+        AsciinemaRecorder? recorder = null)
     {
-        if (output is null)
+        if (output is null && recorder is null)
         {
             return builder;
         }
 
         return builder.WaitUntil(snapshot =>
         {
-            var terminalText = snapshot.GetScreenText();
-            output.WriteLine($"[LOG] {message}");
-            output.WriteLine($"[TERMINAL]\n{terminalText}");
-            output.WriteLine(new string('-', 80));
+            if (output is not null)
+            {
+                var terminalText = snapshot.GetScreenText();
+                output.WriteLine($"[LOG] {message}");
+                output.WriteLine($"[TERMINAL]\n{terminalText}");
+                output.WriteLine(new string('-', 80));
+            }
+
+            // Flush the recording to ensure we capture state even on timeout/failure
+            recorder?.FlushAsync().GetAwaiter().GetResult();
+
             return true;
         }, TimeSpan.FromMilliseconds(1));
     }
