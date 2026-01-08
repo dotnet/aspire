@@ -21,7 +21,6 @@ CLI E2E tests use the Hex1b library to automate terminal sessions, simulating re
 
 - **`AspireCliAutomationBuilder`** (`Helpers/AspireCliAutomationBuilder.cs`): Main builder class that encapsulates terminal session lifecycle and automation methods
 - **`CliE2ETestHelpers`** (`Helpers/CliE2ETestHelpers.cs`): Factory methods for terminal sessions and environment variable helpers
-- **`TerminalCommandFailedException`** (`Helpers/TerminalCommandFailedException.cs`): Exception with terminal snapshot for failures
 
 ### AspireCliAutomationBuilder
 
@@ -58,7 +57,6 @@ public sealed record AspireCliAutomationContext(
 Create tests using the builder pattern which handles:
 - Recording path configuration (CI vs local)
 - Session lifecycle management
-- Command sequence tracking
 - Error handling with terminal snapshots
 
 ```csharp
@@ -86,7 +84,7 @@ public async Task MyCliTest()
 
 ## DO: Use AddSequence() for Custom Operations
 
-When you need to run custom commands not covered by built-in methods, use `AddSequence()` with `IncrementCommandSequence()`:
+When you need to run custom commands not covered by built-in methods, use `AddSequence()`:
 
 ```csharp
 await builder
@@ -95,12 +93,11 @@ await builder
     {
         ctx.SequenceBuilder
             .Type("aspire new starter --name MyApp")
-            .Enter();
-
-        // Increment the command counter so WaitForSequence knows which prompt to wait for
-        ctx.IncrementCommandSequence();
+            .Enter()
+            .WaitUntil(
+                snapshot => snapshot.GetScreenText().Contains("Created project"),
+                TimeSpan.FromMinutes(2));
     })
-    .WaitForSequence(timeout: TimeSpan.FromMinutes(2))
     .ExitTerminal()
     .ExecuteAsync();
 ```
@@ -108,15 +105,14 @@ await builder
 The context provides access to:
 - `SequenceBuilder`: The underlying `Hex1bTerminalInputSequenceBuilder`
 - `Session`: The `AspireTerminalSession` for direct terminal access if needed
-- `IncrementCommandSequence()`: Increments the command counter (call after typing a command that produces a prompt)
 
-**Important**: Always call `IncrementCommandSequence()` after adding a command that will update the prompt, then follow with `WaitForSequence()` to wait for completion.
+Use `WaitUntil()` to wait for specific output patterns in the terminal.
 
 ## DO: Always Call ExecuteAsync() at the End
 
 `ExecuteAsync()` runs the built sequence and handles:
 - Applying the input sequence to the terminal
-- Catching `TerminalCommandFailedException` and `TimeoutException`
+- Catching `TimeoutException`
 - Logging terminal content on failure
 - Failing the test with descriptive messages
 - Cleaning up resources
@@ -135,7 +131,7 @@ await builder
 - Success: `[N ✔] $ `
 - Failure: `[N ✘:code] $ `
 
-This enables `WaitForSequence()` to detect when commands complete and whether they succeeded.
+This prompt is useful for debugging recordings - you can see which command failed by looking at the prompt.
 
 ## DO: Use Built-in Methods When Available
 
@@ -144,12 +140,12 @@ All methods are cross-platform and use appropriate shell commands for each OS.
 
 | Method | Description |
 |--------|-------------|
-| `PrepareEnvironment()` | Sets up tracking prompt (bash on Linux/macOS, PowerShell on Windows) |
+| `PrepareEnvironment()` | Sets up debug prompt (bash on Linux/macOS, PowerShell on Windows) |
 | `InstallAspireCliFromPullRequest(prNumber, timeout?)` | Installs CLI from PR artifacts (uses appropriate script per OS) |
 | `SourceAspireCliEnvironment()` | Sources ~/.bashrc on Linux/macOS (no-op on Windows) |
 | `VerifyAspireCliVersion(commitSha, timeout?)` | Runs `aspire --version` and verifies SHA |
-| `WaitForSequence(timeout?)` | Waits for current command to complete |
 | `ExitTerminal()` | Types `exit` to close the shell |
+| `AddSequence(ctx => ...)` | Custom operations using the underlying Hex1b builder |
 
 ## DO: Get Environment Variables Using Helpers
 
@@ -174,20 +170,18 @@ await using var builder = await AspireCliAutomationBuilder.CreateAsync(...);
 await builder.PrepareEnvironment()...ExecuteAsync();
 ```
 
-## DON'T: Manually Track Command Sequence Numbers
+## DON'T: Use Hard-coded Delays
 
-The builder tracks command sequences internally:
+Use `WaitUntil()` with specific output patterns instead of arbitrary delays:
 
 ```csharp
-// DON'T: Manual sequence tracking
-.WaitForSequence(1)
-.SomeCommand()
-.WaitForSequence(2)
+// DON'T: Arbitrary delays
+.Wait(TimeSpan.FromSeconds(30))
 
-// DO: Let the builder track sequences
-.PrepareEnvironment()               // Sequence 1
-.InstallAspireCliFromPullRequest()  // Sequence 2 (automatic)
-.SourceAspireCliEnvironment()       // Sequence 3 (automatic, skipped on Windows)
+// DO: Wait for specific output
+.WaitUntil(
+    snapshot => snapshot.GetScreenText().Contains("Successfully installed"),
+    TimeSpan.FromMinutes(5))
 ```
 
 ## DON'T: Catch Exceptions from ExecuteAsync()
@@ -221,21 +215,23 @@ public AspireCliAutomationBuilder MyNewOperation(
     string arg,
     TimeSpan? timeout = null)
 {
-    _sequenceBuilder
-        .Type($"aspire my-command {arg}")
-        .Enter();
-
-    _commandSequence++;
-
-    return WaitForSequence(timeout);
+    return AddSequence(ctx =>
+    {
+        ctx.SequenceBuilder
+            .Type($"aspire my-command {arg}")
+            .Enter()
+            .WaitUntil(
+                snapshot => snapshot.GetScreenText().Contains("Expected output"),
+                timeout ?? TimeSpan.FromSeconds(30));
+    });
 }
 ```
 
 Key points:
-1. Type the command and press Enter
-2. Increment `_commandSequence`
-3. Call `WaitForSequence()` to wait for completion
-4. Return `this` for fluent chaining
+1. Use `AddSequence()` to add the operation
+2. Type the command and press Enter
+3. Use `WaitUntil()` with a specific output pattern
+4. Return the builder for fluent chaining
 
 ## CI Configuration
 
