@@ -222,16 +222,17 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
 
     /// <summary>
     /// Verifies the Aspire CLI installation by checking the version contains the expected commit SHA.
-    /// The commit SHA is trimmed to the first 9 characters for matching.
+    /// The version format uses 'g' prefix + 8 character SHA (e.g., g6077e9db).
     /// When running locally (not in CI), uses an echo command for testing.
     /// </summary>
-    /// <param name="expectedCommitSha">The full commit SHA (will be trimmed to 9 characters).</param>
+    /// <param name="expectedCommitSha">The full commit SHA (will be formatted as g + 8 chars).</param>
     /// <param name="timeout">Maximum time to wait (default: 30 seconds).</param>
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder VerifyAspireCliVersion(string expectedCommitSha, TimeSpan? timeout = null)
     {
-        // Use first 9 characters of the commit SHA for matching
-        var shortSha = expectedCommitSha.Length > 9 ? expectedCommitSha[..9] : expectedCommitSha;
+        // Version format is 'g' prefix + 8 character SHA (matching ci.yml version suffix format)
+        var shortSha = expectedCommitSha.Length > 8 ? expectedCommitSha[..8] : expectedCommitSha;
+        var versionSha = $"g{shortSha}";
         var isCI = CliE2ETestHelpers.IsRunningInCI;
 
         return AddSequence(ctx =>
@@ -240,8 +241,9 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
             {
                 ctx.SequenceBuilder.WriteTestLog(_output,
                     $"Verifying Aspire CLI version contains commit SHA.\n" +
-                    $"  Full SHA:  {expectedCommitSha}\n" +
-                    $"  Short SHA: {shortSha} (searching for this)");
+                    $"  Full SHA:    {expectedCommitSha}\n" +
+                    $"  Short SHA:   {shortSha}\n" +
+                    $"  Version SHA: {versionSha} (searching for this)");
 
                 ctx.SequenceBuilder
                     .Type("aspire --version")
@@ -250,18 +252,18 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                         snapshot => {
                             var screenText = snapshot.GetScreenText();
                             _output?.WriteLine($"Current terminal output:\n{screenText}");
-                            return screenText.Contains(shortSha, StringComparison.OrdinalIgnoreCase);
+                            return screenText.Contains(versionSha, StringComparison.OrdinalIgnoreCase);
                         },
                         timeout ?? TimeSpan.FromSeconds(30));
             }
             else
             {
-                ctx.SequenceBuilder.WriteTestLog(_output, $"[LOCAL] Simulating version check for SHA: {shortSha}...");
+                ctx.SequenceBuilder.WriteTestLog(_output, $"[LOCAL] Simulating version check for SHA: {versionSha}...");
 
                 // Local testing - just echo
                 var echoCommand = OperatingSystem.IsWindows()
-                    ? $"Write-Host '[LOCAL] Would verify aspire --version contains {shortSha}'"
-                    : $"echo '[LOCAL] Would verify aspire --version contains {shortSha}'";
+                    ? $"Write-Host '[LOCAL] Would verify aspire --version contains {versionSha}'"
+                    : $"echo '[LOCAL] Would verify aspire --version contains {versionSha}'";
 
                 ctx.SequenceBuilder
                     .Type(echoCommand)
