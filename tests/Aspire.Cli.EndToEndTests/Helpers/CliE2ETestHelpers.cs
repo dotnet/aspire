@@ -90,6 +90,21 @@ public sealed class AspireTerminalOptions
     /// Whether to inherit environment variables from the parent process.
     /// </summary>
     public bool InheritEnvironment { get; init; } = true;
+
+    /// <summary>
+    /// Additional environment variables to set in the terminal process.
+    /// These will be merged with inherited environment variables (if <see cref="InheritEnvironment"/> is true).
+    /// Values set here will override inherited values for the same keys.
+    /// </summary>
+    public Dictionary<string, string>? Environment { get; init; }
+
+    /// <summary>
+    /// Whether to configure the terminal for interactive mode by setting
+    /// environment variables that Aspire CLI uses to detect interactivity.
+    /// When true (default), sets TERM, COLORTERM, and ASPIRE_PLAYGROUND=true
+    /// to enable interactive prompts even in CI environments.
+    /// </summary>
+    public bool ConfigureForInteractiveMode { get; init; } = true;
 }
 
 /// <summary>
@@ -171,6 +186,47 @@ public static class CliE2ETestHelpers
     }
 
     /// <summary>
+    /// Builds the environment variables dictionary for the terminal process.
+    /// When <see cref="AspireTerminalOptions.ConfigureForInteractiveMode"/> is true,
+    /// sets TERM and ASPIRE_PLAYGROUND to enable interactive mode in the CLI.
+    /// </summary>
+    /// <param name="options">The terminal options.</param>
+    /// <returns>A dictionary of environment variables, or null if no custom variables are needed.</returns>
+    private static Dictionary<string, string>? BuildTerminalEnvironment(AspireTerminalOptions options)
+    {
+        Dictionary<string, string>? environment = null;
+
+        if (options.ConfigureForInteractiveMode)
+        {
+            environment = new Dictionary<string, string>
+            {
+                // Set TERM to a recognized terminal type for ANSI support detection
+                ["TERM"] = "xterm-256color",
+
+                // Set COLORTERM for true color support detection
+                ["COLORTERM"] = "truecolor",
+
+                // Enable Aspire CLI playground mode which forces interactive mode
+                // This triggers AspirePlaygroundEnricher in the CLI which sets
+                // profile.Capabilities.Interactive = true, overriding CI detection
+                ["ASPIRE_PLAYGROUND"] = "true",
+            };
+        }
+
+        // Merge with any custom environment variables from options
+        if (options.Environment is not null)
+        {
+            environment ??= new Dictionary<string, string>();
+            foreach (var kvp in options.Environment)
+            {
+                environment[kvp.Key] = kvp.Value;
+            }
+        }
+
+        return environment;
+    }
+
+    /// <summary>
     /// Creates a new terminal session with all components configured for Aspire CLI testing.
     /// </summary>
     /// <param name="options">Options for configuring the terminal session.</param>
@@ -182,11 +238,15 @@ public static class CliE2ETestHelpers
         // Create the headless presentation adapter
         var presentation = new HeadlessPresentationAdapter(options.Width, options.Height);
 
+        // Build environment variables for the terminal process
+        var environment = BuildTerminalEnvironment(options);
+
         // Create the child process
         var process = new Hex1bTerminalChildProcess(
             options.Shell,
             options.ShellArgs,
             workingDirectory: options.WorkingDirectory,
+            environment: environment,
             inheritEnvironment: options.InheritEnvironment,
             initialWidth: options.Width,
             initialHeight: options.Height
