@@ -377,6 +377,56 @@
         <target state="translated">ОК</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataDialogTitle">
+        <source>Manage logs and telemetry</source>
+        <target state="new">Manage logs and telemetry</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataConsoleLogs">
+        <source>Console logs</source>
+        <target state="new">Console logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataExportButtonText">
+        <source>Export selected</source>
+        <target state="new">Export selected</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataManageButtonText">
+        <source>Manage</source>
+        <target state="new">Manage</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataMetrics">
+        <source>Metrics</source>
+        <target state="new">Metrics</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataNoResources">
+        <source>No resources found</source>
+        <target state="new">No resources found</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataRemoveButtonText">
+        <source>Remove selected</source>
+        <target state="new">Remove selected</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataStructuredLogs">
+        <source>Structured logs</source>
+        <target state="new">Structured logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataSummaryColumnHeader">
+        <source>Summary</source>
+        <target state="new">Summary</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataTraces">
+        <source>Traces</source>
+        <target state="new">Traces</target>
+        <note />
+      </trans-unit>
       <trans-unit id="McpServerDialogApiKeyLabel">
         <source>Aspire MCP API key</source>
         <target state="translated">Ключ API Aspire MCP</target>
