@@ -97,10 +97,10 @@ internal static partial class HelmExtensions
     [GeneratedRegex(@"(\|\s*(int|int64|float64))\s*\}\}")]
     private static partial Regex EndWithNonStringTypePattern();
 
-    [GeneratedRegex(@"(?<=(?:^\{\{|)\s*)(?:[^{}]+?)(?=(?:\}\}$))")]
+    [GeneratedRegex(@"(?<=^\{\{\s*)(?:[^{}]+?)(?=(?:\}\}$))")]
     internal static partial Regex ScalarExpressionPattern();
 
-    [GeneratedRegex(@"((?<=(?:\{\{|)\s*)(?:[^{}]+?)(?=(?:\}\})))")]
+    [GeneratedRegex(@"((?<=\{\{\s*)(?:[^{}]+?)(?=(?:\}\})))")]
     internal static partial Regex ExpressionPattern();
 
 }
