@@ -363,6 +363,8 @@ jobs:
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
           # PR number for CLI E2E tests that download artifacts from a PR
           GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          # PR head SHA for version verification (not the merge commit SHA)
+          GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           # GitHub token for CLI E2E tests to download artifacts
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -405,6 +407,8 @@ jobs:
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
           # PR number for CLI E2E tests that download artifacts from a PR
           GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          # PR head SHA for version verification (not the merge commit SHA)
+          GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           # GitHub token for CLI E2E tests to download artifacts
           GH_TOKEN: ${{ github.token }}
         run: |
