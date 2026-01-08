@@ -294,6 +294,11 @@ export function createProjectDebuggerExtension(dotNetServiceProducer: (debugSess
                 debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
             }
 
+            // Temporarily disable GH Copilot on the dashboard before the extension implementation is approved
+            if (launchOptions.isApphost) {
+                env.push({ name: "ASPIRE_DASHBOARD_AI_DISABLED", value: "true" });
+            }
+
             if (!isSingleFileApp(projectPath)) {
                 const outputPath = await dotNetService.getDotNetTargetPath(projectPath);
                 if ((!(await doesFileExist(outputPath)) || launchOptions.forceBuild)) {
