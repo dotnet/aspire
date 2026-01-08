@@ -5,7 +5,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Extensions;
-//using Aspire.Hosting.Kubernetes.Helm;
 using Aspire.Hosting.Kubernetes.Resources;
 using Aspire.Hosting.Kubernetes.Yaml;
 using Aspire.Hosting.Yaml;
