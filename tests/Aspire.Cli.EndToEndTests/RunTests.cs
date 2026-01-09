@@ -29,7 +29,8 @@ public sealed class RunTests : IAsyncDisposable
     [Fact]
     public async Task CreateAndRunAspireStarterProject()
     {
-        var (prNumber, commitSha) = GetTestContext();
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         _output.WriteLine($"Testing aspire-starter from PR #{prNumber} (commit: {commitSha[..8]})");
 
         await using var builder = await AspireCliAutomationBuilder.CreateAsync(
@@ -59,7 +60,8 @@ public sealed class RunTests : IAsyncDisposable
     [Fact]
     public async Task CreateAndRunAspireTypeScriptCSharpStarterProject()
     {
-        var (prNumber, commitSha) = GetTestContext();
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         _output.WriteLine($"Testing aspire-ts-cs-starter from PR #{prNumber} (commit: {commitSha[..8]})");
 
         await using var builder = await AspireCliAutomationBuilder.CreateAsync(
@@ -89,7 +91,8 @@ public sealed class RunTests : IAsyncDisposable
     [Fact]
     public async Task CreateAndRunAspirePythonStarterProject()
     {
-        var (prNumber, commitSha) = GetTestContext();
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         _output.WriteLine($"Testing aspire-py-starter from PR #{prNumber} (commit: {commitSha[..8]})");
 
         await using var builder = await AspireCliAutomationBuilder.CreateAsync(
@@ -119,7 +122,8 @@ public sealed class RunTests : IAsyncDisposable
     [Fact]
     public async Task CreateAndRunAspireAppHostSingleFileProject()
     {
-        var (prNumber, commitSha) = GetTestContext();
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         _output.WriteLine($"Testing aspire-apphost-singlefile from PR #{prNumber} (commit: {commitSha[..8]})");
 
         await using var builder = await AspireCliAutomationBuilder.CreateAsync(
@@ -149,7 +153,8 @@ public sealed class RunTests : IAsyncDisposable
     [Fact]
     public async Task CreateAndRunAspireStarterProjectInteractively()
     {
-        var (prNumber, commitSha) = GetTestContext();
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         _output.WriteLine($"Testing interactive aspire-starter from PR #{prNumber} (commit: {commitSha[..8]})");
 
         await using var builder = await AspireCliAutomationBuilder.CreateAsync(
@@ -179,7 +184,8 @@ public sealed class RunTests : IAsyncDisposable
     [Fact]
     public async Task CreateAndRunAspireTypeScriptCSharpStarterProjectInteractively()
     {
-        var (prNumber, commitSha) = GetTestContext();
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         _output.WriteLine($"Testing interactive aspire-ts-cs-starter from PR #{prNumber} (commit: {commitSha[..8]})");
 
         await using var builder = await AspireCliAutomationBuilder.CreateAsync(
@@ -209,7 +215,8 @@ public sealed class RunTests : IAsyncDisposable
     [Fact]
     public async Task CreateAndRunAspirePythonStarterProjectInteractively()
     {
-        var (prNumber, commitSha) = GetTestContext();
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         _output.WriteLine($"Testing interactive aspire-py-starter from PR #{prNumber} (commit: {commitSha[..8]})");
 
         await using var builder = await AspireCliAutomationBuilder.CreateAsync(
@@ -239,7 +246,8 @@ public sealed class RunTests : IAsyncDisposable
     [Fact]
     public async Task CreateAndRunAspireAppHostSingleFileProjectInteractively()
     {
-        var (prNumber, commitSha) = GetTestContext();
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
         _output.WriteLine($"Testing interactive aspire-apphost-singlefile from PR #{prNumber} (commit: {commitSha[..8]})");
 
         await using var builder = await AspireCliAutomationBuilder.CreateAsync(
