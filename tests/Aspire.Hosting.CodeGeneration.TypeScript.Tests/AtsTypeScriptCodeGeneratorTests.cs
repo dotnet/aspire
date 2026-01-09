@@ -677,24 +677,24 @@ public class AtsTypeScriptCodeGeneratorTests
         using var context = new AssemblyLoaderContext();
         var capabilities = ScanCapabilitiesFromTestAssembly(context);
 
-        // withEnvironmentCallback targets IResourceWithEnvironment (generic constraint)
+        // testWithEnvironmentCallback targets IResourceWithEnvironment (generic constraint)
         // and TestRedisResource implements IResourceWithEnvironment (via ContainerResource)
-        var withEnvironmentCallback = capabilities
-            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withEnvironmentCallback");
+        var testWithEnvironmentCallback = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/testWithEnvironmentCallback");
 
-        Assert.NotNull(withEnvironmentCallback);
+        Assert.NotNull(testWithEnvironmentCallback);
 
         // Target type should be IResourceWithEnvironment (an interface)
-        Assert.NotNull(withEnvironmentCallback.TargetType);
-        Assert.Contains("IResourceWithEnvironment", withEnvironmentCallback.TargetType.TypeId);
-        Assert.True(withEnvironmentCallback.TargetType.IsInterface,
+        Assert.NotNull(testWithEnvironmentCallback.TargetType);
+        Assert.Contains("IResourceWithEnvironment", testWithEnvironmentCallback.TargetType.TypeId);
+        Assert.True(testWithEnvironmentCallback.TargetType.IsInterface,
             "IResourceWithEnvironment should be identified as an interface");
 
         // Should expand to TestRedisResource (which implements IResourceWithEnvironment via ContainerResource)
-        Assert.NotEmpty(withEnvironmentCallback.ExpandedTargetTypes);
+        Assert.NotEmpty(testWithEnvironmentCallback.ExpandedTargetTypes);
 
         // TestRedisResource should be in expanded targets
-        var testRedisExpanded = withEnvironmentCallback.ExpandedTargetTypes
+        var testRedisExpanded = testWithEnvironmentCallback.ExpandedTargetTypes
             .FirstOrDefault(t => t.TypeId.Contains("TestRedisResource"));
         Assert.NotNull(testRedisExpanded);
         Assert.False(testRedisExpanded.IsInterface, "TestRedisResource is a concrete type");
@@ -732,6 +732,130 @@ public class AtsTypeScriptCodeGeneratorTests
             .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withEnvironment");
         Assert.NotNull(withEnvironment);
         Assert.Equal("builder", withEnvironment.TargetParameterName);
+    }
+
+    // ===== 2-Pass Scanning / Cross-Assembly Expansion Tests =====
+
+    [Fact]
+    public void TwoPassScanning_WithEnvironment_ExpandsToTestRedisResource()
+    {
+        // This test verifies that 2-pass scanning correctly expands capabilities from
+        // one assembly (Aspire.Hosting) to types from another assembly (test assembly).
+        //
+        // Scenario:
+        // - withEnvironment is defined in Aspire.Hosting, targets IResourceWithEnvironment
+        // - TestRedisResource is defined in test assembly, implements IResourceWithEnvironment (via ContainerResource)
+        // - When scanned separately, withEnvironment doesn't know about TestRedisResource
+        // - When scanned together with ScanAssemblies, it should expand correctly
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
+
+        // Use ScanAssemblies (2-pass) to scan both assemblies together
+        var capabilities = AtsCapabilityScanner.ScanAssemblies(
+            [hostingAssembly, testAssembly],
+            wellKnownTypes,
+            typeMapping);
+
+        // Find withEnvironment from Aspire.Hosting
+        var withEnvironment = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withEnvironment");
+
+        Assert.NotNull(withEnvironment);
+
+        // Target type should be IResourceWithEnvironment (interface)
+        Assert.NotNull(withEnvironment.TargetType);
+        Assert.Contains("IResourceWithEnvironment", withEnvironment.TargetType.TypeId);
+        Assert.True(withEnvironment.TargetType.IsInterface);
+
+        // ExpandedTargetTypes should include TestRedisResource from test assembly
+        var testRedisExpanded = withEnvironment.ExpandedTargetTypes
+            .FirstOrDefault(t => t.TypeId.Contains("TestRedisResource"));
+
+        Assert.NotNull(testRedisExpanded);
+        Assert.False(testRedisExpanded.IsInterface, "TestRedisResource is a concrete type");
+    }
+
+    [Fact]
+    public void TwoPassScanning_DeduplicatesCapabilities()
+    {
+        // Verify that when the same capability appears in multiple assemblies (e.g., via shared export),
+        // ScanAssemblies deduplicates by CapabilityId.
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
+
+        // Scan both assemblies together
+        var capabilities = AtsCapabilityScanner.ScanAssemblies(
+            [hostingAssembly, testAssembly],
+            wellKnownTypes,
+            typeMapping);
+
+        // Each capability ID should appear only once
+        var duplicates = capabilities
+            .GroupBy(c => c.CapabilityId)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        Assert.Empty(duplicates);
+    }
+
+    [Fact]
+    public void TwoPassScanning_MergesTypeInfosFromAllAssemblies()
+    {
+        // Verify that ScanAssemblies collects type infos from all assemblies
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
+
+        // Scan both assemblies together to get type infos
+        var result = AtsCapabilityScanner.ScanAssembliesWithTypeInfo(
+            [hostingAssembly, testAssembly],
+            wellKnownTypes,
+            typeMapping);
+
+        // Should have types from Aspire.Hosting (ContainerResource, etc.)
+        var containerResourceType = result.TypeInfos
+            .FirstOrDefault(t => t.AtsTypeId.Contains("ContainerResource") && !t.AtsTypeId.Contains("IContainer"));
+        Assert.NotNull(containerResourceType);
+
+        // Should have types from test assembly (TestRedisResource)
+        var testRedisType = result.TypeInfos
+            .FirstOrDefault(t => t.AtsTypeId.Contains("TestRedisResource"));
+        Assert.NotNull(testRedisType);
+
+        // TestRedisResource should have IResourceWithEnvironment in its interfaces
+        // (inherited via ContainerResource)
+        var hasEnvironmentInterface = testRedisType.ImplementedInterfaces
+            .Any(i => i.TypeId.Contains("IResourceWithEnvironment"));
+        Assert.True(hasEnvironmentInterface,
+            "TestRedisResource should implement IResourceWithEnvironment via ContainerResource");
+    }
+
+    [Fact]
+    public async Task TwoPassScanning_GeneratesWithEnvironmentOnTestRedisBuilder()
+    {
+        // End-to-end test: verify that withEnvironment appears on TestRedisResourceBuilder
+        // in the generated TypeScript when using 2-pass scanning.
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
+
+        // Use ScanAssemblies (2-pass) to scan both assemblies together
+        var capabilities = AtsCapabilityScanner.ScanAssemblies(
+            [hostingAssembly, testAssembly],
+            wellKnownTypes,
+            typeMapping);
+
+        // Generate TypeScript
+        var files = _generator.GenerateDistributedApplication(capabilities);
+        var aspireTs = files["aspire.ts"];
+
+        // Verify withEnvironment appears on TestRedisResource class
+        // The generated code should have a TestRedisResource class with withEnvironment method
+        Assert.Contains("class TestRedisResource", aspireTs);
+        Assert.Contains("withEnvironment", aspireTs);
+
+        // Snapshot for detailed verification
+        await Verify(aspireTs, extension: "ts")
+            .UseFileName("TwoPassScanningGeneratedAspire");
     }
 
     private static List<AtsCapabilityInfo> ScanCapabilitiesFromTestAssembly(AssemblyLoaderContext context)

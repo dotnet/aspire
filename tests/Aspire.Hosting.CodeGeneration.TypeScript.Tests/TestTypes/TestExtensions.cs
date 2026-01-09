@@ -413,8 +413,8 @@ public static class TestExtensions
     /// Tests callback receiving context wrapper.
     /// Verifies callback auto-wraps handle into context class with property-like objects.
     /// </summary>
-    [AspireExport("withEnvironmentCallback", Description = "Configures environment with callback")]
-    public static IResourceBuilder<T> WithEnvironmentCallback<T>(
+    [AspireExport("testWithEnvironmentCallback", Description = "Configures environment with callback (test version)")]
+    public static IResourceBuilder<T> TestWithEnvironmentCallback<T>(
         this IResourceBuilder<T> builder,
         Func<TestEnvironmentContext, Task> callback) where T : IResourceWithEnvironment
     {
@@ -503,8 +503,8 @@ public static class TestExtensions
     /// Tests builder passed as parameter to another capability.
     /// Verifies wrapper class acceptance with internal handle extraction.
     /// </summary>
-    [AspireExport("waitFor", Description = "Waits for another resource")]
-    public static IResourceBuilder<T> WaitFor<T>(
+    [AspireExport("testWaitFor", Description = "Waits for another resource (test version)")]
+    public static IResourceBuilder<T> TestWaitFor<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<IResource> dependency) where T : IResource
     {

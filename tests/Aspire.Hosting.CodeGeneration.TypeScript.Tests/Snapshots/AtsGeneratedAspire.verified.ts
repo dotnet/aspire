@@ -381,23 +381,23 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResourcePromise(this._withConnectionStringInternal(connectionString));
     }
 
-    /** Configures environment with callback */
+    /** Configures environment with callback (test version) */
     /** @internal */
-    async _withEnvironmentCallbackInternal(callback: (arg0: TestEnvironmentContext) => Promise<void>): Promise<TestRedisResource> {
+    async _testWithEnvironmentCallbackInternal(callback: (arg0: TestEnvironmentContext) => Promise<void>): Promise<TestRedisResource> {
         const callbackId = registerCallback(async (arg0Data: unknown) => {
             const arg0Handle = wrapIfHandle(arg0Data) as TestEnvironmentContextHandle;
             const arg0 = new TestEnvironmentContext(arg0Handle, this._client);
             await callback(arg0);
         });
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withEnvironmentCallback',
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/testWithEnvironmentCallback',
             { builder: this._handle, callback: callbackId }
         );
         return new TestRedisResource(result, this._client);
     }
 
-    withEnvironmentCallback(callback: (arg0: TestEnvironmentContext) => Promise<void>): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._withEnvironmentCallbackInternal(callback));
+    testWithEnvironmentCallback(callback: (arg0: TestEnvironmentContext) => Promise<void>): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._testWithEnvironmentCallbackInternal(callback));
     }
 
     /** Sets the created timestamp */
@@ -494,18 +494,18 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResourcePromise(this._withValidatorInternal(validator));
     }
 
-    /** Waits for another resource */
+    /** Waits for another resource (test version) */
     /** @internal */
-    async _waitForInternal(dependency: IResourceHandle | ResourceBuilderBase): Promise<TestRedisResource> {
+    async _testWaitForInternal(dependency: IResourceHandle | ResourceBuilderBase): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/waitFor',
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/testWaitFor',
             { builder: this._handle, dependency }
         );
         return new TestRedisResource(result, this._client);
     }
 
-    waitFor(dependency: IResourceHandle | ResourceBuilderBase): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._waitForInternal(dependency));
+    testWaitFor(dependency: IResourceHandle | ResourceBuilderBase): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._testWaitForInternal(dependency));
     }
 
     /** Gets the endpoints */
@@ -644,10 +644,10 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         );
     }
 
-    /** Configures environment with callback */
-    withEnvironmentCallback(callback: (arg0: TestEnvironmentContext) => Promise<void>): TestRedisResourcePromise {
+    /** Configures environment with callback (test version) */
+    testWithEnvironmentCallback(callback: (arg0: TestEnvironmentContext) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withEnvironmentCallbackInternal(callback))
+            this._promise.then(b => b._testWithEnvironmentCallbackInternal(callback))
         );
     }
 
@@ -693,10 +693,10 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
         );
     }
 
-    /** Waits for another resource */
-    waitFor(dependency: IResourceHandle | ResourceBuilderBase): TestRedisResourcePromise {
+    /** Waits for another resource (test version) */
+    testWaitFor(dependency: IResourceHandle | ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._waitForInternal(dependency))
+            this._promise.then(b => b._testWaitForInternal(dependency))
         );
     }
 
