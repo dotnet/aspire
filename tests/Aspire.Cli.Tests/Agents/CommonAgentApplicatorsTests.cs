@@ -8,8 +8,8 @@ namespace Aspire.Cli.Tests.Agents;
 
 public class CommonAgentApplicatorsTests(ITestOutputHelper outputHelper)
 {
-    private const string TestSkillRelativePath = ".github/skills/aspire-development/SKILL.md";
-    private const string TestDescription = "Create Aspire development skill file";
+    private const string TestSkillRelativePath = ".github/skills/aspire/SKILL.md";
+    private const string TestDescription = "Create Aspire skill file";
 
     [Fact]
     public void TryAddSkillFileApplicator_WhenNotYetAdded_AddsApplicatorAndReturnsTrue()
@@ -96,7 +96,7 @@ public class CommonAgentApplicatorsTests(ITestOutputHelper outputHelper)
         var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, TestSkillRelativePath);
         Assert.True(File.Exists(skillFilePath));
         var content = await File.ReadAllTextAsync(skillFilePath);
-        Assert.Contains("# Aspire Development Skill", content);
+        Assert.Contains("# Aspire Skill", content);
         Assert.Contains("Running Aspire in agent environments", content);
     }
 
@@ -106,8 +106,8 @@ public class CommonAgentApplicatorsTests(ITestOutputHelper outputHelper)
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var context = CreateScanContext(workspace.WorkspaceRoot);
-        var path1 = ".github/skills/aspire-development/SKILL.md";
-        var path2 = ".claude/skills/aspire-development/SKILL.md";
+        var path1 = ".github/skills/aspire/SKILL.md";
+        var path2 = ".claude/skills/aspire/SKILL.md";
 
         // Act
         var result1 = CommonAgentApplicators.TryAddSkillFileApplicator(
@@ -133,7 +133,7 @@ public class CommonAgentApplicatorsTests(ITestOutputHelper outputHelper)
         // Arrange
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var context = CreateScanContext(workspace.WorkspaceRoot);
-        var path = ".github/skills/aspire-development/SKILL.md";
+        var path = ".github/skills/aspire/SKILL.md";
 
         // Act - try to add the same path twice (simulating VS Code and Copilot CLI both trying to add)
         var result1 = CommonAgentApplicators.TryAddSkillFileApplicator(

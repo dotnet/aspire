@@ -9,16 +9,16 @@ namespace Aspire.Cli.Agents;
 internal static class CommonAgentApplicators
 {
     /// <summary>
-    /// The name of the Aspire development skill.
+    /// The name of the Aspire skill.
     /// </summary>
-    internal const string AspireDevelopmentSkillName = "aspire-development";
+    internal const string AspireSkillName = "aspire";
 
     /// <summary>
-    /// Tries to add an applicator for creating/updating the Aspire development skill file at the specified path.
+    /// Tries to add an applicator for creating/updating the Aspire skill file at the specified path.
     /// </summary>
     /// <param name="context">The scan context.</param>
     /// <param name="workspaceRoot">The workspace root directory.</param>
-    /// <param name="skillRelativePath">The relative path to the skill file from workspace root (e.g., ".github/skills/aspire-development/SKILL.md").</param>
+    /// <param name="skillRelativePath">The relative path to the skill file from workspace root (e.g., ".github/skills/aspire/SKILL.md").</param>
     /// <param name="description">The description to show in the applicator prompt.</param>
     /// <returns>True if the applicator was added, false if it was already added or the file exists.</returns>
     public static bool TryAddSkillFileApplicator(
@@ -108,11 +108,11 @@ internal static class CommonAgentApplicators
     }
 
     /// <summary>
-    /// Gets the content for the Aspire development skill file.
+    /// Gets the content for the Aspire skill file.
     /// </summary>
     internal const string SkillFileContent =
         """
-        # Aspire Development Skill
+        # Aspire Skill
 
         This repository is set up to use Aspire. Aspire is an orchestrator for the entire application and will take care of configuring dependencies, building, and running the application. The resources that make up the application are defined in `apphost.cs` including application code and external dependencies.
 
