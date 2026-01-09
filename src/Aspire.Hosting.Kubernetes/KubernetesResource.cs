@@ -458,7 +458,11 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
 
         string GetPort()
         {
-            return embedded ? port.Expression ?? port.ValueString ?? string.Empty : port.ToScalar();
+            var rawPort = embedded ? port.Expression ?? port.ValueString : port.ToScalar();
+
+            return string.IsNullOrWhiteSpace(rawPort)
+                ? string.Empty
+                : rawPort;
         }
 
         string GetPortSuffix()
