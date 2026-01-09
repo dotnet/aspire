@@ -217,7 +217,7 @@ public class AzureAppServiceEnvironmentResource :
 
     ReferenceExpression IContainerRegistry.Endpoint => GetContainerRegistry()?.Endpoint ?? ReferenceExpression.Create($"{ContainerRegistryUrl}");
 
-    IAzureContainerRegistryResource IAzureComputeEnvironmentResource.ContainerRegistry => ContainerRegistry;
+    IAzureContainerRegistryResource? IAzureComputeEnvironmentResource.ContainerRegistry => ContainerRegistry;
 
     private IContainerRegistry? GetContainerRegistry()
     {
@@ -234,7 +234,7 @@ public class AzureAppServiceEnvironmentResource :
     /// <summary>
     /// Gets the Azure Container Registry resource used by this Azure App Service Environment resource.
     /// </summary>
-    public AzureContainerRegistryResource ContainerRegistry
+    public AzureContainerRegistryResource? ContainerRegistry
     {
         get
         {
@@ -242,17 +242,17 @@ public class AzureAppServiceEnvironmentResource :
 
             if (registry is null)
             {
-                throw new InvalidOperationException($"No container registry is configured for the Azure App Service Environment '{Name}'.");
+                return null;
             }
 
-            if (registry is AzureContainerRegistryResource azureRegistry)
+            if (registry is not AzureContainerRegistryResource azureRegistry)
             {
-                return azureRegistry;
+                throw new InvalidOperationException(
+                    $"The container registry configured for the Azure App Service Environment '{Name}' is not an Azure Container Registry. " +
+                    $"Only Azure Container Registry resources are supported. Use '.WithAzureContainerRegistry()' to configure an Azure Container Registry.");
             }
 
-            throw new InvalidOperationException(
-                $"The container registry configured for the Azure App Service Environment '{Name}' is not an Azure Container Registry. " +
-                $"Only Azure Container Registry resources are supported. Use '.WithAzureContainerRegistry()' to configure an Azure Container Registry.");
+            return azureRegistry;
         }
     }
 

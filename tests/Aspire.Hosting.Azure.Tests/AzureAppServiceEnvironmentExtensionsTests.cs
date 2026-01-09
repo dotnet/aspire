@@ -73,15 +73,12 @@ public class AzureAppServiceEnvironmentExtensionsTests
     }
 
     [Fact]
-    public void ContainerRegistry_ThrowsWhenNoRegistryConfigured()
+    public void ContainerRegistry_ReturnsNullWhenNoRegistryConfigured()
     {
         // Create an environment resource without the builder to avoid automatic registry setup
         var environment = new AzureAppServiceEnvironmentResource("env", _ => { });
 
-        // Should throw because no registry is configured
-        var exception = Assert.Throws<InvalidOperationException>(() => environment.ContainerRegistry);
-        Assert.Contains("No container registry is configured", exception.Message);
-        Assert.Contains("env", exception.Message);
+        Assert.Null(environment.ContainerRegistry);
     }
 
     [Fact]
