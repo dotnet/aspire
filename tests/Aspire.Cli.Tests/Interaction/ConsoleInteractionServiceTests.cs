@@ -181,7 +181,7 @@ public class ConsoleInteractionServiceTests
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
 
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), debugMode: true);
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), logLevel: Microsoft.Extensions.Logging.LogLevel.Debug);
         var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var statusText = "Processing request...";
         var result = "test result";
@@ -208,7 +208,7 @@ public class ConsoleInteractionServiceTests
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
 
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), debugMode: true);
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")), logLevel: Microsoft.Extensions.Logging.LogLevel.Debug);
         var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var statusText = "Processing synchronous request...";
         var actionCalled = false;
