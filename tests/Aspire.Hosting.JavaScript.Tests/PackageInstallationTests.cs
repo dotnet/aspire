@@ -546,6 +546,21 @@ public class PackageInstallationTests
         Assert.Equal(["install", "--frozen-lockfile"], installCommand.Args);
     }
 
+    [Fact]
+    public void WithBun_DefaultsArgsInPublishMode()
+    {
+        using var tempDir = new TestTempDirectory();
+        File.WriteAllText(Path.Combine(tempDir.Path, "bun.lock"), "empty");
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var app = builder.AddViteApp("test-app", tempDir.Path)
+            .WithBun();
+
+        Assert.True(app.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand));
+        Assert.Equal(["install", "--frozen-lockfile"], installCommand.Args);
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }
