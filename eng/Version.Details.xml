@@ -33,29 +33,29 @@
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
       <Sha>0777974eff62e3faeab9675c8e672234ded0b83b</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="10.1.1">
-      <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>8a57aae6b42651573f06fd3904b9a0d1023f9aeb</Sha>
+    <Dependency Name="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="10.1.0">
+      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
+      <Sha>9e8d935cf0e7014d338ebdb7d6d7d4d348d62021</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="10.1.1">
-      <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>8a57aae6b42651573f06fd3904b9a0d1023f9aeb</Sha>
+    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="10.1.0">
+      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
+      <Sha>9e8d935cf0e7014d338ebdb7d6d7d4d348d62021</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.ServiceDiscovery" Version="10.1.1">
-      <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>8a57aae6b42651573f06fd3904b9a0d1023f9aeb</Sha>
+    <Dependency Name="Microsoft.Extensions.ServiceDiscovery" Version="10.1.0">
+      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
+      <Sha>9e8d935cf0e7014d338ebdb7d6d7d4d348d62021</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="10.1.1">
-      <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>8a57aae6b42651573f06fd3904b9a0d1023f9aeb</Sha>
+    <Dependency Name="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="10.1.0">
+      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
+      <Sha>9e8d935cf0e7014d338ebdb7d6d7d4d348d62021</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.TimeProvider.Testing" Version="10.1.1">
-      <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>8a57aae6b42651573f06fd3904b9a0d1023f9aeb</Sha>
+    <Dependency Name="Microsoft.Extensions.TimeProvider.Testing" Version="10.1.0">
+      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
+      <Sha>9e8d935cf0e7014d338ebdb7d6d7d4d348d62021</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="10.1.1">
-      <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>8a57aae6b42651573f06fd3904b9a0d1023f9aeb</Sha>
+    <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="10.1.0">
+      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
+      <Sha>9e8d935cf0e7014d338ebdb7d6d7d4d348d62021</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.11">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
