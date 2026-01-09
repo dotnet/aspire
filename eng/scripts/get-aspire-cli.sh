@@ -445,9 +445,50 @@ install_archive() {
             return 1
         fi
 
-        if ! tar -xzf "$archive_file" -C "$destination_path"; then
-            say_error "Failed to extract tar.gz archive: $archive_file"
-            return 1
+        # For Linux archives, detect structure (new: aspire/aspire, old: aspire in root)
+        if [[ "$os" == "linux" || "$os" == "linux-musl" ]]; then
+            # Create a temporary directory for extraction
+            local temp_extract_dir
+            temp_extract_dir=$(mktemp -d -t aspire-extract-XXXXXXXX)
+            
+            # Extract to temporary directory
+            if ! tar -xzf "$archive_file" -C "$temp_extract_dir"; then
+                say_error "Failed to extract tar.gz archive: $archive_file"
+                rm -rf "$temp_extract_dir" || true
+                return 1
+            fi
+            
+            # Check for new structure (aspire/aspire) first, then fall back to old structure (aspire in root)
+            if [[ -f "$temp_extract_dir/aspire/aspire" ]]; then
+                # New structure: binary is in aspire/ subdirectory
+                say_verbose "Detected new archive structure (aspire/aspire)"
+                if ! mv "$temp_extract_dir/aspire/aspire" "$destination_path/aspire"; then
+                    say_error "Failed to move aspire binary to destination"
+                    rm -rf "$temp_extract_dir" || true
+                    return 1
+                fi
+            elif [[ -f "$temp_extract_dir/aspire" ]]; then
+                # Old structure: binary is in root
+                say_verbose "Detected old archive structure (aspire in root)"
+                if ! mv "$temp_extract_dir/aspire" "$destination_path/aspire"; then
+                    say_error "Failed to move aspire binary to destination"
+                    rm -rf "$temp_extract_dir" || true
+                    return 1
+                fi
+            else
+                say_error "Expected aspire binary not found in archive (checked aspire/aspire and aspire)"
+                rm -rf "$temp_extract_dir" || true
+                return 1
+            fi
+            
+            # Clean up temporary directory
+            rm -rf "$temp_extract_dir" || true
+        else
+            # For other Unix systems (macOS), extract directly as before
+            if ! tar -xzf "$archive_file" -C "$destination_path"; then
+                say_error "Failed to extract tar.gz archive: $archive_file"
+                return 1
+            fi
         fi
     fi
 
