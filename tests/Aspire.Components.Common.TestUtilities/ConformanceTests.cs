@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Text.Json.Nodes;
+using System.Text.Json;
 using Aspire.TestUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -389,7 +389,7 @@ public abstract class ConformanceTests<TService, TOptions>
     public void ConfigurationSchemaValidJsonConfigTest()
     {
         var schema = JsonSchema.FromFile(JsonSchemaPath);
-        var config = JsonNode.Parse(ValidJsonConfig);
+        var config = JsonSerializer.Deserialize<JsonElement>(ValidJsonConfig);
 
         var results = schema.Evaluate(config);
 
@@ -403,9 +403,9 @@ public abstract class ConformanceTests<TService, TOptions>
 
         foreach ((string json, string error) in InvalidJsonToErrorMessage)
         {
-            var config = JsonNode.Parse(json);
+            var config = JsonSerializer.Deserialize<JsonElement>(json);
             var results = schema.Evaluate(config, DefaultEvaluationOptions);
-            var detail = results.Details.FirstOrDefault(x => x.HasErrors);
+            var detail = (results.Details ?? []).FirstOrDefault(x => x.Errors?.Count > 0);
 
             Assert.NotNull(detail);
             Assert.Equal(error, detail.Errors!.First().Value);

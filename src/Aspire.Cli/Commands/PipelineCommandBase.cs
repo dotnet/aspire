@@ -698,7 +698,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         if (!hasValidationErrors && inputs.Count > 1)
         {
             var headerText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
-            AnsiConsole.MarkupLine($"[bold]{headerText}[/]");
+            AnsiConsole.MarkupLine(CultureInfo.InvariantCulture, $"[bold]{headerText}[/]");
         }
 
         // Handle multiple inputs
@@ -804,7 +804,7 @@ internal abstract class PipelineCommandBase : BaseCommand
             return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value?.EscapeMarkup(), required: input.Required, cancellationToken: cancellationToken);
         }
 
-        AnsiConsole.MarkupLine($"{promptText} {displayText.EscapeMarkup()}");
+        AnsiConsole.MarkupLine(CultureInfo.InvariantCulture, $"{promptText} {displayText.EscapeMarkup()}");
 
         return value;
     }

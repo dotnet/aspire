@@ -219,11 +219,11 @@ internal class ConsoleInteractionService : IInteractionService
         {
             if (stream == "stdout")
             {
-                _ansiConsole.MarkupLineInterpolated($"{line.EscapeMarkup()}");
+                _ansiConsole.MarkupLineInterpolated(CultureInfo.InvariantCulture, $"{line.EscapeMarkup()}");
             }
             else
             {
-                _ansiConsole.MarkupLineInterpolated($"[red]{line.EscapeMarkup()}[/]");
+                _ansiConsole.MarkupLineInterpolated(CultureInfo.InvariantCulture, $"[red]{line.EscapeMarkup()}[/]");
             }
         }
     }
