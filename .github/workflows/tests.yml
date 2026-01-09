@@ -190,8 +190,6 @@ jobs:
       testHangTimeout: "12m"
       extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Cli.EndToEndTests.${{ matrix.shortname }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      requiresNugets: true
-      requiresTestSdk: true
 
   extension_tests_win:
     name: Run VS Code extension tests (Windows)
