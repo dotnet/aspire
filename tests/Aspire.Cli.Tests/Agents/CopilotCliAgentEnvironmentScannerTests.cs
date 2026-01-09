@@ -151,9 +151,9 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         await File.WriteAllTextAsync(mcpConfigPath, existingConfig.ToJsonString());
         
         // Also create the skill file to prevent that applicator
-        var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "skills", "aspire-development", "SKILL.md");
+        var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "skills", "aspire", "SKILL.md");
         Directory.CreateDirectory(Path.GetDirectoryName(skillFilePath)!);
-        await File.WriteAllTextAsync(skillFilePath, "# Aspire Development Skill");
+        await File.WriteAllTextAsync(skillFilePath, "# Aspire Skill");
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);

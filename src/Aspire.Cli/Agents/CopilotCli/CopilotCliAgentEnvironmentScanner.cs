@@ -16,8 +16,8 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
     private const string CopilotFolderName = ".copilot";
     private const string McpConfigFileName = "mcp-config.json";
     private const string AspireServerName = "aspire";
-    private static readonly string s_skillFilePath = Path.Combine(".github", "skills", CommonAgentApplicators.AspireDevelopmentSkillName, "SKILL.md");
-    private const string SkillFileDescription = "Create Aspire development skill file (.github/skills/aspire-development/SKILL.md)";
+    private static readonly string s_skillFilePath = Path.Combine(".github", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md");
+    private const string SkillFileDescription = "Create Aspire skill file (.github/skills/aspire/SKILL.md)";
 
     private readonly ICopilotCliRunner _copilotCliRunner;
     private readonly CliExecutionContext _executionContext;
