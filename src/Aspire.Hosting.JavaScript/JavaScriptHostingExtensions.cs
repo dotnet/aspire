@@ -593,7 +593,7 @@ public static class JavaScriptHostingExtensions
                         // If we are expecting to run the vite app with HTTPS termination, generate an Aspire specific Vite config file that can mutate the user's original config
                         var aspireConfig = AspireViteConfig
                             .Replace(AspireViteRelativeConfigToken, relativeConfigPath.Replace("\\", "/"), StringComparison.Ordinal)
-                            .Replace(AspireViteAbsoluteConfigToken, absoluteConfigPath, StringComparison.Ordinal);
+                            .Replace(AspireViteAbsoluteConfigToken, absoluteConfigPath.Replace("\\", "\\\\"), StringComparison.Ordinal);
                         var aspireConfigPath = Path.Join(appDirectory, "node_modules", ".bin", $"aspire.{Path.GetFileName(configTarget)}");
                         File.WriteAllText(aspireConfigPath, aspireConfig);
 
