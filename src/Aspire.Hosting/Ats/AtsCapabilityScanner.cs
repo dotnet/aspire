@@ -814,7 +814,11 @@ internal static class AtsCapabilityScanner
         // Get return type
         var returnTypeRef = CreateTypeRef(method.ReturnType, typeMapping, typeResolver);
         var returnTypeId = MapToAtsTypeId(method.ReturnType, typeMapping, typeResolver);
-        var returnsBuilder = returnTypeId != null;
+
+        // Only set ReturnsBuilder if the return type is actually a resource builder type
+        var returnsBuilder = returnTypeId != null &&
+            typeResolver != null &&
+            typeResolver.IsResourceBuilderType(method.ReturnType);
 
         return new AtsCapabilityInfo
         {

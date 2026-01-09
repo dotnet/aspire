@@ -843,17 +843,12 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** Gets an endpoint reference */
-    /** @internal */
-    async _getEndpointInternal(name: string): Promise<ContainerResource> {
-        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+    /** Gets an endpoint reference */
+    async getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+        return await this._client.invokeCapability<EndpointReferenceHandle>(
             'Aspire.Hosting/getEndpoint',
             { resource: this._handle, name }
         );
-        return new ContainerResource(result, this._client);
-    }
-
-    getEndpoint(name: string): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._getEndpointInternal(name));
     }
 
     /** Adds a reference to another resource */
@@ -871,17 +866,12 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
     }
 
     /** Gets the resource name */
-    /** @internal */
-    async _getResourceNameInternal(): Promise<ContainerResource> {
-        const result = await this._client.invokeCapability<ContainerResourceHandle>(
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        return await this._client.invokeCapability<string>(
             'Aspire.Hosting/getResourceName',
             { resource: this._handle }
         );
-        return new ContainerResource(result, this._client);
-    }
-
-    getResourceName(): ContainerResourcePromise {
-        return new ContainerResourcePromise(this._getResourceNameInternal());
     }
 
     /** Adds an optional string parameter */
@@ -1162,10 +1152,8 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Gets an endpoint reference */
-    getEndpoint(name: string): ContainerResourcePromise {
-        return new ContainerResourcePromise(
-            this._promise.then(b => b._getEndpointInternal(name))
-        );
+    getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+        return this._promise.then(b => b.getEndpoint(name));
     }
 
     /** Adds a reference to another resource */
@@ -1176,10 +1164,8 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Gets the resource name */
-    getResourceName(): ContainerResourcePromise {
-        return new ContainerResourcePromise(
-            this._promise.then(b => b._getResourceNameInternal())
-        );
+    getResourceName(): Promise<string> {
+        return this._promise.then(b => b.getResourceName());
     }
 
     /** Adds an optional string parameter */
@@ -1442,17 +1428,12 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** Gets an endpoint reference */
-    /** @internal */
-    async _getEndpointInternal(name: string): Promise<ExecutableResource> {
-        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+    /** Gets an endpoint reference */
+    async getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+        return await this._client.invokeCapability<EndpointReferenceHandle>(
             'Aspire.Hosting/getEndpoint',
             { resource: this._handle, name }
         );
-        return new ExecutableResource(result, this._client);
-    }
-
-    getEndpoint(name: string): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._getEndpointInternal(name));
     }
 
     /** Adds a reference to another resource */
@@ -1470,17 +1451,12 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
     }
 
     /** Gets the resource name */
-    /** @internal */
-    async _getResourceNameInternal(): Promise<ExecutableResource> {
-        const result = await this._client.invokeCapability<ExecutableResourceHandle>(
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        return await this._client.invokeCapability<string>(
             'Aspire.Hosting/getResourceName',
             { resource: this._handle }
         );
-        return new ExecutableResource(result, this._client);
-    }
-
-    getResourceName(): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(this._getResourceNameInternal());
     }
 
     /** Adds an optional string parameter */
@@ -1761,10 +1737,8 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Gets an endpoint reference */
-    getEndpoint(name: string): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(
-            this._promise.then(b => b._getEndpointInternal(name))
-        );
+    getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+        return this._promise.then(b => b.getEndpoint(name));
     }
 
     /** Adds a reference to another resource */
@@ -1775,10 +1749,8 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Gets the resource name */
-    getResourceName(): ExecutableResourcePromise {
-        return new ExecutableResourcePromise(
-            this._promise.then(b => b._getResourceNameInternal())
-        );
+    getResourceName(): Promise<string> {
+        return this._promise.then(b => b.getResourceName());
     }
 
     /** Adds an optional string parameter */
@@ -1891,17 +1863,12 @@ export class ParameterResource extends ResourceBuilderBase<ParameterResourceHand
     }
 
     /** Gets the resource name */
-    /** @internal */
-    async _getResourceNameInternal(): Promise<ParameterResource> {
-        const result = await this._client.invokeCapability<ParameterResourceHandle>(
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        return await this._client.invokeCapability<string>(
             'Aspire.Hosting/getResourceName',
             { resource: this._handle }
         );
-        return new ParameterResource(result, this._client);
-    }
-
-    getResourceName(): ParameterResourcePromise {
-        return new ParameterResourcePromise(this._getResourceNameInternal());
     }
 
     /** Sets a parameter description */
@@ -2093,10 +2060,8 @@ export class ParameterResourcePromise implements PromiseLike<ParameterResource> 
     }
 
     /** Gets the resource name */
-    getResourceName(): ParameterResourcePromise {
-        return new ParameterResourcePromise(
-            this._promise.then(b => b._getResourceNameInternal())
-        );
+    getResourceName(): Promise<string> {
+        return this._promise.then(b => b.getResourceName());
     }
 
     /** Sets a parameter description */
@@ -2366,17 +2331,12 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** Gets an endpoint reference */
-    /** @internal */
-    async _getEndpointInternal(name: string): Promise<ProjectResource> {
-        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+    /** Gets an endpoint reference */
+    async getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+        return await this._client.invokeCapability<EndpointReferenceHandle>(
             'Aspire.Hosting/getEndpoint',
             { resource: this._handle, name }
         );
-        return new ProjectResource(result, this._client);
-    }
-
-    getEndpoint(name: string): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._getEndpointInternal(name));
     }
 
     /** Adds a reference to another resource */
@@ -2394,17 +2354,12 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
     }
 
     /** Gets the resource name */
-    /** @internal */
-    async _getResourceNameInternal(): Promise<ProjectResource> {
-        const result = await this._client.invokeCapability<ProjectResourceHandle>(
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        return await this._client.invokeCapability<string>(
             'Aspire.Hosting/getResourceName',
             { resource: this._handle }
         );
-        return new ProjectResource(result, this._client);
-    }
-
-    getResourceName(): ProjectResourcePromise {
-        return new ProjectResourcePromise(this._getResourceNameInternal());
     }
 
     /** Adds an optional string parameter */
@@ -2692,10 +2647,8 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Gets an endpoint reference */
-    getEndpoint(name: string): ProjectResourcePromise {
-        return new ProjectResourcePromise(
-            this._promise.then(b => b._getEndpointInternal(name))
-        );
+    getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+        return this._promise.then(b => b.getEndpoint(name));
     }
 
     /** Adds a reference to another resource */
@@ -2706,10 +2659,8 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Gets the resource name */
-    getResourceName(): ProjectResourcePromise {
-        return new ProjectResourcePromise(
-            this._promise.then(b => b._getResourceNameInternal())
-        );
+    getResourceName(): Promise<string> {
+        return this._promise.then(b => b.getResourceName());
     }
 
     /** Adds an optional string parameter */
@@ -3014,17 +2965,12 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** Gets an endpoint reference */
-    /** @internal */
-    async _getEndpointInternal(name: string): Promise<TestRedisResource> {
-        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+    /** Gets an endpoint reference */
+    async getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+        return await this._client.invokeCapability<EndpointReferenceHandle>(
             'Aspire.Hosting/getEndpoint',
             { resource: this._handle, name }
         );
-        return new TestRedisResource(result, this._client);
-    }
-
-    getEndpoint(name: string): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._getEndpointInternal(name));
     }
 
     /** Adds a reference to another resource */
@@ -3056,17 +3002,12 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** Gets the resource name */
-    /** @internal */
-    async _getResourceNameInternal(): Promise<TestRedisResource> {
-        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        return await this._client.invokeCapability<string>(
             'Aspire.Hosting/getResourceName',
             { resource: this._handle }
         );
-        return new TestRedisResource(result, this._client);
-    }
-
-    getResourceName(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._getResourceNameInternal());
     }
 
     /** Configures the Redis resource with persistence */
@@ -3098,31 +3039,21 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** Gets the tags for the resource */
-    /** @internal */
-    async _getTagsInternal(): Promise<TestRedisResource> {
-        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+    /** Gets the tags for the resource */
+    async getTags(): Promise<AspireList<string>> {
+        return await this._client.invokeCapability<AspireList<string>>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/getTags',
             { builder: this._handle }
         );
-        return new TestRedisResource(result, this._client);
-    }
-
-    getTags(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._getTagsInternal());
     }
 
     /** Gets the metadata for the resource */
-    /** @internal */
-    async _getMetadataInternal(): Promise<TestRedisResource> {
-        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+    /** Gets the metadata for the resource */
+    async getMetadata(): Promise<AspireDict<string, string>> {
+        return await this._client.invokeCapability<AspireDict<string, string>>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/getMetadata',
             { builder: this._handle }
         );
-        return new TestRedisResource(result, this._client);
-    }
-
-    getMetadata(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._getMetadataInternal());
     }
 
     /** Sets the connection string using a reference expression */
@@ -3267,17 +3198,12 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** Gets the endpoints */
-    /** @internal */
-    async _getEndpointsInternal(): Promise<TestRedisResource> {
-        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+    /** Gets the endpoints */
+    async getEndpoints(): Promise<string[]> {
+        return await this._client.invokeCapability<string[]>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/getEndpoints',
             { builder: this._handle }
         );
-        return new TestRedisResource(result, this._client);
-    }
-
-    getEndpoints(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._getEndpointsInternal());
     }
 
     /** Sets connection string using direct interface target */
@@ -3466,10 +3392,8 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Gets an endpoint reference */
-    getEndpoint(name: string): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(
-            this._promise.then(b => b._getEndpointInternal(name))
-        );
+    getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+        return this._promise.then(b => b.getEndpoint(name));
     }
 
     /** Adds a reference to another resource */
@@ -3487,10 +3411,8 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Gets the resource name */
-    getResourceName(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(
-            this._promise.then(b => b._getResourceNameInternal())
-        );
+    getResourceName(): Promise<string> {
+        return this._promise.then(b => b.getResourceName());
     }
 
     /** Configures the Redis resource with persistence */
@@ -3508,17 +3430,13 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Gets the tags for the resource */
-    getTags(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(
-            this._promise.then(b => b._getTagsInternal())
-        );
+    getTags(): Promise<AspireList<string>> {
+        return this._promise.then(b => b.getTags());
     }
 
     /** Gets the metadata for the resource */
-    getMetadata(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(
-            this._promise.then(b => b._getMetadataInternal())
-        );
+    getMetadata(): Promise<AspireDict<string, string>> {
+        return this._promise.then(b => b.getMetadata());
     }
 
     /** Sets the connection string using a reference expression */
@@ -3585,10 +3503,8 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Gets the endpoints */
-    getEndpoints(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(
-            this._promise.then(b => b._getEndpointsInternal())
-        );
+    getEndpoints(): Promise<string[]> {
+        return this._promise.then(b => b.getEndpoints());
     }
 
     /** Sets connection string using direct interface target */

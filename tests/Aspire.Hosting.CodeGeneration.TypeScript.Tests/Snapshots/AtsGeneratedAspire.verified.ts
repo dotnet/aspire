@@ -340,31 +340,21 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** Gets the tags for the resource */
-    /** @internal */
-    async _getTagsInternal(): Promise<TestRedisResource> {
-        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+    /** Gets the tags for the resource */
+    async getTags(): Promise<AspireList<string>> {
+        return await this._client.invokeCapability<AspireList<string>>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/getTags',
             { builder: this._handle }
         );
-        return new TestRedisResource(result, this._client);
-    }
-
-    getTags(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._getTagsInternal());
     }
 
     /** Gets the metadata for the resource */
-    /** @internal */
-    async _getMetadataInternal(): Promise<TestRedisResource> {
-        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+    /** Gets the metadata for the resource */
+    async getMetadata(): Promise<AspireDict<string, string>> {
+        return await this._client.invokeCapability<AspireDict<string, string>>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/getMetadata',
             { builder: this._handle }
         );
-        return new TestRedisResource(result, this._client);
-    }
-
-    getMetadata(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._getMetadataInternal());
     }
 
     /** Sets the connection string using a reference expression */
@@ -509,17 +499,12 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** Gets the endpoints */
-    /** @internal */
-    async _getEndpointsInternal(): Promise<TestRedisResource> {
-        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+    /** Gets the endpoints */
+    async getEndpoints(): Promise<string[]> {
+        return await this._client.invokeCapability<string[]>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/getEndpoints',
             { builder: this._handle }
         );
-        return new TestRedisResource(result, this._client);
-    }
-
-    getEndpoints(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(this._getEndpointsInternal());
     }
 
     /** Sets connection string using direct interface target */
@@ -624,17 +609,13 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Gets the tags for the resource */
-    getTags(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(
-            this._promise.then(b => b._getTagsInternal())
-        );
+    getTags(): Promise<AspireList<string>> {
+        return this._promise.then(b => b.getTags());
     }
 
     /** Gets the metadata for the resource */
-    getMetadata(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(
-            this._promise.then(b => b._getMetadataInternal())
-        );
+    getMetadata(): Promise<AspireDict<string, string>> {
+        return this._promise.then(b => b.getMetadata());
     }
 
     /** Sets the connection string using a reference expression */
@@ -701,10 +682,8 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Gets the endpoints */
-    getEndpoints(): TestRedisResourcePromise {
-        return new TestRedisResourcePromise(
-            this._promise.then(b => b._getEndpointsInternal())
-        );
+    getEndpoints(): Promise<string[]> {
+        return this._promise.then(b => b.getEndpoints());
     }
 
     /** Sets connection string using direct interface target */

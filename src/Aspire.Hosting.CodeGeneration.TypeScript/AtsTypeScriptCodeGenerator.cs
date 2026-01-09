@@ -779,7 +779,38 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             : "void";
         var returnsBuilder = capability.ReturnsBuilder;
 
-        // Generate internal async method
+        // Check if this method returns a non-builder, non-void type (e.g., getEndpoint returns EndpointReference)
+        var hasNonBuilderReturn = !returnsBuilder && capability.ReturnType != null;
+        if (hasNonBuilderReturn)
+        {
+            // Generate a simple async method that returns the actual type
+            var returnType = MapTypeRefToTypeScript(capability.ReturnType);
+
+            if (!string.IsNullOrEmpty(capability.Description))
+            {
+                WriteLine($"    /** {capability.Description} */");
+            }
+            Write($"    async {methodName}(");
+            Write(paramsString);
+            WriteLine($"): Promise<{returnType}> {{");
+
+            // Handle callback registration if any
+            var callbackParams2 = capability.Parameters.Where(p => p.IsCallback).ToList();
+            foreach (var callbackParam in callbackParams2)
+            {
+                GenerateCallbackRegistration(callbackParam);
+            }
+
+            WriteLine($"        return await this._client.invokeCapability<{returnType}>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            {argsString}");
+            WriteLine("        );");
+            WriteLine("    }");
+            WriteLine();
+            return;
+        }
+
+        // Generate internal async method for fluent builder methods
         WriteLine($"    /** @internal */");
         Write($"    async {internalMethodName}(");
         Write(paramsString);
@@ -867,20 +898,40 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             var paramsString = string.Join(", ", paramDefs);
             var argsString = string.Join(", ", capability.Parameters.Select(p => p.Name));
 
+            // Check if this method returns a non-builder type
+            var hasNonBuilderReturn = !capability.ReturnsBuilder && capability.ReturnType != null;
+
             if (!string.IsNullOrEmpty(capability.Description))
             {
                 WriteLine($"    /** {capability.Description} */");
             }
-            Write($"    {methodName}(");
-            Write(paramsString);
-            Write($"): {promiseClass} {{");
-            WriteLine();
-            WriteLine($"        return new {promiseClass}(");
-            Write($"            this._promise.then(b => b.{internalMethodName}(");
-            Write(argsString);
-            WriteLine("))");
-            WriteLine("        );");
-            WriteLine("    }");
+
+            if (hasNonBuilderReturn)
+            {
+                // For non-builder returns, call the async method directly and return its result
+                var returnType = MapTypeRefToTypeScript(capability.ReturnType);
+                Write($"    {methodName}(");
+                Write(paramsString);
+                WriteLine($"): Promise<{returnType}> {{");
+                Write($"        return this._promise.then(b => b.{methodName}(");
+                Write(argsString);
+                WriteLine("));");
+                WriteLine("    }");
+            }
+            else
+            {
+                // For fluent builder methods, chain to the internal method
+                Write($"    {methodName}(");
+                Write(paramsString);
+                Write($"): {promiseClass} {{");
+                WriteLine();
+                WriteLine($"        return new {promiseClass}(");
+                Write($"            this._promise.then(b => b.{internalMethodName}(");
+                Write(argsString);
+                WriteLine("))");
+                WriteLine("        );");
+                WriteLine("    }");
+            }
             WriteLine();
         }
 

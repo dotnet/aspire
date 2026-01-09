@@ -15,13 +15,14 @@ console.log("Created builder");
 // (withEnvironment is defined in Aspire.Hosting, RedisResource in Aspire.Hosting.Redis)
 const cache = await builder
     .addRedis("cache")
-    .withEnvironment("REDIS_PASSWORD", "secret123")  // Cross-assembly expansion!
     .withRedisCommander();
+
+var ep = await cache.getEndpoint("tcp");
 console.log("Added Redis with Commander and environment variable");
 
 // Demonstrate reference expression creation using tagged template literal
 // This creates a dynamic connection string that references the endpoint at runtime
-const redisUrl = refExpr`redis://${cache}:6379`;
+const redisUrl = refExpr`redis://${ep}`;
 console.log(`Created reference expression: ${redisUrl}`);
 
 // Add container with environment callback to demonstrate the new property-like object API
