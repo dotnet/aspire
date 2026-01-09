@@ -107,7 +107,7 @@ runs:
       if: ${{ inputs.includeCliE2E }}
       shell: pwsh
       run: |
-        $inputFilePath = "${{ github.workspace }}/artifacts/helix/templates-tests/Aspire.Templates.Tests.tests.list"
+        $inputFilePath = "${{ github.workspace }}/artifacts/helix/cli-e2e-tests/Aspire.Cli.EndToEndTests.tests.list"
         $lines = Get-Content $inputFilePath
 
         $prefix = "Aspire.Cli.EndToEndTests."
