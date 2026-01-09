@@ -8,7 +8,7 @@ namespace Aspire.Cli.Mcp;
 
 internal sealed class RefreshToolsTool(Func<CancellationToken, Task<int>> refreshToolsAsync, Func<CancellationToken, Task> sendToolsListChangedNotificationAsync) : CliMcpTool
 {
-    public override string Name => "refresh_tools";
+    public override string Name => KnownMcpTools.RefreshTools;
 
     public override string Description => "Requests the server to emit a tools list changed notification so clients can re-fetch the available tools.";
 

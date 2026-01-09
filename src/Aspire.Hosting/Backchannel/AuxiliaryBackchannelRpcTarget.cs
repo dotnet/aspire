@@ -126,12 +126,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
     /// <returns>An async enumerable of resource snapshots as they change.</returns>
     public async IAsyncEnumerable<ResourceSnapshot> WatchResourceSnapshotsAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var notificationService = serviceProvider.GetService<ResourceNotificationService>();
-        if (notificationService is null)
-        {
-            logger.LogWarning("ResourceNotificationService not found.");
-            yield break;
-        }
+        var notificationService = serviceProvider.GetRequiredService<ResourceNotificationService>();
 
         var resourceEvents = notificationService.WatchAsync(cancellationToken);
 
@@ -230,11 +225,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
             throw new InvalidOperationException($"MCP endpoint for resource '{resourceName}' is not available.");
         }
 
-        var transport = new HttpClientTransport(
-            new HttpClientTransportOptions { Endpoint = endpointUri },
-            new HttpClient(),
-            serviceProvider.GetRequiredService<ILoggerFactory>(),
-            ownsHttpClient: true);
+        var transport = CreateHttpClientTransport(endpointUri);
 
         McpClient? mcpClient = null;
         try
@@ -317,11 +308,7 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
     private async Task<Tool[]?> TryListToolsAsync(Uri endpointUri, CancellationToken cancellationToken)
     {
-        var transport = new HttpClientTransport(
-            new HttpClientTransportOptions { Endpoint = endpointUri },
-            new HttpClient(),
-            serviceProvider.GetRequiredService<ILoggerFactory>(),
-            ownsHttpClient: true);
+        var transport = CreateHttpClientTransport(endpointUri);
 
         using var timeoutCts = new CancellationTokenSource(s_mcpDiscoveryTimeout);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
@@ -349,5 +336,17 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
         {
             await transport.DisposeAsync().ConfigureAwait(false);
         }
+    }
+
+    private HttpClientTransport CreateHttpClientTransport(Uri endpointUri)
+    {
+        var httpClientFactory = serviceProvider.GetService<IHttpClientFactory>();
+        var httpClient = httpClientFactory?.CreateClient() ?? new HttpClient();
+
+        return new HttpClientTransport(
+            new HttpClientTransportOptions { Endpoint = endpointUri },
+            httpClient,
+            serviceProvider.GetRequiredService<ILoggerFactory>(),
+            ownsHttpClient: true);
     }
 }

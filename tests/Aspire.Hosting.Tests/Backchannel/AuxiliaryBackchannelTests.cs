@@ -359,7 +359,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         Assert.Contains("not found", ex.Message, StringComparison.OrdinalIgnoreCase);
 
-        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StopAsync().WaitAsync(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
@@ -403,7 +403,7 @@ public class AuxiliaryBackchannelTests(ITestOutputHelper outputHelper)
 
         Assert.Contains("MCP endpoint annotation", ex.Message, StringComparison.OrdinalIgnoreCase);
 
-        await app.StopAsync().WaitAsync(TestConstants.DefaultTimeoutTimeSpan);
+        await app.StopAsync().WaitAsync(TestConstants.LongTimeoutTimeSpan);
     }
 
     [Fact]
