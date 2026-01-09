@@ -671,6 +671,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Wait for all the stream forwarders to finish so we know we've got everything
         // fired off through the callbacks.
         await Task.WhenAll([pendingStdoutStreamForwarder, pendingStderrStreamForwarder]);
+
+        logger.LogDebug("Pending forwarders for PID completed: {ProcessId}", process.Id);
+
         return process.ExitCode;
 
         async Task ForwardStreamToLoggerAsync(StreamReader reader, string identifier, Process process, Action<string>? lineCallback, CancellationToken cancellationToken)
