@@ -4,6 +4,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.Serialization;
@@ -21,12 +22,34 @@ public sealed class TelemetryImportServiceTests
 {
     private static readonly DateTime s_testTime = new(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc);
 
+    private static TelemetryImportService CreateImportService(TelemetryRepository repository, bool disableImport = false)
+    {
+        var options = new DashboardOptions { UI = new UIOptions { DisableImport = disableImport } };
+        var optionsMonitor = new TestOptionsMonitor<DashboardOptions>(options);
+        return new TelemetryImportService(repository, optionsMonitor, NullLogger<TelemetryImportService>.Instance);
+    }
+
+    [Fact]
+    public async Task ImportAsync_WhenDisabled_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var service = CreateImportService(repository, disableImport: true);
+
+        var logsJson = CreateLogsJson("TestService", "instance-1", "Test log message");
+        var stream = new MemoryStream(Encoding.UTF8.GetBytes(logsJson));
+
+        // Act & Assert
+        Assert.False(service.IsImportEnabled);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ImportAsync("logs.json", stream, CancellationToken.None));
+    }
+
     [Fact]
     public async Task ImportAsync_JsonFile_WithLogs_ImportsSuccessfully()
     {
         // Arrange
         var repository = CreateRepository();
-        var service = new TelemetryImportService(repository, NullLogger<TelemetryImportService>.Instance);
+        var service = CreateImportService(repository);
 
         // Create log data
         var logsJson = CreateLogsJson("TestService", "instance-1", "Test log message");
@@ -57,7 +80,7 @@ public sealed class TelemetryImportServiceTests
     {
         // Arrange
         var repository = CreateRepository();
-        var service = new TelemetryImportService(repository, NullLogger<TelemetryImportService>.Instance);
+        var service = CreateImportService(repository);
 
         // Create trace data
         var tracesJson = CreateTracesJson("TestService", "instance-1", "TestOperation");
@@ -87,7 +110,7 @@ public sealed class TelemetryImportServiceTests
     {
         // Arrange
         var repository = CreateRepository();
-        var service = new TelemetryImportService(repository, NullLogger<TelemetryImportService>.Instance);
+        var service = CreateImportService(repository);
 
         // Create metrics data
         var metricsJson = CreateMetricsJson("TestService", "instance-1", "test.metric");
@@ -110,7 +133,7 @@ public sealed class TelemetryImportServiceTests
     {
         // Arrange
         var repository = CreateRepository();
-        var service = new TelemetryImportService(repository, NullLogger<TelemetryImportService>.Instance);
+        var service = CreateImportService(repository);
 
         // Create a zip file with logs and traces JSON
         using var zipStream = new MemoryStream();
@@ -152,7 +175,7 @@ public sealed class TelemetryImportServiceTests
     {
         // Arrange
         var repository = CreateRepository();
-        var service = new TelemetryImportService(repository, NullLogger<TelemetryImportService>.Instance);
+        var service = CreateImportService(repository);
 
         // Create a zip file with a txt file and a json file
         using var zipStream = new MemoryStream();
@@ -188,7 +211,7 @@ public sealed class TelemetryImportServiceTests
     {
         // Arrange
         var repository = CreateRepository();
-        var service = new TelemetryImportService(repository, NullLogger<TelemetryImportService>.Instance);
+        var service = CreateImportService(repository);
 
         var stream = new MemoryStream(Encoding.UTF8.GetBytes("Some console output"));
 
@@ -205,7 +228,7 @@ public sealed class TelemetryImportServiceTests
     {
         // Arrange
         var repository = CreateRepository();
-        var service = new TelemetryImportService(repository, NullLogger<TelemetryImportService>.Instance);
+        var service = CreateImportService(repository);
 
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(""));
 
@@ -222,7 +245,7 @@ public sealed class TelemetryImportServiceTests
     {
         // Arrange
         var repository = CreateRepository();
-        var service = new TelemetryImportService(repository, NullLogger<TelemetryImportService>.Instance);
+        var service = CreateImportService(repository);
 
         var stream = new MemoryStream(Encoding.UTF8.GetBytes("{ invalid json }"));
 
@@ -239,7 +262,7 @@ public sealed class TelemetryImportServiceTests
     {
         // Arrange
         var repository = CreateRepository();
-        var service = new TelemetryImportService(repository, NullLogger<TelemetryImportService>.Instance);
+        var service = CreateImportService(repository);
 
         var stream = new MemoryStream(Encoding.UTF8.GetBytes("some content"));
 
@@ -289,7 +312,7 @@ public sealed class TelemetryImportServiceTests
 
         // Import
         var targetRepository = CreateRepository();
-        var importService = new TelemetryImportService(targetRepository, NullLogger<TelemetryImportService>.Instance);
+        var importService = CreateImportService(targetRepository);
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonString));
 
         // Act
@@ -353,7 +376,7 @@ public sealed class TelemetryImportServiceTests
 
         // Import
         var targetRepository = CreateRepository();
-        var importService = new TelemetryImportService(targetRepository, NullLogger<TelemetryImportService>.Instance);
+        var importService = CreateImportService(targetRepository);
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonString));
 
         // Act

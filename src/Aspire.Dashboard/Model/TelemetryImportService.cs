@@ -3,9 +3,11 @@
 
 using System.IO.Compression;
 using System.Text.Json;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Model;
 
@@ -15,16 +17,24 @@ namespace Aspire.Dashboard.Model;
 public sealed class TelemetryImportService
 {
     private readonly TelemetryRepository _telemetryRepository;
+    private readonly IOptionsMonitor<DashboardOptions> _options;
     private readonly ILogger<TelemetryImportService> _logger;
+
+    /// <summary>
+    /// Gets a value indicating whether import is enabled.
+    /// </summary>
+    public bool IsImportEnabled => _options.CurrentValue.UI.DisableImport != true;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TelemetryImportService"/> class.
     /// </summary>
     /// <param name="telemetryRepository">The telemetry repository.</param>
+    /// <param name="options">The dashboard options.</param>
     /// <param name="logger">The logger.</param>
-    public TelemetryImportService(TelemetryRepository telemetryRepository, ILogger<TelemetryImportService> logger)
+    public TelemetryImportService(TelemetryRepository telemetryRepository, IOptionsMonitor<DashboardOptions> options, ILogger<TelemetryImportService> logger)
     {
         _telemetryRepository = telemetryRepository;
+        _options = options;
         _logger = logger;
     }
 
@@ -35,8 +45,14 @@ public sealed class TelemetryImportService
     /// <param name="stream">The file stream.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the async operation.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when import is disabled.</exception>
     public async Task ImportAsync(string fileName, Stream stream, CancellationToken cancellationToken)
     {
+        if (!IsImportEnabled)
+        {
+            throw new InvalidOperationException("Import is disabled.");
+        }
+
         await ImportCoreAsync(fileName, stream, allowZipFile: true, cancellationToken).ConfigureAwait(false);
     }
 
