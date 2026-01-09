@@ -83,7 +83,7 @@ public sealed class RunTests : IAsyncDisposable
         }
 
         await builder
-            .CreateAspireTypeScriptCSharpStarterProject("TsCsApp")
+            .CreateAspireTypeScriptCSharpStarterProject("TsCsApp", debug: true)
             .RunAspireProject("TsCsApp")
             .StopAspireProject()
             .ExitTerminal()
