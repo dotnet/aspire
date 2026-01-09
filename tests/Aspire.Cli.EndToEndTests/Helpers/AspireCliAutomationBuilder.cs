@@ -277,6 +277,52 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
 
             AddCommandVerification(ctx.SequenceBuilder);
 
+            // Check aspire config to see the current channel setting
+            WriteLog(ctx.SequenceBuilder, "Checking Aspire CLI config (channel settings)...");
+            if (OperatingSystem.IsWindows())
+            {
+                ctx.SequenceBuilder
+                    .Type("aspire config list")
+                    .Enter()
+                    .WaitUntil(
+                        snapshot => snapshot.GetScreenText().Contains("PS>", StringComparison.OrdinalIgnoreCase),
+                        effectiveTimeout);
+            }
+            else
+            {
+                ctx.SequenceBuilder
+                    .Type("aspire config list")
+                    .Enter()
+                    .WaitUntil(
+                        snapshot => snapshot.GetScreenText().Contains("$ ", StringComparison.OrdinalIgnoreCase),
+                        effectiveTimeout);
+            }
+
+            AddCommandVerification(ctx.SequenceBuilder);
+
+            // List the hives directory to see available PR packages
+            WriteLog(ctx.SequenceBuilder, "Listing Aspire hives directory...");
+            if (OperatingSystem.IsWindows())
+            {
+                ctx.SequenceBuilder
+                    .Type("if (Test-Path ~/.aspire/hives) { Get-ChildItem ~/.aspire/hives } else { Write-Host 'No hives directory' }")
+                    .Enter()
+                    .WaitUntil(
+                        snapshot => snapshot.GetScreenText().Contains("PS>", StringComparison.OrdinalIgnoreCase),
+                        effectiveTimeout);
+            }
+            else
+            {
+                ctx.SequenceBuilder
+                    .Type("ls -la ~/.aspire/hives 2>/dev/null || echo 'No hives directory'")
+                    .Enter()
+                    .WaitUntil(
+                        snapshot => snapshot.GetScreenText().Contains("$ ", StringComparison.OrdinalIgnoreCase),
+                        effectiveTimeout);
+            }
+
+            AddCommandVerification(ctx.SequenceBuilder);
+
             WriteLog(ctx.SequenceBuilder, "Diagnostics complete.");
         });
     }
