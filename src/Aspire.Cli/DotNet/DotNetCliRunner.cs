@@ -487,7 +487,13 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         string[] cliArgs = ["new", templateName, "--name", name, "--output", outputPath, ..extraArgs];
         return await ExecuteAsync(
             args: cliArgs,
-            env: null,
+            env: new Dictionary<string, string>
+            {
+                // Disable MSBuild server to prevent child process from inheriting stdout/stderr handles
+                // which can cause ReadLineAsync to block indefinitely after the main process exits.
+                // This is a test to validate the theory about handle inheritance.
+                ["DOTNET_CLI_USE_MSBUILD_SERVER"] = "false"
+            },
             projectFile: null,
             workingDirectory: new DirectoryInfo(Environment.CurrentDirectory),
             backchannelCompletionSource: null,
@@ -643,30 +649,17 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
 
         // Wait for all the stream forwarders to finish so we know we've got everything
-        // fired off through the callbacks. Use a timeout to avoid hanging if streams
-        // don't close properly (e.g., if child processes inherited the handles).
-        var streamForwardersTask = Task.WhenAll([pendingStdoutStreamForwarder, pendingStderrStreamForwarder]);
-        var completedTask = await Task.WhenAny(streamForwardersTask, Task.Delay(TimeSpan.FromSeconds(5), CancellationToken.None));
+        // fired off through the callbacks.
+        await Task.WhenAll([pendingStdoutStreamForwarder, pendingStderrStreamForwarder]);
 
-        if (completedTask != streamForwardersTask)
-        {
-            logger.LogDebug("Stream forwarders for PID {ProcessId} did not complete within timeout, continuing anyway.", process.Id);
-        }
-        else
-        {
-            logger.LogDebug("Pending forwarders for PID completed: {ProcessId}", process.Id);
-        }
+        logger.LogDebug("Pending forwarders for PID completed: {ProcessId}", process.Id);
 
         return process.ExitCode;
 
         async Task ForwardStreamToLoggerAsync(StreamReader reader, string identifier, Process process, Action<string>? lineCallback, CancellationToken cancellationToken)
         {
-            logger.LogDebug(
-                "Starting to forward stream with identifier '{Identifier}' on process '{ProcessId}' to logger",
-                identifier,
-                process.Id
-                );
-
+            logger.LogDebug("Starting stream forwarder for {Identifier}", identifier);
+            
             string? line;
             while (!cancellationToken.IsCancellationRequested &&
                 (line = await reader.ReadLineAsync(cancellationToken)) is not null)
@@ -679,6 +672,8 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                     );
                 lineCallback?.Invoke(line!);
             }
+            
+            logger.LogDebug("Stream forwarder completed for {Identifier} - stream returned null", identifier);
         }
     }
 
