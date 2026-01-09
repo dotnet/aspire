@@ -32,6 +32,47 @@ public static class AtsCapabilityScanner
     }
 
     /// <summary>
+    /// Scans multiple assemblies for [AspireExport] and [AspireContextType] attributes.
+    /// Uses 2-pass scanning to ensure cross-assembly type expansion works correctly.
+    /// </summary>
+    /// <param name="assemblies">The assemblies to scan.</param>
+    /// <param name="wellKnownTypes">Well-known type definitions.</param>
+    /// <param name="typeMapping">The ATS type mapping for resolving type IDs.</param>
+    public static ScanResult ScanAssembliesWithTypeInfo(
+        IEnumerable<RoAssembly> assemblies,
+        IWellKnownTypes wellKnownTypes,
+        AtsTypeMapping typeMapping)
+    {
+        // Wrap the assemblies and call the shared scanner
+        var wrappedAssemblies = assemblies.Select(a => new RoAssemblyInfoWrapper(a));
+        var typeResolver = new WellKnownTypeResolver(wellKnownTypes, typeMapping);
+
+        var sharedResult = SharedScanner.ScanAssemblies(wrappedAssemblies, typeMapping, typeResolver);
+
+        // Convert results to public types
+        return new ScanResult
+        {
+            Capabilities = sharedResult.Capabilities.Select(ConvertCapability).ToList(),
+            TypeInfos = sharedResult.TypeInfos.Select(ConvertTypeInfo).ToList()
+        };
+    }
+
+    /// <summary>
+    /// Scans multiple assemblies for capabilities.
+    /// Uses 2-pass scanning to ensure cross-assembly type expansion works correctly.
+    /// </summary>
+    /// <param name="assemblies">The assemblies to scan.</param>
+    /// <param name="wellKnownTypes">Well-known type definitions.</param>
+    /// <param name="typeMapping">The ATS type mapping for resolving type IDs.</param>
+    public static List<AtsCapabilityInfo> ScanAssemblies(
+        IEnumerable<RoAssembly> assemblies,
+        IWellKnownTypes wellKnownTypes,
+        AtsTypeMapping typeMapping)
+    {
+        return ScanAssembliesWithTypeInfo(assemblies, wellKnownTypes, typeMapping).Capabilities;
+    }
+
+    /// <summary>
     /// Scans an assembly for [AspireExport] and [AspireContextType] attributes and returns capability models
     /// along with type information including interface implementations.
     /// </summary>

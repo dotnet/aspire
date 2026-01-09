@@ -11,10 +11,13 @@ const builder = await createBuilder();
 console.log("Created builder");
 
 // Add resources using fluent chaining
+// Note: .withEnvironment() on Redis demonstrates 2-pass scanning fix
+// (withEnvironment is defined in Aspire.Hosting, RedisResource in Aspire.Hosting.Redis)
 const cache = await builder
     .addRedis("cache")
+    .withEnvironment("REDIS_PASSWORD", "secret123")  // Cross-assembly expansion!
     .withRedisCommander();
-console.log("Added Redis with Commander");
+console.log("Added Redis with Commander and environment variable");
 
 // Demonstrate reference expression creation using tagged template literal
 // This creates a dynamic connection string that references the endpoint at runtime

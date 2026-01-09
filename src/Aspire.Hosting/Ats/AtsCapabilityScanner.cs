@@ -19,6 +19,62 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
+    /// Scans multiple assemblies for capabilities and type info.
+    /// Uses 2-pass scanning:
+    /// 1. Collect all capabilities and types from all assemblies (no expansion)
+    /// 2. Expand using the complete type info set from all assemblies
+    /// </summary>
+    /// <param name="assemblies">The assemblies to scan.</param>
+    /// <param name="typeMapping">The type mapping for resolving ATS type IDs.</param>
+    /// <param name="typeResolver">Optional resolver for checking type compatibility.</param>
+    public static ScanResult ScanAssemblies(
+        IEnumerable<IAtsAssemblyInfo> assemblies,
+        AtsTypeMapping typeMapping,
+        IAtsTypeResolver? typeResolver = null)
+    {
+        var allCapabilities = new List<AtsCapabilityInfo>();
+        var allTypeInfos = new List<AtsTypeInfo>();
+        var seenCapabilityIds = new HashSet<string>();
+        var seenTypeIds = new HashSet<string>();
+
+        // Pass 1: Collect capabilities and types from all assemblies (no expansion)
+        foreach (var assembly in assemblies)
+        {
+            var result = ScanAssemblyWithoutExpansion(assembly, typeMapping, typeResolver);
+
+            // Merge capabilities, avoiding duplicates
+            foreach (var capability in result.Capabilities)
+            {
+                if (seenCapabilityIds.Add(capability.CapabilityId))
+                {
+                    allCapabilities.Add(capability);
+                }
+            }
+
+            // Merge type infos, avoiding duplicates
+            foreach (var typeInfo in result.TypeInfos)
+            {
+                if (seenTypeIds.Add(typeInfo.AtsTypeId))
+                {
+                    allTypeInfos.Add(typeInfo);
+                }
+            }
+        }
+
+        // Pass 2: Expand all capabilities using complete type info set
+        ExpandCapabilityTargets(allCapabilities, allTypeInfos);
+
+        // Detect method name collisions after expansion
+        DetectMethodNameCollisions(allCapabilities);
+
+        return new ScanResult
+        {
+            Capabilities = allCapabilities,
+            TypeInfos = allTypeInfos
+        };
+    }
+
+    /// <summary>
     /// Scans an assembly for capabilities and type info.
     /// </summary>
     /// <param name="assembly">The assembly to scan.</param>
@@ -28,6 +84,27 @@ internal static class AtsCapabilityScanner
         IAtsAssemblyInfo assembly,
         AtsTypeMapping typeMapping,
         IAtsTypeResolver? typeResolver = null)
+    {
+        // Single assembly scan with expansion
+        var result = ScanAssemblyWithoutExpansion(assembly, typeMapping, typeResolver);
+
+        // Expand interface targets to concrete types
+        ExpandCapabilityTargets(result.Capabilities, result.TypeInfos);
+
+        // Detect method name collisions after expansion
+        DetectMethodNameCollisions(result.Capabilities);
+
+        return result;
+    }
+
+    /// <summary>
+    /// Internal method that scans an assembly without doing expansion.
+    /// Used by both ScanAssembly and ScanAssemblies.
+    /// </summary>
+    private static ScanResult ScanAssemblyWithoutExpansion(
+        IAtsAssemblyInfo assembly,
+        AtsTypeMapping typeMapping,
+        IAtsTypeResolver? typeResolver)
     {
         var capabilities = new List<AtsCapabilityInfo>();
         var typeInfos = new List<AtsTypeInfo>();
@@ -116,11 +193,8 @@ internal static class AtsCapabilityScanner
             });
         }
 
-        // Expand interface targets to concrete types (2-pass expansion)
-        ExpandCapabilityTargets(capabilities, typeInfos);
-
-        // Detect method name collisions after expansion
-        DetectMethodNameCollisions(capabilities);
+        // Note: Expansion and collision detection are done by the calling method
+        // (ScanAssembly or ScanAssemblies) after all assemblies are processed
 
         return new ScanResult
         {

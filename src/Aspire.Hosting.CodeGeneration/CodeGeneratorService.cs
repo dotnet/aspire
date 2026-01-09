@@ -143,15 +143,14 @@ public sealed class CodeGeneratorService
         var typeMapping = AtsTypeMapping.FromAssemblies(
             assembliesToScan.Select(a => new RoAssemblyInfoWrapper(a)));
 
-        // Scan capabilities from all assemblies
-        foreach (var assembly in assembliesToScan)
-        {
-            var capabilities = AtsCapabilityScanner.ScanAssembly(
-                assembly,
-                wellKnownTypes,
-                typeMapping);
-            allCapabilities.AddRange(capabilities);
-        }
+        // Scan capabilities from all assemblies using 2-pass scanning
+        // This ensures cross-assembly type expansion works correctly
+        // (e.g., withEnvironment from Aspire.Hosting expands to RedisResource from Aspire.Hosting.Redis)
+        var capabilities = AtsCapabilityScanner.ScanAssemblies(
+            assembliesToScan,
+            wellKnownTypes,
+            typeMapping);
+        allCapabilities.AddRange(capabilities);
 
         return allCapabilities;
     }
