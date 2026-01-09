@@ -3,6 +3,7 @@
 
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
@@ -42,13 +43,47 @@ internal sealed class AspireTelemetryMcpTools
     [Description("List structured logs for resources.")]
     public string ListStructuredLogs(
         [Description("The resource name. This limits logs returned to the specified resource. If no resource name is specified then structured logs for all resources are returned.")]
-        string? resourceName = null)
+        string? resourceName = null,
+        [Description("JSON array of filter objects. Each filter object should have 'field' (string), 'condition' (string: 'equals', '!equals', 'contains', '!contains', 'gt', 'lt', 'gte', 'lte'), and 'value' (string) properties. Example: [{\"field\":\"log.category\",\"condition\":\"contains\",\"value\":\"MyApp\"}]")]
+        string? filters = null,
+        [Description("Minimum severity level. Logs with this severity and above will be returned. Valid values: Trace, Debug, Information, Warning, Error, Critical.")]
+        string? severity = null)
     {
-        _logger.LogDebug("MCP tool list_structured_logs called with resource '{ResourceName}'.", resourceName);
+        _logger.LogDebug("MCP tool list_structured_logs called with resource '{ResourceName}', filters '{Filters}', severity '{Severity}'.", resourceName, filters, severity);
 
         if (!TryResolveResourceNameForTelemetry(resourceName, out var message, out var resourceKey))
         {
             return message;
+        }
+
+        List<TelemetryFilter> telemetryFilters = [];
+        if (!string.IsNullOrWhiteSpace(filters))
+        {
+            if (!TryParseFilters(filters, out var parsedFilters, out var filterError))
+            {
+                return filterError;
+            }
+            telemetryFilters = parsedFilters;
+        }
+
+        // Add severity filter if provided
+        if (!string.IsNullOrWhiteSpace(severity))
+        {
+            if (!TryParseSeverity(severity, out var parsedSeverity, out var severityError))
+            {
+                return severityError;
+            }
+
+            // Only add filter if severity is above Trace (Trace returns all)
+            if (parsedSeverity != LogLevel.Trace)
+            {
+                telemetryFilters.Add(new FieldTelemetryFilter
+                {
+                    Field = nameof(OtlpLogEntry.Severity),
+                    Condition = FilterCondition.GreaterThanOrEqual,
+                    Value = parsedSeverity.ToString()
+                });
+            }
         }
 
         // Get all logs because we want the most recent logs and they're at the end of the results.
@@ -58,7 +93,7 @@ internal sealed class AspireTelemetryMcpTools
             ResourceKey = resourceKey,
             StartIndex = 0,
             Count = int.MaxValue,
-            Filters = []
+            Filters = telemetryFilters
         }).Items;
 
         if (_dashboardClient.IsEnabled)
@@ -94,13 +129,27 @@ internal sealed class AspireTelemetryMcpTools
     [Description("List distributed traces for resources. A distributed trace is used to track operations. A distributed trace can span multiple resources across a distributed system. Includes a list of distributed traces with their IDs, resources in the trace, duration and whether an error occurred in the trace.")]
     public string ListTraces(
         [Description("The resource name. This limits traces returned to the specified resource. If no resource name is specified then distributed traces for all resources are returned.")]
-        string? resourceName = null)
+        string? resourceName = null,
+        [Description("JSON array of filter objects. Each filter object should have 'field' (string), 'condition' (string: 'equals', '!equals', 'contains', '!contains', 'gt', 'lt', 'gte', 'lte'), and 'value' (string) properties. Example: [{\"field\":\"status\",\"condition\":\"equals\",\"value\":\"Error\"}]")]
+        string? filters = null,
+        [Description("Text to search for in span names. Filters traces to only those with spans matching this text.")]
+        string? searchText = null)
     {
-        _logger.LogDebug("MCP tool list_traces called with resource '{ResourceName}'.", resourceName);
+        _logger.LogDebug("MCP tool list_traces called with resource '{ResourceName}', filters '{Filters}', searchText '{SearchText}'.", resourceName, filters, searchText);
 
         if (!TryResolveResourceNameForTelemetry(resourceName, out var message, out var resourceKey))
         {
             return message;
+        }
+
+        List<TelemetryFilter> telemetryFilters = [];
+        if (!string.IsNullOrWhiteSpace(filters))
+        {
+            if (!TryParseFilters(filters, out var parsedFilters, out var filterError))
+            {
+                return filterError;
+            }
+            telemetryFilters = parsedFilters;
         }
 
         var traces = _telemetryRepository.GetTraces(new GetTracesRequest
@@ -108,8 +157,8 @@ internal sealed class AspireTelemetryMcpTools
             ResourceKey = resourceKey,
             StartIndex = 0,
             Count = int.MaxValue,
-            Filters = [],
-            FilterText = string.Empty
+            Filters = telemetryFilters,
+            FilterText = searchText ?? string.Empty
         }).PagedResult.Items;
 
         if (_dashboardClient.IsEnabled)
@@ -136,6 +185,44 @@ internal sealed class AspireTelemetryMcpTools
             # TRACES DATA
 
             {tracesData}
+            """;
+
+        return response;
+    }
+
+    [McpServerTool(Name = "get_trace")]
+    [Description("Get a specific distributed trace by its ID. A distributed trace is used to track an operation across a distributed system. Returns detailed information about all spans (operations) in the trace, including the span source, status, duration, and optional error information.")]
+    public string GetTrace(
+        [Description("The trace id of the distributed trace.")]
+        string traceId)
+    {
+        _logger.LogDebug("MCP tool get_trace called with trace '{TraceId}'.", traceId);
+
+        if (AIHelpers.IsMissingValue(traceId))
+        {
+            return "Error: traceId is required.";
+        }
+
+        var trace = _telemetryRepository.GetTrace(traceId);
+        if (trace is null)
+        {
+            return $"Trace '{traceId}' not found.";
+        }
+
+        var resources = _telemetryRepository.GetResources();
+
+        var traceData = AIHelpers.GetTraceJson(
+            trace,
+            _outgoingPeerResolvers,
+            new PromptContext(),
+            _dashboardOptions.CurrentValue,
+            includeDashboardUrl: true,
+            getResourceName: r => OtlpResource.GetResourceName(r, resources));
+
+        var response = $"""
+            # TRACE DATA
+
+            {traceData}
             """;
 
         return response;
@@ -213,5 +300,120 @@ internal sealed class AspireTelemetryMcpTools
     private static List<ResourceViewModel> GetOptOutResources(IEnumerable<ResourceViewModel> resources)
     {
         return resources.Where(AIHelpers.IsResourceAIOptOut).ToList();
+    }
+
+    private static bool TryParseFilters(string filtersJson, [NotNullWhen(true)] out List<TelemetryFilter>? filters, [NotNullWhen(false)] out string? error)
+    {
+        filters = null;
+        error = null;
+
+        try
+        {
+            var filterDtos = JsonSerializer.Deserialize<List<FilterDto>>(filtersJson, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (filterDtos is null)
+            {
+                error = "Invalid filters: expected a JSON array of filter objects.";
+                return false;
+            }
+
+            filters = [];
+            foreach (var dto in filterDtos)
+            {
+                if (string.IsNullOrWhiteSpace(dto.Field))
+                {
+                    error = "Invalid filter: 'field' property is required.";
+                    return false;
+                }
+
+                if (!TryParseCondition(dto.Condition, out var condition))
+                {
+                    error = $"Invalid filter condition '{dto.Condition}'. Valid conditions are: 'equals', '!equals', 'contains', '!contains', 'gt', 'lt', 'gte', 'lte'.";
+                    return false;
+                }
+
+                filters.Add(new FieldTelemetryFilter
+                {
+                    Field = dto.Field,
+                    Condition = condition,
+                    Value = dto.Value ?? string.Empty,
+                    Enabled = dto.Enabled
+                });
+            }
+
+            return true;
+        }
+        catch (JsonException ex)
+        {
+            error = $"Invalid filters JSON: {ex.Message}";
+            return false;
+        }
+    }
+
+    private static bool TryParseCondition(string? conditionString, out FilterCondition condition)
+    {
+        condition = FilterCondition.Equals;
+
+        if (string.IsNullOrWhiteSpace(conditionString))
+        {
+            // Default to equals
+            return true;
+        }
+
+        condition = conditionString.ToLowerInvariant() switch
+        {
+            "equals" or "=" or "==" => FilterCondition.Equals,
+            "!equals" or "notequal" or "!=" => FilterCondition.NotEqual,
+            "contains" or "~" => FilterCondition.Contains,
+            "!contains" or "notcontains" or "!~" => FilterCondition.NotContains,
+            "gt" or ">" or "greaterthan" => FilterCondition.GreaterThan,
+            "lt" or "<" or "lessthan" => FilterCondition.LessThan,
+            "gte" or ">=" or "greaterthanorequal" => FilterCondition.GreaterThanOrEqual,
+            "lte" or "<=" or "lessthanorequal" => FilterCondition.LessThanOrEqual,
+            _ => (FilterCondition)(-1) // Invalid
+        };
+
+        return (int)condition >= 0;
+    }
+
+    private static bool TryParseSeverity(string severityString, out LogLevel severity, [NotNullWhen(false)] out string? error)
+    {
+        error = null;
+
+        if (Enum.TryParse<LogLevel>(severityString, ignoreCase: true, out severity))
+        {
+            return true;
+        }
+
+        // Try common aliases
+        severity = severityString.ToLowerInvariant() switch
+        {
+            "info" => LogLevel.Information,
+            "warn" => LogLevel.Warning,
+            "fatal" => LogLevel.Critical,
+            _ => (LogLevel)(-1)
+        };
+
+        if ((int)severity >= 0)
+        {
+            return true;
+        }
+
+        error = $"Invalid severity '{severityString}'. Valid values are: Trace, Debug, Information (or Info), Warning (or Warn), Error, Critical (or Fatal).";
+        return false;
+    }
+
+    /// <summary>
+    /// DTO for deserializing filter JSON from MCP tool parameters.
+    /// </summary>
+    private sealed class FilterDto
+    {
+        public string? Field { get; set; }
+        public string? Condition { get; set; }
+        public string? Value { get; set; }
+        public bool Enabled { get; set; } = true;
     }
 }

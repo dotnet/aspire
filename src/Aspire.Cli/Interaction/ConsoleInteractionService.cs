@@ -177,7 +177,9 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayPlainText(string message)
     {
-        _ansiConsole.WriteLine(message);
+        // Use Console.WriteLine directly to avoid Spectre.Console's automatic line wrapping.
+        // This is important for machine-readable output like JSON that should not be wrapped.
+        Console.WriteLine(message);
     }
 
     public void DisplayMarkdown(string markdown)

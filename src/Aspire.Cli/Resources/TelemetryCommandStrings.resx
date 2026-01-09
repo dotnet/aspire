@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Microsoft ResX Schema
+    Version 2.0
+    The primary goals of this format is to allow a simple XML format
+    that is mostly human readable. The generation and parsing of the
+    various data types are done through the TypeConverter classes
+    associated with the data types.
+    Example:
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+    There are any number of "resheader" rows that contain simple
+    name/value pairs.
+    Each data row contains a name, and value. The row also contains a
+    type or mimetype. Type corresponds to a .NET class that support
+    text/value conversion through the TypeConverter architecture.
+    Classes that don't support this are serialized and stored with the
+    mimetype set.
+    The mimetype is used for serialized objects, and tells the
+    ResXResourceReader how to depersist the object. This is currently not
+    extensible. For a given mimetype the value must be set accordingly:
+    Note - application/x-microsoft.net.object.binary.base64 is the format
+    that the ResXResourceWriter will generate, however the reader can
+    read any of the formats listed below.
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Description" xml:space="preserve">
+    <value>Query telemetry data from running Aspire applications.
+
+Examples:
+  aspire telemetry traces
+  aspire telemetry logs --severity Warning
+  aspire telemetry metrics --resource apiservice
+  aspire telemetry fields
+    </value>
+  </data>
+  <data name="ProjectOptionDescription" xml:space="preserve">
+    <value>The path to the AppHost project file.</value>
+  </data>
+  <data name="DashboardUrlOptionDescription" xml:space="preserve">
+    <value>URL to a standalone Aspire Dashboard (e.g., http://localhost:18888). Can also be set via ASPIRE_DASHBOARD_URL environment variable.</value>
+  </data>
+  <data name="ApiKeyOptionDescription" xml:space="preserve">
+    <value>API key for Dashboard authentication. Required if Dashboard uses ApiKey auth mode. Can also be set via ASPIRE_DASHBOARD_API_KEY environment variable.</value>
+  </data>
+  <data name="FieldsDescription" xml:space="preserve">
+    <value>Discover available telemetry fields and their values.
+
+Examples:
+  aspire telemetry fields
+  aspire telemetry fields --type traces
+  aspire telemetry fields --type logs --resource apiservice
+  aspire telemetry fields http.method
+  aspire telemetry fields --json
+    </value>
+  </data>
+  <data name="FieldsTypeOptionDescription" xml:space="preserve">
+    <value>Filter to show only trace or log fields. Valid values: 'traces', 'logs'.</value>
+  </data>
+  <data name="FieldsResourceOptionDescription" xml:space="preserve">
+    <value>Filter fields to a specific resource.</value>
+  </data>
+  <data name="FieldsJsonOptionDescription" xml:space="preserve">
+    <value>Output as JSON instead of human-readable format.</value>
+  </data>
+  <data name="FieldsFieldNameArgumentDescription" xml:space="preserve">
+    <value>Optional field name to get distinct values for. If omitted, lists all available fields.</value>
+  </data>
+  <data name="FieldsNoDashboardError" xml:space="preserve">
+    <value>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</value>
+  </data>
+  <data name="FieldsConnectingToDashboard" xml:space="preserve">
+    <value>Connecting to Dashboard...</value>
+  </data>
+  <data name="FieldsQueryingFields" xml:space="preserve">
+    <value>Querying telemetry fields...</value>
+  </data>
+  <data name="FieldsQueryingFieldValues" xml:space="preserve">
+    <value>Querying field values...</value>
+  </data>
+  <data name="TracesDescription" xml:space="preserve">
+    <value>Query distributed traces from running Aspire applications.
+
+Examples:
+  aspire telemetry traces
+  aspire telemetry traces --resource apiservice
+  aspire telemetry traces --filter "status=Error"
+  aspire telemetry traces --filter "http.method=POST" --limit 50
+  aspire telemetry traces abc123def456 --json
+    </value>
+  </data>
+  <data name="TracesResourceOptionDescription" xml:space="preserve">
+    <value>Filter traces to a specific resource.</value>
+  </data>
+  <data name="TracesFilterOptionDescription" xml:space="preserve">
+    <value>Filter expression (e.g., 'status=Error', 'http.method=POST'). Can be specified multiple times.</value>
+  </data>
+  <data name="TracesSearchOptionDescription" xml:space="preserve">
+    <value>Search text to filter span names.</value>
+  </data>
+  <data name="TracesLimitOptionDescription" xml:space="preserve">
+    <value>Maximum number of traces to return. Default is 100.</value>
+  </data>
+  <data name="TracesJsonOptionDescription" xml:space="preserve">
+    <value>Output as JSON instead of human-readable format.</value>
+  </data>
+  <data name="TracesTraceIdArgumentDescription" xml:space="preserve">
+    <value>Optional trace ID to get details for a specific trace. If omitted, lists recent traces.</value>
+  </data>
+  <data name="TracesNoDashboardError" xml:space="preserve">
+    <value>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</value>
+  </data>
+  <data name="LogsDescription" xml:space="preserve">
+    <value>Query structured logs from running Aspire applications.
+
+Examples:
+  aspire telemetry logs
+  aspire telemetry logs --severity Warning
+  aspire telemetry logs --resource apiservice --severity Error
+  aspire telemetry logs --filter "category~MyApp" --limit 50
+  aspire telemetry logs --trace abc123 --json
+    </value>
+  </data>
+  <data name="LogsResourceOptionDescription" xml:space="preserve">
+    <value>Filter logs to a specific resource.</value>
+  </data>
+  <data name="LogsTraceOptionDescription" xml:space="preserve">
+    <value>Filter logs by trace ID.</value>
+  </data>
+  <data name="LogsSpanOptionDescription" xml:space="preserve">
+    <value>Filter logs by span ID.</value>
+  </data>
+  <data name="LogsFilterOptionDescription" xml:space="preserve">
+    <value>Filter expression (e.g., 'category~MyApp', 'message~error'). Can be specified multiple times.</value>
+  </data>
+  <data name="LogsSeverityOptionDescription" xml:space="preserve">
+    <value>Minimum severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical.</value>
+  </data>
+  <data name="LogsLimitOptionDescription" xml:space="preserve">
+    <value>Maximum number of logs to return. Default is 100.</value>
+  </data>
+  <data name="LogsJsonOptionDescription" xml:space="preserve">
+    <value>Output as JSON instead of human-readable format.</value>
+  </data>
+  <data name="LogsNoDashboardError" xml:space="preserve">
+    <value>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</value>
+  </data>
+  <data name="LogsInvalidSeverityError" xml:space="preserve">
+    <value>Invalid severity level. Valid values: Trace, Debug, Information, Warning, Error, Critical.</value>
+  </data>
+  <data name="MetricsDescription" xml:space="preserve">
+    <value>Query metrics from running Aspire applications.
+
+Examples:
+  aspire telemetry metrics --resource apiservice
+  aspire telemetry metrics --resource apiservice System.Runtime/cpu.usage
+  aspire telemetry metrics --resource apiservice --duration 15m
+  aspire telemetry metrics --resource apiservice --json
+    </value>
+  </data>
+  <data name="MetricsResourceOptionDescription" xml:space="preserve">
+    <value>Resource name. Required - metrics are always associated with a specific resource.</value>
+  </data>
+  <data name="MetricsDurationOptionDescription" xml:space="preserve">
+    <value>Time window to query. Supported values: 1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h. Default is 5m.</value>
+  </data>
+  <data name="MetricsJsonOptionDescription" xml:space="preserve">
+    <value>Output as JSON instead of human-readable format.</value>
+  </data>
+  <data name="MetricsInstrumentArgumentDescription" xml:space="preserve">
+    <value>Optional meter/instrument path to get data for (e.g., 'System.Runtime/cpu.usage'). If omitted, lists all available metrics.</value>
+  </data>
+  <data name="MetricsNoDashboardError" xml:space="preserve">
+    <value>No Dashboard connection available. Use --project to run an AppHost or --dashboard-url to connect to a standalone Dashboard.</value>
+  </data>
+  <data name="MetricsNoResourceError" xml:space="preserve">
+    <value>The --resource option is required for metrics. Specify the resource name to query metrics from.</value>
+  </data>
+  <data name="MetricsInvalidDurationError" xml:space="preserve">
+    <value>Invalid duration. Supported values: 1m, 5m, 15m, 30m, 1h, 3h, 6h, 12h.</value>
+  </data>
+  <data name="MetricsInvalidInstrumentFormatError" xml:space="preserve">
+    <value>Invalid instrument format. Use 'meter/instrument' format (e.g., 'System.Runtime/cpu.usage').</value>
+  </data>
+</root>
