@@ -193,6 +193,72 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     }
 
     /// <summary>
+    /// Runs diagnostic commands to gather environment information for debugging CI failures.
+    /// This is useful when project creation hangs to identify NuGet or SDK issues.
+    /// </summary>
+    /// <param name="timeout">Maximum time to wait for each command (default: 30 seconds).</param>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder RunDiagnostics(TimeSpan? timeout = null)
+    {
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(30);
+
+        return AddSequence(ctx =>
+        {
+            WriteLog(ctx.SequenceBuilder, "Running diagnostic commands...");
+
+            // List NuGet sources
+            WriteLog(ctx.SequenceBuilder, "Checking NuGet sources...");
+            if (OperatingSystem.IsWindows())
+            {
+                ctx.SequenceBuilder
+                    .Type("dotnet nuget list source")
+                    .Enter()
+                    .WaitUntil(
+                        snapshot => snapshot.GetScreenText().Contains("Registered Sources", StringComparison.OrdinalIgnoreCase)
+                            || snapshot.GetScreenText().Contains("PS>", StringComparison.OrdinalIgnoreCase),
+                        effectiveTimeout);
+            }
+            else
+            {
+                ctx.SequenceBuilder
+                    .Type("dotnet nuget list source")
+                    .Enter()
+                    .WaitUntil(
+                        snapshot => snapshot.GetScreenText().Contains("Registered Sources", StringComparison.OrdinalIgnoreCase)
+                            || snapshot.GetScreenText().Contains("$ ", StringComparison.OrdinalIgnoreCase),
+                        effectiveTimeout);
+            }
+
+            AddCommandVerification(ctx.SequenceBuilder);
+
+            // List installed SDKs
+            WriteLog(ctx.SequenceBuilder, "Checking installed .NET SDKs...");
+            if (OperatingSystem.IsWindows())
+            {
+                ctx.SequenceBuilder
+                    .Type("dotnet --list-sdks")
+                    .Enter()
+                    .WaitUntil(
+                        snapshot => snapshot.GetScreenText().Contains("PS>", StringComparison.OrdinalIgnoreCase),
+                        effectiveTimeout);
+            }
+            else
+            {
+                ctx.SequenceBuilder
+                    .Type("dotnet --list-sdks")
+                    .Enter()
+                    .WaitUntil(
+                        snapshot => snapshot.GetScreenText().Contains("$ ", StringComparison.OrdinalIgnoreCase),
+                        effectiveTimeout);
+            }
+
+            AddCommandVerification(ctx.SequenceBuilder);
+
+            WriteLog(ctx.SequenceBuilder, "Diagnostics complete.");
+        });
+    }
+
+    /// <summary>
     /// Installs the Aspire CLI from a specific pull request's build artifacts.
     /// Uses the appropriate installation script for the current platform.
     /// When running locally (not in CI), uses an echo command for testing.
