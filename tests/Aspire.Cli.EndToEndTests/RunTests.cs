@@ -26,7 +26,7 @@ public sealed class RunTests : IAsyncDisposable
         _output.WriteLine($"Work directory: {_workDirectory}");
     }
 
-    [Fact]
+    [Fact(Skip = "Temporarily skipped to investigate CI hangs")]
     public async Task CreateAndRunAspireStarterProject()
     {
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -90,7 +90,7 @@ public sealed class RunTests : IAsyncDisposable
             .ExecuteAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "Temporarily skipped to investigate CI hangs")]
     public async Task CreateAndRunAspirePythonStarterProject()
     {
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -122,7 +122,7 @@ public sealed class RunTests : IAsyncDisposable
             .ExecuteAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "Temporarily skipped to investigate CI hangs")]
     public async Task CreateAndRunAspireAppHostSingleFileProject()
     {
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -154,7 +154,7 @@ public sealed class RunTests : IAsyncDisposable
             .ExecuteAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "Temporarily skipped to investigate CI hangs")]
     public async Task CreateAndRunAspireStarterProjectInteractively()
     {
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -186,7 +186,7 @@ public sealed class RunTests : IAsyncDisposable
             .ExecuteAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "Temporarily skipped to investigate CI hangs")]
     public async Task CreateAndRunAspireTypeScriptCSharpStarterProjectInteractively()
     {
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -218,7 +218,7 @@ public sealed class RunTests : IAsyncDisposable
             .ExecuteAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "Temporarily skipped to investigate CI hangs")]
     public async Task CreateAndRunAspirePythonStarterProjectInteractively()
     {
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -250,7 +250,7 @@ public sealed class RunTests : IAsyncDisposable
             .ExecuteAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "Temporarily skipped to investigate CI hangs")]
     public async Task CreateAndRunAspireAppHostSingleFileProjectInteractively()
     {
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
@@ -286,7 +286,7 @@ public sealed class RunTests : IAsyncDisposable
     /// Test that creates an aspire-starter project using dotnet new directly (not aspire CLI).
     /// This helps isolate whether hangs are in the Aspire CLI or in dotnet new itself.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "Temporarily skipped to investigate CI hangs")]
     public async Task CreateAspireStarterProjectWithDotnetNew()
     {
         var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
