@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#if KUBERNETES
+#if KUBERNETES // This namespace is only available in the Kubernetes integration
 using Aspire.Hosting.Kubernetes.Extensions;
 #endif
 using YamlDotNet.Core;
@@ -56,9 +56,11 @@ internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
         {
             eventInfo = new(eventInfo.Source)
             {
-#if KUBERNETES
+
+#if KUBERNETES // This check is only needed in the Kubernetes integration
+
                 Style = eventInfo.Source.Value is string value
-                        && value.IsHelmNonStringExpression()
+                        && value.IsHelmNonStringScalarExpression()
                       ? ScalarStyle.ForcePlain
                       : ScalarStyle.DoubleQuoted,
 #else

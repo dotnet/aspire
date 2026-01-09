@@ -86,9 +86,9 @@ internal static partial class HelmExtensions
 
     public static bool ContainsHelmValuesSecretExpression(this string value)
         => ExpressionPattern().IsMatch(value)
-            && value.Contains($"{ValuesSegment}.{SecretsKey}.", StringComparison.Ordinal);
+        && value.Contains($"{ValuesSegment}.{SecretsKey}.", StringComparison.Ordinal);
 
-    public static bool IsHelmNonStringExpression(this string value)
+    public static bool IsHelmNonStringScalarExpression(this string value)
     {
         return ScalarExpressionPattern().IsMatch(value)
             && EndWithNonStringTypePattern().IsMatch(value);
@@ -97,7 +97,7 @@ internal static partial class HelmExtensions
     [GeneratedRegex(@"\{\{[^}]*\|\s*(int|int64|float64)\s*\}\}")]
     private static partial Regex EndWithNonStringTypePattern();
 
-    [GeneratedRegex(@"(?<=^\{\{\s*)(?:[^{}]+?)(?=(?:\}\}$))")]
+    [GeneratedRegex(@"((?<=^\{\{\s*)(?:[^{}]+?)(?=(?:\}\}$)))")]
     internal static partial Regex ScalarExpressionPattern();
 
     [GeneratedRegex(@"((?<=\{\{\s*)(?:[^{}]+?)(?=(?:\}\})))")]

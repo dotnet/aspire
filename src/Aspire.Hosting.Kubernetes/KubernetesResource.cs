@@ -325,10 +325,10 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
     {
         switch (helmExpression)
         {
-            case { IsHelmSecretExpression: true, ValueContainsSecretValuesExpression: false }:
+            case { ExpressionContainsHelmSecretExpression: true, ValueContainsSecretValuesExpression: false }:
                 Secrets[key] = helmExpression;
                 return;
-            case { IsHelmSecretExpression: false, ValueContainsSecretValuesExpression: false }:
+            case { ExpressionContainsHelmSecretExpression: false, ValueContainsSecretValuesExpression: false }:
                 EnvironmentVariables[key] = helmExpression;
                 break;
         }
@@ -522,10 +522,18 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
             _ => throw new InvalidOperationException($"Unsupported protocol type: {type}"),
         };
 
+    /// <summary>
+    /// Represents a Helm value, which can be either a literal value, a Helm expression, or a helm expression with a known value. 
+    /// </summary>
     internal class HelmValue
     {
         private HelmValue(object? value) : this(null, value) { }
 
+        /// <summary>
+        /// Initializes a new instance of the HelmValue class with the specified expression and value.
+        /// </summary>
+        /// <param name="expression">The Helm expression associated with the value. Can be null if no expression is used.</param>
+        /// <param name="value">The value to assign. Can be null.</param>
         public HelmValue(string? expression, object? value)
         {
             Expression = expression;
@@ -534,32 +542,77 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
             ParameterSource = null;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HelmValue"/> class with a Helm expression and a parameter source. 
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <param name="parameterSource"></param>
         public HelmValue(string expression, ParameterResource parameterSource)
         {
             Expression = expression;
             ParameterSource = parameterSource;
-            Value = null!;
-            ValueType = null!;
+            Value = null;
+            ValueType = null;
         }
 
+        /// <summary>
+        /// Gets the Helm expression associated with this HelmValue, if any. 
+        /// </summary>
         public string? Expression { get; }
+
+        /// <summary>
+        /// Gets the value associated with this HelmValue, if any.
+        /// </summary>
         public object? Value { get; }
+
+        /// <summary>
+        /// Gets the type of the value associated with this HelmValue, if any. 
+        /// </summary>
         protected Type? ValueType { get; }
+
+        /// <summary>
+        /// Gets the string representation of the value, if available. 
+        /// </summary>
         public string? ValueString => Value?.ToString();
+
+        /// <summary>
+        /// Gets the parameter resource associated with this HelmValue, if any.
+        /// </summary>
         public ParameterResource? ParameterSource { get; }
 
-        public bool IsHelmSecretExpression
+        /// <summary>
+        /// Indicates whether the expression contains a Helm secret expression. 
+        /// </summary>
+        public bool ExpressionContainsHelmSecretExpression
             => Expression?.ContainsHelmValuesSecretExpression() ?? false;
+
+        /// <summary>
+        /// Gets a value indicating whether the value string contains any secret value expressions.
+        /// </summary>
         public bool ValueContainsSecretValuesExpression
             => ValueString?.ContainsHelmValuesSecretExpression() ?? false;
+
+        /// <summary>
+        /// Gets a value indicating whether the current value string contains a Helm values expression.
+        /// </summary>
         public bool ValueContainsHelmExpression
             => ValueString?.ContainsHelmValuesExpression() ?? false;
 
+        /// <summary>
+        /// Returns a string representation of the HelmValue.
+        /// </summary>
+        /// <returns>A string that represents the value or expression, or an empty string if neither is set.</returns>
         public override string ToString()
         {
             return ValueString ?? Expression ?? string.Empty;
         }
 
+        /// <summary>
+        /// Converts the HelmValue to a scalar value or expression, applying type conversions if necessary. 
+        /// </summary>
+        /// <returns>
+        /// A string representing the scalar value or Helm expression.
+        /// </returns>
         public string ToScalar()
         {
             if (string.IsNullOrWhiteSpace(Expression))
@@ -568,11 +621,12 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
             }
 
             var expression = HelmExtensions.ScalarExpressionPattern().Match(Expression);
-            if (!expression.Success)
+            if (expression is not { Success: true } or not { Captures.Count: > 0 })
             {
+                // if its not a scalar expression, use `ToString`
                 return ToString();
             }
-            
+
             var typeConversion = ValueType switch
             {
                 var t when t == typeof(int) => $" {HelmExtensions.PipelineDelimiter} int",
