@@ -623,11 +623,48 @@ public sealed class TelemetryRepository : IDisposable
         return false;
     }
 
-    public void ClearAllSignals()
+    /// <summary>
+    /// Clears selected telemetry signals for specified resources.
+    /// </summary>
+    /// <param name="selectedResources">Dictionary mapping resource names to the data types to clear.</param>
+    public void ClearSelectedSignals(Dictionary<string, HashSet<AspireDataType>> selectedResources)
     {
-        ClearTraces(null);
-        ClearStructuredLogs(null);
-        ClearMetrics(null);
+        var allOtlpResources = GetResources();
+
+        foreach (var otlpResource in allOtlpResources)
+        {
+            var resourceName = otlpResource.ResourceKey.GetCompositeName();
+
+            if (!selectedResources.TryGetValue(resourceName, out var dataTypes))
+            {
+                continue;
+            }
+
+            var clearStructuredLogs = dataTypes.Contains(AspireDataType.StructuredLogs);
+            var clearTraces = dataTypes.Contains(AspireDataType.Traces);
+            var clearMetrics = dataTypes.Contains(AspireDataType.Metrics);
+
+            if (clearStructuredLogs)
+            {
+                ClearStructuredLogs(otlpResource.ResourceKey);
+            }
+
+            if (clearTraces)
+            {
+                ClearTraces(otlpResource.ResourceKey);
+            }
+
+            if (clearMetrics)
+            {
+                ClearMetrics(otlpResource.ResourceKey);
+            }
+
+            // If all telemetry types are cleared, remove the resource itself
+            if (clearStructuredLogs && clearTraces && clearMetrics)
+            {
+                _resources.TryRemove(otlpResource.ResourceKey, out _);
+            }
+        }
     }
 
     public void ClearTraces(ResourceKey? resourceKey = null)
