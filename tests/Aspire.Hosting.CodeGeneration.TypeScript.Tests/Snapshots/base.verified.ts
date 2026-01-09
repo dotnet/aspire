@@ -7,11 +7,12 @@ export type { MarshalledHandle, AtsError, AtsErrorDetails, CallbackFunction } fr
 export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './transport.js';
 
 // ============================================================================
-// Handle Type Aliases (Core)
+// Handle Type Aliases (Internal - used by base classes)
 // ============================================================================
 
-export type BuilderHandle = Handle<'Aspire.Hosting/IDistributedApplicationBuilder'>;
-export type ApplicationHandle = Handle<'Aspire.Hosting/DistributedApplication'>;
+// Internal handle types - not exported to users (users work with wrapper classes)
+type BuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder'>;
+type ApplicationHandle = Handle<'Aspire.Hosting/Aspire.Hosting.DistributedApplication'>;
 
 // ============================================================================
 // Reference Expression
@@ -175,8 +176,6 @@ export function refExpr(strings: TemplateStringsArray, ...values: unknown[]): Re
 export class DistributedApplicationBase {
     constructor(protected _handle: ApplicationHandle, protected _client: AspireClient) {}
 
-    get handle(): ApplicationHandle { return this._handle; }
-
     async run(): Promise<void> {
         await this._client.invokeCapability('Aspire.Hosting/run', { app: this._handle });
     }
@@ -192,8 +191,6 @@ export class DistributedApplicationBase {
  */
 export class DistributedApplicationBuilderBase {
     constructor(protected _handle: BuilderHandle, protected _client: AspireClient) {}
-
-    get handle(): BuilderHandle { return this._handle; }
 }
 
 // ============================================================================
@@ -206,8 +203,6 @@ export class DistributedApplicationBuilderBase {
  */
 export class ResourceBuilderBase<THandle extends Handle = Handle> {
     constructor(protected _handle: THandle, protected _client: AspireClient) {}
-
-    get handle(): THandle { return this._handle; }
 
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 }

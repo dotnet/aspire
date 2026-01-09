@@ -366,6 +366,181 @@ public static class TestExtensions
     {
         return builder;
     }
+
+    // ===== Additional Test Cases for Full ATS Type Coverage =====
+
+    /// <summary>
+    /// Tests DTO parameter - verifies [AspireDto] generates TypeScript interface.
+    /// </summary>
+    [AspireExport("withConfig", Description = "Configures the resource with a DTO")]
+    public static IResourceBuilder<T> WithConfig<T>(
+        this IResourceBuilder<T> builder,
+        TestConfigDto config) where T : IResource
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests mutable List return type - verifies AspireList wrapper generation.
+    /// </summary>
+    [AspireExport("getTags", Description = "Gets the tags for the resource")]
+    public static List<string> GetTags(this IResourceBuilder<TestRedisResource> builder)
+    {
+        return [];
+    }
+
+    /// <summary>
+    /// Tests mutable Dictionary return type - verifies AspireDict wrapper generation.
+    /// </summary>
+    [AspireExport("getMetadata", Description = "Gets the metadata for the resource")]
+    public static Dictionary<string, string> GetMetadata(this IResourceBuilder<TestRedisResource> builder)
+    {
+        return [];
+    }
+
+    /// <summary>
+    /// Tests ReferenceExpression parameter - verifies special handling (pass directly via toJSON).
+    /// </summary>
+    [AspireExport("withConnectionString", Description = "Sets the connection string using a reference expression")]
+    public static IResourceBuilder<T> WithConnectionString<T>(
+        this IResourceBuilder<T> builder,
+        ReferenceExpression connectionString) where T : IResourceWithConnectionString
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests callback receiving context wrapper.
+    /// Verifies callback auto-wraps handle into context class with property-like objects.
+    /// </summary>
+    [AspireExport("withEnvironmentCallback", Description = "Configures environment with callback")]
+    public static IResourceBuilder<T> WithEnvironmentCallback<T>(
+        this IResourceBuilder<T> builder,
+        Func<TestEnvironmentContext, Task> callback) where T : IResourceWithEnvironment
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests DateTime parameter - verifies mapping to ISO 8601 string.
+    /// </summary>
+    [AspireExport("withCreatedAt", Description = "Sets the created timestamp")]
+    public static IResourceBuilder<T> WithCreatedAt<T>(
+        this IResourceBuilder<T> builder,
+        DateTime createdAt) where T : IResource
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests DateTimeOffset parameter - verifies mapping to ISO 8601 string.
+    /// </summary>
+    [AspireExport("withModifiedAt", Description = "Sets the modified timestamp")]
+    public static IResourceBuilder<T> WithModifiedAt<T>(
+        this IResourceBuilder<T> builder,
+        DateTimeOffset modifiedAt) where T : IResource
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests Guid parameter - verifies mapping to string.
+    /// </summary>
+    [AspireExport("withCorrelationId", Description = "Sets the correlation ID")]
+    public static IResourceBuilder<T> WithCorrelationId<T>(
+        this IResourceBuilder<T> builder,
+        Guid correlationId) where T : IResource
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests optional callback parameter - verifies conditional callback registration.
+    /// </summary>
+    [AspireExport("withOptionalCallback", Description = "Configures with optional callback")]
+    public static IResourceBuilder<T> WithOptionalCallback<T>(
+        this IResourceBuilder<T> builder,
+        Func<TestCallbackContext, Task>? callback = null) where T : IResource
+    {
+        callback?.Invoke(new TestCallbackContext());
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests enum parameter - verifies string literal union generation.
+    /// </summary>
+    [AspireExport("withStatus", Description = "Sets the resource status")]
+    public static IResourceBuilder<T> WithStatus<T>(
+        this IResourceBuilder<T> builder,
+        TestResourceStatus status) where T : IResource
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests nested DTO parameter.
+    /// </summary>
+    [AspireExport("withNestedConfig", Description = "Configures with nested DTO")]
+    public static IResourceBuilder<T> WithNestedConfig<T>(
+        this IResourceBuilder<T> builder,
+        TestNestedDto config) where T : IResource
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests async callback with context that returns a value.
+    /// </summary>
+    [AspireExport("withValidator", Description = "Adds validation callback")]
+    public static IResourceBuilder<T> WithValidator<T>(
+        this IResourceBuilder<T> builder,
+        Func<TestResourceContext, Task<bool>> validator) where T : IResource
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests builder passed as parameter to another capability.
+    /// Verifies wrapper class acceptance with internal handle extraction.
+    /// </summary>
+    [AspireExport("waitFor", Description = "Waits for another resource")]
+    public static IResourceBuilder<T> WaitFor<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<IResource> dependency) where T : IResource
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests readonly array return type - verifies copy/pass directly.
+    /// </summary>
+    [AspireExport("getEndpoints", Description = "Gets the endpoints")]
+    public static string[] GetEndpoints(this IResourceBuilder<TestRedisResource> builder)
+    {
+        return [];
+    }
+
+    /// <summary>
+    /// Tests IReadOnlyList parameter - verifies readonly array handling.
+    /// </summary>
+    [AspireExport("withEndpoints", Description = "Sets the endpoints")]
+    public static IResourceBuilder<T> WithEndpoints<T>(
+        this IResourceBuilder<T> builder,
+        IReadOnlyList<string> endpoints) where T : IResource
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Tests IReadOnlyDictionary parameter - verifies readonly dict handling.
+    /// </summary>
+    [AspireExport("withEnvironmentVariables", Description = "Sets environment variables")]
+    public static IResourceBuilder<T> WithEnvironmentVariables<T>(
+        this IResourceBuilder<T> builder,
+        IReadOnlyDictionary<string, string> variables) where T : IResourceWithEnvironment
+    {
+        return builder;
+    }
 }
 
 /// <summary>

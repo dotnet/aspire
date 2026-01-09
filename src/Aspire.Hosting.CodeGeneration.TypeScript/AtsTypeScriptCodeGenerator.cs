@@ -314,6 +314,17 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 {
                     typeIds.Add(param.Type!.TypeId);
                 }
+                // Also collect callback parameter types
+                if (param.IsCallback && param.CallbackParameters != null)
+                {
+                    foreach (var cbParam in param.CallbackParameters)
+                    {
+                        if (IsHandleType(cbParam.Type))
+                        {
+                            typeIds.Add(cbParam.Type.TypeId);
+                        }
+                    }
+                }
             }
         }
 
@@ -391,7 +402,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private void GenerateHandleTypeAliases(HashSet<string> typeIds)
     {
         WriteLine("// ============================================================================");
-        WriteLine("// Handle Type Aliases");
+        WriteLine("// Handle Type Aliases (Internal - not exported to users)");
         WriteLine("// ============================================================================");
         WriteLine();
 
@@ -400,7 +411,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             var handleName = GetHandleTypeName(typeId);
             var description = GetTypeDescription(typeId);
             WriteLine($"/** {description} */");
-            WriteLine($"export type {handleName} = Handle<'{typeId}'>;");
+            // Internal type alias - not exported (users work with wrapper classes)
+            WriteLine($"type {handleName} = Handle<'{typeId}'>;");
             WriteLine();
         }
     }
@@ -686,6 +698,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 // Callbacks need to be wrapped with registerCallback
                 paramArgs.Add($"callback: {param.Name}Id");
             }
+            else if (param.Type?.TypeId == AtsConstants.ReferenceExpressionTypeId)
+            {
+                // ReferenceExpression serializes via toJSON(), pass directly
+                paramArgs.Add($"{param.Name}");
+            }
             else if (param.Type?.TypeId != null && _wrapperClassNames.ContainsKey(param.Type.TypeId))
             {
                 // Parameter is a wrapper type - extract its handle for the capability call
@@ -958,13 +975,59 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private void GenerateCallbackRegistration(AtsParameterInfo callbackParam)
     {
         var callbackParameters = callbackParam.CallbackParameters;
+        var isOptional = callbackParam.IsOptional || callbackParam.IsNullable;
+        var callbackName = callbackParam.Name;
+
+        // Determine parameter signature for registerCallback
+        string paramSignature;
+        if (callbackParameters is null || callbackParameters.Count == 0)
+        {
+            paramSignature = "";
+        }
+        else if (callbackParameters.Count == 1)
+        {
+            paramSignature = $"{callbackParameters[0].Name}Data: unknown";
+        }
+        else
+        {
+            paramSignature = "argsData: unknown";
+        }
+
+        // For optional callbacks, wrap the registration in a conditional
+        if (isOptional)
+        {
+            WriteLine($"        const {callbackName}Id = {callbackName} ? registerCallback(async ({paramSignature}) => {{");
+        }
+        else
+        {
+            WriteLine($"        const {callbackName}Id = registerCallback(async ({paramSignature}) => {{");
+        }
+
+        // Generate the callback body
+        GenerateCallbackBody(callbackParam, callbackParameters);
+
+        // Close the callback registration
+        if (isOptional)
+        {
+            WriteLine("        }) : undefined;");
+        }
+        else
+        {
+            WriteLine("        });");
+        }
+    }
+
+    /// <summary>
+    /// Generates the body of a callback function.
+    /// </summary>
+    private void GenerateCallbackBody(AtsParameterInfo callbackParam, IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters)
+    {
+        var callbackName = callbackParam.Name;
 
         if (callbackParameters is null || callbackParameters.Count == 0)
         {
-            // No parameters - simple callback
-            WriteLine($"        const {callbackParam.Name}Id = registerCallback(async () => {{");
-            WriteLine($"            await {callbackParam.Name}();");
-            WriteLine("        });");
+            // No parameters - just call the callback
+            WriteLine($"            await {callbackName}();");
         }
         else if (callbackParameters.Count == 1)
         {
@@ -972,8 +1035,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             var cbParam = callbackParameters[0];
             var tsType = MapTypeRefToTypeScript(cbParam.Type);
             var cbTypeId = cbParam.Type.TypeId;
-
-            WriteLine($"        const {callbackParam.Name}Id = registerCallback(async ({cbParam.Name}Data: unknown) => {{");
 
             if (_wrapperClassNames.TryGetValue(cbTypeId, out var wrapperClassName))
             {
@@ -988,8 +1049,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 WriteLine($"            const {cbParam.Name} = wrapIfHandle({cbParam.Name}Data) as {tsType};");
             }
 
-            WriteLine($"            await {callbackParam.Name}({cbParam.Name});");
-            WriteLine("        });");
+            WriteLine($"            await {callbackName}({cbParam.Name});");
         }
         else
         {
@@ -997,7 +1057,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             var paramNames = callbackParameters.Select((p, i) => $"p{i}").ToList();
             var destructure = string.Join(", ", paramNames);
 
-            WriteLine($"        const {callbackParam.Name}Id = registerCallback(async (argsData: unknown) => {{");
             WriteLine($"            const args = argsData as {{ {destructure}: unknown }};");
 
             var callArgs = new List<string>();
@@ -1022,8 +1081,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 callArgs.Add(cbParam.Name);
             }
 
-            WriteLine($"            await {callbackParam.Name}({string.Join(", ", callArgs)});");
-            WriteLine("        });");
+            WriteLine($"            await {callbackName}({string.Join(", ", callArgs)});");
         }
     }
 
@@ -1162,9 +1220,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($" */");
         WriteLine($"export class {className} {{");
         WriteLine($"    constructor(private _handle: {handleType}, private _client: AspireClientRpc) {{}}");
-        WriteLine();
-        WriteLine($"    /** Gets the underlying handle */");
-        WriteLine($"    get handle(): {handleType} {{ return this._handle; }}");
         WriteLine();
 
         // Generate getter methods
