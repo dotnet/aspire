@@ -48,7 +48,7 @@ public static class HostedAgentResourceBuilderExtensions
     /// a new project resource (and its parent account resource) will be created automatically.
     /// </summary>
     public static IResourceBuilder<T> PublishAsHostedAgent<T>(
-        this IResourceBuilder<T> builder, IResourceBuilder<AzureCognitiveServicesProjectResource>? project, Action<HostedAgentConfiguration>? configure = null)
+        this IResourceBuilder<T> builder, IResourceBuilder<AzureCognitiveServicesProjectResource>? project = null, Action<HostedAgentConfiguration>? configure = null)
         where T : ExecutableResource
     {
         /*
@@ -63,19 +63,22 @@ public static class HostedAgentResourceBuilderExtensions
         {
             return builder;
         }
-        if (project is null)
+        AzureCognitiveServicesProjectResource? projResource;;
+        if (project is not null)
         {
-            // Try to find an existing project in the model, otherwise create one automatically
-            var foundry = builder.ApplicationBuilder.Resources.OfType<AzureAIFoundryResource>().FirstOrDefault();
-            if (foundry is not null)
+            projResource = project.Resource;
+        }
+        else
+        {
+            projResource = builder.ApplicationBuilder.Resources.OfType<AzureCognitiveServicesProjectResource>().FirstOrDefault();
+            if (projResource is null)
             {
-                project = foundry.Project;
+                project = builder.ApplicationBuilder.AddFoundryProject($"{resource.Name}-proj");
+                projResource = project.Resource;
             }
             else
             {
-                // Build everything
-                var foundryBuilder = builder.ApplicationBuilder.AddAzureAIFoundry($"{resource.Name}-foundry");
-                project = foundryBuilder.Resource.Project;
+                project = builder.ApplicationBuilder.CreateResourceBuilder(projResource);
             }
         }
         // Hosted Agent resource name
@@ -118,8 +121,8 @@ public static class HostedAgentResourceBuilderExtensions
         // Ensure image gets pushed properly
         target.Annotations.Add(new DeploymentTargetAnnotation(agent)
         {
-            ComputeEnvironment = project.Resource,
-            ContainerRegistry = project.Resource.GetContainerRegistry()
+            ComputeEnvironment = projResource,
+            ContainerRegistry = projResource.GetContainerRegistry()
         });
 
         builder.ApplicationBuilder.AddResource(agent)

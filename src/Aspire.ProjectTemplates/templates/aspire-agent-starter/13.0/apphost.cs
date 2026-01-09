@@ -1,4 +1,5 @@
 #:sdk Aspire.AppHost.Sdk@!!REPLACE_WITH_LATEST_VERSION!!
+#:property TargetFramework=net8.0
 #:package Aspire.Hosting.Azure.CognitiveServices@!!REPLACE_WITH_LATEST_VERSION!!
 #:package Aspire.Hosting.Azure.ContainerRegistry@!!REPLACE_WITH_LATEST_VERSION!!
 

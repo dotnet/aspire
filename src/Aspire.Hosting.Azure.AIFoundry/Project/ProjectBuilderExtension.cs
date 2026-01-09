@@ -3,7 +3,9 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.AIFoundry;
 using Azure.Provisioning;
+using Azure.Provisioning.ApplicationInsights;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.ContainerRegistry;
 using Azure.Provisioning.Expressions;
@@ -76,11 +78,37 @@ public static class AzureCognitiveServicesProjectExtensions
                     Tags = tags
                 };
             }
-            infra.Add(containerRegistry);
+
             var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, identity);
             // There's a bug in the CDK, see https://github.com/Azure/azure-sdk-for-net/issues/47265
             pullRa.Name = BicepFunction.CreateGuid(containerRegistry.Id, identity.Id, pullRa.RoleDefinitionId);
             infra.Add(pullRa);
+            infra.Add(containerRegistry);
+
+            ApplicationInsightsComponent appInsights;
+            if (aspireResource.AppInsights is not null && !aspireResource.AppInsights.IsEmulator())
+            {
+                appInsights = (ApplicationInsightsComponent)aspireResource.AppInsights.AddAsExistingResource(infra);
+            }
+            else
+            {
+                appInsights = new ApplicationInsightsComponent(Infrastructure.NormalizeBicepIdentifier($"{prefix}-ai"))
+                {
+                    ApplicationType = ApplicationInsightsApplicationType.Web,
+                    Kind = "web",
+                    Tags = tags
+                };
+                infra.Add(appInsights);
+            }
+            infra.Add(new ProvisioningOutput("APPLICATION_INSIGHTS_CONNECTION_STRING", typeof(string))
+            {
+                Value = appInsights.ConnectionString
+            });
+
+            // Permissions for publishing telemetry to App Insights
+            var pubRoleRa = appInsights.CreateRoleAssignment(ApplicationInsightsBuiltInRole.MonitoringMetricsPublisher, identity);
+            pubRoleRa.Name = BicepFunction.CreateGuid(appInsights.Id, identity.Id, pubRoleRa.RoleDefinitionId);
+            infra.Add(pubRoleRa);
 
             var account = builder.Resource.AddAsExistingResource(infra);
             // Create the Cognitive Services project resource
@@ -142,36 +170,46 @@ public static class AzureCognitiveServicesProjectExtensions
             {
                 Value = identity.ClientId
             });
+            // Create an Application Insights connection for the project to use for telemetry
+            infra.Add(new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_ai_conn")
+            {
+                Parent = project,
+                Name = $"{name}-ai-conn",
+                Properties = new AppInsightsConnectionProperties()
+                {
+                    Target = appInsights.Id,
+                    IsSharedToAll = false,
+                    CredentialsKey = appInsights.ConnectionString,
+                    Metadata =
+                    {
+                        { "ApiType", "Azure" },
+                        { "ResourceId", appInsights.Id }
+                    }
+                }
+            });
         }
         var resource = new AzureCognitiveServicesProjectResource(name, configureInfrastructure, builder.Resource);
-        var resourceBuilder = builder.ApplicationBuilder.AddResource(resource);
-        // Set the project on the parent AI Foundry resource if not already set
-        builder.Resource.Project = resourceBuilder;
-        return resourceBuilder;
+        return builder.ApplicationBuilder.AddResource(resource);
     }
 
     /// <summary>
-    /// Associates a container registry with the Azure Cognitive Services project resource for
-    /// publishing and locating hosted agents.
+    /// Adds an Azure Cognitive Services project resource to the application model.
+    ///
+    /// This will create a default foundry account resource.
+    /// This will also set the project as a deployment target for agents.
     /// </summary>
-    public static IResourceBuilder<AzureAIFoundryResource> WithContainerRegistry(
-        this IResourceBuilder<AzureAIFoundryResource> builder,
-        IResourceBuilder<AzureContainerRegistryResource> registryBuilder)
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the parent Azure Cognitive Services account resource.</param>
+    /// <param name="name">The name of the Azure Cognitive Services project resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for the Azure Cognitive Services project resource.</returns>
+    public static IResourceBuilder<AzureCognitiveServicesProjectResource> AddFoundryProject(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name)
     {
-        builder.Resource.Project.WithContainerRegistry(registryBuilder);
-        return builder;
-    }
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
-    /// <summary>
-    /// Associates a container registry with the Azure Cognitive Services project resource for
-    /// publishing and locating hosted agents.
-    /// </summary>
-    public static IResourceBuilder<AzureAIFoundryResource> WithContainerRegistry(
-        this IResourceBuilder<AzureAIFoundryResource> builder,
-        IContainerRegistry registry)
-    {
-        builder.Resource.Project.WithContainerRegistry(registry);
-        return builder;
+        var account = builder.AddAzureAIFoundry($"{name}-foundry");
+        return account.AddProject(name);
     }
 
     /// <summary>
@@ -227,11 +265,58 @@ public static class AzureCognitiveServicesProjectExtensions
             // Also inject the striaght URL as another env var, because the APIProjectClient
             // does not accept a connection string format.
             builder.WithEnvironment("AZURE_AI_PROJECT_ENDPOINT", resource.Endpoint);
+            builder.WithEnvironment("APPLICATIONINSIGHTS_CONNECTION_STRING", resource.AppInsightsConnectionString);
         }
         if (builder is IResourceBuilder<IResourceWithWaitSupport> waitableBuilder)
         {
             waitableBuilder.WaitFor(project);
         }
         return builder;
+    }
+
+    /// <summary>
+    /// Adds an Application Insights connection to the Azure Cognitive Services project
+    /// that overrides the default (which is to create a new Application Insights resource).
+    /// </summary>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureBicepResource> WithAppInsights(
+        this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
+        IResourceBuilder<AzureApplicationInsightsResource> appInsights)
+    {
+        builder.Resource.AppInsights = appInsights.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a model deployment to the parent foundry of the Azure Cognitive Services project.
+    /// </summary>
+    /// <param name="builder">Aspire resource builder for a project</param>
+    /// <param name="name">Name to give the model deployment</param>
+    /// <param name="model">The <see cref="AIFoundryModel"/> to deploy</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddModelDeployment(
+        this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
+        [ResourceName] string name,
+        AIFoundryModel model)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        return builder.ApplicationBuilder.CreateResourceBuilder(builder.Resource.Parent).AddDeployment(name, model);
+    }
+
+    /// <summary>
+    /// Adds a model deployment to the parent foundry of the Azure Cognitive Services project.
+    /// </summary>
+    public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddModelDeployment(
+        this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
+        [ResourceName] string name,
+        string modelName,
+        string modelVersion,
+        string format)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        return builder.ApplicationBuilder.CreateResourceBuilder(builder.Resource.Parent).AddDeployment(name, modelName, modelVersion, format);
     }
 }

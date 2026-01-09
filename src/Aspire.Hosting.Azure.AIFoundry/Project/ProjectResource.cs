@@ -58,7 +58,8 @@ public class AzureCognitiveServicesProjectResource :
             var computeUrls = new PipelineStep
             {
                 Name = $"compute-endpoints-{name}",
-                Action = async (context) => {
+                Action = async (context) =>
+                {
                     var opts = context.Services.GetRequiredService<IOptions<AzureProvisionerOptions>>().Value;
                     var subscriptionId = opts.SubscriptionId;
                     var resourceGroupName = opts.ResourceGroup;
@@ -143,6 +144,17 @@ public class AzureCognitiveServicesProjectResource :
 
     ReferenceExpression IContainerRegistry.Endpoint =>
         ReferenceExpression.Create($"{ContainerRegistryUrl}");
+
+    /// <summary>
+    /// The Application Insights resource associated with this project, if any.
+    ///
+    /// This will be used as the destination for server-side telemetry from hosted
+    /// agents and optionally for client-side telemetry if the application decides
+    /// to use it.
+    /// </summary>
+    public AzureApplicationInsightsResource? AppInsights { get; set; }
+
+    internal BicepOutputReference AppInsightsConnectionString => new("APPLICATION_INSIGHTS_CONNECTION_STRING", this);
 
     /// <summary>
     /// Get the address for the particular agent's endpoint.
