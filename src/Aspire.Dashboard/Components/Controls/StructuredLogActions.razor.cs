@@ -11,6 +11,7 @@ using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components;
@@ -20,6 +21,7 @@ public partial class StructuredLogActions : ComponentBase
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_messageOpenIcon = new Icons.Regular.Size16.Open();
     private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
+    private static readonly Icon s_copyIcon = new Icons.Regular.Size16.Copy();
 
     private AspireMenuButton? _menuButton;
 
@@ -43,6 +45,9 @@ public partial class StructuredLogActions : ComponentBase
 
     [Inject]
     public required IAIContextProvider AIContextProvider { get; set; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
     [Parameter]
     public required EventCallback<string> OnViewDetails { get; set; }
@@ -92,5 +97,16 @@ public partial class StructuredLogActions : ComponentBase
                 }
             });
         }
+
+        _menuItems.Add(new MenuButtonItem
+        {
+            Text = ControlsLoc[nameof(ControlsStrings.CopyAsJson)],
+            Icon = s_copyIcon,
+            OnClick = async () =>
+            {
+                var logJson = TelemetryExportService.ConvertLogEntryToJson(LogEntry);
+                await JS.InvokeVoidAsync("copyText", logJson);
+            }
+        });
     }
 }
