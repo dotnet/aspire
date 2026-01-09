@@ -535,7 +535,7 @@ public partial class KubernetesResource(string name, IResource resource, Kuberne
         /// <summary>
         /// Initializes a new instance of the HelmValue class with the specified expression and value.
         /// </summary>
-        /// <param name="expression">The Helm expression associated with the value. Can be null if no expression is used.</param>
+        /// <param name="expression">The Helm expression associated with the value. Cannot be null.</param>
         /// <param name="value">The value to assign. Can be null.</param>
         public HelmValue(string expression, object? value)
         {
