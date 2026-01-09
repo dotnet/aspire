@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace Aspire.TestTools;
 
-sealed partial class TestSummaryGenerator
+public sealed partial class TestSummaryGenerator
 {
     public static string CreateCombinedTestSummaryReport(string basePath)
     {
