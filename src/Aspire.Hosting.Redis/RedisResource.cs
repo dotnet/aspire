@@ -72,10 +72,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             builder.Append($",password={PasswordParameter}");
         }
 
-        if (TlsEnabled)
-        {
-            builder.Append($",ssl=true");
-        }
+        builder.Append($",ssl={PrimaryEndpoint.Property(EndpointProperty.Tls)}");
 
         return builder.Build();
     }
@@ -127,14 +124,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
         get
         {
             var builder = new ReferenceExpressionBuilder();
-            if (TlsEnabled)
-            {
-                builder.AppendLiteral("rediss://");
-            }
-            else
-            {
-                builder.AppendLiteral("redis://");
-            }
+            builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.Scheme)}://");
 
             if (PasswordParameter is not null)
             {

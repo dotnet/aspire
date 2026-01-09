@@ -5,5 +5,5 @@ namespace Aspire.Hosting.Utils;
 
 internal static class SchemaUtils
 {
-    public const string SchemaVersion = "https://json.schemastore.org/aspire-8.0.json";
+    public const string SchemaVersion = "https://json.schemastore.org/aspire-13.0.json";
 }

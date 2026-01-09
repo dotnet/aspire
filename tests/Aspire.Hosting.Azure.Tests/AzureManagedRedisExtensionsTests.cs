@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Kusto.Cloud.Platform.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
@@ -59,10 +60,8 @@ public class AzureManagedRedisExtensionsTests
 
         Assert.True(redis.Resource.IsContainer(), "The resource should now be a container resource.");
 
-        var sslArg = redisResource?.TlsEnabled == true ? ",ssl=true" : "";
-
         Assert.NotNull(redisResource?.PasswordParameter);
-        Assert.Equal($"localhost:12455,password={await redisResource.PasswordParameter.GetValueAsync(CancellationToken.None)}{sslArg}", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal($"localhost:12455,password={await redisResource.PasswordParameter.GetValueAsync(CancellationToken.None)},ssl={(redisResource?.TlsEnabled == true).ToStringLowercase()}", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
     }
 
     [Fact]
@@ -91,12 +90,12 @@ public class AzureManagedRedisExtensionsTests
         Assert.Equal(12455, endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("tcp", endpoint.Transport);
-        Assert.Equal("tcp", endpoint.UriScheme);
+        Assert.Equal("redis", endpoint.UriScheme);
 
         Assert.True(redis.Resource.IsContainer(), "The resource should now be a container resource.");
 
         Assert.NotNull(redisResource?.PasswordParameter);
-        Assert.Equal($"localhost:12455,password=p@ssw0rd1", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal($"localhost:12455,password=p@ssw0rd1,ssl=false", await redis.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
 
         // Test the new reference properties
         Assert.NotNull(redis.Resource.HostName);
