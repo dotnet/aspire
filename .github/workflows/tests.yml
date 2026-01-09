@@ -175,7 +175,7 @@ jobs:
       requiresNugets: true
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
-  cli_e2e_test_lin:
+  cli_e2e_tests:
     name: Cli E2E Linux
     uses: ./.github/workflows/run-tests.yml
     needs: [setup_for_tests_lin, build_packages]
