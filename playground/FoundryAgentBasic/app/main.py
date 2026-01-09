@@ -3,14 +3,12 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import random
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
-from azure.identity.aio import DefaultAzureCredential
 from openai import AsyncOpenAI
 from agents import (
     Agent,
@@ -35,7 +33,7 @@ from azure.ai.agentserver.core.models.projects import (
     ResponseTextDoneEvent,
 )
 from azure.ai.projects.aio import AIProjectClient
-from dotenv import load_dotenv
+from azure.identity.aio import DefaultAzureCredential
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.openai_agents import OpenAIAgentsInstrumentor
@@ -50,9 +48,6 @@ try:
     )
 except Exception:  # pragma: no cover
     AzureMonitorTraceExporter = None  # mypy: ignore
-
-# Load env early so adapter init sees them
-load_dotenv(override=True)
 
 
 logging.basicConfig(
@@ -256,55 +251,6 @@ TRIAGE_AGENT = Agent(
 # cSpell:enable
 
 
-def _apply_weekend_semconv(
-    client: AsyncOpenAI,
-    model: OpenAIResponsesModel,
-    span: trace.Span,
-    *,
-    user_text: str,
-    final_text: str,
-    conversation_id: str | None,
-    response_id: str,
-    final_agent_name: str | None,
-    success: bool,
-) -> None:
-    parsed = urlparse(client.base_url)
-    if parsed.hostname:
-        span.set_attribute("server.address", parsed.hostname)
-    if parsed.port:
-        span.set_attribute("server.port", parsed.port)
-
-    span.set_attribute("gen_ai.operation.name", "invoke_agent")
-    span.set_attribute("gen_ai.provider.name", "azure.ai.openai")
-    span.set_attribute("gen_ai.request.model", model.model)
-    span.set_attribute("gen_ai.output.type", "text")
-    span.set_attribute("gen_ai.response.model", model.model)
-    span.set_attribute("gen_ai.response.id", response_id)
-    span.set_attribute(
-        "gen_ai.response.finish_reasons",
-        ["stop"] if success else ["error"],
-    )
-
-    if conversation_id:
-        span.set_attribute("gen_ai.conversation.id", conversation_id)
-    if TRIAGE_AGENT.instructions:
-        span.set_attribute("gen_ai.system_instructions", TRIAGE_AGENT.instructions)
-    if final_agent_name:
-        span.set_attribute("gen_ai.agent.name", final_agent_name)
-    else:
-        span.set_attribute("gen_ai.agent.name", TRIAGE_AGENT.name)
-    if user_text:
-        span.set_attribute(
-            "gen_ai.input.messages",
-            json.dumps([{"role": "user", "content": user_text}]),
-        )
-    if final_text:
-        span.set_attribute(
-            "gen_ai.output.messages",
-            json.dumps([{"role": "assistant", "content": final_text}]),
-        )
-
-
 def _extract_user_text(request: CreateResponse) -> str:
     """Extract the first user text input from the request body."""
 
@@ -365,16 +311,7 @@ def _stream_final_text(final_text: str, context: AgentRunContext):
                 ],
             )
         )
-
     return _async_stream()
-
-
-def dump(title: str, payload: object) -> None:
-    """Pretty print helper for the tracing demo."""
-
-    print(f"\n=== {title} ===")
-    print(json.dumps(payload, indent=2))
-
 
 
 class WeekendPlannerContainer(FoundryCBAgent):
@@ -385,57 +322,17 @@ class WeekendPlannerContainer(FoundryCBAgent):
         self._client = client
         self._model = model
 
-    @tracer.start_as_current_span("weekend_planner_session")
     async def agent_run(self, context: AgentRunContext):
         request = context.request
         user_text = _extract_user_text(request)
 
-        span = trace.get_current_span()
-        span.set_attribute("user.request", user_text)
-        span.set_attribute("api.host", "azure")
-        span.set_attribute("model.name", self._model.model_name)
-        span.set_attribute("agent.name", TRIAGE_AGENT.name)
-        span.set_attribute("triage.languages", "en,es")
-
         try:
             result = await Runner.run(TRIAGE_AGENT, input=user_text)
             final_text = str(result.final_output or "")
-            span.set_attribute(
-                "agent.response", final_text[:500] if final_text else ""
-            )
-            final_agent = getattr(result, "last_agent", None)
-            if final_agent and getattr(final_agent, "name", None):
-                span.set_attribute("agent.final", final_agent.name)
-            span.set_attribute("request.success", True)
-            _apply_weekend_semconv(
-                self._client,
-                self._model,
-                span,
-                user_text=user_text,
-                final_text=final_text,
-                conversation_id=context.conversation_id,
-                response_id=context.response_id,
-                final_agent_name=getattr(final_agent, "name", None),
-                success=True,
-            )
             logger.info("Weekend planning completed successfully")
-        except Exception as exc:  # pragma: no cover - defensive logging path
-            span.record_exception(exc)
-            span.set_attribute("request.success", False)
-            span.set_attribute("error.type", exc.__class__.__name__)
+        except Exception as exc:
             logger.error("Error during weekend planning: %s", exc)
             final_text = f"Error running agent: {exc}"
-            _apply_weekend_semconv(
-                self._client,
-                self._model,
-                span,
-                user_text=user_text,
-                final_text=final_text,
-                conversation_id=context.conversation_id,
-                response_id=context.response_id,
-                final_agent_name=None,
-                success=False,
-            )
 
         if request.get("stream", False):
             return _stream_final_text(final_text, context)

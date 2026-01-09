@@ -18,30 +18,6 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
     internal Uri? EmulatorServiceUri { get; set; }
 
     private readonly List<AzureAIFoundryDeploymentResource> _deployments = [];
-    internal bool _isAspireDefaultProjectSet { get; set; } = true;
-
-    /// <summary>
-    /// Project to use within the AI Foundry resource if none are otherwise specified. Note that
-    /// this may NOT be the same as the "default" project in Azure.
-    /// </summary>
-    internal IResourceBuilder<AzureCognitiveServicesProjectResource> Project
-    {
-        get
-        {
-            ArgumentNullException.ThrowIfNull(field);
-            return field;
-        }
-        set
-        {
-            ArgumentNullException.ThrowIfNull(value);
-            if (_isAspireDefaultProjectSet)
-            {
-                field = value;
-                _isAspireDefaultProjectSet = false;
-                return;
-            }
-        }
-    }
 
     /// <summary>
     /// Gets the "aiFoundryApiEndpoint" output reference from the Azure AI Foundry resource.

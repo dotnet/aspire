@@ -181,48 +181,6 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an Application Insights connection to the Azure Cognitive Services project.
-    ///
-    /// This is used for agent evals, telemetry, and other observability for hosted agents.
-    /// </summary>
-    /// <returns></returns>
-    public static IResourceBuilder<AzureBicepResource> AddConnection(
-        this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
-        AzureApplicationInsightsResource appInsights)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(appInsights);
-        if (appInsights.IsEmulator())
-        {
-            throw new InvalidOperationException("Cannot create a AI Foundry project connection to an emulator Application Insights resource.");
-        }
-        // Configuration based on https://github.com/azure-ai-foundry/foundry-samples/blob/cdd5453240ca8d1a6ac25d4bc66475fc4a49f56e/infrastructure/infrastructure-setup-bicep/01-connections/connection-application-insights.bicep
-        // We use a custom subclass here because Azure.Provisioning.CognitiveServices does not support the "AppInsights" connection category yet (as of 2026-01-06).
-        return builder.AddConnection($"connection-{Guid.NewGuid():N}", (infra) => new AppInsightsConnectionProperties()
-        {
-            Target = appInsights.Id.AsProvisioningParameter(infra),
-            IsSharedToAll = false,
-            CredentialsKey = appInsights.ConnectionString.AsProvisioningParameter(infra),
-            Metadata =
-            {
-                { "ApiType", "Azure" },
-                { "ResourceId", appInsights.Id.AsProvisioningParameter(infra) }
-            }
-        });
-    }
-
-    /// <summary>
-    /// Adds an Application Insights connection to the Azure Cognitive Services project.
-    /// </summary>
-    /// <returns></returns>
-    public static IResourceBuilder<AzureBicepResource> AddConnection(
-        this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
-        IResourceBuilder<AzureApplicationInsightsResource> appInsights)
-    {
-        return builder.AddConnection(appInsights.Resource);
-    }
-
-    /// <summary>
     /// Adds a Key Vault connection to the Azure Cognitive Services project.
     /// </summary>
     /// <remarks>

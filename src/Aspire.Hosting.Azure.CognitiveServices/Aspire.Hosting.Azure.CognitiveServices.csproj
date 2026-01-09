@@ -34,8 +34,4 @@
     <PackageReference Include="Microsoft.Bcl.Memory" />
   </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Azure.CognitiveServices.Tests" />
-  </ItemGroup>
-
 </Project>

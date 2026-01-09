@@ -417,7 +417,7 @@
   </Folder>
   <Folder Name="/tests/Hosting/">
     <Project Path="tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj" />
-    <Project Path="tests/Aspire.Hosting.Azure.CognitiveServices.Tests/Aspire.Hosting.Azure.CognitiveServices.Tests.csproj" />
+    <Project Path="tests/Aspire.Hosting.Azure.AIFoundry.Tests/Aspire.Hosting.Azure.AIFoundry.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Kusto.Tests/Aspire.Hosting.Azure.Kusto.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj" />
