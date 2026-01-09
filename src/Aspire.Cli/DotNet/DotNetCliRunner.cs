@@ -669,10 +669,19 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
 
         // Wait for all the stream forwarders to finish so we know we've got everything
-        // fired off through the callbacks.
-        await Task.WhenAll([pendingStdoutStreamForwarder, pendingStderrStreamForwarder]);
+        // fired off through the callbacks. Use a timeout to avoid hanging if streams
+        // don't close properly (e.g., if child processes inherited the handles).
+        var streamForwardersTask = Task.WhenAll([pendingStdoutStreamForwarder, pendingStderrStreamForwarder]);
+        var completedTask = await Task.WhenAny(streamForwardersTask, Task.Delay(TimeSpan.FromSeconds(5), CancellationToken.None));
 
-        logger.LogDebug("Pending forwarders for PID completed: {ProcessId}", process.Id);
+        if (completedTask != streamForwardersTask)
+        {
+            logger.LogDebug("Stream forwarders for PID {ProcessId} did not complete within timeout, continuing anyway.", process.Id);
+        }
+        else
+        {
+            logger.LogDebug("Pending forwarders for PID completed: {ProcessId}", process.Id);
+        }
 
         return process.ExitCode;
 
