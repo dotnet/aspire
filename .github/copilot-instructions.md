@@ -30,6 +30,22 @@
 * Never change NuGet.config files unless explicitly asked to.
 * Don't update files under `*/api/*.cs` (e.g. src/Aspire.Hosting/api/Aspire.Hosting.cs) as they are generated.
 
+## Code Review Instructions
+
+### API Files and Public API Surface
+
+The API files located in `*/api/*.cs` (e.g., `src/Aspire.Hosting/api/Aspire.Hosting.cs`) track the public API surface that has already been shipped in the latest release. These files are auto-generated and serve as a baseline for API compatibility checks.
+
+When reviewing pull requests:
+
+* **Do not comment when new public API is introduced and the API files are not regenerated**. This is expected behavior during active development between releases.
+* New public APIs should be reviewed for design, naming, and functionality, but the absence of API file updates during PR development is normal.
+* API files are regenerated as part of the release process when we ship a new version, not during individual PRs.
+* Only flag API file concerns if:
+  - API files are manually edited (they should never be manually modified)
+  - There are breaking changes to existing APIs without proper justification
+  - The PR explicitly claims to update API compatibility but doesn't regenerate the files
+
 ## Formatting
 
 * Apply code-formatting style defined in `.editorconfig`.
