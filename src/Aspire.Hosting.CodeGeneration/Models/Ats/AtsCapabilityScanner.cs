@@ -209,7 +209,8 @@ public static class AtsCapabilityScanner
             ElementType = ConvertTypeRef(shared.ElementType),
             KeyType = ConvertTypeRef(shared.KeyType),
             ValueType = ConvertTypeRef(shared.ValueType),
-            IsReadOnly = shared.IsReadOnly
+            IsReadOnly = shared.IsReadOnly,
+            UnionTypes = shared.UnionTypes?.Select(ConvertTypeRef).ToList()!
         };
     }
 

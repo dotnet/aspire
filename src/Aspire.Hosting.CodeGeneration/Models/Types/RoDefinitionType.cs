@@ -149,8 +149,8 @@ public sealed class RoDefinitionType : RoType
 
                 var val = customAttribute.DecodeValue(provider);
 
-                var fixedArgs = val.FixedArguments.Select(a => a.Value).ToArray();
-                var namedArgs = val.NamedArguments.Select(na => new KeyValuePair<string, object>(na.Name!, na.Value!)).ToArray(); //_reader.GetString(na.Name),
+                var fixedArgs = val.FixedArguments.Select(a => UnwrapAttributeValue(a.Value)).ToArray();
+                var namedArgs = val.NamedArguments.Select(na => new KeyValuePair<string, object>(na.Name!, UnwrapAttributeValue(na.Value)!)).ToArray();
 
                 if (attributeType is not null)
                 {
@@ -428,8 +428,8 @@ public sealed class RoDefinitionType : RoType
 
                 var val = customAttribute.DecodeValue(provider);
 
-                var fixedArgs = val.FixedArguments.Select(a => a.Value).ToArray();
-                var namedArgs = val.NamedArguments.Select(na => new KeyValuePair<string, object>(na.Name!, na.Value!)).ToArray();
+                var fixedArgs = val.FixedArguments.Select(a => UnwrapAttributeValue(a.Value)).ToArray();
+                var namedArgs = val.NamedArguments.Select(na => new KeyValuePair<string, object>(na.Name!, UnwrapAttributeValue(na.Value)!)).ToArray();
 
                 if (attributeType is not null)
                 {
@@ -474,4 +474,58 @@ public sealed class RoDefinitionType : RoType
     {
         return FullName;
     }
+
+    /// <summary>
+    /// Recursively unwraps CustomAttributeTypedArgument values.
+    /// For params Type[] arguments, the value is an ImmutableArray of typed arguments
+    /// where each element's Value is the type name string.
+    /// </summary>
+#pragma warning disable IL2075 // 'this' argument does not satisfy 'DynamicallyAccessedMemberTypes.PublicProperties' - known reflection pattern for metadata decoding
+#pragma warning disable IL2065 // Value passed to implicit 'this' parameter - known reflection pattern for metadata decoding
+    internal static object? UnwrapAttributeValue(object? value)
+    {
+        if (value == null)
+        {
+            return null;
+        }
+
+        var valueType = value.GetType();
+
+        // Check for ImmutableArray<CustomAttributeTypedArgument<T>> pattern
+        if (valueType.IsGenericType &&
+            valueType.GetGenericTypeDefinition().FullName == "System.Collections.Immutable.ImmutableArray`1")
+        {
+            var elementType = valueType.GetGenericArguments()[0];
+
+            // Check if element type is CustomAttributeTypedArgument<T>
+            if (elementType.IsGenericType &&
+                elementType.GetGenericTypeDefinition().FullName == "System.Reflection.Metadata.CustomAttributeTypedArgument`1")
+            {
+                // Get length and indexer
+                var lengthProp = valueType.GetProperty("Length");
+                var indexerProp = valueType.GetProperties()
+                    .FirstOrDefault(p => p.GetIndexParameters().Length == 1);
+
+                if (lengthProp?.GetValue(value) is int length && indexerProp != null)
+                {
+                    var valueProp = elementType.GetProperty("Value");
+                    var result = new object?[length];
+
+                    for (var i = 0; i < length; i++)
+                    {
+                        var elem = indexerProp.GetValue(value, [i]);
+                        var innerValue = valueProp?.GetValue(elem);
+                        // Recursively unwrap in case of nested arrays
+                        result[i] = UnwrapAttributeValue(innerValue);
+                    }
+
+                    return result;
+                }
+            }
+        }
+
+        return value;
+    }
+#pragma warning restore IL2065
+#pragma warning restore IL2075
 }

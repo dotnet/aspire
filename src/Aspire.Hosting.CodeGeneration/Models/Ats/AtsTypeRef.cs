@@ -47,4 +47,10 @@ public sealed class AtsTypeRef
     /// Only meaningful for Array/Dict categories.
     /// </summary>
     public bool IsReadOnly { get; init; }
+
+    /// <summary>
+    /// Gets or sets the member types for Union category.
+    /// When Category = Union, this contains the alternative types.
+    /// </summary>
+    public IReadOnlyList<AtsTypeRef>? UnionTypes { get; init; }
 }

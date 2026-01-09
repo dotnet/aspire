@@ -905,4 +905,52 @@ public class AtsTypeScriptCodeGeneratorTests
 
         return (hostingAssembly, wellKnownTypes, testAssembly, typeMapping);
     }
+
+    [Fact]
+    public void AspireUnionAttribute_ParsesCorrectly()
+    {
+        // This test verifies that [AspireUnion] attributes are correctly parsed from metadata
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, _, _, _) = LoadTestAssemblies(context);
+
+        // Find the EnvironmentCallbackContext type
+        var envCallbackContext = hostingAssembly.GetTypeDefinitions()
+            .FirstOrDefault(t => t.FullName == "Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext");
+
+        Assert.NotNull(envCallbackContext);
+
+        // Find the EnvironmentVariables property
+        var envVarsProperty = envCallbackContext.Properties
+            .FirstOrDefault(p => p.Name == "EnvironmentVariables");
+
+        Assert.NotNull(envVarsProperty);
+
+        // Get the [AspireUnion] attribute
+        var unionAttr = envVarsProperty.CustomAttributes
+            .FirstOrDefault(a => a.AttributeType?.FullName == "Aspire.Hosting.AspireUnionAttribute");
+
+        Assert.NotNull(unionAttr);
+
+        // Check what's in FixedArguments
+        var fixedArgs = unionAttr.FixedArguments;
+        Assert.Single(fixedArgs);
+
+        // The first argument should be an array of type name strings
+        var typeNames = fixedArgs[0] as object[];
+        Assert.NotNull(typeNames);
+        Assert.Equal(2, typeNames.Length);
+
+        // Extract just the type name part (strip assembly qualification)
+        var typeName1 = typeNames[0]?.ToString();
+        var typeName2 = typeNames[1]?.ToString();
+
+        Assert.NotNull(typeName1);
+        Assert.NotNull(typeName2);
+
+        // First type should be System.String (possibly assembly-qualified)
+        Assert.StartsWith("System.String", typeName1);
+
+        // Second type should be ReferenceExpression
+        Assert.Contains("ReferenceExpression", typeName2);
+    }
 }

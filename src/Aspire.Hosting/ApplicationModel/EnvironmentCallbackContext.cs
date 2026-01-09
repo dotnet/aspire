@@ -33,6 +33,7 @@ public class EnvironmentCallbackContext(DistributedApplicationExecutionContext e
     /// <summary>
     /// Gets the environment variables associated with the callback context.
     /// </summary>
+    [AspireUnion(typeof(string), typeof(ReferenceExpression))]
     public Dictionary<string, object> EnvironmentVariables { get; } = environmentVariables ?? new();
 
     /// <summary>

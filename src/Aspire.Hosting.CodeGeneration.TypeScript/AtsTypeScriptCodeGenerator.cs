@@ -142,6 +142,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             AtsTypeCategory.Dict => typeRef.IsReadOnly
                 ? $"Record<{MapTypeRefToTypeScript(typeRef.KeyType)}, {MapTypeRefToTypeScript(typeRef.ValueType)}>"
                 : $"AspireDict<{MapTypeRefToTypeScript(typeRef.KeyType)}, {MapTypeRefToTypeScript(typeRef.ValueType)}>",
+            AtsTypeCategory.Union => MapUnionTypeToTypeScript(typeRef),
             _ => typeRef.TypeId  // Fallback
         };
     }
@@ -162,6 +163,23 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         _ when AtsConstants.IsEnum(typeId) => "string",  // Enums serialize as strings
         _ => typeId
     };
+
+    /// <summary>
+    /// Maps a union type to TypeScript union syntax (T1 | T2 | ...).
+    /// </summary>
+    private string MapUnionTypeToTypeScript(AtsTypeRef typeRef)
+    {
+        if (typeRef.UnionTypes == null || typeRef.UnionTypes.Count == 0)
+        {
+            return "unknown";
+        }
+
+        var memberTypes = typeRef.UnionTypes
+            .Select(MapTypeRefToTypeScript)
+            .Distinct();
+
+        return string.Join(" | ", memberTypes);
+    }
 
     /// <summary>
     /// Gets the wrapper class name or handle type name for a handle type ID.
@@ -1446,7 +1464,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     {
         // Determine key and value types
         var keyType = "string";
-        var valueType = "string | ReferenceExpression"; // Default for EnvironmentVariables
+        var valueType = "unknown";
 
         // Try to extract key and value types from Dict type
         if (getter.ReturnType?.KeyType != null)
@@ -1455,11 +1473,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
         if (getter.ReturnType?.ValueType != null)
         {
-            var rawValueType = MapTypeRefToTypeScript(getter.ReturnType.ValueType);
-            // For object type, use string | ReferenceExpression
-            valueType = rawValueType == "unknown" || rawValueType == "object"
-                ? "string | ReferenceExpression"
-                : rawValueType;
+            // Union types will be mapped correctly via MapTypeRefToTypeScript
+            valueType = MapTypeRefToTypeScript(getter.ReturnType.ValueType);
         }
 
         var typeId = $"'{getter.CapabilityId.Replace(".get", "")}'";

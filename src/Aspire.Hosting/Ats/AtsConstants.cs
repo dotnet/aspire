@@ -46,7 +46,13 @@ public enum AtsTypeCategory
     /// Dictionary types that serialize as JSON objects.
     /// Mutable dictionaries are handles; readonly dictionaries are copied.
     /// </summary>
-    Dict
+    Dict,
+
+    /// <summary>
+    /// Union types that can hold one of multiple alternative types.
+    /// Serialization depends on the member types.
+    /// </summary>
+    Union
 }
 
 /// <summary>
@@ -342,6 +348,9 @@ public static class AtsConstants
         {
             return AtsTypeCategory.Dict;
         }
+
+        // Union types are explicitly created by the scanner when [AspireUnion] is present.
+        // They are not inferred from type ID format.
 
         // For handle-format types, we default to Handle.
         // The scanner/runtime can override this to Dto if the type has [AspireDto].

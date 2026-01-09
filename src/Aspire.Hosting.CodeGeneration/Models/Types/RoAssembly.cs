@@ -136,8 +136,8 @@ public sealed class RoAssembly
 
                 var val = customAttribute.DecodeValue(provider);
 
-                var fixedArgs = val.FixedArguments.Select(a => a.Value).ToArray();
-                var namedArgs = val.NamedArguments.Select(na => new KeyValuePair<string, object>(na.Name!, na.Value!)).ToArray();
+                var fixedArgs = val.FixedArguments.Select(a => RoDefinitionType.UnwrapAttributeValue(a.Value)).ToArray();
+                var namedArgs = val.NamedArguments.Select(na => new KeyValuePair<string, object>(na.Name!, RoDefinitionType.UnwrapAttributeValue(na.Value)!)).ToArray();
 
                 if (attributeType is not null)
                 {

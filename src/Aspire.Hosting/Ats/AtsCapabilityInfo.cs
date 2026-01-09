@@ -45,6 +45,61 @@ internal sealed class AtsTypeRef
     /// Only meaningful for Array/Dict categories.
     /// </summary>
     public bool IsReadOnly { get; init; }
+
+    /// <summary>
+    /// Gets or sets the member types for Union category.
+    /// When Category = Union, this contains the alternative types.
+    /// </summary>
+    public IReadOnlyList<AtsTypeRef>? UnionTypes { get; init; }
+}
+
+/// <summary>
+/// Represents the severity of an ATS scanner diagnostic.
+/// </summary>
+internal enum AtsDiagnosticSeverity
+{
+    /// <summary>
+    /// Warning - the item was skipped but scanning continues.
+    /// </summary>
+    Warning,
+
+    /// <summary>
+    /// Error - a type validation error (e.g., object type without [AspireUnion]).
+    /// </summary>
+    Error
+}
+
+/// <summary>
+/// Represents a diagnostic message from the ATS capability scanner.
+/// </summary>
+internal sealed class AtsDiagnostic
+{
+    /// <summary>
+    /// Gets the severity of the diagnostic.
+    /// </summary>
+    public AtsDiagnosticSeverity Severity { get; init; }
+
+    /// <summary>
+    /// Gets the diagnostic message.
+    /// </summary>
+    public required string Message { get; init; }
+
+    /// <summary>
+    /// Gets the source location (e.g., type name, method name).
+    /// </summary>
+    public string? Location { get; init; }
+
+    /// <summary>
+    /// Creates an error diagnostic.
+    /// </summary>
+    public static AtsDiagnostic Error(string message, string? location = null) =>
+        new() { Severity = AtsDiagnosticSeverity.Error, Message = message, Location = location };
+
+    /// <summary>
+    /// Creates a warning diagnostic.
+    /// </summary>
+    public static AtsDiagnostic Warning(string message, string? location = null) =>
+        new() { Severity = AtsDiagnosticSeverity.Warning, Message = message, Location = location };
 }
 
 /// <summary>
