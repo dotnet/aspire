@@ -94,7 +94,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <summary>
     /// Prepares the shell environment with a custom prompt that tracks command count and exit status.
     /// This is useful for debugging recordings. The prompt format is:
-    /// [N ✔] $ (success) or [N ✘:code] $ (failure)
+    /// [N OK] $ (success) or [N ERR:code] $ (failure)
     /// Works on both bash (Linux/macOS) and PowerShell (Windows).
     /// </summary>
     /// <returns>The builder for chaining.</returns>
@@ -107,7 +107,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
             if (OperatingSystem.IsWindows())
             {
                 // PowerShell prompt setup
-                const string promptSetup = "$global:CMDCOUNT=0; function prompt { $s=$?; $global:CMDCOUNT++; \"[$global:CMDCOUNT $(if($s){'✔'}else{\"✘:$LASTEXITCODE\"})] PS> \" }";
+                const string promptSetup = "$global:CMDCOUNT=0; function prompt { $s=$?; $global:CMDCOUNT++; \"[$global:CMDCOUNT $(if($s){'OK'}else{\"ERR:$LASTEXITCODE\"})] PS> \" }";
 
                 ctx.SequenceBuilder
                     .Type(promptSetup)
@@ -117,7 +117,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
             else
             {
                 // Bash prompt setup
-                const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo ✔ || echo ✘:$s)] \\$ \"'";
+                const string promptSetup = "CMDCOUNT=0; PROMPT_COMMAND='s=$?;((CMDCOUNT++));PS1=\"[$CMDCOUNT $([ $s -eq 0 ] && echo OK || echo ERR:$s)] \\$ \"'";
 
                 ctx.SequenceBuilder
                     .Type(promptSetup)
@@ -835,6 +835,78 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     }
 
     /// <summary>
+    /// Verifies that the last command executed successfully by checking the shell prompt.
+    /// Uses the custom prompt format set up by <see cref="PrepareEnvironment"/>: [N OK] or [N ERR:code].
+    /// Throws an exception if the last command failed.
+    /// </summary>
+    /// <returns>The builder for chaining.</returns>
+    public AspireCliAutomationBuilder VerifyLastCommandSucceeded()
+    {
+        return AddSequence(ctx =>
+        {
+            WriteLog(ctx.SequenceBuilder, "Verifying last command succeeded...");
+
+            // Small wait to ensure the prompt has rendered
+            ctx.SequenceBuilder.Wait(TimeSpan.FromMilliseconds(100));
+
+            // Use WaitUntil with a predicate that validates the last command and returns true,
+            // or throws an exception if the last command failed
+            ctx.SequenceBuilder.WaitUntil(
+                snapshot =>
+                {
+                    // Use CellPatternSearcher to find all prompts in the format [N OK] or [N ERR:code]
+                    var searcher = new CellPatternSearcher()
+                        .Find(c => c.X == 0 && c.Cell.Character == "[")
+                        .BeginCapture("seqno")
+                            .RightWhile(c => char.IsNumber(c.Cell.Character[0]))
+                        .EndCapture()
+                        .Right(' ')
+                        .ThenEither(
+                            ok => ok.RightText("OK]"),
+                            err => err.RightText("ERR:")
+                                .BeginCapture("exitcode")
+                                    .RightWhile(c => char.IsNumber(c.Cell.Character[0]))
+                                .EndCapture()
+                                .Right(']')
+                        );
+
+                    var results = searcher.Search(snapshot);
+
+                    if (results.Matches.Count == 0)
+                    {
+                        throw new InvalidOperationException(
+                            "No command prompts found. Ensure PrepareEnvironment() was called to set up the custom prompt.");
+                    }
+
+                    // Find the match with the highest sequence number
+                    var highestMatch = results.Matches
+                        .Select(m => new
+                        {
+                            Match = m,
+                            SeqNo = int.TryParse(m.GetCaptureText("seqno"), out var n) ? n : 0,
+                            ExitCode = m.GetCaptureText("exitcode")
+                        })
+                        .OrderByDescending(x => x.SeqNo)
+                        .First();
+
+                    // Check if it's an error
+                    if (!string.IsNullOrEmpty(highestMatch.ExitCode))
+                    {
+                        throw new CommandExecutionException(
+                            $"Command #{highestMatch.SeqNo} failed with exit code {highestMatch.ExitCode}",
+                            highestMatch.SeqNo,
+                            int.TryParse(highestMatch.ExitCode, out var code) ? code : -1);
+                    }
+
+                    // Success - return true to indicate we're done waiting
+                    return true;
+                },
+                TimeSpan.FromSeconds(5),
+                "Verifying last command succeeded");
+        });
+    }
+
+    /// <summary>
     /// Exits the terminal session cleanly.
     /// </summary>
     /// <returns>The builder for chaining.</returns>
@@ -912,4 +984,33 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     {
         await _session.DisposeAsync();
     }
+}
+
+/// <summary>
+/// Exception thrown when a command executed in the terminal fails.
+/// </summary>
+public sealed class CommandExecutionException : Exception
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CommandExecutionException"/> class.
+    /// </summary>
+    /// <param name="message">The error message.</param>
+    /// <param name="commandNumber">The sequence number of the failed command.</param>
+    /// <param name="exitCode">The exit code of the failed command.</param>
+    public CommandExecutionException(string message, int commandNumber, int exitCode)
+        : base(message)
+    {
+        CommandNumber = commandNumber;
+        ExitCode = exitCode;
+    }
+
+    /// <summary>
+    /// Gets the sequence number of the failed command.
+    /// </summary>
+    public int CommandNumber { get; }
+
+    /// <summary>
+    /// Gets the exit code of the failed command.
+    /// </summary>
+    public int ExitCode { get; }
 }
