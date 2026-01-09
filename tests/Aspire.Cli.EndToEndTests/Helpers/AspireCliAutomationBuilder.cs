@@ -368,18 +368,20 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// Prompts: "Enter the output path" → "Do you want to create a test project?" (No)
     /// </summary>
     /// <param name="projectName">The name of the project to create.</param>
+    /// <param name="debug">If true, adds --debug flag for verbose output.</param>
     /// <param name="timeout">Maximum time to wait for project creation (default: 5 minutes).</param>
     /// <returns>The builder for chaining.</returns>
-    public AspireCliAutomationBuilder CreateAspireStarterProject(string projectName, TimeSpan? timeout = null)
+    public AspireCliAutomationBuilder CreateAspireStarterProject(string projectName, bool debug = false, TimeSpan? timeout = null)
     {
         var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+        var debugFlag = debug ? " --debug" : "";
 
         return AddSequence(ctx =>
         {
-            WriteLog(ctx.SequenceBuilder, $"Creating Aspire Starter project: {projectName}...");
+            WriteLog(ctx.SequenceBuilder, $"Creating Aspire Starter project: {projectName}...{(debug ? " (debug mode)" : "")}");
 
             ctx.SequenceBuilder
-                .Type($"aspire new aspire-starter --name {projectName}")
+                .Type($"aspire{debugFlag} new aspire-starter --name {projectName}")
                 .Enter();
 
             // Wait for "Enter the output path" prompt
@@ -417,18 +419,20 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// Prompts: "Enter the output path" only
     /// </summary>
     /// <param name="projectName">The name of the project to create.</param>
+    /// <param name="debug">If true, adds --debug flag for verbose output.</param>
     /// <param name="timeout">Maximum time to wait for project creation (default: 5 minutes).</param>
     /// <returns>The builder for chaining.</returns>
-    public AspireCliAutomationBuilder CreateAspireTypeScriptCSharpStarterProject(string projectName, TimeSpan? timeout = null)
+    public AspireCliAutomationBuilder CreateAspireTypeScriptCSharpStarterProject(string projectName, bool debug = false, TimeSpan? timeout = null)
     {
         var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+        var debugFlag = debug ? " --debug" : "";
 
         return AddSequence(ctx =>
         {
-            WriteLog(ctx.SequenceBuilder, $"Creating Aspire TypeScript/C# Starter project: {projectName}...");
+            WriteLog(ctx.SequenceBuilder, $"Creating Aspire TypeScript/C# Starter project: {projectName}...{(debug ? " (debug mode)" : "")}");
 
             ctx.SequenceBuilder
-                .Type($"aspire new aspire-ts-cs-starter --name {projectName}")
+                .Type($"aspire{debugFlag} new aspire-ts-cs-starter --name {projectName}")
                 .Enter();
 
             // Wait for "Enter the output path" prompt

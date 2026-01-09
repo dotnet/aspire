@@ -280,3 +280,108 @@ Environment variables set in `run-tests.yml`:
 - `GITHUB_WORKSPACE`: Workspace root for artifact paths
 
 The `cli_e2e_tests` job depends on `build_packages` to ensure CLI packages are built before tests run.
+
+## CI Troubleshooting
+
+When CLI E2E tests fail in CI, follow these steps to diagnose the issue:
+
+### Step 1: Find the Failed CI Run
+
+First, identify the run ID for your PR's CI run:
+
+```bash
+# List recent CI runs for your branch
+gh run list --branch <your-branch-name> --limit 5 --json databaseId,status,conclusion,url
+
+# Or find the latest failed run
+gh run list --branch <your-branch-name> --status failure --limit 1 --json databaseId,url
+```
+
+### Step 2: Identify Failed CLI E2E Jobs
+
+Check which specific CLI E2E test jobs failed:
+
+```bash
+# Replace <run-id> with the actual run ID
+gh run view <run-id> --json jobs --jq '.jobs[] | select(.name | test("CLI E2E")) | {name, conclusion}'
+```
+
+### Step 3: Download Test Artifacts
+
+CLI E2E tests upload artifacts with names like `logs-Cli.EndToEnd.<TestClass>-ubuntu-latest`. Download them:
+
+```bash
+# List available CLI E2E artifacts
+gh api --paginate "repos/dotnet/aspire/actions/runs/<run-id>/artifacts" \
+  --jq '.artifacts[].name' | grep -E "Cli\.EndToEnd|cli-e2e"
+
+# Download a specific test artifact (e.g., RunTests)
+mkdir -p /tmp/cli-e2e-debug && cd /tmp/cli-e2e-debug
+gh run download <run-id> -n logs-Cli.EndToEnd.RunTests-ubuntu-latest -R dotnet/aspire
+```
+
+### Step 4: Examine Downloaded Artifacts
+
+The downloaded artifact contains:
+
+```
+testresults/
+├── <TestClass>_net10.0_*.trx          # Test results XML
+├── Aspire.Cli.EndToEndTests_*.log     # Console output log
+├── *.crash.dmp                        # Crash dump (if test crashed)
+├── test.binlog                        # MSBuild binary log
+└── recordings/
+    ├── run-aspire-starter.cast        # Asciinema recording for each test
+    ├── run-aspire-py-starter.cast
+    └── ...
+```
+
+**Key files to examine:**
+
+1. **Console log** - Search for errors and final terminal state:
+   ```bash
+   # Look at the end of the log (shows final terminal state and error summary)
+   tail -100 testresults/*.log
+   
+   # Search for timeout errors
+   grep -i "timeout\|timed out" testresults/*.log
+   ```
+
+2. **Asciinema recordings** - Replay terminal sessions to see exactly what happened:
+   ```bash
+   # List recordings
+   ls -la testresults/recordings/
+   
+   # Play a recording (requires asciinema installed)
+   asciinema play testresults/recordings/run-aspire-starter.cast
+   
+   # Or view as text for AI analysis
+   head -100 testresults/recordings/run-aspire-starter.cast
+   ```
+
+3. **Test results XML** - Parse for specific failures:
+   ```bash
+   # Find failed tests in TRX file
+   grep -A 5 'outcome="Failed"' testresults/*.trx
+   ```
+
+### Step 5: Common Issues and Solutions
+
+| Symptom | Likely Cause | Solution |
+|---------|--------------|----------|
+| "Interactive input is not supported" | `ASPIRE_PLAYGROUND=true` not set | Ensure `SourceAspireCliEnvironment()` is called |
+| Test hangs at "Creating new Aspire project..." | npm hanging on interactive prompt | Set `CI=true` environment variable |
+| "No command prompts found" | `PrepareEnvironment()` not called or prompt not rendered | Ensure `PrepareEnvironment()` is first in chain |
+| Command verification fails | Previous command exited with non-zero | Check terminal recording to see which command failed |
+| Timeout waiting for dashboard URL | Project failed to build/run | Check recording for build errors |
+
+### One-Liner: Download and Examine Latest Failed Run
+
+```bash
+# Get the latest failed run ID and download CLI E2E logs
+RUN_ID=$(gh run list --branch $(git branch --show-current) --status failure --limit 1 --json databaseId --jq '.[0].databaseId') && \
+  mkdir -p /tmp/cli-e2e-debug && cd /tmp/cli-e2e-debug && \
+  gh run download $RUN_ID -n logs-Cli.EndToEnd.RunTests-ubuntu-latest -R dotnet/aspire 2>/dev/null || \
+  gh run download $RUN_ID -n logs-Cli.EndToEnd.AcquisitionTests-ubuntu-latest -R dotnet/aspire && \
+  echo "=== Downloaded to /tmp/cli-e2e-debug ===" && ls -la testresults/
+```
