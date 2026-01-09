@@ -282,6 +282,61 @@ public sealed class RunTests : IAsyncDisposable
             .ExecuteAsync();
     }
 
+    /// <summary>
+    /// Test that creates an aspire-starter project using dotnet new directly (not aspire CLI).
+    /// This helps isolate whether hangs are in the Aspire CLI or in dotnet new itself.
+    /// </summary>
+    [Fact]
+    public async Task CreateAspireStarterProjectWithDotnetNew()
+    {
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        _output.WriteLine($"Testing dotnet new aspire-starter from PR #{prNumber} (commit: {commitSha[..8]})");
+
+        await using var builder = await AspireCliAutomationBuilder.CreateAsync(
+            workingDirectory: _workDirectory,
+            recordingName: "dotnet-new-aspire-starter",
+            output: _output,
+            prNumber: prNumber);
+
+        builder.PrepareEnvironment();
+
+        if (CliE2ETestHelpers.IsRunningInCI)
+        {
+            builder
+                .InstallAspireCliFromPullRequest(prNumber)
+                .SourceAspireCliEnvironment()
+                .RunDiagnostics();
+        }
+
+        // Use dotnet new directly instead of aspire new
+        await builder
+            .AddSequence(ctx =>
+            {
+                ctx.SequenceBuilder
+                    .WriteTestLog(_output, "Creating aspire-starter project with dotnet new...");
+
+                ctx.SequenceBuilder
+                    .Type("dotnet new aspire-starter -n DotnetNewStarterApp")
+                    .Enter()
+                    .WaitUntil(
+                        snapshot =>
+                        {
+                            var text = snapshot.GetScreenText();
+                            return text.Contains("successfully", StringComparison.OrdinalIgnoreCase)
+                                || text.Contains("$ ", StringComparison.OrdinalIgnoreCase)
+                                || text.Contains("PS>", StringComparison.OrdinalIgnoreCase);
+                        },
+                        TimeSpan.FromMinutes(5));
+
+                ctx.SequenceBuilder
+                    .WriteTestLog(_output, "dotnet new aspire-starter completed.");
+            })
+            .VerifyLastCommandSucceeded()
+            .ExitTerminal()
+            .ExecuteAsync();
+    }
+
     public async ValueTask DisposeAsync()
     {
         // Clean up work directory
