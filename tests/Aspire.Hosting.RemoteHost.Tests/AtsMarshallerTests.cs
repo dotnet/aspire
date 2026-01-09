@@ -381,9 +381,9 @@ public class AtsMarshallerTests
         var jsonObj = (JsonObject)result;
         Assert.NotNull(jsonObj["$handle"]);
         Assert.NotNull(jsonObj["$type"]);
-        // Type ID is derived from assembly and type name
+        // Type ID uses special format for dictionary handles: Dict<K,V>
         var typeId = jsonObj["$type"]!.GetValue<string>();
-        Assert.Contains("Dictionary", typeId);
+        Assert.Contains("Dict<", typeId);
     }
 
     [Fact]

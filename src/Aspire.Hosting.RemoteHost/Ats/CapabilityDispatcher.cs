@@ -15,7 +15,7 @@ namespace Aspire.Hosting.RemoteHost.Ats;
 /// <param name="args">The arguments as a JSON object.</param>
 /// <param name="handles">The handle registry for resolving/registering handles.</param>
 /// <returns>The result as JSON, or null for void operations.</returns>
-internal delegate JsonNode? CapabilityHandler(
+internal delegate Task<JsonNode?> CapabilityHandler(
     JsonObject? args,
     HandleRegistry handles);
 
@@ -143,7 +143,7 @@ internal sealed class CapabilityDispatcher
                 }
 
                 var value = prop.GetValue(contextObj);
-                return AtsMarshaller.MarshalToJson(value, handles);
+                return Task.FromResult(AtsMarshaller.MarshalToJson(value, handles));
             };
 
             _capabilities[capabilityId] = new CapabilityRegistration
@@ -189,11 +189,11 @@ internal sealed class CapabilityDispatcher
                 prop.SetValue(contextObj, value);
 
                 // Return the context handle for fluent chaining
-                return new JsonObject
+                return Task.FromResult<JsonNode?>(new JsonObject
                 {
                     ["$handle"] = handleRef.HandleId,
                     ["$type"] = typeId
-                };
+                });
             };
 
             _capabilities[capabilityId] = new CapabilityRegistration
@@ -213,7 +213,7 @@ internal sealed class CapabilityDispatcher
         var capabilityId = capability.CapabilityId;
         var parameters = method.GetParameters();
 
-        CapabilityHandler handler = (args, handles) =>
+        CapabilityHandler handler = async (args, handles) =>
         {
             // First parameter is always "context" - the instance to invoke on
             if (args == null || !args.TryGetPropertyValue("context", out var contextNode))
@@ -279,12 +279,12 @@ internal sealed class CapabilityDispatcher
                 throw tie.InnerException;
             }
 
-            // Handle async methods
+            // Handle async methods - await instead of blocking
             if (result is Task task)
             {
                 try
                 {
-                    task.GetAwaiter().GetResult();
+                    await task.ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -324,7 +324,7 @@ internal sealed class CapabilityDispatcher
         var parameters = method.GetParameters();
 
         // Create a handler that invokes the method via reflection
-        CapabilityHandler handler = (args, handles) =>
+        CapabilityHandler handler = async (args, handles) =>
         {
             var methodArgs = new object?[parameters.Length];
 
@@ -373,12 +373,12 @@ internal sealed class CapabilityDispatcher
                 throw tie.InnerException;
             }
 
-            // Handle async methods
+            // Handle async methods - await instead of blocking
             if (result is Task task)
             {
                 try
                 {
-                    task.GetAwaiter().GetResult();
+                    await task.ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -444,7 +444,7 @@ internal sealed class CapabilityDispatcher
     /// <param name="capabilityId">The capability ID.</param>
     /// <param name="args">The arguments as a JSON object.</param>
     /// <returns>The result as JSON, or null for void methods.</returns>
-    public JsonNode? Invoke(string capabilityId, JsonObject? args)
+    public async Task<JsonNode?> InvokeAsync(string capabilityId, JsonObject? args)
     {
         // Look up the capability
         if (!_capabilities.TryGetValue(capabilityId, out var registration))
@@ -456,7 +456,7 @@ internal sealed class CapabilityDispatcher
 
         try
         {
-            return registration.Handler(args, _handles);
+            return await registration.Handler(args, _handles).ConfigureAwait(false);
         }
         catch (CapabilityException)
         {
@@ -476,6 +476,19 @@ internal sealed class CapabilityDispatcher
         {
             throw CapabilityException.InternalError(capabilityId, ex.Message, ex);
         }
+    }
+
+    /// <summary>
+    /// Invokes a capability by ID with the given arguments synchronously.
+    /// This is a convenience method that blocks until the async operation completes.
+    /// For production use, prefer InvokeAsync.
+    /// </summary>
+    /// <param name="capabilityId">The capability ID.</param>
+    /// <param name="args">The arguments as a JSON object.</param>
+    /// <returns>The result as JSON, or null for void methods.</returns>
+    public JsonNode? Invoke(string capabilityId, JsonObject? args)
+    {
+        return InvokeAsync(capabilityId, args).GetAwaiter().GetResult();
     }
 
     /// <summary>

@@ -59,9 +59,9 @@ public sealed partial class AtsTypeMapping
                 var fullName = attr.Type.FullName;
                 if (fullName != null)
                 {
-                    // Derive type ID from the type's assembly and name
+                    // Derive type ID from the type's assembly and full name
                     var targetAssemblyName = attr.Type.Assembly.GetName().Name ?? assemblyName;
-                    var typeId = DeriveTypeId(targetAssemblyName, attr.Type.Name);
+                    var typeId = DeriveTypeId(targetAssemblyName, fullName);
 
                     fullNameToTypeId[fullName] = typeId;
                     typeIdToFullName[typeId] = fullName;
@@ -85,8 +85,8 @@ public sealed partial class AtsTypeMapping
                     var fullName = type.FullName;
                     if (fullName != null)
                     {
-                        // Derive type ID from assembly name and type name
-                        var typeId = DeriveTypeId(assemblyName, type.Name);
+                        // Derive type ID from assembly name and full type name
+                        var typeId = DeriveTypeId(assemblyName, fullName);
 
                         fullNameToTypeId[fullName] = typeId;
                         typeIdToFullName[typeId] = fullName;

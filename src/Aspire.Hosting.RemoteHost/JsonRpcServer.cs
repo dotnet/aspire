@@ -133,14 +133,14 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     /// <param name="args">The arguments as a JSON object.</param>
     /// <returns>The result as JSON, or an error object.</returns>
     [JsonRpcMethod("invokeCapability")]
-    public JsonNode? InvokeCapability(string capabilityId, JsonObject? args)
+    public async Task<JsonNode?> InvokeCapabilityAsync(string capabilityId, JsonObject? args)
     {
         RequireAuthentication();
         Console.WriteLine($"[RPC] >> invokeCapability({capabilityId})");
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            return _capabilityDispatcher.Invoke(capabilityId, args);
+            return await _capabilityDispatcher.InvokeAsync(capabilityId, args).ConfigureAwait(false);
         }
         catch (CapabilityException ex)
         {

@@ -160,7 +160,9 @@ internal static class AtsMarshaller
             var genericArgs = type.GetGenericArguments();
 
             // IReadOnlyDictionary<K,V> - serialize as JSON object (copy)
-            if (typeof(IReadOnlyDictionary<,>).MakeGenericType(genericArgs).IsAssignableFrom(type) &&
+            // Only check if we have exactly 2 generic arguments (for K,V)
+            if (genericArgs.Length == 2 &&
+                typeof(IReadOnlyDictionary<,>).MakeGenericType(genericArgs).IsAssignableFrom(type) &&
                 !typeof(IDictionary).IsAssignableFrom(type)) // Exclude mutable Dictionary<K,V>
             {
                 // Serialize as JSON object - immutable copy
