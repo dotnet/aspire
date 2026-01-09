@@ -188,6 +188,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
     /// <summary>
     /// Maps a parameter to its TypeScript type, handling callbacks specially.
+    /// For interface handle types, generates union types to accept both handles and wrapper classes.
     /// </summary>
     private string MapParameterToTypeScript(AtsParameterInfo param)
     {
@@ -195,7 +196,31 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         {
             return GenerateCallbackTypeSignature(param.CallbackParameters, param.CallbackReturnType);
         }
-        return MapTypeRefToTypeScript(param.Type);
+
+        var baseType = MapTypeRefToTypeScript(param.Type);
+
+        // For interface handle types, generate union type to accept wrapper classes
+        // This allows users to pass wrapper class instances directly (e.g., `.waitFor(redis)`)
+        // The wrapper classes serialize correctly via toJSON()
+        if (IsInterfaceHandleType(param.Type))
+        {
+            return $"{baseType} | ResourceBuilderBase";
+        }
+
+        return baseType;
+    }
+
+    /// <summary>
+    /// Checks if a type reference is an interface handle type.
+    /// Interface handles need union types to accept wrapper classes.
+    /// </summary>
+    private static bool IsInterfaceHandleType(AtsTypeRef? typeRef)
+    {
+        if (typeRef == null)
+        {
+            return false;
+        }
+        return typeRef.Category == AtsTypeCategory.Handle && typeRef.IsInterface;
     }
 
     /// <summary>

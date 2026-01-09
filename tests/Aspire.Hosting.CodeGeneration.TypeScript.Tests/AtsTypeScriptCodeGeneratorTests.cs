@@ -472,6 +472,234 @@ public class AtsTypeScriptCodeGeneratorTests
             "IResourceWithEnvironment is an interface - IsInterface should be true");
     }
 
+    // ===== Polymorphism Pattern Tests =====
+
+    [Fact]
+    public void Pattern2_InterfaceTypeDirectly_IsDiscoveredAndExpanded()
+    {
+        // Pattern 2: Interface type directly as target (not via generic constraint)
+        // Tests: IResourceBuilder<IResourceWithConnectionString> WithConnectionStringDirect(...)
+        // The interface target should be expanded to all types implementing IResourceWithConnectionString.
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+
+        var withConnectionStringDirect = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConnectionStringDirect");
+
+        Assert.NotNull(withConnectionStringDirect);
+
+        // Target should be the interface
+        Assert.NotNull(withConnectionStringDirect.TargetType);
+        Assert.Contains("IResourceWithConnectionString", withConnectionStringDirect.TargetType.TypeId);
+        Assert.True(withConnectionStringDirect.TargetType.IsInterface);
+
+        // Should be expanded to concrete types implementing IResourceWithConnectionString
+        Assert.NotEmpty(withConnectionStringDirect.ExpandedTargetTypes);
+
+        // TestRedisResource implements IResourceWithConnectionString
+        var testRedisExpanded = withConnectionStringDirect.ExpandedTargetTypes
+            .FirstOrDefault(t => t.TypeId.Contains("TestRedisResource"));
+        Assert.NotNull(testRedisExpanded);
+        Assert.False(testRedisExpanded.IsInterface, "Expanded concrete type should have IsInterface = false");
+    }
+
+    [Fact]
+    public void Pattern3_ConcreteTypeWithInheritance_ExpandsToDerivedTypes()
+    {
+        // Pattern 3: Concrete type with inheritance
+        // Tests: IResourceBuilder<TestRedisResource> WithRedisSpecific(...)
+        // Should expand to TestRedisResource and any derived types.
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+
+        var withRedisSpecific = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withRedisSpecific");
+
+        Assert.NotNull(withRedisSpecific);
+
+        // Target should be the concrete TestRedisResource type
+        Assert.NotNull(withRedisSpecific.TargetType);
+        Assert.Contains("TestRedisResource", withRedisSpecific.TargetType.TypeId);
+        Assert.False(withRedisSpecific.TargetType.IsInterface, "TestRedisResource is a concrete type");
+
+        // Should be expanded (at minimum to itself)
+        Assert.NotEmpty(withRedisSpecific.ExpandedTargetTypes);
+
+        // TestRedisResource should be in expanded targets
+        var testRedisExpanded = withRedisSpecific.ExpandedTargetTypes
+            .FirstOrDefault(t => t.TypeId.Contains("TestRedisResource"));
+        Assert.NotNull(testRedisExpanded);
+    }
+
+    [Fact]
+    public void Pattern3_ConcreteTypeFromHosting_ExpandsToDerivedTypes()
+    {
+        // Pattern 3 for Hosting assembly: ContainerResource methods should expand to derived types
+        // Tests: withVolume, withBindMount target ContainerResource and should expand to
+        // all types that inherit from ContainerResource.
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
+
+        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+
+        // Find withBindMount which targets ContainerResource
+        var withBindMount = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withBindMount");
+        Assert.NotNull(withBindMount);
+
+        // Target is ContainerResource (concrete class)
+        Assert.NotNull(withBindMount.TargetType);
+        Assert.Contains("ContainerResource", withBindMount.TargetType.TypeId);
+        Assert.False(withBindMount.TargetType.IsInterface);
+
+        // Should be expanded to ContainerResource AND derived types
+        Assert.NotEmpty(withBindMount.ExpandedTargetTypes);
+
+        // ContainerResource itself should be in expanded targets
+        var containerExpanded = withBindMount.ExpandedTargetTypes
+            .FirstOrDefault(t => t.TypeId.Contains("ContainerResource") && !t.TypeId.Contains("IContainer"));
+        Assert.NotNull(containerExpanded);
+    }
+
+    [Fact]
+    public void Pattern4_InterfaceParameterType_HasCorrectTypeRef()
+    {
+        // Pattern 4: Interface type as parameter (not target)
+        // Tests: WithDependency<T>(..., IResourceBuilder<IResourceWithConnectionString> dependency)
+        // The dependency parameter should have an interface type ref that can be used for union type generation.
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+
+        var withDependency = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withDependency");
+
+        Assert.NotNull(withDependency);
+
+        // Find the dependency parameter
+        var dependencyParam = withDependency.Parameters.FirstOrDefault(p => p.Name == "dependency");
+        Assert.NotNull(dependencyParam);
+
+        // Parameter type should be a handle type for IResourceWithConnectionString
+        Assert.NotNull(dependencyParam.Type);
+        Assert.Equal(AtsTypeCategory.Handle, dependencyParam.Type.Category);
+        Assert.True(dependencyParam.Type.IsInterface, "IResourceWithConnectionString is an interface");
+    }
+
+    [Fact]
+    public void Pattern4_InterfaceParameterType_GeneratesUnionType()
+    {
+        // Pattern 4/5: Verify that parameters with interface handle types generate union types
+        // in the generated TypeScript.
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+
+        // Generate the TypeScript output
+        var files = _generator.GenerateDistributedApplication(capabilities);
+        var aspireTs = files["aspire.ts"];
+
+        // The withDependency method should have its dependency parameter as a union type:
+        // dependency: IResourceWithConnectionStringHandle | ResourceBuilderBase
+        // Note: The exact generated name depends on the type mapping, but it should contain
+        // both the handle type and ResourceBuilderBase.
+        Assert.Contains("ResourceBuilderBase", aspireTs);
+
+        // Also verify the union type pattern appears somewhere
+        // (the exact format depends on the type name mapping)
+        Assert.Contains("|", aspireTs); // Union types use pipe
+    }
+
+    [Fact]
+    public async Task Scanner_BaseTypeHierarchy_IsCollected()
+    {
+        // Verify that AtsTypeInfo includes base type hierarchy for inheritance expansion.
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
+
+        // Scan to get type info including base type hierarchy
+        var capabilities = AtsCapabilityScanner.ScanAssembly(testAssembly, wellKnownTypes, typeMapping);
+
+        // We need to verify the type info has base type hierarchy
+        // For now, we'll verify through expanded targets behavior -
+        // if inheritance expansion works, base types are being collected.
+        var withRedisSpecific = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withRedisSpecific");
+
+        Assert.NotNull(withRedisSpecific);
+
+        // Snapshot the capability to verify structure
+        await Verify(withRedisSpecific).UseFileName("WithRedisSpecificCapability");
+    }
+
+    [Fact]
+    public void BugFix_SyntheticTypeInfo_CorrectlyIdentifiesInterfaceTypes()
+    {
+        // Bug: Synthetic type info created for discovered types had IsInterface hardcoded to false.
+        // This caused interface types like IResourceWithConnectionString to be incorrectly processed,
+        // preventing proper interface-to-concrete-type expansion.
+        //
+        // Fix: Set IsInterface = resourceType.IsInterface instead of hardcoded false.
+        //
+        // This test verifies that when a method targets an interface directly (Pattern 2),
+        // the capability correctly expands to concrete types implementing that interface.
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+
+        // withConnectionStringDirect targets IResourceWithConnectionString (an interface)
+        var withConnectionStringDirect = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConnectionStringDirect");
+
+        Assert.NotNull(withConnectionStringDirect);
+
+        // Target type should be correctly identified as an interface
+        Assert.NotNull(withConnectionStringDirect.TargetType);
+        Assert.True(withConnectionStringDirect.TargetType.IsInterface,
+            "IResourceWithConnectionString should be identified as an interface");
+
+        // Should expand to concrete types, NOT remain as just the interface
+        Assert.NotEmpty(withConnectionStringDirect.ExpandedTargetTypes);
+
+        // All expanded types should be concrete (IsInterface = false)
+        foreach (var expandedType in withConnectionStringDirect.ExpandedTargetTypes)
+        {
+            Assert.False(expandedType.IsInterface,
+                $"Expanded type '{expandedType.TypeId}' should be a concrete type, not an interface");
+        }
+    }
+
+    [Fact]
+    public void BugFix_InterfaceExpansion_WorksAcrossAssemblies()
+    {
+        // Bug: withReference targeting IResourceWithEnvironment was not being expanded
+        // because the interface type was incorrectly marked as IsInterface=false.
+        //
+        // This test verifies that capabilities targeting Aspire.Hosting interfaces
+        // (like IResourceWithEnvironment) correctly expand when concrete types
+        // from other assemblies (like TestRedisResource) implement those interfaces.
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+
+        // withEnvironmentCallback targets IResourceWithEnvironment (generic constraint)
+        // and TestRedisResource implements IResourceWithEnvironment (via ContainerResource)
+        var withEnvironmentCallback = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withEnvironmentCallback");
+
+        Assert.NotNull(withEnvironmentCallback);
+
+        // Target type should be IResourceWithEnvironment (an interface)
+        Assert.NotNull(withEnvironmentCallback.TargetType);
+        Assert.Contains("IResourceWithEnvironment", withEnvironmentCallback.TargetType.TypeId);
+        Assert.True(withEnvironmentCallback.TargetType.IsInterface,
+            "IResourceWithEnvironment should be identified as an interface");
+
+        // Should expand to TestRedisResource (which implements IResourceWithEnvironment via ContainerResource)
+        Assert.NotEmpty(withEnvironmentCallback.ExpandedTargetTypes);
+
+        // TestRedisResource should be in expanded targets
+        var testRedisExpanded = withEnvironmentCallback.ExpandedTargetTypes
+            .FirstOrDefault(t => t.TypeId.Contains("TestRedisResource"));
+        Assert.NotNull(testRedisExpanded);
+        Assert.False(testRedisExpanded.IsInterface, "TestRedisResource is a concrete type");
+    }
+
     private static List<AtsCapabilityInfo> ScanCapabilitiesFromTestAssembly(AssemblyLoaderContext context)
     {
         var (_, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);

@@ -1,0 +1,43 @@
+﻿{
+  CapabilityId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/withRedisSpecific,
+  MethodName: withRedisSpecific,
+  Package: Aspire.Hosting.CodeGeneration.TypeScript.Tests,
+  Description: Redis-specific configuration,
+  Parameters: [
+    {
+      Name: option,
+      Type: {
+        TypeId: string,
+        IsInterface: false,
+        IsReadOnly: false
+      },
+      IsOptional: false,
+      IsNullable: false,
+      IsCallback: false,
+      DefaultValue: null
+    }
+  ],
+  ReturnType: {
+    TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+    Category: Handle,
+    IsInterface: false,
+    IsReadOnly: false
+  },
+  IsExtensionMethod: false,
+  TargetTypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+  TargetType: {
+    TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+    Category: Handle,
+    IsInterface: false,
+    IsReadOnly: false
+  },
+  ExpandedTargetTypes: [
+    {
+      TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,
+      Category: Handle,
+      IsInterface: false,
+      IsReadOnly: false
+    }
+  ],
+  ReturnsBuilder: true
+}

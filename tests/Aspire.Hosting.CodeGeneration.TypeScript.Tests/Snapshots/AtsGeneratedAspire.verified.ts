@@ -496,7 +496,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
 
     /** Waits for another resource */
     /** @internal */
-    async _waitForInternal(dependency: IResourceHandle): Promise<TestRedisResource> {
+    async _waitForInternal(dependency: IResourceHandle | ResourceBuilderBase): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/waitFor',
             { builder: this._handle, dependency }
@@ -504,7 +504,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
-    waitFor(dependency: IResourceHandle): TestRedisResourcePromise {
+    waitFor(dependency: IResourceHandle | ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._waitForInternal(dependency));
     }
 
@@ -520,6 +520,48 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
 
     getEndpoints(): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._getEndpointsInternal());
+    }
+
+    /** Sets connection string using direct interface target */
+    /** @internal */
+    async _withConnectionStringDirectInternal(connectionString: string): Promise<TestRedisResource> {
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConnectionStringDirect',
+            { builder: this._handle, connectionString }
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    withConnectionStringDirect(connectionString: string): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withConnectionStringDirectInternal(connectionString));
+    }
+
+    /** Redis-specific configuration */
+    /** @internal */
+    async _withRedisSpecificInternal(option: string): Promise<TestRedisResource> {
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withRedisSpecific',
+            { builder: this._handle, option }
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    withRedisSpecific(option: string): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withRedisSpecificInternal(option));
+    }
+
+    /** Adds a dependency on another resource */
+    /** @internal */
+    async _withDependencyInternal(dependency: IResourceWithConnectionStringHandle | ResourceBuilderBase): Promise<TestRedisResource> {
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withDependency',
+            { builder: this._handle, dependency }
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    withDependency(dependency: IResourceWithConnectionStringHandle | ResourceBuilderBase): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._withDependencyInternal(dependency));
     }
 
     /** Sets the endpoints */
@@ -652,7 +694,7 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Waits for another resource */
-    waitFor(dependency: IResourceHandle): TestRedisResourcePromise {
+    waitFor(dependency: IResourceHandle | ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
             this._promise.then(b => b._waitForInternal(dependency))
         );
@@ -662,6 +704,27 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     getEndpoints(): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
             this._promise.then(b => b._getEndpointsInternal())
+        );
+    }
+
+    /** Sets connection string using direct interface target */
+    withConnectionStringDirect(connectionString: string): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(
+            this._promise.then(b => b._withConnectionStringDirectInternal(connectionString))
+        );
+    }
+
+    /** Redis-specific configuration */
+    withRedisSpecific(option: string): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(
+            this._promise.then(b => b._withRedisSpecificInternal(option))
+        );
+    }
+
+    /** Adds a dependency on another resource */
+    withDependency(dependency: IResourceWithConnectionStringHandle | ResourceBuilderBase): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(
+            this._promise.then(b => b._withDependencyInternal(dependency))
         );
     }
 

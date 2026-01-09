@@ -97,15 +97,22 @@ internal static class AtsCapabilityScanner
             }
 
             // Create synthetic type info for this resource type
-            // Collect ALL interfaces (including inherited) for proper expansion
-            var implementedInterfaces = CollectAllInterfaces(resourceType, typeMapping);
+            // Only collect interfaces and base types for concrete types (not interfaces)
+            var isInterface = resourceType.IsInterface;
+            var implementedInterfaces = !isInterface
+                ? CollectAllInterfaces(resourceType, typeMapping)
+                : [];
+            var baseTypeHierarchy = !isInterface
+                ? CollectBaseTypeHierarchy(resourceType, typeMapping)
+                : [];
 
             typeInfos.Add(new AtsTypeInfo
             {
                 AtsTypeId = typeId,
                 ClrTypeName = resourceType.FullName,
-                IsInterface = false,
-                ImplementedInterfaces = implementedInterfaces
+                IsInterface = isInterface,
+                ImplementedInterfaces = implementedInterfaces,
+                BaseTypeHierarchy = baseTypeHierarchy
             });
         }
 
@@ -123,17 +130,59 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
-    /// Expands capability targets from interface types to concrete types.
-    /// For capabilities targeting an interface (e.g., "Aspire.Hosting/IResourceWithEnvironment"),
-    /// this populates ExpandedTargetTypes with all concrete types implementing that interface.
+    /// Expands capability targets from interface or base types to concrete types.
+    /// For capabilities targeting an interface (e.g., "Aspire.Hosting/IResourceWithEnvironment")
+    /// or a base type (e.g., "ContainerResource"), this populates ExpandedTargetTypes with
+    /// all compatible concrete types (implementing the interface or inheriting from the base).
     /// </summary>
     private static void ExpandCapabilityTargets(
         List<AtsCapabilityInfo> capabilities,
         List<AtsTypeInfo> typeInfos)
     {
-        // Build map: interface typeId -> concrete type refs that implement it
-        // This includes both explicit interfaces (with [AspireExport]) and inferred ones (like IResource)
-        var interfaceToConcreteTypes = new Dictionary<string, List<AtsTypeRef>>();
+        // Build unified map: type -> all compatible concrete types
+        // This handles BOTH interface implementations AND class inheritance
+        var typeToCompatibleTypes = BuildTypeCompatibilityMap(typeInfos);
+
+        // Expand each capability's target
+        foreach (var capability in capabilities)
+        {
+            var originalTarget = capability.OriginalTargetTypeId;
+            if (string.IsNullOrEmpty(originalTarget))
+            {
+                // Entry point methods have no target
+                capability.ExpandedTargetTypes = [];
+                continue;
+            }
+
+            // Look up compatible types (works for interfaces AND concrete base types)
+            if (typeToCompatibleTypes.TryGetValue(originalTarget, out var compatibleTypes))
+            {
+                capability.ExpandedTargetTypes = compatibleTypes.ToList();
+            }
+            else
+            {
+                // Leaf concrete type with no derived types: expand to itself
+                var targetTypeRef = capability.TargetType ?? new AtsTypeRef
+                {
+                    TypeId = originalTarget,
+                    Category = AtsTypeCategory.Handle,
+                    IsInterface = false
+                };
+                capability.ExpandedTargetTypes = [targetTypeRef];
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds a unified map of type -> compatible concrete types.
+    /// For each concrete type, it's registered as compatible with:
+    /// 1. All interfaces it implements (for interface expansion)
+    /// 2. All base types in its hierarchy (for inheritance expansion)
+    /// </summary>
+    private static Dictionary<string, List<AtsTypeRef>> BuildTypeCompatibilityMap(
+        List<AtsTypeInfo> typeInfos)
+    {
+        var typeToCompatibleTypes = new Dictionary<string, List<AtsTypeRef>>();
 
         foreach (var typeInfo in typeInfos)
         {
@@ -150,47 +199,36 @@ internal static class AtsCapabilityScanner
                 IsInterface = false
             };
 
-            // Add this concrete type to all interfaces it implements
-            foreach (var implementedInterface in typeInfo.ImplementedInterfaces)
+            // Register under each implemented interface
+            foreach (var iface in typeInfo.ImplementedInterfaces)
             {
-                if (!interfaceToConcreteTypes.TryGetValue(implementedInterface.TypeId, out var list))
-                {
-                    list = [];
-                    interfaceToConcreteTypes[implementedInterface.TypeId] = list;
-                }
-                list.Add(concreteTypeRef);
+                AddToCompatibilityMap(typeToCompatibleTypes, iface.TypeId, concreteTypeRef);
+            }
+
+            // Register under each base type in hierarchy
+            foreach (var baseType in typeInfo.BaseTypeHierarchy)
+            {
+                AddToCompatibilityMap(typeToCompatibleTypes, baseType.TypeId, concreteTypeRef);
             }
         }
 
-        // Expand each capability's target
-        foreach (var capability in capabilities)
+        return typeToCompatibleTypes;
+    }
+
+    /// <summary>
+    /// Helper to add a concrete type to the compatibility map under a given key.
+    /// </summary>
+    private static void AddToCompatibilityMap(
+        Dictionary<string, List<AtsTypeRef>> map,
+        string key,
+        AtsTypeRef concreteTypeRef)
+    {
+        if (!map.TryGetValue(key, out var list))
         {
-            var originalTarget = capability.OriginalTargetTypeId;
-            if (string.IsNullOrEmpty(originalTarget))
-            {
-                // Entry point methods have no target
-                capability.ExpandedTargetTypes = [];
-                continue;
-            }
-
-            // Check if target is an interface (either explicit or inferred from type hierarchy)
-            // Use the interfaceToConcreteTypes map directly - it includes all interfaces from ImplementedInterfaces
-            if (interfaceToConcreteTypes.TryGetValue(originalTarget, out var concreteTypes))
-            {
-                capability.ExpandedTargetTypes = concreteTypes.ToList();
-            }
-            else
-            {
-                // Concrete type: expand to itself
-                var targetTypeRef = capability.TargetType ?? new AtsTypeRef
-                {
-                    TypeId = originalTarget,
-                    Category = AtsTypeCategory.Handle,
-                    IsInterface = false
-                };
-                capability.ExpandedTargetTypes = [targetTypeRef];
-            }
+            list = [];
+            map[key] = list;
         }
+        list.Add(concreteTypeRef);
     }
 
     /// <summary>
@@ -251,12 +289,19 @@ internal static class AtsCapabilityScanner
             ? CollectAllInterfaces(type, typeMapping)
             : [];
 
+        // Collect base type hierarchy (for concrete types only)
+        // This enables expansion from base types to derived types
+        var baseTypeHierarchy = !type.IsInterface
+            ? CollectBaseTypeHierarchy(type, typeMapping)
+            : [];
+
         return new AtsTypeInfo
         {
             AtsTypeId = atsTypeId,
             ClrTypeName = type.FullName,
             IsInterface = type.IsInterface,
-            ImplementedInterfaces = implementedInterfaces
+            ImplementedInterfaces = implementedInterfaces,
+            BaseTypeHierarchy = baseTypeHierarchy
         };
     }
 
@@ -1582,6 +1627,41 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
+    /// Collects the base type hierarchy for a type (from immediate base up to Resource/Object).
+    /// This is used for expanding capabilities targeting base types to derived types.
+    /// </summary>
+    private static List<AtsTypeRef> CollectBaseTypeHierarchy(IAtsTypeInfo type, AtsTypeMapping typeMapping)
+    {
+        var baseTypes = new List<AtsTypeRef>();
+
+        // Walk up the inheritance chain
+        var currentBase = type.GetBaseType();
+        while (currentBase != null)
+        {
+            // Stop at system types
+            var baseFullName = currentBase.FullName;
+            if (baseFullName == "System.Object" ||
+                baseFullName.StartsWith("System.") ||
+                baseFullName.StartsWith("Microsoft."))
+            {
+                break;
+            }
+
+            var baseTypeId = typeMapping.GetTypeId(currentBase) ?? InferResourceTypeId(currentBase);
+            baseTypes.Add(new AtsTypeRef
+            {
+                TypeId = baseTypeId,
+                Category = AtsTypeCategory.Handle,
+                IsInterface = false
+            });
+
+            currentBase = currentBase.GetBaseType();
+        }
+
+        return baseTypes;
+    }
+
+    /// <summary>
     /// Collects concrete resource types from a capability method's parameters and return type.
     /// These types are needed for expansion but may not have [AspireExport] attributes.
     /// </summary>
@@ -1636,17 +1716,16 @@ internal static class AtsCapabilityScanner
 
         var resourceType = genericArgs[0];
 
-        // Skip generic parameters (T) - we only want concrete types
+        // Skip generic parameters (T) - we only want concrete or interface types
         if (resourceType.IsGenericParameter)
         {
             return;
         }
 
-        // Skip interfaces - they don't need to be collected since they don't have implementations
-        if (resourceType.IsInterface)
-        {
-            return;
-        }
+        // Note: We now collect interfaces as well as concrete types.
+        // Interfaces need to be in the expansion map for capabilities that target them directly
+        // (e.g., withReference targeting IResourceWithEnvironment).
+        // The expansion logic handles mapping interfaces to implementing concrete types.
 
         // Get the type ID for this resource
         var typeId = typeMapping.GetTypeId(resourceType) ?? InferResourceTypeId(resourceType);

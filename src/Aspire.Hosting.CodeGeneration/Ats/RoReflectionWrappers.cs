@@ -32,6 +32,13 @@ internal sealed class RoTypeInfoWrapper : IAtsTypeInfo
     public bool IsNested => _type.IsNested;
     public bool IsArray => _type.IsArray;
     public string? BaseTypeFullName => _type.BaseType?.FullName;
+
+    public IAtsTypeInfo? GetBaseType()
+    {
+        var baseType = _type.BaseType;
+        return baseType != null ? new RoTypeInfoWrapper(baseType) : null;
+    }
+
     public string? GenericTypeDefinitionFullName => _type.GenericTypeDefinition?.FullName;
 
     public IEnumerable<string> GetInterfaceFullNames()

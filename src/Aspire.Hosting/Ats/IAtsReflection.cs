@@ -43,6 +43,9 @@ internal interface IAtsTypeInfo
     /// <summary>Gets the full name of the base type, or null if none.</summary>
     string? BaseTypeFullName { get; }
 
+    /// <summary>Gets the base type as IAtsTypeInfo, or null if none.</summary>
+    IAtsTypeInfo? GetBaseType();
+
     /// <summary>Gets the full name of the generic type definition, or null if not generic.</summary>
     string? GenericTypeDefinitionFullName { get; }
 

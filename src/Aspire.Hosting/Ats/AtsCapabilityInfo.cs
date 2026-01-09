@@ -259,4 +259,11 @@ internal sealed class AtsTypeInfo
     /// Only populated for concrete (non-interface) types.
     /// </summary>
     public IReadOnlyList<AtsTypeRef> ImplementedInterfaces { get; init; } = [];
+
+    /// <summary>
+    /// Gets or sets the base type hierarchy (from immediate base up to Resource/Object).
+    /// Only populated for concrete (non-interface) types.
+    /// Used for expanding capabilities targeting base types to derived types.
+    /// </summary>
+    public IReadOnlyList<AtsTypeRef> BaseTypeHierarchy { get; init; } = [];
 }

@@ -31,6 +31,13 @@ internal sealed class RuntimeTypeInfo : IAtsTypeInfo
     public bool IsNested => _type.IsNested;
     public bool IsArray => _type.IsArray;
     public string? BaseTypeFullName => _type.BaseType?.FullName;
+
+    public IAtsTypeInfo? GetBaseType()
+    {
+        var baseType = _type.BaseType;
+        return baseType != null ? new RuntimeTypeInfo(baseType) : null;
+    }
+
     public string? GenericTypeDefinitionFullName => _type.IsGenericType ? _type.GetGenericTypeDefinition().FullName : null;
 
     public IEnumerable<string> GetInterfaceFullNames()

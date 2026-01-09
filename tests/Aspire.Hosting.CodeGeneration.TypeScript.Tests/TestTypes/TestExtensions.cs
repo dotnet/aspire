@@ -520,6 +520,46 @@ public static class TestExtensions
         return [];
     }
 
+    // ===== Polymorphism Pattern Tests =====
+
+    /// <summary>
+    /// Pattern 2: Tests interface type directly as target (NOT generic constraint).
+    /// This targets IResourceWithConnectionString directly, not via generic parameter.
+    /// Should expand to all types implementing IResourceWithConnectionString.
+    /// </summary>
+    [AspireExport("withConnectionStringDirect", Description = "Sets connection string using direct interface target")]
+    public static IResourceBuilder<IResourceWithConnectionString> WithConnectionStringDirect(
+        IResourceBuilder<IResourceWithConnectionString> builder,
+        string connectionString)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Pattern 3: Tests concrete type with inheritance.
+    /// This targets TestRedisResource directly (extends ContainerResource).
+    /// Should expand to TestRedisResource AND any types that inherit from it.
+    /// </summary>
+    [AspireExport("withRedisSpecific", Description = "Redis-specific configuration")]
+    public static IResourceBuilder<TestRedisResource> WithRedisSpecific(
+        IResourceBuilder<TestRedisResource> builder,
+        string option)
+    {
+        return builder;
+    }
+
+    /// <summary>
+    /// Pattern 4/5: Tests interface/concrete type as parameter (not target).
+    /// The dependency parameter should generate a union type: Handle | ResourceBuilderBase.
+    /// </summary>
+    [AspireExport("withDependency", Description = "Adds a dependency on another resource")]
+    public static IResourceBuilder<T> WithDependency<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<IResourceWithConnectionString> dependency) where T : IResource
+    {
+        return builder;
+    }
+
     /// <summary>
     /// Tests IReadOnlyList parameter - verifies readonly array handling.
     /// </summary>
