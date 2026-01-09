@@ -41,6 +41,9 @@ const api = await builder
         // ctx.environmentVariables is a direct AspireDict<string, string | ReferenceExpression> field
         await ctx.environmentVariables.set("MY_CONSTANT", "hello from TypeScript");
         await ctx.environmentVariables.set("REDIS_URL", redisUrl);
+
+        await ctx.environmentVariables.set("ANOTHER_VARIABLE", await ep.url.get());
+
         console.log(`    Set environment variables: MY_CONSTANT, REDIS_URL`);
     })
     .waitFor(cache)        // Union type fix: accepts RedisResource wrapper directly!
