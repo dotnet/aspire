@@ -59,6 +59,71 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     }
 
     /// <summary>
+    /// Adds verification that the last command succeeded to the sequence builder.
+    /// Uses the custom prompt format set up by <see cref="PrepareEnvironment"/>: [N OK] or [N ERR:code].
+    /// </summary>
+    private static void AddCommandVerification(Hex1bTerminalInputSequenceBuilder builder)
+    {
+        // Small wait to ensure the prompt has rendered
+        builder.Wait(TimeSpan.FromMilliseconds(100));
+
+        // Use WaitUntil with a predicate that validates the last command and returns true,
+        // or throws an exception if the last command failed
+        builder.WaitUntil(
+            snapshot =>
+            {
+                // Use CellPatternSearcher to find all prompts in the format [N OK] or [N ERR:code]
+                var searcher = new CellPatternSearcher()
+                    .Find(c => c.X == 0 && c.Cell.Character == "[")
+                    .BeginCapture("seqno")
+                        .RightWhile(c => char.IsNumber(c.Cell.Character[0]))
+                    .EndCapture()
+                    .Right(' ')
+                    .ThenEither(
+                        ok => ok.RightText("OK]"),
+                        err => err.RightText("ERR:")
+                            .BeginCapture("exitcode")
+                                .RightWhile(c => char.IsNumber(c.Cell.Character[0]))
+                            .EndCapture()
+                            .Right(']')
+                    );
+
+                var results = searcher.Search(snapshot);
+
+                if (results.Matches.Count == 0)
+                {
+                    throw new InvalidOperationException(
+                        "No command prompts found. Ensure PrepareEnvironment() was called to set up the custom prompt.");
+                }
+
+                // Find the match with the highest sequence number
+                var highestMatch = results.Matches
+                    .Select(m => new
+                    {
+                        Match = m,
+                        SeqNo = int.TryParse(m.GetCaptureText("seqno"), out var n) ? n : 0,
+                        ExitCode = m.GetCaptureText("exitcode")
+                    })
+                    .OrderByDescending(x => x.SeqNo)
+                    .First();
+
+                // Check if it's an error
+                if (!string.IsNullOrEmpty(highestMatch.ExitCode))
+                {
+                    throw new CommandExecutionException(
+                        $"Command #{highestMatch.SeqNo} failed with exit code {highestMatch.ExitCode}",
+                        highestMatch.SeqNo,
+                        int.TryParse(highestMatch.ExitCode, out var code) ? code : -1);
+                }
+
+                // Success - return true to indicate we're done waiting
+                return true;
+            },
+            TimeSpan.FromSeconds(5),
+            "Verifying last command succeeded");
+    }
+
+    /// <summary>
     /// Creates a new automation builder with a configured terminal session.
     /// </summary>
     /// <param name="workingDirectory">Working directory for the terminal.</param>
@@ -164,6 +229,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .WaitUntil(
                         snapshot => snapshot.GetScreenText().Contains("Aspire CLI successfully installed to:", StringComparison.OrdinalIgnoreCase),
                         effectiveTimeout);
+
+                AddCommandVerification(ctx.SequenceBuilder);
             }
             else
             {
@@ -178,6 +245,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Type(echoCommand)
                     .Enter()
                     .Wait(TimeSpan.FromMilliseconds(500));
+
+                AddCommandVerification(ctx.SequenceBuilder);
             }
         });
     }
@@ -204,6 +273,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Type("$env:ASPIRE_PLAYGROUND='true'")
                     .Enter()
                     .Wait(TimeSpan.FromSeconds(1));
+
+                AddCommandVerification(ctx.SequenceBuilder);
             });
         }
 
@@ -221,6 +292,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Type("source ~/.bashrc && export ASPIRE_PLAYGROUND=true")
                     .Enter()
                     .Wait(TimeSpan.FromSeconds(1));
+
+                AddCommandVerification(ctx.SequenceBuilder);
             }
             else
             {
@@ -231,6 +304,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Type("export ASPIRE_PLAYGROUND=true")
                     .Enter()
                     .Wait(TimeSpan.FromMilliseconds(500));
+
+                AddCommandVerification(ctx.SequenceBuilder);
             }
         });
     }
@@ -266,6 +341,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .WaitUntil(
                         snapshot => snapshot.GetScreenText().Contains(versionSha, StringComparison.OrdinalIgnoreCase),
                         timeout ?? TimeSpan.FromSeconds(30));
+
+                AddCommandVerification(ctx.SequenceBuilder);
             }
             else
             {
@@ -280,6 +357,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     .Type(echoCommand)
                     .Enter()
                     .Wait(TimeSpan.FromMilliseconds(500));
+
+                AddCommandVerification(ctx.SequenceBuilder);
             }
         });
     }
@@ -328,6 +407,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     effectiveTimeout);
 
             WriteLog(ctx.SequenceBuilder, "Aspire Starter project created successfully!");
+
+            AddCommandVerification(ctx.SequenceBuilder);
         });
     }
 
@@ -366,6 +447,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     effectiveTimeout);
 
             WriteLog(ctx.SequenceBuilder, "Aspire TypeScript/C# Starter project created successfully!");
+
+            AddCommandVerification(ctx.SequenceBuilder);
         });
     }
 
@@ -413,6 +496,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     effectiveTimeout);
 
             WriteLog(ctx.SequenceBuilder, "Aspire Python Starter project created successfully!");
+
+            AddCommandVerification(ctx.SequenceBuilder);
         });
     }
 
@@ -451,6 +536,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     effectiveTimeout);
 
             WriteLog(ctx.SequenceBuilder, "Aspire AppHost Single-File project created successfully!");
+
+            AddCommandVerification(ctx.SequenceBuilder);
         });
     }
 
@@ -534,6 +621,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     effectiveTimeout);
 
             WriteLog(ctx.SequenceBuilder, "Aspire Starter project created interactively!");
+
+            AddCommandVerification(ctx.SequenceBuilder);
         });
     }
 
@@ -608,6 +697,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     effectiveTimeout);
 
             WriteLog(ctx.SequenceBuilder, "Aspire TypeScript/C# Starter project created interactively!");
+
+            AddCommandVerification(ctx.SequenceBuilder);
         });
     }
 
@@ -682,6 +773,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     effectiveTimeout);
 
             WriteLog(ctx.SequenceBuilder, "Aspire Python Starter project created interactively!");
+
+            AddCommandVerification(ctx.SequenceBuilder);
         });
     }
 
@@ -747,27 +840,29 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                     effectiveTimeout);
 
             WriteLog(ctx.SequenceBuilder, "Aspire AppHost Single-File project created interactively!");
+
+            AddCommandVerification(ctx.SequenceBuilder);
         });
     }
 
     /// <summary>
-    /// Runs an Aspire project using the 'aspire run' command.
-    /// Waits for the dashboard URL to appear, indicating the app is running.
+    /// Runs an Aspire project by navigating to its directory and executing 'aspire run'.
     /// </summary>
-    /// <param name="projectName">The name of the project to run (used to navigate to the AppHost directory).</param>
-    /// <param name="isSingleFile">Whether this is a single-file project (no subfolder structure).</param>
-    /// <param name="timeout">Maximum time to wait for the project to start (default: 5 minutes).</param>
+    /// <param name="projectName">The name of the project (used to determine the directory path).</param>
+    /// <param name="isFlatStructure">True for projects where apphost.cs is directly in the project folder (e.g., single-file, Python templates).</param>
+    /// <param name="timeout">Maximum time to wait for the project to start.</param>
     /// <returns>The builder for chaining.</returns>
-    public AspireCliAutomationBuilder RunAspireProject(string projectName, bool isSingleFile = false, TimeSpan? timeout = null)
+    public AspireCliAutomationBuilder RunAspireProject(string projectName, bool isFlatStructure = false, TimeSpan? timeout = null)
     {
         var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
 
         return AddSequence(ctx =>
         {
             string cdCommand;
-            if (isSingleFile)
+            if (isFlatStructure)
             {
-                WriteLog(ctx.SequenceBuilder, $"Navigating to {projectName} (single-file project) and running...");
+                // Flat structure projects have apphost.cs in the project root
+                WriteLog(ctx.SequenceBuilder, $"Navigating to {projectName} (flat structure) and running...");
                 cdCommand = OperatingSystem.IsWindows()
                     ? $"cd {projectName}"
                     : $"cd {projectName}";
@@ -784,6 +879,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                 .Type(cdCommand)
                 .Enter()
                 .Wait(TimeSpan.FromSeconds(1));
+
+            AddCommandVerification(ctx.SequenceBuilder);
 
             WriteLog(ctx.SequenceBuilder, "Starting 'aspire run'...");
 
@@ -845,64 +942,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         return AddSequence(ctx =>
         {
             WriteLog(ctx.SequenceBuilder, "Verifying last command succeeded...");
-
-            // Small wait to ensure the prompt has rendered
-            ctx.SequenceBuilder.Wait(TimeSpan.FromMilliseconds(100));
-
-            // Use WaitUntil with a predicate that validates the last command and returns true,
-            // or throws an exception if the last command failed
-            ctx.SequenceBuilder.WaitUntil(
-                snapshot =>
-                {
-                    // Use CellPatternSearcher to find all prompts in the format [N OK] or [N ERR:code]
-                    var searcher = new CellPatternSearcher()
-                        .Find(c => c.X == 0 && c.Cell.Character == "[")
-                        .BeginCapture("seqno")
-                            .RightWhile(c => char.IsNumber(c.Cell.Character[0]))
-                        .EndCapture()
-                        .Right(' ')
-                        .ThenEither(
-                            ok => ok.RightText("OK]"),
-                            err => err.RightText("ERR:")
-                                .BeginCapture("exitcode")
-                                    .RightWhile(c => char.IsNumber(c.Cell.Character[0]))
-                                .EndCapture()
-                                .Right(']')
-                        );
-
-                    var results = searcher.Search(snapshot);
-
-                    if (results.Matches.Count == 0)
-                    {
-                        throw new InvalidOperationException(
-                            "No command prompts found. Ensure PrepareEnvironment() was called to set up the custom prompt.");
-                    }
-
-                    // Find the match with the highest sequence number
-                    var highestMatch = results.Matches
-                        .Select(m => new
-                        {
-                            Match = m,
-                            SeqNo = int.TryParse(m.GetCaptureText("seqno"), out var n) ? n : 0,
-                            ExitCode = m.GetCaptureText("exitcode")
-                        })
-                        .OrderByDescending(x => x.SeqNo)
-                        .First();
-
-                    // Check if it's an error
-                    if (!string.IsNullOrEmpty(highestMatch.ExitCode))
-                    {
-                        throw new CommandExecutionException(
-                            $"Command #{highestMatch.SeqNo} failed with exit code {highestMatch.ExitCode}",
-                            highestMatch.SeqNo,
-                            int.TryParse(highestMatch.ExitCode, out var code) ? code : -1);
-                    }
-
-                    // Success - return true to indicate we're done waiting
-                    return true;
-                },
-                TimeSpan.FromSeconds(5),
-                "Verifying last command succeeded");
+            AddCommandVerification(ctx.SequenceBuilder);
         });
     }
 

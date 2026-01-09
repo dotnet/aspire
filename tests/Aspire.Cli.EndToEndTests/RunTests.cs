@@ -50,7 +50,7 @@ public sealed class RunTests : IAsyncDisposable
 
         await builder
             .CreateAspireStarterProject("StarterApp")
-            .RunAspireProject("StarterApp", isSingleFile: false)
+            .RunAspireProject("StarterApp")
             .StopAspireProject()
             .ExitTerminal()
             .ExecuteAsync();
@@ -80,7 +80,7 @@ public sealed class RunTests : IAsyncDisposable
 
         await builder
             .CreateAspireTypeScriptCSharpStarterProject("TsCsApp")
-            .RunAspireProject("TsCsApp", isSingleFile: false)
+            .RunAspireProject("TsCsApp")
             .StopAspireProject()
             .ExitTerminal()
             .ExecuteAsync();
@@ -110,7 +110,7 @@ public sealed class RunTests : IAsyncDisposable
 
         await builder
             .CreateAspirePythonStarterProject("PyApp")
-            .RunAspireProject("PyApp", isSingleFile: false)
+            .RunAspireProject("PyApp", isFlatStructure: true)
             .StopAspireProject()
             .ExitTerminal()
             .ExecuteAsync();
@@ -140,7 +140,7 @@ public sealed class RunTests : IAsyncDisposable
 
         await builder
             .CreateAspireAppHostSingleFileProject("SingleFileApp")
-            .RunAspireProject("SingleFileApp", isSingleFile: true)
+            .RunAspireProject("SingleFileApp", isFlatStructure: true)
             .StopAspireProject()
             .ExitTerminal()
             .ExecuteAsync();
@@ -170,7 +170,7 @@ public sealed class RunTests : IAsyncDisposable
 
         await builder
             .CreateAspireStarterProjectInteractively("InteractiveStarterApp")
-            .RunAspireProject("InteractiveStarterApp", isSingleFile: false)
+            .RunAspireProject("InteractiveStarterApp")
             .StopAspireProject()
             .ExitTerminal()
             .ExecuteAsync();
@@ -200,7 +200,7 @@ public sealed class RunTests : IAsyncDisposable
 
         await builder
             .CreateAspireTypeScriptCSharpStarterProjectInteractively("InteractiveTsCsApp")
-            .RunAspireProject("InteractiveTsCsApp", isSingleFile: false)
+            .RunAspireProject("InteractiveTsCsApp")
             .StopAspireProject()
             .ExitTerminal()
             .ExecuteAsync();
@@ -230,7 +230,7 @@ public sealed class RunTests : IAsyncDisposable
 
         await builder
             .CreateAspirePythonStarterProjectInteractively("InteractivePyApp")
-            .RunAspireProject("InteractivePyApp", isSingleFile: false)
+            .RunAspireProject("InteractivePyApp", isFlatStructure: true)
             .StopAspireProject()
             .ExitTerminal()
             .ExecuteAsync();
@@ -260,7 +260,7 @@ public sealed class RunTests : IAsyncDisposable
 
         await builder
             .CreateAspireAppHostSingleFileProjectInteractively("InteractiveSingleFileApp")
-            .RunAspireProject("InteractiveSingleFileApp", isSingleFile: true)
+            .RunAspireProject("InteractiveSingleFileApp", isFlatStructure: true)
             .StopAspireProject()
             .ExitTerminal()
             .ExecuteAsync();
