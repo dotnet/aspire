@@ -1235,7 +1235,7 @@ public class ParameterProcessorTests
             parameterDefault => configuration["Parameters:generatedParam"] ?? parameterDefault?.GetDefaultValue() ?? throw new MissingParameterValueException("Parameter 'generatedParam' is missing"),
             secret: false)
         {
-            Default = new GenerateParameterDefault()
+            Default = new GenerateParameterDefault() { MinLength = 10 }
         };
 
         // Act
