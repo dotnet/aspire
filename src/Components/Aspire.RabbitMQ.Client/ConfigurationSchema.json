@@ -176,6 +176,243 @@
                               "type": "boolean",
                               "description": "Attempts to check certificate revocation status. Default is false. Set to true to check peer certificate for revocation."
                             },
+                            "ClientCertificateContext": {
+                              "type": "object",
+                              "properties": {
+                                "TargetCertificate": {
+                                  "type": "object",
+                                  "properties": {
+                                    "Archived": {
+                                      "type": "boolean",
+                                      "description": "Gets or sets a value indicating that an X.509 certificate is archived."
+                                    },
+                                    "Extensions": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "Critical": {
+                                            "type": "boolean",
+                                            "description": "Gets a Boolean value indicating whether the extension is critical."
+                                          },
+                                          "Oid": {
+                                            "type": "object",
+                                            "properties": {
+                                              "FriendlyName": {
+                                                "type": "string",
+                                                "description": "Gets or sets the friendly name of the identifier."
+                                              },
+                                              "Value": {
+                                                "type": "string",
+                                                "description": "Gets or sets the dotted number of the identifier."
+                                              }
+                                            },
+                                            "description": "Gets or sets the 'System.Security.Cryptography.Oid' value for an 'System.Security.Cryptography.AsnEncodedData' object."
+                                          },
+                                          "RawData": {
+                                            "oneOf": [
+                                              {
+                                                "type": "string",
+                                                "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "integer"
+                                                }
+                                              }
+                                            ],
+                                            "description": "Gets or sets the Abstract Syntax Notation One (ASN.1)-encoded data represented in a byte array."
+                                          }
+                                        },
+                                        "description": "Represents an X509 extension."
+                                      },
+                                      "description": "Gets a collection of 'System.Security.Cryptography.X509Certificates.X509Extension' objects."
+                                    },
+                                    "FriendlyName": {
+                                      "type": "string",
+                                      "description": "Gets or sets the associated alias for a certificate."
+                                    },
+                                    "IssuerName": {
+                                      "type": "object",
+                                      "properties": {
+                                        "Oid": {
+                                          "type": "object",
+                                          "properties": {
+                                            "FriendlyName": {
+                                              "type": "string",
+                                              "description": "Gets or sets the friendly name of the identifier."
+                                            },
+                                            "Value": {
+                                              "type": "string",
+                                              "description": "Gets or sets the dotted number of the identifier."
+                                            }
+                                          },
+                                          "description": "Gets or sets the 'System.Security.Cryptography.Oid' value for an 'System.Security.Cryptography.AsnEncodedData' object."
+                                        },
+                                        "RawData": {
+                                          "oneOf": [
+                                            {
+                                              "type": "string",
+                                              "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+                                            },
+                                            {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "integer"
+                                              }
+                                            }
+                                          ],
+                                          "description": "Gets or sets the Abstract Syntax Notation One (ASN.1)-encoded data represented in a byte array."
+                                        }
+                                      },
+                                      "description": "Gets the distinguished name of the certificate issuer."
+                                    },
+                                    "PublicKey": {
+                                      "type": "object",
+                                      "properties": {
+                                        "EncodedKeyValue": {
+                                          "type": "object",
+                                          "properties": {
+                                            "Oid": {
+                                              "type": "object",
+                                              "properties": {
+                                                "FriendlyName": {
+                                                  "type": "string",
+                                                  "description": "Gets or sets the friendly name of the identifier."
+                                                },
+                                                "Value": {
+                                                  "type": "string",
+                                                  "description": "Gets or sets the dotted number of the identifier."
+                                                }
+                                              },
+                                              "description": "Gets or sets the 'System.Security.Cryptography.Oid' value for an 'System.Security.Cryptography.AsnEncodedData' object."
+                                            },
+                                            "RawData": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "string",
+                                                  "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "type": "integer"
+                                                  }
+                                                }
+                                              ],
+                                              "description": "Gets or sets the Abstract Syntax Notation One (ASN.1)-encoded data represented in a byte array."
+                                            }
+                                          },
+                                          "description": "Gets the ASN.1-encoded representation of the public key value."
+                                        },
+                                        "EncodedParameters": {
+                                          "type": "object",
+                                          "properties": {
+                                            "Oid": {
+                                              "type": "object",
+                                              "properties": {
+                                                "FriendlyName": {
+                                                  "type": "string",
+                                                  "description": "Gets or sets the friendly name of the identifier."
+                                                },
+                                                "Value": {
+                                                  "type": "string",
+                                                  "description": "Gets or sets the dotted number of the identifier."
+                                                }
+                                              },
+                                              "description": "Gets or sets the 'System.Security.Cryptography.Oid' value for an 'System.Security.Cryptography.AsnEncodedData' object."
+                                            },
+                                            "RawData": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "string",
+                                                  "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "type": "integer"
+                                                  }
+                                                }
+                                              ],
+                                              "description": "Gets or sets the Abstract Syntax Notation One (ASN.1)-encoded data represented in a byte array."
+                                            }
+                                          },
+                                          "description": "Gets the ASN.1-encoded representation of the public key parameters."
+                                        },
+                                        "Oid": {
+                                          "type": "object",
+                                          "properties": {
+                                            "FriendlyName": {
+                                              "type": "string",
+                                              "description": "Gets or sets the friendly name of the identifier."
+                                            },
+                                            "Value": {
+                                              "type": "string",
+                                              "description": "Gets or sets the dotted number of the identifier."
+                                            }
+                                          },
+                                          "description": "Gets an object identifier (OID) object of the public key."
+                                        }
+                                      },
+                                      "description": "Gets a 'System.Security.Cryptography.X509Certificates.X509Certificate2.PublicKey' object associated with a certificate."
+                                    },
+                                    "SignatureAlgorithm": {
+                                      "type": "object",
+                                      "properties": {
+                                        "FriendlyName": {
+                                          "type": "string",
+                                          "description": "Gets or sets the friendly name of the identifier."
+                                        },
+                                        "Value": {
+                                          "type": "string",
+                                          "description": "Gets or sets the dotted number of the identifier."
+                                        }
+                                      },
+                                      "description": "Gets the algorithm used to create the signature of a certificate."
+                                    },
+                                    "SubjectName": {
+                                      "type": "object",
+                                      "properties": {
+                                        "Oid": {
+                                          "type": "object",
+                                          "properties": {
+                                            "FriendlyName": {
+                                              "type": "string",
+                                              "description": "Gets or sets the friendly name of the identifier."
+                                            },
+                                            "Value": {
+                                              "type": "string",
+                                              "description": "Gets or sets the dotted number of the identifier."
+                                            }
+                                          },
+                                          "description": "Gets or sets the 'System.Security.Cryptography.Oid' value for an 'System.Security.Cryptography.AsnEncodedData' object."
+                                        },
+                                        "RawData": {
+                                          "oneOf": [
+                                            {
+                                              "type": "string",
+                                              "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+                                            },
+                                            {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "integer"
+                                              }
+                                            }
+                                          ],
+                                          "description": "Gets or sets the Abstract Syntax Notation One (ASN.1)-encoded data represented in a byte array."
+                                        }
+                                      },
+                                      "description": "Gets the subject distinguished name from a certificate."
+                                    }
+                                  },
+                                  "description": "Gets the target (leaf) certificate of the built chain."
+                                }
+                              },
+                              "description": "Retrieve or set the 'System.Net.Security.SslStreamCertificateContext' to supply a set of certificates used for building a certificate chain."
+                            },
                             "Enabled": {
                               "type": "boolean",
                               "description": "Controls if TLS should indeed be used. Set to false to disable TLS on the connection."
@@ -280,6 +517,243 @@
                         "CheckCertificateRevocation": {
                           "type": "boolean",
                           "description": "Attempts to check certificate revocation status. Default is false. Set to true to check peer certificate for revocation."
+                        },
+                        "ClientCertificateContext": {
+                          "type": "object",
+                          "properties": {
+                            "TargetCertificate": {
+                              "type": "object",
+                              "properties": {
+                                "Archived": {
+                                  "type": "boolean",
+                                  "description": "Gets or sets a value indicating that an X.509 certificate is archived."
+                                },
+                                "Extensions": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Critical": {
+                                        "type": "boolean",
+                                        "description": "Gets a Boolean value indicating whether the extension is critical."
+                                      },
+                                      "Oid": {
+                                        "type": "object",
+                                        "properties": {
+                                          "FriendlyName": {
+                                            "type": "string",
+                                            "description": "Gets or sets the friendly name of the identifier."
+                                          },
+                                          "Value": {
+                                            "type": "string",
+                                            "description": "Gets or sets the dotted number of the identifier."
+                                          }
+                                        },
+                                        "description": "Gets or sets the 'System.Security.Cryptography.Oid' value for an 'System.Security.Cryptography.AsnEncodedData' object."
+                                      },
+                                      "RawData": {
+                                        "oneOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+                                          },
+                                          {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "integer"
+                                            }
+                                          }
+                                        ],
+                                        "description": "Gets or sets the Abstract Syntax Notation One (ASN.1)-encoded data represented in a byte array."
+                                      }
+                                    },
+                                    "description": "Represents an X509 extension."
+                                  },
+                                  "description": "Gets a collection of 'System.Security.Cryptography.X509Certificates.X509Extension' objects."
+                                },
+                                "FriendlyName": {
+                                  "type": "string",
+                                  "description": "Gets or sets the associated alias for a certificate."
+                                },
+                                "IssuerName": {
+                                  "type": "object",
+                                  "properties": {
+                                    "Oid": {
+                                      "type": "object",
+                                      "properties": {
+                                        "FriendlyName": {
+                                          "type": "string",
+                                          "description": "Gets or sets the friendly name of the identifier."
+                                        },
+                                        "Value": {
+                                          "type": "string",
+                                          "description": "Gets or sets the dotted number of the identifier."
+                                        }
+                                      },
+                                      "description": "Gets or sets the 'System.Security.Cryptography.Oid' value for an 'System.Security.Cryptography.AsnEncodedData' object."
+                                    },
+                                    "RawData": {
+                                      "oneOf": [
+                                        {
+                                          "type": "string",
+                                          "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "integer"
+                                          }
+                                        }
+                                      ],
+                                      "description": "Gets or sets the Abstract Syntax Notation One (ASN.1)-encoded data represented in a byte array."
+                                    }
+                                  },
+                                  "description": "Gets the distinguished name of the certificate issuer."
+                                },
+                                "PublicKey": {
+                                  "type": "object",
+                                  "properties": {
+                                    "EncodedKeyValue": {
+                                      "type": "object",
+                                      "properties": {
+                                        "Oid": {
+                                          "type": "object",
+                                          "properties": {
+                                            "FriendlyName": {
+                                              "type": "string",
+                                              "description": "Gets or sets the friendly name of the identifier."
+                                            },
+                                            "Value": {
+                                              "type": "string",
+                                              "description": "Gets or sets the dotted number of the identifier."
+                                            }
+                                          },
+                                          "description": "Gets or sets the 'System.Security.Cryptography.Oid' value for an 'System.Security.Cryptography.AsnEncodedData' object."
+                                        },
+                                        "RawData": {
+                                          "oneOf": [
+                                            {
+                                              "type": "string",
+                                              "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+                                            },
+                                            {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "integer"
+                                              }
+                                            }
+                                          ],
+                                          "description": "Gets or sets the Abstract Syntax Notation One (ASN.1)-encoded data represented in a byte array."
+                                        }
+                                      },
+                                      "description": "Gets the ASN.1-encoded representation of the public key value."
+                                    },
+                                    "EncodedParameters": {
+                                      "type": "object",
+                                      "properties": {
+                                        "Oid": {
+                                          "type": "object",
+                                          "properties": {
+                                            "FriendlyName": {
+                                              "type": "string",
+                                              "description": "Gets or sets the friendly name of the identifier."
+                                            },
+                                            "Value": {
+                                              "type": "string",
+                                              "description": "Gets or sets the dotted number of the identifier."
+                                            }
+                                          },
+                                          "description": "Gets or sets the 'System.Security.Cryptography.Oid' value for an 'System.Security.Cryptography.AsnEncodedData' object."
+                                        },
+                                        "RawData": {
+                                          "oneOf": [
+                                            {
+                                              "type": "string",
+                                              "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+                                            },
+                                            {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "integer"
+                                              }
+                                            }
+                                          ],
+                                          "description": "Gets or sets the Abstract Syntax Notation One (ASN.1)-encoded data represented in a byte array."
+                                        }
+                                      },
+                                      "description": "Gets the ASN.1-encoded representation of the public key parameters."
+                                    },
+                                    "Oid": {
+                                      "type": "object",
+                                      "properties": {
+                                        "FriendlyName": {
+                                          "type": "string",
+                                          "description": "Gets or sets the friendly name of the identifier."
+                                        },
+                                        "Value": {
+                                          "type": "string",
+                                          "description": "Gets or sets the dotted number of the identifier."
+                                        }
+                                      },
+                                      "description": "Gets an object identifier (OID) object of the public key."
+                                    }
+                                  },
+                                  "description": "Gets a 'System.Security.Cryptography.X509Certificates.X509Certificate2.PublicKey' object associated with a certificate."
+                                },
+                                "SignatureAlgorithm": {
+                                  "type": "object",
+                                  "properties": {
+                                    "FriendlyName": {
+                                      "type": "string",
+                                      "description": "Gets or sets the friendly name of the identifier."
+                                    },
+                                    "Value": {
+                                      "type": "string",
+                                      "description": "Gets or sets the dotted number of the identifier."
+                                    }
+                                  },
+                                  "description": "Gets the algorithm used to create the signature of a certificate."
+                                },
+                                "SubjectName": {
+                                  "type": "object",
+                                  "properties": {
+                                    "Oid": {
+                                      "type": "object",
+                                      "properties": {
+                                        "FriendlyName": {
+                                          "type": "string",
+                                          "description": "Gets or sets the friendly name of the identifier."
+                                        },
+                                        "Value": {
+                                          "type": "string",
+                                          "description": "Gets or sets the dotted number of the identifier."
+                                        }
+                                      },
+                                      "description": "Gets or sets the 'System.Security.Cryptography.Oid' value for an 'System.Security.Cryptography.AsnEncodedData' object."
+                                    },
+                                    "RawData": {
+                                      "oneOf": [
+                                        {
+                                          "type": "string",
+                                          "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "integer"
+                                          }
+                                        }
+                                      ],
+                                      "description": "Gets or sets the Abstract Syntax Notation One (ASN.1)-encoded data represented in a byte array."
+                                    }
+                                  },
+                                  "description": "Gets the subject distinguished name from a certificate."
+                                }
+                              },
+                              "description": "Gets the target (leaf) certificate of the built chain."
+                            }
+                          },
+                          "description": "Retrieve or set the 'System.Net.Security.SslStreamCertificateContext' to supply a set of certificates used for building a certificate chain."
                         },
                         "Enabled": {
                           "type": "boolean",
