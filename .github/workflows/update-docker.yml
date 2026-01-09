@@ -1,0 +1,119 @@
+name: Update dotnet-docker Dashboard Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Aspire version/image tag to update to (e.g., 13.1.0)'
+        required: true
+        type: string
+      docker_repo:
+        description: 'Repository to update (owner/repo)'
+        required: true
+        type: string
+        default: 'dotnet/dotnet-docker'
+      target_branch:
+        description: 'Target branch for the PR'
+        required: true
+        type: string
+        default: 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  update_docker:
+    name: Update dashboard image reference
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
+    
+    steps:
+      - name: Generate GitHub App Token
+        id: generate_token
+        uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69  # v1.11.0
+        with:
+          app-id: ${{ secrets.ASPIRE_BOT_APP_ID }}
+          private-key: ${{ secrets.ASPIRE_BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout dotnet-docker repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          repository: ${{ inputs.docker_repo }}
+          ref: ${{ inputs.target_branch }}
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "aspire-bot[bot]"
+          git config user.email "aspire-bot[bot]@users.noreply.github.com"
+
+      - name: Create branch for update
+        id: create_branch
+        run: |
+          BRANCH_NAME="automation/update-aspire-dashboard-${{ inputs.version }}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH_NAME"
+
+      - name: Update dashboard image tags
+        shell: bash
+        run: |
+          # Find and update Aspire Dashboard image references
+          # This will need to be customized based on actual dotnet-docker repository structure
+          
+          echo "Searching for Aspire Dashboard image references..."
+          
+          # Update Dockerfiles that reference aspire-dashboard
+          find . -name "Dockerfile*" -type f | while read -r dockerfile; do
+            if grep -q "mcr.microsoft.com/dotnet/aspire-dashboard" "$dockerfile"; then
+              echo "Updating $dockerfile"
+              sed -i "s|mcr.microsoft.com/dotnet/aspire-dashboard:[0-9.]*|mcr.microsoft.com/dotnet/aspire-dashboard:${{ inputs.version }}|g" "$dockerfile"
+            fi
+          done
+          
+          # Update any manifest.json or version files
+          find . -name "manifest.json" -type f -o -name "versions.json" -type f | while read -r manifest; do
+            if grep -q "aspire-dashboard" "$manifest"; then
+              echo "Updating $manifest"
+              sed -i "s|\"aspire-dashboard\".*\"[0-9.]*\"|\"aspire-dashboard\": \"${{ inputs.version }}\"|g" "$manifest"
+            fi
+          done
+          
+          echo "Dashboard image references updated"
+
+      - name: Commit and push changes
+        id: commit
+        run: |
+          git add .
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            git commit -m "Update Aspire Dashboard image to ${{ inputs.version }}"
+            git push origin "${{ steps.create_branch.outputs.branch_name }}"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.commit.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          gh pr create \
+            --base "${{ inputs.target_branch }}" \
+            --head "${{ steps.create_branch.outputs.branch_name }}" \
+            --title "Update Aspire Dashboard image to ${{ inputs.version }}" \
+            --body "This PR updates the Aspire Dashboard image reference to version ${{ inputs.version }}.
+
+          This is an automated PR created by the update-docker workflow in the aspire repository.
+          
+          /cc @dotnet/aspire-contributors" \
+            --label "dependencies"
+
+      - name: Summary
+        run: |
+          if [ "${{ steps.commit.outputs.has_changes }}" == "true" ]; then
+            echo "✅ Successfully created PR in ${{ inputs.docker_repo }} to update dashboard image to ${{ inputs.version }}"
+          else
+            echo "ℹ️ No changes needed - dashboard image references are already up to date"
+          fi
