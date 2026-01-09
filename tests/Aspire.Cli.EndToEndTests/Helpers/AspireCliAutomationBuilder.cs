@@ -254,6 +254,29 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
 
             AddCommandVerification(ctx.SequenceBuilder);
 
+            // Run aspire doctor to check environment
+            WriteLog(ctx.SequenceBuilder, "Running aspire doctor...");
+            if (OperatingSystem.IsWindows())
+            {
+                ctx.SequenceBuilder
+                    .Type("aspire doctor")
+                    .Enter()
+                    .WaitUntil(
+                        snapshot => snapshot.GetScreenText().Contains("PS>", StringComparison.OrdinalIgnoreCase),
+                        effectiveTimeout);
+            }
+            else
+            {
+                ctx.SequenceBuilder
+                    .Type("aspire doctor")
+                    .Enter()
+                    .WaitUntil(
+                        snapshot => snapshot.GetScreenText().Contains("$ ", StringComparison.OrdinalIgnoreCase),
+                        effectiveTimeout);
+            }
+
+            AddCommandVerification(ctx.SequenceBuilder);
+
             WriteLog(ctx.SequenceBuilder, "Diagnostics complete.");
         });
     }
