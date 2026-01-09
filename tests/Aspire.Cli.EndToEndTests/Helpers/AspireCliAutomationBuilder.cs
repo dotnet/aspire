@@ -255,7 +255,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// Sources the Aspire CLI environment to make the 'aspire' command available.
     /// On Linux/macOS, this sources ~/.bashrc. On Windows, this is a no-op as
     /// the PowerShell installer modifies the PATH directly in the current session.
-    /// Also explicitly sets ASPIRE_PLAYGROUND=true to enable interactive mode in CI.
+    /// Also explicitly sets ASPIRE_PLAYGROUND=true to enable interactive mode in CI,
+    /// and sets .NET CLI environment variables to suppress telemetry and first-time experience.
     /// When running locally (not in CI), uses an echo command for testing.
     /// </summary>
     /// <returns>The builder for chaining.</returns>
@@ -264,13 +265,14 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         if (OperatingSystem.IsWindows())
         {
             // On Windows, the PowerShell installer already updates the current session's PATH
-            // But we still need to set ASPIRE_PLAYGROUND for interactive mode
+            // But we still need to set ASPIRE_PLAYGROUND for interactive mode and .NET CLI vars
             return AddSequence(ctx =>
             {
-                WriteLog(ctx.SequenceBuilder, "Setting ASPIRE_PLAYGROUND=true for interactive mode on Windows...");
+                WriteLog(ctx.SequenceBuilder, "Setting environment variables for interactive mode and .NET CLI on Windows...");
 
+                // Set all environment variables: ASPIRE_PLAYGROUND and .NET CLI settings
                 ctx.SequenceBuilder
-                    .Type("$env:ASPIRE_PLAYGROUND='true'")
+                    .Type("$env:ASPIRE_PLAYGROUND='true'; $env:DOTNET_CLI_TELEMETRY_OPTOUT='true'; $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='true'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'")
                     .Enter()
                     .Wait(TimeSpan.FromSeconds(1));
 
@@ -284,12 +286,13 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
         {
             if (isCI)
             {
-                WriteLog(ctx.SequenceBuilder, "Sourcing ~/.bashrc and setting ASPIRE_PLAYGROUND=true for interactive mode...");
+                WriteLog(ctx.SequenceBuilder, "Sourcing ~/.bashrc and setting environment variables for interactive mode and .NET CLI...");
 
-                // Source bashrc first, then export ASPIRE_PLAYGROUND to ensure it persists
-                // after bashrc potentially resets the environment
+                // Source bashrc first, then export all environment variables
+                // ASPIRE_PLAYGROUND enables interactive mode
+                // .NET CLI vars suppress telemetry and first-time experience which can cause hangs
                 ctx.SequenceBuilder
-                    .Type("source ~/.bashrc && export ASPIRE_PLAYGROUND=true")
+                    .Type("source ~/.bashrc && export ASPIRE_PLAYGROUND=true DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
                     .Enter()
                     .Wait(TimeSpan.FromSeconds(1));
 
@@ -297,11 +300,11 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
             }
             else
             {
-                WriteLog(ctx.SequenceBuilder, "[LOCAL] Setting ASPIRE_PLAYGROUND=true for interactive mode...");
+                WriteLog(ctx.SequenceBuilder, "[LOCAL] Setting environment variables for interactive mode and .NET CLI...");
 
-                // Even locally, set ASPIRE_PLAYGROUND for interactive mode testing
+                // Even locally, set all environment variables
                 ctx.SequenceBuilder
-                    .Type("export ASPIRE_PLAYGROUND=true")
+                    .Type("export ASPIRE_PLAYGROUND=true DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true DOTNET_GENERATE_ASPNET_CERTIFICATE=false")
                     .Enter()
                     .Wait(TimeSpan.FromMilliseconds(500));
 
