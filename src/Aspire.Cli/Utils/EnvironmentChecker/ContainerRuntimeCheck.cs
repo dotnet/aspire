@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
@@ -134,10 +135,11 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
 
             // Parse the version from JSON output first, even if the command failed
             // (docker version -f json outputs client info even when daemon is not running)
-            var versionInfo = ParseVersionFromJsonOutput(versionOutput);
+            var versionInfo = ContainerVersionInfo.Parse(versionOutput);
             var clientVersion = versionInfo.ClientVersion;
             var serverVersion = versionInfo.ServerVersion;
             var context = versionInfo.Context;
+            var serverOs = versionInfo.ServerOs;
 
             // Determine if this is Docker Desktop based on context
             var isDockerDesktop = runtime == "Docker" &&
@@ -298,6 +300,21 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
             var versionSuffix = clientVersion is not null ? $" (version {clientVersion})" : string.Empty;
             var runtimeName = isDockerDesktop ? "Docker Desktop" : runtime;
 
+            // Check if Docker is running in Windows container mode (only Linux containers are supported)
+            if (runtime == "Docker" && string.Equals(serverOs, "windows", StringComparison.OrdinalIgnoreCase))
+            {
+                return new EnvironmentCheckResult
+                {
+                    Category = "container",
+                    Name = "container-runtime",
+                    Status = EnvironmentCheckStatus.Fail,
+                    Message = $"{runtimeName} is running in Windows container mode{versionSuffix}",
+                    Details = "Aspire requires Linux containers. Windows containers are not supported.",
+                    Fix = "Switch Docker Desktop to Linux containers mode (right-click Docker tray icon → 'Switch to Linux containers...')",
+                    Link = "https://aka.ms/dotnet/aspire/containers"
+                };
+            }
+
             // For Docker Engine (not Desktop), check tunnel configuration
             if (runtime == "Docker" && !isDockerDesktop)
             {
@@ -342,64 +359,6 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
                 Status = EnvironmentCheckStatus.Fail,
                 Message = $"Failed to check {runtime}"
             };
-        }
-    }
-
-    /// <summary>
-    /// Parses client and server versions from container runtime 'version -f json' output.
-    /// </summary>
-    internal static (Version? ClientVersion, Version? ServerVersion, string? Context) ParseVersionFromJsonOutput(string output)
-    {
-        if (string.IsNullOrWhiteSpace(output))
-        {
-            return (null, null, null);
-        }
-
-        try
-        {
-            using var document = JsonDocument.Parse(output);
-            var root = document.RootElement;
-
-            Version? clientVersion = null;
-            Version? serverVersion = null;
-            string? context = null;
-
-            // Try to get Client.Version and Client.Context
-            if (root.TryGetProperty("Client", out var client))
-            {
-                if (client.TryGetProperty("Version", out var clientVersionElement))
-                {
-                    var versionString = clientVersionElement.GetString();
-                    if (!string.IsNullOrEmpty(versionString))
-                    {
-                        Version.TryParse(versionString, out clientVersion);
-                    }
-                }
-
-                if (client.TryGetProperty("Context", out var contextElement))
-                {
-                    context = contextElement.GetString();
-                }
-            }
-
-            // Try to get Server.Version (Docker specific, may be null if daemon not running)
-            if (root.TryGetProperty("Server", out var server) &&
-                server.ValueKind != JsonValueKind.Null &&
-                server.TryGetProperty("Version", out var serverVersionElement))
-            {
-                var versionString = serverVersionElement.GetString();
-                if (!string.IsNullOrEmpty(versionString))
-                {
-                    Version.TryParse(versionString, out serverVersion);
-                }
-            }
-
-            return (clientVersion, serverVersion, context);
-        }
-        catch (JsonException)
-        {
-            // JSON parsing failed, return null to allow fallback to text parsing
-            return (null, null, null);
         }
     }
 
@@ -529,4 +488,83 @@ internal sealed partial class ContainerRuntimeCheck(ILogger<ContainerRuntimeChec
             return false;
         }
     }
+}
+
+/// <summary>
+/// Parsed container runtime version information.
+/// </summary>
+internal sealed record ContainerVersionInfo(
+    Version? ClientVersion,
+    Version? ServerVersion,
+    string? Context,
+    string? ServerOs)
+{
+    /// <summary>
+    /// Parses container version info from 'docker/podman version -f json' output.
+    /// </summary>
+    public static ContainerVersionInfo Parse(string? output)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return new ContainerVersionInfo(null, null, null, null);
+        }
+
+        try
+        {
+            var json = JsonSerializer.Deserialize(output, JsonSourceGenerationContext.Default.ContainerVersionJson);
+            if (json is null)
+            {
+                return new ContainerVersionInfo(null, null, null, null);
+            }
+
+            Version.TryParse(json.Client?.Version, out var clientVersion);
+            Version.TryParse(json.Server?.Version, out var serverVersion);
+
+            return new ContainerVersionInfo(
+                clientVersion,
+                serverVersion,
+                json.Client?.Context,
+                json.Server?.Os);
+        }
+        catch (JsonException)
+        {
+            return new ContainerVersionInfo(null, null, null, null);
+        }
+    }
+}
+
+/// <summary>
+/// JSON structure for container runtime version output.
+/// </summary>
+internal sealed class ContainerVersionJson
+{
+    [JsonPropertyName("Client")]
+    public ContainerClientJson? Client { get; set; }
+
+    [JsonPropertyName("Server")]
+    public ContainerServerJson? Server { get; set; }
+}
+
+/// <summary>
+/// JSON structure for the Client section of container runtime version output.
+/// </summary>
+internal sealed class ContainerClientJson
+{
+    [JsonPropertyName("Version")]
+    public string? Version { get; set; }
+
+    [JsonPropertyName("Context")]
+    public string? Context { get; set; }
+}
+
+/// <summary>
+/// JSON structure for the Server section of container runtime version output.
+/// </summary>
+internal sealed class ContainerServerJson
+{
+    [JsonPropertyName("Version")]
+    public string? Version { get; set; }
+
+    [JsonPropertyName("Os")]
+    public string? Os { get; set; }
 }
