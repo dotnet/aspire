@@ -123,7 +123,8 @@ public class CallbackProxyTests
         Assert.Single(invoker.Invocations);
         var args = invoker.Invocations[0].Args as JsonObject;
         Assert.NotNull(args);
-        Assert.Equal("hello-world", args["value"]?.GetValue<string>());
+        // Arguments are passed with positional keys (p0, p1, p2, ...)
+        Assert.Equal("hello-world", args["p0"]?.GetValue<string>());
     }
 
     [Fact]
@@ -139,8 +140,9 @@ public class CallbackProxyTests
         Assert.Single(invoker.Invocations);
         var args = invoker.Invocations[0].Args as JsonObject;
         Assert.NotNull(args);
-        Assert.Equal("test-name", args["name"]?.GetValue<string>());
-        Assert.Equal(42, args["count"]?.GetValue<int>());
+        // Arguments are passed with positional keys (p0, p1, p2, ...)
+        Assert.Equal("test-name", args["p0"]?.GetValue<string>());
+        Assert.Equal(42, args["p1"]?.GetValue<int>());
     }
 
     [Fact]
@@ -170,8 +172,9 @@ public class CallbackProxyTests
         Assert.Single(invoker.Invocations);
         var args = invoker.Invocations[0].Args as JsonObject;
         Assert.NotNull(args);
-        Assert.Equal("test", args["value"]?.GetValue<string>());
-        // CancellationToken is added as $cancellationToken only if it's not CancellationToken.None
+        // Arguments are passed with positional keys (p0, p1, p2, ...)
+        // CancellationToken is not included in positional args, but added as $cancellationToken if not None
+        Assert.Equal("test", args["p0"]?.GetValue<string>());
     }
 
     // Callback error handling tests

@@ -2105,13 +2105,23 @@ internal static class AtsCapabilityScanner
             // Need to extract the Value from each CustomAttributeTypedArgument
             foreach (var item in enumerable)
             {
-                // CustomAttributeTypedArgument has a Value property containing the actual type
-                var valueProperty = item?.GetType().GetProperty("Value");
-                var innerValue = valueProperty?.GetValue(item);
-                var extractedName = ExtractTypeName(innerValue);
-                if (extractedName != null)
+                // Handle CustomAttributeTypedArgument directly (from System.Reflection)
+                if (item is System.Reflection.CustomAttributeTypedArgument typedArg)
                 {
-                    unionTypeNames.Add(extractedName);
+                    var extractedName = ExtractTypeName(typedArg.Value);
+                    if (extractedName != null)
+                    {
+                        unionTypeNames.Add(extractedName);
+                    }
+                }
+                else
+                {
+                    // Fallback for other enumerable types
+                    var extractedName = ExtractTypeName(item);
+                    if (extractedName != null)
+                    {
+                        unionTypeNames.Add(extractedName);
+                    }
                 }
             }
         }

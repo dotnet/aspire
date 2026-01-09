@@ -108,7 +108,8 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
 
     private Expression BuildMarshalArgs(ParameterExpression[] paramExprs, ParameterInfo[] parameters)
     {
-        // Build: new JsonObject { { "param1", MarshalArg(arg1) }, { "param2", MarshalArg(arg2) } }
+        // Build: new JsonObject { { "p0", MarshalArg(arg1) }, { "p1", MarshalArg(arg2) } }
+        // Uses positional keys (p0, p1, p2, ...) instead of parameter names for predictable unpacking on TypeScript side
         var jsonObjectType = typeof(JsonObject);
         // JsonObject doesn't have a true parameterless constructor - it has JsonObject(JsonNodeOptions? options = null)
         // Expression.New can't handle optional parameters, so we need to call the constructor explicitly with null
@@ -121,6 +122,7 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
         var jsonObjVar = Expression.Variable(jsonObjectType, "args");
         expressions.Add(Expression.Assign(jsonObjVar, newJsonObject));
 
+        var paramIndex = 0; // Track positional index (excludes CancellationToken)
         for (int i = 0; i < parameters.Length; i++)
         {
             var param = parameters[i];
@@ -142,8 +144,10 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
                 marshalMethod,
                 Expression.Convert(paramExpr, typeof(object)));
 
-            var addCall = Expression.Call(jsonObjVar, addMethod!, Expression.Constant(param.Name), marshalCall);
+            // Use positional key (p0, p1, p2, ...) instead of param.Name
+            var addCall = Expression.Call(jsonObjVar, addMethod!, Expression.Constant($"p{paramIndex}"), marshalCall);
             expressions.Add(addCall);
+            paramIndex++;
         }
 
         expressions.Add(jsonObjVar);

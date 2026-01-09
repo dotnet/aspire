@@ -185,26 +185,34 @@ let callbackIdCounter = 0;
  * Register a callback function that can be invoked from the .NET side.
  * Returns a callback ID that should be passed to methods accepting callbacks.
  *
- * Supports both single-argument and multi-argument callbacks:
- * - Single arg: `(context: SomeType) => void`
- * - Multi arg: `(p0: string, p1: number) => boolean`
+ * .NET passes arguments as an object with positional keys: `{ p0: value0, p1: value1, ... }`
+ * This function automatically extracts positional parameters and wraps handles.
  *
- * .NET passes arguments as an object `{ p0: value0, p1: value1, ... }` which
- * this function automatically unpacks for multi-parameter callbacks.
+ * @example
+ * // Single parameter callback
+ * const id = registerCallback((ctx) => console.log(ctx));
+ * // .NET sends: { p0: { $handle: "...", $type: "..." } }
+ * // Callback receives: Handle instance
+ *
+ * @example
+ * // Multi-parameter callback
+ * const id = registerCallback((a, b) => console.log(a, b));
+ * // .NET sends: { p0: "hello", p1: 42 }
+ * // Callback receives: "hello", 42
  */
 export function registerCallback<TResult = void>(
     callback: (...args: any[]) => TResult | Promise<TResult>
 ): string {
     const callbackId = `callback_${++callbackIdCounter}_${Date.now()}`;
 
-    // Wrap the callback to handle .NET's argument format
+    // Wrap the callback to handle .NET's positional argument format
     const wrapper: CallbackFunction = async (args: unknown) => {
-        // .NET sends args as object { p0, p1, ... } - extract to array for multi-param callbacks
+        // .NET sends args as object { p0: value0, p1: value1, ... }
         if (args && typeof args === 'object' && !Array.isArray(args)) {
             const argObj = args as Record<string, unknown>;
             const argArray: unknown[] = [];
 
-            // Check for positional parameters (p0, p1, p2, ...)
+            // Extract positional parameters (p0, p1, p2, ...)
             for (let i = 0; ; i++) {
                 const key = `p${i}`;
                 if (key in argObj) {
@@ -215,15 +223,20 @@ export function registerCallback<TResult = void>(
             }
 
             if (argArray.length > 0) {
-                // Multi-parameter callback - spread the args
+                // Spread positional arguments to callback
                 return await callback(...argArray);
             }
 
-            // Single complex object parameter - wrap handles and pass as-is
-            return await callback(wrapIfHandle(args));
+            // No positional params found - call with no args
+            return await callback();
         }
 
-        // Null/undefined or primitive - pass as single arg
+        // Null/undefined - call with no args
+        if (args === null || args === undefined) {
+            return await callback();
+        }
+
+        // Primitive value - pass as single arg (shouldn't happen with current protocol)
         return await callback(wrapIfHandle(args));
     };
 
