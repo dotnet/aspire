@@ -128,6 +128,20 @@ public sealed class AtsCapabilityInfo
     public string? TargetTypeId { get; init; }
 
     /// <summary>
+    /// Gets or sets the target type reference with full type metadata.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Provides the type category (Primitive, Handle, Dto, Callback, Array, List, Dict)
+    /// and additional metadata like IsInterface for Handle types.
+    /// </para>
+    /// <para>
+    /// Prefer this over <see cref="TargetTypeId"/> for type-aware processing.
+    /// </para>
+    /// </remarks>
+    public AtsTypeRef? TargetType { get; init; }
+
+    /// <summary>
     /// Gets or sets the expanded list of concrete ATS type IDs this capability applies to.
     /// Pre-computed during scanning by resolving interface targets to all implementing types.
     /// </summary>

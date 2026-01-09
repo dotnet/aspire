@@ -110,6 +110,11 @@ internal sealed class AtsCapabilityInfo
     public string? OriginalTargetTypeId { get; init; }
 
     /// <summary>
+    /// Gets or sets the target type reference with full type metadata.
+    /// </summary>
+    public AtsTypeRef? TargetType { get; init; }
+
+    /// <summary>
     /// Gets or sets the expanded list of concrete ATS type IDs this capability applies to.
     /// Pre-computed during scanning by resolving interface targets to all implementing types.
     /// </summary>
@@ -202,11 +207,10 @@ internal sealed class AtsParameterInfo
     public IReadOnlyList<AtsCallbackParameterInfo>? CallbackParameters { get; init; }
 
     /// <summary>
-    /// Gets or sets the ATS type ID for the callback's return type.
+    /// Gets or sets the return type for the callback delegate.
     /// Only populated when <see cref="IsCallback"/> is true.
-    /// "void" indicates no return value.
     /// </summary>
-    public string? CallbackReturnTypeId { get; init; }
+    public AtsTypeRef? CallbackReturnType { get; init; }
 
     /// <summary>
     /// Gets or sets the default value for optional parameters.
@@ -225,9 +229,9 @@ internal sealed class AtsCallbackParameterInfo
     public required string Name { get; init; }
 
     /// <summary>
-    /// Gets or sets the ATS type ID for this parameter.
+    /// Gets or sets the type reference for this parameter.
     /// </summary>
-    public required string AtsTypeId { get; init; }
+    public required AtsTypeRef Type { get; init; }
 }
 
 /// <summary>

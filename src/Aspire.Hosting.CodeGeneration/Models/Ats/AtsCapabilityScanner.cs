@@ -121,6 +121,7 @@ public static class AtsCapabilityScanner
             ReturnType = ConvertTypeRef(shared.ReturnType),
             IsExtensionMethod = shared.IsExtensionMethod,
             TargetTypeId = shared.OriginalTargetTypeId,
+            TargetType = ConvertTypeRef(shared.TargetType),
             ExpandedTargetTypeIds = shared.ExpandedTargetTypeIds.ToList(),
             ReturnsBuilder = shared.ReturnsBuilder,
             CapabilityKind = shared.CapabilityKind,
@@ -144,9 +145,9 @@ public static class AtsCapabilityScanner
             CallbackParameters = shared.CallbackParameters?.Select(p => new AtsCallbackParameterInfo
             {
                 Name = p.Name,
-                AtsTypeId = p.AtsTypeId
+                Type = ConvertTypeRef(p.Type)!
             }).ToList(),
-            CallbackReturnTypeId = shared.CallbackReturnTypeId,
+            CallbackReturnType = ConvertTypeRef(shared.CallbackReturnType),
             DefaultValue = shared.DefaultValue
         };
     }

@@ -342,6 +342,7 @@ internal static class AtsCapabilityScanner
                     ReturnType = propertyTypeRef,
                     IsExtensionMethod = false,
                     OriginalTargetTypeId = typeId,
+                    TargetType = contextTypeRef,
                     ReturnsBuilder = false,
                     CapabilityKind = AtsCapabilityKind.PropertyGetter,
                     OwningTypeName = typeName,
@@ -394,6 +395,7 @@ internal static class AtsCapabilityScanner
                     ReturnType = contextTypeRef,
                     IsExtensionMethod = false,
                     OriginalTargetTypeId = typeId,
+                    TargetType = contextTypeRef,
                     ReturnsBuilder = false,
                     CapabilityKind = AtsCapabilityKind.PropertySetter,
                     OwningTypeName = typeName,
@@ -500,6 +502,7 @@ internal static class AtsCapabilityScanner
                     ReturnType = returnTypeRef,
                     IsExtensionMethod = false,
                     OriginalTargetTypeId = typeId,
+                    TargetType = instanceContextTypeRef,
                     ReturnsBuilder = false,
                     CapabilityKind = AtsCapabilityKind.InstanceMethod,
                     OwningTypeName = typeName,
@@ -538,6 +541,7 @@ internal static class AtsCapabilityScanner
         var isExtensionMethod = HasExtensionAttribute(method) && parameters.Count > 0;
 
         string? extendsTypeId = null;
+        AtsTypeRef? extendsTypeRef = null;
         if (parameters.Count > 0)
         {
             var firstParam = parameters[0];
@@ -550,7 +554,8 @@ internal static class AtsCapabilityScanner
                 return null;
             }
 
-            var firstParamTypeId = MapToAtsTypeId(firstParamType, typeMapping, typeResolver);
+            extendsTypeRef = CreateTypeRef(firstParamType, typeMapping, typeResolver);
+            var firstParamTypeId = extendsTypeRef?.TypeId ?? MapToAtsTypeId(firstParamType, typeMapping, typeResolver);
             if (firstParamTypeId != null)
             {
                 extendsTypeId = firstParamTypeId;
@@ -599,6 +604,7 @@ internal static class AtsCapabilityScanner
             ReturnType = returnTypeRef,
             IsExtensionMethod = isExtensionMethod,
             OriginalTargetTypeId = extendsTypeId,
+            TargetType = extendsTypeRef,
             ReturnsBuilder = returnsBuilder,
             SourceMethod = method // Store source method for runtime dispatch
         };
@@ -628,11 +634,11 @@ internal static class AtsCapabilityScanner
 
         // Extract callback signature if this is a callback parameter
         IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters = null;
-        string? callbackReturnTypeId = null;
+        AtsTypeRef? callbackReturnType = null;
 
         if (isCallback)
         {
-            (callbackParameters, callbackReturnTypeId) = ExtractCallbackSignature(paramType, typeMapping, typeResolver);
+            (callbackParameters, callbackReturnType) = ExtractCallbackSignature(paramType, typeMapping, typeResolver);
         }
 
         // Check if nullable (Nullable<T>)
@@ -656,7 +662,7 @@ internal static class AtsCapabilityScanner
             IsNullable = isNullable,
             IsCallback = isCallback,
             CallbackParameters = callbackParameters,
-            CallbackReturnTypeId = callbackReturnTypeId,
+            CallbackReturnType = callbackReturnType,
             DefaultValue = param.DefaultValue
         };
     }
@@ -684,7 +690,7 @@ internal static class AtsCapabilityScanner
     /// <summary>
     /// Extracts the callback signature (parameters and return type) from a delegate type.
     /// </summary>
-    private static (IReadOnlyList<AtsCallbackParameterInfo>? Parameters, string? ReturnTypeId) ExtractCallbackSignature(
+    private static (IReadOnlyList<AtsCallbackParameterInfo>? Parameters, AtsTypeRef? ReturnType) ExtractCallbackSignature(
         IAtsTypeInfo delegateType,
         AtsTypeMapping typeMapping,
         IAtsTypeResolver? typeResolver)
@@ -702,51 +708,53 @@ internal static class AtsCapabilityScanner
         var parameters = new List<AtsCallbackParameterInfo>();
         foreach (var param in invokeMethod.GetParameters())
         {
-            // For callback parameters, if type can't be mapped, derive a handle type ID
             var paramType = param.ParameterType;
-            var paramAtsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver)
-                ?? AtsTypeMapping.DeriveTypeId(paramType.AssemblyName ?? "Unknown", paramType.FullName);
-            parameters.Add(new AtsCallbackParameterInfo
+            var paramTypeRef = CreateTypeRef(paramType, typeMapping, typeResolver);
+            if (paramTypeRef != null)
             {
-                Name = param.Name,
-                AtsTypeId = paramAtsTypeId
-            });
+                parameters.Add(new AtsCallbackParameterInfo
+                {
+                    Name = param.Name,
+                    Type = paramTypeRef
+                });
+            }
         }
 
         // Extract return type
         var returnTypeFullName = invokeMethod.ReturnTypeFullName;
-        string returnTypeId;
+        AtsTypeRef? returnTypeRef;
 
         if (returnTypeFullName == "System.Void")
         {
-            returnTypeId = AtsConstants.Void;
+            returnTypeRef = new AtsTypeRef { TypeId = AtsConstants.Void, Category = AtsTypeCategory.Primitive };
         }
         else if (returnTypeFullName == "System.Threading.Tasks.Task")
         {
-            returnTypeId = AtsConstants.Void;
+            returnTypeRef = new AtsTypeRef { TypeId = AtsConstants.Void, Category = AtsTypeCategory.Primitive };
         }
         else if (returnTypeFullName.StartsWith("System.Threading.Tasks.Task`1"))
         {
             // Task<T> - get the inner type
             var innerType = invokeMethod.ReturnType.GetGenericArguments().FirstOrDefault();
-            returnTypeId = innerType is not null
-                ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? AtsConstants.Void
-                : AtsConstants.Void;
+            returnTypeRef = innerType is not null
+                ? CreateTypeRef(innerType, typeMapping, typeResolver)
+                    ?? new AtsTypeRef { TypeId = AtsConstants.Void, Category = AtsTypeCategory.Primitive }
+                : new AtsTypeRef { TypeId = AtsConstants.Void, Category = AtsTypeCategory.Primitive };
         }
         else
         {
-            // For unmapped return types, use void (callback return might not be used)
-            returnTypeId = MapToAtsTypeId(invokeMethod.ReturnType, typeMapping, typeResolver) ?? AtsConstants.Void;
+            returnTypeRef = CreateTypeRef(invokeMethod.ReturnType, typeMapping, typeResolver)
+                ?? new AtsTypeRef { TypeId = AtsConstants.Void, Category = AtsTypeCategory.Primitive };
         }
 
-        return (parameters, returnTypeId);
+        return (parameters, returnTypeRef);
     }
 
     /// <summary>
     /// Extracts signature from well-known delegate types based on their generic type definition.
     /// Used as fallback when the Invoke method isn't available from metadata.
     /// </summary>
-    private static (IReadOnlyList<AtsCallbackParameterInfo>? Parameters, string? ReturnTypeId) ExtractWellKnownDelegateSignature(
+    private static (IReadOnlyList<AtsCallbackParameterInfo>? Parameters, AtsTypeRef? ReturnType) ExtractWellKnownDelegateSignature(
         IAtsTypeInfo delegateType,
         AtsTypeMapping typeMapping,
         IAtsTypeResolver? typeResolver)
@@ -763,6 +771,8 @@ internal static class AtsCapabilityScanner
             return (null, null);
         }
 
+        var voidTypeRef = new AtsTypeRef { TypeId = AtsConstants.Void, Category = AtsTypeCategory.Primitive };
+
         // Action<T>, Action<T1, T2>, etc. - all params are inputs, void return
         if (genericDefFullName.StartsWith("System.Action`"))
         {
@@ -770,15 +780,17 @@ internal static class AtsCapabilityScanner
             for (var i = 0; i < genericArgs.Count; i++)
             {
                 var paramType = genericArgs[i];
-                var paramAtsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver)
-                    ?? AtsTypeMapping.DeriveTypeId(paramType.AssemblyName ?? "Unknown", paramType.FullName);
-                parameters.Add(new AtsCallbackParameterInfo
+                var paramTypeRef = CreateTypeRef(paramType, typeMapping, typeResolver);
+                if (paramTypeRef != null)
                 {
-                    Name = $"arg{i}",
-                    AtsTypeId = paramAtsTypeId
-                });
+                    parameters.Add(new AtsCallbackParameterInfo
+                    {
+                        Name = $"arg{i}",
+                        Type = paramTypeRef
+                    });
+                }
             }
-            return (parameters, AtsConstants.Void);
+            return (parameters, voidTypeRef);
         }
 
         // Func<TResult>, Func<T, TResult>, Func<T1, T2, TResult>, etc.
@@ -789,42 +801,43 @@ internal static class AtsCapabilityScanner
             for (var i = 0; i < genericArgs.Count - 1; i++)
             {
                 var paramType = genericArgs[i];
-                var paramAtsTypeId = MapToAtsTypeId(paramType, typeMapping, typeResolver)
-                    ?? AtsTypeMapping.DeriveTypeId(paramType.AssemblyName ?? "Unknown", paramType.FullName);
-                parameters.Add(new AtsCallbackParameterInfo
+                var paramTypeRef = CreateTypeRef(paramType, typeMapping, typeResolver);
+                if (paramTypeRef != null)
                 {
-                    Name = $"arg{i}",
-                    AtsTypeId = paramAtsTypeId
-                });
+                    parameters.Add(new AtsCallbackParameterInfo
+                    {
+                        Name = $"arg{i}",
+                        Type = paramTypeRef
+                    });
+                }
             }
 
             var returnType = genericArgs[^1];
             var returnTypeFullName = returnType.FullName;
-            string returnTypeId;
+            AtsTypeRef returnTypeRef;
 
             if (returnTypeFullName == "System.Void")
             {
-                returnTypeId = AtsConstants.Void;
+                returnTypeRef = voidTypeRef;
             }
             else if (returnTypeFullName == "System.Threading.Tasks.Task")
             {
-                returnTypeId = AtsConstants.Void;
+                returnTypeRef = voidTypeRef;
             }
             else if (returnTypeFullName.StartsWith("System.Threading.Tasks.Task`1"))
             {
                 // Task<T> - get the inner type
                 var innerType = returnType.GetGenericArguments().FirstOrDefault();
-                returnTypeId = innerType is not null
-                    ? MapToAtsTypeId(innerType, typeMapping, typeResolver) ?? AtsConstants.Void
-                    : AtsConstants.Void;
+                returnTypeRef = innerType is not null
+                    ? CreateTypeRef(innerType, typeMapping, typeResolver) ?? voidTypeRef
+                    : voidTypeRef;
             }
             else
             {
-                // For unmapped return types, use void (callback return might not be used)
-                returnTypeId = MapToAtsTypeId(returnType, typeMapping, typeResolver) ?? AtsConstants.Void;
+                returnTypeRef = CreateTypeRef(returnType, typeMapping, typeResolver) ?? voidTypeRef;
             }
 
-            return (parameters, returnTypeId);
+            return (parameters, returnTypeRef);
         }
 
         return (null, null);
