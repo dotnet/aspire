@@ -108,6 +108,19 @@ internal sealed class RuntimeTypeInfo : IAtsTypeInfo
         }
     }
 
+    public IEnumerable<IAtsTypeInfo> GetGenericParameterConstraints()
+    {
+        if (!_type.IsGenericParameter)
+        {
+            yield break;
+        }
+
+        foreach (var constraint in _type.GetGenericParameterConstraints())
+        {
+            yield return new RuntimeTypeInfo(constraint);
+        }
+    }
+
     public IEnumerable<IAtsAttributeInfo> GetCustomAttributes()
     {
         foreach (var attr in _type.GetCustomAttributesData())

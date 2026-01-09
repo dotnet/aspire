@@ -122,7 +122,7 @@ public static class AtsCapabilityScanner
             IsExtensionMethod = shared.IsExtensionMethod,
             TargetTypeId = shared.OriginalTargetTypeId,
             TargetType = ConvertTypeRef(shared.TargetType),
-            ExpandedTargetTypeIds = shared.ExpandedTargetTypeIds.ToList(),
+            ExpandedTargetTypes = shared.ExpandedTargetTypes.Select(ConvertTypeRef).ToList()!,
             ReturnsBuilder = shared.ReturnsBuilder,
             CapabilityKind = shared.CapabilityKind,
             OwningTypeName = shared.OwningTypeName
@@ -178,7 +178,7 @@ public static class AtsCapabilityScanner
             AtsTypeId = shared.AtsTypeId,
             ClrTypeName = shared.ClrTypeName ?? string.Empty,
             IsInterface = shared.IsInterface,
-            ImplementedInterfaceTypeIds = shared.ImplementedInterfaceTypeIds.ToList()
+            ImplementedInterfaces = shared.ImplementedInterfaces.Select(ConvertTypeRef).ToList()!
         };
     }
 

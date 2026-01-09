@@ -272,8 +272,13 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.NotNull(withOptionalString);
 
         // Expanded targets should include TestRedisResource (new format: {AssemblyName}/{FullTypeName})
-        Assert.NotNull(withOptionalString.ExpandedTargetTypeIds);
-        Assert.Contains("Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource", withOptionalString.ExpandedTargetTypeIds);
+        Assert.NotNull(withOptionalString.ExpandedTargetTypes);
+        var testRedisTarget = withOptionalString.ExpandedTargetTypes.FirstOrDefault(t =>
+            t.TypeId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource");
+        Assert.NotNull(testRedisTarget);
+
+        // Verify that concrete types in ExpandedTargetTypes have IsInterface = false
+        Assert.False(testRedisTarget.IsInterface, "TestRedisResource is a concrete type, not an interface");
     }
 
     [Fact]
@@ -300,6 +305,171 @@ public class AtsTypeScriptCodeGeneratorTests
         // Should have ContainerResource and Resource in the chain
         Assert.Contains(baseTypes, t => t.Contains("ContainerResource"));
         Assert.Contains(baseTypes, t => t.Contains("Resource") && !t.Contains("Container"));
+    }
+
+    [Fact]
+    public async Task Scanner_AddTestRedis_HasCorrectTypeMetadata()
+    {
+        // Verify the entire capability object for addTestRedis
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+
+        var addTestRedis = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
+        Assert.NotNull(addTestRedis);
+
+        await Verify(addTestRedis).UseFileName("AddTestRedisCapability");
+    }
+
+    [Fact]
+    public async Task Scanner_WithPersistence_HasCorrectExpandedTargets()
+    {
+        // Verify the entire capability object for withPersistence
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+
+        var withPersistence = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withPersistence");
+        Assert.NotNull(withPersistence);
+
+        await Verify(withPersistence).UseFileName("WithPersistenceCapability");
+    }
+
+    [Fact]
+    public async Task Scanner_WithOptionalString_HasCorrectExpandedTargets()
+    {
+        // Verify withOptionalString (targets IResource, should expand to TestRedisResource)
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+
+        var withOptionalString = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString");
+        Assert.NotNull(withOptionalString);
+
+        await Verify(withOptionalString).UseFileName("WithOptionalStringCapability");
+    }
+
+    [Fact]
+    public async Task Scanner_HostingAssembly_AddContainerCapability()
+    {
+        // Verify the addContainer capability from the real Aspire.Hosting assembly
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
+
+        // Scan capabilities from the hosting assembly
+        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+
+        var addContainer = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/addContainer");
+        Assert.NotNull(addContainer);
+
+        await Verify(addContainer).UseFileName("HostingAddContainerCapability");
+    }
+
+    [Fact]
+    public async Task Scanner_HostingAssembly_ContainerResourceCapabilities()
+    {
+        // Verify all capabilities that target ContainerResource from Aspire.Hosting
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
+
+        // Scan capabilities from the hosting assembly
+        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+
+        // Find all capabilities that target ContainerResource
+        var containerCapabilities = capabilities
+            .Where(c => c.TargetTypeId?.Contains("ContainerResource") == true ||
+                        c.ExpandedTargetTypes.Any(t => t.TypeId.Contains("ContainerResource")))
+            .Select(c => new
+            {
+                c.CapabilityId,
+                c.MethodName,
+                TargetType = c.TargetType != null ? new { c.TargetType.TypeId, c.TargetType.IsInterface } : null,
+                ExpandedTargetTypes = c.ExpandedTargetTypes
+                    .Where(t => t.TypeId.Contains("ContainerResource"))
+                    .Select(t => new { t.TypeId, t.IsInterface })
+            })
+            .OrderBy(c => c.CapabilityId)
+            .ToList();
+
+        await Verify(containerCapabilities).UseFileName("HostingContainerResourceCapabilities");
+    }
+
+    [Fact]
+    public void RoType_ContainerResource_IsNotInterface()
+    {
+        // Verify that ContainerResource.IsInterface returns false at the RoType level
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, _, _, _) = LoadTestAssemblies(context);
+
+        // Find ContainerResource type
+        var containerResourceType = hostingAssembly.GetTypeDefinitions()
+            .FirstOrDefault(t => t.FullName == "Aspire.Hosting.ApplicationModel.ContainerResource");
+
+        Assert.NotNull(containerResourceType);
+        Assert.False(containerResourceType.IsInterface, "ContainerResource should NOT be an interface");
+    }
+
+    [Fact]
+    public void Scanner_ContainerResource_DirectTargetingHasCorrectIsInterface()
+    {
+        // Verify that capabilities directly targeting ContainerResource have IsInterface = false
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
+
+        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+
+        // Find capabilities that directly target ContainerResource (not via interface expansion)
+        var directContainerCapabilities = capabilities
+            .Where(c => c.TargetTypeId == "Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource")
+            .ToList();
+
+        Assert.NotEmpty(directContainerCapabilities);
+
+        foreach (var cap in directContainerCapabilities)
+        {
+            // Both TargetType and ExpandedTargetTypes should have IsInterface = false for ContainerResource
+            Assert.NotNull(cap.TargetType);
+            Assert.False(cap.TargetType.IsInterface,
+                $"Capability '{cap.CapabilityId}' directly targets ContainerResource but TargetType.IsInterface is true");
+
+            foreach (var expandedType in cap.ExpandedTargetTypes)
+            {
+                if (expandedType.TypeId.Contains("ContainerResource"))
+                {
+                    Assert.False(expandedType.IsInterface,
+                        $"Capability '{cap.CapabilityId}' ExpandedTargetType '{expandedType.TypeId}' has IsInterface = true");
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void Scanner_GenericConstraintWithClassType_CorrectlyIdentifiesAsNotInterface()
+    {
+        // This test verifies that when a method has a generic constraint like:
+        //   IResourceBuilder<T> where T : ContainerResource
+        // The scanner correctly identifies ContainerResource as NOT an interface.
+        //
+        // Previously, the scanner hardcoded IsInterface = true for all generic constraints,
+        // which was wrong when the constraint is a class (like ContainerResource).
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
+
+        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+
+        // Find withBindMount - it has signature: IResourceBuilder<T> where T : ContainerResource
+        var withBindMount = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withBindMount");
+        Assert.NotNull(withBindMount);
+
+        // The constraint is ContainerResource (a class), so IsInterface should be false
+        Assert.NotNull(withBindMount.TargetType);
+        Assert.Equal("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource", withBindMount.TargetType.TypeId);
+        Assert.False(withBindMount.TargetType.IsInterface,
+            "ContainerResource is a class, not an interface - IsInterface should be false");
+
+        // Compare with an interface-constrained capability like withEnvironment
+        var withEnvironment = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withEnvironment");
+        Assert.NotNull(withEnvironment);
+        Assert.NotNull(withEnvironment.TargetType);
+        Assert.True(withEnvironment.TargetType.IsInterface,
+            "IResourceWithEnvironment is an interface - IsInterface should be true");
     }
 
     private static List<AtsCapabilityInfo> ScanCapabilitiesFromTestAssembly(AssemblyLoaderContext context)

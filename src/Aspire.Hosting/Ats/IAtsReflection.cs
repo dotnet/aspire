@@ -67,6 +67,9 @@ internal interface IAtsTypeInfo
     /// <summary>Gets the full names of generic parameter constraints (for type parameters).</summary>
     IEnumerable<string> GetGenericParameterConstraintFullNames();
 
+    /// <summary>Gets the generic parameter constraints as IAtsTypeInfo objects (for type parameters).</summary>
+    IEnumerable<IAtsTypeInfo> GetGenericParameterConstraints();
+
     /// <summary>Gets all custom attributes on this type.</summary>
     IEnumerable<IAtsAttributeInfo> GetCustomAttributes();
 

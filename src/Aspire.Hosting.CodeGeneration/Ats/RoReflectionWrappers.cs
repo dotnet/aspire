@@ -118,6 +118,30 @@ internal sealed class RoTypeInfoWrapper : IAtsTypeInfo
         }
     }
 
+    public IEnumerable<IAtsTypeInfo> GetGenericParameterConstraints()
+    {
+        if (!_type.IsGenericParameter)
+        {
+            yield break;
+        }
+
+        IReadOnlyList<RoType> constraints;
+        try
+        {
+            constraints = _type.GetGenericParameterConstraints();
+        }
+        catch (InvalidOperationException)
+        {
+            // Not a generic parameter
+            yield break;
+        }
+
+        foreach (var constraint in constraints)
+        {
+            yield return new RoTypeInfoWrapper(constraint);
+        }
+    }
+
     public IEnumerable<IAtsAttributeInfo> GetCustomAttributes()
     {
         IEnumerable<RoCustomAttributeData> attrs;

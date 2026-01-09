@@ -224,7 +224,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
 
     /** Configures the Redis resource with persistence */
     /** @internal */
-    async _withPersistenceInternal(mode?: enum:Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestPersistenceMode): Promise<TestRedisResource> {
+    async _withPersistenceInternal(mode?: string): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withPersistence',
             { builder: this._handle, mode }
@@ -232,7 +232,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
-    withPersistence(mode?: enum:Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestPersistenceMode): TestRedisResourcePromise {
+    withPersistence(mode?: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withPersistenceInternal(mode));
     }
 
@@ -268,7 +268,7 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Configures the Redis resource with persistence */
-    withPersistence(mode?: enum:Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestPersistenceMode): TestRedisResourcePromise {
+    withPersistence(mode?: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
             this._promise.then(b => b._withPersistenceInternal(mode))
         );

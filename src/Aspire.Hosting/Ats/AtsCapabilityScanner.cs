@@ -105,7 +105,7 @@ internal static class AtsCapabilityScanner
                 AtsTypeId = typeId,
                 ClrTypeName = resourceType.FullName,
                 IsInterface = false,
-                ImplementedInterfaceTypeIds = implementedInterfaces
+                ImplementedInterfaces = implementedInterfaces
             });
         }
 
@@ -125,15 +125,15 @@ internal static class AtsCapabilityScanner
     /// <summary>
     /// Expands capability targets from interface types to concrete types.
     /// For capabilities targeting an interface (e.g., "Aspire.Hosting/IResourceWithEnvironment"),
-    /// this populates ExpandedTargetTypeIds with all concrete types implementing that interface.
+    /// this populates ExpandedTargetTypes with all concrete types implementing that interface.
     /// </summary>
     private static void ExpandCapabilityTargets(
         List<AtsCapabilityInfo> capabilities,
         List<AtsTypeInfo> typeInfos)
     {
-        // Build map: interface typeId -> concrete typeIds that implement it
+        // Build map: interface typeId -> concrete type refs that implement it
         // This includes both explicit interfaces (with [AspireExport]) and inferred ones (like IResource)
-        var interfaceToConcreteTypes = new Dictionary<string, List<string>>();
+        var interfaceToConcreteTypes = new Dictionary<string, List<AtsTypeRef>>();
 
         foreach (var typeInfo in typeInfos)
         {
@@ -142,15 +142,23 @@ internal static class AtsCapabilityScanner
                 continue;
             }
 
-            // Add this concrete type to all interfaces it implements
-            foreach (var interfaceTypeId in typeInfo.ImplementedInterfaceTypeIds)
+            // Create type ref for this concrete type
+            var concreteTypeRef = new AtsTypeRef
             {
-                if (!interfaceToConcreteTypes.TryGetValue(interfaceTypeId, out var list))
+                TypeId = typeInfo.AtsTypeId,
+                Category = AtsTypeCategory.Handle,
+                IsInterface = false
+            };
+
+            // Add this concrete type to all interfaces it implements
+            foreach (var implementedInterface in typeInfo.ImplementedInterfaces)
+            {
+                if (!interfaceToConcreteTypes.TryGetValue(implementedInterface.TypeId, out var list))
                 {
                     list = [];
-                    interfaceToConcreteTypes[interfaceTypeId] = list;
+                    interfaceToConcreteTypes[implementedInterface.TypeId] = list;
                 }
-                list.Add(typeInfo.AtsTypeId);
+                list.Add(concreteTypeRef);
             }
         }
 
@@ -161,20 +169,26 @@ internal static class AtsCapabilityScanner
             if (string.IsNullOrEmpty(originalTarget))
             {
                 // Entry point methods have no target
-                capability.ExpandedTargetTypeIds = [];
+                capability.ExpandedTargetTypes = [];
                 continue;
             }
 
             // Check if target is an interface (either explicit or inferred from type hierarchy)
-            // Use the interfaceToConcreteTypes map directly - it includes all interfaces from ImplementedInterfaceTypeIds
+            // Use the interfaceToConcreteTypes map directly - it includes all interfaces from ImplementedInterfaces
             if (interfaceToConcreteTypes.TryGetValue(originalTarget, out var concreteTypes))
             {
-                capability.ExpandedTargetTypeIds = concreteTypes.ToList();
+                capability.ExpandedTargetTypes = concreteTypes.ToList();
             }
             else
             {
                 // Concrete type: expand to itself
-                capability.ExpandedTargetTypeIds = [originalTarget];
+                var targetTypeRef = capability.TargetType ?? new AtsTypeRef
+                {
+                    TypeId = originalTarget,
+                    Category = AtsTypeCategory.Handle,
+                    IsInterface = false
+                };
+                capability.ExpandedTargetTypes = [targetTypeRef];
             }
         }
     }
@@ -187,8 +201,8 @@ internal static class AtsCapabilityScanner
     {
         // Group by (TargetTypeId, MethodName) to find collisions
         var collisions = capabilities
-            .Where(c => c.ExpandedTargetTypeIds.Count > 0)
-            .SelectMany(c => c.ExpandedTargetTypeIds.Select(t => (Target: t, Capability: c)))
+            .Where(c => c.ExpandedTargetTypes.Count > 0)
+            .SelectMany(c => c.ExpandedTargetTypes.Select(t => (Target: t.TypeId, Capability: c)))
             .GroupBy(x => (x.Target, x.Capability.MethodName))
             .Where(g => g.Count() > 1)
             .ToList();
@@ -242,7 +256,7 @@ internal static class AtsCapabilityScanner
             AtsTypeId = atsTypeId,
             ClrTypeName = type.FullName,
             IsInterface = type.IsInterface,
-            ImplementedInterfaceTypeIds = implementedInterfaces
+            ImplementedInterfaces = implementedInterfaces
         };
     }
 
@@ -1326,15 +1340,16 @@ internal static class AtsCapabilityScanner
             // If T is a generic parameter, use its constraint type instead
             if (resourceType.IsGenericParameter)
             {
-                var constraints = resourceType.GetGenericParameterConstraintFullNames().ToList();
-                if (constraints.Count > 0)
+                var constraintTypes = resourceType.GetGenericParameterConstraints().ToList();
+                if (constraintTypes.Count > 0)
                 {
-                    var constraintTypeId = typeMapping.GetTypeId(constraints[0]) ?? InferResourceTypeId(constraints[0]);
+                    var constraintType = constraintTypes[0];
+                    var constraintTypeId = typeMapping.GetTypeId(constraintType) ?? InferResourceTypeId(constraintType);
                     return new AtsTypeRef
                     {
                         TypeId = constraintTypeId,
                         Category = AtsTypeCategory.Handle,
-                        IsInterface = true // Constraints are typically interfaces
+                        IsInterface = constraintType.IsInterface
                     };
                 }
             }
@@ -1360,15 +1375,16 @@ internal static class AtsCapabilityScanner
                 // If T is a generic parameter, use the constraint type
                 if (resType.IsGenericParameter)
                 {
-                    var constraints = resType.GetGenericParameterConstraintFullNames().ToList();
-                    if (constraints.Count > 0)
+                    var constraintTypes = resType.GetGenericParameterConstraints().ToList();
+                    if (constraintTypes.Count > 0)
                     {
-                        var constraintTypeId = typeMapping.GetTypeId(constraints[0]) ?? InferResourceTypeId(constraints[0]);
+                        var constraintType = constraintTypes[0];
+                        var constraintTypeId = typeMapping.GetTypeId(constraintType) ?? InferResourceTypeId(constraintType);
                         return new AtsTypeRef
                         {
                             TypeId = constraintTypeId,
                             Category = AtsTypeCategory.Handle,
-                            IsInterface = true
+                            IsInterface = constraintType.IsInterface
                         };
                     }
                 }
@@ -1539,15 +1555,20 @@ internal static class AtsCapabilityScanner
     /// <summary>
     /// Collects ALL interfaces implemented by a type, including inherited interfaces.
     /// </summary>
-    private static List<string> CollectAllInterfaces(IAtsTypeInfo type, AtsTypeMapping typeMapping)
+    private static List<AtsTypeRef> CollectAllInterfaces(IAtsTypeInfo type, AtsTypeMapping typeMapping)
     {
-        var allInterfaces = new List<string>();
+        var allInterfaces = new List<AtsTypeRef>();
 
         // GetInterfaces() returns all interfaces (including inherited for RoTypeInfoWrapper)
         foreach (var iface in type.GetInterfaces())
         {
             var ifaceTypeId = typeMapping.GetTypeId(iface) ?? InferResourceTypeId(iface);
-            allInterfaces.Add(ifaceTypeId);
+            allInterfaces.Add(new AtsTypeRef
+            {
+                TypeId = ifaceTypeId,
+                Category = AtsTypeCategory.Handle,
+                IsInterface = true
+            });
         }
 
         return allInterfaces;

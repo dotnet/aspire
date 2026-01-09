@@ -109,12 +109,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private const string TypeId_Application = AtsConstants.ApplicationTypeId;
 
     /// <summary>
-    /// Checks if a type ID represents an ATS handle type (not a primitive).
-    /// Handle types have the format {AssemblyName}/{TypeName} (contain a '/').
-    /// </summary>
-    private static bool IsHandleType(string? typeId) => !string.IsNullOrEmpty(typeId) && typeId.Contains('/');
-
-    /// <summary>
     /// Checks if an AtsTypeRef represents a handle type.
     /// </summary>
     private static bool IsHandleType(AtsTypeRef? typeRef) =>
@@ -193,15 +187,21 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
+    /// Maps a parameter to its TypeScript type, handling callbacks specially.
+    /// </summary>
+    private string MapParameterToTypeScript(AtsParameterInfo param)
+    {
+        if (param.IsCallback)
+        {
+            return GenerateCallbackTypeSignature(param.CallbackParameters, param.CallbackReturnType);
+        }
+        return MapTypeRefToTypeScript(param.Type);
+    }
+
+    /// <summary>
     /// Gets the TypeId from a capability's return type.
     /// </summary>
     private static string? GetReturnTypeId(AtsCapabilityInfo capability) => capability.ReturnType?.TypeId;
-
-    /// <summary>
-    /// Gets the TypeId from a parameter's type.
-    /// Returns "unknown" if the type is null.
-    /// </summary>
-    private static string GetParamTypeId(AtsParameterInfo param) => param.Type?.TypeId ?? "unknown";
 
     /// <inheritdoc />
     public string Language => "TypeScript";
@@ -312,7 +312,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             {
                 if (IsHandleType(param.Type))
                 {
-                    typeIds.Add(GetParamTypeId(param)!);
+                    typeIds.Add(param.Type!.TypeId);
                 }
             }
         }
@@ -552,7 +552,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         foreach (var param in capability.Parameters)
         {
-            var tsType = MapAtsTypeToTypeScript(GetParamTypeId(param), param.IsCallback, param.CallbackParameters, param.CallbackReturnType);
+            var tsType = MapParameterToTypeScript(param);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
             paramDefs.Add($"{param.Name}{optional}: {tsType}");
             paramArgs.Add(param.Name);
@@ -603,7 +603,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         else if (!string.IsNullOrEmpty(returnTypeId))
         {
             // Returns raw handle or value
-            var returnType = MapAtsTypeToTypeScript(returnTypeId, false);
+            var returnType = MapTypeRefToTypeScript(capability.ReturnType);
             Write($"    async {methodName}(");
             Write(paramsString);
             WriteLine($"): Promise<{returnType}> {{");
@@ -676,7 +676,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         foreach (var param in capability.Parameters)
         {
-            var tsType = MapAtsTypeToTypeScript(GetParamTypeId(param), param.IsCallback, param.CallbackParameters, param.CallbackReturnType);
+            var tsType = MapParameterToTypeScript(param);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
 
             paramDefs.Add($"{param.Name}{optional}: {tsType}");
@@ -686,7 +686,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 // Callbacks need to be wrapped with registerCallback
                 paramArgs.Add($"callback: {param.Name}Id");
             }
-            else if (_wrapperClassNames.ContainsKey(GetParamTypeId(param)))
+            else if (param.Type?.TypeId != null && _wrapperClassNames.ContainsKey(param.Type.TypeId))
             {
                 // Parameter is a wrapper type - extract its handle for the capability call
                 paramArgs.Add($"{param.Name}: {param.Name}._handle");
@@ -788,7 +788,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
             var paramDefs = capability.Parameters.Select(p =>
             {
-                var tsType = MapAtsTypeToTypeScript(GetParamTypeId(p), p.IsCallback, p.CallbackParameters, p.CallbackReturnType);
+                var tsType = MapParameterToTypeScript(p);
                 var optional = p.IsOptional || p.IsNullable ? "?" : "";
                 return $"{p.Name}{optional}: {tsType}";
             });
@@ -846,7 +846,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         foreach (var param in capability.Parameters)
         {
-            var tsType = MapAtsTypeToTypeScript(GetParamTypeId(param), param.IsCallback, param.CallbackParameters, param.CallbackReturnType);
+            var tsType = MapParameterToTypeScript(param);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
             paramDefs.Add($"{param.Name}{optional}: {tsType}");
             paramArgs.Add(param.Name);
@@ -878,7 +878,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
             else
             {
-                returnType = MapAtsTypeToTypeScript(capReturnTypeId, false);
+                returnType = MapTypeRefToTypeScript(capability.ReturnType);
             }
         }
         else
@@ -929,51 +929,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             WriteLine("}");
         }
         WriteLine();
-    }
-
-    private string MapAtsTypeToTypeScript(string atsTypeId, bool isCallback)
-    {
-        return MapAtsTypeToTypeScript(atsTypeId, isCallback, null, null);
-    }
-
-    private string MapAtsTypeToTypeScript(string atsTypeId, bool isCallback, IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters, AtsTypeRef? callbackReturnType)
-    {
-        if (isCallback)
-        {
-            return GenerateCallbackTypeSignature(callbackParameters, callbackReturnType);
-        }
-
-        // Check for wrapper class (exact match)
-        if (_wrapperClassNames.TryGetValue(atsTypeId, out var wrapperClassName))
-        {
-            return wrapperClassName;
-        }
-
-        return atsTypeId switch
-        {
-            // Primitives map directly to TypeScript types
-            AtsConstants.String or AtsConstants.Char => "string",
-            AtsConstants.Number => "number",
-            AtsConstants.Boolean => "boolean",
-            AtsConstants.Void => "void",
-
-            // Date/time types serialize to string or number in JSON
-            AtsConstants.DateTime or AtsConstants.DateTimeOffset or
-            AtsConstants.DateOnly or AtsConstants.TimeOnly => "string",
-            AtsConstants.TimeSpan => "number",  // milliseconds
-
-            // Other scalar types serialize to string
-            AtsConstants.Guid or AtsConstants.Uri => "string",
-
-            // Handle types get typed wrappers
-            _ when IsHandleType(atsTypeId) => GetHandleTypeName(atsTypeId),
-
-            // Arrays
-            _ when atsTypeId.EndsWith("[]", StringComparison.Ordinal) => $"{MapAtsTypeToTypeScript(atsTypeId[..^2], false)}[]",
-
-            // Fallback - pass through unknown types
-            _ => atsTypeId
-        };
     }
 
     private string GenerateCallbackTypeSignature(IReadOnlyList<AtsCallbackParameterInfo>? callbackParameters, AtsTypeRef? callbackReturnType)
@@ -1263,7 +1218,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             ? getter.MethodName[(getter.MethodName.LastIndexOf('.') + 1)..]
             : getter.MethodName;
 
-        var returnType = MapAtsTypeToTypeScript(GetReturnTypeId(getter) ?? "unknown", false);
+        var returnType = MapTypeRefToTypeScript(getter.ReturnType);
 
         // Generate JSDoc
         if (!string.IsNullOrEmpty(getter.Description))
@@ -1296,7 +1251,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         foreach (var param in method.Parameters.Where(p => p.Name != "context"))
         {
-            var tsType = MapAtsTypeToTypeScript(GetParamTypeId(param), param.IsCallback, param.CallbackParameters, param.CallbackReturnType);
+            var tsType = MapParameterToTypeScript(param);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
             paramDefs.Add($"{param.Name}{optional}: {tsType}");
             paramArgs.Add(param.Name);
@@ -1307,7 +1262,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Determine return type
         var returnType = GetReturnTypeId(method) != null
-            ? MapAtsTypeToTypeScript(GetReturnTypeId(method)!, false)
+            ? MapTypeRefToTypeScript(method.ReturnType)
             : "void";
 
         // Generate JSDoc
@@ -1353,7 +1308,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             return;
         }
 
-        var valueType = MapAtsTypeToTypeScript(GetParamTypeId(valueParam), false);
+        var valueType = MapTypeRefToTypeScript(valueParam.Type);
         var handleType = GetHandleTypeName(GetReturnTypeId(setter) ?? setter.TargetTypeId ?? "unknown");
 
         WriteLine($"    /** @internal */");
@@ -1384,7 +1339,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             return;
         }
 
-        var valueType = MapAtsTypeToTypeScript(GetParamTypeId(valueParam), false);
+        var valueType = MapTypeRefToTypeScript(valueParam.Type);
 
         // Generate JSDoc
         if (!string.IsNullOrEmpty(setter.Description))
@@ -1431,7 +1386,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             var methodName = !string.IsNullOrEmpty(getter.OwningTypeName) && getter.MethodName.Contains('.')
                 ? getter.MethodName[(getter.MethodName.LastIndexOf('.') + 1)..]
                 : getter.MethodName;
-            var returnType = MapAtsTypeToTypeScript(GetReturnTypeId(getter) ?? "unknown", false);
+            var returnType = MapTypeRefToTypeScript(getter.ReturnType);
 
             if (!string.IsNullOrEmpty(getter.Description))
             {
@@ -1456,7 +1411,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 continue;
             }
 
-            var valueType = MapAtsTypeToTypeScript(GetParamTypeId(valueParam), false);
+            var valueType = MapTypeRefToTypeScript(valueParam.Type);
 
             if (!string.IsNullOrEmpty(setter.Description))
             {
@@ -1499,7 +1454,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 continue;
             }
 
-            var tsType = MapAtsTypeToTypeScript(GetParamTypeId(param), param.IsCallback, param.CallbackParameters, param.CallbackReturnType);
+            var tsType = MapParameterToTypeScript(param);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
             paramDefs.Add($"{param.Name}{optional}: {tsType}");
             paramArgs.Add(param.Name);
@@ -1509,7 +1464,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var argsObject = $"{{ {string.Join(", ", paramArgs)} }}";
 
         // Determine return type
-        var returnType = MapAtsTypeToTypeScript(GetReturnTypeId(capability) ?? "void", false);
+        var returnType = MapTypeRefToTypeScript(capability.ReturnType);
 
         // Generate JSDoc
         if (!string.IsNullOrEmpty(capability.Description))
@@ -1542,15 +1497,18 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     // ============================================================================
 
     /// <summary>
-    /// Groups capabilities by ExpandedTargetTypeIds to create builder models.
+    /// Groups capabilities by ExpandedTargetTypes to create builder models.
     /// Uses expansion to map interface targets to their concrete implementations.
     /// </summary>
     private static List<BuilderModel> CreateBuilderModels(List<AtsCapabilityInfo> capabilities)
     {
         // Group capabilities by expanded target type IDs
-        // A capability targeting IResource with ExpandedTargetTypeIds = [Aspire.Hosting.Redis/RedisResource]
+        // A capability targeting IResource with ExpandedTargetTypes = [RedisResource]
         // will be assigned to Aspire.Hosting.Redis/RedisResource (the concrete type)
         var capabilitiesByTypeId = new Dictionary<string, List<AtsCapabilityInfo>>();
+
+        // Track whether each typeId is an interface (from ExpandedTargetTypes metadata)
+        var typeIdIsInterface = new Dictionary<string, bool>();
 
         foreach (var cap in capabilities)
         {
@@ -1568,16 +1526,18 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 continue;
             }
 
-            // Use expanded type IDs if available, otherwise fall back to the original target
-            var expandedTypeIds = cap.ExpandedTargetTypeIds;
-            if (expandedTypeIds is { Count: > 0 })
+            // Use expanded types if available, otherwise fall back to the original target
+            var expandedTypes = cap.ExpandedTargetTypes;
+            if (expandedTypes is { Count: > 0 })
             {
-                foreach (var expandedTypeId in expandedTypeIds)
+                foreach (var expandedType in expandedTypes)
                 {
-                    if (!capabilitiesByTypeId.TryGetValue(expandedTypeId, out var list))
+                    if (!capabilitiesByTypeId.TryGetValue(expandedType.TypeId, out var list))
                     {
                         list = [];
-                        capabilitiesByTypeId[expandedTypeId] = list;
+                        capabilitiesByTypeId[expandedType.TypeId] = list;
+                        // Store whether this expanded type is an interface
+                        typeIdIsInterface[expandedType.TypeId] = expandedType.IsInterface;
                     }
                     list.Add(cap);
                 }
@@ -1589,6 +1549,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 {
                     list = [];
                     capabilitiesByTypeId[targetTypeId] = list;
+                    // Store whether this target type is an interface
+                    typeIdIsInterface[targetTypeId] = targetTypeRef.IsInterface;
                 }
                 list.Add(cap);
             }
@@ -1600,8 +1562,8 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         {
             var builderClassName = DeriveClassName(typeId);
 
-            // Get IsInterface from the first capability's return type metadata
-            var isInterface = typeCapabilities.FirstOrDefault()?.ReturnType?.IsInterface ?? false;
+            // Get IsInterface from the tracked metadata (based on target type, not return type)
+            var isInterface = typeIdIsInterface.GetValueOrDefault(typeId, false);
 
             // Deduplicate capabilities by CapabilityId to avoid duplicate methods
             var uniqueCapabilities = typeCapabilities

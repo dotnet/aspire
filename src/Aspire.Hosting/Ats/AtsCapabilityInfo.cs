@@ -115,14 +115,14 @@ internal sealed class AtsCapabilityInfo
     public AtsTypeRef? TargetType { get; init; }
 
     /// <summary>
-    /// Gets or sets the expanded list of concrete ATS type IDs this capability applies to.
+    /// Gets or sets the expanded list of concrete types this capability applies to.
     /// Pre-computed during scanning by resolving interface targets to all implementing types.
     /// </summary>
     /// <remarks>
     /// For flat codegen (Go, C): use this to put methods on each concrete builder.
     /// For inheritance codegen (TypeScript, Java): use <see cref="OriginalTargetTypeId"/> instead.
     /// </remarks>
-    public IReadOnlyList<string> ExpandedTargetTypeIds { get; set; } = [];
+    public IReadOnlyList<AtsTypeRef> ExpandedTargetTypes { get; set; } = [];
 
     /// <summary>
     /// Gets or sets whether the return type is a builder type.
@@ -255,8 +255,8 @@ internal sealed class AtsTypeInfo
     public bool IsInterface { get; init; }
 
     /// <summary>
-    /// Gets or sets the ATS type IDs of interfaces this type implements.
+    /// Gets or sets the interfaces this type implements.
     /// Only populated for concrete (non-interface) types.
     /// </summary>
-    public IReadOnlyList<string> ImplementedInterfaceTypeIds { get; init; } = [];
+    public IReadOnlyList<AtsTypeRef> ImplementedInterfaces { get; init; } = [];
 }

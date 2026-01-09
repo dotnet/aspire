@@ -79,13 +79,13 @@ internal sealed class CapabilityDispatcher
 
                 foreach (var capability in result.Capabilities)
                 {
-                    if (capability.IsContextProperty && capability.SourceProperty != null)
+                    if ((capability.CapabilityKind == AtsCapabilityKind.PropertyGetter || capability.CapabilityKind == AtsCapabilityKind.PropertySetter) && capability.SourceProperty != null)
                     {
                         // Context type property capability
                         var property = ((RuntimePropertyInfo)capability.SourceProperty).UnderlyingProperty;
                         RegisterContextTypeProperty(capability, property);
                     }
-                    else if (capability.IsContextMethod && capability.SourceMethod != null)
+                    else if (capability.CapabilityKind == AtsCapabilityKind.InstanceMethod && capability.SourceMethod != null)
                     {
                         // Context type method capability (instance method)
                         var method = ((RuntimeMethodInfo)capability.SourceMethod).UnderlyingMethod;
@@ -121,7 +121,7 @@ internal sealed class CapabilityDispatcher
         var capabilityId = capability.CapabilityId;
         var prop = property; // Capture for closure
 
-        if (capability.IsContextPropertyGetter)
+        if (capability.CapabilityKind == AtsCapabilityKind.PropertyGetter)
         {
             // Getter capability
             CapabilityHandler getterHandler = (args, handles) =>
@@ -153,7 +153,7 @@ internal sealed class CapabilityDispatcher
                 Description = capability.Description ?? $"Gets the {property.Name} property"
             };
         }
-        else if (capability.IsContextPropertySetter)
+        else if (capability.CapabilityKind == AtsCapabilityKind.PropertySetter)
         {
             // Setter capability - returns the context handle for fluent chaining
             CapabilityHandler setterHandler = (args, handles) =>

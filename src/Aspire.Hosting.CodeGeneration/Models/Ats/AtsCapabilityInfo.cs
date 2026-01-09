@@ -118,7 +118,7 @@ public sealed class AtsCapabilityInfo
     /// </list>
     /// </para>
     /// <para>
-    /// For flat codegen (Go, C): use <see cref="ExpandedTargetTypeIds"/> instead to put methods on each concrete builder.
+    /// For flat codegen (Go, C): use <see cref="ExpandedTargetTypes"/> instead to put methods on each concrete builder.
     /// For inheritance codegen (TypeScript, Java): use this property.
     /// </para>
     /// <para>
@@ -142,14 +142,14 @@ public sealed class AtsCapabilityInfo
     public AtsTypeRef? TargetType { get; init; }
 
     /// <summary>
-    /// Gets or sets the expanded list of concrete ATS type IDs this capability applies to.
+    /// Gets or sets the expanded list of concrete types this capability applies to.
     /// Pre-computed during scanning by resolving interface targets to all implementing types.
     /// </summary>
     /// <remarks>
     /// For flat codegen (Go, C): use this to put methods on each concrete builder.
     /// For inheritance codegen (TypeScript, Java): use <see cref="TargetTypeId"/> instead.
     /// </remarks>
-    public IReadOnlyList<string> ExpandedTargetTypeIds { get; init; } = [];
+    public IReadOnlyList<AtsTypeRef> ExpandedTargetTypes { get; init; } = [];
 
     /// <summary>
     /// Gets or sets whether the return type is a builder type (for fluent chaining).
