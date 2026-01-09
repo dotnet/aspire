@@ -137,16 +137,11 @@ internal static class AtsCapabilityScanner
             // Auto-generate property/method accessor capabilities
             if (HasExposePropertiesAttribute(type) || HasExposeMethodsAttribute(type))
             {
-                try
-                {
-                    var contextCapabilities = CreateContextTypeCapabilities(type, assembly.Name, typeMapping, typeResolver);
-                    capabilities.AddRange(contextCapabilities);
-                }
-                catch (InvalidOperationException ex)
-                {
-                    // Type validation error - log as diagnostic and continue
-                    diagnostics.Add(AtsDiagnostic.Error(ex.Message, type.FullName));
-                }
+                // Member-level errors are captured inside CreateContextTypeCapabilities
+                // and returned as diagnostics, allowing other members to be processed
+                var result = CreateContextTypeCapabilities(type, assembly.Name, typeMapping, typeResolver);
+                capabilities.AddRange(result.Capabilities);
+                diagnostics.AddRange(result.Diagnostics);
             }
 
             // Scan static classes for [AspireExport] on methods
@@ -403,13 +398,23 @@ internal static class AtsCapabilityScanner
         };
     }
 
-    private static List<AtsCapabilityInfo> CreateContextTypeCapabilities(
+    /// <summary>
+    /// Result of creating context type capabilities, including any member-level diagnostics.
+    /// </summary>
+    internal sealed class ContextTypeCapabilitiesResult
+    {
+        public required List<AtsCapabilityInfo> Capabilities { get; init; }
+        public List<AtsDiagnostic> Diagnostics { get; init; } = [];
+    }
+
+    private static ContextTypeCapabilitiesResult CreateContextTypeCapabilities(
         IAtsTypeInfo contextType,
         string assemblyName,
         AtsTypeMapping typeMapping,
         IAtsTypeResolver? typeResolver)
     {
         var capabilities = new List<AtsCapabilityInfo>();
+        var diagnostics = new List<AtsDiagnostic>();
 
         // Derive the type ID from assembly name and full type name
         var typeName = contextType.Name;
@@ -444,185 +449,195 @@ internal static class AtsCapabilityScanner
                 continue;
             }
 
-            // Check for [AspireUnion] on property for union types (especially for Dict<string, object> value types)
-            var propertyUnionAttr = GetAspireUnionAttribute(property);
-            AtsTypeRef? propertyTypeRef;
-            string? propertyTypeId;
-
-            // Check if this is a Dictionary<string, object> that needs union value type
-            var propType = property.PropertyType;
-            var isDictWithObjectValue =
-                (propType.GenericTypeDefinitionFullName == "System.Collections.Generic.Dictionary`2" ||
-                 propType.GenericTypeDefinitionFullName == "System.Collections.Generic.IDictionary`2" ||
-                 propType.FullName.StartsWith("System.Collections.Generic.Dictionary`2") ||
-                 propType.FullName.StartsWith("System.Collections.Generic.IDictionary`2")) &&
-                propType.GetGenericArguments().Skip(1).FirstOrDefault()?.FullName == "System.Object";
-
-            if (isDictWithObjectValue)
+            // Wrap individual property processing in try/catch to capture member-level errors
+            // and continue processing other properties
+            try
             {
-                if (propertyUnionAttr != null)
+                // Check for [AspireUnion] on property for union types (especially for Dict<string, object> value types)
+                var propertyUnionAttr = GetAspireUnionAttribute(property);
+                AtsTypeRef? propertyTypeRef;
+                string? propertyTypeId;
+
+                // Check if this is a Dictionary<string, object> that needs union value type
+                var propType = property.PropertyType;
+                var isDictWithObjectValue =
+                    (propType.GenericTypeDefinitionFullName == "System.Collections.Generic.Dictionary`2" ||
+                     propType.GenericTypeDefinitionFullName == "System.Collections.Generic.IDictionary`2" ||
+                     propType.FullName.StartsWith("System.Collections.Generic.Dictionary`2") ||
+                     propType.FullName.StartsWith("System.Collections.Generic.IDictionary`2")) &&
+                    propType.GetGenericArguments().Skip(1).FirstOrDefault()?.FullName == "System.Object";
+
+                if (isDictWithObjectValue)
                 {
-                    // Create union type for dictionary value
-                    var unionValueTypeRef = CreateUnionTypeRef(propertyUnionAttr, $"property '{property.Name}'", typeMapping);
-                    var keyTypeRef = CreateTypeRef(propType.GetGenericArguments().First(), typeMapping, typeResolver);
-                    if (keyTypeRef != null)
+                    if (propertyUnionAttr != null)
                     {
-                        propertyTypeRef = new AtsTypeRef
+                        // Create union type for dictionary value
+                        var unionValueTypeRef = CreateUnionTypeRef(propertyUnionAttr, $"property '{property.Name}'", typeMapping);
+                        var keyTypeRef = CreateTypeRef(propType.GetGenericArguments().First(), typeMapping, typeResolver);
+                        if (keyTypeRef != null)
                         {
-                            TypeId = AtsConstants.DictTypeId(keyTypeRef.TypeId, unionValueTypeRef.TypeId),
-                            Category = AtsTypeCategory.Dict,
-                            KeyType = keyTypeRef,
-                            ValueType = unionValueTypeRef,
-                            IsReadOnly = false
-                        };
+                            propertyTypeRef = new AtsTypeRef
+                            {
+                                TypeId = AtsConstants.DictTypeId(keyTypeRef.TypeId, unionValueTypeRef.TypeId),
+                                Category = AtsTypeCategory.Dict,
+                                KeyType = keyTypeRef,
+                                ValueType = unionValueTypeRef,
+                                IsReadOnly = false
+                            };
+                            propertyTypeId = propertyTypeRef.TypeId;
+                        }
+                        else
+                        {
+                            continue; // Skip if key type can't be mapped
+                        }
+                    }
+                    else
+                    {
+                        // Error: Dictionary<string, object> without [AspireUnion]
+                        throw new InvalidOperationException(
+                            $"Property '{property.Name}' has type 'Dictionary<string, object>' which is not a valid ATS type. " +
+                            $"Use [AspireUnion(typeof(T1), typeof(T2), ...)] on the property to specify the allowed value types.");
+                    }
+                }
+                else if (propType.FullName == "System.Object")
+                {
+                    // Error: object type without [AspireUnion]
+                    if (propertyUnionAttr != null)
+                    {
+                        propertyTypeRef = CreateUnionTypeRef(propertyUnionAttr, $"property '{property.Name}'", typeMapping);
                         propertyTypeId = propertyTypeRef.TypeId;
                     }
                     else
                     {
-                        continue; // Skip if key type can't be mapped
+                        throw new InvalidOperationException(
+                            $"Property '{property.Name}' has type 'object' which is not a valid ATS type. " +
+                            $"Use [AspireUnion(typeof(T1), typeof(T2), ...)] to specify the allowed types.");
                     }
                 }
                 else
                 {
-                    // Error: Dictionary<string, object> without [AspireUnion]
-                    throw new InvalidOperationException(
-                        $"Property '{property.Name}' has type 'Dictionary<string, object>' which is not a valid ATS type. " +
-                        $"Use [AspireUnion(typeof(T1), typeof(T2), ...)] on the property to specify the allowed value types.");
+                    propertyTypeRef = CreateTypeRef(propType, typeMapping, typeResolver);
+                    propertyTypeId = MapToAtsTypeId(propType, typeMapping, typeResolver);
                 }
-            }
-            else if (propType.FullName == "System.Object")
-            {
-                // Error: object type without [AspireUnion]
-                if (propertyUnionAttr != null)
+
+                if (propertyTypeId is null)
                 {
-                    propertyTypeRef = CreateUnionTypeRef(propertyUnionAttr, $"property '{property.Name}'", typeMapping);
-                    propertyTypeId = propertyTypeRef.TypeId;
+                    // Skip properties with unmapped types
+                    continue;
                 }
-                else
+
+                // Create type ref for the context type
+                var contextTypeRef = new AtsTypeRef
                 {
-                    throw new InvalidOperationException(
-                        $"Property '{property.Name}' has type 'object' which is not a valid ATS type. " +
-                        $"Use [AspireUnion(typeof(T1), typeof(T2), ...)] to specify the allowed types.");
-                }
-            }
-            else
-            {
-                propertyTypeRef = CreateTypeRef(propType, typeMapping, typeResolver);
-                propertyTypeId = MapToAtsTypeId(propType, typeMapping, typeResolver);
-            }
+                    TypeId = typeId,
+                    Category = AtsTypeCategory.Handle,
+                    IsInterface = contextType.IsInterface
+                };
 
-            if (propertyTypeId is null)
-            {
-                // Skip properties with unmapped types
-                continue;
-            }
+                // Get custom method name from attribute if specified
+                var customMethodName = memberExportAttr?.NamedArguments.TryGetValue("Id", out var idObj) == true
+                    ? idObj as string
+                    : null;
 
-            // Create type ref for the context type
-            var contextTypeRef = new AtsTypeRef
-            {
-                TypeId = typeId,
-                Category = AtsTypeCategory.Handle,
-                IsInterface = contextType.IsInterface
-            };
-
-            // Get custom method name from attribute if specified
-            var customMethodName = memberExportAttr?.NamedArguments.TryGetValue("Id", out var idObj) == true
-                ? idObj as string
-                : null;
-
-            // Generate getter capability if property is readable
-            // Naming: {TypeName}.{propertyName} (camelCase, no "get" prefix)
-            if (property.CanRead)
-            {
-                var camelCaseName = ToCamelCase(property.Name);
-                var getMethodName = customMethodName ?? $"{typeName}.{camelCaseName}";
-                var getCapabilityId = $"{package}/{getMethodName}";
-
-                capabilities.Add(new AtsCapabilityInfo
+                // Generate getter capability if property is readable
+                // Naming: {TypeName}.{propertyName} (camelCase, no "get" prefix)
+                if (property.CanRead)
                 {
-                    CapabilityId = getCapabilityId,
-                    MethodName = getMethodName,
-                    Package = package,
-                    Description = $"Gets the {property.Name} property",
-                    Parameters = [
-                        new AtsParameterInfo
-                        {
-                            Name = "context",
+                    var camelCaseName = ToCamelCase(property.Name);
+                    var getMethodName = customMethodName ?? $"{typeName}.{camelCaseName}";
+                    var getCapabilityId = $"{package}/{getMethodName}";
+
+                    capabilities.Add(new AtsCapabilityInfo
+                    {
+                        CapabilityId = getCapabilityId,
+                        MethodName = getMethodName,
+                        Package = package,
+                        Description = $"Gets the {property.Name} property",
+                        Parameters = [
+                            new AtsParameterInfo
+                            {
+                                Name = "context",
 #pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
-                            AtsTypeId = typeId,
+                                AtsTypeId = typeId,
 #pragma warning restore CS0618
-                            Type = contextTypeRef,
-                            IsOptional = false,
-                            IsNullable = false,
-                            IsCallback = false,
-                            DefaultValue = null
-                        }
-                    ],
+                                Type = contextTypeRef,
+                                IsOptional = false,
+                                IsNullable = false,
+                                IsCallback = false,
+                                DefaultValue = null
+                            }
+                        ],
 #pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
-                    ReturnTypeId = propertyTypeId,
+                        ReturnTypeId = propertyTypeId,
 #pragma warning restore CS0618
-                    ReturnType = propertyTypeRef,
-                    IsExtensionMethod = false,
-                    OriginalTargetTypeId = typeId,
-                    TargetType = contextTypeRef,
-                    ReturnsBuilder = false,
-                    CapabilityKind = AtsCapabilityKind.PropertyGetter,
-                    OwningTypeName = typeName,
-                    SourceProperty = property
-                });
-            }
+                        ReturnType = propertyTypeRef,
+                        IsExtensionMethod = false,
+                        OriginalTargetTypeId = typeId,
+                        TargetType = contextTypeRef,
+                        ReturnsBuilder = false,
+                        CapabilityKind = AtsCapabilityKind.PropertyGetter,
+                        OwningTypeName = typeName,
+                        SourceProperty = property
+                    });
+                }
 
-            // Generate setter capability if property is writable
-            // Naming: {TypeName}.set{PropertyName} (keep "set" prefix, PascalCase property name)
-            if (property.CanWrite)
-            {
-                var setMethodName = $"{typeName}.set{property.Name}";
-                var setCapabilityId = $"{package}/{setMethodName}";
-
-                capabilities.Add(new AtsCapabilityInfo
+                // Generate setter capability if property is writable
+                // Naming: {TypeName}.set{PropertyName} (keep "set" prefix, PascalCase property name)
+                if (property.CanWrite)
                 {
-                    CapabilityId = setCapabilityId,
-                    MethodName = setMethodName,
-                    Package = package,
-                    Description = $"Sets the {property.Name} property",
-                    Parameters = [
-                        new AtsParameterInfo
-                        {
-                            Name = "context",
+                    var setMethodName = $"{typeName}.set{property.Name}";
+                    var setCapabilityId = $"{package}/{setMethodName}";
+
+                    capabilities.Add(new AtsCapabilityInfo
+                    {
+                        CapabilityId = setCapabilityId,
+                        MethodName = setMethodName,
+                        Package = package,
+                        Description = $"Sets the {property.Name} property",
+                        Parameters = [
+                            new AtsParameterInfo
+                            {
+                                Name = "context",
 #pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
-                            AtsTypeId = typeId,
+                                AtsTypeId = typeId,
 #pragma warning restore CS0618
-                            Type = contextTypeRef,
-                            IsOptional = false,
-                            IsNullable = false,
-                            IsCallback = false,
-                            DefaultValue = null
-                        },
-                        new AtsParameterInfo
-                        {
-                            Name = "value",
+                                Type = contextTypeRef,
+                                IsOptional = false,
+                                IsNullable = false,
+                                IsCallback = false,
+                                DefaultValue = null
+                            },
+                            new AtsParameterInfo
+                            {
+                                Name = "value",
 #pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
-                            AtsTypeId = propertyTypeId,
+                                AtsTypeId = propertyTypeId,
 #pragma warning restore CS0618
-                            Type = propertyTypeRef,
-                            IsOptional = false,
-                            IsNullable = false,
-                            IsCallback = false,
-                            DefaultValue = null
-                        }
-                    ],
+                                Type = propertyTypeRef,
+                                IsOptional = false,
+                                IsNullable = false,
+                                IsCallback = false,
+                                DefaultValue = null
+                            }
+                        ],
 #pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
-                    ReturnTypeId = typeId, // Returns the context for fluent chaining
+                        ReturnTypeId = typeId, // Returns the context for fluent chaining
 #pragma warning restore CS0618
-                    ReturnType = contextTypeRef,
-                    IsExtensionMethod = false,
-                    OriginalTargetTypeId = typeId,
-                    TargetType = contextTypeRef,
-                    ReturnsBuilder = false,
-                    CapabilityKind = AtsCapabilityKind.PropertySetter,
-                    OwningTypeName = typeName,
-                    SourceProperty = property
-                });
+                        ReturnType = contextTypeRef,
+                        IsExtensionMethod = false,
+                        OriginalTargetTypeId = typeId,
+                        TargetType = contextTypeRef,
+                        ReturnsBuilder = false,
+                        CapabilityKind = AtsCapabilityKind.PropertySetter,
+                        OwningTypeName = typeName,
+                        SourceProperty = property
+                    });
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Property-level error - record diagnostic and continue with other properties
+                diagnostics.Add(AtsDiagnostic.Error(ex.Message, $"{contextType.FullName}.{property.Name}"));
             }
         }
 
@@ -659,81 +674,94 @@ internal static class AtsCapabilityScanner
                     continue;
                 }
 
-                // Generate method capability
-                var camelCaseMethodName = ToCamelCase(method.Name);
-                var methodCapabilityName = $"{typeName}.{camelCaseMethodName}";
-                var methodCapabilityId = $"{package}/{methodCapabilityName}";
-
-                // Build parameters (first parameter is the context/instance)
-                var paramInfos = new List<AtsParameterInfo>
+                // Wrap individual method processing in try/catch to capture member-level errors
+                try
                 {
-                    new AtsParameterInfo
-                    {
-                        Name = "context",
-#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
-                        AtsTypeId = typeId,
-#pragma warning restore CS0618
-                        Type = instanceContextTypeRef,
-                        IsOptional = false,
-                        IsNullable = false,
-                        IsCallback = false,
-                        DefaultValue = null
-                    }
-                };
+                    // Generate method capability
+                    var camelCaseMethodName = ToCamelCase(method.Name);
+                    var methodCapabilityName = $"{typeName}.{camelCaseMethodName}";
+                    var methodCapabilityId = $"{package}/{methodCapabilityName}";
 
-                var paramIndex = 0;
-                var hasUnmappedRequiredParam = false;
-                foreach (var param in method.GetParameters())
-                {
-                    var paramInfo = CreateParameterInfo(param, paramIndex, typeMapping, typeResolver);
-                    if (paramInfo is null)
+                    // Build parameters (first parameter is the context/instance)
+                    var paramInfos = new List<AtsParameterInfo>
                     {
-                        // Parameter type couldn't be mapped - skip if required
-                        if (!param.IsOptional)
+                        new AtsParameterInfo
                         {
-                            hasUnmappedRequiredParam = true;
-                            break;
+                            Name = "context",
+#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
+                            AtsTypeId = typeId,
+#pragma warning restore CS0618
+                            Type = instanceContextTypeRef,
+                            IsOptional = false,
+                            IsNullable = false,
+                            IsCallback = false,
+                            DefaultValue = null
                         }
-                        // Skip optional parameters with unmapped types
+                    };
+
+                    var paramIndex = 0;
+                    var hasUnmappedRequiredParam = false;
+                    foreach (var param in method.GetParameters())
+                    {
+                        var paramInfo = CreateParameterInfo(param, paramIndex, typeMapping, typeResolver);
+                        if (paramInfo is null)
+                        {
+                            // Parameter type couldn't be mapped - skip if required
+                            if (!param.IsOptional)
+                            {
+                                hasUnmappedRequiredParam = true;
+                                break;
+                            }
+                            // Skip optional parameters with unmapped types
+                            continue;
+                        }
+                        paramInfos.Add(paramInfo);
+                        paramIndex++;
+                    }
+
+                    // Skip capability if a required parameter couldn't be mapped
+                    if (hasUnmappedRequiredParam)
+                    {
                         continue;
                     }
-                    paramInfos.Add(paramInfo);
-                    paramIndex++;
-                }
 
-                // Skip capability if a required parameter couldn't be mapped
-                if (hasUnmappedRequiredParam)
-                {
-                    continue;
-                }
+                    // Get return type
+                    var returnTypeRef = CreateTypeRef(method.ReturnType, typeMapping, typeResolver);
+                    var returnTypeId = MapToAtsTypeId(method.ReturnType, typeMapping, typeResolver);
 
-                // Get return type
-                var returnTypeRef = CreateTypeRef(method.ReturnType, typeMapping, typeResolver);
-                var returnTypeId = MapToAtsTypeId(method.ReturnType, typeMapping, typeResolver);
-
-                capabilities.Add(new AtsCapabilityInfo
-                {
-                    CapabilityId = methodCapabilityId,
-                    MethodName = methodCapabilityName,
-                    Package = package,
-                    Description = $"Invokes the {method.Name} method",
-                    Parameters = paramInfos,
+                    capabilities.Add(new AtsCapabilityInfo
+                    {
+                        CapabilityId = methodCapabilityId,
+                        MethodName = methodCapabilityName,
+                        Package = package,
+                        Description = $"Invokes the {method.Name} method",
+                        Parameters = paramInfos,
 #pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
-                    ReturnTypeId = returnTypeId,
+                        ReturnTypeId = returnTypeId,
 #pragma warning restore CS0618
-                    ReturnType = returnTypeRef,
-                    IsExtensionMethod = false,
-                    OriginalTargetTypeId = typeId,
-                    TargetType = instanceContextTypeRef,
-                    ReturnsBuilder = false,
-                    CapabilityKind = AtsCapabilityKind.InstanceMethod,
-                    OwningTypeName = typeName,
-                    SourceMethod = method
-                });
+                        ReturnType = returnTypeRef,
+                        IsExtensionMethod = false,
+                        OriginalTargetTypeId = typeId,
+                        TargetType = instanceContextTypeRef,
+                        ReturnsBuilder = false,
+                        CapabilityKind = AtsCapabilityKind.InstanceMethod,
+                        OwningTypeName = typeName,
+                        SourceMethod = method
+                    });
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Method-level error - record diagnostic and continue with other methods
+                    diagnostics.Add(AtsDiagnostic.Error(ex.Message, $"{contextType.FullName}.{method.Name}"));
+                }
             }
         }
 
-        return capabilities;
+        return new ContextTypeCapabilitiesResult
+        {
+            Capabilities = capabilities,
+            Diagnostics = diagnostics
+        };
     }
 
     private static AtsCapabilityInfo? CreateCapabilityInfo(
@@ -2064,13 +2092,26 @@ internal static class AtsCapabilityScanner
             // Params array case: Type[] stored as object[]
             foreach (var typeObj in typeArray)
             {
-                if (typeObj is IAtsTypeInfo typeInfo)
+                var extractedName = ExtractTypeName(typeObj);
+                if (extractedName != null)
                 {
-                    unionTypeNames.Add(typeInfo.FullName);
+                    unionTypeNames.Add(extractedName);
                 }
-                else if (typeObj is string typeName)
+            }
+        }
+        else if (firstArg is System.Collections.IEnumerable enumerable && firstArg is not string)
+        {
+            // Runtime reflection: params Type[] comes through as ReadOnlyCollection<CustomAttributeTypedArgument>
+            // Need to extract the Value from each CustomAttributeTypedArgument
+            foreach (var item in enumerable)
+            {
+                // CustomAttributeTypedArgument has a Value property containing the actual type
+                var valueProperty = item?.GetType().GetProperty("Value");
+                var innerValue = valueProperty?.GetValue(item);
+                var extractedName = ExtractTypeName(innerValue);
+                if (extractedName != null)
                 {
-                    unionTypeNames.Add(typeName);
+                    unionTypeNames.Add(extractedName);
                 }
             }
         }
@@ -2079,15 +2120,31 @@ internal static class AtsCapabilityScanner
             // Individual arguments case or different serialization
             foreach (var arg in unionAttr.FixedArguments)
             {
-                if (arg is IAtsTypeInfo typeInfo)
+                var extractedName = ExtractTypeName(arg);
+                if (extractedName != null)
                 {
-                    unionTypeNames.Add(typeInfo.FullName);
-                }
-                else if (arg is string typeName)
-                {
-                    unionTypeNames.Add(typeName);
+                    unionTypeNames.Add(extractedName);
                 }
             }
+        }
+
+        // Helper to extract type name from various possible representations
+        static string? ExtractTypeName(object? typeObj)
+        {
+            if (typeObj is IAtsTypeInfo typeInfo)
+            {
+                return typeInfo.FullName;
+            }
+            if (typeObj is string typeName)
+            {
+                return typeName;
+            }
+            // Runtime reflection: typeof() arguments come through as Type objects
+            if (typeObj is Type clrType && clrType.FullName != null)
+            {
+                return clrType.FullName;
+            }
+            return null;
         }
 
         if (unionTypeNames.Count < 2)

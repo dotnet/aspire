@@ -75,33 +75,53 @@ public sealed partial class AtsTypeMapping
         }
 
         // Scan type-level attributes
+        // Handle ReflectionTypeLoadException by processing the types that CAN be loaded
+        // This matches the behavior of RuntimeAssemblyInfo.GetTypes() used by codegen
+        Type[] types;
         try
         {
-            foreach (var type in assembly.GetTypes())
+            types = assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            // Report which types couldn't be loaded - this is important for debugging ATS issues
+            var failedTypes = ex.Types.Count(t => t == null);
+            var loaderExceptions = ex.LoaderExceptions?.Where(e => e != null).ToList() ?? [];
+
+            Console.Error.WriteLine($"[ATS] Warning: {failedTypes} type(s) in assembly '{assemblyName}' could not be loaded:");
+            foreach (var loaderEx in loaderExceptions.Take(5)) // Limit to first 5 to avoid flooding
             {
-                var attr = type.GetCustomAttribute<AspireExportAttribute>();
-                if (attr != null)
+                Console.Error.WriteLine($"[ATS]   - {loaderEx!.Message}");
+            }
+            if (loaderExceptions.Count > 5)
+            {
+                Console.Error.WriteLine($"[ATS]   ... and {loaderExceptions.Count - 5} more errors");
+            }
+
+            // Get the types that were successfully loaded (filter out nulls)
+            types = ex.Types.Where(t => t != null).ToArray()!;
+        }
+
+        foreach (var type in types)
+        {
+            var attr = type.GetCustomAttribute<AspireExportAttribute>();
+            if (attr != null)
+            {
+                var fullName = type.FullName;
+                if (fullName != null)
                 {
-                    var fullName = type.FullName;
-                    if (fullName != null)
+                    // Derive type ID from assembly name and full type name
+                    var typeId = DeriveTypeId(assemblyName, fullName);
+
+                    fullNameToTypeId[fullName] = typeId;
+                    typeIdToFullName[typeId] = fullName;
+
+                    if (attr.ExposeProperties)
                     {
-                        // Derive type ID from assembly name and full type name
-                        var typeId = DeriveTypeId(assemblyName, fullName);
-
-                        fullNameToTypeId[fullName] = typeId;
-                        typeIdToFullName[typeId] = fullName;
-
-                        if (attr.ExposeProperties)
-                        {
-                            exposePropertiesTypeIds.Add(typeId);
-                        }
+                        exposePropertiesTypeIds.Add(typeId);
                     }
                 }
             }
-        }
-        catch (ReflectionTypeLoadException)
-        {
-            // Skip assemblies that can't be fully loaded
         }
     }
 }

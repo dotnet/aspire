@@ -286,6 +286,92 @@ public class CapabilityDispatcherTests
         Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/VersionedContextType.value"));
     }
 
+    /// <summary>
+    /// Tests that context type properties whose type is another context type are registered.
+    /// This simulates the EnvironmentCallbackContext.ExecutionContext scenario.
+    /// </summary>
+    [Fact]
+    public void Constructor_RegistersNestedContextTypeProperties()
+    {
+        var dispatcher = CreateDispatcher(typeof(TestParentContextType).Assembly);
+
+        // The TestParentContextType has a NestedContext property of type TestNestedContextType
+        // This capability should be registered because TestNestedContextType is a valid ATS type
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestParentContextType.nestedContext"),
+            "NestedContext property capability should be registered");
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestParentContextType.name"),
+            "Name property capability should be registered");
+
+        // The nested type's properties should also be registered
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestNestedContextType.operation"),
+            "Nested context type's Operation property should be registered");
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.RemoteHost.Tests/TestNestedContextType.isPublishMode"),
+            "Nested context type's IsPublishMode property should be registered");
+    }
+
+    /// <summary>
+    /// Tests that getting a context type property that returns another context type works.
+    /// </summary>
+    [Fact]
+    public void Invoke_NestedContextTypePropertyReturnsHandle()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, [typeof(TestParentContextType).Assembly]);
+
+        // Create and register the parent context with a nested context
+        var nestedContext = new TestNestedContextType { Operation = "Publish", IsPublishMode = true };
+        var parentContext = new TestParentContextType(nestedContext) { Name = "parent-context" };
+        var handleId = handles.Register(parentContext, "Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestParentContextType");
+        var args = new JsonObject { ["context"] = new JsonObject { ["$handle"] = handleId } };
+
+        // Get the nested context property - should return a handle
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestParentContextType.nestedContext", args);
+
+        Assert.NotNull(result);
+        // The result should be a handle reference to the nested context
+        var handleRef = result.AsObject();
+        Assert.NotNull(handleRef);
+        Assert.True(handleRef.ContainsKey("$handle"), "Result should be a handle reference");
+        var nestedHandleId = handleRef["$handle"]!.GetValue<string>();
+        Assert.StartsWith("Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestNestedContextType:", nestedHandleId);
+
+        // Verify we can use the returned handle to access the nested context's properties
+        var nestedArgs = new JsonObject { ["context"] = new JsonObject { ["$handle"] = nestedHandleId } };
+        var operationResult = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/TestNestedContextType.operation", nestedArgs);
+        Assert.NotNull(operationResult);
+        Assert.Equal("Publish", operationResult.GetValue<string>());
+    }
+
+    /// <summary>
+    /// Tests that EnvironmentCallbackContext.executionContext capability is registered.
+    /// This is the exact scenario that was failing at runtime.
+    /// </summary>
+    [Fact]
+    public void Constructor_RegistersEnvironmentCallbackContextExecutionContextCapability()
+    {
+        // Scan the Aspire.Hosting assembly which contains both:
+        // - EnvironmentCallbackContext (has ExecutionContext property)
+        // - DistributedApplicationExecutionContext (the property type)
+        var dispatcher = CreateDispatcher(typeof(AspireExportAttribute).Assembly);
+
+        // EnvironmentCallbackContext.ExecutionContext should be registered
+        // Capability ID format: {Namespace}/{TypeName}.{camelCasePropertyName}
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.executionContext"),
+            "EnvironmentCallbackContext.executionContext capability should be registered");
+
+        // Other EnvironmentCallbackContext properties should also be registered
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.environmentVariables"),
+            "EnvironmentCallbackContext.environmentVariables should be registered");
+
+        // DistributedApplicationExecutionContext properties should also be registered
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting/DistributedApplicationExecutionContext.operation"),
+            "DistributedApplicationExecutionContext.operation should be registered");
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting/DistributedApplicationExecutionContext.isPublishMode"),
+            "DistributedApplicationExecutionContext.isPublishMode should be registered");
+        Assert.True(dispatcher.HasCapability("Aspire.Hosting/DistributedApplicationExecutionContext.isRunMode"),
+            "DistributedApplicationExecutionContext.isRunMode should be registered");
+    }
+
     // Property setter tests
     [Fact]
     public void Constructor_RegistersPropertySetters()
@@ -1044,6 +1130,37 @@ internal sealed class TestContextType
 internal sealed class VersionedContextType
 {
     public string Value { get; set; } = "v2";
+}
+
+/// <summary>
+/// Test nested context type - simulates DistributedApplicationExecutionContext.
+/// This type is used as a property type in another context type.
+/// </summary>
+[AspireExport(ExposeProperties = true)]
+internal sealed class TestNestedContextType
+{
+    public string Operation { get; set; } = "Run";
+    public bool IsPublishMode { get; set; }
+}
+
+/// <summary>
+/// Test parent context type - simulates EnvironmentCallbackContext.
+/// Has a property whose type is another context type (TestNestedContextType).
+/// </summary>
+[AspireExport(ExposeProperties = true)]
+internal sealed class TestParentContextType
+{
+    public TestParentContextType(TestNestedContextType nestedContext)
+    {
+        NestedContext = nestedContext ?? throw new ArgumentNullException(nameof(nestedContext));
+    }
+
+    /// <summary>
+    /// Property whose type is another context type - simulates ExecutionContext property.
+    /// </summary>
+    public TestNestedContextType NestedContext { get; }
+
+    public string Name { get; set; } = "parent";
 }
 
 /// <summary>
