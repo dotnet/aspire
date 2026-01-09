@@ -153,7 +153,7 @@ suite('Launch Profile Tests', () => {
                 { name: 'VAR4', value: 'session4' }
             ];
 
-            const result = mergeEnvironmentVariables(baseProfileEnv, runSessionEnv);
+            const result = mergeEnvironmentVariables(baseProfileEnv, undefined, runSessionEnv);
 
             assert.strictEqual(result.length, 4);
 
@@ -178,7 +178,7 @@ suite('Launch Profile Tests', () => {
 
             const runSessionEnv: EnvVar[] = [];
 
-            const result = mergeEnvironmentVariables(baseProfileEnv, runSessionEnv, runApiEnv);
+            const result = mergeEnvironmentVariables(baseProfileEnv, undefined, runSessionEnv, runApiEnv);
 
             assert.strictEqual(result.length, 4);
 
@@ -205,7 +205,7 @@ suite('Launch Profile Tests', () => {
                 { name: 'VAR4', value: 'session4' }
             ];
 
-            const result = mergeEnvironmentVariables(baseProfileEnv, runSessionEnv, runApiEnv);
+            const result = mergeEnvironmentVariables(baseProfileEnv, undefined, runSessionEnv, runApiEnv);
 
             assert.strictEqual(result.length, 4);
 
@@ -216,43 +216,12 @@ suite('Launch Profile Tests', () => {
             assert.strictEqual(resultMap.get('VAR4'), 'session4');
         });
 
-        test('handles all three sources with correct precedence: session > api > base', () => {
-            const baseProfileEnv = {
-                'BASE_ONLY': 'base_value',
-                'OVERRIDDEN_BY_API': 'base_value',
-                'OVERRIDDEN_BY_SESSION': 'base_value',
-                'OVERRIDDEN_BY_BOTH': 'base_value'
-            };
-
-            const runApiEnv = {
-                'API_ONLY': 'api_value',
-                'OVERRIDDEN_BY_API': 'api_value',
-                'OVERRIDDEN_BY_BOTH': 'api_value'
-            };
-
-            const runSessionEnv: EnvVar[] = [
-                { name: 'SESSION_ONLY', value: 'session_value' },
-                { name: 'OVERRIDDEN_BY_SESSION', value: 'session_value' },
-                { name: 'OVERRIDDEN_BY_BOTH', value: 'session_value' }
-            ];
-
-            const result = mergeEnvironmentVariables(baseProfileEnv, runSessionEnv, runApiEnv);
-
-            const resultMap = new Map(result);
-            assert.strictEqual(resultMap.get('BASE_ONLY'), 'base_value');
-            assert.strictEqual(resultMap.get('API_ONLY'), 'api_value');
-            assert.strictEqual(resultMap.get('SESSION_ONLY'), 'session_value');
-            assert.strictEqual(resultMap.get('OVERRIDDEN_BY_API'), 'api_value');
-            assert.strictEqual(resultMap.get('OVERRIDDEN_BY_SESSION'), 'session_value');
-            assert.strictEqual(resultMap.get('OVERRIDDEN_BY_BOTH'), 'session_value');
-        });
-
         test('handles empty base profile environment', () => {
             const runSessionEnv: EnvVar[] = [
                 { name: 'VAR1', value: 'session1' }
             ];
 
-            const result = mergeEnvironmentVariables(undefined, runSessionEnv);
+            const result = mergeEnvironmentVariables(undefined, undefined, runSessionEnv);
 
             assert.strictEqual(result.length, 1);
             const resultMap = new Map(result);
@@ -265,7 +234,7 @@ suite('Launch Profile Tests', () => {
                 'VAR2': 'base2'
             };
 
-            const result = mergeEnvironmentVariables(baseProfileEnv, []);
+            const result = mergeEnvironmentVariables(baseProfileEnv, undefined, []);
 
             assert.strictEqual(result.length, 2);
 
@@ -280,13 +249,150 @@ suite('Launch Profile Tests', () => {
                 'VAR2': 'api2'
             };
 
-            const result = mergeEnvironmentVariables(undefined, [], runApiEnv);
+            const result = mergeEnvironmentVariables(undefined, undefined, [], runApiEnv);
 
             assert.strictEqual(result.length, 2);
 
             const resultMap = new Map(result);
             assert.strictEqual(resultMap.get('VAR1'), 'api1');
             assert.strictEqual(resultMap.get('VAR2'), 'api2');
+        });
+
+        test('debug configuration environment overrides launch profile environment', () => {
+            const launchProfileEnv = {
+                'VAR1': 'profile1',
+                'VAR2': 'profile2',
+                'VAR3': 'profile3'
+            };
+
+            const debugConfigEnv = {
+                'VAR2': 'debug2',
+                'VAR4': 'debug4'
+            };
+
+            const runSessionEnv: EnvVar[] = [];
+
+            const result = mergeEnvironmentVariables(launchProfileEnv, debugConfigEnv, runSessionEnv);
+
+            assert.strictEqual(result.length, 4);
+
+            const resultMap = new Map(result);
+            assert.strictEqual(resultMap.get('VAR1'), 'profile1');
+            assert.strictEqual(resultMap.get('VAR2'), 'debug2'); // Debug config overrides profile
+            assert.strictEqual(resultMap.get('VAR3'), 'profile3');
+            assert.strictEqual(resultMap.get('VAR4'), 'debug4');
+        });
+
+        test('run API environment overrides debug configuration environment', () => {
+            const launchProfileEnv = {
+                'VAR1': 'profile1'
+            };
+
+            const debugConfigEnv = {
+                'VAR2': 'debug2',
+                'VAR3': 'debug3'
+            };
+
+            const runApiEnv = {
+                'VAR3': 'api3',
+                'VAR4': 'api4'
+            };
+
+            const runSessionEnv: EnvVar[] = [];
+
+            const result = mergeEnvironmentVariables(launchProfileEnv, debugConfigEnv, runSessionEnv, runApiEnv);
+
+            assert.strictEqual(result.length, 4);
+
+            const resultMap = new Map(result);
+            assert.strictEqual(resultMap.get('VAR1'), 'profile1');
+            assert.strictEqual(resultMap.get('VAR2'), 'debug2');
+            assert.strictEqual(resultMap.get('VAR3'), 'api3'); // Run API overrides debug config
+            assert.strictEqual(resultMap.get('VAR4'), 'api4');
+        });
+
+        test('run session environment overrides debug configuration environment', () => {
+            const launchProfileEnv = {
+                'VAR1': 'profile1'
+            };
+
+            const debugConfigEnv = {
+                'VAR2': 'debug2',
+                'VAR3': 'debug3'
+            };
+
+            const runSessionEnv: EnvVar[] = [
+                { name: 'VAR3', value: 'session3' },
+                { name: 'VAR4', value: 'session4' }
+            ];
+
+            const result = mergeEnvironmentVariables(launchProfileEnv, debugConfigEnv, runSessionEnv);
+
+            assert.strictEqual(result.length, 4);
+
+            const resultMap = new Map(result);
+            assert.strictEqual(resultMap.get('VAR1'), 'profile1');
+            assert.strictEqual(resultMap.get('VAR2'), 'debug2');
+            assert.strictEqual(resultMap.get('VAR3'), 'session3'); // Run session overrides debug config
+            assert.strictEqual(resultMap.get('VAR4'), 'session4');
+        });
+
+        test('handles all four sources with correct precedence: session > api > debugConfig > profile', () => {
+            const launchProfileEnv = {
+                'PROFILE_ONLY': 'profile_value',
+                'OVERRIDDEN_BY_DEBUG': 'profile_value',
+                'OVERRIDDEN_BY_API': 'profile_value',
+                'OVERRIDDEN_BY_SESSION': 'profile_value',
+                'OVERRIDDEN_BY_ALL': 'profile_value'
+            };
+
+            const debugConfigEnv = {
+                'DEBUG_ONLY': 'debug_value',
+                'OVERRIDDEN_BY_DEBUG': 'debug_value',
+                'OVERRIDDEN_BY_API': 'debug_value',
+                'OVERRIDDEN_BY_SESSION': 'debug_value',
+                'OVERRIDDEN_BY_ALL': 'debug_value'
+            };
+
+            const runApiEnv = {
+                'API_ONLY': 'api_value',
+                'OVERRIDDEN_BY_API': 'api_value',
+                'OVERRIDDEN_BY_SESSION': 'api_value',
+                'OVERRIDDEN_BY_ALL': 'api_value'
+            };
+
+            const runSessionEnv: EnvVar[] = [
+                { name: 'SESSION_ONLY', value: 'session_value' },
+                { name: 'OVERRIDDEN_BY_SESSION', value: 'session_value' },
+                { name: 'OVERRIDDEN_BY_ALL', value: 'session_value' }
+            ];
+
+            const result = mergeEnvironmentVariables(launchProfileEnv, debugConfigEnv, runSessionEnv, runApiEnv);
+
+            const resultMap = new Map(result);
+            assert.strictEqual(resultMap.get('PROFILE_ONLY'), 'profile_value');
+            assert.strictEqual(resultMap.get('DEBUG_ONLY'), 'debug_value');
+            assert.strictEqual(resultMap.get('API_ONLY'), 'api_value');
+            assert.strictEqual(resultMap.get('SESSION_ONLY'), 'session_value');
+            assert.strictEqual(resultMap.get('OVERRIDDEN_BY_DEBUG'), 'debug_value');
+            assert.strictEqual(resultMap.get('OVERRIDDEN_BY_API'), 'api_value');
+            assert.strictEqual(resultMap.get('OVERRIDDEN_BY_SESSION'), 'session_value');
+            assert.strictEqual(resultMap.get('OVERRIDDEN_BY_ALL'), 'session_value');
+        });
+
+        test('handles only debug configuration environment', () => {
+            const debugConfigEnv = {
+                'VAR1': 'debug1',
+                'VAR2': 'debug2'
+            };
+
+            const result = mergeEnvironmentVariables(undefined, debugConfigEnv, []);
+
+            assert.strictEqual(result.length, 2);
+
+            const resultMap = new Map(result);
+            assert.strictEqual(resultMap.get('VAR1'), 'debug1');
+            assert.strictEqual(resultMap.get('VAR2'), 'debug2');
         });
     });
 
