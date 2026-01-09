@@ -86,6 +86,15 @@ internal sealed class DockerComposeInfrastructure(
             return registries[0];
         }
 
+        // When multiple registries exist, require explicit WithContainerRegistry call
+        if (registries.Length > 1)
+        {
+            var registryNames = string.Join(", ", registries.Select(r => r is IResource res ? res.Name : r.ToString()));
+            throw new InvalidOperationException(
+                $"Docker Compose environment '{environment.Name}' has multiple container registries available - '{registryNames}'. " +
+                $"Please specify which registry to use with '.WithContainerRegistry(registryBuilder)'.");
+        }
+
         // Fall back to local container registry for Docker Compose scenarios
         return LocalContainerRegistry.Instance;
     }
