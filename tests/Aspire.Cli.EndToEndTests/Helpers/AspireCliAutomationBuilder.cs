@@ -92,8 +92,8 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
 
                 if (results.Matches.Count == 0)
                 {
-                    throw new InvalidOperationException(
-                        "No command prompts found. Ensure PrepareEnvironment() was called to set up the custom prompt.");
+                    // No prompts found yet - keep waiting (the command is still running)
+                    return false;
                 }
 
                 // Find the match with the highest sequence number
@@ -119,7 +119,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
                 // Success - return true to indicate we're done waiting
                 return true;
             },
-            TimeSpan.FromSeconds(5),
+            TimeSpan.FromSeconds(30),
             "Verifying last command succeeded");
     }
 
