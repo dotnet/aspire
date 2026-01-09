@@ -90,6 +90,24 @@ internal static class CollectionExports
     public static void DictClear(IDictionary<string, object> dict)
         => dict.Clear();
 
+    /// <summary>
+    /// Gets all values from a dictionary.
+    /// </summary>
+    /// <param name="dict">The dictionary handle.</param>
+    /// <returns>An array of all values.</returns>
+    [AspireExport("Dict.values", Description = "Gets all values from a dictionary")]
+    public static object[] DictValues(IDictionary<string, object> dict)
+        => [.. dict.Values];
+
+    /// <summary>
+    /// Converts the dictionary to a plain object (creates a copy).
+    /// </summary>
+    /// <param name="dict">The dictionary handle.</param>
+    /// <returns>A copy of the dictionary as an object.</returns>
+    [AspireExport("Dict.toObject", Description = "Converts a dictionary to a plain object")]
+    public static Dictionary<string, object> DictToObject(IDictionary<string, object> dict)
+        => new(dict);
+
     #endregion
 
     #region List Operations
@@ -186,6 +204,15 @@ internal static class CollectionExports
     [AspireExport("List.indexOf", Description = "Gets the index of an item in a list")]
     public static int ListIndexOf(IList<object> list, object item)
         => list.IndexOf(item);
+
+    /// <summary>
+    /// Converts the list to an array (creates a copy).
+    /// </summary>
+    /// <param name="list">The list handle.</param>
+    /// <returns>An array containing all items.</returns>
+    [AspireExport("List.toArray", Description = "Converts a list to an array")]
+    public static object[] ListToArray(IList<object> list)
+        => [.. list];
 
     #endregion
 }

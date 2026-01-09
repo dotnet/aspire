@@ -438,6 +438,13 @@ internal sealed class AppHostServerProject
             doc.Root!.Add(new XElement("ItemGroup", packageRefs));
         }
 
+        // Add appsettings.json to be copied to output directory
+        // This is required for the RemoteHostServer to find AtsAssemblies configuration
+        doc.Root!.Add(new XElement("ItemGroup",
+            new XElement("None",
+                new XAttribute("Include", "appsettings.json"),
+                new XAttribute("CopyToOutputDirectory", "PreserveNewest"))));
+
         var projectFileName = Path.Combine(_projectModelPath, ProjectFileName);
         doc.Save(projectFileName);
 

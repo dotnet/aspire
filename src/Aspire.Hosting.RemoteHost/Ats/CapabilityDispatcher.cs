@@ -67,15 +67,29 @@ internal sealed class CapabilityDispatcher
         var assemblyList = assemblies.ToList();
         var typeMapping = AtsTypeMapping.FromAssemblies(assemblyList);
 
+        Console.WriteLine($"[ATS] Scanning {assemblyList.Count} assemblies for capabilities...");
+
         foreach (var assembly in assemblyList)
         {
             var assemblyName = assembly.GetName().Name ?? assembly.FullName ?? "unknown";
+            Console.WriteLine($"[ATS]   Scanning: {assemblyName}");
             try
             {
                 var wrappedAssembly = new RuntimeAssemblyInfo(assembly);
 
                 // Scan for all capabilities using the unified scanner
                 var result = AtsCapabilityScanner.ScanAssembly(wrappedAssembly, typeMapping, typeResolver: null);
+
+                // Log diagnostics from the scanner
+                foreach (var diagnostic in result.Diagnostics)
+                {
+                    var prefix = diagnostic.Severity == AtsDiagnosticSeverity.Error ? "ERROR" : "WARN";
+                    Console.WriteLine($"[ATS]     [{prefix}] {diagnostic.Message}");
+                    if (diagnostic.Location != null)
+                    {
+                        Console.WriteLine($"[ATS]            at {diagnostic.Location}");
+                    }
+                }
 
                 foreach (var capability in result.Capabilities)
                 {
@@ -110,6 +124,13 @@ internal sealed class CapabilityDispatcher
                 Console.Error.WriteLine($"[ATS] Full exception: {ex}");
                 throw;
             }
+        }
+
+        // Log summary of all registered capabilities
+        Console.WriteLine($"[ATS] Registered {_capabilities.Count} capabilities:");
+        foreach (var capabilityId in _capabilities.Keys.OrderBy(k => k))
+        {
+            Console.WriteLine($"[ATS]   - {capabilityId}");
         }
     }
 
