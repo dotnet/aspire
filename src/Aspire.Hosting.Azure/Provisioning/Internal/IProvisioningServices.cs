@@ -163,6 +163,11 @@ internal interface IResourceGroupResource
     /// Gets ARM deployments collection.
     /// </summary>
     IArmDeploymentCollection GetArmDeployments();
+
+    /// <summary>
+    /// Deletes the resource group.
+    /// </summary>
+    Task<ArmOperation> DeleteAsync(WaitUntil waitUntil, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

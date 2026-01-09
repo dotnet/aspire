@@ -2,11 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -241,5 +245,54 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
     private sealed class ExternalResourceWithParameters(string name) : Resource(name), IResourceWithParameters
     {
         public IDictionary<string, object?> Parameters { get; } = new Dictionary<string, object?>();
+    }
+
+    [Fact]
+    public async Task DeprovisionStep_IsCreatedWithCorrectTag()
+    {
+        // Arrange
+        using var tempDir = new TestTempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path);
+
+        // Add an Azure environment
+        var azureEnv = builder.AddAzureEnvironment();
+        builder.AddAzureStorage("storage");
+
+        // Get the pipeline steps from the Azure environment resource
+#pragma warning disable ASPIREPIPELINES001
+        var pipelineStepAnnotations = azureEnv.Resource.Annotations.OfType<PipelineStepAnnotation>();
+#pragma warning restore ASPIREPIPELINES001
+        Assert.NotEmpty(pipelineStepAnnotations);
+
+        // Create steps using a mock factory context
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        var model = new DistributedApplicationModel(builder.Resources.ToArray());
+        
+#pragma warning disable ASPIREPIPELINES001
+        var mockPipelineContext = new PipelineContext(
+            model, 
+            builder.ExecutionContext, 
+            serviceProvider, 
+            loggerFactory.CreateLogger("Test"), 
+            CancellationToken.None);
+        
+        var factoryContext = new PipelineStepFactoryContext
+        {
+            PipelineContext = mockPipelineContext,
+            Resource = azureEnv.Resource
+        };
+
+        var steps = new List<PipelineStep>();
+        foreach (var annotation in pipelineStepAnnotations)
+        {
+            steps.AddRange(await annotation.CreateStepsAsync(factoryContext));
+        }
+#pragma warning restore ASPIREPIPELINES001
+
+        // Assert - Verify deprovision step exists
+        var deprovisionStep = steps.FirstOrDefault(s => s.Tags.Contains("azure-deprovision"));
+        Assert.NotNull(deprovisionStep);
+        Assert.Contains("deprovision", deprovisionStep.Name, StringComparison.OrdinalIgnoreCase);
     }
 }
