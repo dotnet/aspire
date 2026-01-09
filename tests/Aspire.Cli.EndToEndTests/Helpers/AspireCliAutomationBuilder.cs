@@ -465,7 +465,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder CreateAspireStarterProject(string projectName, bool debug = false, TimeSpan? timeout = null)
     {
-        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(2);
         var debugFlag = debug ? " --debug" : "";
 
         return AddSequence(ctx =>
@@ -516,7 +516,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder CreateAspireTypeScriptCSharpStarterProject(string projectName, bool debug = false, TimeSpan? timeout = null)
     {
-        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(2);
         var debugFlag = debug ? " --debug" : "";
 
         return AddSequence(ctx =>
@@ -557,7 +557,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder CreateAspirePythonStarterProject(string projectName, TimeSpan? timeout = null)
     {
-        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(2);
 
         return AddSequence(ctx =>
         {
@@ -606,7 +606,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder CreateAspireAppHostSingleFileProject(string projectName, TimeSpan? timeout = null)
     {
-        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(2);
 
         return AddSequence(ctx =>
         {
@@ -646,7 +646,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder CreateAspireStarterProjectInteractively(string projectName, TimeSpan? timeout = null)
     {
-        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(2);
 
         return AddSequence(ctx =>
         {
@@ -731,7 +731,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder CreateAspireTypeScriptCSharpStarterProjectInteractively(string projectName, TimeSpan? timeout = null)
     {
-        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(2);
 
         return AddSequence(ctx =>
         {
@@ -807,7 +807,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder CreateAspirePythonStarterProjectInteractively(string projectName, TimeSpan? timeout = null)
     {
-        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(2);
 
         return AddSequence(ctx =>
         {
@@ -883,7 +883,7 @@ public sealed class AspireCliAutomationBuilder : IAsyncDisposable
     /// <returns>The builder for chaining.</returns>
     public AspireCliAutomationBuilder CreateAspireAppHostSingleFileProjectInteractively(string projectName, TimeSpan? timeout = null)
     {
-        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(5);
+        var effectiveTimeout = timeout ?? TimeSpan.FromMinutes(2);
 
         return AddSequence(ctx =>
         {
