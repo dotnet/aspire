@@ -170,7 +170,8 @@ All methods are cross-platform and use appropriate shell commands for each OS.
 |--------|-------------|
 | `PrepareEnvironment()` | Sets up debug prompt (bash on Linux/macOS, PowerShell on Windows) |
 | `InstallAspireCliFromPullRequest(prNumber, timeout?)` | Installs CLI from PR artifacts (uses appropriate script per OS) |
-| `SourceAspireCliEnvironment()` | Sources ~/.bashrc on Linux/macOS (no-op on Windows) |
+| `SourceAspireCliEnvironment()` | Sources ~/.bashrc on Linux/macOS (no-op on Windows), sets DOTNET_CLI env vars |
+| `RunDiagnostics(timeout?)` | Runs `dotnet nuget list source` and `dotnet --list-sdks` for debugging |
 | `VerifyAspireCliVersion(commitSha, timeout?)` | Runs `aspire --version` and verifies SHA |
 | `ExitTerminal()` | Types `exit` to close the shell |
 | `AddSequence(ctx => ...)` | Custom operations using the underlying Hex1b builder |
@@ -299,11 +300,16 @@ gh run list --branch <your-branch-name> --status failure --limit 1 --json databa
 
 ### Step 2: Identify Failed CLI E2E Jobs
 
-Check which specific CLI E2E test jobs failed:
+Check which specific CLI E2E test jobs failed. Job names follow this pattern:
+`Tests / Cli E2E <Platform> (<TestClass>) / <TestClass> (<os>-latest)`
+
+For example:
+- `Tests / Cli E2E Linux (RunTests) / RunTests (ubuntu-latest)`
+- `Tests / Cli E2E Windows (RunTests) / RunTests (windows-latest)`
 
 ```bash
 # Replace <run-id> with the actual run ID
-gh run view <run-id> --json jobs --jq '.jobs[] | select(.name | test("CLI E2E")) | {name, conclusion}'
+gh run view <run-id> --json jobs --jq '.jobs[] | select(.name | test("Cli E2E")) | {name, conclusion}'
 ```
 
 ### Step 3: Download Test Artifacts

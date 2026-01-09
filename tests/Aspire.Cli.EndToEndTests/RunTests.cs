@@ -46,6 +46,7 @@ public sealed class RunTests : IAsyncDisposable
             builder
                 .InstallAspireCliFromPullRequest(prNumber)
                 .SourceAspireCliEnvironment()
+                .RunDiagnostics()
                 .VerifyAspireCliVersion(commitSha);
         }
 
@@ -77,6 +78,7 @@ public sealed class RunTests : IAsyncDisposable
             builder
                 .InstallAspireCliFromPullRequest(prNumber)
                 .SourceAspireCliEnvironment()
+                .RunDiagnostics()
                 .VerifyAspireCliVersion(commitSha);
         }
 
@@ -108,6 +110,7 @@ public sealed class RunTests : IAsyncDisposable
             builder
                 .InstallAspireCliFromPullRequest(prNumber)
                 .SourceAspireCliEnvironment()
+                .RunDiagnostics()
                 .VerifyAspireCliVersion(commitSha);
         }
 
@@ -139,6 +142,7 @@ public sealed class RunTests : IAsyncDisposable
             builder
                 .InstallAspireCliFromPullRequest(prNumber)
                 .SourceAspireCliEnvironment()
+                .RunDiagnostics()
                 .VerifyAspireCliVersion(commitSha);
         }
 
@@ -170,6 +174,7 @@ public sealed class RunTests : IAsyncDisposable
             builder
                 .InstallAspireCliFromPullRequest(prNumber)
                 .SourceAspireCliEnvironment()
+                .RunDiagnostics()
                 .VerifyAspireCliVersion(commitSha);
         }
 
@@ -201,6 +206,7 @@ public sealed class RunTests : IAsyncDisposable
             builder
                 .InstallAspireCliFromPullRequest(prNumber)
                 .SourceAspireCliEnvironment()
+                .RunDiagnostics()
                 .VerifyAspireCliVersion(commitSha);
         }
 
@@ -232,6 +238,7 @@ public sealed class RunTests : IAsyncDisposable
             builder
                 .InstallAspireCliFromPullRequest(prNumber)
                 .SourceAspireCliEnvironment()
+                .RunDiagnostics()
                 .VerifyAspireCliVersion(commitSha);
         }
 
@@ -263,6 +270,7 @@ public sealed class RunTests : IAsyncDisposable
             builder
                 .InstallAspireCliFromPullRequest(prNumber)
                 .SourceAspireCliEnvironment()
+                .RunDiagnostics()
                 .VerifyAspireCliVersion(commitSha);
         }
 
