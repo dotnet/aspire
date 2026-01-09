@@ -271,7 +271,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 DistributedApplicationBase,
                 ResourceBuilderBase,
                 ReferenceExpression,
-                refExpr
+                refExpr,
+                AspireDict,
+                AspireList
             } from './base.js';
             """);
         WriteLine();
@@ -1194,7 +1196,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
     /// <summary>
     /// Generates a type class (context type or wrapper type).
-    /// If the type has setters, generates fluent Promise class for chaining.
+    /// Uses property-like object pattern for exposed properties.
     /// </summary>
     private void GenerateTypeClass(BuilderModel model)
     {
@@ -1212,9 +1214,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var contextMethods = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.InstanceMethod).ToList();
         var otherMethods = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.Method).ToList();
 
-        var hasSetters = setters.Count > 0;
-        var promiseClassName = $"{className}Promise";
-
         WriteLine($"/**");
         WriteLine($" * Type class for {className}.");
         WriteLine($" */");
@@ -1222,26 +1221,16 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($"    constructor(private _handle: {handleType}, private _client: AspireClientRpc) {{}}");
         WriteLine();
 
-        // Generate getter methods
-        foreach (var getter in getters)
+        // Group getters and setters by property name to create property-like objects
+        var properties = GroupPropertiesByName(getters, setters);
+
+        // Generate property-like objects
+        foreach (var prop in properties)
         {
-            GenerateContextGetterMethod(getter);
+            GeneratePropertyLikeObject(prop.PropertyName, prop.Getter, prop.Setter);
         }
 
-        // Generate setter methods (with fluent chaining if setters exist)
-        if (hasSetters)
-        {
-            foreach (var setter in setters)
-            {
-                GenerateContextSetterInternalMethod(setter, className);
-            }
-            foreach (var setter in setters)
-            {
-                GenerateContextSetterPublicMethod(setter, promiseClassName);
-            }
-        }
-
-        // Generate context methods
+        // Generate context methods (instance methods from ExposeMethods=true)
         foreach (var method in contextMethods)
         {
             GenerateContextMethod(method);
@@ -1255,37 +1244,208 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         WriteLine("}");
         WriteLine();
-
-        // Generate Promise class for fluent chaining if there are setters
-        if (hasSetters)
-        {
-            GenerateContextTypePromiseClass(className, promiseClassName, getters, setters);
-        }
     }
 
     /// <summary>
-    /// Generates a getter method on a context type class.
+    /// Groups getters and setters by property name.
     /// </summary>
-    private void GenerateContextGetterMethod(AtsCapabilityInfo getter)
+    private static List<(string PropertyName, AtsCapabilityInfo? Getter, AtsCapabilityInfo? Setter)> GroupPropertiesByName(
+        List<AtsCapabilityInfo> getters, List<AtsCapabilityInfo> setters)
     {
-        // Use OwningTypeName if available to extract method name, otherwise parse from MethodName
-        var methodName = !string.IsNullOrEmpty(getter.OwningTypeName) && getter.MethodName.Contains('.')
-            ? getter.MethodName[(getter.MethodName.LastIndexOf('.') + 1)..]
-            : getter.MethodName;
+        var result = new List<(string PropertyName, AtsCapabilityInfo? Getter, AtsCapabilityInfo? Setter)>();
+        var processedNames = new HashSet<string>();
 
-        var returnType = MapTypeRefToTypeScript(getter.ReturnType);
+        // Process getters
+        foreach (var getter in getters)
+        {
+            var propName = ExtractPropertyName(getter.MethodName);
+            if (processedNames.Contains(propName))
+            {
+                continue;
+            }
+            processedNames.Add(propName);
 
-        // Generate JSDoc
+            // Find matching setter (setPropertyName for propertyName)
+            var setterName = "set" + char.ToUpperInvariant(propName[0]) + propName[1..];
+            var setter = setters.FirstOrDefault(s => ExtractPropertyName(s.MethodName).Equals(setterName, StringComparison.OrdinalIgnoreCase));
+
+            result.Add((propName, getter, setter));
+        }
+
+        // Process any setters without matching getters
+        foreach (var setter in setters)
+        {
+            var setterMethodName = ExtractPropertyName(setter.MethodName);
+            // setPropertyName -> propertyName
+            if (setterMethodName.StartsWith("set", StringComparison.OrdinalIgnoreCase) && setterMethodName.Length > 3)
+            {
+                var propName = char.ToLowerInvariant(setterMethodName[3]) + setterMethodName[4..];
+                if (!processedNames.Contains(propName))
+                {
+                    processedNames.Add(propName);
+                    result.Add((propName, null, setter));
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Extracts the property name from a method name like "ClassName.propertyName" or "setPropertyName".
+    /// </summary>
+    private static string ExtractPropertyName(string methodName)
+    {
+        // Handle "ClassName.propertyName" format
+        if (methodName.Contains('.'))
+        {
+            return methodName[(methodName.LastIndexOf('.') + 1)..];
+        }
+        return methodName;
+    }
+
+    /// <summary>
+    /// Generates a property-like object with get and/or set methods.
+    /// For dictionary types, generates a direct AspireDict field instead.
+    /// </summary>
+    private void GeneratePropertyLikeObject(string propertyName, AtsCapabilityInfo? getter, AtsCapabilityInfo? setter)
+    {
+        // Determine the return type from getter
+        string returnType = "unknown";
+        string? description = null;
+
+        if (getter != null)
+        {
+            returnType = MapTypeRefToTypeScript(getter.ReturnType);
+            description = getter.Description;
+
+            // Check if this is a dictionary type - generate direct AspireDict field instead
+            if (IsDictionaryType(getter.ReturnType))
+            {
+                GenerateDictionaryProperty(propertyName, getter);
+                return;
+            }
+
+            // Check if return type is a wrapper class - use property-like object returning wrapper
+            if (getter.ReturnType?.TypeId != null && _wrapperClassNames.TryGetValue(getter.ReturnType.TypeId, out var wrapperClassName))
+            {
+                GenerateWrapperPropertyObject(propertyName, getter, wrapperClassName);
+                return;
+            }
+        }
+
+        // Generate property-like object for scalar types
+        if (!string.IsNullOrEmpty(description))
+        {
+            WriteLine($"    /** {description} */");
+        }
+
+        WriteLine($"    {propertyName} = {{");
+
+        // Generate get method
+        if (getter != null)
+        {
+            WriteLine($"        get: async (): Promise<{returnType}> => {{");
+            WriteLine($"            return await this._client.invokeCapability<{returnType}>(");
+            WriteLine($"                '{getter.CapabilityId}',");
+            WriteLine($"                {{ context: this._handle }}");
+            WriteLine("            );");
+            WriteLine("        },");
+        }
+
+        // Generate set method
+        if (setter != null)
+        {
+            var valueParam = setter.Parameters.FirstOrDefault(p => p.Name == "value");
+            if (valueParam != null)
+            {
+                var valueType = MapTypeRefToTypeScript(valueParam.Type);
+                WriteLine($"        set: async (value: {valueType}): Promise<void> => {{");
+                WriteLine($"            await this._client.invokeCapability<void>(");
+                WriteLine($"                '{setter.CapabilityId}',");
+                WriteLine($"                {{ context: this._handle, value }}");
+                WriteLine("            );");
+                WriteLine("        }");
+            }
+        }
+
+        WriteLine("    };");
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Generates a property-like object that returns a wrapper class.
+    /// </summary>
+    private void GenerateWrapperPropertyObject(string propertyName, AtsCapabilityInfo getter, string wrapperClassName)
+    {
+        var handleType = GetHandleTypeName(getter.ReturnType!.TypeId);
+
         if (!string.IsNullOrEmpty(getter.Description))
         {
             WriteLine($"    /** {getter.Description} */");
         }
 
-        WriteLine($"    async {methodName}(): Promise<{returnType}> {{");
-        WriteLine($"        return await this._client.invokeCapability<{returnType}>(");
-        WriteLine($"            '{getter.CapabilityId}',");
-        WriteLine($"            {{ context: this._handle }}");
-        WriteLine("        );");
+        WriteLine($"    {propertyName} = {{");
+        WriteLine($"        get: async (): Promise<{wrapperClassName}> => {{");
+        WriteLine($"            const handle = await this._client.invokeCapability<{handleType}>(");
+        WriteLine($"                '{getter.CapabilityId}',");
+        WriteLine($"                {{ context: this._handle }}");
+        WriteLine("            );");
+        WriteLine($"            return new {wrapperClassName}(handle, this._client);");
+        WriteLine("        },");
+        WriteLine("    };");
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Checks if a type reference is a dictionary type.
+    /// </summary>
+    private static bool IsDictionaryType(AtsTypeRef? typeRef)
+    {
+        return typeRef?.Category == AtsTypeCategory.Dict;
+    }
+
+    /// <summary>
+    /// Generates a direct AspireDict property for dictionary types.
+    /// </summary>
+    private void GenerateDictionaryProperty(string propertyName, AtsCapabilityInfo getter)
+    {
+        // Determine key and value types
+        var keyType = "string";
+        var valueType = "string | ReferenceExpression"; // Default for EnvironmentVariables
+
+        // Try to extract key and value types from Dict type
+        if (getter.ReturnType?.KeyType != null)
+        {
+            keyType = MapTypeRefToTypeScript(getter.ReturnType.KeyType);
+        }
+        if (getter.ReturnType?.ValueType != null)
+        {
+            var rawValueType = MapTypeRefToTypeScript(getter.ReturnType.ValueType);
+            // For object type, use string | ReferenceExpression
+            valueType = rawValueType == "unknown" || rawValueType == "object"
+                ? "string | ReferenceExpression"
+                : rawValueType;
+        }
+
+        var typeId = $"'{getter.CapabilityId.Replace(".get", "")}'";
+
+        if (!string.IsNullOrEmpty(getter.Description))
+        {
+            WriteLine($"    /** {getter.Description} */");
+        }
+
+        // Generate a getter property that returns AspireDict
+        WriteLine($"    private _{propertyName}?: AspireDict<{keyType}, {valueType}>;");
+        WriteLine($"    get {propertyName}(): AspireDict<{keyType}, {valueType}> {{");
+        WriteLine($"        if (!this._{propertyName}) {{");
+        WriteLine($"            this._{propertyName} = new AspireDict<{keyType}, {valueType}>(");
+        WriteLine($"                this._handle,");
+        WriteLine($"                this._client,");
+        WriteLine($"                {typeId}");
+        WriteLine("            );");
+        WriteLine("        }");
+        WriteLine($"        return this._{propertyName};");
         WriteLine("    }");
         WriteLine();
     }
@@ -1343,144 +1503,6 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($"            {argsObject}");
         WriteLine("        );");
         WriteLine("    }");
-        WriteLine();
-    }
-
-    /// <summary>
-    /// Generates the internal setter method (returns the class, not thenable).
-    /// </summary>
-    private void GenerateContextSetterInternalMethod(AtsCapabilityInfo setter, string className)
-    {
-        // Use OwningTypeName if available to extract method name, otherwise parse from MethodName
-        var methodName = !string.IsNullOrEmpty(setter.OwningTypeName) && setter.MethodName.Contains('.')
-            ? setter.MethodName[(setter.MethodName.LastIndexOf('.') + 1)..]
-            : setter.MethodName;
-
-        // Get the value parameter (second parameter after context)
-        var valueParam = setter.Parameters.FirstOrDefault(p => p.Name == "value");
-        if (valueParam == null)
-        {
-            return;
-        }
-
-        var valueType = MapTypeRefToTypeScript(valueParam.Type);
-        var handleType = GetHandleTypeName(GetReturnTypeId(setter) ?? setter.TargetTypeId ?? "unknown");
-
-        WriteLine($"    /** @internal */");
-        WriteLine($"    async _{methodName}Internal(value: {valueType}): Promise<{className}> {{");
-        WriteLine($"        const result = await this._client.invokeCapability<{handleType}>(");
-        WriteLine($"            '{setter.CapabilityId}',");
-        WriteLine($"            {{ context: this._handle, value }}");
-        WriteLine("        );");
-        WriteLine($"        return new {className}(result, this._client);");
-        WriteLine("    }");
-        WriteLine();
-    }
-
-    /// <summary>
-    /// Generates the public fluent setter method (returns thenable).
-    /// </summary>
-    private void GenerateContextSetterPublicMethod(AtsCapabilityInfo setter, string promiseClassName)
-    {
-        // Use OwningTypeName if available to extract method name, otherwise parse from MethodName
-        var methodName = !string.IsNullOrEmpty(setter.OwningTypeName) && setter.MethodName.Contains('.')
-            ? setter.MethodName[(setter.MethodName.LastIndexOf('.') + 1)..]
-            : setter.MethodName;
-
-        // Get the value parameter (second parameter after context)
-        var valueParam = setter.Parameters.FirstOrDefault(p => p.Name == "value");
-        if (valueParam == null)
-        {
-            return;
-        }
-
-        var valueType = MapTypeRefToTypeScript(valueParam.Type);
-
-        // Generate JSDoc
-        if (!string.IsNullOrEmpty(setter.Description))
-        {
-            WriteLine($"    /** {setter.Description} */");
-        }
-
-        WriteLine($"    {methodName}(value: {valueType}): {promiseClassName} {{");
-        WriteLine($"        return new {promiseClassName}(this._{methodName}Internal(value));");
-        WriteLine("    }");
-        WriteLine();
-    }
-
-    /// <summary>
-    /// Generates the thenable promise class for a context type.
-    /// </summary>
-    private void GenerateContextTypePromiseClass(
-        string className,
-        string promiseClassName,
-        List<AtsCapabilityInfo> getters,
-        List<AtsCapabilityInfo> setters)
-    {
-        WriteLine($"/**");
-        WriteLine($" * Thenable wrapper for {className} that enables fluent chaining.");
-        WriteLine($" * @example");
-        WriteLine($" * await context.setName(\"foo\").setValue(42);");
-        WriteLine($" */");
-        WriteLine($"export class {promiseClassName} implements PromiseLike<{className}> {{");
-        WriteLine($"    constructor(private _promise: Promise<{className}>) {{}}");
-        WriteLine();
-
-        // Generate then method
-        WriteLine($"    then<TResult1 = {className}, TResult2 = never>(");
-        WriteLine($"        onfulfilled?: ((value: {className}) => TResult1 | PromiseLike<TResult1>) | null,");
-        WriteLine($"        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null");
-        WriteLine($"    ): PromiseLike<TResult1 | TResult2> {{");
-        WriteLine($"        return this._promise.then(onfulfilled, onrejected);");
-        WriteLine("    }");
-        WriteLine();
-
-        // Generate chained getter methods
-        foreach (var getter in getters)
-        {
-            var methodName = !string.IsNullOrEmpty(getter.OwningTypeName) && getter.MethodName.Contains('.')
-                ? getter.MethodName[(getter.MethodName.LastIndexOf('.') + 1)..]
-                : getter.MethodName;
-            var returnType = MapTypeRefToTypeScript(getter.ReturnType);
-
-            if (!string.IsNullOrEmpty(getter.Description))
-            {
-                WriteLine($"    /** {getter.Description} */");
-            }
-            WriteLine($"    {methodName}(): Promise<{returnType}> {{");
-            WriteLine($"        return this._promise.then(ctx => ctx.{methodName}());");
-            WriteLine("    }");
-            WriteLine();
-        }
-
-        // Generate chained setter methods
-        foreach (var setter in setters)
-        {
-            var methodName = !string.IsNullOrEmpty(setter.OwningTypeName) && setter.MethodName.Contains('.')
-                ? setter.MethodName[(setter.MethodName.LastIndexOf('.') + 1)..]
-                : setter.MethodName;
-
-            var valueParam = setter.Parameters.FirstOrDefault(p => p.Name == "value");
-            if (valueParam == null)
-            {
-                continue;
-            }
-
-            var valueType = MapTypeRefToTypeScript(valueParam.Type);
-
-            if (!string.IsNullOrEmpty(setter.Description))
-            {
-                WriteLine($"    /** {setter.Description} */");
-            }
-            WriteLine($"    {methodName}(value: {valueType}): {promiseClassName} {{");
-            WriteLine($"        return new {promiseClassName}(");
-            WriteLine($"            this._promise.then(ctx => ctx._{methodName}Internal(value))");
-            WriteLine("        );");
-            WriteLine("    }");
-            WriteLine();
-        }
-
-        WriteLine("}");
         WriteLine();
     }
 

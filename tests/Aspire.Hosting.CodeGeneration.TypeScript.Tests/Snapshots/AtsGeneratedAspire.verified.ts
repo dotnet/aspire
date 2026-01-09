@@ -17,7 +17,9 @@ import {
     DistributedApplicationBase,
     ResourceBuilderBase,
     ReferenceExpression,
-    refExpr
+    refExpr,
+    AspireDict,
+    AspireList
 } from './base.js';
 
 // ============================================================================
@@ -65,89 +67,36 @@ export class TestCallbackContext {
     constructor(private _handle: TestCallbackContextHandle, private _client: AspireClientRpc) {}
 
     /** Gets the Name property */
-    async name(): Promise<string> {
-        return await this._client.invokeCapability<string>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.name',
-            { context: this._handle }
-        );
-    }
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.name',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setName',
+                { context: this._handle, value }
+            );
+        }
+    };
 
     /** Gets the Value property */
-    async value(): Promise<number> {
-        return await this._client.invokeCapability<number>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.value',
-            { context: this._handle }
-        );
-    }
-
-    /** @internal */
-    async _setNameInternal(value: string): Promise<TestCallbackContext> {
-        const result = await this._client.invokeCapability<TestCallbackContextHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setName',
-            { context: this._handle, value }
-        );
-        return new TestCallbackContext(result, this._client);
-    }
-
-    /** @internal */
-    async _setValueInternal(value: number): Promise<TestCallbackContext> {
-        const result = await this._client.invokeCapability<TestCallbackContextHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setValue',
-            { context: this._handle, value }
-        );
-        return new TestCallbackContext(result, this._client);
-    }
-
-    /** Sets the Name property */
-    setName(value: string): TestCallbackContextPromise {
-        return new TestCallbackContextPromise(this._setNameInternal(value));
-    }
-
-    /** Sets the Value property */
-    setValue(value: number): TestCallbackContextPromise {
-        return new TestCallbackContextPromise(this._setValueInternal(value));
-    }
-
-}
-
-/**
- * Thenable wrapper for TestCallbackContext that enables fluent chaining.
- * @example
- * await context.setName("foo").setValue(42);
- */
-export class TestCallbackContextPromise implements PromiseLike<TestCallbackContext> {
-    constructor(private _promise: Promise<TestCallbackContext>) {}
-
-    then<TResult1 = TestCallbackContext, TResult2 = never>(
-        onfulfilled?: ((value: TestCallbackContext) => TResult1 | PromiseLike<TResult1>) | null,
-        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-    ): PromiseLike<TResult1 | TResult2> {
-        return this._promise.then(onfulfilled, onrejected);
-    }
-
-    /** Gets the Name property */
-    name(): Promise<string> {
-        return this._promise.then(ctx => ctx.name());
-    }
-
-    /** Gets the Value property */
-    value(): Promise<number> {
-        return this._promise.then(ctx => ctx.value());
-    }
-
-    /** Sets the Name property */
-    setName(value: string): TestCallbackContextPromise {
-        return new TestCallbackContextPromise(
-            this._promise.then(ctx => ctx._setNameInternal(value))
-        );
-    }
-
-    /** Sets the Value property */
-    setValue(value: number): TestCallbackContextPromise {
-        return new TestCallbackContextPromise(
-            this._promise.then(ctx => ctx._setValueInternal(value))
-        );
-    }
+    value = {
+        get: async (): Promise<number> => {
+            return await this._client.invokeCapability<number>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.value',
+                { context: this._handle }
+            );
+        },
+        set: async (value: number): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestCallbackContext.setValue',
+                { context: this._handle, value }
+            );
+        }
+    };
 
 }
 
@@ -162,123 +111,52 @@ export class TestEnvironmentContext {
     constructor(private _handle: TestEnvironmentContextHandle, private _client: AspireClientRpc) {}
 
     /** Gets the Name property */
-    async name(): Promise<string> {
-        return await this._client.invokeCapability<string>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.name',
-            { context: this._handle }
-        );
-    }
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.name',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.setName',
+                { context: this._handle, value }
+            );
+        }
+    };
 
     /** Gets the Description property */
-    async description(): Promise<string> {
-        return await this._client.invokeCapability<string>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.description',
-            { context: this._handle }
-        );
-    }
+    description = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.description',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.setDescription',
+                { context: this._handle, value }
+            );
+        }
+    };
 
     /** Gets the Priority property */
-    async priority(): Promise<number> {
-        return await this._client.invokeCapability<number>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.priority',
-            { context: this._handle }
-        );
-    }
-
-    /** @internal */
-    async _setNameInternal(value: string): Promise<TestEnvironmentContext> {
-        const result = await this._client.invokeCapability<TestEnvironmentContextHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.setName',
-            { context: this._handle, value }
-        );
-        return new TestEnvironmentContext(result, this._client);
-    }
-
-    /** @internal */
-    async _setDescriptionInternal(value: string): Promise<TestEnvironmentContext> {
-        const result = await this._client.invokeCapability<TestEnvironmentContextHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.setDescription',
-            { context: this._handle, value }
-        );
-        return new TestEnvironmentContext(result, this._client);
-    }
-
-    /** @internal */
-    async _setPriorityInternal(value: number): Promise<TestEnvironmentContext> {
-        const result = await this._client.invokeCapability<TestEnvironmentContextHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.setPriority',
-            { context: this._handle, value }
-        );
-        return new TestEnvironmentContext(result, this._client);
-    }
-
-    /** Sets the Name property */
-    setName(value: string): TestEnvironmentContextPromise {
-        return new TestEnvironmentContextPromise(this._setNameInternal(value));
-    }
-
-    /** Sets the Description property */
-    setDescription(value: string): TestEnvironmentContextPromise {
-        return new TestEnvironmentContextPromise(this._setDescriptionInternal(value));
-    }
-
-    /** Sets the Priority property */
-    setPriority(value: number): TestEnvironmentContextPromise {
-        return new TestEnvironmentContextPromise(this._setPriorityInternal(value));
-    }
-
-}
-
-/**
- * Thenable wrapper for TestEnvironmentContext that enables fluent chaining.
- * @example
- * await context.setName("foo").setValue(42);
- */
-export class TestEnvironmentContextPromise implements PromiseLike<TestEnvironmentContext> {
-    constructor(private _promise: Promise<TestEnvironmentContext>) {}
-
-    then<TResult1 = TestEnvironmentContext, TResult2 = never>(
-        onfulfilled?: ((value: TestEnvironmentContext) => TResult1 | PromiseLike<TResult1>) | null,
-        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-    ): PromiseLike<TResult1 | TResult2> {
-        return this._promise.then(onfulfilled, onrejected);
-    }
-
-    /** Gets the Name property */
-    name(): Promise<string> {
-        return this._promise.then(ctx => ctx.name());
-    }
-
-    /** Gets the Description property */
-    description(): Promise<string> {
-        return this._promise.then(ctx => ctx.description());
-    }
-
-    /** Gets the Priority property */
-    priority(): Promise<number> {
-        return this._promise.then(ctx => ctx.priority());
-    }
-
-    /** Sets the Name property */
-    setName(value: string): TestEnvironmentContextPromise {
-        return new TestEnvironmentContextPromise(
-            this._promise.then(ctx => ctx._setNameInternal(value))
-        );
-    }
-
-    /** Sets the Description property */
-    setDescription(value: string): TestEnvironmentContextPromise {
-        return new TestEnvironmentContextPromise(
-            this._promise.then(ctx => ctx._setDescriptionInternal(value))
-        );
-    }
-
-    /** Sets the Priority property */
-    setPriority(value: number): TestEnvironmentContextPromise {
-        return new TestEnvironmentContextPromise(
-            this._promise.then(ctx => ctx._setPriorityInternal(value))
-        );
-    }
+    priority = {
+        get: async (): Promise<number> => {
+            return await this._client.invokeCapability<number>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.priority',
+                { context: this._handle }
+            );
+        },
+        set: async (value: number): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestEnvironmentContext.setPriority',
+                { context: this._handle, value }
+            );
+        }
+    };
 
 }
 
@@ -293,48 +171,36 @@ export class TestResourceContext {
     constructor(private _handle: TestResourceContextHandle, private _client: AspireClientRpc) {}
 
     /** Gets the Name property */
-    async name(): Promise<string> {
-        return await this._client.invokeCapability<string>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.name',
-            { context: this._handle }
-        );
-    }
+    name = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.name',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.setName',
+                { context: this._handle, value }
+            );
+        }
+    };
 
     /** Gets the Value property */
-    async value(): Promise<number> {
-        return await this._client.invokeCapability<number>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.value',
-            { context: this._handle }
-        );
-    }
-
-    /** @internal */
-    async _setNameInternal(value: string): Promise<TestResourceContext> {
-        const result = await this._client.invokeCapability<TestResourceContextHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.setName',
-            { context: this._handle, value }
-        );
-        return new TestResourceContext(result, this._client);
-    }
-
-    /** @internal */
-    async _setValueInternal(value: number): Promise<TestResourceContext> {
-        const result = await this._client.invokeCapability<TestResourceContextHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.setValue',
-            { context: this._handle, value }
-        );
-        return new TestResourceContext(result, this._client);
-    }
-
-    /** Sets the Name property */
-    setName(value: string): TestResourceContextPromise {
-        return new TestResourceContextPromise(this._setNameInternal(value));
-    }
-
-    /** Sets the Value property */
-    setValue(value: number): TestResourceContextPromise {
-        return new TestResourceContextPromise(this._setValueInternal(value));
-    }
+    value = {
+        get: async (): Promise<number> => {
+            return await this._client.invokeCapability<number>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.value',
+                { context: this._handle }
+            );
+        },
+        set: async (value: number): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.setValue',
+                { context: this._handle, value }
+            );
+        }
+    };
 
     /** Invokes the GetValueAsync method */
     async getValueAsync(): Promise<string> {
@@ -357,47 +223,6 @@ export class TestResourceContext {
         return await this._client.invokeCapability<boolean>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.validateAsync',
             { context: this._handle }
-        );
-    }
-
-}
-
-/**
- * Thenable wrapper for TestResourceContext that enables fluent chaining.
- * @example
- * await context.setName("foo").setValue(42);
- */
-export class TestResourceContextPromise implements PromiseLike<TestResourceContext> {
-    constructor(private _promise: Promise<TestResourceContext>) {}
-
-    then<TResult1 = TestResourceContext, TResult2 = never>(
-        onfulfilled?: ((value: TestResourceContext) => TResult1 | PromiseLike<TResult1>) | null,
-        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-    ): PromiseLike<TResult1 | TResult2> {
-        return this._promise.then(onfulfilled, onrejected);
-    }
-
-    /** Gets the Name property */
-    name(): Promise<string> {
-        return this._promise.then(ctx => ctx.name());
-    }
-
-    /** Gets the Value property */
-    value(): Promise<number> {
-        return this._promise.then(ctx => ctx.value());
-    }
-
-    /** Sets the Name property */
-    setName(value: string): TestResourceContextPromise {
-        return new TestResourceContextPromise(
-            this._promise.then(ctx => ctx._setNameInternal(value))
-        );
-    }
-
-    /** Sets the Value property */
-    setValue(value: number): TestResourceContextPromise {
-        return new TestResourceContextPromise(
-            this._promise.then(ctx => ctx._setValueInternal(value))
         );
     }
 

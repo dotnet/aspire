@@ -1195,6 +1195,13 @@ internal static class AtsCapabilityScanner
             return new AtsTypeRef { TypeId = AtsConstants.TimeSpan, Category = AtsTypeCategory.Primitive };
         }
 
+        // Handle object type - maps to 'unknown' in TypeScript
+        // This is commonly used in Dictionary<string, object> for environment variables
+        if (typeFullName == "System.Object")
+        {
+            return new AtsTypeRef { TypeId = "object", Category = AtsTypeCategory.Primitive };
+        }
+
         // Handle other scalar types
         if (typeFullName == "System.Guid")
         {
