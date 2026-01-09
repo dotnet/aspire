@@ -1213,7 +1213,7 @@ public static class ResourceExtensions
     /// </para>
     /// <para>
     /// When <paramref name="mode"/> is <see cref="ResourceDependencyDiscoveryMode.DirectOnly"/>, only the immediate
-    /// dependencies are returned. When <paramref name="mode"/> is <see cref="ResourceDependencyDiscoveryMode.TransitiveClosure"/>,
+    /// dependencies are returned. When <paramref name="mode"/> is <see cref="ResourceDependencyDiscoveryMode.Recursive"/>,
     /// all transitive dependencies are included.
     /// </para>
     /// <para>
@@ -1223,20 +1223,28 @@ public static class ResourceExtensions
     public static async Task<IReadOnlySet<IResource>> GetResourceDependenciesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
-        ResourceDependencyDiscoveryMode mode = ResourceDependencyDiscoveryMode.TransitiveClosure,
+        ResourceDependencyDiscoveryMode mode = ResourceDependencyDiscoveryMode.Recursive,
         CancellationToken cancellationToken = default)
     {
-        var dependencies = await GatherDirectDependenciesAsync(resource, [], executionContext, cancellationToken).ConfigureAwait(false);
+        var dependencies = new HashSet<IResource>();
+        var newDependencies = new HashSet<IResource>();
+        await GatherDirectDependenciesAsync(resource, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
 
-        if (mode == ResourceDependencyDiscoveryMode.TransitiveClosure)
+        if (mode == ResourceDependencyDiscoveryMode.Recursive)
         {
+            // Relationship annotations represent both direct and indirect dependencies,
+            // we only collect dependencies from them in Recursive mode.
+            CollectRelationshipAnnotationDependencies(resource, dependencies, newDependencies);
+
             // Compute transitive closure by recursively processing dependencies
             var toProcess = new Queue<IResource>(dependencies);
             while (toProcess.Count > 0)
             {
                 var dep = toProcess.Dequeue();
+                newDependencies.Clear();
 
-                var newDependencies = await GatherDirectDependenciesAsync(dep, dependencies, executionContext, cancellationToken).ConfigureAwait(false);
+                await GatherDirectDependenciesAsync(dep, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+                CollectRelationshipAnnotationDependencies(dep, dependencies, newDependencies);
 
                 foreach (var newDep in newDependencies)
                 {
@@ -1260,26 +1268,25 @@ public static class ResourceExtensions
     /// <returns>
     /// Newly discovered dependencies (not already in <paramref name="dependencies"/>).
     /// </returns>
-    private static async Task<HashSet<IResource>> GatherDirectDependenciesAsync(
+    private static async Task GatherDirectDependenciesAsync(
         IResource resource,
         HashSet<IResource> dependencies,
+        HashSet<IResource> newDependencies,
         DistributedApplicationExecutionContext executionContext,
         CancellationToken cancellationToken)
     {
         var visited = new HashSet<object>();
 
         // Collect direct dependencies from annotations
-        var newDependencies = CollectAnnotationDependencies(resource, dependencies);
+        CollectAnnotationDependencies(resource, dependencies, newDependencies);
 
         // Collect raw (unresolved) environment variable and argument values
         var rawValues = await GatherRawEnvironmentAndArgumentValuesAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
 
         foreach (var value in rawValues)
         {
-            newDependencies.UnionWith(CollectDependenciesFromValue(value, dependencies, visited));
+            CollectDependenciesFromValue(value, dependencies, newDependencies, visited);
         }
-
-        return newDependencies;
     }
 
     /// <summary>
@@ -1330,10 +1337,8 @@ public static class ResourceExtensions
     /// Collects dependencies from resource annotations (parent, wait, connection string redirect).
     /// </summary>
     /// <returns>A set of newly collected dependencies added to <paramref name="dependencies"/>.</returns>
-    private static HashSet<IResource> CollectAnnotationDependencies(IResource resource, HashSet<IResource> dependencies)
+    private static void CollectAnnotationDependencies(IResource resource, HashSet<IResource> dependencies, HashSet<IResource> newDependencies)
     {
-        var newDependencies = new HashSet<IResource>();
-
         // Parent relationship
         if (resource is IResourceWithParent resourceWithParent)
         {
@@ -1363,21 +1368,34 @@ public static class ResourceExtensions
                 newDependencies.Add(redirectAnnotation.Resource);
             }
         }
+    }
 
-        return newDependencies;
+    /// <summary>
+    /// Collects dependencies from resource relationship annotations.
+    /// </summary>
+    private static void CollectRelationshipAnnotationDependencies(IResource resource, HashSet<IResource> dependencies, HashSet<IResource> newDependencies)
+    {
+        if (resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationshipAnnotations))
+        {
+            foreach (var relationshipAnnotation in relationshipAnnotations)
+            {
+                if (dependencies.Add(relationshipAnnotation.Resource))
+                {
+                    newDependencies.Add(relationshipAnnotation.Resource);
+                }
+            }
+        }
     }
 
     /// <summary>
     /// Recursively collects resource dependencies from a value using <see cref="IValueWithReferences"/>.
     /// </summary>
-    private static HashSet<IResource> CollectDependenciesFromValue(object? value, HashSet<IResource> dependencies, HashSet<object> visited)
+    private static void CollectDependenciesFromValue(object? value, HashSet<IResource> dependencies, HashSet<IResource> newDependencies, HashSet<object> visitedValues)
     {
-        if (value is null || !visited.Add(value))
+        if (value is null || !visitedValues.Add(value))
         {
-            return [];
+            return;
         }
-
-        var newDependencies = new HashSet<IResource>();
 
         // Direct resource references
         if (value is IResource resource)
@@ -1386,7 +1404,7 @@ public static class ResourceExtensions
             {
                 newDependencies.Add(resource);
             }
-            newDependencies.UnionWith(CollectAnnotationDependencies(resource, dependencies));
+            CollectAnnotationDependencies(resource, dependencies, newDependencies);
         }
 
         // Resource builder wrapping a resource
@@ -1396,7 +1414,7 @@ public static class ResourceExtensions
             {
                 newDependencies.Add(resourceBuilder.Resource);
             }
-            newDependencies.UnionWith(CollectAnnotationDependencies(resourceBuilder.Resource, dependencies));
+            CollectAnnotationDependencies(resourceBuilder.Resource, dependencies, newDependencies);
             value = resourceBuilder.Resource;
         }
 
@@ -1405,10 +1423,8 @@ public static class ResourceExtensions
         {
             foreach (var reference in valueWithReferences.References)
             {
-                newDependencies.UnionWith(CollectDependenciesFromValue(reference, dependencies, visited));
+                CollectDependenciesFromValue(reference, dependencies, newDependencies, visitedValues);
             }
         }
-
-        return newDependencies;
     }
 }

@@ -12,7 +12,7 @@ public enum ResourceDependencyDiscoveryMode
     /// Discover the full transitive closure of all dependencies.
     /// This includes direct dependencies and all dependencies of those dependencies, recursively.
     /// </summary>
-    TransitiveClosure,
+    Recursive,
 
     /// <summary>
     /// Discover only direct dependencies.

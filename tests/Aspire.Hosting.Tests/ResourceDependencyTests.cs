@@ -290,6 +290,28 @@ public class ResourceDependencyTests
     }
 
     [Fact]
+    public async Task CircularReferencesAreHandled()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // A -> B -> C -> D -> B via Endpoint references
+        var b = builder.AddContainer("b", "alpine");
+        var c = builder.AddContainer("c", "alpine")
+            .WithEnvironment("B_URL", b.GetEndpoint("http"));
+        var d = builder.AddContainer("d", "alpine")
+            .WithEnvironment("C_URL", c.GetEndpoint("http"));
+        b.WithEnvironment("D_URL", d.GetEndpoint("http")); // Completes the cycle
+        var a = builder.AddContainer("a", "alpine")
+            .WithEnvironment("B_URL", b.GetEndpoint("http"));
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var dependencies = await a.Resource.GetResourceDependenciesAsync(executionContext);
+        Assert.Contains(b.Resource, dependencies);
+        Assert.Contains(c.Resource, dependencies);
+        Assert.Contains(d.Resource, dependencies);
+        Assert.Equal(3, dependencies.Count); // Each resource only appears once
+    }
+
+    [Fact]
     public async Task MixedReferenceTypesToSameResourceIsDeduplicatedAndIncluded()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -471,7 +493,7 @@ public class ResourceDependencyTests
             .WithReference(b.GetEndpoint("http"));
 
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var dependencies = await a.Resource.GetResourceDependenciesAsync(executionContext, ResourceDependencyDiscoveryMode.TransitiveClosure);
+        var dependencies = await a.Resource.GetResourceDependenciesAsync(executionContext, ResourceDependencyDiscoveryMode.Recursive);
 
         Assert.Contains(b.Resource, dependencies);
         Assert.Contains(c.Resource, dependencies);

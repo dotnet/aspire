@@ -132,7 +132,7 @@ public sealed class ParameterProcessor(
                 continue;
             }
 
-            var dependencies = await resource.GetResourceDependenciesAsync(executionContext, ResourceDependencyDiscoveryMode.TransitiveClosure, cancellationToken).ConfigureAwait(false);
+            var dependencies = await resource.GetResourceDependenciesAsync(executionContext, ResourceDependencyDiscoveryMode.Recursive, cancellationToken).ConfigureAwait(false);
             foreach (var parameter in dependencies.OfType<ParameterResource>())
             {
                 referencedParameters.TryAdd(parameter.Name, parameter);
