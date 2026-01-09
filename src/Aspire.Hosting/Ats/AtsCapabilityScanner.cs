@@ -601,6 +601,7 @@ internal static class AtsCapabilityScanner
 
         string? extendsTypeId = null;
         AtsTypeRef? extendsTypeRef = null;
+        string? targetParameterName = null;
         if (parameters.Count > 0)
         {
             var firstParam = parameters[0];
@@ -618,6 +619,8 @@ internal static class AtsCapabilityScanner
             if (firstParamTypeId != null)
             {
                 extendsTypeId = firstParamTypeId;
+                // Capture the parameter name for code generation (e.g., "builder", "resource")
+                targetParameterName = firstParam.Name;
             }
         }
 
@@ -664,6 +667,7 @@ internal static class AtsCapabilityScanner
             IsExtensionMethod = isExtensionMethod,
             OriginalTargetTypeId = extendsTypeId,
             TargetType = extendsTypeRef,
+            TargetParameterName = targetParameterName,
             ReturnsBuilder = returnsBuilder,
             SourceMethod = method // Store source method for runtime dispatch
         };

@@ -42,6 +42,7 @@
     IsInterface: true,
     IsReadOnly: false
   },
+  TargetParameterName: builder,
   ExpandedTargetTypes: [
     {
       TypeId: Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource,

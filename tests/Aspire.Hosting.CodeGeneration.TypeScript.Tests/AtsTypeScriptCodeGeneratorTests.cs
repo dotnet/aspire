@@ -700,6 +700,40 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.False(testRedisExpanded.IsInterface, "TestRedisResource is a concrete type");
     }
 
+    [Fact]
+    public void BugFix_TargetParameterName_IsPopulatedFromMethodSignature()
+    {
+        // Bug: The code generator hardcoded "builder" as the target parameter name,
+        // but methods like withReference use "resource" as the first parameter name.
+        // This caused runtime errors: "Missing required argument 'resource'"
+        //
+        // Fix: Added TargetParameterName field to AtsCapabilityInfo and populate it
+        // from the actual method signature's first parameter name.
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
+
+        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+
+        // Find withReference - its first parameter is named "resource" (not "builder")
+        var withReference = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withReference");
+
+        Assert.NotNull(withReference);
+        Assert.Equal("resource", withReference.TargetParameterName);
+
+        // Verify other capabilities have the expected parameter names
+        var addContainer = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/addContainer");
+        Assert.NotNull(addContainer);
+        Assert.Equal("builder", addContainer.TargetParameterName);
+
+        // withEnvironment uses "builder" as the first parameter
+        var withEnvironment = capabilities
+            .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withEnvironment");
+        Assert.NotNull(withEnvironment);
+        Assert.Equal("builder", withEnvironment.TargetParameterName);
+    }
+
     private static List<AtsCapabilityInfo> ScanCapabilitiesFromTestAssembly(AssemblyLoaderContext context)
     {
         var (_, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);

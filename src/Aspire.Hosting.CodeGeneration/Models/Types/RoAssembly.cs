@@ -58,13 +58,16 @@ public sealed class RoAssembly
                 continue;
             }
 
-            // Ignore non-public types
+            // Include public and internal types (skip private/protected nested types)
+            // This allows scanning internal static classes like CoreExports that have [AspireExport] methods
             var attributes = typeDef.Attributes;
             var visibility = attributes & System.Reflection.TypeAttributes.VisibilityMask;
-            var isPublic = visibility == System.Reflection.TypeAttributes.Public ||
-                      visibility == System.Reflection.TypeAttributes.NestedPublic;
+            var isAccessible = visibility == System.Reflection.TypeAttributes.Public ||
+                               visibility == System.Reflection.TypeAttributes.NotPublic ||  // internal (non-nested)
+                               visibility == System.Reflection.TypeAttributes.NestedPublic ||
+                               visibility == System.Reflection.TypeAttributes.NestedAssembly;  // internal nested
 
-            if (!isPublic)
+            if (!isAccessible)
             {
                 continue;
             }

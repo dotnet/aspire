@@ -122,6 +122,7 @@ public static class AtsCapabilityScanner
             IsExtensionMethod = shared.IsExtensionMethod,
             TargetTypeId = shared.OriginalTargetTypeId,
             TargetType = ConvertTypeRef(shared.TargetType),
+            TargetParameterName = shared.TargetParameterName,
             ExpandedTargetTypes = shared.ExpandedTargetTypes.Select(ConvertTypeRef).ToList()!,
             ReturnsBuilder = shared.ReturnsBuilder,
             CapabilityKind = shared.CapabilityKind,

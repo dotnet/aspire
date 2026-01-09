@@ -142,6 +142,17 @@ public sealed class AtsCapabilityInfo
     public AtsTypeRef? TargetType { get; init; }
 
     /// <summary>
+    /// Gets or sets the name of the target parameter (e.g., "builder", "resource").
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the first parameter of the method that represents the target/receiver.
+    /// Used by code generators to produce correct RPC argument names.
+    /// </para>
+    /// </remarks>
+    public string? TargetParameterName { get; init; }
+
+    /// <summary>
     /// Gets or sets the expanded list of concrete types this capability applies to.
     /// Pre-computed during scanning by resolving interface targets to all implementing types.
     /// </summary>

@@ -22,7 +22,7 @@ const redisUrl = refExpr`redis://${cache}:6379`;
 console.log(`Created reference expression: ${redisUrl}`);
 
 // Add container with environment callback to demonstrate the new property-like object API
-// Note: .waitFor(cache) demonstrates the union type fix - accepting wrapper classes directly
+// Note: .waitFor(cache) and .withReference(cache) demonstrate the union type fix
 const api = await builder
     .addContainer("api", "mcr.microsoft.com/dotnet/samples:aspnetapp")
     .withEnvironmentCallback(async (ctx: EnvironmentCallbackContext) => {
@@ -39,8 +39,9 @@ const api = await builder
         await ctx.environmentVariables.set("REDIS_URL", redisUrl);
         console.log(`    Set environment variables: MY_CONSTANT, REDIS_URL`);
     })
-    .waitFor(cache);  // Union type fix: accepts RedisResource wrapper directly!
-console.log("Added API container with environment callback and waitFor dependency");
+    .waitFor(cache)        // Union type fix: accepts RedisResource wrapper directly!
+    .withReference(cache); // Now generated from internal CoreExports class!
+console.log("Added API container with environment callback, waitFor, and withReference");
 
 // Build and run - fully fluent!
 console.log("\nBuilding and running...\n");

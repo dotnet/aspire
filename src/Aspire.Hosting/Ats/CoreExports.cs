@@ -105,39 +105,8 @@ internal static class CoreExports
 
     #endregion
 
-    #region Execution Context
-
-    /// <summary>
-    /// Checks if the application is running in run mode.
-    /// </summary>
-    /// <remarks>
-    /// Run mode is the default mode when developing locally. Resources are started
-    /// and orchestrated by the Aspire host.
-    /// </remarks>
-    /// <param name="context">The execution context handle.</param>
-    /// <returns>True if in run mode.</returns>
-    [AspireExport("isRunMode", Description = "Checks if running in run mode")]
-    public static bool IsRunMode(DistributedApplicationExecutionContext context)
-    {
-        return context.IsRunMode;
-    }
-
-    /// <summary>
-    /// Checks if the application is running in publish mode.
-    /// </summary>
-    /// <remarks>
-    /// Publish mode is used when generating deployment artifacts (e.g., for Azure, Kubernetes).
-    /// Resources are not started; instead, manifests are generated.
-    /// </remarks>
-    /// <param name="context">The execution context handle.</param>
-    /// <returns>True if in publish mode.</returns>
-    [AspireExport("isPublishMode", Description = "Checks if running in publish mode")]
-    public static bool IsPublishMode(DistributedApplicationExecutionContext context)
-    {
-        return context.IsPublishMode;
-    }
-
-    #endregion
+    // Note: IsRunMode and IsPublishMode are accessed via property getters on DistributedApplicationExecutionContext
+    // which has [AspireExport(ExposeProperties = true)], so no separate methods are needed.
 
     #region Endpoint Configuration
 

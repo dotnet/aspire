@@ -115,6 +115,12 @@ internal sealed class AtsCapabilityInfo
     public AtsTypeRef? TargetType { get; init; }
 
     /// <summary>
+    /// Gets or sets the name of the target parameter (e.g., "builder", "resource").
+    /// This is the first parameter of the method that represents the target/receiver.
+    /// </summary>
+    public string? TargetParameterName { get; init; }
+
+    /// <summary>
     /// Gets or sets the expanded list of concrete types this capability applies to.
     /// Pre-computed during scanning by resolving interface targets to all implementing types.
     /// </summary>

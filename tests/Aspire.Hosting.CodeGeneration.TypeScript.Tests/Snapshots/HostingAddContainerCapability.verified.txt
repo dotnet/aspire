@@ -43,6 +43,7 @@
     IsInterface: true,
     IsReadOnly: false
   },
+  TargetParameterName: builder,
   ExpandedTargetTypes: [
     {
       TypeId: Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder,

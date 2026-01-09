@@ -535,7 +535,12 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                         m.Parameters.Count == 0)  // Property getters have no additional params
             .ToList();
 
-        var otherMethods = methods.Except(propertyMethods).ToList();
+        // Exclude methods that are already hardcoded in the template (build) or in base class (run)
+        var excludedMethods = new HashSet<string> { "build", "run" };
+        var otherMethods = methods
+            .Except(propertyMethods)
+            .Where(m => !excludedMethods.Contains(m.MethodName))
+            .ToList();
 
         // Generate property-style getters for wrapper types
         foreach (var capability in propertyMethods)
@@ -558,6 +563,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var returnTypeId = GetReturnTypeId(capability)!;
         var wrapperClassName = DeriveClassName(returnTypeId);
         var handleType = GetHandleTypeName(returnTypeId);
+        var targetParamName = capability.TargetParameterName ?? "builder";
 
         // Derive property name from method name (getConfiguration -> configuration)
         var propertyName = capability.MethodName;
@@ -576,7 +582,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($"    get {propertyName}(): Promise<{wrapperClassName}> {{");
         WriteLine($"        return this._client.invokeCapability<{handleType}>(");
         WriteLine($"            '{capability.CapabilityId}',");
-        WriteLine("            { builder: this._handle }");
+        WriteLine($"            {{ {targetParamName}: this._handle }}");
         WriteLine($"        ).then(handle => new {wrapperClassName}(handle, this._client));");
         WriteLine("    }");
     }
@@ -584,10 +590,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private void GenerateDistributedApplicationBuilderMethod(AtsCapabilityInfo capability, List<BuilderModel> resourceBuilders, List<BuilderModel> typeClasses)
     {
         var methodName = capability.MethodName;
+        var targetParamName = capability.TargetParameterName ?? "builder";
 
-        // Build parameter list (builder is implicit via this._handle)
+        // Build parameter list (target param is implicit via this._handle)
         var paramDefs = new List<string>();
-        var paramArgs = new List<string> { "builder: this._handle" };
+        var paramArgs = new List<string> { $"{targetParamName}: this._handle" };
 
         foreach (var param in capability.Parameters)
         {
@@ -742,7 +749,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
 
         var paramsString = string.Join(", ", paramDefs);
-        var argsString = paramArgs.Count > 0 ? $"{{ builder: this._handle, {string.Join(", ", paramArgs)} }}" : "{ builder: this._handle }";
+        // Use the actual target parameter name from the capability (e.g., "resource" for withReference)
+        var targetParamName = capability.TargetParameterName ?? "builder";
+        var argsString = paramArgs.Count > 0 ? $"{{ {targetParamName}: this._handle, {string.Join(", ", paramArgs)} }}" : $"{{ {targetParamName}: this._handle }}";
 
         // Determine return type - use the builder's own type for fluent methods
         // The capability may return an interface type (e.g., IResourceWithEnvironment) but
@@ -1724,7 +1733,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var typeName = ExtractSimpleTypeName(typeId);
 
         // Sanitize generic types like "Dict<String,Object>" -> "DictStringObject"
+        // and array types like "string[]" -> "stringArray"
         typeName = typeName
+            .Replace("[]", "Array", StringComparison.Ordinal)
             .Replace("<", "", StringComparison.Ordinal)
             .Replace(">", "", StringComparison.Ordinal)
             .Replace(",", "", StringComparison.Ordinal);
