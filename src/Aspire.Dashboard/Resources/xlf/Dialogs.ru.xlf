@@ -637,6 +637,11 @@
         <target state="translated">Экспортировать все</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsImportButtonText">
+        <source>Import logs and telemetry</source>
+        <target state="new">Import logs and telemetry</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
         <source>Remove all</source>
         <target state="translated">Удалить все</target>

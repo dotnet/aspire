@@ -16,11 +16,6 @@ public sealed class TelemetryDataRow
     public required AspireDataType DataType { get; init; }
 
     /// <summary>
-    /// The total count of items (logs, traces, or metrics). Null if count is not available.
-    /// </summary>
-    public int? DataCount { get; init; }
-
-    /// <summary>
     /// The icon representing this data type.
     /// </summary>
     public required Icon Icon { get; init; }

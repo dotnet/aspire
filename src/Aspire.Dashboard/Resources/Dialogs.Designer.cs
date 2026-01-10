@@ -1123,6 +1123,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Import logs and telemetry.
+        /// </summary>
+        public static string SettingsImportButtonText {
+            get {
+                return ResourceManager.GetString("SettingsImportButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Format JSON.
         /// </summary>
         public static string TextVisualizerDialogJsonFormat {

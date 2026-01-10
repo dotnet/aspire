@@ -208,12 +208,25 @@ public class TelemetryRepositoryTests
         AddTestData(repository, "resource1", "123");
         AddTestData(repository, "resource2", "456");
 
+        // Verify unviewed error logs exist before clearing
+        var unviewedBefore = repository.GetResourceUnviewedErrorLogsCount();
+        Assert.True(unviewedBefore.TryGetValue(new ResourceKey("resource1", "123"), out var errorCount1));
+        Assert.Equal(1, errorCount1);
+        Assert.True(unviewedBefore.TryGetValue(new ResourceKey("resource2", "456"), out var errorCount2));
+        Assert.Equal(1, errorCount2);
+
         // Act - Clear only structured logs for resource1
         var selectedResources = new Dictionary<string, HashSet<AspireDataType>>
         {
             ["resource1-123"] = [AspireDataType.StructuredLogs]
         };
         repository.ClearSelectedSignals(selectedResources);
+
+        // Assert - resource1 unviewed error logs cleared
+        var unviewedAfter = repository.GetResourceUnviewedErrorLogsCount();
+        Assert.False(unviewedAfter.TryGetValue(new ResourceKey("resource1", "123"), out _));
+        Assert.True(unviewedAfter.TryGetValue(new ResourceKey("resource2", "456"), out errorCount2));
+        Assert.Equal(1, errorCount2);
 
         // Assert - resource1 logs cleared, but traces and metrics remain
         var logs = repository.GetLogs(new GetLogsContext { ResourceKey = null, StartIndex = 0, Count = 10, Filters = [] });
@@ -252,7 +265,7 @@ public class TelemetryRepositoryTests
         // Act - Clear all data types for resource2 only
         var selectedResources = new Dictionary<string, HashSet<AspireDataType>>
         {
-            ["resource2-222"] = [AspireDataType.StructuredLogs, AspireDataType.Traces, AspireDataType.Metrics]
+            ["resource2-222"] = [AspireDataType.StructuredLogs, AspireDataType.Traces, AspireDataType.Metrics, AspireDataType.Resource]
         };
         repository.ClearSelectedSignals(selectedResources);
 
@@ -292,7 +305,7 @@ public class TelemetryRepositoryTests
         // Act - Clear all data types for resource1
         var selectedResources = new Dictionary<string, HashSet<AspireDataType>>
         {
-            ["resource1-123"] = [AspireDataType.StructuredLogs, AspireDataType.Traces, AspireDataType.Metrics]
+            ["resource1-123"] = [AspireDataType.StructuredLogs, AspireDataType.Traces, AspireDataType.Metrics, AspireDataType.Resource]
         };
         repository.ClearSelectedSignals(selectedResources);
 
@@ -356,7 +369,7 @@ public class TelemetryRepositoryTests
                     new ScopeLogs
                     {
                         Scope = CreateScope("TestLogger"),
-                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(1), message: $"log-{compositeName}") }
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(1), message: $"log-{compositeName}", severity: SeverityNumber.Error) }
                     }
                 }
             }
