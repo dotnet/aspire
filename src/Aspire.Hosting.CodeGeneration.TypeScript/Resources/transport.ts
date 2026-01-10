@@ -8,8 +8,9 @@ import * as rpc from 'vscode-jsonrpc/node.js';
 
 /**
  * Type for callback functions that can be registered and invoked from .NET.
+ * Internal: receives args and client for handle wrapping.
  */
-export type CallbackFunction = (args: unknown) => unknown | Promise<unknown>;
+export type CallbackFunction = (args: unknown, client: AspireClient) => unknown | Promise<unknown>;
 
 /**
  * Represents a handle to a .NET object in the ATS system.
@@ -135,13 +136,51 @@ export class Handle<T extends string = string> {
     }
 }
 
+// ============================================================================
+// Handle Wrapper Registry
+// ============================================================================
+
+/**
+ * Factory function for creating typed wrapper instances from handles.
+ */
+export type HandleWrapperFactory = (handle: Handle, client: AspireClient) => unknown;
+
+/**
+ * Registry of handle wrapper factories by type ID.
+ * Generated code registers wrapper classes here so callback handles can be properly typed.
+ */
+const handleWrapperRegistry = new Map<string, HandleWrapperFactory>();
+
+/**
+ * Register a wrapper factory for a type ID.
+ * Called by generated code to register wrapper classes.
+ */
+export function registerHandleWrapper(typeId: string, factory: HandleWrapperFactory): void {
+    handleWrapperRegistry.set(typeId, factory);
+}
+
 /**
  * Checks if a value is a marshalled handle and wraps it appropriately.
+ * Uses the wrapper registry to create typed wrapper instances when available.
+ *
+ * @param value - The value to potentially wrap
+ * @param client - Optional client for creating typed wrapper instances
  */
-export function wrapIfHandle(value: unknown): unknown {
+export function wrapIfHandle(value: unknown, client?: AspireClient): unknown {
     if (value && typeof value === 'object') {
         if (isMarshalledHandle(value)) {
-            return new Handle(value);
+            const handle = new Handle(value);
+            const typeId = value.$type;
+
+            // Try to find a registered wrapper factory for this type
+            if (typeId && client) {
+                const factory = handleWrapperRegistry.get(typeId);
+                if (factory) {
+                    return factory(handle, client);
+                }
+            }
+
+            return handle;
         }
     }
     return value;
@@ -206,7 +245,7 @@ export function registerCallback<TResult = void>(
     const callbackId = `callback_${++callbackIdCounter}_${Date.now()}`;
 
     // Wrap the callback to handle .NET's positional argument format
-    const wrapper: CallbackFunction = async (args: unknown) => {
+    const wrapper: CallbackFunction = async (args: unknown, client: AspireClient) => {
         // .NET sends args as object { p0: value0, p1: value1, ... }
         if (args && typeof args === 'object' && !Array.isArray(args)) {
             const argObj = args as Record<string, unknown>;
@@ -216,7 +255,7 @@ export function registerCallback<TResult = void>(
             for (let i = 0; ; i++) {
                 const key = `p${i}`;
                 if (key in argObj) {
-                    argArray.push(wrapIfHandle(argObj[key]));
+                    argArray.push(wrapIfHandle(argObj[key], client));
                 } else {
                     break;
                 }
@@ -237,7 +276,7 @@ export function registerCallback<TResult = void>(
         }
 
         // Primitive value - pass as single arg (shouldn't happen with current protocol)
-        return await callback(wrapIfHandle(args));
+        return await callback(wrapIfHandle(args, client));
     };
 
     callbackRegistry.set(callbackId, wrapper);
@@ -325,7 +364,8 @@ export class AspireClient {
                         }
                         try {
                             // The registered wrapper handles arg unpacking and handle wrapping
-                            return await Promise.resolve(callback(args));
+                            // Pass this client so handles can be wrapped with typed wrapper classes
+                            return await Promise.resolve(callback(args, this));
                         } catch (error) {
                             const message = error instanceof Error ? error.message : String(error);
                             throw new Error(`Callback execution failed: ${message}`);
@@ -390,7 +430,7 @@ export class AspireClient {
         }
 
         // Wrap handles automatically
-        return wrapIfHandle(result) as T;
+        return wrapIfHandle(result, this) as T;
     }
 
     /**

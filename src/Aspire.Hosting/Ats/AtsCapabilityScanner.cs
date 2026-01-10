@@ -902,8 +902,24 @@ internal static class AtsCapabilityScanner
         var isCallback = IsDelegateType(paramType);
 
         // Check for object type without [AspireUnion] - this is an error
+        // UNLESS marked with [AtsPassthrough] for collection intrinsics
         if (paramType.FullName == "System.Object" && !isCallback)
         {
+            // Check for [AtsPassthrough] attribute - allows object for internal intrinsics
+            var hasPassthrough = param.GetCustomAttributes()
+                .Any(a => a.AttributeTypeFullName == "Aspire.Hosting.Ats.AtsPassthroughAttribute");
+
+            if (hasPassthrough)
+            {
+                // Allow passthrough - marshal dynamically at runtime
+                return new AtsParameterInfo
+                {
+                    Name = paramName,
+                    Type = new AtsTypeRef { TypeId = "unknown", Category = AtsTypeCategory.Primitive },
+                    IsOptional = param.IsOptional
+                };
+            }
+
             throw new InvalidOperationException(
                 $"Parameter '{paramName}' has type 'object' which is not a valid ATS type. " +
                 $"Use [AspireUnion(typeof(T1), typeof(T2), ...)] to specify the allowed types.");

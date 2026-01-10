@@ -304,9 +304,11 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             import {
                 AspireClient as AspireClientRpc,
                 Handle,
+                MarshalledHandle,
                 CapabilityError,
                 registerCallback,
-                wrapIfHandle
+                wrapIfHandle,
+                registerHandleWrapper
             } from './transport.js';
 
             import {
@@ -423,6 +425,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Generate global error handling
         GenerateGlobalErrorHandling();
+
+        // Generate handle wrapper registrations (after all classes are defined)
+        GenerateHandleWrapperRegistrations(typeClasses, resourceBuilders);
 
         return stringWriter.ToString();
     }
@@ -1298,6 +1303,38 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     }
 
     /// <summary>
+    /// Generates handle wrapper registrations for all type classes and builder classes.
+    /// This allows callback handles to be wrapped as typed instances.
+    /// </summary>
+    private void GenerateHandleWrapperRegistrations(List<BuilderModel> typeClasses, List<BuilderModel> resourceBuilders)
+    {
+        WriteLine();
+        WriteLine("// ============================================================================");
+        WriteLine("// Handle Wrapper Registrations");
+        WriteLine("// ============================================================================");
+        WriteLine();
+        WriteLine("// Register wrapper factories for typed handle wrapping in callbacks");
+
+        // Register type classes (context types like EnvironmentCallbackContext)
+        foreach (var typeClass in typeClasses)
+        {
+            var className = _wrapperClassNames.GetValueOrDefault(typeClass.TypeId) ?? DeriveClassName(typeClass.TypeId);
+            var handleType = GetHandleTypeName(typeClass.TypeId);
+            WriteLine($"registerHandleWrapper('{typeClass.TypeId}', (handle, client) => new {className}(handle as {handleType}, client));");
+        }
+
+        // Register resource builder classes
+        foreach (var builder in resourceBuilders)
+        {
+            var className = _wrapperClassNames.GetValueOrDefault(builder.TypeId) ?? DeriveClassName(builder.TypeId);
+            var handleType = GetHandleTypeName(builder.TypeId);
+            WriteLine($"registerHandleWrapper('{builder.TypeId}', (handle, client) => new {className}(handle as {handleType}, client));");
+        }
+
+        WriteLine();
+    }
+
+    /// <summary>
     /// Generates a type class (context type or wrapper type).
     /// Uses property-like object pattern for exposed properties.
     /// </summary>
@@ -1322,6 +1359,9 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($" */");
         WriteLine($"export class {className} {{");
         WriteLine($"    constructor(private _handle: {handleType}, private _client: AspireClientRpc) {{}}");
+        WriteLine();
+        WriteLine($"    /** Serialize for JSON-RPC transport */");
+        WriteLine($"    toJSON(): MarshalledHandle {{ return this._handle.toJSON(); }}");
         WriteLine();
 
         // Group getters and setters by property name to create property-like objects
@@ -1529,6 +1569,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
 
         var typeId = $"'{getter.CapabilityId.Replace(".get", "")}'";
+        var getterCapabilityId = $"'{getter.CapabilityId}'";
 
         if (!string.IsNullOrEmpty(getter.Description))
         {
@@ -1536,13 +1577,15 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
 
         // Generate a getter property that returns AspireDict
+        // Pass the getter capability ID so AspireDict can lazily fetch the actual dictionary handle
         WriteLine($"    private _{propertyName}?: AspireDict<{keyType}, {valueType}>;");
         WriteLine($"    get {propertyName}(): AspireDict<{keyType}, {valueType}> {{");
         WriteLine($"        if (!this._{propertyName}) {{");
         WriteLine($"            this._{propertyName} = new AspireDict<{keyType}, {valueType}>(");
         WriteLine($"                this._handle,");
         WriteLine($"                this._client,");
-        WriteLine($"                {typeId}");
+        WriteLine($"                {typeId},");
+        WriteLine($"                {getterCapabilityId}");
         WriteLine("            );");
         WriteLine("        }");
         WriteLine($"        return this._{propertyName};");

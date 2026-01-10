@@ -7,9 +7,11 @@
 import {
     AspireClient as AspireClientRpc,
     Handle,
+    MarshalledHandle,
     CapabilityError,
     registerCallback,
-    wrapIfHandle
+    wrapIfHandle,
+    registerHandleWrapper
 } from './transport.js';
 
 import {
@@ -66,6 +68,9 @@ type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hostin
 export class TestCallbackContext {
     constructor(private _handle: TestCallbackContextHandle, private _client: AspireClientRpc) {}
 
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
     /** Gets the Name property */
     name = {
         get: async (): Promise<string> => {
@@ -109,6 +114,9 @@ export class TestCallbackContext {
  */
 export class TestEnvironmentContext {
     constructor(private _handle: TestEnvironmentContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
     /** Gets the Name property */
     name = {
@@ -169,6 +177,9 @@ export class TestEnvironmentContext {
  */
 export class TestResourceContext {
     constructor(private _handle: TestResourceContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
     /** Gets the Name property */
     name = {
@@ -816,3 +827,14 @@ process.on('uncaughtException', (error: Error) => {
     }
     process.exit(1);
 });
+
+// ============================================================================
+// Handle Wrapper Registrations
+// ============================================================================
+
+// Register wrapper factories for typed handle wrapping in callbacks
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext', (handle, client) => new TestEnvironmentContext(handle as TestEnvironmentContextHandle, client));
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext', (handle, client) => new TestResourceContext(handle as TestResourceContextHandle, client));
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource', (handle, client) => new TestRedisResource(handle as TestRedisResourceHandle, client));
+

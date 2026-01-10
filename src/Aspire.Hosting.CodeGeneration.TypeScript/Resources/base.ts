@@ -307,18 +307,49 @@ export class AspireList<T> {
  * ```
  */
 export class AspireDict<K, V> {
+    private _resolvedHandle?: Handle;
+    private _resolvePromise?: Promise<Handle>;
+
     constructor(
-        private readonly _handle: Handle,
+        private readonly _handleOrContext: Handle,
         private readonly _client: AspireClient,
-        private readonly _typeId: string
-    ) {}
+        private readonly _typeId: string,
+        private readonly _getterCapabilityId?: string
+    ) {
+        // If no getter capability, the handle is already the dictionary handle
+        if (!_getterCapabilityId) {
+            this._resolvedHandle = _handleOrContext;
+        }
+    }
+
+    /**
+     * Ensures we have the actual dictionary handle by calling the getter if needed.
+     */
+    private async _ensureHandle(): Promise<Handle> {
+        if (this._resolvedHandle) {
+            return this._resolvedHandle;
+        }
+        if (this._resolvePromise) {
+            return this._resolvePromise;
+        }
+        // Call the getter capability to get the actual dictionary handle
+        this._resolvePromise = (async () => {
+            const result = await this._client.invokeCapability(this._getterCapabilityId!, {
+                context: this._handleOrContext
+            });
+            this._resolvedHandle = result as Handle;
+            return this._resolvedHandle;
+        })();
+        return this._resolvePromise;
+    }
 
     /**
      * Gets the number of key-value pairs in the dictionary.
      */
     async count(): Promise<number> {
+        const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.count', {
-            dict: this._handle
+            dict: handle
         }) as number;
     }
 
@@ -327,8 +358,9 @@ export class AspireDict<K, V> {
      * @throws If the key is not found.
      */
     async get(key: K): Promise<V> {
+        const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.get', {
-            dict: this._handle,
+            dict: handle,
             key
         }) as V;
     }
@@ -337,8 +369,9 @@ export class AspireDict<K, V> {
      * Sets the value for the specified key.
      */
     async set(key: K, value: V): Promise<void> {
+        const handle = await this._ensureHandle();
         await this._client.invokeCapability('Aspire.Hosting/Dict.set', {
-            dict: this._handle,
+            dict: handle,
             key,
             value
         });
@@ -348,8 +381,9 @@ export class AspireDict<K, V> {
      * Determines whether the dictionary contains the specified key.
      */
     async containsKey(key: K): Promise<boolean> {
+        const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.has', {
-            dict: this._handle,
+            dict: handle,
             key
         }) as boolean;
     }
@@ -359,8 +393,9 @@ export class AspireDict<K, V> {
      * @returns True if the element was removed; false if the key was not found.
      */
     async remove(key: K): Promise<boolean> {
+        const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.remove', {
-            dict: this._handle,
+            dict: handle,
             key
         }) as boolean;
     }
@@ -369,8 +404,9 @@ export class AspireDict<K, V> {
      * Clears all key-value pairs from the dictionary.
      */
     async clear(): Promise<void> {
+        const handle = await this._ensureHandle();
         await this._client.invokeCapability('Aspire.Hosting/Dict.clear', {
-            dict: this._handle
+            dict: handle
         });
     }
 
@@ -378,8 +414,9 @@ export class AspireDict<K, V> {
      * Gets all keys in the dictionary.
      */
     async keys(): Promise<K[]> {
+        const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.keys', {
-            dict: this._handle
+            dict: handle
         }) as K[];
     }
 
@@ -387,8 +424,9 @@ export class AspireDict<K, V> {
      * Gets all values in the dictionary.
      */
     async values(): Promise<V[]> {
+        const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.values', {
-            dict: this._handle
+            dict: handle
         }) as V[];
     }
 
@@ -397,10 +435,14 @@ export class AspireDict<K, V> {
      * Only works when K is string.
      */
     async toObject(): Promise<Record<string, V>> {
+        const handle = await this._ensureHandle();
         return await this._client.invokeCapability('Aspire.Hosting/Dict.toObject', {
-            dict: this._handle
+            dict: handle
         }) as Record<string, V>;
     }
 
-    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+    async toJSON(): Promise<MarshalledHandle> {
+        const handle = await this._ensureHandle();
+        return handle.toJSON();
+    }
 }

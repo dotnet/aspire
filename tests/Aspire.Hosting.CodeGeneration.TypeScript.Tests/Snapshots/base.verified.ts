@@ -234,7 +234,7 @@ export class AspireList<T> {
      * Gets the number of elements in the list.
      */
     async count(): Promise<number> {
-        return await this._client.invokeCapability(`${this._typeId}/count`, {
+        return await this._client.invokeCapability('Aspire.Hosting/List.length', {
             list: this._handle
         }) as number;
     }
@@ -243,7 +243,7 @@ export class AspireList<T> {
      * Gets the element at the specified index.
      */
     async get(index: number): Promise<T> {
-        return await this._client.invokeCapability(`${this._typeId}/get`, {
+        return await this._client.invokeCapability('Aspire.Hosting/List.get', {
             list: this._handle,
             index
         }) as T;
@@ -253,7 +253,7 @@ export class AspireList<T> {
      * Adds an element to the end of the list.
      */
     async add(item: T): Promise<void> {
-        await this._client.invokeCapability(`${this._typeId}/add`, {
+        await this._client.invokeCapability('Aspire.Hosting/List.add', {
             list: this._handle,
             item
         });
@@ -263,7 +263,7 @@ export class AspireList<T> {
      * Removes the element at the specified index.
      */
     async removeAt(index: number): Promise<void> {
-        await this._client.invokeCapability(`${this._typeId}/removeAt`, {
+        await this._client.invokeCapability('Aspire.Hosting/List.removeAt', {
             list: this._handle,
             index
         });
@@ -273,7 +273,7 @@ export class AspireList<T> {
      * Clears all elements from the list.
      */
     async clear(): Promise<void> {
-        await this._client.invokeCapability(`${this._typeId}/clear`, {
+        await this._client.invokeCapability('Aspire.Hosting/List.clear', {
             list: this._handle
         });
     }
@@ -282,7 +282,7 @@ export class AspireList<T> {
      * Converts the list to an array (creates a copy).
      */
     async toArray(): Promise<T[]> {
-        return await this._client.invokeCapability(`${this._typeId}/toArray`, {
+        return await this._client.invokeCapability('Aspire.Hosting/List.toArray', {
             list: this._handle
         }) as T[];
     }
@@ -307,18 +307,49 @@ export class AspireList<T> {
  * ```
  */
 export class AspireDict<K, V> {
+    private _resolvedHandle?: Handle;
+    private _resolvePromise?: Promise<Handle>;
+
     constructor(
-        private readonly _handle: Handle,
+        private readonly _handleOrContext: Handle,
         private readonly _client: AspireClient,
-        private readonly _typeId: string
-    ) {}
+        private readonly _typeId: string,
+        private readonly _getterCapabilityId?: string
+    ) {
+        // If no getter capability, the handle is already the dictionary handle
+        if (!_getterCapabilityId) {
+            this._resolvedHandle = _handleOrContext;
+        }
+    }
+
+    /**
+     * Ensures we have the actual dictionary handle by calling the getter if needed.
+     */
+    private async _ensureHandle(): Promise<Handle> {
+        if (this._resolvedHandle) {
+            return this._resolvedHandle;
+        }
+        if (this._resolvePromise) {
+            return this._resolvePromise;
+        }
+        // Call the getter capability to get the actual dictionary handle
+        this._resolvePromise = (async () => {
+            const result = await this._client.invokeCapability(this._getterCapabilityId!, {
+                context: this._handleOrContext
+            });
+            this._resolvedHandle = result as Handle;
+            return this._resolvedHandle;
+        })();
+        return this._resolvePromise;
+    }
 
     /**
      * Gets the number of key-value pairs in the dictionary.
      */
     async count(): Promise<number> {
-        return await this._client.invokeCapability(`${this._typeId}/count`, {
-            dict: this._handle
+        const handle = await this._ensureHandle();
+        return await this._client.invokeCapability('Aspire.Hosting/Dict.count', {
+            dict: handle
         }) as number;
     }
 
@@ -327,8 +358,9 @@ export class AspireDict<K, V> {
      * @throws If the key is not found.
      */
     async get(key: K): Promise<V> {
-        return await this._client.invokeCapability(`${this._typeId}/get`, {
-            dict: this._handle,
+        const handle = await this._ensureHandle();
+        return await this._client.invokeCapability('Aspire.Hosting/Dict.get', {
+            dict: handle,
             key
         }) as V;
     }
@@ -337,8 +369,9 @@ export class AspireDict<K, V> {
      * Sets the value for the specified key.
      */
     async set(key: K, value: V): Promise<void> {
-        await this._client.invokeCapability(`${this._typeId}/set`, {
-            dict: this._handle,
+        const handle = await this._ensureHandle();
+        await this._client.invokeCapability('Aspire.Hosting/Dict.set', {
+            dict: handle,
             key,
             value
         });
@@ -348,8 +381,9 @@ export class AspireDict<K, V> {
      * Determines whether the dictionary contains the specified key.
      */
     async containsKey(key: K): Promise<boolean> {
-        return await this._client.invokeCapability(`${this._typeId}/containsKey`, {
-            dict: this._handle,
+        const handle = await this._ensureHandle();
+        return await this._client.invokeCapability('Aspire.Hosting/Dict.has', {
+            dict: handle,
             key
         }) as boolean;
     }
@@ -359,8 +393,9 @@ export class AspireDict<K, V> {
      * @returns True if the element was removed; false if the key was not found.
      */
     async remove(key: K): Promise<boolean> {
-        return await this._client.invokeCapability(`${this._typeId}/remove`, {
-            dict: this._handle,
+        const handle = await this._ensureHandle();
+        return await this._client.invokeCapability('Aspire.Hosting/Dict.remove', {
+            dict: handle,
             key
         }) as boolean;
     }
@@ -369,8 +404,9 @@ export class AspireDict<K, V> {
      * Clears all key-value pairs from the dictionary.
      */
     async clear(): Promise<void> {
-        await this._client.invokeCapability(`${this._typeId}/clear`, {
-            dict: this._handle
+        const handle = await this._ensureHandle();
+        await this._client.invokeCapability('Aspire.Hosting/Dict.clear', {
+            dict: handle
         });
     }
 
@@ -378,8 +414,9 @@ export class AspireDict<K, V> {
      * Gets all keys in the dictionary.
      */
     async keys(): Promise<K[]> {
-        return await this._client.invokeCapability(`${this._typeId}/keys`, {
-            dict: this._handle
+        const handle = await this._ensureHandle();
+        return await this._client.invokeCapability('Aspire.Hosting/Dict.keys', {
+            dict: handle
         }) as K[];
     }
 
@@ -387,8 +424,9 @@ export class AspireDict<K, V> {
      * Gets all values in the dictionary.
      */
     async values(): Promise<V[]> {
-        return await this._client.invokeCapability(`${this._typeId}/values`, {
-            dict: this._handle
+        const handle = await this._ensureHandle();
+        return await this._client.invokeCapability('Aspire.Hosting/Dict.values', {
+            dict: handle
         }) as V[];
     }
 
@@ -397,10 +435,14 @@ export class AspireDict<K, V> {
      * Only works when K is string.
      */
     async toObject(): Promise<Record<string, V>> {
-        return await this._client.invokeCapability(`${this._typeId}/toObject`, {
-            dict: this._handle
+        const handle = await this._ensureHandle();
+        return await this._client.invokeCapability('Aspire.Hosting/Dict.toObject', {
+            dict: handle
         }) as Record<string, V>;
     }
 
-    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+    async toJSON(): Promise<MarshalledHandle> {
+        const handle = await this._ensureHandle();
+        return handle.toJSON();
+    }
 }

@@ -7,9 +7,11 @@
 import {
     AspireClient as AspireClientRpc,
     Handle,
+    MarshalledHandle,
     CapabilityError,
     registerCallback,
-    wrapIfHandle
+    wrapIfHandle,
+    registerHandleWrapper
 } from './transport.js';
 
 import {
@@ -114,6 +116,9 @@ type stringArrayHandle = Handle<'string[]'>;
 export class DistributedApplicationExecutionContext {
     constructor(private _handle: DistributedApplicationExecutionContextHandle, private _client: AspireClientRpc) {}
 
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
     /** Gets the PublisherName property */
     publisherName = {
         get: async (): Promise<string> => {
@@ -163,6 +168,163 @@ export class DistributedApplicationExecutionContext {
 }
 
 // ============================================================================
+// EndpointReference
+// ============================================================================
+
+/**
+ * Type class for EndpointReference.
+ */
+export class EndpointReference {
+    constructor(private _handle: EndpointReferenceHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Gets the Resource property */
+    resource = {
+        get: async (): Promise<IResourceWithEndpointsHandle> => {
+            return await this._client.invokeCapability<IResourceWithEndpointsHandle>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.resource',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the EndpointName property */
+    endpointName = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.endpointName',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the ErrorMessage property */
+    errorMessage = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.errorMessage',
+                { context: this._handle }
+            );
+        },
+        set: async (value: string): Promise<void> => {
+            await this._client.invokeCapability<void>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.setErrorMessage',
+                { context: this._handle, value }
+            );
+        }
+    };
+
+    /** Gets the IsAllocated property */
+    isAllocated = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.isAllocated',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Exists property */
+    exists = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.exists',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the IsHttp property */
+    isHttp = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.isHttp',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the IsHttps property */
+    isHttps = {
+        get: async (): Promise<boolean> => {
+            return await this._client.invokeCapability<boolean>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.isHttps',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Port property */
+    port = {
+        get: async (): Promise<number> => {
+            return await this._client.invokeCapability<number>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.port',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the TargetPort property */
+    targetPort = {
+        get: async (): Promise<number> => {
+            return await this._client.invokeCapability<number>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.targetPort',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Host property */
+    host = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.host',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Scheme property */
+    scheme = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.scheme',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Gets the Url property */
+    url = {
+        get: async (): Promise<string> => {
+            return await this._client.invokeCapability<string>(
+                'Aspire.Hosting.ApplicationModel/EndpointReference.url',
+                { context: this._handle }
+            );
+        },
+    };
+
+    /** Invokes the GetValueAsync method */
+    async getValueAsync(): Promise<void> {
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting.ApplicationModel/EndpointReference.getValueAsync',
+            { context: this._handle }
+        );
+    }
+
+    /** Invokes the Property method */
+    async property(property: string): Promise<void> {
+        await this._client.invokeCapability<void>(
+            'Aspire.Hosting.ApplicationModel/EndpointReference.property',
+            { context: this._handle, property }
+        );
+    }
+
+}
+
+// ============================================================================
 // EnvironmentCallbackContext
 // ============================================================================
 
@@ -172,6 +334,9 @@ export class DistributedApplicationExecutionContext {
 export class EnvironmentCallbackContext {
     constructor(private _handle: EnvironmentCallbackContextHandle, private _client: AspireClientRpc) {}
 
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
     /** Gets the EnvironmentVariables property */
     private _environmentVariables?: AspireDict<string, string | ReferenceExpression>;
     get environmentVariables(): AspireDict<string, string | ReferenceExpression> {
@@ -179,6 +344,7 @@ export class EnvironmentCallbackContext {
             this._environmentVariables = new AspireDict<string, string | ReferenceExpression>(
                 this._handle,
                 this._client,
+                'Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.environmentVariables',
                 'Aspire.Hosting.ApplicationModel/EnvironmentCallbackContext.environmentVariables'
             );
         }
@@ -217,6 +383,9 @@ export class EnvironmentCallbackContext {
  */
 export class ResourceLoggerService {
     constructor(private _handle: ResourceLoggerServiceHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
     /** Gets a logger for a resource */
     async getLogger(resource: IResourceHandle | ResourceBuilderBase): Promise<unknown> {
@@ -261,6 +430,9 @@ export class ResourceLoggerService {
  */
 export class ResourceNotificationService {
     constructor(private _handle: ResourceNotificationServiceHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
     /** Waits for a resource to reach a specified state */
     async waitForResourceState(resourceName: string, targetState?: string): Promise<unknown> {
@@ -322,6 +494,9 @@ export class ResourceNotificationService {
 export class TestCallbackContext {
     constructor(private _handle: TestCallbackContextHandle, private _client: AspireClientRpc) {}
 
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
     /** Gets the Name property */
     name = {
         get: async (): Promise<string> => {
@@ -365,6 +540,9 @@ export class TestCallbackContext {
  */
 export class TestEnvironmentContext {
     constructor(private _handle: TestEnvironmentContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
     /** Gets the Name property */
     name = {
@@ -425,6 +603,9 @@ export class TestEnvironmentContext {
  */
 export class TestResourceContext {
     constructor(private _handle: TestResourceContextHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
     /** Gets the Name property */
     name = {
@@ -844,8 +1025,8 @@ export class ContainerResource extends ResourceBuilderBase<ContainerResourceHand
 
     /** Gets an endpoint reference */
     /** Gets an endpoint reference */
-    async getEndpoint(name: string): Promise<EndpointReferenceHandle> {
-        return await this._client.invokeCapability<EndpointReferenceHandle>(
+    async getEndpoint(name: string): Promise<EndpointReference> {
+        return await this._client.invokeCapability<EndpointReference>(
             'Aspire.Hosting/getEndpoint',
             { resource: this._handle, name }
         );
@@ -1152,7 +1333,7 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     }
 
     /** Gets an endpoint reference */
-    getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+    getEndpoint(name: string): Promise<EndpointReference> {
         return this._promise.then(b => b.getEndpoint(name));
     }
 
@@ -1429,8 +1610,8 @@ export class ExecutableResource extends ResourceBuilderBase<ExecutableResourceHa
 
     /** Gets an endpoint reference */
     /** Gets an endpoint reference */
-    async getEndpoint(name: string): Promise<EndpointReferenceHandle> {
-        return await this._client.invokeCapability<EndpointReferenceHandle>(
+    async getEndpoint(name: string): Promise<EndpointReference> {
+        return await this._client.invokeCapability<EndpointReference>(
             'Aspire.Hosting/getEndpoint',
             { resource: this._handle, name }
         );
@@ -1737,7 +1918,7 @@ export class ExecutableResourcePromise implements PromiseLike<ExecutableResource
     }
 
     /** Gets an endpoint reference */
-    getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+    getEndpoint(name: string): Promise<EndpointReference> {
         return this._promise.then(b => b.getEndpoint(name));
     }
 
@@ -2332,8 +2513,8 @@ export class ProjectResource extends ResourceBuilderBase<ProjectResourceHandle> 
 
     /** Gets an endpoint reference */
     /** Gets an endpoint reference */
-    async getEndpoint(name: string): Promise<EndpointReferenceHandle> {
-        return await this._client.invokeCapability<EndpointReferenceHandle>(
+    async getEndpoint(name: string): Promise<EndpointReference> {
+        return await this._client.invokeCapability<EndpointReference>(
             'Aspire.Hosting/getEndpoint',
             { resource: this._handle, name }
         );
@@ -2647,7 +2828,7 @@ export class ProjectResourcePromise implements PromiseLike<ProjectResource> {
     }
 
     /** Gets an endpoint reference */
-    getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+    getEndpoint(name: string): Promise<EndpointReference> {
         return this._promise.then(b => b.getEndpoint(name));
     }
 
@@ -2966,8 +3147,8 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
 
     /** Gets an endpoint reference */
     /** Gets an endpoint reference */
-    async getEndpoint(name: string): Promise<EndpointReferenceHandle> {
-        return await this._client.invokeCapability<EndpointReferenceHandle>(
+    async getEndpoint(name: string): Promise<EndpointReference> {
+        return await this._client.invokeCapability<EndpointReference>(
             'Aspire.Hosting/getEndpoint',
             { resource: this._handle, name }
         );
@@ -3392,7 +3573,7 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Gets an endpoint reference */
-    getEndpoint(name: string): Promise<EndpointReferenceHandle> {
+    getEndpoint(name: string): Promise<EndpointReference> {
         return this._promise.then(b => b.getEndpoint(name));
     }
 
@@ -3637,3 +3818,23 @@ process.on('uncaughtException', (error: Error) => {
     }
     process.exit(1);
 });
+
+// ============================================================================
+// Handle Wrapper Registrations
+// ============================================================================
+
+// Register wrapper factories for typed handle wrapping in callbacks
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext', (handle, client) => new DistributedApplicationExecutionContext(handle as DistributedApplicationExecutionContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference', (handle, client) => new EndpointReference(handle as EndpointReferenceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext', (handle, client) => new EnvironmentCallbackContext(handle as EnvironmentCallbackContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceLoggerService', (handle, client) => new ResourceLoggerService(handle as ResourceLoggerServiceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ResourceNotificationService', (handle, client) => new ResourceNotificationService(handle as ResourceNotificationServiceHandle, client));
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext', (handle, client) => new TestEnvironmentContext(handle as TestEnvironmentContextHandle, client));
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext', (handle, client) => new TestResourceContext(handle as TestResourceContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource', (handle, client) => new ContainerResource(handle as ContainerResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource', (handle, client) => new ExecutableResource(handle as ExecutableResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource', (handle, client) => new ParameterResource(handle as ParameterResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ProjectResource', (handle, client) => new ProjectResource(handle as ProjectResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource', (handle, client) => new TestRedisResource(handle as TestRedisResourceHandle, client));
+

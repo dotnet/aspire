@@ -41,7 +41,7 @@ internal static class CollectionExports
     /// <param name="key">The key to set.</param>
     /// <param name="value">The value to set.</param>
     [AspireExport("Dict.set", Description = "Sets a value in a dictionary")]
-    public static void DictSet(IDictionary<string, object> dict, string key, object value)
+    public static void DictSet(IDictionary<string, object> dict, string key, [AtsPassthrough] object value)
         => dict[key] = value;
 
     /// <summary>
@@ -129,7 +129,7 @@ internal static class CollectionExports
     /// <param name="index">The zero-based index.</param>
     /// <param name="value">The value to set.</param>
     [AspireExport("List.set", Description = "Sets an item in a list at a specific index")]
-    public static void ListSet(IList<object> list, int index, object value)
+    public static void ListSet(IList<object> list, int index, [AtsPassthrough] object value)
     {
         if (index >= 0 && index < list.Count)
         {
@@ -143,7 +143,7 @@ internal static class CollectionExports
     /// <param name="list">The list handle.</param>
     /// <param name="item">The item to add.</param>
     [AspireExport("List.add", Description = "Adds an item to the end of a list")]
-    public static void ListAdd(IList<object> list, object item)
+    public static void ListAdd(IList<object> list, [AtsPassthrough] object item)
         => list.Add(item);
 
     /// <summary>
@@ -187,7 +187,7 @@ internal static class CollectionExports
     /// <param name="index">The zero-based index at which to insert.</param>
     /// <param name="item">The item to insert.</param>
     [AspireExport("List.insert", Description = "Inserts an item at a specific index in a list")]
-    public static void ListInsert(IList<object> list, int index, object item)
+    public static void ListInsert(IList<object> list, int index, [AtsPassthrough] object item)
     {
         if (index >= 0 && index <= list.Count)
         {
@@ -202,7 +202,7 @@ internal static class CollectionExports
     /// <param name="item">The item to find.</param>
     /// <returns>The zero-based index, or -1 if not found.</returns>
     [AspireExport("List.indexOf", Description = "Gets the index of an item in a list")]
-    public static int ListIndexOf(IList<object> list, object item)
+    public static int ListIndexOf(IList<object> list, [AtsPassthrough] object item)
         => list.IndexOf(item);
 
     /// <summary>
