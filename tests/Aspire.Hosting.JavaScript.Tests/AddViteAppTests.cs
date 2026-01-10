@@ -497,6 +497,79 @@ public class AddViteAppTests
         Assert.Equal(password, env["TLS_CONFIG_PASSWORD"]);
     }
 
+    [Fact]
+    public async Task AddViteApp_ServerAuthCertConfig_EscapesBackslashesInAbsoluteConfigPath()
+    {
+        using var tempDir = new TestTempDirectory();
+
+        // Create a subdirectory path that will contain backslashes on Windows
+        var subDir = Path.Combine(tempDir.Path, "my-app", "frontend");
+        Directory.CreateDirectory(subDir);
+
+        // Create node_modules/.bin directory for Aspire config generation
+        var nodeModulesBinDir = Path.Combine(subDir, "node_modules", ".bin");
+        Directory.CreateDirectory(nodeModulesBinDir);
+
+        // Create a vite config file
+        var viteConfigPath = Path.Combine(subDir, "vite.config.js");
+        File.WriteAllText(viteConfigPath, "export default {}");
+
+        var builder = DistributedApplication.CreateBuilder();
+        var viteApp = builder.AddViteApp("test-app", subDir);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var nodeResource = Assert.Single(appModel.Resources.OfType<ViteAppResource>());
+
+        // Get the HttpsCertificateConfigurationCallbackAnnotation
+        var certConfigAnnotation = nodeResource.Annotations
+            .OfType<HttpsCertificateConfigurationCallbackAnnotation>()
+            .Single();
+
+        // Set up a context without --config argument (simulating default behavior)
+        var args = new List<object> { "run", "dev", "--", "--port", "3000" };
+        var env = new Dictionary<string, object>();
+
+        var context = new HttpsCertificateConfigurationCallbackAnnotationContext
+        {
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            Resource = nodeResource,
+            Arguments = args,
+            EnvironmentVariables = env,
+            CertificatePath = ReferenceExpression.Create($"cert.pem"),
+            KeyPath = ReferenceExpression.Create($"key.pem"),
+            PfxPath = ReferenceExpression.Create($"cert.pfx"),
+            Password = null,
+            CancellationToken = CancellationToken.None
+        };
+
+        // Invoke the callback
+        await certConfigAnnotation.Callback(context);
+
+        // Verify a --config was added with Aspire-specific path
+        var configIndex = args.IndexOf("--config");
+        Assert.True(configIndex >= 0);
+        Assert.True(configIndex + 1 < args.Count);
+        var newConfigPath = args[configIndex + 1] as string;
+        Assert.NotNull(newConfigPath);
+
+        // Read the generated Aspire Vite config file
+        var generatedConfigContent = File.ReadAllText(newConfigPath);
+
+        // Verify the generated config contains the absolute path with properly escaped backslashes
+        // The absolute path should have backslashes escaped as \\\\ in the JavaScript string
+        var absoluteConfigPath = Path.GetFullPath(viteConfigPath);
+        var expectedEscapedPath = absoluteConfigPath.Replace("\\", "\\\\");
+
+        Assert.Contains($"console.log('Found original Vite configuration at \"{expectedEscapedPath}\"')", generatedConfigContent);
+
+        // Verify the import statement uses forward slashes for the relative path
+        Assert.Contains("import config from '", generatedConfigContent);
+        // The import path should use forward slashes (not backslashes)
+        Assert.DoesNotMatch(@"import config from '[^']*\\[^']*'", generatedConfigContent);
+    }
+
     [Theory]
     [InlineData("vite.config.js")]
     [InlineData("vite.config.mjs")]
