@@ -217,12 +217,11 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         var baseType = MapTypeRefToTypeScript(param.Type);
 
-        // For interface handle types, generate union type to accept wrapper classes
-        // This allows users to pass wrapper class instances directly (e.g., `.waitFor(redis)`)
-        // The wrapper classes serialize correctly via toJSON()
+        // For interface handle types, use ResourceBuilderBase as the parameter type
+        // All wrapper classes extend ResourceBuilderBase and have toJSON() for serialization
         if (IsInterfaceHandleType(param.Type))
         {
-            return $"{baseType} | ResourceBuilderBase";
+            return "ResourceBuilderBase";
         }
 
         return baseType;
@@ -630,7 +629,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var paramsString = string.Join(", ", paramDefs);
         var argsObject = $"{{ {string.Join(", ", paramArgs)} }}";
 
-        // Check if return type is a wrapper type
+        // Check if return type is a wrapper type (context types, etc.)
         var returnTypeId = GetReturnTypeId(capability);
         BuilderModel? wrapperInfo = null;
         if (!string.IsNullOrEmpty(returnTypeId) && _wrapperClassNames.ContainsKey(returnTypeId))
@@ -638,11 +637,14 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             wrapperInfo = typeClasses.FirstOrDefault(w => w.TypeId == returnTypeId);
         }
 
-        // Determine return type for resource builders
+        // Determine return type for resource builders (including interface types)
+        // This handles both concrete types (RedisResource) and interface types (IResourceWithConnectionString)
         BuilderModel? builderInfo = null;
         if (wrapperInfo == null && !string.IsNullOrEmpty(returnTypeId) && capability.ReturnsBuilder)
         {
-            builderInfo = resourceBuilders.FirstOrDefault(b => b.TypeId == returnTypeId && !b.IsInterface);
+            // First try concrete builders, then interface builders
+            builderInfo = resourceBuilders.FirstOrDefault(b => b.TypeId == returnTypeId && !b.IsInterface)
+                       ?? resourceBuilders.FirstOrDefault(b => b.TypeId == returnTypeId && b.IsInterface);
         }
 
         // Generate JSDoc
@@ -762,8 +764,8 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
             else if (param.Type?.TypeId != null && _wrapperClassNames.ContainsKey(param.Type.TypeId))
             {
-                // Parameter is a wrapper type - extract its handle for the capability call
-                paramArgs.Add($"{param.Name}: {param.Name}._handle");
+                // Parameter is a wrapper type - it has toJSON() which serializes the handle correctly
+                paramArgs.Add($"{param.Name}");
             }
             else
             {
@@ -848,20 +850,18 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine("    }");
         WriteLine();
 
-        // Generate public fluent method (returns thenable wrapper for concrete builders)
-        if (!builder.IsInterface)
-        {
-            var promiseClass = $"{builder.BuilderClassName}Promise";
-            Write($"    {methodName}(");
-            Write(paramsString);
-            Write($"): {promiseClass} {{");
-            WriteLine();
-            Write($"        return new {promiseClass}(this.{internalMethodName}(");
-            Write(string.Join(", ", capability.Parameters.Select(p => p.Name)));
-            WriteLine("));");
-            WriteLine("    }");
-            WriteLine();
-        }
+        // Generate public fluent method (returns thenable wrapper)
+        // Both concrete builders AND interface wrappers get fluent methods
+        var promiseClass = $"{builder.BuilderClassName}Promise";
+        Write($"    {methodName}(");
+        Write(paramsString);
+        Write($"): {promiseClass} {{");
+        WriteLine();
+        Write($"        return new {promiseClass}(this.{internalMethodName}(");
+        Write(string.Join(", ", capability.Parameters.Select(p => p.Name)));
+        WriteLine("));");
+        WriteLine("    }");
+        WriteLine();
     }
 
     private void GenerateThenableClass(BuilderModel builder)
@@ -1719,6 +1719,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// <summary>
     /// Groups capabilities by ExpandedTargetTypes to create builder models.
     /// Uses expansion to map interface targets to their concrete implementations.
+    /// Also creates builders for interface types (for use as return type wrappers).
     /// </summary>
     private static List<BuilderModel> CreateBuilderModels(List<AtsCapabilityInfo> capabilities)
     {
@@ -1729,6 +1730,9 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Track whether each typeId is an interface (from ExpandedTargetTypes metadata)
         var typeIdIsInterface = new Dictionary<string, bool>();
+
+        // Also track interface types and their capabilities (for interface wrapper classes)
+        var interfaceCapabilities = new Dictionary<string, List<AtsCapabilityInfo>>();
 
         foreach (var cap in capabilities)
         {
@@ -1750,6 +1754,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             var expandedTypes = cap.ExpandedTargetTypes;
             if (expandedTypes is { Count: > 0 })
             {
+                // Flatten to concrete types
                 foreach (var expandedType in expandedTypes)
                 {
                     if (!capabilitiesByTypeId.TryGetValue(expandedType.TypeId, out var list))
@@ -1760,6 +1765,17 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                         typeIdIsInterface[expandedType.TypeId] = expandedType.IsInterface;
                     }
                     list.Add(cap);
+                }
+
+                // Also track the original interface type for wrapper class generation
+                if (targetTypeRef.IsInterface)
+                {
+                    if (!interfaceCapabilities.TryGetValue(targetTypeId, out var interfaceList))
+                    {
+                        interfaceList = [];
+                        interfaceCapabilities[targetTypeId] = interfaceList;
+                    }
+                    interfaceList.Add(cap);
                 }
             }
             else
@@ -1802,11 +1818,137 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             builders.Add(builder);
         }
 
+        // Also create builders for interface types (for use as return type wrappers)
+        // These are needed when methods return interface types like IResourceWithConnectionString
+        foreach (var (interfaceTypeId, caps) in interfaceCapabilities)
+        {
+            // Skip if already added (shouldn't happen, but be safe)
+            if (capabilitiesByTypeId.ContainsKey(interfaceTypeId))
+            {
+                continue;
+            }
+
+            var builderClassName = DeriveClassName(interfaceTypeId);
+
+            // Deduplicate capabilities
+            var uniqueCapabilities = caps
+                .GroupBy(c => c.CapabilityId)
+                .Select(g => g.First())
+                .ToList();
+
+            var builder = new BuilderModel
+            {
+                TypeId = interfaceTypeId,
+                BuilderClassName = builderClassName,
+                Capabilities = uniqueCapabilities,
+                IsInterface = true
+            };
+
+            builders.Add(builder);
+        }
+
+        // Also create builders for resource types referenced anywhere in capabilities
+        // This handles types like RedisCommanderResource that appear in callback signatures,
+        // return types, or parameter types but aren't capability targets
+        var allReferencedTypes = CollectAllReferencedTypes(capabilities);
+
+        // Track all types we already have builders for (concrete + interface)
+        var existingBuilderTypeIds = new HashSet<string>(capabilitiesByTypeId.Keys);
+        foreach (var (interfaceTypeId, _) in interfaceCapabilities)
+        {
+            existingBuilderTypeIds.Add(interfaceTypeId);
+        }
+
+        foreach (var typeId in allReferencedTypes)
+        {
+            // Skip types we already have builders for (from concrete or interface lists)
+            if (existingBuilderTypeIds.Contains(typeId))
+            {
+                continue;
+            }
+
+            // Only create builders for resource types
+            if (!AtsTypeMapping.IsResourceBuilderType(typeId))
+            {
+                continue;
+            }
+
+            var builderClassName = DeriveClassName(typeId);
+            var builder = new BuilderModel
+            {
+                TypeId = typeId,
+                BuilderClassName = builderClassName,
+                Capabilities = [],  // No specific capabilities - uses base type methods
+                IsInterface = false
+            };
+            builders.Add(builder);
+        }
+
         // Sort: concrete types first, then interfaces
         return builders
             .OrderBy(b => b.IsInterface)
             .ThenBy(b => b.BuilderClassName)
             .ToList();
+    }
+
+    /// <summary>
+    /// Collects all type IDs referenced in capabilities (return types, parameter types, callback types, etc.)
+    /// </summary>
+    private static HashSet<string> CollectAllReferencedTypes(List<AtsCapabilityInfo> capabilities)
+    {
+        var typeIds = new HashSet<string>();
+
+        void CollectFromTypeRef(AtsTypeRef? typeRef)
+        {
+            if (typeRef == null)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(typeRef.TypeId) && typeRef.Category == AtsTypeCategory.Handle)
+            {
+                typeIds.Add(typeRef.TypeId);
+            }
+
+            // Also check nested types (generics, arrays, etc.)
+            CollectFromTypeRef(typeRef.ElementType);
+            CollectFromTypeRef(typeRef.KeyType);
+            CollectFromTypeRef(typeRef.ValueType);
+            if (typeRef.UnionTypes != null)
+            {
+                foreach (var unionType in typeRef.UnionTypes)
+                {
+                    CollectFromTypeRef(unionType);
+                }
+            }
+        }
+
+        foreach (var cap in capabilities)
+        {
+            // Check return type
+            CollectFromTypeRef(cap.ReturnType);
+
+            // Check parameter types
+            foreach (var param in cap.Parameters)
+            {
+                CollectFromTypeRef(param.Type);
+
+                // Check callback parameter types and return type
+                if (param.IsCallback)
+                {
+                    if (param.CallbackParameters != null)
+                    {
+                        foreach (var cbParam in param.CallbackParameters)
+                        {
+                            CollectFromTypeRef(cbParam.Type);
+                        }
+                    }
+                    CollectFromTypeRef(param.CallbackReturnType);
+                }
+            }
+        }
+
+        return typeIds;
     }
 
     /// <summary>

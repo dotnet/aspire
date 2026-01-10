@@ -1872,70 +1872,104 @@ internal static class AtsCapabilityScanner
         AtsTypeMapping typeMapping,
         Dictionary<string, IAtsTypeInfo> discoveredTypes)
     {
-        // Check first parameter (target type for extension methods)
+        // Check all parameters (including callback parameters)
         var parameters = method.GetParameters().ToList();
-        if (parameters.Count > 0)
+        foreach (var param in parameters)
         {
-            CollectResourceTypeFromBuilderType(parameters[0].ParameterType, typeMapping, discoveredTypes);
+            CollectResourceTypeFromType(param.ParameterType, typeMapping, discoveredTypes);
         }
 
         // Check return type
-        CollectResourceTypeFromBuilderType(method.ReturnType, typeMapping, discoveredTypes);
+        CollectResourceTypeFromType(method.ReturnType, typeMapping, discoveredTypes);
     }
 
     /// <summary>
-    /// If the type is IResourceBuilder&lt;T&gt; where T is a concrete resource type,
-    /// add T to the discovered types dictionary.
+    /// Recursively collects resource types from any type reference.
+    /// Handles IResourceBuilder, Action, Func, Task, and other wrapper types.
     /// </summary>
-    private static void CollectResourceTypeFromBuilderType(
+    private static void CollectResourceTypeFromType(
         IAtsTypeInfo type,
         AtsTypeMapping typeMapping,
         Dictionary<string, IAtsTypeInfo> discoveredTypes)
     {
-        // Handle Task<T> wrapper
+        // Handle Task<T> - unwrap and recurse
         if (type.GenericTypeDefinitionFullName == "System.Threading.Tasks.Task`1" ||
             type.FullName.StartsWith("System.Threading.Tasks.Task`1"))
         {
             var taskArgs = type.GetGenericArguments().ToList();
             if (taskArgs.Count > 0)
             {
-                type = taskArgs[0];
+                CollectResourceTypeFromType(taskArgs[0], typeMapping, discoveredTypes);
             }
-        }
-
-        // Check if this is IResourceBuilder<T>
-        if (type.GenericTypeDefinitionFullName != "Aspire.Hosting.ApplicationModel.IResourceBuilder`1" &&
-            !type.FullName.StartsWith("Aspire.Hosting.ApplicationModel.IResourceBuilder`1"))
-        {
             return;
         }
 
-        var genericArgs = type.GetGenericArguments().ToList();
-        if (genericArgs.Count == 0)
+        // Handle IResourceBuilder<T> - this is what we're looking for
+        if (type.GenericTypeDefinitionFullName == "Aspire.Hosting.ApplicationModel.IResourceBuilder`1" ||
+            type.FullName.StartsWith("Aspire.Hosting.ApplicationModel.IResourceBuilder`1"))
         {
+            var genericArgs = type.GetGenericArguments().ToList();
+            if (genericArgs.Count > 0)
+            {
+                var resourceType = genericArgs[0];
+                if (!resourceType.IsGenericParameter)
+                {
+                    var typeId = typeMapping.GetTypeId(resourceType) ?? InferResourceTypeId(resourceType);
+                    if (!discoveredTypes.ContainsKey(typeId))
+                    {
+                        discoveredTypes[typeId] = resourceType;
+                    }
+                }
+            }
             return;
         }
 
-        var resourceType = genericArgs[0];
-
-        // Skip generic parameters (T) - we only want concrete or interface types
-        if (resourceType.IsGenericParameter)
+        // Handle Action<T>, Action<T1, T2>, etc. - recurse into generic args
+        if (type.GenericTypeDefinitionFullName?.StartsWith("System.Action`") == true ||
+            type.FullName.StartsWith("System.Action`"))
         {
+            foreach (var arg in type.GetGenericArguments())
+            {
+                CollectResourceTypeFromType(arg, typeMapping, discoveredTypes);
+            }
             return;
         }
 
-        // Note: We now collect interfaces as well as concrete types.
-        // Interfaces need to be in the expansion map for capabilities that target them directly
-        // (e.g., withReference targeting IResourceWithEnvironment).
-        // The expansion logic handles mapping interfaces to implementing concrete types.
-
-        // Get the type ID for this resource
-        var typeId = typeMapping.GetTypeId(resourceType) ?? InferResourceTypeId(resourceType);
-
-        // Add to dictionary if not already present
-        if (!discoveredTypes.ContainsKey(typeId))
+        // Handle Func<T>, Func<T1, T2, TResult>, etc. - recurse into generic args
+        if (type.GenericTypeDefinitionFullName?.StartsWith("System.Func`") == true ||
+            type.FullName.StartsWith("System.Func`"))
         {
-            discoveredTypes[typeId] = resourceType;
+            foreach (var arg in type.GetGenericArguments())
+            {
+                CollectResourceTypeFromType(arg, typeMapping, discoveredTypes);
+            }
+            return;
+        }
+
+        // Handle Nullable<T>
+        if (type.GenericTypeDefinitionFullName == "System.Nullable`1" ||
+            type.FullName.StartsWith("System.Nullable`1"))
+        {
+            var nullableArgs = type.GetGenericArguments().ToList();
+            if (nullableArgs.Count > 0)
+            {
+                CollectResourceTypeFromType(nullableArgs[0], typeMapping, discoveredTypes);
+            }
+            return;
+        }
+
+        // For other delegate types, try to get the Invoke method
+        if (IsDelegateType(type))
+        {
+            var invokeMethod = type.GetMethods().FirstOrDefault(m => m.Name == "Invoke");
+            if (invokeMethod != null)
+            {
+                foreach (var cbParam in invokeMethod.GetParameters())
+                {
+                    CollectResourceTypeFromType(cbParam.ParameterType, typeMapping, discoveredTypes);
+                }
+                CollectResourceTypeFromType(invokeMethod.ReturnType, typeMapping, discoveredTypes);
+            }
         }
     }
 

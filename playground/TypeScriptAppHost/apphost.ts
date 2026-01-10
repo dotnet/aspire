@@ -15,7 +15,10 @@ console.log("Created builder");
 // (withEnvironment is defined in Aspire.Hosting, RedisResource in Aspire.Hosting.Redis)
 const cache = await builder
     .addRedis("cache")
-    .withRedisCommander();
+    .withEnvironment("x", "y")
+    .withRedisCommander(async c => {
+        await c.withEnvironment("hello", "thre");
+    });
 
 var ep = await cache.getEndpoint("tcp");
 console.log("Added Redis with Commander and environment variable");

@@ -240,6 +240,68 @@ export class TestResourceContext {
 }
 
 // ============================================================================
+// ResourceWithConnectionString
+// ============================================================================
+
+/**
+ * Type class for ResourceWithConnectionString.
+ */
+export class ResourceWithConnectionString {
+    constructor(private _handle: IResourceWithConnectionStringHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Sets the connection string using a reference expression */
+    async withConnectionString(connectionString: ReferenceExpression): Promise<ResourceWithConnectionString> {
+        return await this._client.invokeCapability<ResourceWithConnectionString>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConnectionString',
+            { handle: this._handle, connectionString }
+        );
+    }
+
+    /** Sets connection string using direct interface target */
+    async withConnectionStringDirect(connectionString: string): Promise<ResourceWithConnectionString> {
+        return await this._client.invokeCapability<ResourceWithConnectionString>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConnectionStringDirect',
+            { handle: this._handle, connectionString }
+        );
+    }
+
+}
+
+// ============================================================================
+// ResourceWithEnvironment
+// ============================================================================
+
+/**
+ * Type class for ResourceWithEnvironment.
+ */
+export class ResourceWithEnvironment {
+    constructor(private _handle: IResourceWithEnvironmentHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Configures environment with callback (test version) */
+    async testWithEnvironmentCallback(callback: (arg0: TestEnvironmentContext) => Promise<void>): Promise<ResourceWithEnvironment> {
+        return await this._client.invokeCapability<ResourceWithEnvironment>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/testWithEnvironmentCallback',
+            { handle: this._handle, callback }
+        );
+    }
+
+    /** Sets environment variables */
+    async withEnvironmentVariables(variables: Record<string, string>): Promise<ResourceWithEnvironment> {
+        return await this._client.invokeCapability<ResourceWithEnvironment>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withEnvironmentVariables',
+            { handle: this._handle, variables }
+        );
+    }
+
+}
+
+// ============================================================================
 // DistributedApplicationBuilder
 // ============================================================================
 
@@ -497,7 +559,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
 
     /** Waits for another resource (test version) */
     /** @internal */
-    async _testWaitForInternal(dependency: IResourceHandle | ResourceBuilderBase): Promise<TestRedisResource> {
+    async _testWaitForInternal(dependency: ResourceBuilderBase): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/testWaitFor',
             { builder: this._handle, dependency }
@@ -505,7 +567,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
-    testWaitFor(dependency: IResourceHandle | ResourceBuilderBase): TestRedisResourcePromise {
+    testWaitFor(dependency: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._testWaitForInternal(dependency));
     }
 
@@ -548,7 +610,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
 
     /** Adds a dependency on another resource */
     /** @internal */
-    async _withDependencyInternal(dependency: IResourceWithConnectionStringHandle | ResourceBuilderBase): Promise<TestRedisResource> {
+    async _withDependencyInternal(dependency: ResourceBuilderBase): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withDependency',
             { builder: this._handle, dependency }
@@ -556,7 +618,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
-    withDependency(dependency: IResourceWithConnectionStringHandle | ResourceBuilderBase): TestRedisResourcePromise {
+    withDependency(dependency: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withDependencyInternal(dependency));
     }
 
@@ -686,7 +748,7 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Waits for another resource (test version) */
-    testWaitFor(dependency: IResourceHandle | ResourceBuilderBase): TestRedisResourcePromise {
+    testWaitFor(dependency: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
             this._promise.then(b => b._testWaitForInternal(dependency))
         );
@@ -712,7 +774,7 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Adds a dependency on another resource */
-    withDependency(dependency: IResourceWithConnectionStringHandle | ResourceBuilderBase): TestRedisResourcePromise {
+    withDependency(dependency: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
             this._promise.then(b => b._withDependencyInternal(dependency))
         );
@@ -729,6 +791,254 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     withEnvironmentVariables(variables: Record<string, string>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
             this._promise.then(b => b._withEnvironmentVariablesInternal(variables))
+        );
+    }
+
+}
+
+// ============================================================================
+// Resource
+// ============================================================================
+
+export class Resource extends ResourceBuilderBase<IResourceHandle> {
+    constructor(handle: IResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** Adds an optional string parameter */
+    /** @internal */
+    async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<Resource> {
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalString',
+            { builder: this._handle, value, enabled }
+        );
+        return new Resource(result, this._client);
+    }
+
+    withOptionalString(value?: string, enabled?: boolean): ResourcePromise {
+        return new ResourcePromise(this._withOptionalStringInternal(value, enabled));
+    }
+
+    /** Sets the created timestamp */
+    /** @internal */
+    async _withCreatedAtInternal(createdAt: string): Promise<Resource> {
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCreatedAt',
+            { builder: this._handle, createdAt }
+        );
+        return new Resource(result, this._client);
+    }
+
+    withCreatedAt(createdAt: string): ResourcePromise {
+        return new ResourcePromise(this._withCreatedAtInternal(createdAt));
+    }
+
+    /** Sets the modified timestamp */
+    /** @internal */
+    async _withModifiedAtInternal(modifiedAt: string): Promise<Resource> {
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withModifiedAt',
+            { builder: this._handle, modifiedAt }
+        );
+        return new Resource(result, this._client);
+    }
+
+    withModifiedAt(modifiedAt: string): ResourcePromise {
+        return new ResourcePromise(this._withModifiedAtInternal(modifiedAt));
+    }
+
+    /** Sets the correlation ID */
+    /** @internal */
+    async _withCorrelationIdInternal(correlationId: string): Promise<Resource> {
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withCorrelationId',
+            { builder: this._handle, correlationId }
+        );
+        return new Resource(result, this._client);
+    }
+
+    withCorrelationId(correlationId: string): ResourcePromise {
+        return new ResourcePromise(this._withCorrelationIdInternal(correlationId));
+    }
+
+    /** Configures with optional callback */
+    /** @internal */
+    async _withOptionalCallbackInternal(callback?: (arg0: TestCallbackContext) => Promise<void>): Promise<Resource> {
+        const callbackId = callback ? registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as TestCallbackContextHandle;
+            const arg0 = new TestCallbackContext(arg0Handle, this._client);
+            await callback(arg0);
+        }) : undefined;
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withOptionalCallback',
+            { builder: this._handle, callback: callbackId }
+        );
+        return new Resource(result, this._client);
+    }
+
+    withOptionalCallback(callback?: (arg0: TestCallbackContext) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(this._withOptionalCallbackInternal(callback));
+    }
+
+    /** Sets the resource status */
+    /** @internal */
+    async _withStatusInternal(status: string): Promise<Resource> {
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withStatus',
+            { builder: this._handle, status }
+        );
+        return new Resource(result, this._client);
+    }
+
+    withStatus(status: string): ResourcePromise {
+        return new ResourcePromise(this._withStatusInternal(status));
+    }
+
+    /** Adds validation callback */
+    /** @internal */
+    async _withValidatorInternal(validator: (arg0: TestResourceContext) => Promise<boolean>): Promise<Resource> {
+        const validatorId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as TestResourceContextHandle;
+            const arg0 = new TestResourceContext(arg0Handle, this._client);
+            await validator(arg0);
+        });
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
+            { builder: this._handle, callback: validatorId }
+        );
+        return new Resource(result, this._client);
+    }
+
+    withValidator(validator: (arg0: TestResourceContext) => Promise<boolean>): ResourcePromise {
+        return new ResourcePromise(this._withValidatorInternal(validator));
+    }
+
+    /** Waits for another resource (test version) */
+    /** @internal */
+    async _testWaitForInternal(dependency: ResourceBuilderBase): Promise<Resource> {
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/testWaitFor',
+            { builder: this._handle, dependency }
+        );
+        return new Resource(result, this._client);
+    }
+
+    testWaitFor(dependency: ResourceBuilderBase): ResourcePromise {
+        return new ResourcePromise(this._testWaitForInternal(dependency));
+    }
+
+    /** Adds a dependency on another resource */
+    /** @internal */
+    async _withDependencyInternal(dependency: ResourceBuilderBase): Promise<Resource> {
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withDependency',
+            { builder: this._handle, dependency }
+        );
+        return new Resource(result, this._client);
+    }
+
+    withDependency(dependency: ResourceBuilderBase): ResourcePromise {
+        return new ResourcePromise(this._withDependencyInternal(dependency));
+    }
+
+    /** Sets the endpoints */
+    /** @internal */
+    async _withEndpointsInternal(endpoints: string[]): Promise<Resource> {
+        const result = await this._client.invokeCapability<IResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withEndpoints',
+            { builder: this._handle, endpoints }
+        );
+        return new Resource(result, this._client);
+    }
+
+    withEndpoints(endpoints: string[]): ResourcePromise {
+        return new ResourcePromise(this._withEndpointsInternal(endpoints));
+    }
+
+}
+
+/**
+ * Thenable wrapper for Resource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class ResourcePromise implements PromiseLike<Resource> {
+    constructor(private _promise: Promise<Resource>) {}
+
+    then<TResult1 = Resource, TResult2 = never>(
+        onfulfilled?: ((value: Resource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Adds an optional string parameter */
+    withOptionalString(value?: string, enabled?: boolean): ResourcePromise {
+        return new ResourcePromise(
+            this._promise.then(b => b._withOptionalStringInternal(value, enabled))
+        );
+    }
+
+    /** Sets the created timestamp */
+    withCreatedAt(createdAt: string): ResourcePromise {
+        return new ResourcePromise(
+            this._promise.then(b => b._withCreatedAtInternal(createdAt))
+        );
+    }
+
+    /** Sets the modified timestamp */
+    withModifiedAt(modifiedAt: string): ResourcePromise {
+        return new ResourcePromise(
+            this._promise.then(b => b._withModifiedAtInternal(modifiedAt))
+        );
+    }
+
+    /** Sets the correlation ID */
+    withCorrelationId(correlationId: string): ResourcePromise {
+        return new ResourcePromise(
+            this._promise.then(b => b._withCorrelationIdInternal(correlationId))
+        );
+    }
+
+    /** Configures with optional callback */
+    withOptionalCallback(callback?: (arg0: TestCallbackContext) => Promise<void>): ResourcePromise {
+        return new ResourcePromise(
+            this._promise.then(b => b._withOptionalCallbackInternal(callback))
+        );
+    }
+
+    /** Sets the resource status */
+    withStatus(status: string): ResourcePromise {
+        return new ResourcePromise(
+            this._promise.then(b => b._withStatusInternal(status))
+        );
+    }
+
+    /** Adds validation callback */
+    withValidator(validator: (arg0: TestResourceContext) => Promise<boolean>): ResourcePromise {
+        return new ResourcePromise(
+            this._promise.then(b => b._withValidatorInternal(validator))
+        );
+    }
+
+    /** Waits for another resource (test version) */
+    testWaitFor(dependency: ResourceBuilderBase): ResourcePromise {
+        return new ResourcePromise(
+            this._promise.then(b => b._testWaitForInternal(dependency))
+        );
+    }
+
+    /** Adds a dependency on another resource */
+    withDependency(dependency: ResourceBuilderBase): ResourcePromise {
+        return new ResourcePromise(
+            this._promise.then(b => b._withDependencyInternal(dependency))
+        );
+    }
+
+    /** Sets the endpoints */
+    withEndpoints(endpoints: string[]): ResourcePromise {
+        return new ResourcePromise(
+            this._promise.then(b => b._withEndpointsInternal(endpoints))
         );
     }
 
@@ -836,5 +1146,8 @@ process.on('uncaughtException', (error: Error) => {
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext', (handle, client) => new TestEnvironmentContext(handle as TestEnvironmentContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext', (handle, client) => new TestResourceContext(handle as TestResourceContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString', (handle, client) => new ResourceWithConnectionString(handle as IResourceWithConnectionStringHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment', (handle, client) => new ResourceWithEnvironment(handle as IResourceWithEnvironmentHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource', (handle, client) => new TestRedisResource(handle as TestRedisResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource', (handle, client) => new Resource(handle as IResourceHandle, client));
 
