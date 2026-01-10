@@ -320,6 +320,35 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void Scanner_ReturnsBuilder_TrueForResourceBuilderReturnTypes()
+    {
+        // Regression test: Verify that ReturnsBuilder is correctly set to true for methods
+        // that return IResourceBuilder<T>, even during code generation scanning where
+        // typeResolver is null. Previously, the scanner incorrectly required typeResolver
+        // to be non-null to detect resource builder return types.
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+
+        // addTestRedis returns IResourceBuilder<TestRedisResource> - should have ReturnsBuilder = true
+        var addTestRedis = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
+        Assert.NotNull(addTestRedis);
+        Assert.True(addTestRedis.ReturnsBuilder,
+            "addTestRedis returns IResourceBuilder<T> but ReturnsBuilder is false - thenable wrapper won't be generated");
+
+        // withPersistence also returns IResourceBuilder<T>
+        var withPersistence = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withPersistence");
+        Assert.NotNull(withPersistence);
+        Assert.True(withPersistence.ReturnsBuilder,
+            "withPersistence returns IResourceBuilder<T> but ReturnsBuilder is false - thenable wrapper won't be generated");
+
+        // withRedisSpecific also returns IResourceBuilder<T>
+        var withRedisSpecific = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/withRedisSpecific");
+        Assert.NotNull(withRedisSpecific);
+        Assert.True(withRedisSpecific.ReturnsBuilder,
+            "withRedisSpecific returns IResourceBuilder<T> but ReturnsBuilder is false - thenable wrapper won't be generated");
+    }
+
+    [Fact]
     public async Task Scanner_WithPersistence_HasCorrectExpandedTargets()
     {
         // Verify the entire capability object for withPersistence

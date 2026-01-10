@@ -51,5 +51,5 @@
       IsReadOnly: false
     }
   ],
-  ReturnsBuilder: false
+  ReturnsBuilder: true
 }
