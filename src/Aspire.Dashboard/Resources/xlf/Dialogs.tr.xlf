@@ -377,14 +377,14 @@
         <target state="translated">Tamam</target>
         <note />
       </trans-unit>
-      <trans-unit id="ManageDataConsoleLogs">
-        <source>Console logs</source>
-        <target state="new">Console logs</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ManageDataDialogTitle">
         <source>Manage logs and telemetry</source>
         <target state="new">Manage logs and telemetry</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ManageDataConsoleLogs">
+        <source>Console logs</source>
+        <target state="new">Console logs</target>
         <note />
       </trans-unit>
       <trans-unit id="ManageDataExportButtonText">
