@@ -156,7 +156,7 @@ The primary method for interacting with Aspire. Capabilities are identified by `
 {
   "jsonrpc": "2.0",
   "result": {
-    "$handle": "Aspire.Hosting/IDistributedApplicationBuilder:1",
+    "$handle": "1",
     "$type": "Aspire.Hosting/IDistributedApplicationBuilder"
   },
   "id": 1

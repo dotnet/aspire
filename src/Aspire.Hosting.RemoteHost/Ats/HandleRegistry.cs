@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.Json.Nodes;
 
 namespace Aspire.Hosting.RemoteHost.Ats;
@@ -30,11 +31,11 @@ internal sealed class HandleRegistry : IAsyncDisposable
     /// </summary>
     /// <param name="obj">The object to register.</param>
     /// <param name="typeId">The ATS type ID (e.g., "aspire.redis/RedisBuilder").</param>
-    /// <returns>The handle ID in the format "{typeId}:{instanceId}".</returns>
+    /// <returns>The handle ID (just the instance number).</returns>
     public string Register(object obj, string typeId)
     {
         var instanceId = Interlocked.Increment(ref _idCounter);
-        var handleId = $"{typeId}:{instanceId}";
+        var handleId = instanceId.ToString(CultureInfo.InvariantCulture);
 
         _handles[handleId] = new HandleEntry
         {
@@ -152,30 +153,6 @@ internal sealed class HandleRegistry : IAsyncDisposable
     }
 
     /// <summary>
-    /// Parses a handle ID and extracts the type ID and instance ID.
-    /// </summary>
-    /// <param name="handleId">The handle ID to parse.</param>
-    /// <param name="typeId">The extracted type ID.</param>
-    /// <param name="instanceId">The extracted instance ID.</param>
-    /// <returns>True if parsing succeeded, false otherwise.</returns>
-    public static bool TryParseHandleId(string handleId, out string? typeId, out long instanceId)
-    {
-        var lastColon = handleId.LastIndexOf(':');
-        if (lastColon > 0 && lastColon < handleId.Length - 1)
-        {
-            typeId = handleId[..lastColon];
-            if (long.TryParse(handleId[(lastColon + 1)..], out instanceId))
-            {
-                return true;
-            }
-        }
-
-        typeId = null;
-        instanceId = 0;
-        return false;
-    }
-
-    /// <summary>
     /// Gets the count of registered handles.
     /// </summary>
     public int Count => _handles.Count;
@@ -204,7 +181,7 @@ internal sealed class HandleRegistry : IAsyncDisposable
 
 /// <summary>
 /// Reference to an ATS handle. Used when passing handles as arguments.
-/// JSON shape: { "$handle": "aspire.redis/RedisBuilder:42" }
+/// JSON shape: { "$handle": "42", "$type": "Aspire.Hosting.Redis/..." }
 /// </summary>
 internal sealed class HandleRef
 {

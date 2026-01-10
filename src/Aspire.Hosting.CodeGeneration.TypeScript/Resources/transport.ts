@@ -17,9 +17,9 @@ export type CallbackFunction = (args: unknown, client: AspireClient) => unknown 
  * Handles are typed references that can be passed between capabilities.
  */
 export interface MarshalledHandle {
-    /** The handle ID (format: "{typeId}:{instanceId}") */
+    /** The handle ID (instance number) */
     $handle: string;
-    /** The ATS type ID (e.g., "Aspire.Hosting/IDistributedApplicationBuilder", "Aspire.Hosting.Redis/RedisResource") */
+    /** The ATS type ID */
     $type: string;
 }
 
@@ -112,7 +112,7 @@ export class Handle<T extends string = string> {
         this._typeId = marshalled.$type as T;
     }
 
-    /** The handle ID (format: "{typeId}:{instanceId}") */
+    /** The handle ID (instance number) */
     get $handle(): string {
         return this._handleId;
     }

@@ -128,17 +128,31 @@ public class AtsCapabilityScannerTests
         var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
 
         // Should derive type ID from TestResource's full name
-        Assert.Equal("Aspire.Hosting.Tests.Ats/AtsCapabilityScannerTests+TestResource", result);
+        // Format: {AssemblyName}/{FullTypeName}
+        Assert.Equal("Aspire.Hosting.Tests/Aspire.Hosting.Tests.Ats.AtsCapabilityScannerTests+TestResource", result);
     }
 
     [Fact]
-    public void MapToAtsTypeId_UnknownType_ReturnsAny()
+    public void MapToAtsTypeId_UnknownType_ReturnsNull()
     {
         var typeMapping = AtsTypeMapping.Empty;
         var typeInfo = new RuntimeTypeInfo(typeof(AtsCapabilityScannerTests)); // Not a known type
 
         var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
 
+        // Unknown types return null (capabilities with unknown types are skipped)
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void MapToAtsTypeId_ObjectType_ReturnsAny()
+    {
+        var typeMapping = AtsTypeMapping.Empty;
+        var typeInfo = new RuntimeTypeInfo(typeof(object));
+
+        var result = AtsCapabilityScanner.MapToAtsTypeId(typeInfo, typeMapping, typeResolver: null);
+
+        // System.Object maps to 'any'
         Assert.Equal("any", result);
     }
 

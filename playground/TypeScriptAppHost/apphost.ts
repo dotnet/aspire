@@ -29,6 +29,7 @@ console.log(`Created reference expression: ${redisUrl}`);
 // Note: .waitFor(cache) and .withReference(cache) demonstrate the union type fix
 const api = await builder
     .addContainer("api", "mcr.microsoft.com/dotnet/samples:aspnetapp")
+    .withHttpEndpoint(undefined, 8080)
     .withEnvironmentCallback(async (ctx: EnvironmentCallbackContext) => {
         console.log(`  Environment callback invoked for API container`);
 

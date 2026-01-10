@@ -127,13 +127,13 @@ sequenceDiagram
     Host-->>Guest: true
 
     Guest->>Host: invokeCapability("Aspire.Hosting/createBuilder", {})
-    Host-->>Guest: { $handle: "Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder:1" }
+    Host-->>Guest: { $handle: "1", $type: "Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder" }
 
     Guest->>Host: invokeCapability("Aspire.Hosting.Redis/addRedis", {builder, name})
-    Host-->>Guest: { $handle: "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:1" }
+    Host-->>Guest: { $handle: "2", $type: "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource" }
 
     Guest->>Host: invokeCapability("Aspire.Hosting/build", {builder})
-    Host-->>Guest: { $handle: "Aspire.Hosting/Aspire.Hosting.DistributedApplication:1" }
+    Host-->>Guest: { $handle: "3", $type: "Aspire.Hosting/Aspire.Hosting.DistributedApplication" }
 
     Guest->>Host: invokeCapability("Aspire.Hosting/run", {app})
     Host-->>Guest: Started (orchestration running)
@@ -273,11 +273,11 @@ public static IResourceBuilder<RedisResource> AddRedis(
 
 Handles are opaque references to .NET objects. They carry an ATS type ID for identification.
 
-**Format:** `{atsTypeId}:{instanceId}` (e.g., `Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:42`)
+**Format:** Handle ID is an instance number. Type is provided separately.
 
 ```json
 {
-    "$handle": "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:42",
+    "$handle": "42",
     "$type": "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource"
 }
 ```
@@ -327,7 +327,7 @@ Callbacks are passed as string IDs:
 
 ```json
 {
-    "resource": {"$handle": "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:1"},
+    "resource": {"$handle": "1", "$type": "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource"},
     "callback": "callback_1_1234567890"
 }
 ```
@@ -421,7 +421,7 @@ Dynamic values that reference endpoints, parameters, and other providers:
     "$expr": {
         "format": "redis://{0}:{1}",
         "valueProviders": [
-            { "$handle": "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference:1" },
+            { "$handle": "1", "$type": "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference" },
             "6379"
         ]
     }
@@ -475,7 +475,7 @@ Must be called first (except for `ping`):
 {"jsonrpc":"2.0","id":2,"method":"invokeCapability","params":[
     "Aspire.Hosting.Redis/addRedis",
     {
-        "builder": {"$handle": "Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder:1"},
+        "builder": {"$handle": "1", "$type": "Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder"},
         "name": "cache",
         "port": 6379
     }
@@ -483,7 +483,7 @@ Must be called first (except for `ping`):
 
 // Response
 {"jsonrpc":"2.0","id":2,"result":{
-    "$handle": "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:1",
+    "$handle": "2",
     "$type": "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource"
 }}
 ```
@@ -494,7 +494,7 @@ Must be called first (except for `ping`):
 // Request
 {"jsonrpc":"2.0","id":100,"method":"invokeCallback","params":[
     "callback_1_1234567890",
-    {"context": {"$handle": "Aspire.Hosting/EnvironmentCallbackContext:5"}}
+    {"context": {"$handle": "5", "$type": "Aspire.Hosting/EnvironmentCallbackContext"}}
 ]}
 
 // Response
@@ -748,7 +748,7 @@ TypeScript uses three layers to bridge the wire format and user API:
 
 ```typescript
 interface MarshalledHandle {
-    $handle: string;  // "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:42"
+    $handle: string;  // "42" (instance number)
     $type: string;    // "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource"
 }
 ```
