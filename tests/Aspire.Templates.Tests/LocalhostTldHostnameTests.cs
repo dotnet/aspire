@@ -38,9 +38,12 @@ public partial class LocalhostTldHostnameTests(ITestOutputHelper testOutput) : T
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework,
             extraArgs: $"--localhost-tld -n \"{projectName}\"",
-            targetFramework: TestTargetFramework.Current);
+            targetFramework: TestTargetFramework.Current,
+            addEndpointsHook: false); // Don't add endpoint hook since we're just checking file generation
 
-        // Find the launchSettings.json file
+        // When using -n, the template still outputs to the -o directory (id),
+        // but the project names inside use the -n value
+        // Find the launchSettings.json file - it will be in a directory named after the project
         var launchSettingsPath = templateName switch
         {
             "aspire-ts-cs-starter" or "aspire-starter" => Path.Combine(project.RootDir, $"{projectName}.AppHost", "Properties", "launchSettings.json"),
