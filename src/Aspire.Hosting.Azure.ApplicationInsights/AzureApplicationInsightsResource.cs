@@ -24,7 +24,7 @@ public class AzureApplicationInsightsResource(string name, Action<AzureResourceI
     /// <summary>
     /// Gets the "id" output reference for the resource.
     /// </summary>
-    public BicepOutputReference Id => new("id", this);
+    public BicepOutputReference IdOutputReference => new("id", this);
 
     /// <summary>
     /// Gets the "appInsightsConnectionString" output reference for the Azure Application Insights resource.

@@ -130,11 +130,15 @@ public class AzureCognitiveServicesProjectResource :
     /// </summary>
     public BicepOutputReference Endpoint => new("endpoint", this);
 
+    /// <summary>
+    /// Gets the managed identity principal ID, whether system-assigned or user-assigned.
+    /// </summary>
+    public BicepOutputReference PrincipalId => new("principalId", this);
+
     internal BicepOutputReference ContainerRegistryUrl => new("AZURE_CONTAINER_REGISTRY_ENDPOINT", this);
     internal BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
-    // User-assigned managed identity used for client access to container registry
+    // Mnaged identity used for client access to container registry
     internal BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
-    internal BicepOutputReference ContainerRegistryClientId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID", this);
 
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId =>
         ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
@@ -155,6 +159,28 @@ public class AzureCognitiveServicesProjectResource :
     public AzureApplicationInsightsResource? AppInsights { get; set; }
 
     internal BicepOutputReference AppInsightsConnectionString => new("APPLICATION_INSIGHTS_CONNECTION_STRING", this);
+
+    /// <summary>
+    /// The user-assigned storage resource to use for agents in this project, if any
+    /// </summary>
+    public AzureStorageResource? Storage { get; set; }
+
+    /// <summary>
+    /// The user-assigned Key Vault resource to use for agents in this project, if any
+    /// </summary>
+    public AzureKeyVaultResource? KeyVault { get; set; }
+
+    /// <summary>
+    /// The user-assigned Cosmos DB resource to use for agents in this project, if any
+    /// </summary>
+    public AzureCosmosDBResource? CosmosDB { get; set; }
+
+    /// <summary>
+    /// The user-assigned Azure Search resource to use for agents in this project, if any
+    /// </summary>
+    public AzureSearchResource? SearchService { get; set; }
+
+    // TODO: Add AI Search, and possibly AOAI resources
 
     /// <summary>
     /// Get the address for the particular agent's endpoint.

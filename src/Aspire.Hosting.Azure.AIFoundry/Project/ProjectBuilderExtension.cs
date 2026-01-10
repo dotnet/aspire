@@ -6,11 +6,17 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AIFoundry;
 using Azure.Provisioning;
 using Azure.Provisioning.ApplicationInsights;
+using Azure.Provisioning.Authorization;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.ContainerRegistry;
+using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Primitives;
 using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
+using Azure.Provisioning.Search;
+using Azure.Provisioning.Storage;
 
 namespace Aspire.Hosting;
 
@@ -33,163 +39,7 @@ public static class AzureCognitiveServicesProjectExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
-
-        void configureInfrastructure(AzureResourceInfrastructure infra)
-        {
-            var prefix = infra.AspireResource.Name;
-            var aspireResource = (AzureCognitiveServicesProjectResource)infra.AspireResource;
-            var tags = new ProvisioningParameter("tags", typeof(object))
-            {
-                Value = new BicepDictionary<string>()
-            };
-            infra.Add(tags);
-
-            // This tells azd to avoid creating infrastructure
-            var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string)) { Value = new BicepValue<string>(string.Empty) };
-            infra.Add(userPrincipalId);
-
-            UserAssignedIdentity identity;
-            if (aspireResource.TryGetAppIdentityResource(out var idResource) && idResource is AzureUserAssignedIdentityResource identityResource)
-            {
-                identity = (UserAssignedIdentity)identityResource.AddAsExistingResource(infra);
-            }
-            else
-            {
-                // This is the principal used for the app runtime
-                identity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-mi"))
-                {
-                    Tags = tags
-                };
-                infra.Add(identity);
-            }
-
-            // Use a user-provided container registry or create a new one.
-            // The container registry is used to host images for hosted agents.
-            ContainerRegistryService? containerRegistry = null;
-            if (aspireResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
-            {
-                containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
-            }
-            else
-            {
-                containerRegistry = new ContainerRegistryService(Infrastructure.NormalizeBicepIdentifier($"{prefix}_acr"))
-                {
-                    Sku = new() { Name = ContainerRegistrySkuName.Basic },
-                    Tags = tags
-                };
-            }
-
-            var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, identity);
-            // There's a bug in the CDK, see https://github.com/Azure/azure-sdk-for-net/issues/47265
-            pullRa.Name = BicepFunction.CreateGuid(containerRegistry.Id, identity.Id, pullRa.RoleDefinitionId);
-            infra.Add(pullRa);
-            infra.Add(containerRegistry);
-
-            ApplicationInsightsComponent appInsights;
-            if (aspireResource.AppInsights is not null && !aspireResource.AppInsights.IsEmulator())
-            {
-                appInsights = (ApplicationInsightsComponent)aspireResource.AppInsights.AddAsExistingResource(infra);
-            }
-            else
-            {
-                appInsights = new ApplicationInsightsComponent(Infrastructure.NormalizeBicepIdentifier($"{prefix}-ai"))
-                {
-                    ApplicationType = ApplicationInsightsApplicationType.Web,
-                    Kind = "web",
-                    Tags = tags
-                };
-                infra.Add(appInsights);
-            }
-            infra.Add(new ProvisioningOutput("APPLICATION_INSIGHTS_CONNECTION_STRING", typeof(string))
-            {
-                Value = appInsights.ConnectionString
-            });
-
-            // Permissions for publishing telemetry to App Insights
-            var pubRoleRa = appInsights.CreateRoleAssignment(ApplicationInsightsBuiltInRole.MonitoringMetricsPublisher, identity);
-            pubRoleRa.Name = BicepFunction.CreateGuid(appInsights.Id, identity.Id, pubRoleRa.RoleDefinitionId);
-            infra.Add(pubRoleRa);
-
-            var account = builder.Resource.AddAsExistingResource(infra);
-            // Create the Cognitive Services project resource
-            var project = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(
-                infra,
-                (identifier, resourceName) =>
-                {
-                    var resource = aspireResource.FromExisting(identifier);
-                    resource.Parent = account;
-                    resource.Name = resourceName;
-                    return resource;
-                },
-                infra =>
-                {
-                    var resource = new CognitiveServicesProject(infra.AspireResource.GetBicepIdentifier())
-                    {
-                        Parent = account,
-                        Name = name,
-                        Identity = new ManagedServiceIdentity()
-                        {
-                            ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
-                            // We hack in this dictionary because the CDK doesn't take BicepValues as
-                            // keys.
-                            UserAssignedIdentities =
-                            {
-                                { identity.Id.Compile().ToString(), new UserAssignedIdentityDetails() }
-                            }
-                        },
-                        Properties = new CognitiveServicesProjectProperties
-                        {
-                            DisplayName = name
-                        },
-                        Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
-                    };
-                    return resource;
-                });
-            infra.Add(new ProvisioningOutput("id", typeof(string))
-            {
-                Value = project.Id
-            });
-            infra.Add(new ProvisioningOutput("name", typeof(string)) { Value = project.Name });
-            infra.Add(new ProvisioningOutput("endpoint", typeof(string))
-            {
-                Value = (BicepValue<string>)new IndexExpression((BicepExpression)project.Properties.Endpoints!, "AI Foundry API")
-            });
-            infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_ENDPOINT", typeof(string))
-            {
-                Value = containerRegistry.LoginServer
-            });
-            infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
-            {
-                Value = containerRegistry.Name
-            });
-            infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", typeof(string))
-            {
-                Value = identity.Id
-            });
-            infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID", typeof(string))
-            {
-                Value = identity.ClientId
-            });
-            // Create an Application Insights connection for the project to use for telemetry
-            infra.Add(new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_ai_conn")
-            {
-                Parent = project,
-                Name = $"{name}-ai-conn",
-                Properties = new AppInsightsConnectionProperties()
-                {
-                    Target = appInsights.Id,
-                    IsSharedToAll = false,
-                    CredentialsKey = appInsights.ConnectionString,
-                    Metadata =
-                    {
-                        { "ApiType", "Azure" },
-                        { "ResourceId", appInsights.Id }
-                    }
-                }
-            });
-        }
-        var resource = new AzureCognitiveServicesProjectResource(name, configureInfrastructure, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(resource);
+        return builder.ApplicationBuilder.AddResource(new AzureCognitiveServicesProjectResource(name, ConfigureInfrastructure, builder.Resource));
     }
 
     /// <summary>
@@ -318,5 +168,334 @@ public static class AzureCognitiveServicesProjectExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         return builder.ApplicationBuilder.CreateResourceBuilder(builder.Resource.Parent).AddDeployment(name, modelName, modelVersion, format);
+    }
+
+    internal static void ConfigureInfrastructure(AzureResourceInfrastructure infra)
+    {
+        var prefix = infra.AspireResource.Name;
+        var aspireResource = (AzureCognitiveServicesProjectResource)infra.AspireResource;
+        var tags = new ProvisioningParameter("tags", typeof(object))
+        {
+            Value = new BicepDictionary<string>()
+        };
+        infra.Add(tags);
+
+        // This tells azd to avoid creating infrastructure
+        var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string)) { Value = new BicepValue<string>(string.Empty) };
+        infra.Add(userPrincipalId);
+
+        /*
+         * Create managed identity
+         */
+
+        ManagedServiceIdentity managedIdentity;
+        if (aspireResource.TryGetAppIdentityResource(out var idResource) && idResource is AzureUserAssignedIdentityResource identityResource)
+        {
+            managedIdentity = new ManagedServiceIdentity()
+            {
+                ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
+                // We hack in this dictionary because the CDK doesn't take BicepValues as
+                // keys.
+                UserAssignedIdentities =
+                {
+                    { ((UserAssignedIdentity)identityResource.AddAsExistingResource(infra)).Id.Compile().ToString(), new UserAssignedIdentityDetails() }
+                }
+            };
+        }
+        else
+        {
+            managedIdentity = new ManagedServiceIdentity()
+            {
+                ManagedServiceIdentityType = ManagedServiceIdentityType.SystemAssigned
+            };
+        }
+
+        var account = aspireResource.Parent.AddAsExistingResource(infra);
+
+        /*
+         * Create the project
+         */
+
+        var project = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(
+            infra,
+            (identifier, resourceName) =>
+            {
+                var resource = aspireResource.FromExisting(identifier);
+                resource.Parent = account;
+                resource.Name = resourceName;
+                return resource;
+            },
+            infra =>
+            {
+                var resource = new CognitiveServicesProject(infra.AspireResource.GetBicepIdentifier())
+                {
+                    Parent = account,
+                    Name = aspireResource.Name,
+                    Identity = managedIdentity,
+                    Properties = new CognitiveServicesProjectProperties
+                    {
+                        DisplayName = aspireResource.Name
+                    },
+                    Tags = { { "aspire-resource-name", infra.AspireResource.Name } }
+                };
+                return resource;
+            });
+        var projectPrincipalId = project.Identity.PrincipalId;
+        infra.Add(new ProvisioningOutput("id", typeof(string))
+        {
+            Value = project.Id
+        });
+        infra.Add(new ProvisioningOutput("name", typeof(string)) { Value = project.Name });
+        infra.Add(new ProvisioningOutput("endpoint", typeof(string))
+        {
+            Value = (BicepValue<string>)new IndexExpression((BicepExpression)project.Properties.Endpoints!, "AI Foundry API")
+        });
+        infra.Add(new ProvisioningOutput("principalId", typeof(string))
+        {
+            Value = projectPrincipalId
+        });
+
+        /*
+         * Container registry for hosted agents
+         */
+
+        ContainerRegistryService? containerRegistry = null;
+        if (aspireResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
+        {
+            containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
+        }
+        else
+        {
+            containerRegistry = new ContainerRegistryService(Infrastructure.NormalizeBicepIdentifier($"{prefix}_acr"))
+            {
+                Sku = new() { Name = ContainerRegistrySkuName.Basic },
+                Tags = tags
+            };
+        }
+        // Project needs this to pull hosted agent images and run them
+        var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+        // There's a bug in the CDK, see https://github.com/Azure/azure-sdk-for-net/issues/47265
+        pullRa.Name = BicepFunction.CreateGuid(containerRegistry.Id, projectPrincipalId, pullRa.RoleDefinitionId);
+        infra.Add(pullRa);
+        infra.Add(containerRegistry);
+        infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_ENDPOINT", typeof(string))
+        {
+            Value = containerRegistry.LoginServer
+        });
+        infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
+        {
+            Value = containerRegistry.Name
+        });
+        infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", typeof(string))
+        {
+            Value = projectPrincipalId
+        });
+
+        // Implicit dependencies for all other connections
+        List<ProvisionableResource> allConnDeps = [];
+        // Implicit dependencies for capability hosts
+        List<ProvisionableResource> capHostDeps = [];
+
+        /*
+         * Set up key vault access if applicable
+         */
+        if (aspireResource.KeyVault is not null)
+        {
+            var keyVault = (KeyVaultService)aspireResource.KeyVault.AddAsExistingResource(infra);
+            var kvRa = keyVault.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultSecretsUser, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+            kvRa.Name = BicepFunction.CreateGuid(keyVault.Id, projectPrincipalId, kvRa.RoleDefinitionId);
+            infra.Add(kvRa);
+            infra.Add(new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_kv_conn")
+            {
+                Parent = project,
+                Name = $"{project.Name}-kv-conn",
+                Properties = new AzureKeyVaultConnectionProperties()
+                {
+                    Target = keyVault.Id,
+                    IsSharedToAll = false
+                }
+            });
+            allConnDeps.Add(keyVault);
+            allConnDeps.Add(kvRa);
+        }
+
+        /*
+         * Application Insights for telemetry
+         */
+
+        ApplicationInsightsComponent appInsights;
+        if (aspireResource.AppInsights is not null && !aspireResource.AppInsights.IsEmulator())
+        {
+            appInsights = (ApplicationInsightsComponent)aspireResource.AppInsights.AddAsExistingResource(infra);
+        }
+        else
+        {
+            appInsights = new ApplicationInsightsComponent(Infrastructure.NormalizeBicepIdentifier($"{prefix}-ai"))
+            {
+                ApplicationType = ApplicationInsightsApplicationType.Web,
+                Kind = "web",
+                Tags = tags
+            };
+            infra.Add(appInsights);
+        }
+        var pubRoleRa = appInsights.CreateRoleAssignment(ApplicationInsightsBuiltInRole.MonitoringMetricsPublisher, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+        pubRoleRa.Name = BicepFunction.CreateGuid(appInsights.Id, projectPrincipalId, pubRoleRa.RoleDefinitionId);
+        infra.Add(pubRoleRa);
+        // This is for passing into hosted agent application code
+        infra.Add(new ProvisioningOutput("APPLICATION_INSIGHTS_CONNECTION_STRING", typeof(string))
+        {
+            Value = appInsights.ConnectionString
+        });
+        // Project needs a connection to send server-side telemetry
+        var appInsightsConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_ai_conn")
+        {
+            Parent = project,
+            Name = $"{project.Name}-ai-conn",
+            Properties = new AppInsightsConnectionProperties()
+            {
+                Target = appInsights.Id,
+                IsSharedToAll = false,
+                CredentialsKey = appInsights.ConnectionString,
+                Metadata =
+                {
+                    { "ApiType", "Azure" },
+                    { "ResourceId", appInsights.Id },
+                    { "location", appInsights.Location }
+                }
+            }
+        };
+        foreach (var dep in allConnDeps)
+        {
+            appInsightsConn.DependsOn.Add(dep);
+        }
+        infra.Add(appInsightsConn);
+
+        /*
+         * Storage
+         */
+
+        if (aspireResource.Storage is not null)
+        {
+            var storage = (StorageAccount)aspireResource.Storage.AddAsExistingResource(infra);
+            var storageConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_storage_conn")
+            {
+                Parent = project,
+                Name = BicepFunction.Interpolate($"{project.Name}-{storage.Name}"),
+                Properties = new AzureStorageAccountConnectionProperties()
+                {
+                    Target = aspireResource.Storage.BlobEndpoint.AsProvisioningParameter(infra),
+                    Metadata =
+                    {
+                        { "ApiType", "Azure" },
+                        { "ResourceId", storage.Id },
+                        { "location", storage.Location }
+                    }
+                }
+            };
+            infra.Add(storageConn);
+            foreach (var dep in allConnDeps)
+            {
+                storageConn.DependsOn.Add(dep);
+            }
+            var storageRoleRa = storage.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+            storageRoleRa.Name = BicepFunction.CreateGuid(storage.Id, projectPrincipalId, storageRoleRa.RoleDefinitionId);
+            infra.Add(storageRoleRa);
+            capHostDeps.Add(storage);
+            capHostDeps.Add(storageRoleRa);
+        }
+
+        /*
+         * CosmosDB
+         */
+
+        if (aspireResource.CosmosDB is not null)
+        {
+            var cosmosDb = (CosmosDBAccount)aspireResource.CosmosDB.AddAsExistingResource(infra);
+            var cosmosDbConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_cosmosdb_conn")
+            {
+                Parent = project,
+                Name = BicepFunction.Interpolate($"{project.Name}-{cosmosDb.Name}"),
+                Properties = new AadAuthTypeConnectionProperties()
+                {
+                    Category = CognitiveServicesConnectionCategory.CosmosDB,
+                    // This is the document endpoint
+                    Target = aspireResource.CosmosDB.ConnectionStringOutput.AsProvisioningParameter(infra),
+                    Metadata =
+                    {
+                        { "ApiType", "Azure" },
+                        { "ResourceId", cosmosDb.Id },
+                        { "location", cosmosDb.Location }
+                    }
+                }
+            };
+            infra.Add(cosmosDbConn);
+            foreach (var dep in allConnDeps)
+            {
+                cosmosDbConn.DependsOn.Add(dep);
+            }
+            var cosmosDbRoleRa = cosmosDb.CreateRoleAssignment(CosmosDBBuiltInRole.CosmosDBOperator, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+            cosmosDbRoleRa.Name = BicepFunction.CreateGuid(cosmosDb.Id, projectPrincipalId, cosmosDbRoleRa.RoleDefinitionId);
+            infra.Add(cosmosDbRoleRa);
+            // TODO: add role 00000000-0000-0000-0000-000000000002 (Cosmos DB Built-in Data Contributor) for data plane access
+            // like this:
+            // var roleDefinitionId = resourceId(
+            //   'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions',
+            //   cosmosAccountName,
+            //   '00000000-0000-0000-0000-000000000002'
+            // )
+            // var accountScope = '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.DocumentDB/databaseAccounts/${cosmosAccountName}'
+            // resource containerRoleAssignmentUserContainer 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2022-05-15' = {
+            //   parent: cosmosAccount
+            //   name: guid(projectWorkspaceId, cosmosAccountName, roleDefinitionId, projectPrincipalId)
+            //   properties: {
+            //       principalId: projectPrincipalId
+            //       roleDefinitionId: roleDefinitionId
+            //       scope: accountScope
+            //   }
+            // }
+            capHostDeps.Add(cosmosDb);
+            capHostDeps.Add(cosmosDbRoleRa);
+        }
+
+        /*
+         * Azure Search
+         */
+
+        if (aspireResource.SearchService is not null)
+        {
+            var searchService = (SearchService)aspireResource.SearchService.AddAsExistingResource(infra);
+            var searchConn = new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_search_conn")
+            {
+                Parent = project,
+                Name = BicepFunction.Interpolate($"{project.Name}-{searchService.Name}"),
+                Properties = new AadAuthTypeConnectionProperties()
+                {
+                    Category = CognitiveServicesConnectionCategory.CognitiveSearch,
+                    Target = BicepFunction.Interpolate($"https://{searchService.Name}.search.windows.net"),
+                    Metadata =
+                    {
+                        { "ApiType", "Azure" },
+                        { "ResourceId", searchService.Id },
+                        { "location", searchService.Location }
+                    }
+                }
+            };
+            infra.Add(searchConn);
+            foreach (var dep in allConnDeps)
+            {
+                searchConn.DependsOn.Add(dep);
+            }
+            var contributor = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+            contributor.Name = BicepFunction.CreateGuid(searchService.Id, projectPrincipalId, contributor.RoleDefinitionId);
+            infra.Add(contributor);
+            var indexDataContrib = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
+            indexDataContrib.Name = BicepFunction.CreateGuid(searchService.Id, projectPrincipalId, indexDataContrib.RoleDefinitionId);
+            infra.Add(indexDataContrib);
+            capHostDeps.Add(searchService);
+            capHostDeps.Add(contributor);
+            capHostDeps.Add(indexDataContrib);
+        }
+
+        // TODO: provision capability host that use these dependencies
     }
 }

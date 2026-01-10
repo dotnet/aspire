@@ -6,6 +6,7 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AIFoundry;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
+using Azure.Provisioning.Storage;
 
 namespace Aspire.Hosting;
 
@@ -58,7 +59,8 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
                     };
                     return resource;
                 });
-
+            // TODO: add dependencies so that any KeyVault connection is created before other connections that might store their
+            // credentials into KeyVault.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = connection.Name });
         }
         var connectionResource = new AzureCognitiveServicesProjectConnectionResource(name, configureInfrastructure, parent);
@@ -85,7 +87,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
             Metadata =
             {
                 { "ApiType", "Azure" },
-                { "ResourceId", db.NameOutputReference.AsProvisioningParameter(infra) }
+                { "ResourceId", db.IdOutputReference.AsProvisioningParameter(infra) }
             }
         });
     }
@@ -106,24 +108,23 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureCognitiveServicesProjectConnectionResource> AddConnection(
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
-        AzureStorageResource account)
+        AzureStorageResource storage)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(account);
-        if (account.IsEmulator())
+        ArgumentNullException.ThrowIfNull(storage);
+        if (storage.IsEmulator())
         {
             throw new InvalidOperationException("Cannot create a AI Foundry project connection to an emulator Storage account.");
         }
         return builder.AddConnection($"connection-{Guid.NewGuid():N}", (infra) => new AadAuthTypeConnectionProperties()
         {
             Category = CognitiveServicesConnectionCategory.AzureBlob,
-            Target = account.BlobEndpoint.AsProvisioningParameter(infra),
+            Target = storage.BlobEndpoint.AsProvisioningParameter(infra),
             IsSharedToAll = false,
-            // CredentialsKey = account.KeyOutputReference.AsProvisioningParameter(infra),
             Metadata =
             {
                 { "ApiType", "Azure" },
-                { "ResourceId", account.NameOutputReference.AsProvisioningParameter(infra) }
+                { "ResourceId", storage.IdOutputReference.AsProvisioningParameter(infra) }
             }
         });
     }
@@ -135,6 +136,7 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
         this IResourceBuilder<AzureCognitiveServicesProjectResource> builder,
         IResourceBuilder<AzureStorageResource> storage)
     {
+        builder.WithRoleAssignments(storage, StorageBuiltInRole.StorageBlobDataContributor);
         return builder.AddConnection(storage.Resource);
     }
 
@@ -203,12 +205,12 @@ public static class AzureCognitiveServicesProjectConnectionsBuilderExtensions
         // We also swap `ManagedIdentity` auth type for `AccountManagedIdentity`, because the latter seems to be an error in the Bicep template.
         return builder.AddConnection($"connection-{Guid.NewGuid():N}", (infra) => new AzureKeyVaultConnectionProperties()
         {
-            Target = keyVault.Id.AsProvisioningParameter(infra),
+            Target = keyVault.IdOutputReference.AsProvisioningParameter(infra),
             IsSharedToAll = true,
             Metadata =
             {
                 { "ApiType", "Azure" },
-                { "ResourceId", keyVault.Id.AsProvisioningParameter(infra) }
+                { "ResourceId", keyVault.IdOutputReference.AsProvisioningParameter(infra) }
             }
         });
     }
