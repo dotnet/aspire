@@ -93,6 +93,8 @@ internal static class AzureAppServiceEnvironmentUtility
         // Appsettings related to managed identity for auth
         dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "AZURE_CLIENT_ID", Value = contributorIdentity.ClientId });
         dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ALLOWED_MANAGED_IDENTITIES", Value = otelClientId });
+        // Dashboard UI configuration
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "DASHBOARD__UI__DISABLEIMPORT", Value = "true" });
         // Added appsetting to identify the resources in a specific aspire environment
         dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = infra.AspireResource.Name });
 
