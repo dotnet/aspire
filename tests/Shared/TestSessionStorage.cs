@@ -3,7 +3,7 @@
 
 using Aspire.Dashboard.Model.BrowserStorage;
 
-namespace Aspire.Dashboard.Components.Tests.Shared;
+namespace Aspire.Dashboard.Tests.Shared;
 
 public sealed class TestSessionStorage : ISessionStorage
 {

@@ -9,6 +9,7 @@ using Aspire.Dashboard.Otlp.Model.Serialization;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Tests.Shared;
 using Google.Protobuf.Collections;
+using Microsoft.AspNetCore.InternalTesting;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
@@ -462,8 +463,7 @@ public sealed class TelemetryExportServiceTests
     {
         // Arrange
         var repository = CreateRepository();
-        var dashboardClient = new TestDashboardClient();
-        var exportService = new TelemetryExportService(repository, dashboardClient);
+        var exportService = await CreateExportServiceAsync(repository);
 
         // Add test data for three resources
         AddTestData(repository, "resource1", "111");
@@ -517,6 +517,208 @@ public sealed class TelemetryExportServiceTests
         var metric = metricsData?.ResourceMetrics?.FirstOrDefault()?.ScopeMetrics?.FirstOrDefault()?.Metrics?.FirstOrDefault();
         Assert.NotNull(metric);
         Assert.Equal("metric-resource3-333", metric.Name);
+    }
+
+    [Fact]
+    public async Task ExportAllAsync_WhenDashboardClientDisabled_ExportsOnlyTelemetry()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+
+        // Add logs
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "Service1", instanceId: "instance-1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("Logger1"),
+                        LogRecords = { CreateLogRecord(time: s_testTime, message: "Structured log") }
+                    }
+                }
+            }
+        });
+
+        // Dashboard client is disabled (no console logs)
+        var service = await CreateExportServiceAsync(repository, isDashboardClientEnabled: false);
+
+        // Build selection for all resources with all data types
+        var selectedResources = BuildAllResourcesSelection(repository);
+
+        // Act
+        using var zipStream = await service.ExportSelectedAsync(selectedResources, CancellationToken.None).DefaultTimeout();
+
+        // Assert
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+        var entryNames = archive.Entries.Select(e => e.FullName).Order().ToList();
+
+        // Verify only structured logs are exported (no console logs)
+        Assert.Collection(entryNames,
+            name => Assert.Equal("structuredlogs/Service1.json", name));
+    }
+
+    [Fact]
+    public async Task ExportSelectedAsync_SkipsEmptyResources()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+
+        // Add logs for only one resource
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "ServiceWithLogs", instanceId: "instance-1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("Logger1"),
+                        LogRecords = { CreateLogRecord(time: s_testTime, message: "Log message") }
+                    }
+                }
+            }
+        });
+
+        // Add traces for a different resource
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "ServiceWithTraces", instanceId: "instance-2"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope("Tracer1"),
+                        Spans = { CreateSpan(traceId: "trace123456789012", spanId: "span1111", startTime: s_testTime, endTime: s_testTime.AddSeconds(5)) }
+                    }
+                }
+            }
+        });
+
+        var service = await CreateExportServiceAsync(repository, isDashboardClientEnabled: false);
+
+        // Build selection for all resources with all data types
+        var selectedResources = BuildAllResourcesSelection(repository);
+
+        // Act
+        using var zipStream = await service.ExportSelectedAsync(selectedResources, CancellationToken.None).DefaultTimeout();
+
+        // Assert
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+        var entryNames = archive.Entries.Select(e => e.FullName).Order().ToList();
+
+        // Verify each resource only has its own data type exported
+        Assert.Collection(entryNames,
+            name => Assert.Equal("structuredlogs/ServiceWithLogs.json", name),
+            name => Assert.Equal("traces/ServiceWithTraces.json", name));
+    }
+
+    [Fact]
+    public async Task ExportSelectedAsync_JapaneseCharactersInLogs_PreservesContent()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var addContext = new AddContext();
+
+        const string japaneseMessage = "これはテストログメッセージです"; // "This is a test log message"
+        const string japaneseAttributeValue = "日本語の属性値"; // "Japanese attribute value"
+        const string japaneseEventName = "テストイベント"; // "Test event"
+
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "JapaneseService", instanceId: "instance-1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("JapaneseLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(
+                                time: s_testTime,
+                                message: japaneseMessage,
+                                severity: SeverityNumber.Info,
+                                eventName: japaneseEventName,
+                                attributes: [new KeyValuePair<string, string>("japanese.attr", japaneseAttributeValue)])
+                        }
+                    }
+                }
+            }
+        });
+
+        var service = await CreateExportServiceAsync(repository, isDashboardClientEnabled: false);
+
+        // Build selection for all resources with all data types
+        var selectedResources = BuildAllResourcesSelection(repository);
+
+        // Act
+        using var zipStream = await service.ExportSelectedAsync(selectedResources, CancellationToken.None).DefaultTimeout();
+
+        // Assert
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+
+        var logEntry = archive.GetEntry("structuredlogs/JapaneseService.json");
+        Assert.NotNull(logEntry);
+
+        using var reader = new StreamReader(logEntry.Open());
+        var jsonContent = await reader.ReadToEndAsync().DefaultTimeout();
+
+        // Verify Japanese characters appear directly in JSON (not Unicode-escaped)
+        Assert.Contains(japaneseMessage, jsonContent);
+        Assert.Contains(japaneseAttributeValue, jsonContent);
+        Assert.Contains(japaneseEventName, jsonContent);
+
+        // Deserialize the JSON to verify the content is correct after round-trip
+        var logsData = System.Text.Json.JsonSerializer.Deserialize<OtlpLogsDataJson>(jsonContent, OtlpJsonSerializerContext.Default.OtlpLogsDataJson);
+
+        Assert.NotNull(logsData);
+        Assert.NotNull(logsData.ResourceLogs);
+        Assert.Single(logsData.ResourceLogs);
+
+        var resourceLogs = logsData.ResourceLogs[0];
+        Assert.NotNull(resourceLogs.ScopeLogs);
+        Assert.Single(resourceLogs.ScopeLogs);
+
+        var scopeLogs = resourceLogs.ScopeLogs[0];
+        Assert.NotNull(scopeLogs.LogRecords);
+        Assert.Single(scopeLogs.LogRecords);
+
+        var logRecord = scopeLogs.LogRecords[0];
+
+        // Verify Japanese characters are preserved after serialization and deserialization
+        Assert.Equal(japaneseMessage, logRecord.Body?.StringValue);
+        Assert.Equal(japaneseEventName, logRecord.EventName);
+
+        Assert.NotNull(logRecord.Attributes);
+        var japaneseAttr = Assert.Single(logRecord.Attributes, a => a.Key == "japanese.attr");
+        Assert.Equal(japaneseAttributeValue, japaneseAttr.Value?.StringValue);
+    }
+
+    private static async Task<TelemetryExportService> CreateExportServiceAsync(TelemetryRepository repository, bool isDashboardClientEnabled = true)
+    {
+        var dashboardClient = new TestDashboardClient(isEnabled: isDashboardClientEnabled);
+        var sessionStorage = new TestSessionStorage();
+        var consoleLogsManager = new ConsoleLogsManager(sessionStorage);
+        await consoleLogsManager.EnsureInitializedAsync();
+        var consoleLogsFetcher = new ConsoleLogsFetcher(dashboardClient, consoleLogsManager);
+        return new TelemetryExportService(repository, consoleLogsFetcher);
+    }
+
+    private static Dictionary<string, HashSet<AspireDataType>> BuildAllResourcesSelection(TelemetryRepository repository)
+    {
+        var allResources = repository.GetResources();
+        return allResources.ToDictionary(
+            r => r.ResourceKey.GetCompositeName(),
+            _ => new HashSet<AspireDataType>([AspireDataType.ConsoleLogs, AspireDataType.StructuredLogs, AspireDataType.Traces, AspireDataType.Metrics]));
     }
 
     private static void AddTestData(TelemetryRepository repository, string resourceName, string instanceId)
