@@ -38,4 +38,45 @@ public class ContainerMountAnnotationTests
         Assert.Equal(ContainerMountType.BindMount, annotation.Type);
         Assert.False(annotation.IsReadOnly);
     }
+
+    [Fact]
+    public void CtorWithRelativeSourceAndBasePath()
+    {
+        var annotation = new ContainerMountAnnotation("/app/host/certs", "/app/certs", ContainerMountType.BindMount, isReadOnly: false, relativeSource: "./certs", basePath: "/app/host");
+        Assert.Equal("/app/host/certs", annotation.Source);
+        Assert.Equal("/app/certs", annotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, annotation.Type);
+        Assert.False(annotation.IsReadOnly);
+        Assert.Equal("./certs", annotation.RelativeSource);
+        Assert.Equal("/app/host", annotation.BasePath);
+    }
+
+    [Fact]
+    public void CtorWithRelativeSourceUsingParentDirectory()
+    {
+        var annotation = new ContainerMountAnnotation("/data/certs", "/app/certs", ContainerMountType.BindMount, isReadOnly: true, relativeSource: "../data/certs", basePath: "/app/host");
+        Assert.Equal("/data/certs", annotation.Source);
+        Assert.Equal("/app/certs", annotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, annotation.Type);
+        Assert.True(annotation.IsReadOnly);
+        Assert.Equal("../data/certs", annotation.RelativeSource);
+        Assert.Equal("/app/host", annotation.BasePath);
+    }
+
+    [Fact]
+    public void CtorSetsRelativeSourceAndBasePathToNullByDefault()
+    {
+        var annotation = new ContainerMountAnnotation("/absolute/path", "/target", ContainerMountType.BindMount, false);
+        Assert.Null(annotation.RelativeSource);
+        Assert.Null(annotation.BasePath);
+    }
+
+    [Fact]
+    public void CtorWithAbsolutePathAndNoRelativeSource()
+    {
+        var annotation = new ContainerMountAnnotation("/absolute/path", "/target", ContainerMountType.BindMount, isReadOnly: false, relativeSource: null, basePath: null);
+        Assert.Equal("/absolute/path", annotation.Source);
+        Assert.Null(annotation.RelativeSource);
+        Assert.Null(annotation.BasePath);
+    }
 }

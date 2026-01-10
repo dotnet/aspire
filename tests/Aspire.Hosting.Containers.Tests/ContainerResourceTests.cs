@@ -244,6 +244,8 @@ public class ContainerResourceTests
         Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
 
         Assert.Equal(Path.Combine(basePath, "source"), mountAnnotation.Source);
+        Assert.Equal("source", mountAnnotation.RelativeSource);
+        Assert.Equal(basePath, mountAnnotation.BasePath);
     }
 
     [Fact]
@@ -362,6 +364,51 @@ public class ContainerResourceTests
         Assert.Equal("/var/run/docker.sock", mountAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, mountAnnotation.Type);
         Assert.False(mountAnnotation.IsReadOnly);
+    }
+
+    [Fact]
+    public void WithBindMountSetsRelativeSourceAndBasePathForRelativePath()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddContainer("container", "none")
+            .WithBindMount("./certs", "/app/certs", isReadOnly: true);
+
+        using var app = appBuilder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
+
+        // Source is resolved to absolute path
+        Assert.True(Path.IsPathRooted(mountAnnotation.Source));
+        Assert.Equal("/app/certs", mountAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, mountAnnotation.Type);
+        Assert.True(mountAnnotation.IsReadOnly);
+        // RelativeSource and BasePath store the original relative info
+        Assert.Equal("./certs", mountAnnotation.RelativeSource);
+        Assert.NotNull(mountAnnotation.BasePath);
+    }
+
+    [Fact]
+    public void WithBindMountDoesNotSetRelativeSourceOrBasePathForAbsolutePath()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var absolutePath = OperatingSystem.IsWindows() ? @"C:\absolute\path" : "/absolute/path";
+
+        appBuilder.AddContainer("container", "none")
+            .WithBindMount(absolutePath, "/target", isReadOnly: false);
+
+        using var app = appBuilder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
+
+        Assert.Equal(absolutePath, mountAnnotation.Source);
+        Assert.Null(mountAnnotation.RelativeSource); // No relative source for absolute paths
+        Assert.Null(mountAnnotation.BasePath); // No base path for absolute paths
     }
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
