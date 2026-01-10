@@ -9,7 +9,7 @@ namespace Aspire.Cli.Mcp;
 
 internal sealed class ExecuteResourceCommandTool : CliMcpTool
 {
-    public override string Name => "execute_resource_command";
+    public override string Name => KnownMcpTools.ExecuteResourceCommand;
 
     public override string Description => "Executes a command on a resource. If a resource needs to be restarted and is currently stopped, use the start command instead.";
 

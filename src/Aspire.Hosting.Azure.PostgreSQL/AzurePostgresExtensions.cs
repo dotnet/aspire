@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Postgres;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
@@ -356,6 +358,43 @@ public static class AzurePostgresExtensions
         {
             azureResource.Annotations.Remove(annotation);
         }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a Postgres MCP server container and configures it to connect to the database represented by <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The Azure Postgres database resource builder.</param>
+    /// <param name="configureContainer">Configuration callback for the Postgres MCP container resource.</param>
+    /// <param name="containerName">The name of the container (optional).</param>
+    /// <remarks>
+    /// <para>
+    /// The Postgres MCP server is configured to use SSE transport and will expose an HTTP endpoint.
+    /// </para>
+    /// <para>
+    /// This extension method only applies when the Azure PostgreSQL resource is running as a container (i.e., <see cref="AzurePostgresFlexibleServerDatabaseResource.IsContainer"/> is <see langword="true"/>).
+    /// If the resource is not running as a container, this method has no effect.
+    /// </para>
+    /// </remarks>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIREPOSTGRES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> WithPostgresMcp(
+        this IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> builder,
+        Action<IResourceBuilder<PostgresMcpContainerResource>>? configureContainer = null,
+        string? containerName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // Only apply when running as a container
+        if (!builder.Resource.IsContainer)
+        {
+            return builder;
+        }
+
+        // Delegate to the underlying PostgresDatabaseResource's WithPostgresMcp
+        var innerBuilder = builder.ApplicationBuilder.CreateResourceBuilder(builder.Resource.InnerResource);
+        innerBuilder.WithPostgresMcp(configureContainer, containerName);
 
         return builder;
     }

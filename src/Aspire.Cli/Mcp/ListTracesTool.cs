@@ -9,7 +9,7 @@ namespace Aspire.Cli.Mcp;
 
 internal sealed class ListTracesTool : CliMcpTool
 {
-    public override string Name => "list_traces";
+    public override string Name => KnownMcpTools.ListTraces;
 
     public override string Description => "List distributed traces for resources. A distributed trace is used to track operations. A distributed trace can span multiple resources across a distributed system. Includes a list of distributed traces with their IDs, resources in the trace, duration and whether an error occurred in the trace.";
 

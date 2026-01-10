@@ -2,7 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
 using StreamJsonRpc;
 
 namespace Aspire.Cli.Backchannel;
@@ -120,7 +123,7 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
         // Connect to the Unix socket
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         var endpoint = new UnixDomainSocketEndPoint(SocketPath);
-        
+
         await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
 
         // Create JSON-RPC connection with proper formatter
@@ -210,6 +213,74 @@ internal sealed class AppHostAuxiliaryBackchannel : IDisposable
             cancellationToken).ConfigureAwait(false);
 
         return mcpInfo;
+    }
+
+    /// <summary>
+    /// Watches for resource snapshot changes and streams them from the AppHost.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An async enumerable of resource snapshots as they change.</returns>
+    public async IAsyncEnumerable<ResourceSnapshot> WatchResourceSnapshotsAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_rpc is null)
+        {
+            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
+        }
+
+        _logger?.LogDebug("Starting resource snapshots watch");
+
+        IAsyncEnumerable<ResourceSnapshot>? snapshots;
+        try
+        {
+            snapshots = await _rpc.InvokeWithCancellationAsync<IAsyncEnumerable<ResourceSnapshot>>(
+                "WatchResourceSnapshotsAsync",
+                [],
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (RemoteMethodNotFoundException ex)
+        {
+            _logger?.LogDebug(ex, "WatchResourceSnapshotsAsync RPC method not available on the remote AppHost. The AppHost may be running an older version.");
+            yield break;
+        }
+
+        if (snapshots is null)
+        {
+            yield break;
+        }
+
+        await foreach (var snapshot in snapshots.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            yield return snapshot;
+        }
+    }
+
+    /// <summary>
+    /// Invokes an MCP tool on a resource via the AppHost.
+    /// </summary>
+    /// <param name="resourceName">The resource name.</param>
+    /// <param name="toolName">The tool name.</param>
+    /// <param name="arguments">Tool arguments.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A JSON representation of the MCP CallToolResult.</returns>
+    public async Task<CallToolResult> CallResourceMcpToolAsync(
+        string resourceName,
+        string toolName,
+        IReadOnlyDictionary<string, JsonElement>? arguments,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_rpc is null)
+        {
+            throw new InvalidOperationException("Not connected to auxiliary backchannel.");
+        }
+
+        _logger?.LogDebug("Requesting AppHost to call MCP tool {ToolName} on resource {ResourceName}", toolName, resourceName);
+
+        return await _rpc.InvokeWithCancellationAsync<CallToolResult>(
+            "CallResourceMcpToolAsync",
+            [resourceName, toolName, arguments],
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

@@ -335,6 +335,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddSingleton<LocaleOverrideContext>();
         _innerBuilder.Services.AddHealthChecks();
+        _innerBuilder.Services.AddHttpClient();
         // Add the manifest publishing step to the pipeline
         Pipeline.AddManifestPublishing();
         _innerBuilder.Services.Configure<ResourceNotificationServiceOptions>(o =>

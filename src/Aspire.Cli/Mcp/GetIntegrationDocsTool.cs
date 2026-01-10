@@ -11,7 +11,7 @@ namespace Aspire.Cli.Mcp;
 /// </summary>
 internal sealed class GetIntegrationDocsTool : CliMcpTool
 {
-    public override string Name => "get_integration_docs";
+    public override string Name => KnownMcpTools.GetIntegrationDocs;
 
     public override string Description => "Gets documentation for a specific Aspire hosting integration package. Use this tool to get detailed information about how to use an integration within the AppHost.";
 
