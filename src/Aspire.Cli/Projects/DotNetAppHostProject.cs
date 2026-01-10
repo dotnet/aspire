@@ -227,8 +227,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
                     if (buildExitCode != 0)
                     {
-                        _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                        _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        // Set OutputCollector so RunCommand can display errors
+                        context.OutputCollector = buildOutputCollector;
                         context.BuildCompletionSource?.TrySetResult(false);
                         return ExitCodeConstants.FailedToBuildArtifacts;
                     }
@@ -257,11 +257,18 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
 
+        // Create collector and store in context for exception handling
+        // This must be set BEFORE signaling build completion to avoid a race condition
+        var runOutputCollector = new OutputCollector();
+        context.OutputCollector = runOutputCollector;
+
         // Signal that build/preparation is complete
         context.BuildCompletionSource?.TrySetResult(true);
 
         var runOptions = new DotNetCliRunnerInvocationOptions
         {
+            StandardOutputCallback = runOutputCollector.AppendOutput,
+            StandardErrorCallback = runOutputCollector.AppendError,
             StartDebugSession = context.StartDebugSession,
             Debug = context.Debug
         };
@@ -347,8 +354,8 @@ internal sealed class DotNetAppHostProject : IAppHostProject
 
             if (buildExitCode != 0)
             {
-                _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                // Set OutputCollector so PipelineCommandBase can display errors
+                context.OutputCollector = buildOutputCollector;
                 // Signal the backchannel completion source so the caller doesn't wait forever
                 context.BackchannelCompletionSource?.TrySetException(
                     new InvalidOperationException("The app host build failed."));
@@ -356,8 +363,14 @@ internal sealed class DotNetAppHostProject : IAppHostProject
             }
         }
 
+        // Create collector and store in context for exception handling
+        var runOutputCollector = new OutputCollector();
+        context.OutputCollector = runOutputCollector;
+
         var runOptions = new DotNetCliRunnerInvocationOptions
         {
+            StandardOutputCallback = runOutputCollector.AppendOutput,
+            StandardErrorCallback = runOutputCollector.AppendError,
             NoLaunchProfile = true,
             NoExtensionLaunch = true
         };

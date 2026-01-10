@@ -107,6 +107,7 @@ internal abstract class PipelineCommandBase : BaseCommand
     {
         var debugMode = parseResult.GetValue<bool?>("--debug") ?? false;
         Task<int>? pendingRun = null;
+        PublishContext? publishContext = null;
 
         // Send terminal infinite progress bar start sequence
         StartTerminalProgressBar();
@@ -158,7 +159,7 @@ internal abstract class PipelineCommandBase : BaseCommand
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
             // Create the publish context and delegate to IAppHostProject
-            var publishContext = new PublishContext
+            publishContext = new PublishContext
             {
                 AppHostFile = effectiveAppHostFile,
                 OutputPath = fullyQualifiedOutputPath,
@@ -205,6 +206,10 @@ internal abstract class PipelineCommandBase : BaseCommand
             // This ensures we properly propagate apphost failures (e.g., exceptions, crashes).
             if (exitCode != 0)
             {
+                if (debugMode && publishContext?.OutputCollector is { } outputCollector)
+                {
+                    InteractionService.DisplayLines(outputCollector.GetLines());
+                }
                 return exitCode;
             }
 
@@ -243,6 +248,10 @@ internal abstract class PipelineCommandBase : BaseCommand
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
+            if (publishContext?.OutputCollector is { } outputCollector)
+            {
+                InteractionService.DisplayLines(outputCollector.GetLines());
+            }
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (ConnectionLostException ex)
@@ -250,6 +259,10 @@ internal abstract class PipelineCommandBase : BaseCommand
             // Occurs if the apphost RPC channel is lost unexpectedly.
             StopTerminalProgressBar();
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.AppHostConnectionLost, ex.Message));
+            if (publishContext?.OutputCollector is { } outputCollector)
+            {
+                InteractionService.DisplayLines(outputCollector.GetLines());
+            }
             return pendingRun is { } && debugMode ? await pendingRun : ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
@@ -257,6 +270,10 @@ internal abstract class PipelineCommandBase : BaseCommand
             // Send terminal progress bar stop sequence on exception
             StopTerminalProgressBar();
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            if (publishContext?.OutputCollector is { } outputCollector)
+            {
+                InteractionService.DisplayLines(outputCollector.GetLines());
+            }
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
     }

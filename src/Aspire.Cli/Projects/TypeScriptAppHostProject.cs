@@ -369,11 +369,15 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             if (!buildResult.Success)
             {
-                _interactionService.DisplayLines(buildResult.Output.GetLines());
-                _interactionService.DisplayError(buildResult.Error!);
+                // Set OutputCollector so RunCommand can display errors
+                context.OutputCollector = buildResult.Output;
                 context.BuildCompletionSource?.TrySetResult(false);
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
+
+            // Store output collector in context for exception handling by RunCommand
+            // This must be set BEFORE signaling build completion to avoid a race condition
+            context.OutputCollector = buildResult.Output;
 
             // Signal that build/preparation is complete
             context.BuildCompletionSource?.TrySetResult(true);
@@ -929,10 +933,16 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
             if (!buildSuccess)
             {
-                _interactionService.DisplayLines(buildOutput.GetLines());
-                _interactionService.DisplayError("Failed to build app host.");
+                // Set OutputCollector so PipelineCommandBase can display errors
+                context.OutputCollector = buildOutput;
+                // Signal the backchannel completion source so the caller doesn't wait forever
+                context.BackchannelCompletionSource?.TrySetException(
+                    new InvalidOperationException("The app host build failed."));
                 return ExitCodeConstants.FailedToBuildArtifacts;
             }
+
+            // Store output collector in context for exception handling
+            context.OutputCollector = buildOutput;
 
             // Step 3: Run code generation now that assemblies are built
             if (NeedsGeneration(directory.FullName, packages))

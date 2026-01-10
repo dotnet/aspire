@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Projects;
 
@@ -100,6 +101,13 @@ internal sealed class PublishContext
     /// Gets the working directory for the command.
     /// </summary>
     public required DirectoryInfo WorkingDirectory { get; init; }
+
+    /// <summary>
+    /// Gets or sets the output collector for capturing stdout/stderr.
+    /// Project implementations populate this during execution.
+    /// Commands can access it for error display.
+    /// </summary>
+    public OutputCollector? OutputCollector { get; set; }
 }
 
 /// <summary>

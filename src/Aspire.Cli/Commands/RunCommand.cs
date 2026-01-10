@@ -122,6 +122,8 @@ internal sealed class RunCommand : BaseCommand
             return ExitCodeConstants.SdkNotInstalled;
         }
 
+        AppHostProjectContext? context = null;
+
         try
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
@@ -155,7 +157,7 @@ internal sealed class RunCommand : BaseCommand
             var buildCompletionSource = new TaskCompletionSource<bool>();
             var backchannelCompletionSource = new TaskCompletionSource<IAppHostCliBackchannel>();
 
-            var context = new AppHostProjectContext
+            context = new AppHostProjectContext
             {
                 AppHostFile = effectiveAppHostFile,
                 Watch = false,
@@ -177,7 +179,12 @@ internal sealed class RunCommand : BaseCommand
             var buildSuccess = await buildCompletionSource.Task.WaitAsync(cancellationToken);
             if (!buildSuccess)
             {
-                // Build failed, wait for the run task to complete and return its exit code
+                // Build failed - display captured output and return exit code
+                if (context.OutputCollector is { } outputCollector)
+                {
+                    InteractionService.DisplayLines(outputCollector.GetLines());
+                }
+                InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
                 return await pendingRun;
             }
 
@@ -319,11 +326,19 @@ internal sealed class RunCommand : BaseCommand
         catch (FailedToConnectBackchannelConnection ex)
         {
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
+            if (context?.OutputCollector is { } outputCollector)
+            {
+                InteractionService.DisplayLines(outputCollector.GetLines());
+            }
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
         {
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));
+            if (context?.OutputCollector is { } outputCollector)
+            {
+                InteractionService.DisplayLines(outputCollector.GetLines());
+            }
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }
