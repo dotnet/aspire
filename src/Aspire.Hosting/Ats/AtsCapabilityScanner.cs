@@ -830,9 +830,9 @@ internal static class AtsCapabilityScanner
         var returnTypeId = MapToAtsTypeId(method.ReturnType, typeMapping, typeResolver);
 
         // Only set ReturnsBuilder if the return type is actually a resource builder type
+        // Use typeResolver if available, otherwise fall back to type name check
         var returnsBuilder = returnTypeId != null &&
-            typeResolver != null &&
-            typeResolver.IsResourceBuilderType(method.ReturnType);
+            (typeResolver?.IsResourceBuilderType(method.ReturnType) ?? IsResourceBuilderByTypeName(method.ReturnType));
 
         return new AtsCapabilityInfo
         {
@@ -2258,6 +2258,24 @@ internal static class AtsCapabilityScanner
             return name;
         }
         return char.ToLowerInvariant(name[0]) + name[1..];
+    }
+
+    /// <summary>
+    /// Checks if a type is IResourceBuilder&lt;T&gt; by type name.
+    /// Fallback for when IAtsTypeResolver is not available (code generation scenario).
+    /// </summary>
+    private static bool IsResourceBuilderByTypeName(IAtsTypeInfo type)
+    {
+        var typeFullName = type.FullName;
+        // Check GenericTypeDefinitionFullName (most accurate for generics)
+        if (type.GenericTypeDefinitionFullName == "Aspire.Hosting.ApplicationModel.IResourceBuilder`1")
+        {
+            return true;
+        }
+        // Fallback: check the full name which includes generic arguments
+        // Format: "Aspire.Hosting.ApplicationModel.IResourceBuilder`1[[...]]"
+        return typeFullName.StartsWith("Aspire.Hosting.ApplicationModel.IResourceBuilder`1", StringComparison.Ordinal) ||
+            typeFullName.Contains("IResourceBuilder`1", StringComparison.Ordinal);
     }
 }
 
