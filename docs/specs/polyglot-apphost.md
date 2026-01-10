@@ -25,7 +25,7 @@ The polyglot apphost feature allows developers to write Aspire app hosts in non-
 Integration authors expose their existing extension methods to ATS by adding `[AspireExport]` attributes. No wrapper code needed.
 
 **Key Concepts:**
-- **ATS Type ID** - A portable type identifier derived from assembly and type name (e.g., `Aspire.Hosting.Redis/RedisResource`)
+- **ATS Type ID** - A portable type identifier derived from assembly and type name (e.g., `Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource`)
 - **Capability** - A named operation (e.g., `Aspire.Hosting.Redis/addRedis`)
 - **Handle** - An opaque typed reference to a .NET object
 - **DTO** - A serializable data transfer object
@@ -64,7 +64,7 @@ The same method name can appear on different types (e.g., `withEnvironment` on R
 The scanner detects and reports conflicts:
 
 ```text
-Error: Method 'withDataVolume' has multiple definitions for target 'Aspire.Hosting.Redis/RedisResource':
+Error: Method 'withDataVolume' has multiple definitions for target 'Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource':
   - Aspire.Hosting.Redis/withDataVolume
   - ThirdParty.Integration/withDataVolume
 
@@ -127,13 +127,13 @@ sequenceDiagram
     Host-->>Guest: true
 
     Guest->>Host: invokeCapability("Aspire.Hosting/createBuilder", {})
-    Host-->>Guest: { $handle: "Aspire.Hosting/IDistributedApplicationBuilder:1" }
+    Host-->>Guest: { $handle: "Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder:1" }
 
     Guest->>Host: invokeCapability("Aspire.Hosting.Redis/addRedis", {builder, name})
-    Host-->>Guest: { $handle: "Aspire.Hosting.Redis/RedisResource:1" }
+    Host-->>Guest: { $handle: "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:1" }
 
     Guest->>Host: invokeCapability("Aspire.Hosting/build", {builder})
-    Host-->>Guest: { $handle: "Aspire.Hosting/DistributedApplication:1" }
+    Host-->>Guest: { $handle: "Aspire.Hosting/Aspire.Hosting.DistributedApplication:1" }
 
     Guest->>Host: invokeCapability("Aspire.Hosting/run", {app})
     Host-->>Guest: Started (orchestration running)
@@ -147,99 +147,95 @@ ATS is the central type system that bridges .NET and guest languages. Every type
 
 ### Type IDs
 
-Type IDs are portable identifiers for .NET types. They are automatically derived from the assembly name and type name.
+Type IDs are portable identifiers for .NET types. They are automatically derived from the assembly name and full type name (including namespace).
 
-**Format:** `{AssemblyName}/{TypeName}`
+**Format:** `{AssemblyName}/{FullTypeName}`
 
 | ATS Type ID | .NET Type |
 |-------------|-----------|
-| `Aspire.Hosting/IDistributedApplicationBuilder` | `IDistributedApplicationBuilder` |
-| `Aspire.Hosting/DistributedApplication` | `DistributedApplication` |
-| `Aspire.Hosting/DistributedApplicationExecutionContext` | `DistributedApplicationExecutionContext` |
-| `Aspire.Hosting/IResource` | `IResource` |
-| `Aspire.Hosting/IResourceWithEnvironment` | `IResourceWithEnvironment` |
-| `Aspire.Hosting/ContainerResource` | `ContainerResource` |
-| `Aspire.Hosting/ExecutableResource` | `ExecutableResource` |
-| `Aspire.Hosting.ApplicationModel/EndpointReference` | `EndpointReference` |
+| `Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder` | `IDistributedApplicationBuilder` |
+| `Aspire.Hosting/Aspire.Hosting.DistributedApplication` | `DistributedApplication` |
+| `Aspire.Hosting/Aspire.Hosting.DistributedApplicationExecutionContext` | `DistributedApplicationExecutionContext` |
+| `Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResource` | `IResource` |
+| `Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment` | `IResourceWithEnvironment` |
+| `Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource` | `ContainerResource` |
+| `Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource` | `ExecutableResource` |
+| `Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference` | `EndpointReference` |
 
 Declared with `[AspireExport]`:
 
 ```csharp
 // On a type you own - type ID is derived automatically
+// namespace Aspire.Hosting.ApplicationModel, assembly Aspire.Hosting.Redis
 [AspireExport]
 public class RedisResource : ContainerResource { }
-// Type ID = Aspire.Hosting.Redis/RedisResource
+// Type ID = Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource
 
 // At assembly level for types you don't own
 [assembly: AspireExport(typeof(IDistributedApplicationBuilder))]
-// Type ID = Aspire.Hosting/IDistributedApplicationBuilder
+// Type ID = Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder
 ```
 
-### Intrinsic Types
+### Type Exporting and Polymorphism Flattening
 
-Intrinsic types are core ATS types that every guest language must understand. They form the foundation of the distributed application model:
+ATS doesn't have a closed set of primitive types. Instead, any .NET type can be exported using `[AspireExport]`, and the scanner automatically expands capabilities based on type relationships.
 
-#### `Aspire.Hosting/IDistributedApplicationBuilder`
+#### How Exporting Works
 
-The entry point for all distributed applications. Obtained via `Aspire.Hosting/createBuilder`.
+When a type is marked with `[AspireExport]`, the scanner:
 
-| Capability | Description |
-|------------|-------------|
-| `Aspire.Hosting/createBuilder` | Creates a new builder instance |
-| `Aspire.Hosting/build` | Builds the application from the builder |
-| `Aspire.Hosting/getExecutionContext` | Gets the execution context |
-| `Aspire.Hosting/getConfiguration` | Gets the configuration |
-| `Aspire.Hosting/getEnvironment` | Gets the host environment |
-| `Aspire.Hosting/getAppHostDirectory` | Gets the app host directory path |
-| `Aspire.Hosting/subscribeBeforeStart` | Subscribes to lifecycle event |
-| `Aspire.Hosting/subscribeAfterResourcesCreated` | Subscribes to lifecycle event |
+1. **Registers the type** with its ATS type ID (`{AssemblyName}/{FullTypeName}`)
+2. **Scans extension methods** that target the type or its interfaces
+3. **Expands interface relationships** so each concrete type gets all applicable capabilities
 
-**Adding resources** (also on Builder):
-- `Aspire.Hosting/addContainer` - Add a container resource
-- `Aspire.Hosting/addExecutable` - Add an executable resource
-- `Aspire.Hosting/addParameter` - Add a parameter resource
-- `Aspire.Hosting/addConnectionString` - Add a connection string
-- `Aspire.Hosting.Redis/addRedis` - Add Redis (from integration package)
+```csharp
+// RedisResource is in Aspire.Hosting.Redis assembly
+[AspireExport]
+public class RedisResource : ContainerResource, IResourceWithConnectionString { }
 
-#### `Aspire.Hosting/DistributedApplication`
-
-The built application, ready to run. Obtained via `Aspire.Hosting/build`.
-
-| Capability | Description |
-|------------|-------------|
-| `Aspire.Hosting/run` | Starts all resources and runs the application |
-
-#### `Aspire.Hosting/DistributedApplicationExecutionContext`
-
-Runtime context providing information about the execution mode.
-
-| Capability | Description |
-|------------|-------------|
-| `Aspire.Hosting/isRunMode` | Returns true if running locally |
-| `Aspire.Hosting/isPublishMode` | Returns true if generating deployment manifests |
-
-**Usage:** Conditionally configure resources based on mode:
-```typescript
-const context = await builder.getExecutionContext();
-if (await context.isPublishMode()) {
-    // Configure for production deployment
+// This extension method targets IResourceWithEnvironment
+public static class ResourceExtensions
+{
+    [AspireExport("withEnvironment")]
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, ...)
+        where T : IResourceWithEnvironment { }
 }
 ```
 
-#### `Aspire.Hosting.ApplicationModel/EndpointReference`
+Because `RedisResource` implements `IResourceWithEnvironment` (via `ContainerResource`), the scanner adds `withEnvironment` to `RedisResource`'s capability list.
 
-A reference to a resource's network endpoint. Used in reference expressions.
+#### Flattening in Action
 
-| Capability | Description |
-|------------|-------------|
-| `Aspire.Hosting/getEndpoint` | Gets an endpoint reference from a resource |
+A concrete type gets capabilities from:
+- **Direct exports** on the type itself
+- **Interface implementations** - capabilities targeting any interface it implements
+- **Base class** - capabilities inherited from parent classes
 
-**Usage:** Build connection strings dynamically:
-```typescript
-const redis = await builder.addRedis("cache");
-const endpoint = await redis.getEndpoint("tcp");
-const connectionString = refExpr`redis://${endpoint}`;
+```text
+RedisResource capabilities:
+├── Aspire.Hosting.Redis/addRedis          (direct - creates Redis)
+├── Aspire.Hosting.Redis/withPersistence   (direct - Redis-specific)
+├── Aspire.Hosting/withEnvironment         (via IResourceWithEnvironment)
+├── Aspire.Hosting/withEndpoint            (via IResourceWithEndpoints)
+├── Aspire.Hosting/waitFor                 (via IResourceWithWaitSupport)
+└── Aspire.Hosting/getConnectionString     (via IResourceWithConnectionString)
 ```
+
+Guest languages see a flat list—no need to understand .NET's type hierarchy.
+
+#### Core Types
+
+Some commonly used exported types:
+
+| Type | Purpose |
+|------|---------|
+| `IDistributedApplicationBuilder` | Entry point for building the app |
+| `DistributedApplication` | Built application, ready to run |
+| `DistributedApplicationExecutionContext` | Runtime context (run vs publish mode) |
+| `EndpointReference` | Reference to a network endpoint |
+| `ReferenceExpression` | Dynamic expression with embedded references |
+
+These aren't special—they're just types that happen to be exported. Integration packages export their own types (e.g., `RedisResource`, `PostgresResource`).
 
 ### Capabilities
 
@@ -277,12 +273,12 @@ public static IResourceBuilder<RedisResource> AddRedis(
 
 Handles are opaque references to .NET objects. They carry an ATS type ID for identification.
 
-**Format:** `{atsTypeId}:{instanceId}` (e.g., `Aspire.Hosting.Redis/RedisResource:42`)
+**Format:** `{atsTypeId}:{instanceId}` (e.g., `Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:42`)
 
 ```json
 {
-    "$handle": "Aspire.Hosting.Redis/RedisResource:42",
-    "$type": "Aspire.Hosting.Redis/RedisResource"
+    "$handle": "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:42",
+    "$type": "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource"
 }
 ```
 
@@ -331,7 +327,7 @@ Callbacks are passed as string IDs:
 
 ```json
 {
-    "resource": {"$handle": "Aspire.Hosting.Redis/RedisResource:1"},
+    "resource": {"$handle": "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:1"},
     "callback": "callback_1_1234567890"
 }
 ```
@@ -340,7 +336,7 @@ Callbacks are passed as string IDs:
 
 When the host invokes a callback, handle parameters are automatically converted to typed wrapper classes:
 
-1. Host sends: `{ p0: { $handle: "...", $type: "EnvironmentCallbackContext" } }`
+1. Host sends: `{ p0: { $handle: "...", $type: "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext" } }`
 2. SDK looks up type in **handle wrapper registry**
 3. SDK creates wrapper: `new EnvironmentCallbackContext(handle, client)`
 4. User callback receives typed instance
@@ -348,8 +344,8 @@ When the host invokes a callback, handle parameters are automatically converted 
 Generated code registers factories for each wrapper class at module load:
 
 ```typescript
-registerHandleWrapper('Aspire.Hosting/EnvironmentCallbackContext',
-    (handle, client) => new EnvironmentCallbackContext(handle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext',
+    (handle, client) => new EnvironmentCallbackContext(handle as EnvironmentCallbackContextHandle, client));
 ```
 
 This enables callbacks to receive properly typed objects:
@@ -363,16 +359,17 @@ This enables callbacks to receive properly typed objects:
 
 ### Context Types
 
-Objects passed to callbacks with auto-exposed properties. The type ID is automatically derived from `{AssemblyName}/{TypeName}`:
+Objects passed to callbacks with auto-exposed properties. The type ID is automatically derived from `{AssemblyName}/{FullTypeName}`:
 
 ```csharp
-[AspireExport(ExposeProperties = true)]  // Type ID = Aspire.Hosting/EnvironmentCallbackContext
+// namespace Aspire.Hosting.ApplicationModel
+[AspireExport(ExposeProperties = true)]  // Type ID = Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext
 public class EnvironmentCallbackContext
 {
-    // Auto-exposed as "Aspire.Hosting/EnvironmentCallbackContext.getEnvironmentVariables"
+    // Auto-exposed as "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.environmentVariables"
     public Dictionary<string, object> EnvironmentVariables { get; }
 
-    // Auto-exposed as "Aspire.Hosting/EnvironmentCallbackContext.getExecutionContext"
+    // Auto-exposed as "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.executionContext"
     public DistributedApplicationExecutionContext ExecutionContext { get; }
 }
 ```
@@ -424,7 +421,7 @@ Dynamic values that reference endpoints, parameters, and other providers:
     "$expr": {
         "format": "redis://{0}:{1}",
         "valueProviders": [
-            { "$handle": "Aspire.Hosting.ApplicationModel/EndpointReference:1" },
+            { "$handle": "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EndpointReference:1" },
             "6379"
         ]
     }
@@ -478,7 +475,7 @@ Must be called first (except for `ping`):
 {"jsonrpc":"2.0","id":2,"method":"invokeCapability","params":[
     "Aspire.Hosting.Redis/addRedis",
     {
-        "builder": {"$handle": "Aspire.Hosting/IDistributedApplicationBuilder:1"},
+        "builder": {"$handle": "Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder:1"},
         "name": "cache",
         "port": 6379
     }
@@ -486,8 +483,8 @@ Must be called first (except for `ping`):
 
 // Response
 {"jsonrpc":"2.0","id":2,"result":{
-    "$handle": "Aspire.Hosting.Redis/RedisResource:1",
-    "$type": "Aspire.Hosting.Redis/RedisResource"
+    "$handle": "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:1",
+    "$type": "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource"
 }}
 ```
 
@@ -617,7 +614,7 @@ The scanner performs **2-pass expansion**:
 
 Each capability has:
 - `TargetTypeId` - The declared target (e.g., `Aspire.Hosting/IResourceWithEnvironment`)
-- `ExpandedTargetTypeIds` - Pre-computed list of concrete types (e.g., `[Aspire.Hosting.Redis/RedisResource, Aspire.Hosting/ContainerResource, ...]`)
+- `ExpandedTargetTypeIds` - Pre-computed list of concrete types (e.g., `[Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource, Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource, ...]`)
 
 **Language generator usage:**
 - Languages with inheritance (TypeScript, Swift) can use `TargetTypeId` for interface-based generation
@@ -653,10 +650,10 @@ Capabilities are grouped by their (expanded) target type to generate builder cla
 
 | ATS Type ID | TypeScript Class | Capabilities |
 |-------------|------------------|--------------|
-| `Aspire.Hosting/IDistributedApplicationBuilder` | `DistributedApplicationBuilder` | `addRedis`, `addContainer`, `build` |
-| `Aspire.Hosting.Redis/RedisResource` | `RedisBuilder` | `withPersistence`, `withEnvironment`, ... |
-| `Aspire.Hosting/ContainerResource` | `ContainerBuilder` | `withBindMount`, `withEnvironment`, ... |
-| `Aspire.Hosting/DistributedApplication` | `DistributedApplication` | `run` |
+| `Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder` | `DistributedApplicationBuilder` | `addRedis`, `addContainer`, `build` |
+| `Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource` | `RedisBuilder` | `withPersistence`, `withEnvironment`, ... |
+| `Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource` | `ContainerBuilder` | `withBindMount`, `withEnvironment`, ... |
+| `Aspire.Hosting/Aspire.Hosting.DistributedApplication` | `DistributedApplication` | `run` |
 
 Primitive type mapping:
 
@@ -743,15 +740,15 @@ TypeScript uses three layers to bridge the wire format and user API:
 | Layer | Description | Example |
 |-------|-------------|---------|
 | `MarshalledHandle` | Wire format (plain JSON) | `{ $handle: "...", $type: "..." }` |
-| `Handle<T>` | TypeScript class with type safety | `Handle<'Aspire.Hosting.Redis/RedisResource'>` |
+| `Handle<T>` | TypeScript class with type safety | `Handle<'Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource'>` |
 | Wrapper Classes | User-facing API with methods | `RedisBuilder`, `EndpointReference` |
 
 **MarshalledHandle** is what travels over JSON-RPC:
 
 ```typescript
 interface MarshalledHandle {
-    $handle: string;  // "Aspire.Hosting.Redis/RedisResource:42"
-    $type: string;    // "Aspire.Hosting.Redis/RedisResource"
+    $handle: string;  // "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource:42"
+    $type: string;    // "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource"
 }
 ```
 
@@ -881,7 +878,7 @@ public interface ICodeGenerator
 The generator receives a list of `AtsCapabilityInfo` with:
 - `CapabilityId` - Unique ID (e.g., `Aspire.Hosting.Redis/addRedis`)
 - `MethodName` - Method name (e.g., `addRedis`)
-- `TargetTypeId` - Original declared target (e.g., `Aspire.Hosting/IDistributedApplicationBuilder`)
+- `TargetTypeId` - Original declared target (e.g., `Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder`)
 - `ExpandedTargetTypeIds` - Concrete types for interface targets
 - `ReturnTypeId` - Return type ID
 - `Parameters` - List of parameter info
