@@ -8,8 +8,6 @@ using Aspire.Hosting.Ats;
 using Aspire.Hosting.CodeGeneration.Ats;
 using Aspire.Hosting.CodeGeneration.Models;
 using Aspire.Hosting.CodeGeneration.Models.Types;
-using AtsCapabilityInfo = Aspire.Hosting.CodeGeneration.Models.Ats.AtsCapabilityInfo;
-using AtsCapabilityScanner = Aspire.Hosting.CodeGeneration.Models.Ats.AtsCapabilityScanner;
 
 namespace Aspire.Hosting.CodeGeneration;
 
@@ -18,7 +16,7 @@ namespace Aspire.Hosting.CodeGeneration;
 /// This service handles the common workflow: loading assemblies, creating the application model,
 /// calling the language-specific generator, writing output files, and caching.
 /// </summary>
-public sealed class CodeGeneratorService
+internal sealed class CodeGeneratorService
 {
     private const string HashFileName = ".codegen-hash";
 
@@ -32,7 +30,7 @@ public sealed class CodeGeneratorService
     /// <param name="outputFolderName">The name of the output folder (e.g., ".modules").</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of files generated.</returns>
-    public async Task<int> GenerateAsync(
+    public static async Task<int> GenerateAsync(
         string appPath,
         ICodeGenerator generator,
         IEnumerable<(string PackageId, string Version)> packages,
@@ -79,7 +77,7 @@ public sealed class CodeGeneratorService
     /// <param name="packages">The packages to check.</param>
     /// <param name="outputFolderName">The name of the output folder.</param>
     /// <returns>True if generation is needed, false otherwise.</returns>
-    public bool NeedsGeneration(
+    public static bool NeedsGeneration(
         string appPath,
         IEnumerable<(string PackageId, string Version)> packages,
         string outputFolderName)
@@ -146,9 +144,8 @@ public sealed class CodeGeneratorService
         // Scan capabilities from all assemblies using 2-pass scanning
         // This ensures cross-assembly type expansion works correctly
         // (e.g., withEnvironment from Aspire.Hosting expands to RedisResource from Aspire.Hosting.Redis)
-        var capabilities = AtsCapabilityScanner.ScanAssemblies(
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
             assembliesToScan,
-            wellKnownTypes,
             typeMapping);
         allCapabilities.AddRange(capabilities);
 

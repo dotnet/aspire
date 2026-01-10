@@ -97,7 +97,7 @@ internal static class NotificationExports
 /// DTO for resource events returned from notification service.
 /// </summary>
 [AspireDto]
-public sealed class ResourceEventDto
+internal sealed class ResourceEventDto
 {
     /// <summary>
     /// The resource name.

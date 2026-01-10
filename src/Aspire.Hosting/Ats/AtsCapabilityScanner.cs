@@ -244,7 +244,7 @@ internal static class AtsCapabilityScanner
         // Expand each capability's target
         foreach (var capability in capabilities)
         {
-            var originalTarget = capability.OriginalTargetTypeId;
+            var originalTarget = capability.TargetTypeId;
             if (string.IsNullOrEmpty(originalTarget))
             {
                 // Entry point methods have no target
@@ -563,7 +563,7 @@ internal static class AtsCapabilityScanner
                         ],
                         ReturnType = propertyTypeRef,
                         IsExtensionMethod = false,
-                        OriginalTargetTypeId = typeId,
+                        TargetTypeId = typeId,
                         TargetType = contextTypeRef,
                         ReturnsBuilder = false,
                         CapabilityKind = AtsCapabilityKind.PropertyGetter,
@@ -607,7 +607,7 @@ internal static class AtsCapabilityScanner
                         ],
                         ReturnType = contextTypeRef,
                         IsExtensionMethod = false,
-                        OriginalTargetTypeId = typeId,
+                        TargetTypeId = typeId,
                         TargetType = contextTypeRef,
                         ReturnsBuilder = false,
                         CapabilityKind = AtsCapabilityKind.PropertySetter,
@@ -716,7 +716,7 @@ internal static class AtsCapabilityScanner
                         Parameters = paramInfos,
                         ReturnType = returnTypeRef,
                         IsExtensionMethod = false,
-                        OriginalTargetTypeId = typeId,
+                        TargetTypeId = typeId,
                         TargetType = instanceContextTypeRef,
                         ReturnsBuilder = false,
                         CapabilityKind = AtsCapabilityKind.InstanceMethod,
@@ -843,7 +843,7 @@ internal static class AtsCapabilityScanner
             Parameters = paramInfos,
             ReturnType = returnTypeRef,
             IsExtensionMethod = isExtensionMethod,
-            OriginalTargetTypeId = extendsTypeId,
+            TargetTypeId = extendsTypeId,
             TargetType = extendsTypeRef,
             TargetParameterName = targetParameterName,
             ReturnsBuilder = returnsBuilder,

@@ -11,6 +11,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="aspire" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Resources\transport.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.transport.ts" />
     <EmbeddedResource Include="Resources\base.ts" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.base.ts" />
     <EmbeddedResource Include="Resources\package.json" LogicalName="Aspire.Hosting.CodeGeneration.TypeScript.Resources.package.json" />

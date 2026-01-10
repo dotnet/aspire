@@ -3,12 +3,11 @@
 
 extern alias AspireHosting;
 
+using Aspire.Hosting.Ats;
+using Aspire.Hosting.CodeGeneration.Ats;
 using Aspire.Hosting.CodeGeneration.Models;
-using Aspire.Hosting.CodeGeneration.Models.Ats;
 using Aspire.Hosting.CodeGeneration.Models.Types;
 using Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes;
-// AtsTypeMapping is now unambiguous since Aspire.Hosting is not in global namespace
-using Aspire.Hosting.Ats;
 
 namespace Aspire.Hosting.CodeGeneration.TypeScript.Tests;
 
@@ -354,7 +353,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
 
         // Scan capabilities from the hosting assembly
-        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
 
         var addContainer = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/addContainer");
         Assert.NotNull(addContainer);
@@ -370,7 +369,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
 
         // Scan capabilities from the hosting assembly
-        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
 
         // Find all capabilities that target ContainerResource
         var containerCapabilities = capabilities
@@ -413,7 +412,7 @@ public class AtsTypeScriptCodeGeneratorTests
         using var context = new AssemblyLoaderContext();
         var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
 
-        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
 
         // Find capabilities that directly target ContainerResource (not via interface expansion)
         var directContainerCapabilities = capabilities
@@ -452,7 +451,7 @@ public class AtsTypeScriptCodeGeneratorTests
         using var context = new AssemblyLoaderContext();
         var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
 
-        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
 
         // Find withBindMount - it has signature: IResourceBuilder<T> where T : ContainerResource
         var withBindMount = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withBindMount");
@@ -540,7 +539,7 @@ public class AtsTypeScriptCodeGeneratorTests
         using var context = new AssemblyLoaderContext();
         var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
 
-        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
 
         // Find withBindMount which targets ContainerResource
         var withBindMount = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withBindMount");
@@ -615,7 +614,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
 
         // Scan to get type info including base type hierarchy
-        var capabilities = AtsCapabilityScanner.ScanAssembly(testAssembly, wellKnownTypes, typeMapping);
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(testAssembly, typeMapping);
 
         // We need to verify the type info has base type hierarchy
         // For now, we'll verify through expanded targets behavior -
@@ -712,7 +711,7 @@ public class AtsTypeScriptCodeGeneratorTests
         using var context = new AssemblyLoaderContext();
         var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
 
-        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
 
         // Find withReference - its first parameter is named "resource" (not "builder")
         var withReference = capabilities
@@ -751,9 +750,8 @@ public class AtsTypeScriptCodeGeneratorTests
         var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
 
         // Use ScanAssemblies (2-pass) to scan both assemblies together
-        var capabilities = AtsCapabilityScanner.ScanAssemblies(
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
             [hostingAssembly, testAssembly],
-            wellKnownTypes,
             typeMapping);
 
         // Find withEnvironment from Aspire.Hosting
@@ -784,9 +782,8 @@ public class AtsTypeScriptCodeGeneratorTests
         var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
 
         // Scan both assemblies together
-        var capabilities = AtsCapabilityScanner.ScanAssemblies(
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
             [hostingAssembly, testAssembly],
-            wellKnownTypes,
             typeMapping);
 
         // Each capability ID should appear only once
@@ -807,9 +804,8 @@ public class AtsTypeScriptCodeGeneratorTests
         var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
 
         // Scan both assemblies together to get type infos
-        var result = AtsCapabilityScanner.ScanAssembliesWithTypeInfo(
+        var result = AtsCapabilityScannerExtensions.ScanAssembliesWithTypeInfo(
             [hostingAssembly, testAssembly],
-            wellKnownTypes,
             typeMapping);
 
         // Should have types from Aspire.Hosting (ContainerResource, etc.)
@@ -839,9 +835,8 @@ public class AtsTypeScriptCodeGeneratorTests
         var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
 
         // Use ScanAssemblies (2-pass) to scan both assemblies together
-        var capabilities = AtsCapabilityScanner.ScanAssemblies(
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
             [hostingAssembly, testAssembly],
-            wellKnownTypes,
             typeMapping);
 
         // Generate TypeScript
@@ -860,10 +855,10 @@ public class AtsTypeScriptCodeGeneratorTests
 
     private static List<AtsCapabilityInfo> ScanCapabilitiesFromTestAssembly(AssemblyLoaderContext context)
     {
-        var (_, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
+        var (_, _, testAssembly, typeMapping) = LoadTestAssemblies(context);
 
-        // Scan capabilities from the test assembly using the public API
-        return AtsCapabilityScanner.ScanAssembly(testAssembly, wellKnownTypes, typeMapping);
+        // Scan capabilities from the test assembly using the extension method
+        return AtsCapabilityScannerExtensions.ScanAssembly(testAssembly, typeMapping);
     }
 
     private static (RoAssembly hostingAssembly, WellKnownTypes wellKnownTypes, RoAssembly testAssembly, AtsTypeMapping typeMapping) LoadTestAssemblies(AssemblyLoaderContext context)
@@ -918,7 +913,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
 
         // Scan capabilities from the hosting assembly
-        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
 
         // Verify all Dict.* intrinsics are registered
         var dictCapabilities = new[]
@@ -969,7 +964,7 @@ public class AtsTypeScriptCodeGeneratorTests
         using var context = new AssemblyLoaderContext();
         var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
 
-        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
 
         // Dict.set has an 'object value' parameter - it should be mapped to 'any'
         var dictSet = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/Dict.set");

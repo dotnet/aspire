@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Ats;
 // Runtime reflection-based methods for AtsTypeMapping.
 // These use System.Reflection.Assembly which is not AOT-compatible.
 // The IAtsAssemblyInfo-based methods in AtsTypeMapping.cs are AOT-compatible.
-public sealed partial class AtsTypeMapping
+internal sealed partial class AtsTypeMapping
 {
     /// <summary>
     /// Creates a type mapping by scanning the specified assemblies for <see cref="AspireExportAttribute"/> declarations.

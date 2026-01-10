@@ -11,6 +11,12 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="aspire" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript" />
+    <InternalsVisibleTo Include="Aspire.Hosting.CodeGeneration.TypeScript.Tests" />
+  </ItemGroup>
+
   <!-- Shared ATS code from Aspire.Hosting (interfaces and scanners only, not attributes) -->
   <ItemGroup>
     <Compile Include="..\Aspire.Hosting\Ats\IAtsReflection.cs" Link="Ats\IAtsReflection.cs" />

@@ -39,7 +39,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private readonly IFeatures _features;
     private readonly ILogger<TypeScriptAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
-    private readonly CodeGeneratorService _codeGeneratorService;
     private readonly AtsTypeScriptCodeGenerator _atsTypeScriptGenerator;
     private readonly RunningInstanceManager _runningInstanceManager;
 
@@ -67,7 +66,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         _features = features;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
-        _codeGeneratorService = new CodeGeneratorService();
         _atsTypeScriptGenerator = new AtsTypeScriptCodeGenerator();
         _runningInstanceManager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
     }
@@ -1285,7 +1283,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             return true;
         }
 
-        return _codeGeneratorService.NeedsGeneration(appPath, packages, GeneratedFolderName);
+        return CodeGeneratorService.NeedsGeneration(appPath, packages, GeneratedFolderName);
     }
 
     /// <summary>
@@ -1304,7 +1302,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         var searchPaths = BuildAssemblySearchPaths(buildPath);
 
         // Use the shared code generator service with the ATS capability-based generator
-        var fileCount = await _codeGeneratorService.GenerateAsync(
+        var fileCount = await CodeGeneratorService.GenerateAsync(
             appPath,
             _atsTypeScriptGenerator,
             packagesList,

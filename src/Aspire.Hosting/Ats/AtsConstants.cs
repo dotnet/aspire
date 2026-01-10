@@ -6,7 +6,7 @@ namespace Aspire.Hosting.Ats;
 /// <summary>
 /// Categories of ATS types for serialization and handling.
 /// </summary>
-public enum AtsTypeCategory
+internal enum AtsTypeCategory
 {
     /// <summary>
     /// Primitive types that serialize directly to JSON values.
@@ -58,7 +58,7 @@ public enum AtsTypeCategory
 /// <summary>
 /// Kinds of ATS capabilities for code generation.
 /// </summary>
-public enum AtsCapabilityKind
+internal enum AtsCapabilityKind
 {
     /// <summary>
     /// Regular extension method capability.
@@ -84,7 +84,7 @@ public enum AtsCapabilityKind
 /// <summary>
 /// Constants for ATS (Aspire Type System) type IDs and capability IDs.
 /// </summary>
-public static class AtsConstants
+internal static class AtsConstants
 {
     /// <summary>
     /// The Aspire.Hosting assembly name.

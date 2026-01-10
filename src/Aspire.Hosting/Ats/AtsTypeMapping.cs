@@ -28,7 +28,7 @@ internal static class AspireExportAttributeNames
 /// </list>
 /// </para>
 /// </remarks>
-public sealed partial class AtsTypeMapping
+internal sealed partial class AtsTypeMapping
 {
     private readonly FrozenDictionary<string, string> _fullNameToTypeId;
     private readonly FrozenDictionary<string, string> _typeIdToFullName;

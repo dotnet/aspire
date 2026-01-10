@@ -10,17 +10,18 @@ namespace Aspire.Hosting.RemoteHost.Tests;
 public class HandleRegistryTests
 {
     [Fact]
-    public void Register_ReturnsHandleIdWithTypeIdAndInstanceId()
+    public void Register_ReturnsNumericHandleId()
     {
         var registry = new HandleRegistry();
         var obj = new object();
 
         var handleId = registry.Register(obj, "aspire/TestType");
 
-        Assert.StartsWith("aspire/TestType:", handleId);
-        Assert.True(HandleRegistry.TryParseHandleId(handleId, out var typeId, out var instanceId));
-        Assert.Equal("aspire/TestType", typeId);
+        // Handle ID is now just a numeric instance ID
+        Assert.True(long.TryParse(handleId, out var instanceId));
         Assert.True(instanceId > 0);
+        // Type ID is retrieved separately
+        Assert.Equal("aspire/TestType", registry.GetTypeId(handleId));
     }
 
     [Fact]
@@ -32,9 +33,10 @@ public class HandleRegistryTests
         var handle2 = registry.Register(new object(), "aspire/Test");
         var handle3 = registry.Register(new object(), "aspire/Test");
 
-        Assert.True(HandleRegistry.TryParseHandleId(handle1, out _, out var id1));
-        Assert.True(HandleRegistry.TryParseHandleId(handle2, out _, out var id2));
-        Assert.True(HandleRegistry.TryParseHandleId(handle3, out _, out var id3));
+        // Parse as simple integers
+        var id1 = long.Parse(handle1);
+        var id2 = long.Parse(handle2);
+        var id3 = long.Parse(handle3);
 
         Assert.Equal(id1 + 1, id2);
         Assert.Equal(id2 + 1, id3);
@@ -59,7 +61,7 @@ public class HandleRegistryTests
     {
         var registry = new HandleRegistry();
 
-        var found = registry.TryGet("aspire/NonExistent:999", out var obj, out var typeId);
+        var found = registry.TryGet("999", out var obj, out var typeId);
 
         Assert.False(found);
         Assert.Null(obj);
@@ -83,7 +85,7 @@ public class HandleRegistryTests
     {
         var registry = new HandleRegistry();
 
-        Assert.Throws<InvalidOperationException>(() => registry.GetObject("aspire/NonExistent:999"));
+        Assert.Throws<InvalidOperationException>(() => registry.GetObject("999"));
     }
 
     [Fact]
@@ -134,7 +136,7 @@ public class HandleRegistryTests
     {
         var registry = new HandleRegistry();
 
-        Assert.False(registry.Contains("aspire/NonExistent:999"));
+        Assert.False(registry.Contains("999"));
     }
 
     [Fact]
@@ -154,7 +156,7 @@ public class HandleRegistryTests
     {
         var registry = new HandleRegistry();
 
-        var removed = registry.Unregister("aspire/NonExistent:999");
+        var removed = registry.Unregister("999");
 
         Assert.False(removed);
     }
@@ -173,36 +175,6 @@ public class HandleRegistryTests
 
         var handleId = json["$handle"]!.GetValue<string>();
         Assert.True(registry.Contains(handleId));
-    }
-
-    [Fact]
-    public void TryParseHandleId_ParsesValidHandleId()
-    {
-        var result = HandleRegistry.TryParseHandleId("aspire.redis/RedisBuilder:42", out var typeId, out var instanceId);
-
-        Assert.True(result);
-        Assert.Equal("aspire.redis/RedisBuilder", typeId);
-        Assert.Equal(42, instanceId);
-    }
-
-    [Fact]
-    public void TryParseHandleId_ParsesHandleIdWithMultipleColons()
-    {
-        var result = HandleRegistry.TryParseHandleId("aspire/some:type:123", out var typeId, out var instanceId);
-
-        Assert.True(result);
-        Assert.Equal("aspire/some:type", typeId);
-        Assert.Equal(123, instanceId);
-    }
-
-    [Fact]
-    public void TryParseHandleId_ReturnsFalseForInvalidFormat()
-    {
-        Assert.False(HandleRegistry.TryParseHandleId("invalid", out _, out _));
-        Assert.False(HandleRegistry.TryParseHandleId(":", out _, out _));
-        Assert.False(HandleRegistry.TryParseHandleId(":123", out _, out _));
-        Assert.False(HandleRegistry.TryParseHandleId("type:", out _, out _));
-        Assert.False(HandleRegistry.TryParseHandleId("type:notanumber", out _, out _));
     }
 
     [Fact]
@@ -271,12 +243,12 @@ public class HandleRefTests
     [Fact]
     public void FromJsonNode_ReturnsHandleRefForValidHandle()
     {
-        var json = new JsonObject { ["$handle"] = "aspire/Test:42" };
+        var json = new JsonObject { ["$handle"] = "42" };
 
         var result = HandleRef.FromJsonNode(json);
 
         Assert.NotNull(result);
-        Assert.Equal("aspire/Test:42", result.HandleId);
+        Assert.Equal("42", result.HandleId);
     }
 
     [Fact]
@@ -321,7 +293,7 @@ public class HandleRefTests
     {
         var json = new JsonObject
         {
-            ["$handle"] = "aspire/Test:1",
+            ["$handle"] = "1",
             ["$type"] = "aspire/Test",
             ["extra"] = "ignored"
         };
@@ -329,13 +301,13 @@ public class HandleRefTests
         var result = HandleRef.FromJsonNode(json);
 
         Assert.NotNull(result);
-        Assert.Equal("aspire/Test:1", result.HandleId);
+        Assert.Equal("1", result.HandleId);
     }
 
     [Fact]
     public void IsHandleRef_ReturnsTrueForHandleObject()
     {
-        var json = new JsonObject { ["$handle"] = "aspire/Test:1" };
+        var json = new JsonObject { ["$handle"] = "1" };
 
         Assert.True(HandleRef.IsHandleRef(json));
     }

@@ -156,7 +156,7 @@ internal sealed class AtsCapabilityInfo
     /// Gets or sets the original (declared) ATS type ID that this capability targets.
     /// May be an interface type (e.g., "Aspire.Hosting/IResourceWithEnvironment").
     /// </summary>
-    public string? OriginalTargetTypeId { get; init; }
+    public string? TargetTypeId { get; init; }
 
     /// <summary>
     /// Gets or sets the target type reference with full type metadata.
@@ -175,7 +175,7 @@ internal sealed class AtsCapabilityInfo
     /// </summary>
     /// <remarks>
     /// For flat codegen (Go, C): use this to put methods on each concrete builder.
-    /// For inheritance codegen (TypeScript, Java): use <see cref="OriginalTargetTypeId"/> instead.
+    /// For inheritance codegen (TypeScript, Java): use <see cref="TargetTypeId"/> instead.
     /// </remarks>
     public IReadOnlyList<AtsTypeRef> ExpandedTargetTypes { get; set; } = [];
 

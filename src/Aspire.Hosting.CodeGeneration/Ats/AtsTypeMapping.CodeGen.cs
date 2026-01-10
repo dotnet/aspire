@@ -6,7 +6,7 @@ using Aspire.Hosting.CodeGeneration.Models.Types;
 
 namespace Aspire.Hosting.Ats;
 
-public sealed partial class AtsTypeMapping
+internal sealed partial class AtsTypeMapping
 {
     /// <summary>
     /// Creates a type mapping by scanning assemblies using metadata reflection.

@@ -332,8 +332,13 @@ public class CapabilityDispatcherTests
         var handleRef = result.AsObject();
         Assert.NotNull(handleRef);
         Assert.True(handleRef.ContainsKey("$handle"), "Result should be a handle reference");
+        Assert.True(handleRef.ContainsKey("$type"), "Result should have a type");
         var nestedHandleId = handleRef["$handle"]!.GetValue<string>();
-        Assert.StartsWith("Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestNestedContextType:", nestedHandleId);
+        var nestedTypeId = handleRef["$type"]!.GetValue<string>();
+        // Handle ID is now just a numeric instance ID
+        Assert.True(long.TryParse(nestedHandleId, out _), "Handle ID should be numeric");
+        // Type ID is in the $type field
+        Assert.StartsWith("Aspire.Hosting.RemoteHost.Tests/Aspire.Hosting.RemoteHost.Tests.TestNestedContextType", nestedTypeId);
 
         // Verify we can use the returned handle to access the nested context's properties
         var nestedArgs = new JsonObject { ["context"] = new JsonObject { ["$handle"] = nestedHandleId } };

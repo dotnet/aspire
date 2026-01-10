@@ -4,7 +4,6 @@
 using System.Globalization;
 using System.Reflection;
 using Aspire.Hosting.Ats;
-using Aspire.Hosting.CodeGeneration.Models.Ats;
 
 namespace Aspire.Hosting.CodeGeneration.TypeScript;
 
@@ -96,7 +95,7 @@ internal sealed class BuilderModel
 /// </list>
 /// </para>
 /// </remarks>
-public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
+internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 {
     private TextWriter _writer = null!;
 

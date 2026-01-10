@@ -15,7 +15,7 @@ namespace Aspire.Hosting;
 /// Type mappings are defined in <c>AtsTypeMappings.cs</c> using <see cref="AspireExportAttribute"/>.
 /// This class provides runtime lookup using <see cref="AtsTypeMapping"/>.
 /// </remarks>
-public static class AtsIntrinsics
+internal static class AtsIntrinsics
 {
     /// <summary>
     /// Lazily initialized type mapping from scanning Aspire.Hosting assembly.
