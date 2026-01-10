@@ -301,4 +301,131 @@ public class AspireExportAnalyzerTests
 
         await test.RunAsync();
     }
+
+    [Fact]
+    public async Task ValidCollectionTypes_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+            using System.Collections.Generic;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public static class TestExports
+            {
+                [AspireExport("listMethod")]
+                public static List<string> ListMethod(Dictionary<string, int> dict) => new();
+
+                [AspireExport("readonlyCollections")]
+                public static IReadOnlyList<int> ReadonlyMethod(IReadOnlyDictionary<string, bool> dict) => [];
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task ValidDateOnlyTimeOnly_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+            using System;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public static class TestExports
+            {
+                [AspireExport("dateTimeMethod")]
+                public static DateOnly DateMethod(TimeOnly time, DateTimeOffset dto, TimeSpan ts) => DateOnly.MinValue;
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task TypeWithAspireExportAttribute_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            [AspireExport]
+            public class MyCustomType
+            {
+                public string Name { get; set; } = "";
+            }
+
+            public static class TestExports
+            {
+                [AspireExport("customTypeMethod")]
+                public static void Method(MyCustomType custom) { }
+
+                [AspireExport("returnsCustomType")]
+                public static MyCustomType ReturnsCustom() => new();
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task ValidObjectType_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public static class TestExports
+            {
+                [AspireExport("objectMethod")]
+                public static object ObjectMethod(object value) => value;
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task ValidArrayTypes_NoDiagnostics()
+    {
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public static class TestExports
+            {
+                [AspireExport("arrayMethod")]
+                public static string[] ArrayMethod(int[] numbers) => [];
+            }
+            """, []);
+
+        await test.RunAsync();
+    }
+
+    [Fact]
+    public async Task InvalidCollectionElementType_ReportsASPIRE010()
+    {
+        var diagnostic = AspireExportAnalyzer.Diagnostics.s_parameterTypeMustBeAtsCompatible;
+
+        var test = AnalyzerTest.Create<AspireExportAnalyzer>("""
+            using Aspire.Hosting;
+            using System.Collections.Generic;
+            using System.IO;
+
+            var builder = DistributedApplication.CreateBuilder(args);
+
+            public static class TestExports
+            {
+                [AspireExport("invalidList")]
+                public static void InvalidList(List<Stream> streams) { }
+            }
+            """,
+            [CompilerError(diagnostic.Id).WithLocation(9, 6).WithMessage("Parameter 'streams' of type 'System.Collections.Generic.List<System.IO.Stream>' in method 'InvalidList' is not ATS-compatible. Use primitive types, enums, or supported Aspire types.")]);
+
+        await test.RunAsync();
+    }
 }

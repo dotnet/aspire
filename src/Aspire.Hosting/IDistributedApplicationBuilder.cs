@@ -56,6 +56,7 @@ namespace Aspire.Hosting;
 /// </code>
 /// </example>
 /// </remarks>
+[AspireExport]
 public interface IDistributedApplicationBuilder
 {
     /// <inheritdoc cref="HostApplicationBuilder.Configuration" />

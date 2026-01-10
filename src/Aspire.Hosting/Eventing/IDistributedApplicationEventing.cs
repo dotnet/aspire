@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Eventing;
 /// <summary>
 /// Supports publishing and subscribing to events which are executed during the AppHost lifecycle.
 /// </summary>
+[AspireExport]
 public interface IDistributedApplicationEventing
 {
     /// <summary>

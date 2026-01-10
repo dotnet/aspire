@@ -94,7 +94,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         }
 
         // Rule 3: Validate return type is ATS-compatible
-        if (!IsAtsCompatibleType(method.ReturnType, wellKnownTypes))
+        if (!IsAtsCompatibleType(method.ReturnType, wellKnownTypes, aspireExportAttribute))
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 Diagnostics.s_returnTypeMustBeAtsCompatible,
@@ -106,7 +106,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         // Rule 4: Validate parameter types are ATS-compatible
         foreach (var parameter in method.Parameters)
         {
-            if (!IsAtsCompatibleParameter(parameter, wellKnownTypes))
+            if (!IsAtsCompatibleParameter(parameter, wellKnownTypes, aspireExportAttribute))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     Diagnostics.s_parameterTypeMustBeAtsCompatible,
@@ -128,7 +128,10 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         return null;
     }
 
-    private static bool IsAtsCompatibleType(ITypeSymbol type, WellKnownTypes wellKnownTypes)
+    private static bool IsAtsCompatibleType(
+        ITypeSymbol type,
+        WellKnownTypes wellKnownTypes,
+        INamedTypeSymbol aspireExportAttribute)
     {
         // void is allowed
         if (type.SpecialType == SpecialType.System_Void)
@@ -137,15 +140,18 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         }
 
         // Task and Task<T> are allowed (for async methods)
-        if (IsTaskType(type, wellKnownTypes))
+        if (IsTaskType(type, wellKnownTypes, aspireExportAttribute))
         {
             return true;
         }
 
-        return IsAtsCompatibleValueType(type, wellKnownTypes);
+        return IsAtsCompatibleValueType(type, wellKnownTypes, aspireExportAttribute);
     }
 
-    private static bool IsTaskType(ITypeSymbol type, WellKnownTypes wellKnownTypes)
+    private static bool IsTaskType(
+        ITypeSymbol type,
+        WellKnownTypes wellKnownTypes,
+        INamedTypeSymbol aspireExportAttribute)
     {
         // Check for Task
         try
@@ -171,7 +177,7 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
                 {
                     // Validate the T in Task<T> is also ATS-compatible
                     return namedType.TypeArguments.Length == 1 &&
-                           IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes);
+                           IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute);
                 }
             }
             catch (InvalidOperationException)
@@ -183,7 +189,10 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static bool IsAtsCompatibleValueType(ITypeSymbol type, WellKnownTypes wellKnownTypes)
+    private static bool IsAtsCompatibleValueType(
+        ITypeSymbol type,
+        WellKnownTypes wellKnownTypes,
+        INamedTypeSymbol? aspireExportAttribute = null)
     {
         // Handle nullable types
         if (type is INamedTypeSymbol namedType &&
@@ -193,8 +202,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             type = namedType.TypeArguments[0];
         }
 
-        // Simple/primitive types
-        if (IsSimpleType(type))
+        // Simple/primitive types (includes System.Object)
+        if (IsSimpleType(type, wellKnownTypes))
         {
             return true;
         }
@@ -208,7 +217,13 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         // Arrays of ATS-compatible types
         if (type is IArrayTypeSymbol arrayType)
         {
-            return IsAtsCompatibleValueType(arrayType.ElementType, wellKnownTypes);
+            return IsAtsCompatibleValueType(arrayType.ElementType, wellKnownTypes, aspireExportAttribute);
+        }
+
+        // Collection types (Dictionary, List, IReadOnlyList, etc.)
+        if (IsAtsCompatibleCollectionType(type, wellKnownTypes, aspireExportAttribute))
+        {
+            return true;
         }
 
         // IResource types
@@ -223,8 +238,8 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
-        // Known Aspire intrinsic types (IDistributedApplicationBuilder, etc.)
-        if (IsKnownAspireIntrinsicType(type))
+        // Types with [AspireExport] attribute
+        if (aspireExportAttribute != null && HasAspireExportAttribute(type, aspireExportAttribute))
         {
             return true;
         }
@@ -232,9 +247,10 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static bool IsSimpleType(ITypeSymbol type)
+    private static bool IsSimpleType(ITypeSymbol type, WellKnownTypes wellKnownTypes)
     {
-        return type.SpecialType switch
+        // Primitives via SpecialType
+        if (type.SpecialType switch
         {
             SpecialType.System_Boolean => true,
             SpecialType.System_Byte => true,
@@ -251,21 +267,130 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
             SpecialType.System_Char => true,
             SpecialType.System_String => true,
             SpecialType.System_DateTime => true,
-            _ => IsWellKnownSimpleType(type)
-        };
+            SpecialType.System_Object => true, // Maps to 'any' in ATS
+            _ => false
+        })
+        {
+            return true;
+        }
+
+        // Well-known scalar types using symbol comparison
+        return IsWellKnownScalarType(type, wellKnownTypes);
     }
 
-    private static bool IsWellKnownSimpleType(ITypeSymbol type)
+    private static bool IsWellKnownScalarType(ITypeSymbol type, WellKnownTypes wellKnownTypes)
     {
-        var fullName = type.ToDisplayString();
-        return fullName switch
+        // Date/time types
+        if (TryMatchType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_DateTimeOffset) ||
+            TryMatchType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_TimeSpan) ||
+            TryMatchType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_DateOnly) ||
+            TryMatchType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_TimeOnly))
         {
-            "System.DateTimeOffset" => true,
-            "System.TimeSpan" => true,
-            "System.Guid" => true,
-            "System.Uri" => true,
-            _ => false
-        };
+            return true;
+        }
+
+        // Other scalar types
+        if (TryMatchType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Guid) ||
+            TryMatchType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Uri))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryMatchType(ITypeSymbol type, WellKnownTypes wellKnownTypes, WellKnownTypeData.WellKnownType wellKnownType)
+    {
+        try
+        {
+            var knownType = wellKnownTypes.Get(wellKnownType);
+            return SymbolEqualityComparer.Default.Equals(type, knownType);
+        }
+        catch (InvalidOperationException)
+        {
+            // Type not found in compilation
+            return false;
+        }
+    }
+
+    private static bool TryMatchGenericType(ITypeSymbol type, WellKnownTypes wellKnownTypes, WellKnownTypeData.WellKnownType wellKnownType)
+    {
+        if (type is not INamedTypeSymbol namedType || !namedType.IsGenericType)
+        {
+            return false;
+        }
+
+        try
+        {
+            var knownType = wellKnownTypes.Get(wellKnownType);
+            return SymbolEqualityComparer.Default.Equals(namedType.OriginalDefinition, knownType);
+        }
+        catch (InvalidOperationException)
+        {
+            // Type not found in compilation
+            return false;
+        }
+    }
+
+    private static bool IsAtsCompatibleCollectionType(
+        ITypeSymbol type,
+        WellKnownTypes wellKnownTypes,
+        INamedTypeSymbol? aspireExportAttribute)
+    {
+        if (type is not INamedTypeSymbol namedType || !namedType.IsGenericType)
+        {
+            return false;
+        }
+
+        // Dictionary<K,V> and IDictionary<K,V>
+        if (TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_Dictionary_2) ||
+            TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IDictionary_2))
+        {
+            // Validate key and value types are ATS-compatible
+            return namedType.TypeArguments.Length == 2 &&
+                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute) &&
+                   IsAtsCompatibleValueType(namedType.TypeArguments[1], wellKnownTypes, aspireExportAttribute);
+        }
+
+        // List<T> and IList<T>
+        if (TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_List_1) ||
+            TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IList_1))
+        {
+            return namedType.TypeArguments.Length == 1 &&
+                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute);
+        }
+
+        // IReadOnlyList<T> and IReadOnlyCollection<T>
+        if (TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IReadOnlyList_1) ||
+            TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IReadOnlyCollection_1))
+        {
+            return namedType.TypeArguments.Length == 1 &&
+                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute);
+        }
+
+        // IReadOnlyDictionary<K,V>
+        if (TryMatchGenericType(type, wellKnownTypes, WellKnownTypeData.WellKnownType.System_Collections_Generic_IReadOnlyDictionary_2))
+        {
+            return namedType.TypeArguments.Length == 2 &&
+                   IsAtsCompatibleValueType(namedType.TypeArguments[0], wellKnownTypes, aspireExportAttribute) &&
+                   IsAtsCompatibleValueType(namedType.TypeArguments[1], wellKnownTypes, aspireExportAttribute);
+        }
+
+        return false;
+    }
+
+    private static bool HasAspireExportAttribute(ITypeSymbol type, INamedTypeSymbol aspireExportAttribute)
+    {
+        // Check direct attributes on the type
+        foreach (var attr in type.GetAttributes())
+        {
+            if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, aspireExportAttribute))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsResourceType(ITypeSymbol type, WellKnownTypes wellKnownTypes)
@@ -318,31 +443,10 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static bool IsKnownAspireIntrinsicType(ITypeSymbol type)
-    {
-        var fullName = type.ToDisplayString();
-
-        // Check for known Aspire intrinsic types
-        return fullName switch
-        {
-            "Aspire.Hosting.IDistributedApplicationBuilder" => true,
-            "Aspire.Hosting.DistributedApplication" => true,
-            "Aspire.Hosting.DistributedApplicationExecutionContext" => true,
-            "Aspire.Hosting.ApplicationModel.EndpointReference" => true,
-            "Aspire.Hosting.ApplicationModel.ReferenceExpression" => true,
-            "Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext" => true,
-            "Aspire.Hosting.Eventing.DistributedApplicationEventSubscription" => true,
-            "Aspire.Hosting.ApplicationModel.ResourceNotificationService" => true,
-            "Aspire.Hosting.ApplicationModel.ResourceLoggerService" => true,
-            "Microsoft.Extensions.Configuration.IConfiguration" => true,
-            "Microsoft.Extensions.Hosting.IHostEnvironment" => true,
-            "System.IServiceProvider" => true,
-            "Microsoft.Extensions.Logging.ILogger" => true,
-            _ => false
-        };
-    }
-
-    private static bool IsAtsCompatibleParameter(IParameterSymbol parameter, WellKnownTypes wellKnownTypes)
+    private static bool IsAtsCompatibleParameter(
+        IParameterSymbol parameter,
+        WellKnownTypes wellKnownTypes,
+        INamedTypeSymbol aspireExportAttribute)
     {
         var type = parameter.Type;
 
@@ -355,10 +459,10 @@ public partial class AspireExportAnalyzer : DiagnosticAnalyzer
         // params arrays are allowed if element type is compatible
         if (parameter.IsParams && type is IArrayTypeSymbol arrayType)
         {
-            return IsAtsCompatibleValueType(arrayType.ElementType, wellKnownTypes);
+            return IsAtsCompatibleValueType(arrayType.ElementType, wellKnownTypes, aspireExportAttribute);
         }
 
-        return IsAtsCompatibleValueType(type, wellKnownTypes);
+        return IsAtsCompatibleValueType(type, wellKnownTypes, aspireExportAttribute);
     }
 
     private static bool IsDelegateType(ITypeSymbol type)
