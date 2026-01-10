@@ -13,7 +13,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using StreamJsonRpc;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -870,17 +869,13 @@ internal sealed class TestPromptBackchannel : IAppHostCliBackchannel
         yield break;
     }
     public Task ConnectAsync(string socketPath, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task ConnectAsync(string socketPath, bool autoReconnect, CancellationToken cancellationToken) => Task.CompletedTask;
     public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken) => Task.FromResult(new[] { "baseline.v2" });
 
     public async IAsyncEnumerable<CommandOutput> ExecAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await Task.CompletedTask; // Suppress CS1998
         yield break;
-    }
-
-    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
-    {
-        // No-op for test implementation
     }
 }
 

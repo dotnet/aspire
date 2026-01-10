@@ -3,7 +3,6 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Backchannel;
-using StreamJsonRpc;
 
 namespace Aspire.Cli.Tests.TestServices;
 
@@ -29,9 +28,6 @@ internal sealed class TestAppHostBackchannel : IAppHostCliBackchannel
 
     public TaskCompletionSource? GetCapabilitiesAsyncCalled { get; set; }
     public Func<CancellationToken, Task<string[]>>? GetCapabilitiesAsyncCallback { get; set; }
-
-    public TaskCompletionSource? AddDisconnectHandlerCalled { get; set; }
-    public Action<EventHandler<JsonRpcDisconnectedEventArgs>>? AddDisconnectHandlerCallback { get; set; }
 
     public Task RequestStopAsync(CancellationToken cancellationToken)
     {
@@ -97,10 +93,13 @@ internal sealed class TestAppHostBackchannel : IAppHostCliBackchannel
         }
     }
 
-    public async Task ConnectAsync(string socketPath, CancellationToken cancellationToken)
+    public Task ConnectAsync(string socketPath, CancellationToken cancellationToken)
+        => ConnectAsync(socketPath, autoReconnect: false, cancellationToken);
+
+    public async Task ConnectAsync(string socketPath, bool autoReconnect, CancellationToken cancellationToken)
     {
         ConnectAsyncCalled?.SetResult();
-        if (ConnectAsyncCallback !=  null)
+        if (ConnectAsyncCallback != null)
         {
             await ConnectAsyncCallback.Invoke(socketPath, cancellationToken).ConfigureAwait(false);
         }
@@ -250,11 +249,5 @@ internal sealed class TestAppHostBackchannel : IAppHostCliBackchannel
     {
         await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         yield return new CommandOutput { Text = "test", IsErrorMessage = false, LineNumber = 0 };
-    }
-
-    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
-    {
-        AddDisconnectHandlerCalled?.SetResult();
-        AddDisconnectHandlerCallback?.Invoke(onDisconnected);
     }
 }

@@ -1,0 +1,637 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Collections.Concurrent;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Aspire.Hosting.Ats;
+
+namespace Aspire.Hosting.RemoteHost.Ats;
+
+/// <summary>
+/// Delegate for capability implementations.
+/// </summary>
+/// <param name="args">The arguments as a JSON object.</param>
+/// <param name="handles">The handle registry for resolving/registering handles.</param>
+/// <returns>The result as JSON, or null for void operations.</returns>
+internal delegate Task<JsonNode?> CapabilityHandler(
+    JsonObject? args,
+    HandleRegistry handles);
+
+/// <summary>
+/// Dispatches capability invocations to their implementations.
+/// Scans provided assemblies for [AspireExport] attributes.
+/// </summary>
+internal sealed class CapabilityDispatcher
+{
+    private readonly ConcurrentDictionary<string, CapabilityRegistration> _capabilities = new();
+    private readonly HandleRegistry _handles;
+    private readonly AtsCallbackProxyFactory? _callbackProxyFactory;
+
+    /// <summary>
+    /// Represents a registered capability.
+    /// </summary>
+    private sealed class CapabilityRegistration
+    {
+        public required string CapabilityId { get; init; }
+        public required CapabilityHandler Handler { get; init; }
+        public string? Description { get; init; }
+    }
+
+    /// <summary>
+    /// Creates a new CapabilityDispatcher.
+    /// </summary>
+    /// <param name="handles">The handle registry for resolving handle references.</param>
+    /// <param name="assemblies">The assemblies to scan for [AspireExport] attributes.</param>
+    /// <param name="callbackProxyFactory">Optional factory for creating callback proxies.</param>
+    public CapabilityDispatcher(
+        HandleRegistry handles,
+        IEnumerable<Assembly> assemblies,
+        AtsCallbackProxyFactory? callbackProxyFactory = null)
+    {
+        _handles = handles;
+        _callbackProxyFactory = callbackProxyFactory;
+
+        // Scan for capabilities on initialization
+        ScanAssemblies(assemblies);
+    }
+
+    /// <summary>
+    /// Scans the provided assemblies for [AspireExport] and [AspireContextType] attributes.
+    /// Uses the shared AtsCapabilityScanner for discovery.
+    /// </summary>
+    private void ScanAssemblies(IEnumerable<Assembly> assemblies)
+    {
+        // Build type mapping from the assemblies being scanned
+        var assemblyList = assemblies.ToList();
+        var typeMapping = AtsTypeMapping.FromAssemblies(assemblyList);
+
+        Console.WriteLine($"[ATS] Scanning {assemblyList.Count} assemblies for capabilities...");
+
+        foreach (var assembly in assemblyList)
+        {
+            var assemblyName = assembly.GetName().Name ?? assembly.FullName ?? "unknown";
+            Console.WriteLine($"[ATS]   Scanning: {assemblyName}");
+            try
+            {
+                var wrappedAssembly = new RuntimeAssemblyInfo(assembly);
+
+                // Scan for all capabilities using the unified scanner
+                var result = AtsCapabilityScanner.ScanAssembly(wrappedAssembly, typeMapping, typeResolver: null);
+
+                // Log diagnostics from the scanner
+                foreach (var diagnostic in result.Diagnostics)
+                {
+                    var prefix = diagnostic.Severity == AtsDiagnosticSeverity.Error ? "ERROR" : "WARN";
+                    Console.WriteLine($"[ATS]     [{prefix}] {diagnostic.Message}");
+                    if (diagnostic.Location != null)
+                    {
+                        Console.WriteLine($"[ATS]            at {diagnostic.Location}");
+                    }
+                }
+
+                foreach (var capability in result.Capabilities)
+                {
+                    if ((capability.CapabilityKind == AtsCapabilityKind.PropertyGetter || capability.CapabilityKind == AtsCapabilityKind.PropertySetter) && capability.SourceProperty != null)
+                    {
+                        // Context type property capability
+                        var property = ((RuntimePropertyInfo)capability.SourceProperty).UnderlyingProperty;
+                        RegisterContextTypeProperty(capability, property);
+                    }
+                    else if (capability.CapabilityKind == AtsCapabilityKind.InstanceMethod && capability.SourceMethod != null)
+                    {
+                        // Context type method capability (instance method)
+                        var method = ((RuntimeMethodInfo)capability.SourceMethod).UnderlyingMethod;
+                        RegisterContextTypeMethod(capability, method);
+                    }
+                    else if (capability.SourceMethod != null)
+                    {
+                        // Static method capability
+                        var method = ((RuntimeMethodInfo)capability.SourceMethod).UnderlyingMethod;
+                        RegisterFromCapability(capability, method);
+                    }
+                }
+            }
+            catch (ReflectionTypeLoadException)
+            {
+                // Skip assemblies that can't be loaded
+            }
+            catch (Exception ex)
+            {
+                // Log errors scanning assemblies - these are critical for debugging ATS issues
+                Console.Error.WriteLine($"[ATS] Error scanning assembly '{assemblyName}': {ex.Message}");
+                Console.Error.WriteLine($"[ATS] Full exception: {ex}");
+                throw;
+            }
+        }
+
+        // Log summary of all registered capabilities
+        Console.WriteLine($"[ATS] Registered {_capabilities.Count} capabilities:");
+        foreach (var capabilityId in _capabilities.Keys.OrderBy(k => k))
+        {
+            Console.WriteLine($"[ATS]   - {capabilityId}");
+        }
+    }
+
+    /// <summary>
+    /// Registers a context type property capability.
+    /// </summary>
+    private void RegisterContextTypeProperty(AtsCapabilityInfo capability, PropertyInfo property)
+    {
+        var capabilityId = capability.CapabilityId;
+        var prop = property; // Capture for closure
+
+        if (capability.CapabilityKind == AtsCapabilityKind.PropertyGetter)
+        {
+            // Getter capability
+            CapabilityHandler getterHandler = (args, handles) =>
+            {
+                if (args == null || !args.TryGetPropertyValue("context", out var contextNode))
+                {
+                    throw CapabilityException.InvalidArgument(capabilityId, "context", "Missing required argument 'context'");
+                }
+
+                var handleRef = HandleRef.FromJsonNode(contextNode);
+                if (handleRef == null)
+                {
+                    throw CapabilityException.InvalidArgument(capabilityId, "context", "Argument 'context' must be a handle reference");
+                }
+
+                if (!handles.TryGet(handleRef.HandleId, out var contextObj, out _))
+                {
+                    throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
+                }
+
+                var value = prop.GetValue(contextObj);
+                return Task.FromResult(AtsMarshaller.MarshalToJson(value, handles));
+            };
+
+            _capabilities[capabilityId] = new CapabilityRegistration
+            {
+                CapabilityId = capabilityId,
+                Handler = getterHandler,
+                Description = capability.Description ?? $"Gets the {property.Name} property"
+            };
+        }
+        else if (capability.CapabilityKind == AtsCapabilityKind.PropertySetter)
+        {
+            // Setter capability - returns the context handle for fluent chaining
+            CapabilityHandler setterHandler = (args, handles) =>
+            {
+                if (args == null || !args.TryGetPropertyValue("context", out var contextNode))
+                {
+                    throw CapabilityException.InvalidArgument(capabilityId, "context", "Missing required argument 'context'");
+                }
+
+                var handleRef = HandleRef.FromJsonNode(contextNode);
+                if (handleRef == null)
+                {
+                    throw CapabilityException.InvalidArgument(capabilityId, "context", "Argument 'context' must be a handle reference");
+                }
+
+                if (!handles.TryGet(handleRef.HandleId, out var contextObj, out var typeId))
+                {
+                    throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
+                }
+
+                if (!args.TryGetPropertyValue("value", out var valueNode))
+                {
+                    throw CapabilityException.InvalidArgument(capabilityId, "value", "Missing required argument 'value'");
+                }
+
+                var unmarshalContext = new AtsMarshaller.UnmarshalContext
+                {
+                    Handles = handles,
+                    CapabilityId = capabilityId,
+                    ParameterName = "value"
+                };
+                var value = AtsMarshaller.UnmarshalFromJson(valueNode, prop.PropertyType, unmarshalContext);
+                prop.SetValue(contextObj, value);
+
+                // Return the context handle for fluent chaining
+                return Task.FromResult<JsonNode?>(new JsonObject
+                {
+                    ["$handle"] = handleRef.HandleId,
+                    ["$type"] = typeId
+                });
+            };
+
+            _capabilities[capabilityId] = new CapabilityRegistration
+            {
+                CapabilityId = capabilityId,
+                Handler = setterHandler,
+                Description = capability.Description ?? $"Sets the {property.Name} property"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Registers a context type method capability (instance method).
+    /// </summary>
+    private void RegisterContextTypeMethod(AtsCapabilityInfo capability, MethodInfo method)
+    {
+        var capabilityId = capability.CapabilityId;
+        var parameters = method.GetParameters();
+
+        CapabilityHandler handler = async (args, handles) =>
+        {
+            // First parameter is always "context" - the instance to invoke on
+            if (args == null || !args.TryGetPropertyValue("context", out var contextNode))
+            {
+                throw CapabilityException.InvalidArgument(capabilityId, "context", "Missing required argument 'context'");
+            }
+
+            var handleRef = HandleRef.FromJsonNode(contextNode);
+            if (handleRef == null)
+            {
+                throw CapabilityException.InvalidArgument(capabilityId, "context", "Argument 'context' must be a handle reference");
+            }
+
+            if (!handles.TryGet(handleRef.HandleId, out var contextObj, out _))
+            {
+                throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
+            }
+
+            // Build method arguments from the remaining parameters
+            var methodArgs = new object?[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var param = parameters[i];
+                var paramName = param.Name ?? $"arg{i}";
+
+                if (args.TryGetPropertyValue(paramName, out var argNode))
+                {
+                    var context = new AtsMarshaller.UnmarshalContext
+                    {
+                        Handles = handles,
+                        CallbackProxyFactory = _callbackProxyFactory,
+                        CapabilityId = capabilityId,
+                        ParameterName = paramName
+                    };
+                    methodArgs[i] = AtsMarshaller.UnmarshalFromJson(argNode, param.ParameterType, context);
+                }
+                else if (param.HasDefaultValue)
+                {
+                    methodArgs[i] = param.DefaultValue;
+                }
+                else
+                {
+                    throw CapabilityException.InvalidArgument(
+                        capabilityId, paramName, $"Missing required argument '{paramName}'");
+                }
+            }
+
+            // Handle generic methods - resolve type parameters from actual arguments
+            var methodToInvoke = method;
+            if (method.ContainsGenericParameters)
+            {
+                methodToInvoke = GenericMethodResolver.MakeGenericMethodFromArgs(method, methodArgs);
+            }
+
+            object? result;
+            try
+            {
+                // Invoke instance method on the context object
+                result = methodToInvoke.Invoke(contextObj, methodArgs);
+            }
+            catch (TargetInvocationException tie) when (tie.InnerException is not null)
+            {
+                throw tie.InnerException;
+            }
+
+            // Handle async methods - await instead of blocking
+            if (result is Task task)
+            {
+                try
+                {
+                    await task.ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(ex.Message, ex);
+                }
+
+                var taskType = task.GetType();
+                if (taskType.IsGenericType)
+                {
+                    var resultProperty = taskType.GetProperty("Result");
+                    result = resultProperty?.GetValue(task);
+                }
+                else
+                {
+                    result = null;
+                }
+            }
+
+            return ConvertResult(result, handles);
+        };
+
+        _capabilities[capabilityId] = new CapabilityRegistration
+        {
+            CapabilityId = capabilityId,
+            Handler = handler,
+            Description = capability.Description ?? $"Invokes the {method.Name} method"
+        };
+    }
+
+    /// <summary>
+    /// Registers a capability from its info and method.
+    /// Uses metadata from the shared scanner, creates runtime handler for invocation.
+    /// </summary>
+    private void RegisterFromCapability(AtsCapabilityInfo capability, MethodInfo method)
+    {
+        var capabilityId = capability.CapabilityId;
+        var parameters = method.GetParameters();
+
+        // Create a handler that invokes the method via reflection
+        CapabilityHandler handler = async (args, handles) =>
+        {
+            var methodArgs = new object?[parameters.Length];
+
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var param = parameters[i];
+                var paramName = param.Name ?? $"arg{i}";
+
+                if (args != null && args.TryGetPropertyValue(paramName, out var argNode))
+                {
+                    var context = new AtsMarshaller.UnmarshalContext
+                    {
+                        Handles = handles,
+                        CallbackProxyFactory = _callbackProxyFactory,
+                        CapabilityId = capabilityId,
+                        ParameterName = paramName
+                    };
+                    methodArgs[i] = AtsMarshaller.UnmarshalFromJson(argNode, param.ParameterType, context);
+                }
+                else if (param.HasDefaultValue)
+                {
+                    methodArgs[i] = param.DefaultValue;
+                }
+                else
+                {
+                    throw CapabilityException.InvalidArgument(
+                        capabilityId, paramName, $"Missing required argument '{paramName}'");
+                }
+            }
+
+            // Handle generic methods - resolve type parameters from actual arguments
+            var methodToInvoke = method;
+            if (method.ContainsGenericParameters)
+            {
+                methodToInvoke = GenericMethodResolver.MakeGenericMethodFromArgs(method, methodArgs);
+            }
+
+            object? result;
+            try
+            {
+                result = methodToInvoke.Invoke(null, methodArgs);
+            }
+            catch (TargetInvocationException tie) when (tie.InnerException is not null)
+            {
+                // Unwrap the TargetInvocationException to get the actual exception
+                throw tie.InnerException;
+            }
+
+            // Handle async methods - await instead of blocking
+            if (result is Task task)
+            {
+                try
+                {
+                    await task.ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    // Rethrow the exception - it will be caught by the outer handler
+                    // and converted to a CapabilityException
+                    throw new InvalidOperationException(ex.Message, ex);
+                }
+
+                var taskType = task.GetType();
+                if (taskType.IsGenericType)
+                {
+                    var resultProperty = taskType.GetProperty("Result");
+                    result = resultProperty?.GetValue(task);
+                }
+                else
+                {
+                    result = null;
+                }
+            }
+
+            return ConvertResult(result, handles);
+        };
+
+        _capabilities[capabilityId] = new CapabilityRegistration
+        {
+            CapabilityId = capabilityId,
+            Handler = handler,
+            Description = capability.Description
+        };
+    }
+
+    /// <summary>
+    /// Converts a result to JSON using the shared marshaller.
+    /// </summary>
+    private static JsonNode? ConvertResult(object? result, HandleRegistry handles)
+    {
+        return AtsMarshaller.MarshalToJson(result, handles);
+    }
+
+    /// <summary>
+    /// Registers a capability with its handler.
+    /// </summary>
+    /// <param name="capabilityId">The capability ID (e.g., "Aspire.Hosting.Redis/addRedis").</param>
+    /// <param name="handler">The handler that implements the capability.</param>
+    /// <param name="description">Optional description of the capability.</param>
+    public void Register(
+        string capabilityId,
+        CapabilityHandler handler,
+        string? description = null)
+    {
+        _capabilities[capabilityId] = new CapabilityRegistration
+        {
+            CapabilityId = capabilityId,
+            Handler = handler,
+            Description = description
+        };
+    }
+
+    /// <summary>
+    /// Invokes a capability by ID with the given arguments.
+    /// Type validation is performed by the CLR at runtime.
+    /// </summary>
+    /// <param name="capabilityId">The capability ID.</param>
+    /// <param name="args">The arguments as a JSON object.</param>
+    /// <returns>The result as JSON, or null for void methods.</returns>
+    public async Task<JsonNode?> InvokeAsync(string capabilityId, JsonObject? args)
+    {
+        // Look up the capability
+        if (!_capabilities.TryGetValue(capabilityId, out var registration))
+        {
+            throw CapabilityException.CapabilityNotFound(capabilityId);
+        }
+
+        args ??= new JsonObject();
+
+        try
+        {
+            return await registration.Handler(args, _handles).ConfigureAwait(false);
+        }
+        catch (CapabilityException)
+        {
+            throw;
+        }
+        catch (ArgumentException ex) when (IsTypeMismatchException(ex))
+        {
+            // Convert CLR type mismatch to ATS error
+            throw CapabilityException.TypeMismatch(capabilityId, "argument", "expected type", ex.Message);
+        }
+        catch (InvalidCastException ex)
+        {
+            // Convert CLR cast failures to ATS error
+            throw CapabilityException.TypeMismatch(capabilityId, "argument", "expected type", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw CapabilityException.InternalError(capabilityId, ex.Message, ex);
+        }
+    }
+
+    /// <summary>
+    /// Invokes a capability by ID with the given arguments synchronously.
+    /// This is a convenience method that blocks until the async operation completes.
+    /// For production use, prefer InvokeAsync.
+    /// </summary>
+    /// <param name="capabilityId">The capability ID.</param>
+    /// <param name="args">The arguments as a JSON object.</param>
+    /// <returns>The result as JSON, or null for void methods.</returns>
+    public JsonNode? Invoke(string capabilityId, JsonObject? args)
+    {
+        return InvokeAsync(capabilityId, args).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Checks if an exception indicates a type mismatch.
+    /// </summary>
+    private static bool IsTypeMismatchException(ArgumentException ex)
+    {
+        // Check for common type mismatch patterns in exception messages
+        var message = ex.Message;
+        return message.Contains("cannot be converted") ||
+               message.Contains("is not assignable") ||
+               message.Contains("type mismatch", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Gets all registered capability IDs.
+    /// </summary>
+    public IEnumerable<string> GetCapabilityIds() => _capabilities.Keys;
+
+    /// <summary>
+    /// Checks if a capability is registered.
+    /// </summary>
+    public bool HasCapability(string capabilityId) => _capabilities.ContainsKey(capabilityId);
+}
+
+/// <summary>
+/// Extension methods for working with JSON in capability handlers.
+/// </summary>
+internal static class CapabilityJsonExtensions
+{
+    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    /// <summary>
+    /// Gets a required string argument.
+    /// </summary>
+    public static string GetRequiredString(this JsonObject args, string name, string capabilityId)
+    {
+        if (!args.TryGetPropertyValue(name, out var node) || node is not JsonValue value)
+        {
+            throw CapabilityException.InvalidArgument(capabilityId, name, $"Missing required argument '{name}'");
+        }
+
+        return value.GetValue<string>() ??
+            throw CapabilityException.InvalidArgument(capabilityId, name, $"Argument '{name}' cannot be null");
+    }
+
+    /// <summary>
+    /// Gets an optional string argument.
+    /// </summary>
+    public static string? GetOptionalString(this JsonObject args, string name)
+    {
+        if (args.TryGetPropertyValue(name, out var node) && node is JsonValue value)
+        {
+            return value.GetValue<string>();
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Gets an optional int argument.
+    /// </summary>
+    public static int? GetOptionalInt(this JsonObject args, string name)
+    {
+        if (args.TryGetPropertyValue(name, out var node) && node is JsonValue value)
+        {
+            return value.GetValue<int>();
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Gets a required handle reference.
+    /// </summary>
+    public static T GetRequiredHandle<T>(
+        this JsonObject args,
+        string name,
+        string capabilityId,
+        HandleRegistry handles) where T : class
+    {
+        if (!args.TryGetPropertyValue(name, out var node))
+        {
+            throw CapabilityException.InvalidArgument(capabilityId, name, $"Missing required argument '{name}'");
+        }
+
+        var handleRef = HandleRef.FromJsonNode(node) ??
+            throw CapabilityException.InvalidArgument(capabilityId, name, $"Argument '{name}' must be a handle reference");
+
+        if (!handles.TryGet(handleRef.HandleId, out var obj, out _))
+        {
+            throw CapabilityException.HandleNotFound(handleRef.HandleId, capabilityId);
+        }
+
+        if (obj is not T typed)
+        {
+            throw CapabilityException.TypeMismatch(
+                capabilityId, name, typeof(T).Name, obj?.GetType().Name ?? "null");
+        }
+
+        return typed;
+    }
+
+    /// <summary>
+    /// Deserializes a DTO from a JSON argument.
+    /// </summary>
+    public static T? GetDto<T>(this JsonObject args, string name) where T : class
+    {
+        if (args.TryGetPropertyValue(name, out var node) && node is JsonObject obj)
+        {
+            return JsonSerializer.Deserialize<T>(obj.ToJsonString(), s_jsonOptions);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Creates a handle result for returning from a capability.
+    /// </summary>
+    public static JsonObject CreateHandleResult(this HandleRegistry handles, object obj, string typeId)
+    {
+        return handles.Marshal(obj, typeId);
+    }
+}

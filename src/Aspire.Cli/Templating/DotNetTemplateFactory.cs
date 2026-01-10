@@ -61,7 +61,6 @@ internal class DotNetTemplateFactory(
                 : (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireJsFrontendStarterOptionsAsync, ct)
             );
 
-        // Single-file AppHost templates
         yield return new CallbackTemplate(
             "aspire-py-starter",
             TemplatingStrings.AspirePyStarter_Description,
@@ -72,6 +71,7 @@ internal class DotNetTemplateFactory(
                 : (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct)
             );
 
+        // Single-file AppHost templates
         yield return new CallbackTemplate(
             "aspire-apphost-singlefile",
             TemplatingStrings.AspireAppHostSingleFile_Description,

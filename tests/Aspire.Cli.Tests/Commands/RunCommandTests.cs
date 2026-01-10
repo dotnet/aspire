@@ -100,11 +100,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     [Fact]
@@ -158,11 +153,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     private sealed class MultipleProjectFilesProjectLocator : IProjectLocator
@@ -176,12 +166,8 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
+
     private async IAsyncEnumerable<BackchannelLogEntry> ReturnLogEntriesUntilCancelledAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var logEntryIndex = 0;
@@ -1173,15 +1159,6 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             // Return a .cs file to simulate single file AppHost
             return Task.FromResult<FileInfo?>(new FileInfo("/tmp/apphost.cs"));
-        }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            return Task.FromResult<IReadOnlyList<FileInfo>>(new List<FileInfo>
-            {
-                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
-                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
-            });
         }
     }
 

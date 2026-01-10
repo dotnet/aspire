@@ -44,6 +44,9 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             };
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
+
+            // Need to provide a project locator since AddCommand checks for project first
+            options.ProjectLocatorFactory = _ => new TestProjectLocator();
         });
         var provider = services.BuildServiceProvider();
 

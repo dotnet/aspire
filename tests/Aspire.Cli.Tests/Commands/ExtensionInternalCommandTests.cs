@@ -249,11 +249,6 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         {
             throw new NotImplementedException();
         }
-        
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     private sealed class MultipleProjectsProjectLocator : IProjectLocator
@@ -307,11 +302,6 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         {
             throw new NotImplementedException();
         }
-        
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     private sealed class NoProjectFileProjectLocator : IProjectLocator
@@ -357,44 +347,39 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         {
             throw new NotImplementedException();
         }
-        
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     private sealed class ThrowingProjectLocator : IProjectLocator
     {
         public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(
-            FileInfo? projectFile, 
-            MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, 
-            bool createSettingsFile, 
+            FileInfo? projectFile,
+            MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior,
+            bool createSettingsFile,
             CancellationToken cancellationToken)
         {
             throw new InvalidOperationException("Something went wrong");
         }
 
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(
-            FileInfo? projectFile, 
-            bool createSettingsFile, 
+            FileInfo? projectFile,
+            bool createSettingsFile,
             CancellationToken cancellationToken)
         {
             throw new InvalidOperationException("Something went wrong");
         }
 
         public Task<AppHostProjectSearchResult> UseOrFindServiceProjectFileAsync(
-            FileInfo? projectFile, 
-            MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, 
-            bool createSettingsFile, 
+            FileInfo? projectFile,
+            MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior,
+            bool createSettingsFile,
             CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
 
         public Task<FileInfo?> UseOrFindServiceProjectFileAsync(
-            FileInfo? projectFile, 
-            bool createSettingsFile, 
+            FileInfo? projectFile,
+            bool createSettingsFile,
             CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
@@ -404,11 +389,6 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
             FileInfo? solutionFile,
             bool createSettingsFile,
             CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
-        
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

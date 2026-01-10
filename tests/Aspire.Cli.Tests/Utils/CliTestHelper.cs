@@ -103,6 +103,11 @@ internal static class CliTestHelper
         services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
         services.AddSingleton(options.AgentEnvironmentDetectorFactory);
         services.AddSingleton(options.GitRepositoryFactory);
+        services.AddSingleton<IAppHostProjectFactory, AppHostProjectFactory>();
+        services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();
+        services.AddSingleton(options.LanguageServiceFactory);
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, DotNetAppHostProject>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAppHostProject, TypeScriptAppHostProject>());
         services.AddSingleton<IEnvironmentCheck, WslEnvironmentCheck>();
         services.AddSingleton<IEnvironmentCheck, DotNetSdkCheck>();
         services.AddSingleton<IEnvironmentCheck, DevCertsCheck>();
@@ -221,12 +226,12 @@ internal sealed class CliServiceCollectionTestOptions
     public IProjectLocator CreateDefaultProjectLocatorFactory(IServiceProvider serviceProvider)
     {
         var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
-        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
+        var projectFactory = serviceProvider.GetService<IAppHostProjectFactory>() ?? new TestAppHostProjectFactory();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
+        return new ProjectLocator(logger, executionContext, interactionService, configurationService, projectFactory, telemetry);
     }
 
     public ISolutionLocator CreateDefaultSolutionLocatorFactory(IServiceProvider serviceProvider)
@@ -293,12 +298,11 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackageCache>>();
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new NuGetPackageCache(logger, runner, cache, telemetry, features);
+        return new NuGetPackageCache(runner, cache, telemetry, features);
     };
 
     public Func<IServiceProvider, IAppHostCliBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -375,6 +379,13 @@ internal sealed class CliServiceCollectionTestOptions
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var logger = serviceProvider.GetRequiredService<ILogger<GitRepository>>();
         return new GitRepository(executionContext, logger);
+    };
+
+    public Func<IServiceProvider, ILanguageService> LanguageServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var projects = serviceProvider.GetServices<IAppHostProject>();
+        var defaultProject = projects.FirstOrDefault(p => p.LanguageId == KnownLanguageId.CSharp);
+        return new TestLanguageService { DefaultProject = defaultProject };
     };
 }
 
