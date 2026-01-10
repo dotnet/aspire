@@ -269,7 +269,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
 
         // Check if update notifications are disabled and set version check environment variable
-        if (!features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, defaultValue: true))
+        if (!features.Enabled<UpdateNotificationsEnabledFeature>())
         {
             // Copy the environment if we haven't already
             if (finalEnv == env)
@@ -300,7 +300,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             }
         }
 
-        if (features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, true))
+        if (features.Enabled<DotNetSdkInstallationEnabledFeature>())
         {
             if (finalEnv == env)
             {
@@ -551,7 +551,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         // Set the CLI process start time for robust orphan detection to prevent PID reuse issues.
         // The AppHost will verify both PID and start time to ensure it's monitoring the correct process.
-        if (features.IsFeatureEnabled(KnownFeatures.OrphanDetectionWithTimestampEnabled, true))
+        if (features.Enabled<OrphanDetectionWithTimestampEnabledFeature>())
         {
             startInfo.EnvironmentVariables[KnownConfigNames.CliProcessStarted] = GetCurrentProcessStartTime().ToString(CultureInfo.InvariantCulture);
         }
@@ -928,7 +928,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         using var activity = telemetry.ActivitySource.StartActivity();
 
         string? rawKey = null;
-        bool cacheEnabled = useCache && features.IsFeatureEnabled(KnownFeatures.PackageSearchDiskCachingEnabled, defaultValue: true);
+        bool cacheEnabled = useCache && features.Enabled<PackageSearchDiskCachingEnabledFeature>();
         if (cacheEnabled)
         {
             try
