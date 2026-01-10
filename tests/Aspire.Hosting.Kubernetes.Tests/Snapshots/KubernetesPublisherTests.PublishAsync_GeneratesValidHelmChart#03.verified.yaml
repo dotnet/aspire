@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: "aspire-hosting-tests"
     app.kubernetes.io/component: "project1"
-    app.kubernetes.io/instance: "{{.Release.Name}}"
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
 data:
   OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "{{ .Values.config.project1.OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY }}"
   MYAPP_HTTP: "{{ .Values.config.project1.MYAPP_HTTP }}"

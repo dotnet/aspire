@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: "my-chart"
     app.kubernetes.io/component: "SpeciaL-ApP"
-    app.kubernetes.io/instance: "{{.Release.Name}}"
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
 data:
   OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "{{ .Values.config.SpeciaL_ApP.OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY }}"
   ConnectionStrings__api-cs2: "{{ .Values.config.SpeciaL_ApP.ConnectionStrings__api_cs2 }}"

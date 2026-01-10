@@ -1,4 +1,4 @@
-﻿---
+---
 apiVersion: "v1"
 kind: "Service"
 metadata:
@@ -6,19 +6,19 @@ metadata:
   labels:
     app.kubernetes.io/name: "aspire-hosting-tests"
     app.kubernetes.io/component: "ServiceB"
-    app.kubernetes.io/instance: "{{.Release.Name}}"
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
 spec:
   type: "ClusterIP"
   selector:
     app.kubernetes.io/name: "aspire-hosting-tests"
     app.kubernetes.io/component: "ServiceB"
-    app.kubernetes.io/instance: "{{.Release.Name}}"
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
   ports:
     - name: "http"
       protocol: "TCP"
-      port: "{{ .Values.parameters.ServiceB.port_http }}"
-      targetPort: "{{ .Values.parameters.ServiceB.port_http }}"
+      port: {{ .Values.parameters.ServiceB.port_http | int }}
+      targetPort: {{ .Values.parameters.ServiceB.port_http | int }}
     - name: "https"
       protocol: "TCP"
-      port: "{{ .Values.parameters.ServiceB.port_https }}"
-      targetPort: "{{ .Values.parameters.ServiceB.port_https }}"
+      port: {{ .Values.parameters.ServiceB.port_https | int }}
+      targetPort: {{ .Values.parameters.ServiceB.port_https | int }}
