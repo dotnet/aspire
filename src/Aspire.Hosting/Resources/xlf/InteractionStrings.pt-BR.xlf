@@ -44,26 +44,26 @@
       </trans-unit>
       <trans-unit id="DeleteParameterMessage">
         <source>Are you sure you want to delete the value for parameter `{0}`? </source>
-        <target state="new">Are you sure you want to delete the value for parameter `{0}`? </target>
+        <target state="translated">Tem certeza de que deseja excluir o valor do parâmetro `{0}`? </target>
         <note>Contains markdown. {0} is the parameter name.</note>
       </trans-unit>
       <trans-unit id="DeleteParameterMessageWithUserSecrets">
         <source>Are you sure you want to delete the value for parameter `{0}`?
 
 The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there.</source>
-        <target state="new">Are you sure you want to delete the value for parameter `{0}`?
+        <target state="translated">Tem certeza de que deseja excluir o valor do parâmetro `{0}`?
 
-The value is currently saved in [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). You can choose to also delete it from there.</target>
+O valor está atualmente salvo em [segredos do usuário](https://learn.microsoft.com/aspnet/core/security/app-secrets). Você pode optar por excluí-lo também de lá.</target>
         <note>Contains markdown. {0} is the parameter name.</note>
       </trans-unit>
       <trans-unit id="DeleteParameterPrimaryButtonText">
         <source>Delete</source>
-        <target state="new">Delete</target>
+        <target state="translated">Excluir</target>
         <note />
       </trans-unit>
       <trans-unit id="DeleteParameterTitle">
         <source>Delete parameter value</source>
-        <target state="new">Delete parameter value</target>
+        <target state="translated">Excluir valor do parâmetro</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">
@@ -83,17 +83,17 @@ The value is currently saved in [user secrets](https://learn.microsoft.com/aspne
       </trans-unit>
       <trans-unit id="ParametersInputsDeleteLabel">
         <source>Delete from user secrets</source>
-        <target state="new">Delete from user secrets</target>
+        <target state="translated">Excluir dos segredos do usuário</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsMessage">
         <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.</source>
-        <target state="new">Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://aka.ms/aspire/user-secrets) for future use.</target>
+        <target state="translated">Forneça valores para os parâmetros não resolvidos. Os parâmetros podem ser salvos em [segredos do usuário](https://aka.ms/aspire/user-secrets) para uso futuro.</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="ParametersInputsMessagePublishMode">
         <source>Please provide values for the unresolved parameters.</source>
-        <target state="new">Please provide values for the unresolved parameters.</target>
+        <target state="translated">Insira valores para os parâmetros não resolvidos.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsParameterPlaceholder">
@@ -108,7 +108,7 @@ The value is currently saved in [user secrets](https://learn.microsoft.com/aspne
       </trans-unit>
       <trans-unit id="ParametersInputsRememberDescriptionNotConfigured">
         <source>Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure.</source>
-        <target state="new">Requires a `UserSecretsId` to be configured in the AppHost project file. Run `dotnet user-secrets init` in the AppHost directory to configure.</target>
+        <target state="translated">É necessário que um `UserSecretsId` seja configurado no arquivo de projeto AppHost. Execute `dotnet user-secrets init` no diretório AppHost para configurar.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsRememberLabel">
@@ -145,14 +145,14 @@ The value is currently saved in [user secrets](https://learn.microsoft.com/aspne
         <source>Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
 
 New parameter values may not be used until dependent resources are restarted.</source>
-        <target state="new">Please provide a value for the parameter. The parameter can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.
+        <target state="translated">Forneça um valor para o parâmetro. O parâmetro pode ser salvo em [segredos do usuário](https://learn.microsoft.com/aspnet/core/security/app-secrets) para uso futuro.
 
-New parameter values may not be used until dependent resources are restarted.</target>
+Novos valores de parâmetro não podem ser usados após a reinicialização dos recursos dependentes.</target>
         <note>Contains markdown</note>
       </trans-unit>
       <trans-unit id="SetParameterTitle">
         <source>Set parameter</source>
-        <target state="new">Set parameter</target>
+        <target state="translated">Definir parâmetro</target>
         <note />
       </trans-unit>
     </body>
