@@ -347,10 +347,12 @@ public sealed class AzurePublishingContext(
                 Visit(annotation.ContainerRegistry?.Name, CaptureBicepOutputs);
                 Visit(annotation.ContainerRegistry?.Endpoint, CaptureBicepOutputs);
 
+#pragma warning disable CS0618 // Type or member is obsolete
                 if (annotation.ContainerRegistry is IAzureContainerRegistry acr)
                 {
                     Visit(acr.ManagedIdentityId, CaptureBicepOutputs);
                 }
+#pragma warning restore CS0618 // Type or member is obsolete
 
                 CaptureBicepOutputsFromParameters(br);
 

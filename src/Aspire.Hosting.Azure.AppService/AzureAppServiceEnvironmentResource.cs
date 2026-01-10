@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREAZURE001
+#pragma warning disable CS0618 // Type or member is obsolete
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
