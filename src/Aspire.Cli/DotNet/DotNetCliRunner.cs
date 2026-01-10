@@ -642,30 +642,57 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             logger.LogDebug("dotnet process with PID: {ProcessId} has exited with code: {ExitCode}", process.Id, process.ExitCode);
         }
 
+        // Explicitly close the streams to unblock any pending ReadLineAsync calls.
+        // In some environments (particularly CI containers), the stream handles may not
+        // be automatically closed when the process exits, causing ReadLineAsync to block
+        // indefinitely. Disposing the streams forces them to close.
+        logger.LogDebug("Closing stdout/stderr streams for PID: {ProcessId}", process.Id);
+        process.StandardOutput.Close();
+        process.StandardError.Close();
+
         // Wait for all the stream forwarders to finish so we know we've got everything
-        // fired off through the callbacks.
-        await Task.WhenAll([pendingStdoutStreamForwarder, pendingStderrStreamForwarder]);
+        // fired off through the callbacks. Use a timeout as a safety net in case
+        // something else is unexpectedly holding the streams open.
+        var forwarderTimeout = Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+        var forwardersCompleted = Task.WhenAll([pendingStdoutStreamForwarder, pendingStderrStreamForwarder]);
+
+        var completedTask = await Task.WhenAny(forwardersCompleted, forwarderTimeout);
+        if (completedTask == forwarderTimeout)
+        {
+            logger.LogWarning("Stream forwarders for PID {ProcessId} did not complete within timeout after stream close. Continuing anyway.", process.Id);
+        }
+        else
+        {
+            logger.LogDebug("Pending forwarders for PID completed: {ProcessId}", process.Id);
+        }
+
         return process.ExitCode;
 
         async Task ForwardStreamToLoggerAsync(StreamReader reader, string identifier, Process process, Action<string>? lineCallback, CancellationToken cancellationToken)
         {
-            logger.LogDebug(
-                "Starting to forward stream with identifier '{Identifier}' on process '{ProcessId}' to logger",
-                identifier,
-                process.Id
-                );
-
-            string? line;
-            while (!cancellationToken.IsCancellationRequested &&
-                (line = await reader.ReadLineAsync(cancellationToken)) is not null)
+            logger.LogDebug("Starting stream forwarder for {Identifier}", identifier);
+            
+            try
             {
-                logger.LogDebug(
-                    "dotnet({ProcessId}) {Identifier}: {Line}",
-                    process.Id,
-                    identifier,
-                    line
-                    );
-                lineCallback?.Invoke(line!);
+                string? line;
+                while (!cancellationToken.IsCancellationRequested &&
+                    (line = await reader.ReadLineAsync(cancellationToken)) is not null)
+                {
+                    logger.LogDebug(
+                        "dotnet({ProcessId}) {Identifier}: {Line}",
+                        process.Id,
+                        identifier,
+                        line
+                        );
+                    lineCallback?.Invoke(line!);
+                }
+                
+                logger.LogDebug("Stream forwarder completed for {Identifier} - stream returned null", identifier);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Stream was closed externally (e.g., after process exit). This is expected.
+                logger.LogDebug("Stream forwarder completed for {Identifier} - stream was closed", identifier);
             }
         }
     }
