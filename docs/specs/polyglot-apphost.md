@@ -400,7 +400,7 @@ await envVars.count();
 await ctx.environmentVariables.set("KEY", "value");
 ```
 
-#### AspireList<T>
+#### `AspireList<T>`
 
 Wrapper for `IList<T>`:
 
@@ -753,7 +753,7 @@ interface MarshalledHandle {
 }
 ```
 
-**Handle<T>** wraps marshalled data with type safety and serialization:
+`Handle<T>` wraps marshalled data with type safety and serialization:
 
 ```typescript
 class Handle<T extends string> {
