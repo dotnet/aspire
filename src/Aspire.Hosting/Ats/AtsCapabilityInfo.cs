@@ -143,12 +143,6 @@ internal sealed class AtsCapabilityInfo
     public required IReadOnlyList<AtsParameterInfo> Parameters { get; init; }
 
     /// <summary>
-    /// Gets or sets the ATS type ID for the return type.
-    /// </summary>
-    [Obsolete("Use ReturnType instead")]
-    public string? ReturnTypeId { get; init; }
-
-    /// <summary>
     /// Gets or sets the return type reference with full type metadata.
     /// </summary>
     public AtsTypeRef? ReturnType { get; init; }
@@ -229,21 +223,9 @@ internal sealed class AtsParameterInfo
     public required string Name { get; init; }
 
     /// <summary>
-    /// Gets or sets the ATS type ID for this parameter.
-    /// </summary>
-    [Obsolete("Use Type.TypeId instead")]
-    public string AtsTypeId { get; init; } = string.Empty;
-
-    /// <summary>
     /// Gets or sets the type reference with full type metadata.
     /// </summary>
     public AtsTypeRef? Type { get; init; }
-
-    /// <summary>
-    /// Gets or sets the type category (Primitive, Handle, Dto, Callback).
-    /// </summary>
-    [Obsolete("Use Type.Category instead")]
-    public AtsTypeCategory TypeCategory { get; init; }
 
     /// <summary>
     /// Gets or sets whether this parameter is optional.

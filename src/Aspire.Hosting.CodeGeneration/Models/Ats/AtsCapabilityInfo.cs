@@ -71,19 +71,6 @@ public sealed class AtsCapabilityInfo
     public required IReadOnlyList<AtsParameterInfo> Parameters { get; init; }
 
     /// <summary>
-    /// Gets or sets the ATS type ID for the return type (e.g., "Aspire.Hosting.Redis/RedisResource", "string").
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// For builder-returning methods, this is the ATS type ID of the resource.
-    /// For void methods, this is null.
-    /// For primitive returns, this is the primitive type name.
-    /// </para>
-    /// </remarks>
-    [Obsolete("Use ReturnType instead")]
-    public string? ReturnTypeId { get; init; }
-
-    /// <summary>
     /// Gets or sets the return type reference with full type metadata.
     /// </summary>
     /// <remarks>

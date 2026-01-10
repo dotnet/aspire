@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Ats;
-
 namespace Aspire.Hosting.CodeGeneration.Models.Ats;
 
 /// <summary>
@@ -14,47 +12,6 @@ public sealed class AtsParameterInfo
     /// Gets or sets the parameter name (e.g., "name", "port", "callback").
     /// </summary>
     public required string Name { get; init; }
-
-    /// <summary>
-    /// Gets or sets the ATS type ID for this parameter.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// For primitive types, this is the TypeScript/JavaScript type:
-    /// <list type="bullet">
-    ///   <item><description><c>string</c> - for System.String</description></item>
-    ///   <item><description><c>number</c> - for numeric types (int, long, double, etc.)</description></item>
-    ///   <item><description><c>boolean</c> - for System.Boolean</description></item>
-    /// </list>
-    /// </para>
-    /// <para>
-    /// For handle types, this is the ATS type ID in format <c>{Assembly}/{Type}</c>:
-    /// <list type="bullet">
-    ///   <item><description><c>Aspire.Hosting/IDistributedApplicationBuilder</c> - for IDistributedApplicationBuilder</description></item>
-    ///   <item><description><c>Aspire.Hosting.Redis/RedisResource</c> - for IResourceBuilder&lt;RedisResource&gt;</description></item>
-    /// </list>
-    /// </para>
-    /// <para>
-    /// For callbacks, this is <c>callback</c> with <see cref="IsCallback"/> set to true.
-    /// </para>
-    /// </remarks>
-    [Obsolete("Use Type.TypeId instead")]
-    public string AtsTypeId { get; init; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the type category (Primitive, Handle, Dto, Callback).
-    /// </summary>
-    /// <remarks>
-    /// Indicates how this type should be serialized/deserialized:
-    /// <list type="bullet">
-    ///   <item><description><see cref="AtsTypeCategory.Primitive"/> - Serializes directly to JSON values</description></item>
-    ///   <item><description><see cref="AtsTypeCategory.Handle"/> - Opaque reference to .NET object</description></item>
-    ///   <item><description><see cref="AtsTypeCategory.Dto"/> - Serializes as JSON object</description></item>
-    ///   <item><description><see cref="AtsTypeCategory.Callback"/> - Registered callback delegate</description></item>
-    /// </list>
-    /// </remarks>
-    [Obsolete("Use Type.Category instead")]
-    public AtsTypeCategory TypeCategory { get; init; }
 
     /// <summary>
     /// Gets or sets the type reference with full type metadata.

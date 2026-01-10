@@ -156,9 +156,6 @@ public static class AtsCapabilityScanner
             Package = shared.Package,
             Description = shared.Description,
             Parameters = shared.Parameters.Select(ConvertParameter).ToList(),
-#pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
-            ReturnTypeId = shared.ReturnTypeId,
-#pragma warning restore CS0618
             ReturnType = ConvertTypeRef(shared.ReturnType),
             IsExtensionMethod = shared.IsExtensionMethod,
             TargetTypeId = shared.OriginalTargetTypeId,
@@ -176,10 +173,6 @@ public static class AtsCapabilityScanner
         return new AtsParameterInfo
         {
             Name = shared.Name,
-#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
-            AtsTypeId = shared.AtsTypeId,
-            TypeCategory = shared.TypeCategory,
-#pragma warning restore CS0618
             Type = ConvertTypeRef(shared.Type),
             IsOptional = shared.IsOptional,
             IsNullable = shared.IsNullable,

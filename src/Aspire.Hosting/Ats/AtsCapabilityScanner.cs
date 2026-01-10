@@ -554,9 +554,6 @@ internal static class AtsCapabilityScanner
                             new AtsParameterInfo
                             {
                                 Name = "context",
-#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
-                                AtsTypeId = typeId,
-#pragma warning restore CS0618
                                 Type = contextTypeRef,
                                 IsOptional = false,
                                 IsNullable = false,
@@ -564,9 +561,6 @@ internal static class AtsCapabilityScanner
                                 DefaultValue = null
                             }
                         ],
-#pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
-                        ReturnTypeId = propertyTypeId,
-#pragma warning restore CS0618
                         ReturnType = propertyTypeRef,
                         IsExtensionMethod = false,
                         OriginalTargetTypeId = typeId,
@@ -595,9 +589,6 @@ internal static class AtsCapabilityScanner
                             new AtsParameterInfo
                             {
                                 Name = "context",
-#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
-                                AtsTypeId = typeId,
-#pragma warning restore CS0618
                                 Type = contextTypeRef,
                                 IsOptional = false,
                                 IsNullable = false,
@@ -607,9 +598,6 @@ internal static class AtsCapabilityScanner
                             new AtsParameterInfo
                             {
                                 Name = "value",
-#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
-                                AtsTypeId = propertyTypeId,
-#pragma warning restore CS0618
                                 Type = propertyTypeRef,
                                 IsOptional = false,
                                 IsNullable = false,
@@ -617,9 +605,6 @@ internal static class AtsCapabilityScanner
                                 DefaultValue = null
                             }
                         ],
-#pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
-                        ReturnTypeId = typeId, // Returns the context for fluent chaining
-#pragma warning restore CS0618
                         ReturnType = contextTypeRef,
                         IsExtensionMethod = false,
                         OriginalTargetTypeId = typeId,
@@ -685,9 +670,6 @@ internal static class AtsCapabilityScanner
                         new AtsParameterInfo
                         {
                             Name = "context",
-#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
-                            AtsTypeId = typeId,
-#pragma warning restore CS0618
                             Type = instanceContextTypeRef,
                             IsOptional = false,
                             IsNullable = false,
@@ -724,7 +706,6 @@ internal static class AtsCapabilityScanner
 
                     // Get return type
                     var returnTypeRef = CreateTypeRef(method.ReturnType, typeMapping, typeResolver);
-                    var returnTypeId = MapToAtsTypeId(method.ReturnType, typeMapping, typeResolver);
 
                     capabilities.Add(new AtsCapabilityInfo
                     {
@@ -733,9 +714,6 @@ internal static class AtsCapabilityScanner
                         Package = package,
                         Description = $"Invokes the {method.Name} method",
                         Parameters = paramInfos,
-#pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
-                        ReturnTypeId = returnTypeId,
-#pragma warning restore CS0618
                         ReturnType = returnTypeRef,
                         IsExtensionMethod = false,
                         OriginalTargetTypeId = typeId,
@@ -863,9 +841,6 @@ internal static class AtsCapabilityScanner
             Package = package,
             Description = description,
             Parameters = paramInfos,
-#pragma warning disable CS0618 // Keep populating obsolete property for backwards compatibility
-            ReturnTypeId = returnTypeId,
-#pragma warning restore CS0618
             ReturnType = returnTypeRef,
             IsExtensionMethod = isExtensionMethod,
             OriginalTargetTypeId = extendsTypeId,
@@ -894,10 +869,6 @@ internal static class AtsCapabilityScanner
             return new AtsParameterInfo
             {
                 Name = paramName,
-#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
-                AtsTypeId = unionTypeRef.TypeId,
-                TypeCategory = AtsTypeCategory.Union,
-#pragma warning restore CS0618
                 Type = unionTypeRef,
                 IsOptional = param.IsOptional,
                 IsNullable = false,
@@ -941,10 +912,6 @@ internal static class AtsCapabilityScanner
         return new AtsParameterInfo
         {
             Name = string.IsNullOrEmpty(param.Name) ? $"arg{paramIndex}" : param.Name,
-#pragma warning disable CS0618 // Keep populating obsolete properties for backwards compatibility
-            AtsTypeId = isCallback ? "callback" : atsTypeId!,
-            TypeCategory = AtsConstants.GetCategory(atsTypeId, isCallback),
-#pragma warning restore CS0618
             Type = finalTypeRef,
             IsOptional = param.IsOptional,
             IsNullable = isNullable,
