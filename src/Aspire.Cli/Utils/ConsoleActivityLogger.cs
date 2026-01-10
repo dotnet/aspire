@@ -202,7 +202,7 @@ internal sealed class ConsoleActivityLogger
         {
             var totalSeconds = _stopwatch.Elapsed.TotalSeconds;
             var line = new string('-', 60);
-            AnsiConsole.MarkupLine(line);
+            AnsiConsole.MarkupLine(CultureInfo.InvariantCulture, line);
             var totalSteps = _stepStates.Count;
             // Derive per-step outcome counts from _stepStates (not task-level counters) for accurate X/Y display.
             var succeededSteps = _stepStates.Values.Count(v => v == ActivityState.Success);
@@ -235,12 +235,12 @@ internal sealed class ConsoleActivityLogger
                 }
             }
             summaryParts.Add($"Total time: {DurationFormatter.FormatDuration(TimeSpan.FromSeconds(totalSeconds), CultureInfo.InvariantCulture, DecimalDurationDisplay.Fixed)}");
-            AnsiConsole.MarkupLine(string.Join(" • ", summaryParts));
+            AnsiConsole.MarkupLine(CultureInfo.InvariantCulture, string.Join(" • ", summaryParts));
 
             if (_durationRecords is { Count: > 0 })
             {
                 AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine("Steps Summary:");
+                AnsiConsole.MarkupLine(CultureInfo.InvariantCulture, "Steps Summary:");
                 foreach (var rec in _durationRecords)
                 {
                     // PadLeft(10) accommodates split units like "2h 30m", decimal units like "1.5s", and very long durations like "999d 23h"
@@ -262,7 +262,7 @@ internal sealed class ConsoleActivityLogger
                         .Append(symbol).Append(' ')
                         .Append("[dim]").Append(name).Append("[/]")
                         .Append(reason);
-                    AnsiConsole.MarkupLine(lineSb.ToString());
+                    AnsiConsole.MarkupLine(CultureInfo.InvariantCulture, lineSb.ToString());
                 }
                 AnsiConsole.WriteLine();
             }
@@ -270,7 +270,7 @@ internal sealed class ConsoleActivityLogger
             // If a caller provided a final status line via SetFinalResult, print it now
             if (!string.IsNullOrEmpty(_finalStatusHeader))
             {
-                AnsiConsole.MarkupLine(_finalStatusHeader!);
+                AnsiConsole.MarkupLine(CultureInfo.InvariantCulture, _finalStatusHeader!);
                 
                 // If pipeline failed and not already in debug/trace mode, show help message about using --log-level debug
                 if (!_pipelineSucceeded && !_isDebugOrTraceLoggingEnabled)
@@ -278,10 +278,10 @@ internal sealed class ConsoleActivityLogger
                     var helpMessage = _enableColor
                         ? "[dim]For more details, add --log-level debug/trace to the command.[/]"
                         : "For more details, add --log-level debug/trace to the command.";
-                    AnsiConsole.MarkupLine(helpMessage);
+                    AnsiConsole.MarkupLine(CultureInfo.InvariantCulture, helpMessage);
                 }
             }
-            AnsiConsole.MarkupLine(line);
+            AnsiConsole.MarkupLine(CultureInfo.InvariantCulture, line);
             AnsiConsole.WriteLine(); // Ensure final newline after deployment summary
         }
     }
@@ -362,7 +362,7 @@ internal sealed class ConsoleActivityLogger
                 {
                     markup.Append(symbol).Append(' ').Append(highlightedLine);
                 }
-                AnsiConsole.MarkupLine(markup.ToString());
+                AnsiConsole.MarkupLine(CultureInfo.InvariantCulture, markup.ToString());
             }
         }
     }

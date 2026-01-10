@@ -15,10 +15,10 @@
     <DotNetSdkPreviousVersionForTesting>8.0.415</DotNetSdkPreviousVersionForTesting>
     <!-- dotnet 9.0 versions for running tests - used for templates tests -->
     <DotNetSdkCurrentVersionForTesting>9.0.306</DotNetSdkCurrentVersionForTesting>
-    <XunitV3Version>3.1.0</XunitV3Version>
+    <XunitV3Version>3.2.1</XunitV3Version>
     <XUnitAnalyzersVersion>1.21.0</XUnitAnalyzersVersion>
     <XunitRunnerVisualStudioVersion>3.1.0</XunitRunnerVisualStudioVersion>
-    <MicrosoftTestingPlatformVersion>1.8.4</MicrosoftTestingPlatformVersion>
+    <MicrosoftTestingPlatformVersion>1.9.1</MicrosoftTestingPlatformVersion>
     <MicrosoftNETTestSdkVersion>17.14.1</MicrosoftNETTestSdkVersion>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
@@ -42,8 +42,8 @@
     <MicrosoftDotNetBuildTasksArchivesVersion>11.0.0-beta.25610.3</MicrosoftDotNetBuildTasksArchivesVersion>
     <MicrosoftExtensionsFileSystemGlobbingVersion>10.0.1</MicrosoftExtensionsFileSystemGlobbingVersion>
     <!-- dotnet/extensions -->
-    <MicrosoftExtensionsAIVersion>10.1.0</MicrosoftExtensionsAIVersion>
-    <MicrosoftExtensionsAIOpenAIVersion>10.1.0-preview.1.25608.1</MicrosoftExtensionsAIOpenAIVersion>
+    <MicrosoftExtensionsAIVersion>10.1.1</MicrosoftExtensionsAIVersion>
+    <MicrosoftExtensionsAIOpenAIVersion>10.1.1-preview.1.25612.2</MicrosoftExtensionsAIOpenAIVersion>
     <MicrosoftExtensionsAIAzureAIInferenceVersion>10.0.0-preview.1.25559.3</MicrosoftExtensionsAIAzureAIInferenceVersion>
     <MicrosoftExtensionsHttpResilienceVersion>10.1.0</MicrosoftExtensionsHttpResilienceVersion>
     <MicrosoftExtensionsDependencyInjectionAutoActivationVersion>10.1.0</MicrosoftExtensionsDependencyInjectionAutoActivationVersion>

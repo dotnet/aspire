@@ -20,8 +20,7 @@ public sealed class MilvusContainerFixture : IAsyncLifetime
     {
         if (RequiresDockerAttribute.IsSupported)
         {
-            Container = new MilvusBuilder()
-                .WithImage($"{ComponentTestConstants.AspireTestContainerRegistry}/{MilvusContainerImageTags.Image}:{MilvusContainerImageTags.Tag}")
+            Container = new MilvusBuilder($"{ComponentTestConstants.AspireTestContainerRegistry}/{MilvusContainerImageTags.Image}:{MilvusContainerImageTags.Tag}")
                 .Build();
             await Container.StartAsync();
         }
