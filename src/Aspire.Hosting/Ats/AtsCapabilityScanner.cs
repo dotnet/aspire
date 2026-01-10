@@ -165,13 +165,18 @@ internal static class AtsCapabilityScanner
 
                 try
                 {
-                    var capability = CreateCapabilityInfo(method, exportAttr, assembly.Name, typeMapping, typeResolver);
+                    var capability = CreateCapabilityInfo(method, exportAttr, assembly.Name, typeMapping, typeResolver, out var capabilityDiagnostic);
                     if (capability != null)
                     {
                         capabilities.Add(capability);
 
                         // Collect resource types from capability parameters and return types
                         CollectResourceTypesFromCapability(method, typeMapping, discoveredResourceTypes);
+                    }
+                    else if (capabilityDiagnostic != null)
+                    {
+                        // Capability was skipped with a diagnostic message
+                        diagnostics.Add(capabilityDiagnostic);
                     }
                 }
                 catch (InvalidOperationException ex)
@@ -469,39 +474,32 @@ internal static class AtsCapabilityScanner
 
                 if (isDictWithObjectValue)
                 {
-                    if (propertyUnionAttr != null)
+                    // Create dictionary type - use union if [AspireUnion] is present, otherwise use 'any'
+                    var keyTypeRef = CreateTypeRef(propType.GetGenericArguments().First(), typeMapping, typeResolver);
+                    if (keyTypeRef != null)
                     {
-                        // Create union type for dictionary value
-                        var unionValueTypeRef = CreateUnionTypeRef(propertyUnionAttr, $"property '{property.Name}'", typeMapping);
-                        var keyTypeRef = CreateTypeRef(propType.GetGenericArguments().First(), typeMapping, typeResolver);
-                        if (keyTypeRef != null)
+                        var valueTypeRef = propertyUnionAttr != null
+                            ? CreateUnionTypeRef(propertyUnionAttr, $"property '{property.Name}'", typeMapping)
+                            : new AtsTypeRef { TypeId = AtsConstants.Any, Category = AtsTypeCategory.Primitive };
+
+                        propertyTypeRef = new AtsTypeRef
                         {
-                            propertyTypeRef = new AtsTypeRef
-                            {
-                                TypeId = AtsConstants.DictTypeId(keyTypeRef.TypeId, unionValueTypeRef.TypeId),
-                                Category = AtsTypeCategory.Dict,
-                                KeyType = keyTypeRef,
-                                ValueType = unionValueTypeRef,
-                                IsReadOnly = false
-                            };
-                            propertyTypeId = propertyTypeRef.TypeId;
-                        }
-                        else
-                        {
-                            continue; // Skip if key type can't be mapped
-                        }
+                            TypeId = AtsConstants.DictTypeId(keyTypeRef.TypeId, valueTypeRef.TypeId),
+                            Category = AtsTypeCategory.Dict,
+                            KeyType = keyTypeRef,
+                            ValueType = valueTypeRef,
+                            IsReadOnly = false
+                        };
+                        propertyTypeId = propertyTypeRef.TypeId;
                     }
                     else
                     {
-                        // Error: Dictionary<string, object> without [AspireUnion]
-                        throw new InvalidOperationException(
-                            $"Property '{property.Name}' has type 'Dictionary<string, object>' which is not a valid ATS type. " +
-                            $"Use [AspireUnion(typeof(T1), typeof(T2), ...)] on the property to specify the allowed value types.");
+                        continue; // Skip if key type can't be mapped
                     }
                 }
                 else if (propType.FullName == "System.Object")
                 {
-                    // Error: object type without [AspireUnion]
+                    // Use union if [AspireUnion] is present, otherwise use 'any'
                     if (propertyUnionAttr != null)
                     {
                         propertyTypeRef = CreateUnionTypeRef(propertyUnionAttr, $"property '{property.Name}'", typeMapping);
@@ -509,9 +507,8 @@ internal static class AtsCapabilityScanner
                     }
                     else
                     {
-                        throw new InvalidOperationException(
-                            $"Property '{property.Name}' has type 'object' which is not a valid ATS type. " +
-                            $"Use [AspireUnion(typeof(T1), typeof(T2), ...)] to specify the allowed types.");
+                        propertyTypeRef = new AtsTypeRef { TypeId = AtsConstants.Any, Category = AtsTypeCategory.Primitive };
+                        propertyTypeId = propertyTypeRef.TypeId;
                     }
                 }
                 else
@@ -769,11 +766,18 @@ internal static class AtsCapabilityScanner
         IAtsAttributeInfo exportAttr,
         string assemblyName,
         AtsTypeMapping typeMapping,
-        IAtsTypeResolver? typeResolver)
+        IAtsTypeResolver? typeResolver,
+        out AtsDiagnostic? diagnostic)
     {
+        diagnostic = null;
+        var methodLocation = method.Name;
+
         // Get method name from first constructor argument (new format: just the method name)
         if (exportAttr.FixedArguments.Count == 0 || exportAttr.FixedArguments[0] is not string methodNameFromAttr)
         {
+            diagnostic = AtsDiagnostic.Warning(
+                $"[AspireExport] attribute on '{methodLocation}' is missing method name argument",
+                methodLocation);
             return null;
         }
 
@@ -802,6 +806,7 @@ internal static class AtsCapabilityScanner
             if (IsUnresolvedGenericResourceBuilder(firstParamType))
             {
                 // Skip - can't generate concrete builders for unresolved generic type parameters
+                // This is expected, not a warning
                 return null;
             }
 
@@ -830,6 +835,9 @@ internal static class AtsCapabilityScanner
                 if (!param.IsOptional)
                 {
                     // Required parameter with unmapped type - skip this capability
+                    diagnostic = AtsDiagnostic.Warning(
+                        $"Capability '{capabilityId}' skipped: parameter '{param.Name}' has unmapped type '{param.ParameterType.FullName}'",
+                        methodLocation);
                     return null;
                 }
                 // Skip optional parameters with unmapped types
@@ -900,30 +908,6 @@ internal static class AtsCapabilityScanner
 
         // Check if this is a delegate type (callbacks are inferred from delegate types)
         var isCallback = IsDelegateType(paramType);
-
-        // Check for object type without [AspireUnion] - this is an error
-        // UNLESS marked with [AtsPassthrough] for collection intrinsics
-        if (paramType.FullName == "System.Object" && !isCallback)
-        {
-            // Check for [AtsPassthrough] attribute - allows object for internal intrinsics
-            var hasPassthrough = param.GetCustomAttributes()
-                .Any(a => a.AttributeTypeFullName == "Aspire.Hosting.Ats.AtsPassthroughAttribute");
-
-            if (hasPassthrough)
-            {
-                // Allow passthrough - marshal dynamically at runtime
-                return new AtsParameterInfo
-                {
-                    Name = paramName,
-                    Type = new AtsTypeRef { TypeId = "unknown", Category = AtsTypeCategory.Primitive },
-                    IsOptional = param.IsOptional
-                };
-            }
-
-            throw new InvalidOperationException(
-                $"Parameter '{paramName}' has type 'object' which is not a valid ATS type. " +
-                $"Use [AspireUnion(typeof(T1), typeof(T2), ...)] to specify the allowed types.");
-        }
 
         // Create type reference
         var typeRef = CreateTypeRef(paramType, typeMapping, typeResolver);
@@ -1242,6 +1226,12 @@ internal static class AtsCapabilityScanner
             return AtsConstants.Uri;
         }
 
+        // Handle object type - maps to 'any' in TypeScript
+        if (typeFullName == "System.Object")
+        {
+            return AtsConstants.Any;
+        }
+
         // Handle enum types
         if (type.IsEnum)
         {
@@ -1485,11 +1475,11 @@ internal static class AtsCapabilityScanner
             return new AtsTypeRef { TypeId = AtsConstants.TimeSpan, Category = AtsTypeCategory.Primitive };
         }
 
-        // Handle object type - maps to 'unknown' in TypeScript
+        // Handle object type - maps to 'any' in TypeScript
         // This is commonly used in Dictionary<string, object> for environment variables
         if (typeFullName == "System.Object")
         {
-            return new AtsTypeRef { TypeId = "object", Category = AtsTypeCategory.Primitive };
+            return new AtsTypeRef { TypeId = AtsConstants.Any, Category = AtsTypeCategory.Primitive };
         }
 
         // Handle other scalar types

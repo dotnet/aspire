@@ -156,6 +156,7 @@ public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         AtsConstants.Number => "number",
         AtsConstants.Boolean => "boolean",
         AtsConstants.Void => "void",
+        AtsConstants.Any => "any",
         AtsConstants.DateTime or AtsConstants.DateTimeOffset or
         AtsConstants.DateOnly or AtsConstants.TimeOnly => "string",
         AtsConstants.TimeSpan => "number",

@@ -97,11 +97,11 @@ type DistributedApplicationEventSubscriptionHandle = Handle<'Aspire.Hosting/Aspi
 /** Handle to IDistributedApplicationBuilder */
 type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder'>;
 
-/** Handle to Dict<string,object> */
-type DictstringobjectHandle = Handle<'Aspire.Hosting/Dict<string,object>'>;
+/** Handle to Dict<string,any> */
+type DictstringanyHandle = Handle<'Aspire.Hosting/Dict<string,any>'>;
 
-/** Handle to List<object> */
-type ListobjectHandle = Handle<'Aspire.Hosting/List<object>'>;
+/** Handle to List<any> */
+type ListanyHandle = Handle<'Aspire.Hosting/List<any>'>;
 
 /** Handle to string[] */
 type stringArrayHandle = Handle<'string[]'>;

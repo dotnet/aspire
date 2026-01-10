@@ -137,13 +137,21 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     {
         RequireAuthentication();
         Console.WriteLine($"[RPC] >> invokeCapability({capabilityId})");
+        Console.WriteLine($"[RPC]    args: {args?.ToJsonString() ?? "null"}");
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            return await _capabilityDispatcher.InvokeAsync(capabilityId, args).ConfigureAwait(false);
+            var result = await _capabilityDispatcher.InvokeAsync(capabilityId, args).ConfigureAwait(false);
+            Console.WriteLine($"[RPC]    result: {result?.ToJsonString() ?? "null"}");
+            return result;
         }
         catch (CapabilityException ex)
         {
+            Console.WriteLine($"[RPC]    CapabilityException: {ex.Error.Code} - {ex.Error.Message}");
+            if (ex.Error.Details != null)
+            {
+                Console.WriteLine($"[RPC]    Details: param={ex.Error.Details.Parameter}, expected={ex.Error.Details.Expected}, actual={ex.Error.Details.Actual}");
+            }
             // Return structured error
             return new JsonObject
             {
@@ -152,6 +160,8 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[RPC]    Exception: {ex.GetType().Name} - {ex.Message}");
+            Console.WriteLine($"[RPC]    StackTrace: {ex.StackTrace}");
             // Wrap unexpected errors
             var error = new AtsError
             {

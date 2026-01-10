@@ -545,6 +545,7 @@ Must be called first (except for `ping`):
 | `Guid` | string | |
 | `Uri` | string | |
 | `enum` | string | Enum name |
+| `object` | any | Accepts any supported ATS type |
 
 **Complex Types:**
 
@@ -662,7 +663,7 @@ Primitive type mapping:
 | `string` | `string` |
 | `number` | `number` |
 | `boolean` | `boolean` |
-| `any` | `unknown` |
+| `any` | `any` |
 | `{Assembly}/{Type}` | `Handle<'{Assembly}/{Type}'>` (typed handle alias) |
 
 ---

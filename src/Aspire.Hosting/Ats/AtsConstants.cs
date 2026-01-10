@@ -171,6 +171,13 @@ public static class AtsConstants
     public const string Uri = "uri";
 
     /// <summary>
+    /// Any type ID. Maps from .NET <see cref="System.Object"/>.
+    /// Accepts any supported ATS type. Use when a parameter needs to accept
+    /// multiple types without explicit union declaration.
+    /// </summary>
+    public const string Any = "any";
+
+    /// <summary>
     /// Enum type ID prefix. Maps from .NET enum types.
     /// Full format: "enum:{FullTypeName}". Serializes to JSON string (enum name).
     /// </summary>
@@ -288,7 +295,7 @@ public static class AtsConstants
     {
         String or Char or Number or Boolean or Void => true,
         DateTime or DateTimeOffset or DateOnly or TimeOnly or TimeSpan => true,
-        Guid or Uri => true,
+        Guid or Uri or Any => true,
         _ => false
     };
 

@@ -907,6 +907,84 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void Scanner_HostingAssembly_CollectionIntrinsicsAreRegistered()
+    {
+        // This test verifies that collection intrinsic capabilities (Dict.*, List.*)
+        // are properly scanned from CollectionExports.cs in Aspire.Hosting.
+        //
+        // This is a regression test for a bug where methods with 'object' parameters
+        // were being skipped because MapToAtsTypeId didn't handle System.Object.
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
+
+        // Scan capabilities from the hosting assembly
+        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+
+        // Verify all Dict.* intrinsics are registered
+        var dictCapabilities = new[]
+        {
+            "Aspire.Hosting/Dict.get",
+            "Aspire.Hosting/Dict.set",
+            "Aspire.Hosting/Dict.remove",
+            "Aspire.Hosting/Dict.keys",
+            "Aspire.Hosting/Dict.has",
+            "Aspire.Hosting/Dict.count",
+            "Aspire.Hosting/Dict.clear",
+            "Aspire.Hosting/Dict.values",
+            "Aspire.Hosting/Dict.toObject"
+        };
+
+        foreach (var expectedId in dictCapabilities)
+        {
+            var capability = capabilities.FirstOrDefault(c => c.CapabilityId == expectedId);
+            Assert.NotNull(capability);
+        }
+
+        // Verify all List.* intrinsics are registered
+        var listCapabilities = new[]
+        {
+            "Aspire.Hosting/List.get",
+            "Aspire.Hosting/List.set",
+            "Aspire.Hosting/List.add",
+            "Aspire.Hosting/List.removeAt",
+            "Aspire.Hosting/List.length",
+            "Aspire.Hosting/List.clear",
+            "Aspire.Hosting/List.insert",
+            "Aspire.Hosting/List.indexOf",
+            "Aspire.Hosting/List.toArray"
+        };
+
+        foreach (var expectedId in listCapabilities)
+        {
+            var capability = capabilities.FirstOrDefault(c => c.CapabilityId == expectedId);
+            Assert.NotNull(capability);
+        }
+    }
+
+    [Fact]
+    public void Scanner_ObjectParameter_MapsToAny()
+    {
+        // This test verifies that 'object' parameters are correctly mapped to 'any' type.
+        // Regression test for Dict.set capability being skipped.
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
+
+        var capabilities = AtsCapabilityScanner.ScanAssembly(hostingAssembly, wellKnownTypes, typeMapping);
+
+        // Dict.set has an 'object value' parameter - it should be mapped to 'any'
+        var dictSet = capabilities.FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/Dict.set");
+        Assert.NotNull(dictSet);
+
+        // Find the 'value' parameter
+        var valueParam = dictSet.Parameters.FirstOrDefault(p => p.Name == "value");
+        Assert.NotNull(valueParam);
+
+        // Type should be 'any'
+        Assert.NotNull(valueParam.Type);
+        Assert.Equal("any", valueParam.Type.TypeId);
+    }
+
+    [Fact]
     public void AspireUnionAttribute_ParsesCorrectly()
     {
         // This test verifies that [AspireUnion] attributes are correctly parsed from metadata
