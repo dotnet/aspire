@@ -35,9 +35,9 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     public bool IsEmulator => this.IsContainer();
 
     /// <summary>
-    /// ARM Resource ID for the Azure Key Vault resource.
+    /// Gets the "id" output reference for the Azure Key Vault resource.
     /// </summary>
-    public BicepOutputReference Id => new("id", this);
+    public BicepOutputReference IdOutputReference => new("id", this);
 
     internal EndpointReference EmulatorEndpoint => new(this, "https");
 

@@ -52,6 +52,11 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
+    /// Gets the "id" output reference for the resource.
+    /// </summary>
+    public BicepOutputReference IdOutputReference => new("id", this);
+
+    /// <summary>
     /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.
     /// </summary>
     public bool IsEmulator => this.IsContainer();
@@ -106,15 +111,15 @@ public class AzureStorageResource(string name, Action<AzureResourceInfrastructur
     {
         var bicepIdentifier = this.GetBicepIdentifier();
         var resources = infra.GetProvisionableResources();
-        
+
         // Check if a StorageAccount with the same identifier already exists
         var existingAccount = resources.OfType<StorageAccount>().SingleOrDefault(account => account.BicepIdentifier == bicepIdentifier);
-        
+
         if (existingAccount is not null)
         {
             return existingAccount;
         }
-        
+
         // Create and add new resource if it doesn't exist
         var account = StorageAccount.FromExisting(bicepIdentifier);
 

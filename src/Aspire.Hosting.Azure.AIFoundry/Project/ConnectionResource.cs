@@ -57,3 +57,19 @@ public class AzureKeyVaultConnectionProperties : ManagedIdentityAuthTypeConnecti
         DefineProperty<string>("category", ["category"], defaultValue: "AzureKeyVault");
     }
 }
+
+/// <summary>
+/// The connection properties for an Azure Key Vault connection.
+///
+/// This is overrides the category property of ApiKeyAuthConnectionProperties to
+/// "AzureStorageAccount", which is (as of 2026-01-06) not an available enum variant.
+/// </summary>
+public class AzureStorageAccountConnectionProperties : AadAuthTypeConnectionProperties
+{
+    /// <inheritdoc/>
+    protected override void DefineProvisionableProperties()
+    {
+        base.DefineProvisionableProperties();
+        DefineProperty<string>("category", ["category"], defaultValue: "AzureStorageAccount");
+    }
+}
