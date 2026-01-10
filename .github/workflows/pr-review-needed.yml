@@ -1,0 +1,282 @@
+name: Update PRs Needing Review
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run every hour
+    - cron: '0 * * * *'
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  update-pr-review-list:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'dotnet' }}
+    steps:
+      - name: Update PRs needing review issue
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          script: |
+            // Issue number to update with the PR list
+            // TODO: Create the issue and update this number
+            const TRACKING_ISSUE_NUMBER = 13834;
+            
+            if (TRACKING_ISSUE_NUMBER === 0) {
+              core.setFailed('Please create a tracking issue and update TRACKING_ISSUE_NUMBER in this workflow');
+              return;
+            }
+            
+            // Unique marker to identify the automated content
+            const marker = '<!-- pr-review-needed-list -->';
+            
+            // Get all open PRs
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              sort: 'updated',
+              direction: 'desc',
+              per_page: 100
+            });
+            
+            const prsNeedingReview = [];
+            
+            for (const pr of pullRequests) {
+              // Skip draft PRs
+              if (pr.draft) {
+                continue;
+              }
+              
+              // Get reviews to check if PR is approved
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number
+              });
+              
+              // Check if there's an approval
+              const isApproved = reviews.some(review => review.state === 'APPROVED');
+              if (isApproved) {
+                continue;
+              }
+              
+              // Get the PR author
+              const prAuthor = pr.user.login;
+              
+              // For Copilot-created PRs, check if there's a prompter
+              // Copilot PRs typically have 'github-actions[bot]' or 'copilot' in the author
+              const isCopilotPr = prAuthor.includes('[bot]') || prAuthor.toLowerCase().includes('copilot');
+              
+              // Get the prompter from the PR body if it's a Copilot PR
+              let prompter = null;
+              if (isCopilotPr && pr.body) {
+                // Look for patterns like "Triggered by @username" or "Requested by @username"
+                const prompterMatch = pr.body.match(/(?:triggered|requested|prompted)\s+by\s+@(\w+)/i);
+                if (prompterMatch) {
+                  prompter = prompterMatch[1];
+                }
+              }
+              
+              // Users who can't approve this PR (author and prompter)
+              const cannotApprove = new Set([prAuthor.toLowerCase()]);
+              if (prompter) {
+                cannotApprove.add(prompter.toLowerCase());
+              }
+              
+              // Get the last activity - check both comments and commits
+              let lastExternalActivity = null;
+              let lastExternalUser = null;
+              
+              // Get issue comments (regular comments)
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                per_page: 100
+              });
+              
+              // Get review comments (inline code comments)
+              const { data: reviewComments } = await github.rest.pulls.listReviewComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                per_page: 100
+              });
+              
+              // Get commits to check the last pusher
+              const { data: commits } = await github.rest.pulls.listCommits({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                per_page: 100
+              });
+              
+              // Check comments for last external activity
+              for (const comment of comments) {
+                const commentUser = comment.user.login.toLowerCase();
+                if (!cannotApprove.has(commentUser)) {
+                  const commentDate = new Date(comment.created_at);
+                  if (!lastExternalActivity || commentDate > lastExternalActivity) {
+                    lastExternalActivity = commentDate;
+                    lastExternalUser = comment.user.login;
+                  }
+                }
+              }
+              
+              // Check review comments
+              for (const comment of reviewComments) {
+                const commentUser = comment.user.login.toLowerCase();
+                if (!cannotApprove.has(commentUser)) {
+                  const commentDate = new Date(comment.created_at);
+                  if (!lastExternalActivity || commentDate > lastExternalActivity) {
+                    lastExternalActivity = commentDate;
+                    lastExternalUser = comment.user.login;
+                  }
+                }
+              }
+              
+              // Check reviews (for review submissions)
+              for (const review of reviews) {
+                const reviewUser = review.user.login.toLowerCase();
+                if (!cannotApprove.has(reviewUser) && review.submitted_at) {
+                  const reviewDate = new Date(review.submitted_at);
+                  if (!lastExternalActivity || reviewDate > lastExternalActivity) {
+                    lastExternalActivity = reviewDate;
+                    lastExternalUser = review.user.login;
+                  }
+                }
+              }
+              
+              // Track the last activity from someone who CAN'T approve (author/prompter)
+              let lastInternalActivity = null;
+              
+              // Check commits for activity from author/prompter
+              if (commits.length > 0) {
+                const lastCommit = commits[commits.length - 1];
+                const commitAuthor = lastCommit.author?.login?.toLowerCase() || '';
+                const commitCommitter = lastCommit.committer?.login?.toLowerCase() || '';
+                const commitDate = new Date(lastCommit.commit.committer.date);
+                
+                if (cannotApprove.has(commitAuthor) || cannotApprove.has(commitCommitter)) {
+                  lastInternalActivity = commitDate;
+                }
+              }
+              
+              // Check comments from author/prompter
+              for (const comment of comments) {
+                const commentUser = comment.user.login.toLowerCase();
+                if (cannotApprove.has(commentUser)) {
+                  const commentDate = new Date(comment.created_at);
+                  if (!lastInternalActivity || commentDate > lastInternalActivity) {
+                    lastInternalActivity = commentDate;
+                  }
+                }
+              }
+              
+              // Check review comments from author/prompter
+              for (const comment of reviewComments) {
+                const commentUser = comment.user.login.toLowerCase();
+                if (cannotApprove.has(commentUser)) {
+                  const commentDate = new Date(comment.created_at);
+                  if (!lastInternalActivity || commentDate > lastInternalActivity) {
+                    lastInternalActivity = commentDate;
+                  }
+                }
+              }
+              
+              // Determine if the PR needs review:
+              // The last activity should be from someone who can't approve (author/prompter)
+              // meaning the ball is in the reviewers' court
+              let needsReview = false;
+              
+              if (lastInternalActivity && lastExternalActivity) {
+                // Both have activity - needs review if author/prompter acted last
+                needsReview = lastInternalActivity > lastExternalActivity;
+              } else if (lastInternalActivity && !lastExternalActivity) {
+                // Only author/prompter has activity - needs review
+                needsReview = true;
+              }
+              // If only external activity or no activity at all, doesn't need review
+              
+              if (needsReview) {
+                prsNeedingReview.push({
+                  number: pr.number,
+                  title: pr.title,
+                  author: pr.user.login,
+                  url: pr.html_url,
+                  authorUrl: pr.user.html_url,
+                  updatedAt: new Date(pr.updated_at)
+                });
+              }
+            }
+            
+            // Sort by updated date descending
+            prsNeedingReview.sort((a, b) => b.updatedAt - a.updatedAt);
+            
+            // Format time since last update
+            function formatTimeSince(date) {
+              const now = new Date();
+              const diffMs = now - date;
+              const diffMins = Math.floor(diffMs / (1000 * 60));
+              const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+              const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+              
+              if (diffDays > 0) {
+                return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+              } else if (diffHours > 0) {
+                return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+              } else {
+                return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+              }
+            }
+            
+            // Build the table
+            let tableContent = marker + '\n';
+            tableContent += '## PRs Needing Review\n\n';
+            tableContent += '_Last updated: ' + new Date().toISOString() + '_\n\n';
+            
+            if (prsNeedingReview.length === 0) {
+              tableContent += '🎉 No PRs currently need review!\n';
+            } else {
+              tableContent += '| PR | Author | Last Updated |\n';
+              tableContent += '|---|---|---|\n';
+              for (const pr of prsNeedingReview) {
+                // Use display name without @ to avoid notifications
+                const authorLink = '[' + pr.author + '](' + pr.authorUrl + ')';
+                const prLink = '[#' + pr.number + ' - ' + pr.title + '](' + pr.url + ')';
+                const timeSince = formatTimeSince(pr.updatedAt);
+                tableContent += '| ' + prLink + ' | ' + authorLink + ' | ' + timeSince + ' |\n';
+              }
+            }
+            
+            tableContent += `\n_This list is automatically updated every hour._`;
+            
+            // Get the current issue
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: TRACKING_ISSUE_NUMBER
+            });
+            
+            // Check if the issue body contains our marker
+            let newBody;
+            if (issue.body && issue.body.includes(marker)) {
+              // Replace the existing content from marker to end
+              const markerIndex = issue.body.indexOf(marker);
+              newBody = issue.body.substring(0, markerIndex) + tableContent;
+            } else {
+              // Append to the existing body
+              newBody = (issue.body || '') + '\n\n' + tableContent;
+            }
+            
+            // Update the issue
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: TRACKING_ISSUE_NUMBER,
+              body: newBody
+            });
+            
+            console.log(`Updated issue #${TRACKING_ISSUE_NUMBER} with ${prsNeedingReview.length} PRs needing review`);
