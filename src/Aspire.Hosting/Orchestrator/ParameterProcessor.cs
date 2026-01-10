@@ -103,9 +103,8 @@ public sealed class ParameterProcessor(
     public async Task InitializeParametersAsync(DistributedApplicationModel model, bool waitForResolution = false, CancellationToken cancellationToken = default)
     {
         var referencedParameters = new Dictionary<string, ParameterResource>();
-        var currentDependencySet = new HashSet<object?>();
 
-        await CollectDependentParameterResourcesAsync(model, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
+        await CollectDependentParameterResourcesAsync(model, referencedParameters, cancellationToken).ConfigureAwait(false);
 
         // Combine explicit parameters with dependent parameters
         var explicitParameters = model.Resources.OfType<ParameterResource>();
@@ -124,7 +123,7 @@ public sealed class ParameterProcessor(
         }
     }
 
-    private async Task CollectDependentParameterResourcesAsync(DistributedApplicationModel model, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
+    private async Task CollectDependentParameterResourcesAsync(DistributedApplicationModel model, Dictionary<string, ParameterResource> referencedParameters, CancellationToken cancellationToken)
     {
         foreach (var resource in model.Resources)
         {
@@ -133,41 +132,11 @@ public sealed class ParameterProcessor(
                 continue;
             }
 
-            await ProcessResourceDependenciesAsync(resource, executionContext, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private async Task ProcessResourceDependenciesAsync(IResource resource, DistributedApplicationExecutionContext executionContext, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
-    {
-        // Process the resource's execution configuration to find referenced parameters
-        var executionConfgiuration = await ExecutionConfigurationBuilder.Create(resource)
-            .WithArgumentsConfig()
-            .WithEnvironmentVariablesConfig()
-            .BuildAsync(executionContext, logger, cancellationToken).ConfigureAwait(false);
-
-        foreach (var reference in executionConfgiuration.References)
-        {
-            TryAddDependentParameters(reference, referencedParameters, currentDependencySet);
-        }
-    }
-
-    private static void TryAddDependentParameters(object? value, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet)
-    {
-        if (value is ParameterResource parameter)
-        {
-            referencedParameters.TryAdd(parameter.Name, parameter);
-        }
-        else if (value is IValueWithReferences objectWithReferences)
-        {
-            currentDependencySet.Add(value);
-            foreach (var dependency in objectWithReferences.References)
+            var dependencies = await resource.GetResourceDependenciesAsync(executionContext, ResourceDependencyDiscoveryMode.Recursive, cancellationToken).ConfigureAwait(false);
+            foreach (var parameter in dependencies.OfType<ParameterResource>())
             {
-                if (!currentDependencySet.Contains(dependency))
-                {
-                    TryAddDependentParameters(dependency, referencedParameters, currentDependencySet);
-                }
+                referencedParameters.TryAdd(parameter.Name, parameter);
             }
-            currentDependencySet.Remove(value);
         }
     }
 

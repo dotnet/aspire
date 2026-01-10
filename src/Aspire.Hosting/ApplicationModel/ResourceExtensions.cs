@@ -1192,4 +1192,239 @@ public static class ResourceExtensions
         var resourceLoggerService = serviceProvider.GetRequiredService<ResourceLoggerService>();
         return resourceLoggerService.GetLogger(resource);
     }
+
+    /// <summary>
+    /// Computes the set of resources that the specified <paramref name="resource"/> depends on.
+    /// </summary>
+    /// <param name="resource">The resource to compute dependencies for.</param>
+    /// <param name="executionContext">The execution context for resolving environment variables and arguments.</param>
+    /// <param name="mode">Specifies whether to discover only direct dependencies or the full transitive closure.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while computing dependencies.</param>
+    /// <returns>A set of all resources that the specified resource depends on.</returns>
+    /// <remarks>
+    /// <para>
+    /// Dependencies are computed from multiple sources:
+    /// <list type="bullet">
+    /// <item>Parent resources via <see cref="IResourceWithParent"/></item>
+    /// <item>Wait dependencies via <see cref="WaitAnnotation"/></item>
+    /// <item>Connection string redirects via <see cref="ConnectionStringRedirectAnnotation"/></item>
+    /// <item>References to endpoints in environment variables and command-line arguments (via <see cref="IValueWithReferences"/>)</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// When <paramref name="mode"/> is <see cref="ResourceDependencyDiscoveryMode.DirectOnly"/>, only the immediate
+    /// dependencies are returned. When <paramref name="mode"/> is <see cref="ResourceDependencyDiscoveryMode.Recursive"/>,
+    /// all transitive dependencies are included.
+    /// </para>
+    /// <para>
+    /// This method invokes environment variable and command-line argument callbacks to discover all references. The context resource (<paramref name="resource"/>) is not considered a dependency (even if it is transitively referenced).
+    /// </para>
+    /// </remarks>
+    public static async Task<IReadOnlySet<IResource>> GetResourceDependenciesAsync(
+        this IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        ResourceDependencyDiscoveryMode mode = ResourceDependencyDiscoveryMode.Recursive,
+        CancellationToken cancellationToken = default)
+    {
+        var dependencies = new HashSet<IResource>();
+        var newDependencies = new HashSet<IResource>();
+        await GatherDirectDependenciesAsync(resource, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+
+        if (mode == ResourceDependencyDiscoveryMode.Recursive)
+        {
+            // Relationship annotations represent both direct and indirect dependencies,
+            // we only collect dependencies from them in Recursive mode.
+            CollectRelationshipAnnotationDependencies(resource, dependencies, newDependencies);
+
+            // Compute transitive closure by recursively processing dependencies
+            var toProcess = new Queue<IResource>(dependencies);
+            while (toProcess.Count > 0)
+            {
+                var dep = toProcess.Dequeue();
+                newDependencies.Clear();
+
+                await GatherDirectDependenciesAsync(dep, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
+                CollectRelationshipAnnotationDependencies(dep, dependencies, newDependencies);
+
+                foreach (var newDep in newDependencies)
+                {
+                    if (newDep != resource)
+                    {
+                        toProcess.Enqueue(newDep);
+                    }
+                }
+            }
+        }
+
+        // Ensure the input resource is not in its own dependency set, even if referenced transitively.
+        dependencies.Remove(resource);
+
+        return dependencies;
+    }
+
+    /// <summary>
+    /// Gathers direct dependencies of a given resource.
+    /// </summary>
+    /// <returns>
+    /// Newly discovered dependencies (not already in <paramref name="dependencies"/>).
+    /// </returns>
+    private static async Task GatherDirectDependenciesAsync(
+        IResource resource,
+        HashSet<IResource> dependencies,
+        HashSet<IResource> newDependencies,
+        DistributedApplicationExecutionContext executionContext,
+        CancellationToken cancellationToken)
+    {
+        var visited = new HashSet<object>();
+
+        // Collect direct dependencies from annotations
+        CollectAnnotationDependencies(resource, dependencies, newDependencies);
+
+        // Collect raw (unresolved) environment variable and argument values
+        var rawValues = await GatherRawEnvironmentAndArgumentValuesAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
+
+        foreach (var value in rawValues)
+        {
+            CollectDependenciesFromValue(value, dependencies, newDependencies, visited);
+        }
+    }
+
+    /// <summary>
+    /// Gathers raw (unresolved) environment variable and argument values from a resource.
+    /// </summary>
+    private static async Task<List<object>> GatherRawEnvironmentAndArgumentValuesAsync(
+        IResource resource,
+        DistributedApplicationExecutionContext executionContext,
+        CancellationToken cancellationToken)
+    {
+        var rawValues = new List<object>();
+
+        // Gather environment variable values
+        if (resource.TryGetEnvironmentVariables(out var environmentCallbacks))
+        {
+            var envVars = new Dictionary<string, object>();
+            var context = new EnvironmentCallbackContext(executionContext, resource, envVars, cancellationToken);
+
+            foreach (var callback in environmentCallbacks)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+
+            rawValues.AddRange(envVars.Values);
+        }
+
+        // Gather command-line argument values
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks))
+        {
+            var args = new List<object>();
+            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
+            {
+                ExecutionContext = executionContext
+            };
+
+            foreach (var callback in argsCallbacks)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+
+            rawValues.AddRange(args);
+        }
+
+        return rawValues;
+    }
+
+    /// <summary>
+    /// Collects dependencies from resource annotations (parent, wait, connection string redirect).
+    /// </summary>
+    /// <returns>A set of newly collected dependencies added to <paramref name="dependencies"/>.</returns>
+    private static void CollectAnnotationDependencies(IResource resource, HashSet<IResource> dependencies, HashSet<IResource> newDependencies)
+    {
+        // Parent relationship
+        if (resource is IResourceWithParent resourceWithParent)
+        {
+            if (dependencies.Add(resourceWithParent.Parent))
+            {
+                newDependencies.Add(resourceWithParent.Parent);
+            }
+        }
+
+        // Wait annotations
+        if (resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations))
+        {
+            foreach (var waitAnnotation in waitAnnotations)
+            {
+                if (dependencies.Add(waitAnnotation.Resource))
+                {
+                    newDependencies.Add(waitAnnotation.Resource);
+                }
+            }
+        }
+
+        // Connection string redirect
+        if (resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var redirectAnnotation))
+        {
+            if (dependencies.Add(redirectAnnotation.Resource))
+            {
+                newDependencies.Add(redirectAnnotation.Resource);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Collects dependencies from resource relationship annotations.
+    /// </summary>
+    private static void CollectRelationshipAnnotationDependencies(IResource resource, HashSet<IResource> dependencies, HashSet<IResource> newDependencies)
+    {
+        if (resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationshipAnnotations))
+        {
+            foreach (var relationshipAnnotation in relationshipAnnotations)
+            {
+                if (dependencies.Add(relationshipAnnotation.Resource))
+                {
+                    newDependencies.Add(relationshipAnnotation.Resource);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Recursively collects resource dependencies from a value using <see cref="IValueWithReferences"/>.
+    /// </summary>
+    private static void CollectDependenciesFromValue(object? value, HashSet<IResource> dependencies, HashSet<IResource> newDependencies, HashSet<object> visitedValues)
+    {
+        if (value is null || !visitedValues.Add(value))
+        {
+            return;
+        }
+
+        // Direct resource references
+        if (value is IResource resource)
+        {
+            if (dependencies.Add(resource))
+            {
+                newDependencies.Add(resource);
+            }
+            CollectAnnotationDependencies(resource, dependencies, newDependencies);
+        }
+
+        // Resource builder wrapping a resource
+        if (value is IResourceBuilder<IResource> resourceBuilder)
+        {
+            if (dependencies.Add(resourceBuilder.Resource))
+            {
+                newDependencies.Add(resourceBuilder.Resource);
+            }
+            CollectAnnotationDependencies(resourceBuilder.Resource, dependencies, newDependencies);
+            value = resourceBuilder.Resource;
+        }
+
+        // Recurse through IValueWithReferences
+        if (value is IValueWithReferences valueWithReferences)
+        {
+            foreach (var reference in valueWithReferences.References)
+            {
+                CollectDependenciesFromValue(reference, dependencies, newDependencies, visitedValues);
+            }
+        }
+    }
 }

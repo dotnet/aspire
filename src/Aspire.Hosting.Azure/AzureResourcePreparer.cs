@@ -355,122 +355,17 @@ internal sealed class AzureResourcePreparer(
 
     private async Task<HashSet<IAzureResource>> GetAzureReferences(IResource resource, CancellationToken cancellationToken)
     {
+        var dependencies = await resource.GetResourceDependenciesAsync(executionContext, ResourceDependencyDiscoveryMode.DirectOnly, cancellationToken).ConfigureAwait(false);
+
         HashSet<IAzureResource> azureReferences = [];
-
-        if (resource.TryGetEnvironmentVariables(out var environmentCallbacks))
+        foreach (var azureResource in dependencies.OfType<IAzureResource>())
         {
-            var context = new EnvironmentCallbackContext(executionContext, resource, cancellationToken: cancellationToken);
-
-            foreach (var c in environmentCallbacks)
-            {
-                await c.Callback(context).ConfigureAwait(false);
-            }
-
-            foreach (var kv in context.EnvironmentVariables)
-            {
-                ProcessAzureReferences(azureReferences, kv.Value);
-            }
-        }
-
-        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
-        {
-            var context = new CommandLineArgsCallbackContext([], resource, cancellationToken: cancellationToken)
-            {
-                ExecutionContext = executionContext
-            };
-
-            foreach (var c in commandLineArgsCallbackAnnotations)
-            {
-                await c.Callback(context).ConfigureAwait(false);
-            }
-
-            foreach (var arg in context.Args)
-            {
-                ProcessAzureReferences(azureReferences, arg);
-            }
+            azureReferences.Add(azureResource);
         }
 
         return azureReferences;
     }
 
-    /// <summary>
-    /// Processes a value to extract Azure resource references and adds them to the collection.
-    /// Null values are ignored since they cannot contain Azure resource references.
-    /// </summary>
-    private static void ProcessAzureReferences(HashSet<IAzureResource> azureReferences, object? value)
-    {
-        // Null values can be added by environment variable or command line argument callbacks
-        // and should be ignored since they cannot contain Azure resource references.
-        // See: https://github.com/dotnet/aspire/discussions/11127
-        if (value is null)
-        {
-            return;
-        }
-
-        if (value is string or EndpointReference or ParameterResource or EndpointReferenceExpression or HostUrl)
-        {
-            return;
-        }
-
-        if (value is ConnectionStringReference cs)
-        {
-            if (cs.Resource is IAzureResource ar)
-            {
-                azureReferences.Add(ar);
-            }
-
-            ProcessAzureReferences(azureReferences, cs.Resource.ConnectionStringExpression);
-            return;
-        }
-
-        if (value is IResourceWithConnectionString csrs)
-        {
-            if (csrs is IAzureResource ar)
-            {
-                azureReferences.Add(ar);
-            }
-
-            ProcessAzureReferences(azureReferences, csrs.ConnectionStringExpression);
-            return;
-        }
-
-        if (value is BicepOutputReference output)
-        {
-            azureReferences.Add(output.Resource);
-            return;
-        }
-
-#pragma warning disable CS0618 // Type or member is obsolete
-        if (value is BicepSecretOutputReference secretOutputReference)
-        {
-            azureReferences.Add(secretOutputReference.Resource);
-            return;
-        }
-#pragma warning restore CS0618 // Type or member is obsolete
-
-        if (value is IAzureKeyVaultSecretReference keyVaultSecretReference)
-        {
-            azureReferences.Add(keyVaultSecretReference.Resource);
-            return;
-        }
-
-        if (value is ReferenceExpression expr)
-        {
-            foreach (var vp in expr.ValueProviders)
-            {
-                ProcessAzureReferences(azureReferences, vp);
-            }
-            return;
-        }
-
-        if (value is IManifestExpressionProvider)
-        {
-            // Unknown manifest expression providers don't have Azure references to track
-            return;
-        }
-
-        throw new NotSupportedException("Unsupported value type " + value.GetType());
-    }
     private static void AppendGlobalRoleAssignments(Dictionary<AzureProvisioningResource, HashSet<RoleDefinition>> globalRoleAssignments, AzureProvisioningResource azureResource, IEnumerable<RoleDefinition> newRoles)
     {
         if (!globalRoleAssignments.TryGetValue(azureResource, out var existingRoles))
