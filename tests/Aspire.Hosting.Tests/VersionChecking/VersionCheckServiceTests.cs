@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREUSERSECRETS001
 
 using System.Globalization;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.UserSecrets;
 using Aspire.Hosting.VersionChecking;
 using Aspire.Shared;
@@ -255,10 +256,12 @@ public class VersionCheckServiceTests
         IPackageVersionProvider? packageVersionProvider = null,
         IUserSecretsManager? userSecretsManager = null)
     {
+        var config = configuration ?? new ConfigurationManager();
         return new VersionCheckService(
             interactionService ?? new TestInteractionService(),
             NullLogger<VersionCheckService>.Instance,
-            configuration ?? new ConfigurationManager(),
+            config,
+            TestAppHostEnvironment.Create(config),
             options ?? new DistributedApplicationOptions(),
             packageFetcher ?? new TestPackageFetcher(),
             new DistributedApplicationExecutionContext(new DistributedApplicationOperation()),

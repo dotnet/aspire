@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Tests.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.Internal;
@@ -32,8 +33,9 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = CreateResourceNotificationService(hostApplicationLifetime, resourceLoggerService);
         var hostEnvironment = new HostingEnvironment();
+        var appHostEnvironment = new AppHostEnvironment(new ConfigurationBuilder().Build(), hostEnvironment);
         var loggerFactory = new NullLoggerFactory();
-        var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, loggerFactory);
+        var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, appHostEnvironment, loggerFactory);
 
         await resourceLogForwarder.StartAsync(hostApplicationLifetime.ApplicationStopping);
 
@@ -53,9 +55,10 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         var resourceLoggerService = ConsoleLoggingTestHelpers.GetResourceLoggerService();
         var resourceNotificationService = CreateResourceNotificationService(hostApplicationLifetime, resourceLoggerService);
         var hostEnvironment = new HostingEnvironment { ApplicationName = "TestApp.AppHost" };
+        var appHostEnvironment = new AppHostEnvironment(new ConfigurationBuilder().Build(), hostEnvironment);
         var fakeLoggerProvider = new FakeLoggerProvider();
         var fakeLoggerFactory = new LoggerFactory([fakeLoggerProvider, new XunitLoggerProvider(output)]);
-        var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, fakeLoggerFactory);
+        var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, appHostEnvironment, fakeLoggerFactory);
 
         var subscribedTcs = new TaskCompletionSource();
         var subscriberLoop = Task.Run(async () =>

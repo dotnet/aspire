@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -10,7 +9,7 @@ namespace Aspire.Hosting;
 
 internal sealed class DistributedApplicationLifecycle(
     ILogger<DistributedApplication> logger,
-    IConfiguration configuration,
+    AppHostEnvironment appHostEnvironment,
     DistributedApplicationExecutionContext executionContext,
     LocaleOverrideContext localeOverrideContext) : IHostedLifecycleService
 {
@@ -41,7 +40,7 @@ internal sealed class DistributedApplicationLifecycle(
         if (executionContext.IsRunMode)
         {
             logger.LogInformation("Distributed application starting.");
-            logger.LogInformation("Application host directory is: {AppHostDirectory}", configuration["AppHost:Directory"]);
+            logger.LogInformation("Application host directory is: {AppHostDirectory}", appHostEnvironment.ProjectDirectory);
         }
 
         if (localeOverrideContext.OverrideErrorMessage is { Length: > 0 } localOverrideError)

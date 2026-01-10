@@ -365,7 +365,7 @@ public class DeploymentStateManagerTests
 
         return new FileDeploymentStateManager(
             NullLogger<FileDeploymentStateManager>.Instance,
-            configuration,
+            new AppHostEnvironment(configuration, hostEnvironment),
             hostEnvironment,
             pipelineOptions);
     }

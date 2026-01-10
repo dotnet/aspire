@@ -68,9 +68,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private readonly HostApplicationBuilder _innerBuilder;
     private readonly IUserSecretsManager _userSecretsManager;
     private readonly FileSystemService _directoryService;
+    private readonly AppHostEnvironment _appHostEnvironment;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
+
+    /// <inheritdoc />
+    public AppHostEnvironment AppHostEnvironment => _appHostEnvironment;
 
     /// <inheritdoc />
     public ConfigurationManager Configuration => _innerBuilder.Configuration;
@@ -221,17 +225,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         ConfigurePipelineOptions(options);
         var isExecMode = ConfigureExecOptions(options);
 
-        // Compute the dashboard application name - use DashboardApplicationName if set for file-based apps,
-        // otherwise fall back to the environment's ApplicationName
-        var dashboardApplicationName = options.DashboardApplicationName ?? _innerBuilder.Environment.ApplicationName;
-
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
             ["AppHost:FilePath"] = appHostFilePath,
-            ["AppHost:DashboardApplicationName"] = dashboardApplicationName,
+            // For single-file app hosts, store the resolved name so AppHostEnvironment can use it
+            ["AppHost:SingleFileAppHostName"] = options.SingleFileAppHostName,
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
@@ -547,6 +548,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
+        
+        // Initialize the AppHostEnvironment for use within the builder and register in DI
+        _appHostEnvironment = new AppHostEnvironment(_innerBuilder.Configuration, _innerBuilder.Environment);
+        _innerBuilder.Services.AddSingleton(_appHostEnvironment);
+        
         LogBuilderConstructed(this);
     }
 
