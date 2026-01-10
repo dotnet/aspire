@@ -1,0 +1,244 @@
+name: 'Detect Test Scope'
+description: |
+  Determines which test categories should run based on changed files in a PR.
+
+  Reads .github/test-filters.json to determine:
+  - If fallback paths changed, all categories run
+  - Otherwise, only categories with matching path changes run
+
+outputs:
+  run_all:
+    description: 'True if fallback paths changed, triggering all tests'
+    value: ${{ steps.detect.outputs.run_all }}
+  run_integrations:
+    description: 'True if integration tests should run'
+    value: ${{ steps.detect.outputs.run_integrations }}
+  run_templates:
+    description: 'True if template tests should run'
+    value: ${{ steps.detect.outputs.run_templates }}
+  run_cli_e2e:
+    description: 'True if CLI E2E tests should run'
+    value: ${{ steps.detect.outputs.run_cli_e2e }}
+  run_endtoend:
+    description: 'True if EndToEnd tests should run'
+    value: ${{ steps.detect.outputs.run_endtoend }}
+  run_extension:
+    description: 'True if extension tests should run'
+    value: ${{ steps.detect.outputs.run_extension }}
+  changed_files_count:
+    description: 'Number of changed files detected'
+    value: ${{ steps.detect.outputs.changed_files_count }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Detect test scope from changed files
+      id: detect
+      shell: bash
+      run: |
+        set -e
+
+        CONFIG_FILE="${{ github.workspace }}/.github/test-filters.json"
+
+        # Validate config file exists
+        if [ ! -f "$CONFIG_FILE" ]; then
+          echo "::error::Config file not found: $CONFIG_FILE"
+          exit 1
+        fi
+
+        # Check if jq is available
+        if ! command -v jq >/dev/null 2>&1; then
+          echo "::error::jq is required but not installed"
+          exit 1
+        fi
+
+        # For push events to main, run everything
+        if [ "${{ github.event_name }}" == "push" ]; then
+          echo "::notice::Push event detected - running all tests"
+          {
+            echo "run_all=true"
+            echo "run_integrations=true"
+            echo "run_templates=true"
+            echo "run_cli_e2e=true"
+            echo "run_endtoend=true"
+            echo "run_extension=true"
+            echo "changed_files_count=0"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        # Get changed files for pull requests
+        BASE_REF="${{ github.event.pull_request.base.sha }}"
+        HEAD_REF="${{ github.event.pull_request.head.sha }}"
+
+        if [ -z "$BASE_REF" ] || [ -z "$HEAD_REF" ]; then
+          echo "::warning::Could not determine base/head refs - running all tests"
+          {
+            echo "run_all=true"
+            echo "run_integrations=true"
+            echo "run_templates=true"
+            echo "run_cli_e2e=true"
+            echo "run_endtoend=true"
+            echo "run_extension=true"
+            echo "changed_files_count=0"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        CHANGED_FILES=$(git diff --name-only "$BASE_REF".."$HEAD_REF" 2>/dev/null || echo "")
+
+        if [ -z "$CHANGED_FILES" ]; then
+          echo "::notice::No changed files detected"
+          {
+            echo "run_all=false"
+            echo "run_integrations=false"
+            echo "run_templates=false"
+            echo "run_cli_e2e=false"
+            echo "run_endtoend=false"
+            echo "run_extension=false"
+            echo "changed_files_count=0"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l | tr -d ' ')
+        echo "::notice::Found $FILE_COUNT changed file(s)"
+        echo "Changed files:"
+        echo "$CHANGED_FILES" | head -20
+        if [ "$FILE_COUNT" -gt 20 ]; then
+          echo "... and $((FILE_COUNT - 20)) more"
+        fi
+
+        # Function to check if any file matches any pattern in a list
+        matches_patterns() {
+          local patterns_json="$1"
+          local pattern_count
+          pattern_count=$(echo "$patterns_json" | jq -r 'length')
+
+          for i in $(seq 0 $((pattern_count - 1))); do
+            local pattern
+            pattern=$(echo "$patterns_json" | jq -r ".[$i]")
+            while IFS= read -r file; do
+              if [[ "$file" =~ ^$pattern$ ]]; then
+                return 0
+              fi
+            done <<< "$CHANGED_FILES"
+          done
+          return 1
+        }
+
+        # Function to check if file matches category (paths match AND exclude doesn't match)
+        matches_category() {
+          local category="$1"
+          local paths_json
+          local exclude_json
+
+          paths_json=$(jq -r ".categories.\"$category\".paths // []" "$CONFIG_FILE")
+          exclude_json=$(jq -r ".categories.\"$category\".exclude // []" "$CONFIG_FILE")
+
+          while IFS= read -r file; do
+            local matches_path=false
+            local matches_exclude=false
+
+            # Check if file matches any path pattern
+            local path_count
+            path_count=$(echo "$paths_json" | jq -r 'length')
+            for i in $(seq 0 $((path_count - 1))); do
+              local pattern
+              pattern=$(echo "$paths_json" | jq -r ".[$i]")
+              if [[ "$file" =~ ^$pattern$ ]]; then
+                matches_path=true
+                break
+              fi
+            done
+
+            # If matches path, check if it's excluded
+            if [ "$matches_path" = true ]; then
+              local exclude_count
+              exclude_count=$(echo "$exclude_json" | jq -r 'length')
+              for i in $(seq 0 $((exclude_count - 1))); do
+                local pattern
+                pattern=$(echo "$exclude_json" | jq -r ".[$i]")
+                if [[ "$file" =~ ^$pattern$ ]]; then
+                  matches_exclude=true
+                  break
+                fi
+              done
+
+              if [ "$matches_exclude" = false ]; then
+                return 0
+              fi
+            fi
+          done <<< "$CHANGED_FILES"
+          return 1
+        }
+
+        # Check fallback paths first
+        FALLBACK_PATTERNS=$(jq -r '.fallbackPaths // []' "$CONFIG_FILE")
+        RUN_ALL=false
+
+        if matches_patterns "$FALLBACK_PATTERNS"; then
+          echo "::notice::Fallback path matched - all tests will run"
+          RUN_ALL=true
+        fi
+
+        # Determine which categories to run
+        if [ "$RUN_ALL" = true ]; then
+          RUN_INTEGRATIONS=true
+          RUN_TEMPLATES=true
+          RUN_CLI_E2E=true
+          RUN_ENDTOEND=true
+          RUN_EXTENSION=true
+        else
+          RUN_INTEGRATIONS=false
+          RUN_TEMPLATES=false
+          RUN_CLI_E2E=false
+          RUN_ENDTOEND=false
+          RUN_EXTENSION=false
+
+          if matches_category "integrations"; then
+            echo "::notice::Integration tests will run"
+            RUN_INTEGRATIONS=true
+          fi
+
+          if matches_category "templates"; then
+            echo "::notice::Template tests will run"
+            RUN_TEMPLATES=true
+          fi
+
+          if matches_category "cli_e2e"; then
+            echo "::notice::CLI E2E tests will run"
+            RUN_CLI_E2E=true
+          fi
+
+          if matches_category "endtoend"; then
+            echo "::notice::EndToEnd tests will run"
+            RUN_ENDTOEND=true
+          fi
+
+          if matches_category "extension"; then
+            echo "::notice::Extension tests will run"
+            RUN_EXTENSION=true
+          fi
+        fi
+
+        # Output summary
+        echo ""
+        echo "=== Test Scope Summary ==="
+        echo "run_all: $RUN_ALL"
+        echo "run_integrations: $RUN_INTEGRATIONS"
+        echo "run_templates: $RUN_TEMPLATES"
+        echo "run_cli_e2e: $RUN_CLI_E2E"
+        echo "run_endtoend: $RUN_ENDTOEND"
+        echo "run_extension: $RUN_EXTENSION"
+
+        # Write outputs
+        {
+          echo "run_all=$RUN_ALL"
+          echo "run_integrations=$RUN_INTEGRATIONS"
+          echo "run_templates=$RUN_TEMPLATES"
+          echo "run_cli_e2e=$RUN_CLI_E2E"
+          echo "run_endtoend=$RUN_ENDTOEND"
+          echo "run_extension=$RUN_EXTENSION"
+          echo "changed_files_count=$FILE_COUNT"
+        } >> "$GITHUB_OUTPUT"
