@@ -16,6 +16,8 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
     private const string CopilotFolderName = ".copilot";
     private const string McpConfigFileName = "mcp-config.json";
     private const string AspireServerName = "aspire";
+    private static readonly string s_skillFilePath = Path.Combine(".github", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md");
+    private const string SkillFileDescription = "Create Aspire skill file (.github/skills/aspire/SKILL.md)";
 
     private readonly ICopilotCliRunner _copilotCliRunner;
     private readonly CliExecutionContext _executionContext;
@@ -78,8 +80,12 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
                 _logger.LogDebug("Playwright MCP server is already configured in Copilot CLI");
             }
 
-            // Try to add agent instructions applicator (only once across all scanners)
-            CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+            // Try to add skill file applicator for GitHub Copilot
+            CommonAgentApplicators.TryAddSkillFileApplicator(
+                context,
+                context.RepositoryRoot,
+                s_skillFilePath,
+                SkillFileDescription);
             return;
         }
         
@@ -122,8 +128,12 @@ internal sealed class CopilotCliAgentEnvironmentScanner : IAgentEnvironmentScann
             _logger.LogDebug("Playwright MCP server is already configured in Copilot CLI");
         }
 
-        // Try to add agent instructions applicator (only once across all scanners)
-        CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+        // Try to add skill file applicator for GitHub Copilot
+        CommonAgentApplicators.TryAddSkillFileApplicator(
+            context,
+            context.RepositoryRoot,
+            s_skillFilePath,
+            SkillFileDescription);
     }
 
     /// <summary>

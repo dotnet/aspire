@@ -15,6 +15,8 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
 {
     private const string OpenCodeConfigFileName = "opencode.jsonc";
     private const string AspireServerName = "aspire";
+    private static readonly string s_skillFilePath = Path.Combine(".opencode", "skill", CommonAgentApplicators.AspireSkillName, "SKILL.md");
+    private const string SkillFileDescription = "Create Aspire skill file (.opencode/skill/aspire/SKILL.md)";
 
     private readonly IOpenCodeCliRunner _openCodeCliRunner;
     private readonly ILogger<OpenCodeAgentEnvironmentScanner> _logger;
@@ -73,8 +75,12 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 _logger.LogDebug("Playwright MCP server is already configured");
             }
 
-            // Try to add agent instructions applicator (only once across all scanners)
-            CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+            // Try to add skill file applicator for OpenCode
+            CommonAgentApplicators.TryAddSkillFileApplicator(
+                context,
+                context.RepositoryRoot,
+                s_skillFilePath,
+                SkillFileDescription);
         }
         else
         {
@@ -94,8 +100,12 @@ internal sealed class OpenCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                     context,
                     ct => ApplyPlaywrightMcpConfigurationAsync(configDirectory, ct));
                 
-                // Try to add agent instructions applicator (only once across all scanners)
-                CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+                // Try to add skill file applicator for OpenCode
+                CommonAgentApplicators.TryAddSkillFileApplicator(
+                    context,
+                    context.RepositoryRoot,
+                    s_skillFilePath,
+                    SkillFileDescription);
             }
             else
             {

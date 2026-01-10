@@ -150,9 +150,10 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
         var mcpConfigPath = Path.Combine(copilotFolder.FullName, "mcp-config.json");
         await File.WriteAllTextAsync(mcpConfigPath, existingConfig.ToJsonString());
         
-        // Also create the AGENTS.md file to prevent that applicator
-        await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "AGENTS.md"), "# Agent Instructions");
-        await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "AGENTS.aspire.md"), "# Agent Instructions");
+        // Also create the skill file to prevent that applicator
+        var skillFilePath = Path.Combine(workspace.WorkspaceRoot.FullName, ".github", "skills", "aspire", "SKILL.md");
+        Directory.CreateDirectory(Path.GetDirectoryName(skillFilePath)!);
+        await File.WriteAllTextAsync(skillFilePath, "# Aspire Skill");
 
         var copilotCliRunner = new FakeCopilotCliRunner(new SemVersion(1, 0, 0));
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
@@ -161,7 +162,7 @@ public class CopilotCliAgentEnvironmentScannerTests(ITestOutputHelper outputHelp
 
         await scanner.ScanAsync(context, CancellationToken.None);
 
-        // No applicators should be returned since Aspire MCP, Playwright MCP are configured and AGENTS.md exists
+        // No applicators should be returned since Aspire MCP, Playwright MCP are configured and skill file exists
         Assert.Empty(context.Applicators);
     }
 

@@ -16,6 +16,8 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
     private const string VsCodeFolderName = ".vscode";
     private const string McpConfigFileName = "mcp.json";
     private const string AspireServerName = "aspire";
+    private static readonly string s_skillFilePath = Path.Combine(".github", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md");
+    private const string SkillFileDescription = "Create Aspire skill file (.github/skills/aspire/SKILL.md)";
 
     private readonly IVsCodeCliRunner _vsCodeCliRunner;
     private readonly CliExecutionContext _executionContext;
@@ -75,8 +77,12 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 _logger.LogDebug("Playwright MCP server is already configured in .vscode/mcp.json");
             }
 
-            // Try to add agent instructions applicator (only once across all scanners)
-            CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+            // Try to add skill file applicator for GitHub Copilot
+            CommonAgentApplicators.TryAddSkillFileApplicator(
+                context,
+                context.RepositoryRoot,
+                s_skillFilePath,
+                SkillFileDescription);
         }
         else if (await IsVsCodeAvailableAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -92,8 +98,12 @@ internal sealed class VsCodeAgentEnvironmentScanner : IAgentEnvironmentScanner
                 context,
                 ct => ApplyPlaywrightMcpConfigurationAsync(targetVsCodeFolder, ct));
             
-            // Try to add agent instructions applicator (only once across all scanners)
-            CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+            // Try to add skill file applicator for GitHub Copilot
+            CommonAgentApplicators.TryAddSkillFileApplicator(
+                context,
+                context.RepositoryRoot,
+                s_skillFilePath,
+                SkillFileDescription);
         }
         else
         {

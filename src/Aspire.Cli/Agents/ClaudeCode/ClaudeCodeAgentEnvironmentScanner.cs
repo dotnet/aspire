@@ -16,6 +16,8 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
     private const string ClaudeCodeFolderName = ".claude";
     private const string McpConfigFileName = ".mcp.json";
     private const string AspireServerName = "aspire";
+    private static readonly string s_skillFilePath = Path.Combine(".claude", "skills", CommonAgentApplicators.AspireSkillName, "SKILL.md");
+    private const string SkillFileDescription = "Create Aspire skill file (.claude/skills/aspire/SKILL.md)";
 
     private readonly IClaudeCodeCliRunner _claudeCodeCliRunner;
     private readonly CliExecutionContext _executionContext;
@@ -79,8 +81,12 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                 _logger.LogDebug("Playwright MCP server is already configured");
             }
 
-            // Try to add agent instructions applicator (only once across all scanners)
-            CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+            // Try to add skill file applicator for Claude Code
+            CommonAgentApplicators.TryAddSkillFileApplicator(
+                context,
+                context.RepositoryRoot,
+                s_skillFilePath,
+                SkillFileDescription);
         }
         else
         {
@@ -116,8 +122,12 @@ internal sealed class ClaudeCodeAgentEnvironmentScanner : IAgentEnvironmentScann
                     _logger.LogDebug("Playwright MCP server is already configured");
                 }
 
-                // Try to add agent instructions applicator (only once across all scanners)
-                CommonAgentApplicators.TryAddAgentInstructionsApplicator(context, context.RepositoryRoot);
+                // Try to add skill file applicator for Claude Code
+                CommonAgentApplicators.TryAddSkillFileApplicator(
+                    context,
+                    context.RepositoryRoot,
+                    s_skillFilePath,
+                    SkillFileDescription);
             }
             else
             {
