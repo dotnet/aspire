@@ -299,8 +299,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
         _logger.LogDebug("Running TypeScript AppHost: {AppHostFile}", appHostFile.FullName);
 
-        Process? appHostServerProcess = null;
-
         try
         {
             // Step 1: Ensure certificates are trusted
@@ -398,8 +396,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Start the AppHost server process
             var currentPid = Environment.ProcessId;
             var serverArgs = enableHotReload ? new[] { "--hot-reload" } : null;
-            var (process, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars, serverArgs);
-            appHostServerProcess = process;
+            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars, serverArgs);
 
             // The backchannel completion source is the contract with RunCommand
             // We signal this when the backchannel is ready, RunCommand uses it for UX
@@ -481,22 +478,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             _logger.LogError(ex, "Failed to run TypeScript AppHost");
             _interactionService.DisplayError($"Failed to run TypeScript AppHost: {ex.Message}");
             return ExitCodeConstants.FailedToDotnetRunAppHost;
-        }
-        finally
-        {
-            // Clean up the AppHost server process
-            if (appHostServerProcess is not null && !appHostServerProcess.HasExited)
-            {
-                try
-                {
-                    appHostServerProcess.Kill(entireProcessTree: true);
-                    appHostServerProcess.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Error killing AppHost server process");
-                }
-            }
         }
     }
 
@@ -731,42 +712,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        try
-        {
-            await process.WaitForExitAsync(cancellationToken);
-            return (process.ExitCode, outputCollector);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            // CLI was cancelled (e.g., Ctrl+C), gracefully terminate the Node process
-            _logger.LogDebug("Cancellation requested, terminating TypeScript process");
-
-            if (!process.HasExited)
-            {
-                try
-                {
-                    // Try graceful termination first (SIGTERM on Unix, TerminateProcess on Windows)
-                    process.Kill(entireProcessTree: true);
-
-                    // Give it a moment to exit
-                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                    try
-                    {
-                        await process.WaitForExitAsync(cts.Token);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Process didn't exit in time, it will be cleaned up when disposed
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Error terminating TypeScript process");
-                }
-            }
-
-            throw; // Re-throw to signal cancellation to caller
-        }
+        await process.WaitForExitAsync(cancellationToken);
+        return (process.ExitCode, outputCollector);
     }
 
     /// <summary>
@@ -845,39 +792,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        try
-        {
-            await process.WaitForExitAsync(cancellationToken);
-            return (process.ExitCode, outputCollector);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            _logger.LogDebug("Cancellation requested, terminating nodemon process");
-
-            if (!process.HasExited)
-            {
-                try
-                {
-                    process.Kill(entireProcessTree: true);
-
-                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                    try
-                    {
-                        await process.WaitForExitAsync(cts.Token);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Process didn't exit in time
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Error terminating nodemon process");
-                }
-            }
-
-            throw;
-        }
+        await process.WaitForExitAsync(cancellationToken);
+        return (process.ExitCode, outputCollector);
     }
 
     private static string? FindNpmPath()
@@ -902,8 +818,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         var directory = appHostFile.Directory!;
 
         _logger.LogDebug("Publishing TypeScript AppHost: {AppHostFile}", appHostFile.FullName);
-
-        Process? appHostServerProcess = null;
 
         try
         {
@@ -968,8 +882,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var currentPid = Environment.ProcessId;
 
             // AppHost server doesn't receive publish args - those go to the TypeScript app
-            var (process, appHostServerOutputCollector) = appHostServerProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars);
-            appHostServerProcess = process;
+            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars);
 
             // Start connecting to the backchannel
             if (context.BackchannelCompletionSource is not null)
@@ -1040,22 +953,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             _logger.LogError(ex, "Failed to publish TypeScript AppHost");
             _interactionService.DisplayError($"Failed to publish TypeScript AppHost: {ex.Message}");
             return ExitCodeConstants.FailedToDotnetRunAppHost;
-        }
-        finally
-        {
-            // Clean up the AppHost server process
-            if (appHostServerProcess is not null && !appHostServerProcess.HasExited)
-            {
-                try
-                {
-                    appHostServerProcess.Kill(entireProcessTree: true);
-                    appHostServerProcess.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Error killing AppHost server process");
-                }
-            }
         }
     }
 
