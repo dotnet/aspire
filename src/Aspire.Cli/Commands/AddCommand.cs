@@ -71,6 +71,8 @@ internal sealed class AddCommand : BaseCommand
     {
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
+        AddPackageContext? context = null;
+
         try
         {
             var integrationName = parseResult.GetValue<string>("integration");
@@ -186,7 +188,7 @@ internal sealed class AddCommand : BaseCommand
             };
 
             // Add the package using the appropriate project handler
-            var context = new AddPackageContext
+            context = new AddPackageContext
             {
                 AppHostFile = effectiveAppHostProjectFile,
                 PackageId = selectedNuGetPackage.Package.Id,
@@ -201,6 +203,10 @@ internal sealed class AddCommand : BaseCommand
 
             if (!success)
             {
+                if (context.OutputCollector is { } outputCollector)
+                {
+                    InteractionService.DisplayLines(outputCollector.GetLines());
+                }
                 InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, ExitCodeConstants.FailedToAddPackage));
                 return ExitCodeConstants.FailedToAddPackage;
             }
@@ -224,6 +230,10 @@ internal sealed class AddCommand : BaseCommand
         }
         catch (Exception ex)
         {
+            if (context?.OutputCollector is { } outputCollector)
+            {
+                InteractionService.DisplayLines(outputCollector.GetLines());
+            }
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.ErrorOccurredWhileAddingPackage, ex.Message));
             return ExitCodeConstants.FailedToAddPackage;
         }

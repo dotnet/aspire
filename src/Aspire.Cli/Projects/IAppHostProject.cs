@@ -65,6 +65,13 @@ internal sealed class AddPackageContext
     /// Gets or sets the optional NuGet source.
     /// </summary>
     public string? Source { get; init; }
+
+    /// <summary>
+    /// Gets or sets the output collector for capturing stdout/stderr.
+    /// Project implementations populate this during execution.
+    /// Commands can access it for error display.
+    /// </summary>
+    public OutputCollector? OutputCollector { get; set; }
 }
 
 /// <summary>

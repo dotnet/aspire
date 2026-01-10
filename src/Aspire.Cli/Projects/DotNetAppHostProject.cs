@@ -394,7 +394,14 @@ internal sealed class DotNetAppHostProject : IAppHostProject
     /// <inheritdoc />
     public async Task<bool> AddPackageAsync(AddPackageContext context, CancellationToken cancellationToken)
     {
-        var options = new DotNetCliRunnerInvocationOptions();
+        var outputCollector = new OutputCollector();
+        context.OutputCollector = outputCollector;
+
+        var options = new DotNetCliRunnerInvocationOptions
+        {
+            StandardOutputCallback = outputCollector.AppendOutput,
+            StandardErrorCallback = outputCollector.AppendError,
+        };
         var result = await _runner.AddPackageAsync(
             context.AppHostFile,
             context.PackageId,
