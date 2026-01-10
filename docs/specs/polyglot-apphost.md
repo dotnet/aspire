@@ -336,6 +336,31 @@ Callbacks are passed as string IDs:
 }
 ```
 
+#### Callback Handle Wrapping (TypeScript)
+
+When the host invokes a callback, handle parameters are automatically converted to typed wrapper classes:
+
+1. Host sends: `{ p0: { $handle: "...", $type: "EnvironmentCallbackContext" } }`
+2. SDK looks up type in **handle wrapper registry**
+3. SDK creates wrapper: `new EnvironmentCallbackContext(handle, client)`
+4. User callback receives typed instance
+
+Generated code registers factories for each wrapper class at module load:
+
+```typescript
+registerHandleWrapper('Aspire.Hosting/EnvironmentCallbackContext',
+    (handle, client) => new EnvironmentCallbackContext(handle, client));
+```
+
+This enables callbacks to receive properly typed objects:
+
+```typescript
+.withEnvironmentCallback(async (ctx: EnvironmentCallbackContext) => {
+    // ctx is a typed wrapper, not a raw Handle
+    await ctx.environmentVariables.set("KEY", "value");
+})
+```
+
 ### Context Types
 
 Objects passed to callbacks with auto-exposed properties. The type ID is automatically derived from `{AssemblyName}/{TypeName}`:
@@ -350,6 +375,44 @@ public class EnvironmentCallbackContext
     // Auto-exposed as "Aspire.Hosting/EnvironmentCallbackContext.getExecutionContext"
     public DistributedApplicationExecutionContext ExecutionContext { get; }
 }
+```
+
+### Collection Wrappers (TypeScript)
+
+For mutable .NET collections exposed to TypeScript, the SDK provides wrapper classes with capability-based operations.
+
+#### AspireDict<K, V>
+
+Wrapper for `IDictionary<K, V>`:
+
+```typescript
+const envVars = ctx.environmentVariables;  // AspireDict<string, string | ReferenceExpression>
+await envVars.set("KEY", "value");
+await envVars.get("KEY");
+await envVars.containsKey("KEY");
+await envVars.remove("KEY");
+await envVars.keys();
+await envVars.count();
+```
+
+**Lazy Handle Resolution:** When a dictionary is accessed via a context property, the wrapper lazily fetches the actual dictionary handle on first operation:
+
+```typescript
+// Context has handle to EnvironmentCallbackContext
+// First operation calls getter capability to get dictionary handle
+await ctx.environmentVariables.set("KEY", "value");
+```
+
+#### AspireList<T>
+
+Wrapper for `IList<T>`:
+
+```typescript
+await list.add(item);
+await list.get(index);
+await list.count();
+await list.removeAt(index);
+await list.toArray();
 ```
 
 ### Reference Expressions
@@ -572,11 +635,17 @@ flowchart LR
 
 ```text
 .modules/
-├── .codegen-hash           # Hash of package references
-├── aspire.ts               # Generated SDK
-├── RemoteAppHostClient.ts  # ATS client
-└── types.ts                # Type definitions
+├── .codegen-hash     # Hash of package references for cache invalidation
+├── aspire.ts         # Generated SDK (builder classes, wrapper registrations)
+├── base.ts           # Base classes, ReferenceExpression, AspireDict, AspireList
+└── transport.ts      # JSON-RPC client, Handle, MarshalledHandle, callbacks
 ```
+
+| File | Contents |
+|------|----------|
+| `transport.ts` | `AspireClient`, `Handle`, `MarshalledHandle`, callback registry, `registerHandleWrapper` |
+| `base.ts` | `DistributedApplicationBuilderBase`, `ResourceBuilderBase`, `ReferenceExpression`, `refExpr`, `AspireDict`, `AspireList` |
+| `aspire.ts` | Generated builders, wrapper classes, `createBuilder()`, handle wrapper registrations |
 
 ### Type Mapping
 
@@ -606,22 +675,35 @@ Primitive type mapping:
 ### Generated SDK Usage
 
 ```typescript
-import { createBuilder } from './.modules/aspire.js';
+import { createBuilder, refExpr, EnvironmentCallbackContext } from './.modules/aspire.js';
 
 const builder = await createBuilder();
 
-// Add resources
-const cache = await builder.addRedis("cache");
-const db = await builder.addPostgres("db");
+// Add resources using fluent chaining
+const cache = await builder
+    .addRedis("cache")
+    .withRedisCommander();
 
-// Configure
-await cache.withRedisCommander();
-await db.withPgAdmin();
+// Get endpoint for reference expressions
+const endpoint = await cache.getEndpoint("tcp");
 
-// Connect resources
-const api = await builder.addContainer("api", "myapp:latest")
-    .withReference(cache)
-    .withReference(db);
+// Create dynamic connection string using tagged template literal
+const redisUrl = refExpr`redis://${endpoint}`;
+
+// Add container with environment callback
+const api = await builder
+    .addContainer("api", "mcr.microsoft.com/dotnet/samples:aspnetapp")
+    .withEnvironmentCallback(async (ctx: EnvironmentCallbackContext) => {
+        // Access execution context to check run/publish mode
+        const execContext = await ctx.executionContext.get();
+        const isRunMode = await execContext.isRunMode.get();
+
+        // Set environment variables using AspireDict
+        await ctx.environmentVariables.set("MY_CONSTANT", "hello from TypeScript");
+        await ctx.environmentVariables.set("REDIS_URL", redisUrl);
+    })
+    .waitFor(cache)        // Accepts wrapper types directly
+    .withReference(cache);
 
 // Build and run
 await builder.build().run();
@@ -652,6 +734,48 @@ const endpoint = await redis.getEndpoint("tcp");
 const connectionString = refExpr`redis://${endpoint}`;
 
 await api.withEnvironment("REDIS_URL", connectionString);
+```
+
+### Type Hierarchy
+
+TypeScript uses three layers to bridge the wire format and user API:
+
+| Layer | Description | Example |
+|-------|-------------|---------|
+| `MarshalledHandle` | Wire format (plain JSON) | `{ $handle: "...", $type: "..." }` |
+| `Handle<T>` | TypeScript class with type safety | `Handle<'Aspire.Hosting.Redis/RedisResource'>` |
+| Wrapper Classes | User-facing API with methods | `RedisBuilder`, `EndpointReference` |
+
+**MarshalledHandle** is what travels over JSON-RPC:
+
+```typescript
+interface MarshalledHandle {
+    $handle: string;  // "Aspire.Hosting.Redis/RedisResource:42"
+    $type: string;    // "Aspire.Hosting.Redis/RedisResource"
+}
+```
+
+**Handle<T>** wraps marshalled data with type safety and serialization:
+
+```typescript
+class Handle<T extends string> {
+    get $handle(): string;
+    get $type(): T;
+    toJSON(): MarshalledHandle;  // For serialization
+}
+```
+
+**Wrapper Classes** provide the user API and must include `toJSON()` for use in reference expressions:
+
+```typescript
+class EndpointReference {
+    constructor(handle: Handle, client: AspireClient) { ... }
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    // Property accessors
+    url = { get: async () => ... };
+    host = { get: async () => ... };
+}
 ```
 
 ---
