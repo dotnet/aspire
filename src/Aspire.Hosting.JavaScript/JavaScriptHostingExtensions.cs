@@ -738,7 +738,13 @@ public static class JavaScriptHostingExtensions
         installArgs ??= GetDefaultYarnInstallArgs(resource, hasYarnLock, hasYarnBerry);
 
         var cacheMount = hasYarnBerry ? ".yarn/cache" : "/root/.cache/yarn";
-        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount);
+        var packageManager = new JavaScriptPackageManagerAnnotation("yarn", runScriptCommand: "run", cacheMount)
+        {
+            // Yarn doesn't require "--" separator
+            // Yarn v1 strips the separator automatically but produces the warning suggesting to remove it.
+            // Later Yarn versions don't strip the separator and pass it to the script as-is, causing Vite to ignore subsequent arguments.
+            CommandSeparator = null
+        };
         var packageFilesSourcePattern = "package.json";
         if (hasYarnLock)
         {
