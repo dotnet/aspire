@@ -53,6 +53,7 @@ namespace Aspire.Hosting.Azure
         {
             public static readonly AIFoundryModel Flux11Pro;
             public static readonly AIFoundryModel Flux1KontextPro;
+            public static readonly AIFoundryModel Flux2Pro;
         }
 
         public static partial class Cohere
@@ -81,6 +82,8 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel DeepSeekV3;
             public static readonly AIFoundryModel DeepSeekV30324;
             public static readonly AIFoundryModel DeepSeekV31;
+            public static readonly AIFoundryModel DeepSeekV32;
+            public static readonly AIFoundryModel DeepSeekV32Speciale;
         }
 
         public static partial class Local
@@ -135,6 +138,8 @@ namespace Aspire.Hosting.Azure
             [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly AIFoundryModel AzureAITranslator;
             public static readonly AIFoundryModel AzureAIVision;
+            public static readonly AIFoundryModel AzureContentUnderstandingLayout;
+            public static readonly AIFoundryModel AzureContentUnderstandingRead;
             public static readonly AIFoundryModel AzureLanguageLanguageDetection;
             public static readonly AIFoundryModel AzureLanguageTextPiiRedaction;
             public static readonly AIFoundryModel AzureSpeechSpeechToText;
@@ -222,6 +227,7 @@ namespace Aspire.Hosting.Azure
             public static readonly AIFoundryModel GptAudio;
             public static readonly AIFoundryModel GptAudioMini;
             public static readonly AIFoundryModel GptImage1;
+            public static readonly AIFoundryModel GptImage15;
             public static readonly AIFoundryModel GptImage1Mini;
             public static readonly AIFoundryModel GptOss120b;
             public static readonly AIFoundryModel GptOss20b;

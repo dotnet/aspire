@@ -44,6 +44,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.ApplicationModel
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class PostgresDatabaseResource : Resource, IResourceWithParent<PostgresServerResource>, IResourceWithParent, IResource, IResourceWithConnectionString, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public PostgresDatabaseResource(string name, string databaseName, PostgresServerResource postgresParentResource) : base(default!) { }

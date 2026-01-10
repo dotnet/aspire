@@ -398,11 +398,16 @@ namespace Aspire.Hosting.Azure
 
     public partial interface IAzureComputeEnvironmentResource : ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource
     {
+        IAzureContainerRegistryResource? ContainerRegistry { get; }
     }
 
     public partial interface IAzureContainerRegistry : ApplicationModel.IContainerRegistry
     {
         ApplicationModel.ReferenceExpression ManagedIdentityId { get; }
+    }
+
+    public partial interface IAzureContainerRegistryResource : ApplicationModel.IContainerRegistry, ApplicationModel.IAzureResource, ApplicationModel.IResource
+    {
     }
 
     public partial interface IAzureKeyVaultResource : ApplicationModel.IResource, ApplicationModel.IAzureResource

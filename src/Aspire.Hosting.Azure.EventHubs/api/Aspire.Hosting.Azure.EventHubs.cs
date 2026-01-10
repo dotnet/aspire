@@ -45,6 +45,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, ConsumerGroup = {ConsumerGroupName}")]
     public partial class AzureEventHubConsumerGroupResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureEventHubResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IResourceWithAzureFunctionsConfig
     {
         public AzureEventHubConsumerGroupResource(string name, string consumerGroupName, AzureEventHubResource parent) : base(default!) { }
@@ -60,6 +61,7 @@ namespace Aspire.Hosting.Azure
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
 
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Hub = {HubName}")]
     public partial class AzureEventHubResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureEventHubsResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, IResourceWithAzureFunctionsConfig
     {
         public AzureEventHubResource(string name, string hubName, AzureEventHubsResource parent) : base(default!) { }

@@ -46,6 +46,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, BlobContainer = {BlobContainerName}")]
     public partial class AzureBlobStorageContainerResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureBlobStorageResource>, ApplicationModel.IResourceWithParent
     {
         public AzureBlobStorageContainerResource(string name, string blobContainerName, AzureBlobStorageResource parent) : base(default!) { }
@@ -74,6 +75,7 @@ namespace Aspire.Hosting.Azure
         void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string, object> target, string connectionName) { }
     }
 
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Queue = {QueueName}")]
     public partial class AzureQueueStorageQueueResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithParent<AzureQueueStorageResource>, ApplicationModel.IResourceWithParent
     {
         public AzureQueueStorageQueueResource(string name, string queueName, AzureQueueStorageResource parent) : base(default!) { }

@@ -115,6 +115,7 @@ namespace Aspire.Hosting.GitHub
 
 namespace Aspire.Hosting.GitHub.Models
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Model = {Model}")]
     public partial class GitHubModelResource : ApplicationModel.Resource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public GitHubModelResource(string name, string model, ApplicationModel.ParameterResource? organization, ApplicationModel.ParameterResource key) : base(default!) { }

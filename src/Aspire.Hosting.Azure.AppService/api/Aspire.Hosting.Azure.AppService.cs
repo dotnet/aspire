@@ -44,11 +44,15 @@ namespace Aspire.Hosting.Azure
 
         ApplicationModel.ReferenceExpression ApplicationModel.IContainerRegistry.Name { get { throw null; } }
 
+        IAzureContainerRegistryResource? IAzureComputeEnvironmentResource.ContainerRegistry { get { throw null; } }
+
         ApplicationModel.ReferenceExpression IAzureContainerRegistry.ManagedIdentityId { get { throw null; } }
 
         public BicepOutputReference AzureAppInsightsConnectionStringReference { get { throw null; } }
 
         public BicepOutputReference AzureAppInsightsInstrumentationKeyReference { get { throw null; } }
+
+        public AzureContainerRegistryResource? ContainerRegistry { get { throw null; } }
 
         public BicepOutputReference DashboardUriReference { get { throw null; } }
 
