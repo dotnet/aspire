@@ -1229,6 +1229,11 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 await client.connect();
                 await client.authenticate(authToken);
 
+                // Exit cleanly when the server disconnects (graceful shutdown)
+                client.onDisconnect(() => {
+                    process.exit(0);
+                });
+
                 return client;
             }
 

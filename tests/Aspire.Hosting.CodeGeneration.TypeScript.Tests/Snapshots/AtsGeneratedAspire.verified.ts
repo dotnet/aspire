@@ -1073,6 +1073,11 @@ export async function connect(): Promise<AspireClientRpc> {
     await client.connect();
     await client.authenticate(authToken);
 
+    // Exit cleanly when the server disconnects (graceful shutdown)
+    client.onDisconnect(() => {
+        process.exit(0);
+    });
+
     return client;
 }
 
