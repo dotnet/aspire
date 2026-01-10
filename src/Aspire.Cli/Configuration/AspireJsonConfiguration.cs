@@ -7,18 +7,6 @@ using System.Text.Json.Serialization;
 namespace Aspire.Cli.Configuration;
 
 /// <summary>
-/// JSON serialization context for AOT-compatible JSON serialization.
-/// </summary>
-[JsonSerializable(typeof(AspireJsonConfiguration))]
-[JsonSourceGenerationOptions(
-    WriteIndented = true,
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
-internal sealed partial class AspireJsonSerializerContext : JsonSerializerContext
-{
-}
-
-/// <summary>
 /// Represents the .aspire/settings.json configuration file for polyglot app hosts.
 /// Extended to include package references for code generation.
 /// </summary>
@@ -74,7 +62,7 @@ internal sealed class AspireJsonConfiguration
         }
 
         var json = File.ReadAllText(filePath);
-        return JsonSerializer.Deserialize(json, AspireJsonSerializerContext.Default.AspireJsonConfiguration);
+        return JsonSerializer.Deserialize(json, JsonSourceGenerationContext.Default.AspireJsonConfiguration);
     }
 
     /// <summary>
@@ -86,7 +74,7 @@ internal sealed class AspireJsonConfiguration
         Directory.CreateDirectory(folderPath);
 
         var filePath = Path.Combine(folderPath, FileName);
-        var json = JsonSerializer.Serialize(this, AspireJsonSerializerContext.Default.AspireJsonConfiguration);
+        var json = JsonSerializer.Serialize(this, JsonSourceGenerationContext.Default.AspireJsonConfiguration);
         File.WriteAllText(filePath, json);
     }
 

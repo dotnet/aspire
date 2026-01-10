@@ -75,6 +75,7 @@ internal sealed class AppHostServerProject
     private const string AssemblyName = "AppHostServer";
     private readonly string _projectModelPath;
     private readonly string _appPath;
+    private readonly string _userSecretsId;
     private readonly IDotNetCliRunner _dotNetCliRunner;
     private readonly IPackagingService _packagingService;
     private readonly IConfigurationService _configurationService;
@@ -102,11 +103,15 @@ internal sealed class AppHostServerProject
         var pathDir = Convert.ToHexString(pathHash)[..12].ToLowerInvariant();
         _projectModelPath = Path.Combine(Path.GetTempPath(), FolderPrefix, AppsFolder, pathDir);
 
+        // Create a stable UserSecretsId based on the app path hash
+        _userSecretsId = new Guid(pathHash[..16]).ToString();
+
         Directory.CreateDirectory(_projectModelPath);
     }
 
     public string ProjectModelPath => _projectModelPath;
     public string AppPath => _appPath;
+    public string UserSecretsId => _userSecretsId;
     public string BuildPath => Path.Combine(_projectModelPath, BuildFolder);
 
     /// <summary>
@@ -150,12 +155,11 @@ internal sealed class AppHostServerProject
 
         // Create appsettings.json with the list of ATS assemblies
         // These are the assemblies that will be scanned for [AspireExport] capabilities
+        // Include all packages since any package could contribute capabilities via [AspireExport]
         var atsAssemblies = new List<string> { "Aspire.Hosting" };
         foreach (var pkg in packages)
         {
-            // Include all Aspire.Hosting.* packages as ATS assemblies
-            if (pkg.Name.StartsWith("Aspire.Hosting", StringComparison.OrdinalIgnoreCase) &&
-                !atsAssemblies.Contains(pkg.Name, StringComparer.OrdinalIgnoreCase))
+            if (!atsAssemblies.Contains(pkg.Name, StringComparer.OrdinalIgnoreCase))
             {
                 atsAssemblies.Add(pkg.Name);
             }
@@ -265,6 +269,7 @@ internal sealed class AppHostServerProject
                         <TargetFramework>{TargetFramework}</TargetFramework>
                         <AssemblyName>{AssemblyName}</AssemblyName>
                         <OutDir>{BuildFolder}</OutDir>
+                        <UserSecretsId>{_userSecretsId}</UserSecretsId>
                         <IsAspireHost>true</IsAspireHost>
                         <IsPublishable>false</IsPublishable>
                         <SelfContained>false</SelfContained>
@@ -305,6 +310,7 @@ internal sealed class AppHostServerProject
                         <TargetFramework>{TargetFramework}</TargetFramework>
                         <AssemblyName>{AssemblyName}</AssemblyName>
                         <OutDir>{BuildFolder}</OutDir>
+                        <UserSecretsId>{_userSecretsId}</UserSecretsId>
                         <IsAspireHost>true</IsAspireHost>
                         <IsPublishable>true</IsPublishable>
                         <SelfContained>true</SelfContained>
