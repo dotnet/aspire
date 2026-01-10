@@ -399,6 +399,51 @@ public class ResourceNotificationTests
     }
 
     [Fact]
+    public async Task PublishLogsTraceStateDetailsMasksSensitiveProperties()
+    {
+        var resource1 = new CustomResource("resource1");
+        var logger = new FakeLogger<ResourceNotificationService>();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create(logger: logger);
+
+        const string secret = "super-secret-value";
+
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with
+        {
+            Properties = snapshot.Properties
+                .Add(new ResourcePropertySnapshot("NotSecret", "visible"))
+                .Add(new ResourcePropertySnapshot("Password", secret) { IsSensitive = true })
+        }).DefaultTimeout();
+
+        var logs = logger.Collector.GetSnapshot();
+
+        Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains("Properties = {"));
+        Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("NotSecret = visible"));
+        Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Password = ***"));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Trace && l.Message.Contains(secret));
+    }
+
+    [Fact]
+    public async Task PublishLogsTraceStateDetailsMasksEnvironmentVariableValues()
+    {
+        var resource1 = new CustomResource("resource1");
+        var logger = new FakeLogger<ResourceNotificationService>();
+        var notificationService = ResourceNotificationServiceTestHelpers.Create(logger: logger);
+
+        const string secret = "env-secret-value";
+
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with
+        {
+            EnvironmentVariables = snapshot.EnvironmentVariables.Add(new EnvironmentVariableSnapshot("pass", secret, IsFromSpec: true))
+        }).DefaultTimeout();
+
+        var logs = logger.Collector.GetSnapshot();
+
+        Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains("EnvironmentVariables = {"));
+        Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("pass = ***"));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Trace && l.Message.Contains(secret));
+    }
+
+    [Fact]
     public void IsMicrosoftOpenType_ReturnsFalse_ForNonMicrosoftResourceTypes()
     {
         var resourceTypes = new[]
