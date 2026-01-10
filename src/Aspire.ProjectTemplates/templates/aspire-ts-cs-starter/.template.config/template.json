@@ -349,7 +349,7 @@
     },
     "hostName": {
       "type": "derived",
-      "valueSource": "sourceName",
+      "valueSource": "name",
       "valueTransform": "lowerCaseInvariantWithHyphens",
       "replaces": "LocalhostTldHostNamePrefix"
     }
