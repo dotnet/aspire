@@ -29,6 +29,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.ApplicationModel
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class OracleDatabaseResource : Resource, IResourceWithParent<OracleDatabaseServerResource>, IResourceWithParent, IResource, IResourceWithConnectionString, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public OracleDatabaseResource(string name, string databaseName, OracleDatabaseServerResource parent) : base(default!) { }

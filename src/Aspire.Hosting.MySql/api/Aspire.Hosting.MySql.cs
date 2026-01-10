@@ -36,6 +36,7 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.ApplicationModel
 {
+    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, Database = {DatabaseName}")]
     public partial class MySqlDatabaseResource : Resource, IResourceWithParent<MySqlServerResource>, IResourceWithParent, IResource, IResourceWithConnectionString, IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public MySqlDatabaseResource(string name, string databaseName, MySqlServerResource parent) : base(default!) { }
