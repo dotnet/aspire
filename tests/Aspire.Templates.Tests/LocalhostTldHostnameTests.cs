@@ -36,9 +36,9 @@ public partial class LocalhostTldHostnameTests(ITestOutputHelper testOutput) : T
             id,
             templateName,
             _testOutput,
-            buildEnvironment: BuildEnvironment.ForDefaultFramework,
+            buildEnvironment: BuildEnvironment.ForNextSdkOnly, // Need Next SDK for net10.0
             extraArgs: $"--localhost-tld -n \"{projectName}\"",
-            targetFramework: TestTargetFramework.Current,
+            targetFramework: TestTargetFramework.Next, // LocalhostTld only available on net10.0
             addEndpointsHook: false); // Don't add endpoint hook since we're just checking file generation
 
         // When using -n, the template still outputs to the -o directory (id),
