@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only
 
 using System.Collections.Concurrent;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -15,6 +16,7 @@ namespace Aspire.Hosting;
 internal sealed class FileSystemService : IFileSystemService, IDisposable
 {
     private readonly TempFileSystemService _tempDirectory;
+    private readonly OutputFileSystemService _outputDirectory;
     private ILogger? _logger;
     private readonly bool _preserveTempFiles;
 
@@ -29,6 +31,11 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
         _preserveTempFiles = configuration["ASPIRE_PRESERVE_TEMP_FILES"] is not null;
         
         _tempDirectory = new TempFileSystemService(this);
+
+        // Initialize output path from configuration
+        var configuredOutputPath = configuration["Pipeline:OutputPath"];
+        var outputPath = configuredOutputPath is not null ? Path.GetFullPath(configuredOutputPath) : null;
+        _outputDirectory = new OutputFileSystemService(outputPath);
     }
 
     /// <summary>
@@ -45,6 +52,9 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
 
     /// <inheritdoc/>
     public ITempFileSystemService TempDirectory => _tempDirectory;
+
+    /// <inheritdoc/>
+    public IOutputFileSystemService OutputDirectory => _outputDirectory;
 
     /// <summary>
     /// Gets whether temporary files should be preserved for debugging.
@@ -278,6 +288,34 @@ internal sealed class FileSystemService : IFileSystemService, IDisposable
             {
                 // Ignore errors during cleanup
             }
+        }
+    }
+
+    /// <summary>
+    /// Implementation of <see cref="IOutputFileSystemService"/>.
+    /// </summary>
+    private sealed class OutputFileSystemService : IOutputFileSystemService
+    {
+        private readonly string? _outputPath;
+
+        public OutputFileSystemService(string? outputPath)
+        {
+            _outputPath = outputPath;
+        }
+
+        /// <inheritdoc/>
+        public string GetOutputDirectory()
+        {
+            return _outputPath ?? Path.Combine(Environment.CurrentDirectory, "aspire-output");
+        }
+
+        /// <inheritdoc/>
+        public string GetOutputDirectory(IResource resource)
+        {
+            ArgumentNullException.ThrowIfNull(resource);
+
+            var baseOutputDir = GetOutputDirectory();
+            return Path.Combine(baseOutputDir, resource.Name);
         }
     }
 }
