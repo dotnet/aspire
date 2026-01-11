@@ -255,7 +255,8 @@
       "steps": [
         "lowerCaseInvariant",
         "replaceDnsInvalidCharsWithHyphens",
-        "trimLeadingAndTrailingHyphens"
+        "trimLeadingHyphens",
+        "trimTrailingHyphens"
       ]
     },
     "replaceDnsInvalidCharsWithHyphens": {
@@ -263,9 +264,14 @@
       "pattern": "[^a-z0-9-]",
       "replacement": "-"
     },
-    "trimLeadingAndTrailingHyphens": {
-      "identifier": "regex",
-      "pattern": "^-+|-+$",
+    "trimLeadingHyphens": {
+      "identifier": "replace",
+      "pattern": "^-+",
+      "replacement": ""
+    },
+    "trimTrailingHyphens": {
+      "identifier": "replace",
+      "pattern": "-+$",
       "replacement": ""
     }
   },
