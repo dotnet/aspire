@@ -434,4 +434,24 @@ public static class AzureAIFoundryExtensions
             dependency = cdkDeployment;
         }
     }
+
+    /// <summary>
+    /// Adds a reference to the specified Azure AI Foundry Deployment resource.
+    ///
+    /// This adds both the C# connection string as well as an AZURE_AI_MODEL_DEPLOYMENT environment variable
+    /// that just contains the name of the deployment.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithReference<T>(this IResourceBuilder<T> builder, IResourceBuilder<AzureAIFoundryDeploymentResource> model)
+        where T : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(model);
+
+        ResourceBuilderExtensions.WithReference(builder, model);
+        return builder.WithEnvironment("AZURE_AI_DEPLOYMENT_NAME", model.Resource.DeploymentName);
+    }
 }
