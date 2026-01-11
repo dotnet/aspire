@@ -2,9 +2,6 @@ name: Update PRs Needing Review
 
 on:
   workflow_dispatch:
-  schedule:
-    # Run every hour
-    - cron: '0 * * * *'
 
 permissions:
   issues: write
