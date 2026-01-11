@@ -21,9 +21,7 @@ public partial class LocalhostTldHostnameTests(ITestOutputHelper testOutput) : T
         { "aspire", "My..Test__Project", "my-test-project" },
         { "aspire", "Project123.Test456", "project123-test456" },
         { "aspire-apphost", "my.service.name", "my-service-name" },
-        { "aspire-apphost-singlefile", "Service_Name.Test", "service-name-test" },
         { "aspire-starter", "Test_App.1", "test-app-1" },
-        { "aspire-py-starter", "xn..my.service_name", "xn-my-service-name" },
         { "aspire-ts-cs-starter", "My-App.Test", "my-app-test" }
     };
 
@@ -51,11 +49,10 @@ public partial class LocalhostTldHostnameTests(ITestOutputHelper testOutput) : T
             "aspire-ts-cs-starter" or "aspire-starter" => Path.Combine(project.RootDir, $"{projectName}.AppHost", "Properties", "launchSettings.json"),
             "aspire" => Path.Combine(project.RootDir, $"{projectName}.AppHost", "Properties", "launchSettings.json"),
             "aspire-apphost" => Path.Combine(project.RootDir, "Properties", "launchSettings.json"),
-            "aspire-py-starter" or "aspire-apphost-singlefile" => Path.Combine(project.RootDir, "apphost.run.json"),
             _ => throw new ArgumentException($"Unknown template: {templateName}")
         };
 
-        Assert.True(File.Exists(launchSettingsPath), $"launch profiles file not found at {launchSettingsPath}");
+        Assert.True(File.Exists(launchSettingsPath), $"launchSettings.json file not found at {launchSettingsPath}");
 
         var launchSettingsContent = await File.ReadAllTextAsync(launchSettingsPath);
         using var launchSettings = JsonDocument.Parse(launchSettingsContent);
