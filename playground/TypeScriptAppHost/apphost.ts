@@ -27,7 +27,7 @@ console.log("Added PostgreSQL server with database 'db'");
 const api = await builder
     .addNodeApp("api", "./express-api", "src/server.ts")
     .withRunScript("dev")
-    .withHttpEndpoint(undefined, undefined, undefined, "PORT")
+    .withHttpEndpoint({ env: "PORT" })
     .withReference(db)
     .waitFor(db);
 
@@ -36,7 +36,13 @@ console.log("Added Express API with reference to PostgreSQL database");
 // Also keep Redis as an example of another service
 const cache = await builder
     .addRedis("cache")
-    .withEnvironment("CUSTOM_ENV", "value");
+    .withEnvironment("CUSTOM_ENV", "value")
+    .withEnvironmentCallback(async (ctx: EnvironmentCallbackContext) => {
+        // Custom environment callback logic
+        var ep = await api.getEndpoint("http");
+
+        ctx.environmentVariables.set("API_ENDPOINT", refExpr`${ep}`);
+    });
 
 console.log("Added Redis cache");
 
