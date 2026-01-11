@@ -308,6 +308,7 @@ export class AspireClient {
     private connection: rpc.MessageConnection | null = null;
     private socket: net.Socket | null = null;
     private disconnectCallbacks: (() => void)[] = [];
+    private _pendingCalls = 0;
 
     constructor(private socketPath: string) { }
 
@@ -412,19 +413,34 @@ export class AspireClient {
             throw new Error('Not connected to AppHost');
         }
 
-        const result = await this.connection.sendRequest(
-            'invokeCapability',
-            capabilityId,
-            args ?? null
-        );
-
-        // Check for structured error response
-        if (isAtsError(result)) {
-            throw new CapabilityError(result.$error);
+        // Ref counting: The vscode-jsonrpc socket keeps Node's event loop alive.
+        // We ref() during RPC calls so the process doesn't exit mid-call, and
+        // unref() when idle so the process can exit naturally after all work completes.
+        if (this._pendingCalls === 0) {
+            this.socket?.ref();
         }
+        this._pendingCalls++;
 
-        // Wrap handles automatically
-        return wrapIfHandle(result, this) as T;
+        try {
+            const result = await this.connection.sendRequest(
+                'invokeCapability',
+                capabilityId,
+                args ?? null
+            );
+
+            // Check for structured error response
+            if (isAtsError(result)) {
+                throw new CapabilityError(result.$error);
+            }
+
+            // Wrap handles automatically
+            return wrapIfHandle(result, this) as T;
+        } finally {
+            this._pendingCalls--;
+            if (this._pendingCalls === 0) {
+                this.socket?.unref();
+            }
+        }
     }
 
     disconnect(): void {

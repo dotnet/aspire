@@ -1,6 +1,7 @@
 // Aspire TypeScript AppHost - E2E Demo with PostgreSQL and Express
 // This demonstrates compute, databases, and references working together.
 // Run with: aspire run
+// Publish with: aspire publish
 
 import { createBuilder, refExpr, EnvironmentCallbackContext, ContainerLifetime } from './.modules/aspire.js';
 
@@ -11,8 +12,12 @@ const builder = await createBuilder();
 
 var ec = await builder.executionContext.get();
 
+const isPublishMode = await ec.isPublishMode.get();
 console.log(`isRunMode: ${await ec.isRunMode.get()}`);
-console.log(`isPublishMode: ${await ec.isPublishMode.get()}`);
+console.log(`isPublishMode: ${isPublishMode}`);
+
+// Add Docker Compose environment for publishing
+await builder.addDockerComposeEnvironment("compose");
 
 var dir = await builder.appHostDirectory.get();
 console.log(`AppHost directory: ${dir}`);

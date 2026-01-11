@@ -26,6 +26,9 @@ import {
 // Handle Type Aliases (Internal - not exported to users)
 // ============================================================================
 
+/** Handle to DockerComposeEnvironmentResource */
+type DockerComposeEnvironmentResourceHandle = Handle<'Aspire.Hosting.Docker/Aspire.Hosting.Docker.DockerComposeEnvironmentResource'>;
+
 /** Handle to JavaScriptAppResource */
 type JavaScriptAppResourceHandle = Handle<'Aspire.Hosting.JavaScript/Aspire.Hosting.JavaScript.JavaScriptAppResource'>;
 
@@ -1086,6 +1089,21 @@ export class DistributedApplicationBuilder {
         return new ViteAppResourcePromise(this._addViteAppInternal(name, appDirectory, runScriptName));
     }
 
+    /** Adds a Docker Compose publishing environment */
+    /** @internal */
+    async _addDockerComposeEnvironmentInternal(name: string): Promise<DockerComposeEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const result = await this._client.invokeCapability<DockerComposeEnvironmentResourceHandle>(
+            'Aspire.Hosting.Docker/addDockerComposeEnvironment',
+            rpcArgs
+        );
+        return new DockerComposeEnvironmentResource(result, this._client);
+    }
+
+    addDockerComposeEnvironment(name: string): DockerComposeEnvironmentResourcePromise {
+        return new DockerComposeEnvironmentResourcePromise(this._addDockerComposeEnvironmentInternal(name));
+    }
+
 }
 
 /**
@@ -1154,6 +1172,11 @@ export class DistributedApplicationBuilderPromise implements PromiseLike<Distrib
     /** Adds a Vite application resource */
     addViteApp(name: string, appDirectory: string, options?: AddViteAppOptions): ViteAppResourcePromise {
         return new ViteAppResourcePromise(this._promise.then(obj => obj.addViteApp(name, appDirectory, options)));
+    }
+
+    /** Adds a Docker Compose publishing environment */
+    addDockerComposeEnvironment(name: string): DockerComposeEnvironmentResourcePromise {
+        return new DockerComposeEnvironmentResourcePromise(this._promise.then(obj => obj.addDockerComposeEnvironment(name)));
     }
 
 }
@@ -1959,6 +1982,68 @@ export class ContainerResourcePromise implements PromiseLike<ContainerResource> 
     /** Sets the parent relationship */
     withParentRelationship(parent: ResourceBuilderBase): ContainerResourcePromise {
         return new ContainerResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
+    }
+
+    /** Gets the resource name */
+    getResourceName(): Promise<string> {
+        return this._promise.then(obj => obj.getResourceName());
+    }
+
+}
+
+// ============================================================================
+// DockerComposeEnvironmentResource
+// ============================================================================
+
+export class DockerComposeEnvironmentResource extends ResourceBuilderBase<DockerComposeEnvironmentResourceHandle> {
+    constructor(handle: DockerComposeEnvironmentResourceHandle, client: AspireClientRpc) {
+        super(handle, client);
+    }
+
+    /** @internal */
+    async _withParentRelationshipInternal(parent: ResourceBuilderBase): Promise<DockerComposeEnvironmentResource> {
+        const rpcArgs: Record<string, unknown> = { builder: this._handle, parent };
+        const result = await this._client.invokeCapability<DockerComposeEnvironmentResourceHandle>(
+            'Aspire.Hosting/withParentRelationship',
+            rpcArgs
+        );
+        return new DockerComposeEnvironmentResource(result, this._client);
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): DockerComposeEnvironmentResourcePromise {
+        return new DockerComposeEnvironmentResourcePromise(this._withParentRelationshipInternal(parent));
+    }
+
+    /** Gets the resource name */
+    async getResourceName(): Promise<string> {
+        const rpcArgs: Record<string, unknown> = { resource: this._handle };
+        return await this._client.invokeCapability<string>(
+            'Aspire.Hosting/getResourceName',
+            rpcArgs
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for DockerComposeEnvironmentResource that enables fluent chaining.
+ * @example
+ * await builder.addSomething().withX().withY();
+ */
+export class DockerComposeEnvironmentResourcePromise implements PromiseLike<DockerComposeEnvironmentResource> {
+    constructor(private _promise: Promise<DockerComposeEnvironmentResource>) {}
+
+    then<TResult1 = DockerComposeEnvironmentResource, TResult2 = never>(
+        onfulfilled?: ((value: DockerComposeEnvironmentResource) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Sets the parent relationship */
+    withParentRelationship(parent: ResourceBuilderBase): DockerComposeEnvironmentResourcePromise {
+        return new DockerComposeEnvironmentResourcePromise(this._promise.then(obj => obj.withParentRelationship(parent)));
     }
 
     /** Gets the resource name */
@@ -6084,11 +6169,6 @@ export async function connect(): Promise<AspireClientRpc> {
     const client = new AspireClientRpc(socketPath);
     await client.connect();
 
-    // Exit cleanly when the server disconnects (graceful shutdown)
-    client.onDisconnect(() => {
-        process.exit(0);
-    });
-
     return client;
 }
 
@@ -6180,6 +6260,7 @@ registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceW
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment', (handle, client) => new ResourceWithEnvironment(handle as IResourceWithEnvironmentHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithWaitSupport', (handle, client) => new ResourceWithWaitSupport(handle as IResourceWithWaitSupportHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource', (handle, client) => new ContainerResource(handle as ContainerResourceHandle, client));
+registerHandleWrapper('Aspire.Hosting.Docker/Aspire.Hosting.Docker.DockerComposeEnvironmentResource', (handle, client) => new DockerComposeEnvironmentResource(handle as DockerComposeEnvironmentResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource', (handle, client) => new ExecutableResource(handle as ExecutableResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.JavaScript/Aspire.Hosting.JavaScript.JavaScriptAppResource', (handle, client) => new JavaScriptAppResource(handle as JavaScriptAppResourceHandle, client));
 registerHandleWrapper('Aspire.Hosting.JavaScript/Aspire.Hosting.JavaScript.NodeAppResource', (handle, client) => new NodeAppResource(handle as NodeAppResourceHandle, client));

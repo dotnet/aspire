@@ -1207,11 +1207,6 @@ export async function connect(): Promise<AspireClientRpc> {
     const client = new AspireClientRpc(socketPath);
     await client.connect();
 
-    // Exit cleanly when the server disconnects (graceful shutdown)
-    client.onDisconnect(() => {
-        process.exit(0);
-    });
-
     return client;
 }
 
