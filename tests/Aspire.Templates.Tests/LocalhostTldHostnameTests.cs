@@ -18,10 +18,12 @@ public partial class LocalhostTldHostnameTests(ITestOutputHelper testOutput) : T
         { "aspire", "my.namespace.app", "my-namespace-app" },
         { "aspire", ".StartWithDot", "startwithdot" },
         { "aspire", "EndWithDot.", "endwithdot" },
-        { "aspire", "My..Test__Project", "my--test--project" },
+        { "aspire", "My..Test__Project", "my-test-project" },
         { "aspire", "Project123.Test456", "project123-test456" },
         { "aspire-apphost", "my.service.name", "my-service-name" },
+        { "aspire-apphost-singlefile", "Service_Name.Test", "service-name-test" },
         { "aspire-starter", "Test_App.1", "test-app-1" },
+        { "aspire-py-starter", "xn..my.service_name", "xn-my-service-name" },
         { "aspire-ts-cs-starter", "My-App.Test", "my-app-test" }
     };
 
@@ -49,17 +51,18 @@ public partial class LocalhostTldHostnameTests(ITestOutputHelper testOutput) : T
             "aspire-ts-cs-starter" or "aspire-starter" => Path.Combine(project.RootDir, $"{projectName}.AppHost", "Properties", "launchSettings.json"),
             "aspire" => Path.Combine(project.RootDir, $"{projectName}.AppHost", "Properties", "launchSettings.json"),
             "aspire-apphost" => Path.Combine(project.RootDir, "Properties", "launchSettings.json"),
+            "aspire-py-starter" or "aspire-apphost-singlefile" => Path.Combine(project.RootDir, "apphost.run.json"),
             _ => throw new ArgumentException($"Unknown template: {templateName}")
         };
 
-        Assert.True(File.Exists(launchSettingsPath), $"launchSettings.json not found at {launchSettingsPath}");
+        Assert.True(File.Exists(launchSettingsPath), $"launch profiles file not found at {launchSettingsPath}");
 
         var launchSettingsContent = await File.ReadAllTextAsync(launchSettingsPath);
         using var launchSettings = JsonDocument.Parse(launchSettingsContent);
 
         var profiles = launchSettings.RootElement.GetProperty("profiles");
 
-        bool foundDevLocalhost = false;
+        var foundDevLocalhost = false;
         foreach (var profile in profiles.EnumerateObject())
         {
             if (profile.Value.TryGetProperty("applicationUrl", out var applicationUrl))
@@ -79,9 +82,9 @@ public partial class LocalhostTldHostnameTests(ITestOutputHelper testOutput) : T
                         var hostname = match.Groups[1].Value;
                         Assert.DoesNotContain("_", hostname, StringComparison.Ordinal);
                         Assert.DoesNotContain(".", hostname, StringComparison.Ordinal);
-                        Assert.False(hostname.StartsWith("-", StringComparison.Ordinal), 
+                        Assert.False(hostname.StartsWith("-", StringComparison.Ordinal),
                             $"Hostname '{hostname}' should not start with hyphen (RFC 952/1123 violation)");
-                        Assert.False(hostname.EndsWith("-", StringComparison.Ordinal), 
+                        Assert.False(hostname.EndsWith("-", StringComparison.Ordinal),
                             $"Hostname '{hostname}' should not end with hyphen (RFC 952/1123 violation)");
                     }
                 }
