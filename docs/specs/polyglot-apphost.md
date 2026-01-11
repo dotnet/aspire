@@ -22,9 +22,12 @@ This document describes how the Aspire CLI supports non-.NET app hosts using the
 
 The polyglot apphost feature allows developers to write Aspire app hosts in non-.NET languages. The **Aspire Type System (ATS)** is the foundation—a portable subset of the .NET type system that can be mapped to any language.
 
+You run `aspire run`, and the CLI starts both the .NET AppHost server and your guest runtime locally on the same machine.
+
 **No IDL required.** Unlike gRPC/protobuf or OpenAPI, ATS doesn't introduce a separate interface definition language. The .NET type system is already expressive enough. Integration authors simply add `[AspireExport]` attributes to existing extension methods—their C# code *is* the schema. The scanner extracts everything it needs from the compiled assemblies.
 
 **Key Concepts:**
+- **Primitive** - JSON-native types (`string`, `number`, `boolean`, `null`) that serialize directly
 - **ATS Type ID** - A portable type identifier derived from assembly and type name (e.g., `Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource`)
 - **Capability** - A named operation (e.g., `Aspire.Hosting.Redis/addRedis`)
 - **Handle** - An opaque typed reference to a .NET object
@@ -147,13 +150,13 @@ sequenceDiagram
     CLI->>Guest: Start (socket path via env var)
 
     Guest->>Host: invokeCapability("Aspire.Hosting/createBuilder", {})
-    Host-->>Guest: { $handle: "1", $type: "Aspire.Hosting/..." }
+    Host-->>Guest: { $handle: "1", $type: "Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder" }
 
     Guest->>Host: invokeCapability("Aspire.Hosting.Redis/addRedis", {builder, name})
-    Host-->>Guest: { $handle: "2", $type: "Aspire.Hosting.Redis/..." }
+    Host-->>Guest: { $handle: "2", $type: "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource" }
 
     Guest->>Host: invokeCapability("Aspire.Hosting/build", {builder})
-    Host-->>Guest: { $handle: "3", $type: "Aspire.Hosting/..." }
+    Host-->>Guest: { $handle: "3", $type: "Aspire.Hosting/Aspire.Hosting.DistributedApplication" }
 
     Guest->>Host: invokeCapability("Aspire.Hosting/run", {app})
     Host-->>Guest: Started (orchestration running)
@@ -393,7 +396,7 @@ public static IResourceBuilder<T> WithEnvironmentCallback<T>(
 // Scanner computes: Aspire.Hosting/withEnvironmentCallback
 ```
 
-Callbacks are passed as string IDs:
+Callbacks are passed as string IDs **when invoking a capability that accepts a delegate** (e.g., `withEnvironmentCallback`). Example capability args:
 
 ```json
 {
@@ -402,11 +405,13 @@ Callbacks are passed as string IDs:
 }
 ```
 
+When the host later invokes that callback, arguments use **positional keys** (`p0`, `p1`, ...), not parameter names. See [invokeCallback](#invokecallback-host--guest) for the wire format.
+
 #### Callback Handle Wrapping (TypeScript)
 
 When the host invokes a callback, handle parameters are automatically converted to typed wrapper classes:
 
-1. Host sends: `{ p0: { $handle: "...", $type: "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext" } }`
+1. Host sends: `{"p0": {"$handle": "...", "$type": "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext"}}`
 2. SDK looks up type in **handle wrapper registry**
 3. SDK creates wrapper: `new EnvironmentCallbackContext(handle, client)`
 4. User callback receives typed instance
@@ -531,6 +536,8 @@ Content-Length: 123\r\n
 | `cancelToken` | Guest → Host | Cancel a cancellation token |
 | `invokeCallback` | Host → Guest | Invoke guest callback |
 
+> **Note:** There is no `getCapabilities` method. Capabilities are discovered at code-generation time by scanning `[AspireExport]` attributes, not at runtime. The generated SDK contains all available capabilities statically typed.
+
 ### ping
 
 Simple health check.
@@ -565,16 +572,26 @@ Simple health check.
 
 ### invokeCallback (Host → Guest)
 
+Callback arguments are serialized using **positional keys** (`p0`, `p1`, `p2`, ...), not parameter names. This ensures consistent behavior across all language runtimes.
+
 ```json
-// Request
+// Request (single parameter callback)
 {"jsonrpc":"2.0","id":100,"method":"invokeCallback","params":[
     "callback_1_1234567890",
-    {"context": {"$handle": "5", "$type": "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext"}}
+    {"p0": {"$handle": "5", "$type": "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext"}}
+]}
+
+// Request (multi-parameter callback)
+{"jsonrpc":"2.0","id":101,"method":"invokeCallback","params":[
+    "callback_2_1234567890",
+    {"p0": "hello", "p1": 42, "p2": true}
 ]}
 
 // Response
 {"jsonrpc":"2.0","id":100,"result":null}
 ```
+
+**Argument extraction:** Guest runtimes must iterate `p0`, `p1`, `p2`, ... in order to reconstruct the parameter list.
 
 ### Cancellation
 
@@ -591,7 +608,7 @@ Cancellation tokens enable cooperative cancellation of long-running callbacks.
 {"jsonrpc":"2.0","id":100,"method":"invokeCallback","params":[
     "callback_1_1234567890",
     {
-        "context": {"$handle": "5", "$type": "Aspire.Hosting/..."},
+        "p0": {"$handle": "5", "$type": "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext"},
         "$cancellationToken": "ct_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     }
 ]}
@@ -1077,8 +1094,7 @@ Both guest and host run locally on the same machine, started by the CLI. This is
 | **Capability allowlist** | Only `[AspireExport]` methods callable |
 | **Runtime type validation** | CLR validates types at invocation time |
 | **DTO enforcement** | Only `[AspireDto]` types serialized |
-| **Socket authentication** | Secret token required |
-| **Socket permissions** | Unix socket owner-only (0600) |
+| **Socket permissions** | Unix socket owner-only (0600), Windows named pipe current-user ACL |
 
 ### What's NOT Exposed
 
