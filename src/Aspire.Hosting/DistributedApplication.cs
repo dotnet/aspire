@@ -50,6 +50,7 @@ namespace Aspire.Hosting;
 /// </remarks>
 [DebuggerDisplay("{_host}")]
 [DebuggerTypeProxy(typeof(DistributedApplicationDebuggerProxy))]
+[AspireExport]
 public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
@@ -148,6 +149,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </code>
     /// </example>
     /// </remarks>
+    [AspireExport("createBuilder", Description = "Creates a new distributed application builder")]
     public static IDistributedApplicationBuilder CreateBuilder(string[] args)
     {
         WaitForDebugger();
@@ -436,6 +438,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// in refer to <see cref="DistributedApplicationExecutionContext" />.
     /// </para>
     /// </remarks>
+    [AspireExport("run", Description = "Runs the distributed application")]
     public virtual async Task RunAsync(CancellationToken cancellationToken = default)
     {
         // We only run the start lifecycle hook if we are in run mode or

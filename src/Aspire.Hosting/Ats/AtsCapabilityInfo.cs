@@ -15,9 +15,10 @@ internal sealed class AtsTypeRef
     public required string TypeId { get; init; }
 
     /// <summary>
-    /// Gets or sets the type category (Primitive, Handle, Dto, Callback, Array, List, Dict).
+    /// Gets or sets the type category (Primitive, Handle, Dto, Callback, Array, List, Dict, Unknown).
+    /// Note: This is mutable to allow Pass 2 resolution of Unknown types to Handle.
     /// </summary>
-    public AtsTypeCategory Category { get; init; }
+    public AtsTypeCategory Category { get; set; }
 
     /// <summary>
     /// Gets or sets whether this is an interface type.
@@ -309,4 +310,16 @@ internal sealed class AtsTypeInfo
     /// Used for expanding capabilities targeting base types to derived types.
     /// </summary>
     public IReadOnlyList<AtsTypeRef> BaseTypeHierarchy { get; init; } = [];
+
+    /// <summary>
+    /// Gets or sets whether this type has [AspireExport(ExposeProperties = true)].
+    /// Types with this flag will have their properties exposed as capabilities.
+    /// </summary>
+    public bool HasExposeProperties { get; init; }
+
+    /// <summary>
+    /// Gets or sets whether this type has [AspireExport(ExposeMethods = true)].
+    /// Types with this flag will have their methods exposed as capabilities.
+    /// </summary>
+    public bool HasExposeMethods { get; init; }
 }

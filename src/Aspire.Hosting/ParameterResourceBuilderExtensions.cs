@@ -162,6 +162,7 @@ public static class ParameterResourceBuilderExtensions
     /// <c>true</c> allows the description to contain Markdown elements such as links, text decoration and lists.
     /// </param>
     /// <returns>Resource builder for the parameter.</returns>
+    [AspireExport("withDescription", Description = "Sets a parameter description")]
     public static IResourceBuilder<ParameterResource> WithDescription(this IResourceBuilder<ParameterResource> builder, string description, bool enableMarkdown = false)
     {
         ArgumentNullException.ThrowIfNull(builder);

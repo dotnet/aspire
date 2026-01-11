@@ -66,11 +66,20 @@ internal static class AtsCapabilityScanner
             allDiagnostics.AddRange(result.Diagnostics);
         }
 
-        // Pass 2: Expand all capabilities using complete type info set
+        // Pass 2: Build universe of valid types and resolve Unknown types
+        // Valid types are ALL types with [AspireExport] - the ExposeProperties/ExposeMethods
+        // flags control whether a wrapper class is generated, not whether the type is valid
+        var validTypes = new HashSet<string>(allTypeInfos.Select(t => t.AtsTypeId));
+        ResolveUnknownTypes(allCapabilities, validTypes);
+
+        // Pass 3: Filter capabilities with unresolved Unknown types
+        FilterInvalidCapabilities(allCapabilities, allDiagnostics);
+
+        // Pass 4: Expand all capabilities using complete type info set
         ExpandCapabilityTargets(allCapabilities, allTypeInfos);
 
-        // Detect method name collisions after expansion
-        DetectMethodNameCollisions(allCapabilities);
+        // Pass 5: Filter method name collisions (overloaded methods) after expansion
+        FilterMethodNameCollisions(allCapabilities, allDiagnostics);
 
         return new ScanResult
         {
@@ -94,11 +103,18 @@ internal static class AtsCapabilityScanner
         // Single assembly scan with expansion
         var result = ScanAssemblyWithoutExpansion(assembly, typeMapping, typeResolver);
 
+        // Build universe and resolve Unknown types
+        var validTypes = new HashSet<string>(result.TypeInfos.Select(t => t.AtsTypeId));
+        ResolveUnknownTypes(result.Capabilities, validTypes);
+
+        // Filter capabilities with unresolved Unknown types
+        FilterInvalidCapabilities(result.Capabilities, result.Diagnostics);
+
         // Expand interface targets to concrete types
         ExpandCapabilityTargets(result.Capabilities, result.TypeInfos);
 
-        // Detect method name collisions after expansion
-        DetectMethodNameCollisions(result.Capabilities);
+        // Filter method name collisions (overloaded methods) after expansion
+        FilterMethodNameCollisions(result.Capabilities, result.Diagnostics);
 
         return result;
     }
@@ -133,9 +149,13 @@ internal static class AtsCapabilityScanner
                 }
             }
 
-            // Check for [AspireExport(ExposeProperties = true)] or [AspireExport(ExposeMethods = true)]
-            // Auto-generate property/method accessor capabilities
-            if (HasExposePropertiesAttribute(type) || HasExposeMethodsAttribute(type))
+            // Check for [AspireExport] at the class level (with ExposeProperties/ExposeMethods)
+            // or types that have instance methods with member-level [AspireExport]
+            // This allows scanning for:
+            // 1. Types with ExposeProperties=true to auto-expose all properties
+            // 2. Types with ExposeMethods=true to auto-expose all methods
+            // 3. Types with [AspireExport] that have member-level [AspireExport] on specific instance methods
+            if (HasExposePropertiesAttribute(type) || HasExposeMethodsAttribute(type) || GetAspireExportAttribute(type) != null)
             {
                 // Member-level errors are captured inside CreateContextTypeCapabilities
                 // and returned as diagnostics, allowing other members to be processed
@@ -144,12 +164,8 @@ internal static class AtsCapabilityScanner
                 diagnostics.AddRange(result.Diagnostics);
             }
 
-            // Scan static classes for [AspireExport] on methods
-            if (!type.IsSealed || type.IsNested)
-            {
-                continue;
-            }
-
+            // Scan all types for static methods with [AspireExport]
+            // Note: Instance methods are scanned via CreateContextTypeCapabilities when type has [AspireExport]
             foreach (var method in type.GetMethods())
             {
                 if (!method.IsStatic || !method.IsPublic)
@@ -212,7 +228,9 @@ internal static class AtsCapabilityScanner
                 ClrTypeName = resourceType.FullName,
                 IsInterface = isInterface,
                 ImplementedInterfaces = implementedInterfaces,
-                BaseTypeHierarchy = baseTypeHierarchy
+                BaseTypeHierarchy = baseTypeHierarchy,
+                HasExposeProperties = HasExposePropertiesAttribute(resourceType),
+                HasExposeMethods = HasExposeMethodsAttribute(resourceType)
             });
         }
 
@@ -225,6 +243,162 @@ internal static class AtsCapabilityScanner
             TypeInfos = typeInfos,
             Diagnostics = diagnostics
         };
+    }
+
+    /// <summary>
+    /// Resolves Unknown type references against the complete universe of valid types.
+    /// Types that are found in the universe are upgraded from Unknown to Handle.
+    /// </summary>
+    private static void ResolveUnknownTypes(
+        List<AtsCapabilityInfo> capabilities,
+        HashSet<string> validTypes)
+    {
+        foreach (var capability in capabilities)
+        {
+            ResolveTypeRef(capability.ReturnType, validTypes);
+            foreach (var param in capability.Parameters)
+            {
+                ResolveTypeRef(param.Type, validTypes);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resolves a type reference against the valid types universe.
+    /// If the type was Unknown but is now in the universe, upgrade to Handle.
+    /// </summary>
+    private static void ResolveTypeRef(AtsTypeRef? typeRef, HashSet<string> validTypes)
+    {
+        if (typeRef == null)
+        {
+            return;
+        }
+
+        // If Unknown but now in universe, upgrade to Handle
+        if (typeRef.Category == AtsTypeCategory.Unknown && validTypes.Contains(typeRef.TypeId))
+        {
+            typeRef.Category = AtsTypeCategory.Handle;
+        }
+
+        // Recursively resolve nested types
+        ResolveTypeRef(typeRef.ElementType, validTypes);
+        ResolveTypeRef(typeRef.KeyType, validTypes);
+        ResolveTypeRef(typeRef.ValueType, validTypes);
+
+        // Resolve union member types
+        if (typeRef.UnionTypes != null)
+        {
+            foreach (var memberType in typeRef.UnionTypes)
+            {
+                ResolveTypeRef(memberType, validTypes);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Filters out capabilities that still have Unknown types after resolution.
+    /// These are capabilities that use types not in the ATS universe.
+    /// </summary>
+    private static void FilterInvalidCapabilities(
+        List<AtsCapabilityInfo> capabilities,
+        List<AtsDiagnostic> diagnostics)
+    {
+        capabilities.RemoveAll(capability =>
+        {
+            var invalidType = FindUnknownType(capability.ReturnType)
+                           ?? FindUnknownTypeInParameters(capability.Parameters);
+
+            if (invalidType != null)
+            {
+                diagnostics.Add(AtsDiagnostic.Warning(
+                    $"Capability '{capability.CapabilityId}' uses non-ATS type '{invalidType}' and will be skipped.",
+                    capability.CapabilityId));
+                return true; // Remove
+            }
+            return false; // Keep
+        });
+    }
+
+    /// <summary>
+    /// Searches for Unknown types in a list of parameters, including callback parameter types.
+    /// </summary>
+    private static string? FindUnknownTypeInParameters(IReadOnlyList<AtsParameterInfo> parameters)
+    {
+        foreach (var param in parameters)
+        {
+            // Check the parameter's direct type
+            var result = FindUnknownType(param.Type);
+            if (result != null)
+            {
+                return result;
+            }
+
+            // For callbacks, also check the callback's parameter types and return type
+            if (param.IsCallback)
+            {
+                if (param.CallbackParameters != null)
+                {
+                    foreach (var cbParam in param.CallbackParameters)
+                    {
+                        result = FindUnknownType(cbParam.Type);
+                        if (result != null)
+                        {
+                            return result;
+                        }
+                    }
+                }
+
+                result = FindUnknownType(param.CallbackReturnType);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Recursively searches for Unknown types in a type reference.
+    /// Returns the type ID of the first Unknown type found, or null if none.
+    /// </summary>
+    private static string? FindUnknownType(AtsTypeRef? typeRef)
+    {
+        if (typeRef == null)
+        {
+            return null;
+        }
+
+        if (typeRef.Category == AtsTypeCategory.Unknown)
+        {
+            return typeRef.TypeId;
+        }
+
+        // Recursively check nested types
+        var result = FindUnknownType(typeRef.ElementType)
+            ?? FindUnknownType(typeRef.KeyType)
+            ?? FindUnknownType(typeRef.ValueType);
+
+        if (result != null)
+        {
+            return result;
+        }
+
+        // Check union member types
+        if (typeRef.UnionTypes != null)
+        {
+            foreach (var memberType in typeRef.UnionTypes)
+            {
+                result = FindUnknownType(memberType);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -330,10 +504,11 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
-    /// Detects method name collisions after capability expansion.
+    /// Detects method name collisions after capability expansion and removes overloaded methods.
     /// Since ATS doesn't support method overloading, each (TargetTypeId, MethodName) pair must be unique.
+    /// Colliding capabilities are filtered out and diagnostics are added.
     /// </summary>
-    private static void DetectMethodNameCollisions(List<AtsCapabilityInfo> capabilities)
+    private static void FilterMethodNameCollisions(List<AtsCapabilityInfo> capabilities, List<AtsDiagnostic> diagnostics)
     {
         // Group by (TargetTypeId, MethodName) to find collisions
         var collisions = capabilities
@@ -345,16 +520,26 @@ internal static class AtsCapabilityScanner
 
         if (collisions.Count > 0)
         {
-            var errors = collisions.Select(g =>
-            {
-                var conflictingIds = string.Join(", ", g.Select(x => x.Capability.CapabilityId));
-                return $"Method '{g.Key.MethodName}' has multiple definitions for target '{g.Key.Target}': {conflictingIds}";
-            });
+            // Collect all colliding capability IDs to filter them out
+            var collidingCapabilityIds = new HashSet<string>();
 
-            throw new InvalidOperationException(
-                $"ATS method name collision detected. Method names must be unique per target type.\n" +
-                string.Join("\n", errors) +
-                "\n\nTo resolve: Use [AspireExport(MethodName = \"uniqueName\")] to disambiguate.");
+            foreach (var g in collisions)
+            {
+                var conflictingIds = g.Select(x => x.Capability.CapabilityId).ToList();
+                var conflictingIdsStr = string.Join(", ", conflictingIds);
+
+                diagnostics.Add(AtsDiagnostic.Warning(
+                    $"Method '{g.Key.MethodName}' has multiple definitions for target '{g.Key.Target}' ({conflictingIdsStr}) and will be skipped. Use [AspireExport(MethodName = \"uniqueName\")] to disambiguate.",
+                    g.Key.Target));
+
+                foreach (var id in conflictingIds)
+                {
+                    collidingCapabilityIds.Add(id);
+                }
+            }
+
+            // Remove all colliding capabilities
+            capabilities.RemoveAll(c => collidingCapabilityIds.Contains(c.CapabilityId));
         }
     }
 
@@ -399,7 +584,9 @@ internal static class AtsCapabilityScanner
             ClrTypeName = type.FullName,
             IsInterface = type.IsInterface,
             ImplementedInterfaces = implementedInterfaces,
-            BaseTypeHierarchy = baseTypeHierarchy
+            BaseTypeHierarchy = baseTypeHierarchy,
+            HasExposeProperties = HasExposePropertiesAttribute(type),
+            HasExposeMethods = HasExposeMethodsAttribute(type)
         };
     }
 
@@ -623,112 +810,152 @@ internal static class AtsCapabilityScanner
             }
         }
 
-        // Scan instance methods if ExposeMethods is true
-        if (exposeAllMethods)
+        // Scan instance methods (either via ExposeMethods=true or member-level [AspireExport])
+        // Create context type ref once for all methods
+        var instanceContextTypeRef = new AtsTypeRef
         {
-            // Create context type ref once for all methods
-            var instanceContextTypeRef = new AtsTypeRef
+            TypeId = typeId,
+            Category = AtsTypeCategory.Handle,
+            IsInterface = contextType.IsInterface
+        };
+
+        foreach (var method in contextType.GetMethods())
+        {
+            // Skip static methods, non-public, and special methods
+            if (method.IsStatic || !method.IsPublic)
             {
-                TypeId = typeId,
-                Category = AtsTypeCategory.Handle,
-                IsInterface = contextType.IsInterface
-            };
+                continue;
+            }
 
-            foreach (var method in contextType.GetMethods())
+            // Skip property accessors and special runtime methods
+            if (method.Name.StartsWith("get_") || method.Name.StartsWith("set_") ||
+                method.Name == "GetType" || method.Name == "ToString" ||
+                method.Name == "Equals" || method.Name == "GetHashCode")
             {
-                // Skip static methods, non-public, and special methods
-                if (method.IsStatic || !method.IsPublic)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                // Skip property accessors and special runtime methods
-                if (method.Name.StartsWith("get_") || method.Name.StartsWith("set_") ||
-                    method.Name == "GetType" || method.Name == "ToString" ||
-                    method.Name == "Equals" || method.Name == "GetHashCode")
-                {
-                    continue;
-                }
+            // Skip generic method definitions (methods with type parameters like Subscribe<T>)
+            // These can't be expressed in ATS since generic types are not supported
+            if (method.GetGenericArgumentFullNames().Any())
+            {
+                continue;
+            }
 
-                // Check for [AspireExportIgnore]
-                if (HasExportIgnoreAttribute(method))
-                {
-                    continue;
-                }
+            // Check for [AspireExportIgnore]
+            if (HasExportIgnoreAttribute(method))
+            {
+                continue;
+            }
 
-                // Wrap individual method processing in try/catch to capture member-level errors
-                try
+            // Check if method should be exported (either via ExposeMethods=true or member-level [AspireExport])
+            var memberExportAttr = GetAspireExportAttribute(method);
+            if (!exposeAllMethods && memberExportAttr == null)
+            {
+                continue;
+            }
+
+            // Wrap individual method processing in try/catch to capture member-level errors
+            try
+            {
+                // Get custom method name from attribute if specified
+                // The Id can be specified either as constructor argument [AspireExport("id")]
+                // or as named argument [AspireExport(Id = "id")]
+                var customMethodName = memberExportAttr?.FixedArguments.Count > 0
+                    ? memberExportAttr.FixedArguments[0] as string
+                    : (memberExportAttr?.NamedArguments.TryGetValue("Id", out var idObj) == true
+                        ? idObj as string
+                        : null);
+
+                // Generate method capability
+                // If explicit [AspireExport("id")] with custom Id, use that directly (like static exports)
+                // If auto-exposed via ExposeMethods=true, use TypeName.methodName pattern to avoid collisions
+                string methodCapabilityName;
+                string methodCapabilityId;
+
+                if (customMethodName != null)
                 {
-                    // Generate method capability
+                    // Explicit export - use the custom Id directly
+                    methodCapabilityName = customMethodName;
+                    methodCapabilityId = $"{package}/{customMethodName}";
+                }
+                else
+                {
+                    // Auto-exposed via ExposeMethods=true - use TypeName.methodName pattern
                     var camelCaseMethodName = ToCamelCase(method.Name);
-                    var methodCapabilityName = $"{typeName}.{camelCaseMethodName}";
-                    var methodCapabilityId = $"{package}/{methodCapabilityName}";
+                    methodCapabilityName = $"{typeName}.{camelCaseMethodName}";
+                    methodCapabilityId = $"{package}/{methodCapabilityName}";
+                }
 
-                    // Build parameters (first parameter is the context/instance)
-                    var paramInfos = new List<AtsParameterInfo>
+                // Build parameters (first parameter is the context/instance)
+                var paramInfos = new List<AtsParameterInfo>
+                {
+                    new AtsParameterInfo
                     {
-                        new AtsParameterInfo
-                        {
-                            Name = "context",
-                            Type = instanceContextTypeRef,
-                            IsOptional = false,
-                            IsNullable = false,
-                            IsCallback = false,
-                            DefaultValue = null
-                        }
-                    };
-
-                    var paramIndex = 0;
-                    var hasUnmappedRequiredParam = false;
-                    foreach (var param in method.GetParameters())
-                    {
-                        var paramInfo = CreateParameterInfo(param, paramIndex, typeMapping, typeResolver);
-                        if (paramInfo is null)
-                        {
-                            // Parameter type couldn't be mapped - skip if required
-                            if (!param.IsOptional)
-                            {
-                                hasUnmappedRequiredParam = true;
-                                break;
-                            }
-                            // Skip optional parameters with unmapped types
-                            continue;
-                        }
-                        paramInfos.Add(paramInfo);
-                        paramIndex++;
+                        Name = "context",
+                        Type = instanceContextTypeRef,
+                        IsOptional = false,
+                        IsNullable = false,
+                        IsCallback = false,
+                        DefaultValue = null
                     }
+                };
 
-                    // Skip capability if a required parameter couldn't be mapped
-                    if (hasUnmappedRequiredParam)
+                var paramIndex = 0;
+                var hasUnmappedRequiredParam = false;
+                foreach (var param in method.GetParameters())
+                {
+                    var paramInfo = CreateParameterInfo(param, paramIndex, typeMapping, typeResolver);
+                    if (paramInfo is null)
                     {
+                        // Parameter type couldn't be mapped - skip if required
+                        if (!param.IsOptional)
+                        {
+                            hasUnmappedRequiredParam = true;
+                            break;
+                        }
+                        // Skip optional parameters with unmapped types
                         continue;
                     }
-
-                    // Get return type
-                    var returnTypeRef = CreateTypeRef(method.ReturnType, typeMapping, typeResolver);
-
-                    capabilities.Add(new AtsCapabilityInfo
-                    {
-                        CapabilityId = methodCapabilityId,
-                        MethodName = methodCapabilityName,
-                        Package = package,
-                        Description = $"Invokes the {method.Name} method",
-                        Parameters = paramInfos,
-                        ReturnType = returnTypeRef,
-                        IsExtensionMethod = false,
-                        TargetTypeId = typeId,
-                        TargetType = instanceContextTypeRef,
-                        ReturnsBuilder = false,
-                        CapabilityKind = AtsCapabilityKind.InstanceMethod,
-                        OwningTypeName = typeName,
-                        SourceMethod = method
-                    });
+                    paramInfos.Add(paramInfo);
+                    paramIndex++;
                 }
-                catch (InvalidOperationException ex)
+
+                // Skip capability if a required parameter couldn't be mapped
+                if (hasUnmappedRequiredParam)
                 {
-                    // Method-level error - record diagnostic and continue with other methods
-                    diagnostics.Add(AtsDiagnostic.Error(ex.Message, $"{contextType.FullName}.{method.Name}"));
+                    continue;
                 }
+
+                // Get return type
+                var returnTypeRef = CreateTypeRef(method.ReturnType, typeMapping, typeResolver);
+
+                // Get description from attribute if specified
+                var description = memberExportAttr?.NamedArguments.TryGetValue("Description", out var descObj) == true
+                    ? descObj as string
+                    : $"Invokes the {method.Name} method";
+
+                capabilities.Add(new AtsCapabilityInfo
+                {
+                    CapabilityId = methodCapabilityId,
+                    MethodName = methodCapabilityName,
+                    Package = package,
+                    Description = description,
+                    Parameters = paramInfos,
+                    ReturnType = returnTypeRef,
+                    IsExtensionMethod = false,
+                    TargetTypeId = typeId,
+                    TargetType = instanceContextTypeRef,
+                    ReturnsBuilder = false,
+                    CapabilityKind = AtsCapabilityKind.InstanceMethod,
+                    OwningTypeName = typeName,
+                    SourceMethod = method
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Method-level error - record diagnostic and continue with other methods
+                diagnostics.Add(AtsDiagnostic.Error(ex.Message, $"{contextType.FullName}.{method.Name}"));
             }
         }
 
@@ -1667,8 +1894,14 @@ internal static class AtsCapabilityScanner
             };
         }
 
-        // No mapping found
-        return null;
+        // No mapping found - mark as Unknown for validation in Pass 2
+        // This allows us to collect all types during Pass 1 and validate them later
+        return new AtsTypeRef
+        {
+            TypeId = InferResourceTypeId(type) ?? type.FullName ?? "unknown",
+            Category = AtsTypeCategory.Unknown,
+            IsInterface = type.IsInterface
+        };
     }
 
     private static string? InferTypeId(string typeFullName)

@@ -15,8 +15,6 @@ import {
 } from './transport.js';
 
 import {
-    DistributedApplicationBuilderBase,
-    DistributedApplicationBase,
     ResourceBuilderBase,
     ReferenceExpression,
     refExpr,
@@ -51,9 +49,6 @@ type IResourceWithEnvironmentHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Appl
 
 /** Handle to ReferenceExpression */
 type ReferenceExpressionHandle = Handle<'Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression'>;
-
-/** Handle to DistributedApplication */
-type DistributedApplicationHandle = Handle<'Aspire.Hosting/Aspire.Hosting.DistributedApplication'>;
 
 /** Handle to IDistributedApplicationBuilder */
 type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder'>;
@@ -222,11 +217,17 @@ export class TestResourceContext {
     }
 
     /** Invokes the SetValueAsync method */
-    async setValueAsync(value: string): Promise<void> {
+    /** @internal */
+    async _setValueAsyncInternal(value: string): Promise<TestResourceContext> {
         await this._client.invokeCapability<void>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.setValueAsync',
             { context: this._handle, value }
         );
+        return this;
+    }
+
+    setValueAsync(value: string): TestResourceContextPromise {
+        return new TestResourceContextPromise(this._setValueAsyncInternal(value));
     }
 
     /** Invokes the ValidateAsync method */
@@ -234,6 +235,89 @@ export class TestResourceContext {
         return await this._client.invokeCapability<boolean>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.validateAsync',
             { context: this._handle }
+        );
+    }
+
+}
+
+/**
+ * Thenable wrapper for TestResourceContext that enables fluent chaining.
+ */
+export class TestResourceContextPromise implements PromiseLike<TestResourceContext> {
+    constructor(private _promise: Promise<TestResourceContext>) {}
+
+    then<TResult1 = TestResourceContext, TResult2 = never>(
+        onfulfilled?: ((value: TestResourceContext) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Invokes the GetValueAsync method */
+    getValueAsync(): Promise<string> {
+        return this._promise.then(obj => obj.getValueAsync());
+    }
+
+    /** Invokes the SetValueAsync method */
+    setValueAsync(value: string): TestResourceContextPromise {
+        return new TestResourceContextPromise(
+            this._promise.then(obj => obj._setValueAsyncInternal(value))
+        );
+    }
+
+    /** Invokes the ValidateAsync method */
+    validateAsync(): Promise<boolean> {
+        return this._promise.then(obj => obj.validateAsync());
+    }
+
+}
+
+// ============================================================================
+// DistributedApplicationBuilder
+// ============================================================================
+
+/**
+ * Type class for DistributedApplicationBuilder.
+ */
+export class DistributedApplicationBuilder {
+    constructor(private _handle: IDistributedApplicationBuilderHandle, private _client: AspireClientRpc) {}
+
+    /** Serialize for JSON-RPC transport */
+    toJSON(): MarshalledHandle { return this._handle.toJSON(); }
+
+    /** Adds a test Redis resource */
+    /** @internal */
+    async _addTestRedisInternal(name: string, port?: number): Promise<TestRedisResource> {
+        const result = await this._client.invokeCapability<TestRedisResourceHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis',
+            { builder: this._handle, name, port }
+        );
+        return new TestRedisResource(result, this._client);
+    }
+
+    addTestRedis(name: string, port?: number): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(this._addTestRedisInternal(name, port));
+    }
+
+}
+
+/**
+ * Thenable wrapper for DistributedApplicationBuilder that enables fluent chaining.
+ */
+export class DistributedApplicationBuilderPromise implements PromiseLike<DistributedApplicationBuilder> {
+    constructor(private _promise: Promise<DistributedApplicationBuilder>) {}
+
+    then<TResult1 = DistributedApplicationBuilder, TResult2 = never>(
+        onfulfilled?: ((value: DistributedApplicationBuilder) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Adds a test Redis resource */
+    addTestRedis(name: string, port?: number): TestRedisResourcePromise {
+        return new TestRedisResourcePromise(
+            this._promise.then(obj => obj._addTestRedisInternal(name, port))
         );
     }
 
@@ -253,18 +337,59 @@ export class ResourceWithConnectionString {
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
     /** Sets the connection string using a reference expression */
-    async withConnectionString(connectionString: ReferenceExpression): Promise<ResourceWithConnectionString> {
-        return await this._client.invokeCapability<ResourceWithConnectionString>(
+    /** @internal */
+    async _withConnectionStringInternal(connectionString: ReferenceExpression): Promise<ResourceWithConnectionString> {
+        const result = await this._client.invokeCapability<IResourceWithConnectionStringHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConnectionString',
-            { handle: this._handle, connectionString }
+            { builder: this._handle, connectionString }
+        );
+        return new ResourceWithConnectionString(result, this._client);
+    }
+
+    withConnectionString(connectionString: ReferenceExpression): ResourceWithConnectionStringPromise {
+        return new ResourceWithConnectionStringPromise(this._withConnectionStringInternal(connectionString));
+    }
+
+    /** Sets connection string using direct interface target */
+    /** @internal */
+    async _withConnectionStringDirectInternal(connectionString: string): Promise<ResourceWithConnectionString> {
+        const result = await this._client.invokeCapability<IResourceWithConnectionStringHandle>(
+            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConnectionStringDirect',
+            { builder: this._handle, connectionString }
+        );
+        return new ResourceWithConnectionString(result, this._client);
+    }
+
+    withConnectionStringDirect(connectionString: string): ResourceWithConnectionStringPromise {
+        return new ResourceWithConnectionStringPromise(this._withConnectionStringDirectInternal(connectionString));
+    }
+
+}
+
+/**
+ * Thenable wrapper for ResourceWithConnectionString that enables fluent chaining.
+ */
+export class ResourceWithConnectionStringPromise implements PromiseLike<ResourceWithConnectionString> {
+    constructor(private _promise: Promise<ResourceWithConnectionString>) {}
+
+    then<TResult1 = ResourceWithConnectionString, TResult2 = never>(
+        onfulfilled?: ((value: ResourceWithConnectionString) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2> {
+        return this._promise.then(onfulfilled, onrejected);
+    }
+
+    /** Sets the connection string using a reference expression */
+    withConnectionString(connectionString: ReferenceExpression): ResourceWithConnectionStringPromise {
+        return new ResourceWithConnectionStringPromise(
+            this._promise.then(obj => obj._withConnectionStringInternal(connectionString))
         );
     }
 
     /** Sets connection string using direct interface target */
-    async withConnectionStringDirect(connectionString: string): Promise<ResourceWithConnectionString> {
-        return await this._client.invokeCapability<ResourceWithConnectionString>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withConnectionStringDirect',
-            { handle: this._handle, connectionString }
+    withConnectionStringDirect(connectionString: string): ResourceWithConnectionStringPromise {
+        return new ResourceWithConnectionStringPromise(
+            this._promise.then(obj => obj._withConnectionStringDirectInternal(connectionString))
         );
     }
 
@@ -284,95 +409,67 @@ export class ResourceWithEnvironment {
     toJSON(): MarshalledHandle { return this._handle.toJSON(); }
 
     /** Configures environment with callback (test version) */
-    async testWithEnvironmentCallback(callback: (arg0: TestEnvironmentContext) => Promise<void>): Promise<ResourceWithEnvironment> {
-        return await this._client.invokeCapability<ResourceWithEnvironment>(
+    /** @internal */
+    async _testWithEnvironmentCallbackInternal(callback: (arg0: TestEnvironmentContext) => Promise<void>): Promise<ResourceWithEnvironment> {
+        const callbackId = registerCallback(async (arg0Data: unknown) => {
+            const arg0Handle = wrapIfHandle(arg0Data) as TestEnvironmentContextHandle;
+            const arg0 = new TestEnvironmentContext(arg0Handle, this._client);
+            await callback(arg0);
+        });
+        const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/testWithEnvironmentCallback',
-            { handle: this._handle, callback }
+            { builder: this._handle, callback: callbackId }
         );
+        return new ResourceWithEnvironment(result, this._client);
+    }
+
+    testWithEnvironmentCallback(callback: (arg0: TestEnvironmentContext) => Promise<void>): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._testWithEnvironmentCallbackInternal(callback));
     }
 
     /** Sets environment variables */
-    async withEnvironmentVariables(variables: Record<string, string>): Promise<ResourceWithEnvironment> {
-        return await this._client.invokeCapability<ResourceWithEnvironment>(
+    /** @internal */
+    async _withEnvironmentVariablesInternal(variables: Record<string, string>): Promise<ResourceWithEnvironment> {
+        const result = await this._client.invokeCapability<IResourceWithEnvironmentHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withEnvironmentVariables',
-            { handle: this._handle, variables }
+            { builder: this._handle, variables }
         );
+        return new ResourceWithEnvironment(result, this._client);
+    }
+
+    withEnvironmentVariables(variables: Record<string, string>): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(this._withEnvironmentVariablesInternal(variables));
     }
 
 }
 
-// ============================================================================
-// DistributedApplicationBuilder
-// ============================================================================
-
 /**
- * Represents a built distributed application ready to run.
+ * Thenable wrapper for ResourceWithEnvironment that enables fluent chaining.
  */
-export class DistributedApplication extends DistributedApplicationBase {
-    constructor(handle: DistributedApplicationHandle, client: AspireClientRpc) {
-        super(handle, client);
-    }
-}
+export class ResourceWithEnvironmentPromise implements PromiseLike<ResourceWithEnvironment> {
+    constructor(private _promise: Promise<ResourceWithEnvironment>) {}
 
-/**
- * Thenable wrapper for DistributedApplication enabling fluent chaining.
- * Allows: await builder.build().run()
- */
-export class DistributedApplicationPromise implements PromiseLike<DistributedApplication> {
-    constructor(private _promise: Promise<DistributedApplication>) {}
-
-    then<TResult1 = DistributedApplication, TResult2 = never>(
-        onfulfilled?: ((value: DistributedApplication) => TResult1 | PromiseLike<TResult1>) | null,
+    then<TResult1 = ResourceWithEnvironment, TResult2 = never>(
+        onfulfilled?: ((value: ResourceWithEnvironment) => TResult1 | PromiseLike<TResult1>) | null,
         onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
     ): PromiseLike<TResult1 | TResult2> {
         return this._promise.then(onfulfilled, onrejected);
     }
 
-    /**
-     * Runs the distributed application, starting all configured resources.
-     * Chains through the promise for fluent chaining: await builder.build().run()
-     */
-    run(): Promise<void> {
-        return this._promise.then(app => app.run());
-    }
-}
-
-/**
- * Builder for creating distributed applications.
- * Use createBuilder() to get an instance.
- */
-export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {
-    constructor(handle: IDistributedApplicationBuilderHandle, client: AspireClientRpc) {
-        super(handle, client);
-    }
-
-    /** @internal - actual async implementation */
-    async _buildInternal(): Promise<DistributedApplication> {
-        const handle = await this._client.invokeCapability<DistributedApplicationHandle>(
-            'Aspire.Hosting/build',
-            { builder: this._handle }
+    /** Configures environment with callback (test version) */
+    testWithEnvironmentCallback(callback: (arg0: TestEnvironmentContext) => Promise<void>): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(
+            this._promise.then(obj => obj._testWithEnvironmentCallbackInternal(callback))
         );
-        return new DistributedApplication(handle, this._client);
     }
 
-    /**
-     * Builds the distributed application from the configured builder.
-     * Returns a thenable for fluent chaining: await builder.build().run()
-     */
-    build(): DistributedApplicationPromise {
-        return new DistributedApplicationPromise(this._buildInternal());
+    /** Sets environment variables */
+    withEnvironmentVariables(variables: Record<string, string>): ResourceWithEnvironmentPromise {
+        return new ResourceWithEnvironmentPromise(
+            this._promise.then(obj => obj._withEnvironmentVariablesInternal(variables))
+        );
     }
 
-    /**
-     * Adds a test Redis resource
-     */
-    addTestRedis(name: string, port?: number): TestRedisResourcePromise {
-        const promise = this._client.invokeCapability<TestRedisResourceHandle>(
-            'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis',
-            { builder: this._handle, name, port }
-        ).then(handle => new TestRedisResource(handle, this._client));
-        return new TestRedisResourcePromise(promise);
-    }
 }
 
 // ============================================================================
@@ -1151,6 +1248,7 @@ process.on('uncaughtException', (error: Error) => {
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestCallbackContext', (handle, client) => new TestCallbackContext(handle as TestCallbackContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestEnvironmentContext', (handle, client) => new TestEnvironmentContext(handle as TestEnvironmentContextHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestResourceContext', (handle, client) => new TestResourceContext(handle as TestResourceContextHandle, client));
+registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder', (handle, client) => new DistributedApplicationBuilder(handle as IDistributedApplicationBuilderHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithConnectionString', (handle, client) => new ResourceWithConnectionString(handle as IResourceWithConnectionStringHandle, client));
 registerHandleWrapper('Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceWithEnvironment', (handle, client) => new ResourceWithEnvironment(handle as IResourceWithEnvironmentHandle, client));
 registerHandleWrapper('Aspire.Hosting.CodeGeneration.TypeScript.Tests/Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestRedisResource', (handle, client) => new TestRedisResource(handle as TestRedisResourceHandle, client));

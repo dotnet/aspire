@@ -52,7 +52,14 @@ internal enum AtsTypeCategory
     /// Union types that can hold one of multiple alternative types.
     /// Serialization depends on the member types.
     /// </summary>
-    Union
+    Union,
+
+    /// <summary>
+    /// Unknown types that couldn't be resolved during the first pass of scanning.
+    /// In Pass 2, these are either resolved to Handle (if the type is in the universe)
+    /// or filtered out (if the type is not a valid ATS type).
+    /// </summary>
+    Unknown
 }
 
 /// <summary>

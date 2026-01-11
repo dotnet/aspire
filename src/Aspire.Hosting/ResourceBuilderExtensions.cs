@@ -522,6 +522,7 @@ public static class ResourceBuilderExtensions
     /// <param name="optional"><see langword="true"/> to allow a missing connection string; <see langword="false"/> to throw an exception if the connection string is not found.</param>
     /// <exception cref="DistributedApplicationException">Throws an exception if the connection string resolves to null. It can be null if the resource has no connection string, and if the configuration has no connection string for the source resource.</exception>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [AspireExport("withReference", Description = "Adds a reference to another resource")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
         where TDestination : IResourceWithEnvironment
     {
@@ -1054,6 +1055,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The the resource builder.</param>
     /// <param name="name">The name of the endpoint.</param>
     /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
+    [AspireExport("getEndpoint", Description = "Gets an endpoint reference")]
     public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string name) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);

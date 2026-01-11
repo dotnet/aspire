@@ -35,42 +35,8 @@ namespace Aspire.Hosting.Ats;
 /// </remarks>
 internal static class BuilderExports
 {
-    #region Builder Properties
-
-    /// <summary>
-    /// Gets the configuration from the builder.
-    /// </summary>
-    /// <param name="builder">The builder handle.</param>
-    /// <returns>A handle to the <see cref="IConfiguration"/>.</returns>
-    [AspireExport("getConfiguration", Description = "Gets the configuration from the builder")]
-    public static IConfiguration GetConfiguration(IDistributedApplicationBuilder builder)
-    {
-        return builder.Configuration;
-    }
-
-    /// <summary>
-    /// Gets the host environment from the builder.
-    /// </summary>
-    /// <param name="builder">The builder handle.</param>
-    /// <returns>A handle to the <see cref="IHostEnvironment"/>.</returns>
-    [AspireExport("getEnvironment", Description = "Gets the host environment from the builder")]
-    public static IHostEnvironment GetEnvironment(IDistributedApplicationBuilder builder)
-    {
-        return builder.Environment;
-    }
-
-    /// <summary>
-    /// Gets the app host directory.
-    /// </summary>
-    /// <param name="builder">The builder handle.</param>
-    /// <returns>The directory path containing the app host.</returns>
-    [AspireExport("getAppHostDirectory", Description = "Gets the app host directory")]
-    public static string GetAppHostDirectory(IDistributedApplicationBuilder builder)
-    {
-        return builder.AppHostDirectory;
-    }
-
-    #endregion
+    // Note: Configuration, Environment, AppHostDirectory, and ExecutionContext are accessed via property getters
+    // on IDistributedApplicationBuilder which has [AspireExport(ExposeProperties = true)].
 
     #region Configuration
 

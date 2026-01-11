@@ -731,23 +731,20 @@ public class AtsTypeScriptCodeGeneratorTests
     [Fact]
     public void BugFix_TargetParameterName_IsPopulatedFromMethodSignature()
     {
-        // Bug: The code generator hardcoded "builder" as the target parameter name,
-        // but methods like withReference use "resource" as the first parameter name.
-        // This caused runtime errors: "Missing required argument 'resource'"
-        //
-        // Fix: Added TargetParameterName field to AtsCapabilityInfo and populate it
-        // from the actual method signature's first parameter name.
+        // Verify that TargetParameterName is populated from the actual method signature
+        // so the code generator uses the correct parameter name when invoking capabilities.
         using var context = new AssemblyLoaderContext();
         var (hostingAssembly, wellKnownTypes, _, typeMapping) = LoadTestAssemblies(context);
 
         var capabilities = AtsCapabilityScannerExtensions.ScanAssembly(hostingAssembly, typeMapping);
 
-        // Find withReference - its first parameter is named "resource" (not "builder")
+        // Find withReference - now on the original ResourceBuilderExtensions.WithReference
+        // which uses "builder" as the first parameter name
         var withReference = capabilities
             .FirstOrDefault(c => c.CapabilityId == "Aspire.Hosting/withReference");
 
         Assert.NotNull(withReference);
-        Assert.Equal("resource", withReference.TargetParameterName);
+        Assert.Equal("builder", withReference.TargetParameterName);
 
         // Verify other capabilities have the expected parameter names
         var addContainer = capabilities

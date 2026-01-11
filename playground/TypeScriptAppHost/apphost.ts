@@ -8,6 +8,9 @@ console.log("Aspire TypeScript AppHost starting...\n");
 
 // Create the distributed application builder
 const builder = await createBuilder();
+
+var ec = await builder.executionContext.get();
+
 console.log("Created builder");
 
 // Add resources using fluent chaining

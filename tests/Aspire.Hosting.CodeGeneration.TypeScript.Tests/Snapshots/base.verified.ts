@@ -7,14 +7,6 @@ export type { MarshalledHandle, AtsError, AtsErrorDetails, CallbackFunction } fr
 export { AtsErrorCodes, isMarshalledHandle, isAtsError, wrapIfHandle } from './transport.js';
 
 // ============================================================================
-// Handle Type Aliases (Internal - used by base classes)
-// ============================================================================
-
-// Internal handle types - not exported to users (users work with wrapper classes)
-type BuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder'>;
-type ApplicationHandle = Handle<'Aspire.Hosting/Aspire.Hosting.DistributedApplication'>;
-
-// ============================================================================
 // Reference Expression
 // ============================================================================
 
@@ -163,34 +155,6 @@ function extractHandleForExpr(value: unknown): unknown {
  */
 export function refExpr(strings: TemplateStringsArray, ...values: unknown[]): ReferenceExpression {
     return ReferenceExpression.create(strings, ...values);
-}
-
-// ============================================================================
-// DistributedApplicationBase
-// ============================================================================
-
-/**
- * Base class for DistributedApplication.
- * Provides the run() method and handle management.
- */
-export class DistributedApplicationBase {
-    constructor(protected _handle: ApplicationHandle, protected _client: AspireClient) {}
-
-    async run(): Promise<void> {
-        await this._client.invokeCapability('Aspire.Hosting/run', { app: this._handle });
-    }
-}
-
-// ============================================================================
-// DistributedApplicationBuilderBase
-// ============================================================================
-
-/**
- * Base class for DistributedApplicationBuilder.
- * Provides handle management. The build() method is generated.
- */
-export class DistributedApplicationBuilderBase {
-    constructor(protected _handle: BuilderHandle, protected _client: AspireClient) {}
 }
 
 // ============================================================================

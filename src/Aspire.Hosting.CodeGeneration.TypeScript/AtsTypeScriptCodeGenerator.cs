@@ -103,9 +103,9 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     // Used to resolve parameter types to wrapper classes instead of handle types
     private readonly Dictionary<string, string> _wrapperClassNames = new(StringComparer.Ordinal);
 
-    // Well-known type IDs - use AtsConstants for canonical values
-    private const string TypeId_Builder = AtsConstants.BuilderTypeId;
-    private const string TypeId_Application = AtsConstants.ApplicationTypeId;
+    // Set of type IDs that have Promise wrappers (types with chainable methods)
+    // Used to determine return types for methods
+    private readonly HashSet<string> _typesWithPromiseWrappers = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Checks if an AtsTypeRef represents a handle type.
@@ -142,7 +142,8 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 ? $"Record<{MapTypeRefToTypeScript(typeRef.KeyType)}, {MapTypeRefToTypeScript(typeRef.ValueType)}>"
                 : $"AspireDict<{MapTypeRefToTypeScript(typeRef.KeyType)}, {MapTypeRefToTypeScript(typeRef.ValueType)}>",
             AtsTypeCategory.Union => MapUnionTypeToTypeScript(typeRef),
-            _ => typeRef.TypeId  // Fallback
+            AtsTypeCategory.Unknown => "any",  // Unknown types use 'any' since they're not in the ATS universe
+            _ => "any"  // Fallback for any unhandled categories
         };
     }
 
@@ -311,8 +312,6 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             } from './transport.js';
 
             import {
-                DistributedApplicationBuilderBase,
-                DistributedApplicationBase,
                 ResourceBuilderBase,
                 ReferenceExpression,
                 refExpr,
@@ -326,15 +325,8 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var allBuilders = CreateBuilderModels(capabilities);
         var entryPoints = GetEntryPointCapabilities(capabilities);
 
-        // Extract the DistributedApplicationBuilder's capabilities
-        var distributedAppBuilder = allBuilders.FirstOrDefault(b => b.TypeId == TypeId_Builder);
-        var builderMethods = distributedAppBuilder?.Capabilities ?? [];
-
-        // Resource builders are all other builders (not the main builder or application)
-        var builders = allBuilders
-            .Where(b => b.TypeId != TypeId_Builder &&
-                        b.TypeId != TypeId_Application)
-            .ToList();
+        // All builders (no special filtering)
+        var builders = allBuilders;
 
         // Entry point methods that don't extend any type go on AspireClient
         var clientMethods = entryPoints
@@ -374,10 +366,6 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             }
         }
 
-        // Add core type IDs (these are always needed even if no capabilities target them)
-        typeIds.Add(TypeId_Builder);
-        typeIds.Add(TypeId_Application);
-
         // Generate handle type aliases
         GenerateHandleTypeAliases(typeIds);
 
@@ -390,13 +378,22 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Build wrapper class name mapping for type resolution
         // This allows parameter types to use wrapper class names instead of handle types
         _wrapperClassNames.Clear();
+        _typesWithPromiseWrappers.Clear();
+
         foreach (var builder in resourceBuilders)
         {
             _wrapperClassNames[builder.TypeId] = builder.BuilderClassName;
+            // All resource builders get Promise wrappers
+            _typesWithPromiseWrappers.Add(builder.TypeId);
         }
         foreach (var typeClass in typeClasses)
         {
             _wrapperClassNames[typeClass.TypeId] = DeriveClassName(typeClass.TypeId);
+            // Type classes with methods get Promise wrappers
+            if (HasChainableMethods(typeClass))
+            {
+                _typesWithPromiseWrappers.Add(typeClass.TypeId);
+            }
         }
         // Add ReferenceExpression (defined in base.ts, not generated)
         _wrapperClassNames[AtsConstants.ReferenceExpressionTypeId] = "ReferenceExpression";
@@ -407,9 +404,6 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             GenerateTypeClass(typeClass);
         }
 
-        // Generate DistributedApplicationBuilder class
-        GenerateDistributedApplicationBuilder(builderMethods, resourceBuilders, typeClasses);
-
         // Generate resource builder classes
         foreach (var builder in resourceBuilders)
         {
@@ -417,7 +411,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         }
 
         // Generate AspireClient with remaining entry point methods
-        GenerateAspireClient(clientMethods, builders);
+        GenerateAspireClient(clientMethods);
 
         // Generate connection helper
         GenerateConnectionHelper();
@@ -470,232 +464,6 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     {
         var typeName = ExtractSimpleTypeName(typeId);
         return $"Handle to {typeName}";
-    }
-
-    private void GenerateDistributedApplicationBuilder(List<AtsCapabilityInfo> methods, List<BuilderModel> resourceBuilders, List<BuilderModel> typeClasses)
-    {
-        WriteLine("// ============================================================================");
-        WriteLine("// DistributedApplicationBuilder");
-        WriteLine("// ============================================================================");
-        WriteLine();
-
-        // First generate DistributedApplication class for build() return type
-        var applicationHandle = GetHandleTypeName(TypeId_Application);
-        var builderHandle = GetHandleTypeName(TypeId_Builder);
-
-        WriteLine($$"""
-            /**
-             * Represents a built distributed application ready to run.
-             */
-            export class DistributedApplication extends DistributedApplicationBase {
-                constructor(handle: {{applicationHandle}}, client: AspireClientRpc) {
-                    super(handle, client);
-                }
-            }
-
-            /**
-             * Thenable wrapper for DistributedApplication enabling fluent chaining.
-             * Allows: await builder.build().run()
-             */
-            export class DistributedApplicationPromise implements PromiseLike<DistributedApplication> {
-                constructor(private _promise: Promise<DistributedApplication>) {}
-
-                then<TResult1 = DistributedApplication, TResult2 = never>(
-                    onfulfilled?: ((value: DistributedApplication) => TResult1 | PromiseLike<TResult1>) | null,
-                    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-                ): PromiseLike<TResult1 | TResult2> {
-                    return this._promise.then(onfulfilled, onrejected);
-                }
-
-                /**
-                 * Runs the distributed application, starting all configured resources.
-                 * Chains through the promise for fluent chaining: await builder.build().run()
-                 */
-                run(): Promise<void> {
-                    return this._promise.then(app => app.run());
-                }
-            }
-            """);
-        WriteLine();
-
-        // Now generate DistributedApplicationBuilder
-        WriteLine($$"""
-            /**
-             * Builder for creating distributed applications.
-             * Use createBuilder() to get an instance.
-             */
-            export class DistributedApplicationBuilder extends DistributedApplicationBuilderBase {
-                constructor(handle: {{builderHandle}}, client: AspireClientRpc) {
-                    super(handle, client);
-                }
-
-                /** @internal - actual async implementation */
-                async _buildInternal(): Promise<DistributedApplication> {
-                    const handle = await this._client.invokeCapability<{{applicationHandle}}>(
-                        '{{AtsConstants.BuildCapability}}',
-                        { builder: this._handle }
-                    );
-                    return new DistributedApplication(handle, this._client);
-                }
-
-                /**
-                 * Builds the distributed application from the configured builder.
-                 * Returns a thenable for fluent chaining: await builder.build().run()
-                 */
-                build(): DistributedApplicationPromise {
-                    return new DistributedApplicationPromise(this._buildInternal());
-                }
-            """);
-
-        // Separate methods into:
-        // - Property getters (return wrapper types like Configuration, Environment)
-        // - Factory methods (return resource builders)
-        // - Other methods (return void or primitives)
-        var propertyMethods = methods
-            .Where(m => !string.IsNullOrEmpty(GetReturnTypeId(m)) &&
-                        _wrapperClassNames.ContainsKey(GetReturnTypeId(m)!) &&
-                        m.Parameters.Count == 0)  // Property getters have no additional params
-            .ToList();
-
-        // Exclude methods that are already hardcoded in the template (build) or in base class (run)
-        var excludedMethods = new HashSet<string> { "build", "run" };
-        var otherMethods = methods
-            .Except(propertyMethods)
-            .Where(m => !excludedMethods.Contains(m.MethodName))
-            .ToList();
-
-        // Generate property-style getters for wrapper types
-        foreach (var capability in propertyMethods)
-        {
-            GenerateBuilderPropertyGetter(capability);
-        }
-
-        // Generate methods that extend IDistributedApplicationBuilder
-        foreach (var capability in otherMethods)
-        {
-            GenerateDistributedApplicationBuilderMethod(capability, resourceBuilders, typeClasses);
-        }
-
-        WriteLine("}");
-        WriteLine();
-    }
-
-    private void GenerateBuilderPropertyGetter(AtsCapabilityInfo capability)
-    {
-        var returnTypeId = GetReturnTypeId(capability)!;
-        var wrapperClassName = DeriveClassName(returnTypeId);
-        var handleType = GetHandleTypeName(returnTypeId);
-        var targetParamName = capability.TargetParameterName ?? "builder";
-
-        // Derive property name from method name (getConfiguration -> configuration)
-        var propertyName = capability.MethodName;
-        if (propertyName.StartsWith("get", StringComparison.Ordinal) && propertyName.Length > 3)
-        {
-            propertyName = char.ToLowerInvariant(propertyName[3]) + propertyName[4..];
-        }
-
-        WriteLine();
-        if (!string.IsNullOrEmpty(capability.Description))
-        {
-            WriteLine($"    /** {capability.Description} */");
-        }
-
-        // Generate property-style getter returning a Promise<WrapperClass>
-        WriteLine($"    get {propertyName}(): Promise<{wrapperClassName}> {{");
-        WriteLine($"        return this._client.invokeCapability<{handleType}>(");
-        WriteLine($"            '{capability.CapabilityId}',");
-        WriteLine($"            {{ {targetParamName}: this._handle }}");
-        WriteLine($"        ).then(handle => new {wrapperClassName}(handle, this._client));");
-        WriteLine("    }");
-    }
-
-    private void GenerateDistributedApplicationBuilderMethod(AtsCapabilityInfo capability, List<BuilderModel> resourceBuilders, List<BuilderModel> typeClasses)
-    {
-        var methodName = capability.MethodName;
-        var targetParamName = capability.TargetParameterName ?? "builder";
-
-        // Build parameter list (target param is implicit via this._handle)
-        var paramDefs = new List<string>();
-        var paramArgs = new List<string> { $"{targetParamName}: this._handle" };
-
-        foreach (var param in capability.Parameters)
-        {
-            var tsType = MapParameterToTypeScript(param);
-            var optional = param.IsOptional || param.IsNullable ? "?" : "";
-            paramDefs.Add($"{param.Name}{optional}: {tsType}");
-            paramArgs.Add(param.Name);
-        }
-
-        var paramsString = string.Join(", ", paramDefs);
-        var argsObject = $"{{ {string.Join(", ", paramArgs)} }}";
-
-        // Check if return type is a wrapper type (context types, etc.)
-        var returnTypeId = GetReturnTypeId(capability);
-        BuilderModel? wrapperInfo = null;
-        if (!string.IsNullOrEmpty(returnTypeId) && _wrapperClassNames.ContainsKey(returnTypeId))
-        {
-            wrapperInfo = typeClasses.FirstOrDefault(w => w.TypeId == returnTypeId);
-        }
-
-        // Determine return type for resource builders (including interface types)
-        // This handles both concrete types (RedisResource) and interface types (IResourceWithConnectionString)
-        BuilderModel? builderInfo = null;
-        if (wrapperInfo == null && !string.IsNullOrEmpty(returnTypeId) && capability.ReturnsBuilder)
-        {
-            // First try concrete builders, then interface builders
-            builderInfo = resourceBuilders.FirstOrDefault(b => b.TypeId == returnTypeId && !b.IsInterface)
-                       ?? resourceBuilders.FirstOrDefault(b => b.TypeId == returnTypeId && b.IsInterface);
-        }
-
-        // Generate JSDoc
-        WriteLine();
-        if (!string.IsNullOrEmpty(capability.Description))
-        {
-            WriteLine($"    /**");
-            WriteLine($"     * {capability.Description}");
-            WriteLine($"     */");
-        }
-
-        // Generate method
-        if (builderInfo != null)
-        {
-            // Returns a resource builder promise
-            var handleType = GetHandleTypeName(returnTypeId!);
-            Write($"    {methodName}(");
-            Write(paramsString);
-            WriteLine($"): {builderInfo.BuilderClassName}Promise {{");
-            WriteLine($"        const promise = this._client.invokeCapability<{handleType}>(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            {argsObject}");
-            WriteLine($"        ).then(handle => new {builderInfo.BuilderClassName}(handle, this._client));");
-            WriteLine($"        return new {builderInfo.BuilderClassName}Promise(promise);");
-            WriteLine("    }");
-        }
-        else if (!string.IsNullOrEmpty(returnTypeId))
-        {
-            // Returns raw handle or value
-            var returnType = MapTypeRefToTypeScript(capability.ReturnType);
-            Write($"    async {methodName}(");
-            Write(paramsString);
-            WriteLine($"): Promise<{returnType}> {{");
-            WriteLine($"        return await this._client.invokeCapability<{returnType}>(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            {argsObject}");
-            WriteLine("        );");
-            WriteLine("    }");
-        }
-        else
-        {
-            // Returns void
-            Write($"    async {methodName}(");
-            Write(paramsString);
-            WriteLine("): Promise<void> {");
-            WriteLine($"        await this._client.invokeCapability<void>(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            {argsObject}");
-            WriteLine("        );");
-            WriteLine("    }");
-        }
     }
 
     private void GenerateBuilderClass(BuilderModel builder)
@@ -944,7 +712,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine();
     }
 
-    private void GenerateAspireClient(List<AtsCapabilityInfo> entryPoints, List<BuilderModel> builders)
+    private void GenerateAspireClient(List<AtsCapabilityInfo> entryPoints)
     {
         // Entry point methods (capabilities with no TargetTypeId) are generated as standalone functions
         // They're generated in GenerateConnectionHelper after the createBuilder() function
@@ -958,12 +726,12 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
             foreach (var capability in entryPoints)
             {
-                GenerateEntryPointFunction(capability, builders);
+                GenerateEntryPointFunction(capability);
             }
         }
     }
 
-    private void GenerateEntryPointFunction(AtsCapabilityInfo capability, List<BuilderModel> builders)
+    private void GenerateEntryPointFunction(AtsCapabilityInfo capability)
     {
         var methodName = capability.MethodName;
 
@@ -984,34 +752,9 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             ? $"{{ {string.Join(", ", paramArgs)} }}"
             : "{}";
 
-        // Determine return type
+        // Determine return type - check if return type has a Promise wrapper
         var capReturnTypeId = GetReturnTypeId(capability);
-        string returnType;
-        BuilderModel? builderInfo = null;
-
-        if (!string.IsNullOrEmpty(capReturnTypeId))
-        {
-            if (capability.ReturnsBuilder)
-            {
-                builderInfo = builders.FirstOrDefault(b => b.TypeId == capReturnTypeId && !b.IsInterface);
-                if (builderInfo != null)
-                {
-                    returnType = $"{builderInfo.BuilderClassName}Promise";
-                }
-                else
-                {
-                    returnType = GetHandleTypeName(capReturnTypeId);
-                }
-            }
-            else
-            {
-                returnType = MapTypeRefToTypeScript(capability.ReturnType);
-            }
-        }
-        else
-        {
-            returnType = "void";
-        }
+        var returnPromiseWrapper = GetPromiseWrapperForReturnType(capability.ReturnType);
 
         // Generate JSDoc
         if (!string.IsNullOrEmpty(capability.Description))
@@ -1021,24 +764,31 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             WriteLine($" */");
         }
 
-        // Generate function
-        if (builderInfo != null)
+        // Generate function based on return type
+        if (returnPromiseWrapper != null && !string.IsNullOrEmpty(capReturnTypeId))
         {
-            // Returns a thenable wrapper
-            var handleType = GetHandleTypeName(capReturnTypeId!);
+            // Return type has Promise wrapper - generate fluent function
+            var returnWrapperClass = _wrapperClassNames.GetValueOrDefault(capReturnTypeId)
+                ?? DeriveClassName(capReturnTypeId);
+            var handleType = GetHandleTypeName(capReturnTypeId);
+
             Write($"export function {methodName}(");
             Write(paramsString);
-            WriteLine($"): {returnType} {{");
+            WriteLine($"): {returnPromiseWrapper} {{");
             WriteLine($"    const promise = client.invokeCapability<{handleType}>(");
             WriteLine($"        '{capability.CapabilityId}',");
             WriteLine($"        {argsObject}");
-            WriteLine($"    ).then(handle => new {builderInfo.BuilderClassName}(handle, client));");
-            WriteLine($"    return new {builderInfo.BuilderClassName}Promise(promise);");
+            WriteLine($"    ).then(handle => new {returnWrapperClass}(handle, client));");
+            WriteLine($"    return new {returnPromiseWrapper}(promise);");
             WriteLine("}");
         }
         else
         {
-            // Returns raw value
+            // No Promise wrapper - return plain value
+            var returnType = !string.IsNullOrEmpty(capReturnTypeId)
+                ? MapTypeRefToTypeScript(capability.ReturnType)
+                : "void";
+
             Write($"export async function {methodName}(");
             Write(paramsString);
             WriteLine($"): Promise<{returnType}> {{");
@@ -1197,7 +947,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
     private void GenerateConnectionHelper()
     {
-        var builderHandle = GetHandleTypeName(TypeId_Builder);
+        var builderHandle = GetHandleTypeName(AtsConstants.BuilderTypeId);
 
         WriteLine($$"""
             // ============================================================================
@@ -1342,11 +1092,13 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates a type class (context type or wrapper type).
     /// Uses property-like object pattern for exposed properties.
+    /// For types with methods, also generates a Promise wrapper class for fluent chaining.
     /// </summary>
     private void GenerateTypeClass(BuilderModel model)
     {
         var handleType = GetHandleTypeName(model.TypeId);
         var className = DeriveClassName(model.TypeId);
+        var hasMethods = HasChainableMethods(model);
 
         WriteLine("// ============================================================================");
         WriteLine($"// {className}");
@@ -1358,6 +1110,9 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var setters = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.PropertySetter).ToList();
         var contextMethods = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.InstanceMethod).ToList();
         var otherMethods = model.Capabilities.Where(c => c.CapabilityKind == AtsCapabilityKind.Method).ToList();
+
+        // Combine methods for thenable generation
+        var allMethods = contextMethods.Concat(otherMethods).ToList();
 
         WriteLine($"/**");
         WriteLine($" * Type class for {className}.");
@@ -1378,20 +1133,35 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             GeneratePropertyLikeObject(prop.PropertyName, prop.Getter, prop.Setter);
         }
 
-        // Generate context methods (instance methods from ExposeMethods=true)
-        foreach (var method in contextMethods)
+        // Generate methods - use thenable pattern if this type has a Promise wrapper
+        if (hasMethods)
         {
-            GenerateContextMethod(method);
+            foreach (var method in allMethods)
+            {
+                GenerateTypeClassMethod(model, method);
+            }
         }
-
-        // Generate other methods (wrapper-style)
-        foreach (var method in otherMethods)
+        else
         {
-            GenerateWrapperMethod(method);
+            // No Promise wrapper - generate plain async methods
+            foreach (var method in contextMethods)
+            {
+                GenerateContextMethod(method);
+            }
+            foreach (var method in otherMethods)
+            {
+                GenerateWrapperMethod(method);
+            }
         }
 
         WriteLine("}");
         WriteLine();
+
+        // Generate thenable wrapper class if this type has methods
+        if (hasMethods)
+        {
+            GenerateTypeClassThenableWrapper(model, allMethods);
+        }
     }
 
     /// <summary>
@@ -1608,11 +1378,12 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             ? method.MethodName[(method.MethodName.LastIndexOf('.') + 1)..]
             : method.MethodName;
 
-        // Build parameter list (skip "context" parameter which is implicit)
+        // Build parameter list (skip target parameter which is implicit)
+        var targetParamName = method.TargetParameterName ?? "context";
         var paramDefs = new List<string>();
-        var paramArgs = new List<string> { "context: this._handle" };
+        var paramArgs = new List<string> { $"{targetParamName}: this._handle" };
 
-        foreach (var param in method.Parameters.Where(p => p.Name != "context"))
+        foreach (var param in method.Parameters.Where(p => p.Name != targetParamName))
         {
             var tsType = MapParameterToTypeScript(param);
             var optional = param.IsOptional || param.IsNullable ? "?" : "";
@@ -1714,6 +1485,247 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         WriteLine($"            {argsObject}");
         WriteLine("        );");
         WriteLine("    }");
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Generates a method on a type class using the thenable pattern.
+    /// Generates both an internal async method and a public fluent method.
+    /// </summary>
+    private void GenerateTypeClassMethod(BuilderModel model, AtsCapabilityInfo capability)
+    {
+        var className = DeriveClassName(model.TypeId);
+        var promiseClass = $"{className}Promise";
+
+        // Use OwningTypeName if available to extract method name, otherwise parse from MethodName
+        var methodName = !string.IsNullOrEmpty(capability.OwningTypeName) && capability.MethodName.Contains('.')
+            ? capability.MethodName[(capability.MethodName.LastIndexOf('.') + 1)..]
+            : GetTypeScriptMethodName(capability.MethodName);
+
+        var internalMethodName = $"_{methodName}Internal";
+
+        // Build parameter list (skip target parameter which is implicit for type class methods)
+        var targetParamName = capability.TargetParameterName ?? "context";
+        var paramDefs = new List<string>();
+        var paramArgs = new List<string> { $"{targetParamName}: this._handle" };
+
+        foreach (var param in capability.Parameters.Where(p => p.Name != targetParamName))
+        {
+            var tsType = MapParameterToTypeScript(param);
+            var optional = param.IsOptional || param.IsNullable ? "?" : "";
+            paramDefs.Add($"{param.Name}{optional}: {tsType}");
+
+            if (param.IsCallback)
+            {
+                paramArgs.Add($"callback: {param.Name}Id");
+            }
+            else
+            {
+                paramArgs.Add(param.Name);
+            }
+        }
+
+        var paramsString = string.Join(", ", paramDefs);
+        var argsObject = $"{{ {string.Join(", ", paramArgs)} }}";
+
+        // Check if return type has a Promise wrapper
+        var returnPromiseWrapper = GetPromiseWrapperForReturnType(capability.ReturnType);
+        var returnType = MapTypeRefToTypeScript(capability.ReturnType);
+        var isVoid = capability.ReturnType == null || capability.ReturnType.TypeId == AtsConstants.Void;
+
+        // Generate JSDoc
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"    /** {capability.Description} */");
+        }
+
+        // If return type has a Promise wrapper, generate internal + fluent pattern
+        if (returnPromiseWrapper != null)
+        {
+            var returnWrapperClass = _wrapperClassNames.GetValueOrDefault(capability.ReturnType!.TypeId)
+                ?? DeriveClassName(capability.ReturnType.TypeId);
+            var returnHandleType = GetHandleTypeName(capability.ReturnType.TypeId);
+
+            // Generate internal async method
+            WriteLine($"    /** @internal */");
+            Write($"    async {internalMethodName}(");
+            Write(paramsString);
+            WriteLine($"): Promise<{returnWrapperClass}> {{");
+
+            // Handle callback registration if any
+            foreach (var callbackParam in capability.Parameters.Where(p => p.IsCallback))
+            {
+                GenerateCallbackRegistration(callbackParam);
+            }
+
+            WriteLine($"        const result = await this._client.invokeCapability<{returnHandleType}>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            {argsObject}");
+            WriteLine("        );");
+            WriteLine($"        return new {returnWrapperClass}(result, this._client);");
+            WriteLine("    }");
+            WriteLine();
+
+            // Generate public fluent method that returns thenable wrapper
+            Write($"    {methodName}(");
+            Write(paramsString);
+            WriteLine($"): {returnPromiseWrapper} {{");
+            Write($"        return new {returnPromiseWrapper}(this.{internalMethodName}(");
+            Write(string.Join(", ", capability.Parameters.Where(p => p.Name != targetParamName).Select(p => p.Name)));
+            WriteLine("));");
+            WriteLine("    }");
+        }
+        else if (isVoid)
+        {
+            // Void return - generate internal + fluent returning this type's Promise wrapper
+            // Generate internal async method
+            WriteLine($"    /** @internal */");
+            Write($"    async {internalMethodName}(");
+            Write(paramsString);
+            WriteLine($"): Promise<{className}> {{");
+
+            // Handle callback registration if any
+            foreach (var callbackParam in capability.Parameters.Where(p => p.IsCallback))
+            {
+                GenerateCallbackRegistration(callbackParam);
+            }
+
+            WriteLine($"        await this._client.invokeCapability<void>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            {argsObject}");
+            WriteLine("        );");
+            WriteLine($"        return this;");
+            WriteLine("    }");
+            WriteLine();
+
+            // Generate public fluent method
+            Write($"    {methodName}(");
+            Write(paramsString);
+            WriteLine($"): {promiseClass} {{");
+            Write($"        return new {promiseClass}(this.{internalMethodName}(");
+            Write(string.Join(", ", capability.Parameters.Where(p => p.Name != targetParamName).Select(p => p.Name)));
+            WriteLine("));");
+            WriteLine("    }");
+        }
+        else
+        {
+            // Non-void, non-wrapper return - plain async method
+            Write($"    async {methodName}(");
+            Write(paramsString);
+            WriteLine($"): Promise<{returnType}> {{");
+
+            // Handle callback registration if any
+            foreach (var callbackParam in capability.Parameters.Where(p => p.IsCallback))
+            {
+                GenerateCallbackRegistration(callbackParam);
+            }
+
+            WriteLine($"        return await this._client.invokeCapability<{returnType}>(");
+            WriteLine($"            '{capability.CapabilityId}',");
+            WriteLine($"            {argsObject}");
+            WriteLine("        );");
+            WriteLine("    }");
+        }
+        WriteLine();
+    }
+
+    /// <summary>
+    /// Generates a thenable wrapper class for a type class.
+    /// </summary>
+    private void GenerateTypeClassThenableWrapper(BuilderModel model, List<AtsCapabilityInfo> methods)
+    {
+        var className = DeriveClassName(model.TypeId);
+        var promiseClass = $"{className}Promise";
+
+        WriteLine($"/**");
+        WriteLine($" * Thenable wrapper for {className} that enables fluent chaining.");
+        WriteLine($" */");
+        WriteLine($"export class {promiseClass} implements PromiseLike<{className}> {{");
+        WriteLine($"    constructor(private _promise: Promise<{className}>) {{}}");
+        WriteLine();
+
+        // Generate then() for PromiseLike interface
+        WriteLine($"    then<TResult1 = {className}, TResult2 = never>(");
+        WriteLine($"        onfulfilled?: ((value: {className}) => TResult1 | PromiseLike<TResult1>) | null,");
+        WriteLine("        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null");
+        WriteLine("    ): PromiseLike<TResult1 | TResult2> {");
+        WriteLine("        return this._promise.then(onfulfilled, onrejected);");
+        WriteLine("    }");
+        WriteLine();
+
+        // Generate fluent methods that chain via .then()
+        foreach (var capability in methods)
+        {
+            var methodName = !string.IsNullOrEmpty(capability.OwningTypeName) && capability.MethodName.Contains('.')
+                ? capability.MethodName[(capability.MethodName.LastIndexOf('.') + 1)..]
+                : GetTypeScriptMethodName(capability.MethodName);
+
+            var internalMethodName = $"_{methodName}Internal";
+            var targetParamName = capability.TargetParameterName ?? "context";
+
+            var paramDefs = capability.Parameters
+                .Where(p => p.Name != targetParamName)
+                .Select(p =>
+                {
+                    var tsType = MapParameterToTypeScript(p);
+                    var optional = p.IsOptional || p.IsNullable ? "?" : "";
+                    return $"{p.Name}{optional}: {tsType}";
+                });
+
+            var paramsString = string.Join(", ", paramDefs);
+            var argsString = string.Join(", ", capability.Parameters.Where(p => p.Name != targetParamName).Select(p => p.Name));
+
+            // Check if return type has a Promise wrapper
+            var returnPromiseWrapper = GetPromiseWrapperForReturnType(capability.ReturnType);
+            var returnType = MapTypeRefToTypeScript(capability.ReturnType);
+            var isVoid = capability.ReturnType == null || capability.ReturnType.TypeId == AtsConstants.Void;
+
+            if (!string.IsNullOrEmpty(capability.Description))
+            {
+                WriteLine($"    /** {capability.Description} */");
+            }
+
+            if (returnPromiseWrapper != null)
+            {
+                // Return type has Promise wrapper - chain to internal method and wrap
+                Write($"    {methodName}(");
+                Write(paramsString);
+                WriteLine($"): {returnPromiseWrapper} {{");
+                WriteLine($"        return new {returnPromiseWrapper}(");
+                Write($"            this._promise.then(obj => obj.{internalMethodName}(");
+                Write(argsString);
+                WriteLine("))");
+                WriteLine("        );");
+                WriteLine("    }");
+            }
+            else if (isVoid)
+            {
+                // Void return - chain and return this type's Promise wrapper
+                Write($"    {methodName}(");
+                Write(paramsString);
+                WriteLine($"): {promiseClass} {{");
+                WriteLine($"        return new {promiseClass}(");
+                Write($"            this._promise.then(obj => obj.{internalMethodName}(");
+                Write(argsString);
+                WriteLine("))");
+                WriteLine("        );");
+                WriteLine("    }");
+            }
+            else
+            {
+                // Non-void, non-wrapper return - plain Promise
+                Write($"    {methodName}(");
+                Write(paramsString);
+                WriteLine($"): Promise<{returnType}> {{");
+                Write($"        return this._promise.then(obj => obj.{methodName}(");
+                Write(argsString);
+                WriteLine("));");
+                WriteLine("    }");
+            }
+            WriteLine();
+        }
+
+        WriteLine("}");
         WriteLine();
     }
 
@@ -2013,5 +2025,39 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         var dotIndex = fullTypeName.LastIndexOf('.');
         return dotIndex >= 0 ? fullTypeName[(dotIndex + 1)..] : fullTypeName;
+    }
+
+    /// <summary>
+    /// Determines if a type has chainable methods and should have a Promise wrapper.
+    /// Types with instance methods or wrapper methods get Promise wrappers.
+    /// </summary>
+    private static bool HasChainableMethods(BuilderModel model)
+    {
+        // Check for instance methods (from ExposeMethods=true) or wrapper methods
+        return model.Capabilities.Any(c =>
+            c.CapabilityKind == AtsCapabilityKind.InstanceMethod ||
+            c.CapabilityKind == AtsCapabilityKind.Method);
+    }
+
+    /// <summary>
+    /// Gets the Promise wrapper class name for a return type, if one exists.
+    /// Returns null if the return type doesn't have a Promise wrapper.
+    /// </summary>
+    private string? GetPromiseWrapperForReturnType(AtsTypeRef? returnType)
+    {
+        if (returnType == null)
+        {
+            return null;
+        }
+
+        // Check if the return type has a Promise wrapper
+        if (_typesWithPromiseWrappers.Contains(returnType.TypeId))
+        {
+            var className = _wrapperClassNames.GetValueOrDefault(returnType.TypeId)
+                ?? DeriveClassName(returnType.TypeId);
+            return $"{className}Promise";
+        }
+
+        return null;
     }
 }

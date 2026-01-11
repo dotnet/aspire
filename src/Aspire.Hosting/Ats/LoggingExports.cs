@@ -33,7 +33,7 @@ internal static class LoggingExports
     /// Logs an information message.
     /// </summary>
     [AspireExport("logInformation", Description = "Logs an information message")]
-    public static void LogInformation(ILogger logger, string message)
+    public static void LogInformation(this ILogger logger, string message)
     {
         logger.LogInformation("{Message}", message);
     }
@@ -42,7 +42,7 @@ internal static class LoggingExports
     /// Logs a warning message.
     /// </summary>
     [AspireExport("logWarning", Description = "Logs a warning message")]
-    public static void LogWarning(ILogger logger, string message)
+    public static void LogWarning(this ILogger logger, string message)
     {
         logger.LogWarning("{Message}", message);
     }
@@ -51,7 +51,7 @@ internal static class LoggingExports
     /// Logs an error message.
     /// </summary>
     [AspireExport("logError", Description = "Logs an error message")]
-    public static void LogError(ILogger logger, string message)
+    public static void LogError(this ILogger logger, string message)
     {
         logger.LogError("{Message}", message);
     }
@@ -60,7 +60,7 @@ internal static class LoggingExports
     /// Logs a debug message.
     /// </summary>
     [AspireExport("logDebug", Description = "Logs a debug message")]
-    public static void LogDebug(ILogger logger, string message)
+    public static void LogDebug(this ILogger logger, string message)
     {
         logger.LogDebug("{Message}", message);
     }
@@ -69,7 +69,7 @@ internal static class LoggingExports
     /// Logs a message with a specified log level.
     /// </summary>
     [AspireExport("log", Description = "Logs a message with specified level")]
-    public static void Log(ILogger logger, string level, string message)
+    public static void Log(this ILogger logger, string level, string message)
     {
         var logLevel = level.ToLowerInvariant() switch
         {

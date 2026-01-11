@@ -43,112 +43,14 @@ internal static class CoreExports
 {
     #region Application Lifecycle
 
-    /// <summary>
-    /// Creates a new distributed application builder.
-    /// </summary>
-    /// <remarks>
-    /// This is the entry point for polyglot app hosts. The returned builder handle is used
-    /// to add resources, configure the application, and eventually build and run it.
-    /// </remarks>
-    /// <param name="args">Optional command-line arguments to pass to the builder.</param>
-    /// <returns>A handle to the <see cref="IDistributedApplicationBuilder"/>.</returns>
-    [AspireExport("createBuilder", Description = "Creates a new distributed application builder")]
-    public static IDistributedApplicationBuilder CreateBuilder(string[]? args = null)
-    {
-        return DistributedApplication.CreateBuilder(args ?? []);
-    }
+    // Note: createBuilder is now on DistributedApplication.CreateBuilder
+    // Note: build is now on IDistributedApplicationBuilder.Build via [AspireExport("build")]
+    // Note: run is now on DistributedApplication.RunAsync via [AspireExport("run")]
+    // Note: ExecutionContext, Configuration, Environment, and AppHostDirectory are accessed via property getters
+    // on IDistributedApplicationBuilder which has [AspireExport(ExposeProperties = true)].
 
-    /// <summary>
-    /// Builds the distributed application from the configured builder.
-    /// </summary>
-    /// <remarks>
-    /// Call this after all resources have been added and configured. The returned application
-    /// handle can then be passed to <c>Aspire.Hosting/run</c> to start orchestration.
-    /// </remarks>
-    /// <param name="builder">The builder handle from <c>Aspire.Hosting/createBuilder</c>.</param>
-    /// <returns>A handle to the built <see cref="DistributedApplication"/>.</returns>
-    [AspireExport("build", Description = "Builds the distributed application")]
-    public static DistributedApplication Build(IDistributedApplicationBuilder builder)
-    {
-        return builder.Build();
-    }
-
-    /// <summary>
-    /// Runs the distributed application, starting all configured resources.
-    /// </summary>
-    /// <remarks>
-    /// This starts the Aspire orchestrator which will launch containers, executables,
-    /// and other resources. The method completes when the application shuts down.
-    /// </remarks>
-    /// <param name="app">The application handle from <c>Aspire.Hosting/build</c>.</param>
-    /// <returns>A task that completes when the application stops.</returns>
-    [AspireExport("run", Description = "Runs the distributed application")]
-    public static Task Run(DistributedApplication app)
-    {
-        return app.RunAsync();
-    }
-
-    /// <summary>
-    /// Gets the execution context from the builder.
-    /// </summary>
-    /// <remarks>
-    /// The execution context provides information about the current operation mode
-    /// (run vs publish) and other contextual information.
-    /// </remarks>
-    /// <param name="builder">The builder handle.</param>
-    /// <returns>A handle to the <see cref="DistributedApplicationExecutionContext"/>.</returns>
-    [AspireExport("getExecutionContext", Description = "Gets the execution context from the builder")]
-    public static DistributedApplicationExecutionContext GetExecutionContext(IDistributedApplicationBuilder builder)
-    {
-        return builder.ExecutionContext;
-    }
-
-    #endregion
-
-    // Note: IsRunMode and IsPublishMode are accessed via property getters on DistributedApplicationExecutionContext
-    // which has [AspireExport(ExposeProperties = true)], so no separate methods are needed.
-
-    #region Endpoint Configuration
-
-    /// <summary>
-    /// Gets an endpoint reference from a resource.
-    /// </summary>
-    /// <remarks>
-    /// Endpoint references can be used to create connection strings or URLs
-    /// that reference the endpoint at runtime.
-    /// </remarks>
-    /// <param name="resource">The resource builder handle.</param>
-    /// <param name="name">The endpoint name (e.g., "http", "tcp").</param>
-    /// <returns>A handle to the endpoint reference.</returns>
-    [AspireExport("getEndpoint", Description = "Gets an endpoint reference")]
-    public static EndpointReference GetEndpoint(
-        IResourceBuilder<IResourceWithEndpoints> resource,
-        string name)
-    {
-        return resource.GetEndpoint(name);
-    }
-
-    #endregion
-
-    #region Resource Dependencies
-
-    /// <summary>
-    /// Adds a reference from one resource to another.
-    /// </summary>
-    /// <remarks>
-    /// References inject connection information (connection strings, URLs) from the
-    /// dependency into the resource's environment. This enables service discovery.
-    /// </remarks>
-    /// <param name="resource">The resource builder handle.</param>
-    /// <param name="dependency">The dependency resource handle.</param>
-    /// <returns>The same resource builder handle for chaining.</returns>
-    [AspireExport("withReference", Description = "Adds a reference to another resource")]
-    public static IResourceBuilder<IResourceWithEnvironment> WithReference(
-        IResourceBuilder<IResourceWithEnvironment> resource,
-        IResourceBuilder<IResourceWithConnectionString> dependency)
-    {
-        return resource.WithReference(dependency);
-    }
+    // Note: getEndpoint is now on ResourceBuilderExtensions.GetEndpoint
+    // Note: withReference is now on ResourceBuilderExtensions.WithReference
 
     #endregion
 
@@ -158,8 +60,16 @@ internal static class CoreExports
     /// Adds a volume to a container resource.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Volumes persist data across container restarts. Named volumes are managed
     /// by Docker/Podman and stored in a system-managed location.
+    /// </para>
+    /// <para>
+    /// <strong>Why this wrapper exists:</strong> The original <c>ContainerResourceBuilderExtensions.WithVolume</c>
+    /// has parameter order <c>(name?, target, isReadOnly)</c> where the optional <c>name</c> comes first.
+    /// This wrapper reorders parameters to <c>(target, name?, isReadOnly)</c> so the required <c>target</c>
+    /// parameter comes first, providing a better API for polyglot consumers.
+    /// </para>
     /// </remarks>
     /// <param name="resource">The container resource builder handle.</param>
     /// <param name="target">The mount path inside the container.</param>
@@ -183,6 +93,11 @@ internal static class CoreExports
     /// <summary>
     /// Gets the name of the resource from a builder.
     /// </summary>
+    /// <remarks>
+    /// <strong>Why this wrapper exists:</strong> This capability accesses a nested property
+    /// (<c>resource.Resource.Name</c>) which requires a wrapper method. There is no single
+    /// .NET method that returns just the resource name that could be annotated directly.
+    /// </remarks>
     /// <param name="resource">The resource builder handle.</param>
     /// <returns>The resource name.</returns>
     [AspireExport("getResourceName", Description = "Gets the resource name")]
@@ -195,22 +110,7 @@ internal static class CoreExports
 
     #region Parameters
 
-    /// <summary>
-    /// Sets a description for a parameter resource.
-    /// </summary>
-    /// <remarks>
-    /// Descriptions help users understand what value should be provided for the parameter.
-    /// </remarks>
-    /// <param name="resource">The parameter resource builder handle.</param>
-    /// <param name="description">The description text.</param>
-    /// <returns>The same resource builder handle for chaining.</returns>
-    [AspireExport("withDescription", Description = "Sets a parameter description")]
-    public static IResourceBuilder<ParameterResource> WithDescription(
-        IResourceBuilder<ParameterResource> resource,
-        string description)
-    {
-        return resource.WithDescription(description);
-    }
+    // Note: withDescription is now on ParameterResourceBuilderExtensions.WithDescription
 
     #endregion
 }
