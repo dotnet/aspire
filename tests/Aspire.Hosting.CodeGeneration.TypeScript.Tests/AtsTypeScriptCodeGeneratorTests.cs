@@ -68,10 +68,10 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         // Arrange
         using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var atsContext = CreateContextFromTestAssembly(context);
 
         // Act
-        var files = _generator.GenerateDistributedApplication(capabilities, []);
+        var files = _generator.GenerateDistributedApplication(atsContext);
 
         // Assert
         Assert.Contains("aspire.ts", files.Keys);
@@ -618,10 +618,10 @@ public class AtsTypeScriptCodeGeneratorTests
         // Pattern 4/5: Verify that parameters with interface handle types generate union types
         // in the generated TypeScript.
         using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+        var atsContext = CreateContextFromTestAssembly(context);
 
         // Generate the TypeScript output
-        var files = _generator.GenerateDistributedApplication(capabilities, []);
+        var files = _generator.GenerateDistributedApplication(atsContext);
         var aspireTs = files["aspire.ts"];
 
         // The withDependency method should have its dependency parameter as a union type:
@@ -861,12 +861,12 @@ public class AtsTypeScriptCodeGeneratorTests
         var (hostingAssembly, wellKnownTypes, testAssembly, typeMapping) = LoadTestAssemblies(context);
 
         // Use ScanAssemblies (2-pass) to scan both assemblies together
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
+        var atsContext = AtsCapabilityScannerExtensions.ScanAssembliesToContext(
             [hostingAssembly, testAssembly],
             typeMapping);
 
         // Generate TypeScript
-        var files = _generator.GenerateDistributedApplication(capabilities, []);
+        var files = _generator.GenerateDistributedApplication(atsContext);
         var aspireTs = files["aspire.ts"];
 
         // Verify withEnvironment appears on TestRedisResource class
@@ -885,6 +885,14 @@ public class AtsTypeScriptCodeGeneratorTests
 
         // Scan capabilities from the test assembly using the extension method
         return AtsCapabilityScannerExtensions.ScanAssembly(testAssembly, typeMapping);
+    }
+
+    private static AtsContext CreateContextFromTestAssembly(AssemblyLoaderContext context)
+    {
+        var (_, _, testAssembly, typeMapping) = LoadTestAssemblies(context);
+
+        // Scan capabilities from the test assembly and return as context
+        return AtsCapabilityScannerExtensions.ScanAssemblyToContext(testAssembly, typeMapping);
     }
 
     private static (RoAssembly hostingAssembly, WellKnownTypes wellKnownTypes, RoAssembly testAssembly, AtsTypeMapping typeMapping) LoadTestAssemblies(AssemblyLoaderContext context)
@@ -1153,9 +1161,9 @@ public class AtsTypeScriptCodeGeneratorTests
     {
         using var context = new AssemblyLoaderContext();
         var (hostingAssembly, _, testAssembly, typeMapping) = LoadTestAssemblies(context);
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
+        var atsContext = AtsCapabilityScannerExtensions.ScanAssembliesToContext(
             [hostingAssembly, testAssembly], typeMapping);
-        var files = _generator.GenerateDistributedApplication(capabilities, []);
+        var files = _generator.GenerateDistributedApplication(atsContext);
         return files["aspire.ts"];
     }
 }

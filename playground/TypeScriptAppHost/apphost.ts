@@ -2,7 +2,7 @@
 // This demonstrates compute, databases, and references working together.
 // Run with: aspire run
 
-import { createBuilder, refExpr, EnvironmentCallbackContext } from './.modules/aspire.js';
+import { createBuilder, refExpr, EnvironmentCallbackContext, ContainerLifetime } from './.modules/aspire.js';
 
 console.log("Aspire TypeScript AppHost starting...\n");
 
@@ -33,16 +33,10 @@ const api = await builder
 
 console.log("Added Express API with reference to PostgreSQL database");
 
-// Also keep Redis as an example of another service
+// Also keep Redis as an example of another service with persistent lifetime
 const cache = await builder
     .addRedis("cache")
-    .withEnvironment("CUSTOM_ENV", "value")
-    .withEnvironmentCallback(async (ctx: EnvironmentCallbackContext) => {
-        // Custom environment callback logic
-        var ep = await api.getEndpoint("http");
-
-        ctx.environmentVariables.set("API_ENDPOINT", refExpr`${ep}`);
-    });
+    .withLifetime(ContainerLifetime.Persistent);
 
 console.log("Added Redis cache");
 
@@ -50,7 +44,14 @@ console.log("Added Redis cache");
 await builder
     .addViteApp("frontend", "./vite-frontend")
     .withServiceReference(api)
-    .waitFor(api);
+    .waitFor(api)
+    .withEnvironment("CUSTOM_ENV", "value")
+    .withEnvironmentCallback(async (ctx: EnvironmentCallbackContext) => {
+        // Custom environment callback logic
+        var ep = await api.getEndpoint("http");
+
+        ctx.environmentVariables.set("API_ENDPOINT", refExpr`${ep}`);
+    });
 
 console.log("Added Vite frontend with reference to API");
 

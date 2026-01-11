@@ -55,4 +55,34 @@ internal static class AtsCapabilityScannerExtensions
         var wrappers = assemblies.Select(a => new RoAssemblyInfoWrapper(a));
         return AtsCapabilityScanner.ScanAssemblies(wrappers, typeMapping);
     }
+
+    /// <summary>
+    /// Scans an assembly and returns an AtsContext for code generation.
+    /// </summary>
+    /// <param name="assembly">The assembly to scan.</param>
+    /// <param name="typeMapping">The type mapping for resolving ATS type IDs.</param>
+    /// <returns>An AtsContext containing the scan results.</returns>
+    public static AtsContext ScanAssemblyToContext(
+        RoAssembly assembly,
+        AtsTypeMapping typeMapping)
+    {
+        var wrapper = new RoAssemblyInfoWrapper(assembly);
+        var result = AtsCapabilityScanner.ScanAssembly(wrapper, typeMapping);
+        return result.ToAtsContext();
+    }
+
+    /// <summary>
+    /// Scans multiple assemblies and returns an AtsContext for code generation.
+    /// </summary>
+    /// <param name="assemblies">The assemblies to scan.</param>
+    /// <param name="typeMapping">The type mapping for resolving ATS type IDs.</param>
+    /// <returns>An AtsContext containing the scan results.</returns>
+    public static AtsContext ScanAssembliesToContext(
+        IEnumerable<RoAssembly> assemblies,
+        AtsTypeMapping typeMapping)
+    {
+        var wrappers = assemblies.Select(a => new RoAssemblyInfoWrapper(a));
+        var result = AtsCapabilityScanner.ScanAssemblies(wrappers, typeMapping);
+        return result.ToAtsContext();
+    }
 }

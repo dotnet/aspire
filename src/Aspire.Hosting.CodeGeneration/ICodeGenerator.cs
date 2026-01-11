@@ -16,12 +16,9 @@ internal interface ICodeGenerator
     string Language { get; }
 
     /// <summary>
-    /// Generates the distributed application SDK code from capabilities.
+    /// Generates the distributed application SDK code from the ATS context.
     /// </summary>
-    /// <param name="capabilities">The capabilities to generate from.</param>
-    /// <param name="dtoTypes">The DTO types to generate interfaces for.</param>
+    /// <param name="context">The ATS context containing capabilities, types, and enums.</param>
     /// <returns>A dictionary of file paths to file contents.</returns>
-    Dictionary<string, string> GenerateDistributedApplication(
-        IReadOnlyList<AtsCapabilityInfo> capabilities,
-        IReadOnlyList<AtsDtoTypeInfo> dtoTypes);
+    Dictionary<string, string> GenerateDistributedApplication(AtsContext context);
 }

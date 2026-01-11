@@ -113,6 +113,9 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     // Collected options interfaces to generate (interface name -> list of optional params)
     private readonly Dictionary<string, List<AtsParameterInfo>> _optionsInterfacesToGenerate = new(StringComparer.Ordinal);
 
+    // Mapping of enum type IDs to TypeScript enum names
+    private readonly Dictionary<string, string> _enumTypeNames = new(StringComparer.Ordinal);
+
     /// <summary>
     /// Checks if an AtsTypeRef represents a handle type.
     /// </summary>
@@ -139,6 +142,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         return typeRef.Category switch
         {
             AtsTypeCategory.Primitive => MapPrimitiveType(typeRef.TypeId),
+            AtsTypeCategory.Enum => MapEnumType(typeRef.TypeId),
             AtsTypeCategory.Handle => GetWrapperOrHandleName(typeRef.TypeId),
             AtsTypeCategory.Dto => GetDtoInterfaceName(typeRef.TypeId),
             AtsTypeCategory.Callback => "Function",  // Callbacks handled separately with full signature
@@ -167,9 +171,23 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         AtsConstants.DateOnly or AtsConstants.TimeOnly => "string",
         AtsConstants.TimeSpan => "number",
         AtsConstants.Guid or AtsConstants.Uri => "string",
-        _ when AtsConstants.IsEnum(typeId) => "string",  // Enums serialize as strings
         _ => typeId
     };
+
+    /// <summary>
+    /// Maps an enum type ID to the generated TypeScript enum name.
+    /// Throws if the enum type wasn't collected during scanning.
+    /// </summary>
+    private string MapEnumType(string typeId)
+    {
+        if (!_enumTypeNames.TryGetValue(typeId, out var enumName))
+        {
+            throw new InvalidOperationException(
+                $"Enum type '{typeId}' was not found in the scanned enum types. " +
+                $"This indicates the enum type was not discovered during assembly scanning.");
+        }
+        return enumName;
+    }
 
     /// <summary>
     /// Maps a union type to TypeScript union syntax (T1 | T2 | ...).
@@ -256,9 +274,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     public string Language => "TypeScript";
 
     /// <inheritdoc />
-    public Dictionary<string, string> GenerateDistributedApplication(
-        IReadOnlyList<AtsCapabilityInfo> capabilities,
-        IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
+    public Dictionary<string, string> GenerateDistributedApplication(AtsContext context)
     {
         var files = new Dictionary<string, string>();
 
@@ -267,7 +283,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         files["base.ts"] = GetEmbeddedResource("base.ts");
 
         // Generate the capability-based aspire.ts SDK
-        files["aspire.ts"] = GenerateAspireSdk(capabilities.ToList(), dtoTypes);
+        files["aspire.ts"] = GenerateAspireSdk(context);
 
         return files;
     }
@@ -296,7 +312,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates the aspire.ts SDK file with capability-based API.
     /// </summary>
-    private string GenerateAspireSdk(List<AtsCapabilityInfo> capabilities, IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
+    private string GenerateAspireSdk(AtsContext context)
     {
         using var stringWriter = new StringWriter(CultureInfo.InvariantCulture);
         _writer = stringWriter;
@@ -328,6 +344,10 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             } from './base.js';
             """);
         WriteLine();
+
+        var capabilities = context.Capabilities;
+        var dtoTypes = context.DtoTypes;
+        var enumTypes = context.EnumTypes;
 
         // Get builder models (flattened - each builder has all its applicable capabilities)
         var allBuilders = CreateBuilderModels(capabilities);
@@ -376,6 +396,9 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Generate handle type aliases
         GenerateHandleTypeAliases(typeIds);
+
+        // Generate enum types
+        GenerateEnumTypes(enumTypes);
 
         // Generate DTO interfaces
         GenerateDtoInterfaces(dtoTypes);
@@ -486,6 +509,40 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             WriteLine($"/** {description} */");
             // Internal type alias - not exported (users work with wrapper classes)
             WriteLine($"type {handleName} = Handle<'{typeId}'>;");
+            WriteLine();
+        }
+    }
+
+    /// <summary>
+    /// Generates TypeScript enums from discovered enum types.
+    /// </summary>
+    private void GenerateEnumTypes(IReadOnlyList<AtsEnumTypeInfo> enumTypes)
+    {
+        if (enumTypes.Count == 0)
+        {
+            return;
+        }
+
+        WriteLine("// ============================================================================");
+        WriteLine("// Enum Types");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        foreach (var enumType in enumTypes.OrderBy(e => e.Name))
+        {
+            // Track enum name for type mapping
+            _enumTypeNames[enumType.TypeId] = enumType.Name;
+
+            WriteLine($"/** Enum type for {enumType.Name} */");
+            WriteLine($"export enum {enumType.Name} {{");
+
+            foreach (var value in enumType.Values)
+            {
+                // Enums serialize as strings in JSON
+                WriteLine($"    {value} = \"{value}\",");
+            }
+
+            WriteLine("}");
             WriteLine();
         }
     }
@@ -2093,7 +2150,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// Uses expansion to map interface targets to their concrete implementations.
     /// Also creates builders for interface types (for use as return type wrappers).
     /// </summary>
-    private static List<BuilderModel> CreateBuilderModels(List<AtsCapabilityInfo> capabilities)
+    private static List<BuilderModel> CreateBuilderModels(IReadOnlyList<AtsCapabilityInfo> capabilities)
     {
         // Group capabilities by expanded target type IDs
         // A capability targeting IResource with ExpandedTargetTypes = [RedisResource]
@@ -2266,7 +2323,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// <summary>
     /// Collects all type IDs referenced in capabilities (return types, parameter types, callback types, etc.)
     /// </summary>
-    private static HashSet<string> CollectAllReferencedTypes(List<AtsCapabilityInfo> capabilities)
+    private static HashSet<string> CollectAllReferencedTypes(IReadOnlyList<AtsCapabilityInfo> capabilities)
     {
         var typeIds = new HashSet<string>();
 
@@ -2326,7 +2383,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// <summary>
     /// Gets entry point capabilities (those without TargetTypeId).
     /// </summary>
-    private static List<AtsCapabilityInfo> GetEntryPointCapabilities(List<AtsCapabilityInfo> capabilities)
+    private static List<AtsCapabilityInfo> GetEntryPointCapabilities(IReadOnlyList<AtsCapabilityInfo> capabilities)
     {
         return capabilities.Where(c => string.IsNullOrEmpty(c.TargetTypeId)).ToList();
     }

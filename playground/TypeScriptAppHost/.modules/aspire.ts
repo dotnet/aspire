@@ -138,6 +138,33 @@ type stringArrayHandle = Handle<'string[]'>;
 type IServiceProviderHandle = Handle<'System.ComponentModel/System.IServiceProvider'>;
 
 // ============================================================================
+// Enum Types
+// ============================================================================
+
+/** Enum type for ContainerLifetime */
+export enum ContainerLifetime {
+    Session = "Session",
+    Persistent = "Persistent",
+}
+
+/** Enum type for DistributedApplicationOperation */
+export enum DistributedApplicationOperation {
+    Run = "Run",
+    Publish = "Publish",
+}
+
+/** Enum type for EndpointProperty */
+export enum EndpointProperty {
+    Url = "Url",
+    Host = "Host",
+    IPV4Host = "IPV4Host",
+    Port = "Port",
+    Scheme = "Scheme",
+    TargetPort = "TargetPort",
+    HostAndPort = "HostAndPort",
+}
+
+// ============================================================================
 // DTO Interfaces
 // ============================================================================
 
@@ -202,7 +229,7 @@ export interface AddViteAppOptions {
 }
 
 export interface GetExpressionOptions {
-    property?: string;
+    property?: EndpointProperty;
 }
 
 export interface PublishResourceUpdateOptions {
@@ -373,8 +400,8 @@ export class DistributedApplicationExecutionContext {
 
     /** Gets the Operation property */
     operation = {
-        get: async (): Promise<string> => {
-            return await this._client.invokeCapability<string>(
+        get: async (): Promise<DistributedApplicationOperation> => {
+            return await this._client.invokeCapability<DistributedApplicationOperation>(
                 'Aspire.Hosting/DistributedApplicationExecutionContext.operation',
                 { context: this._handle }
             );
@@ -3258,7 +3285,7 @@ export class PostgresServerResource extends ResourceBuilderBase<PostgresServerRe
     }
 
     /** @internal */
-    async _withLifetimeInternal(lifetime: string): Promise<PostgresServerResource> {
+    async _withLifetimeInternal(lifetime: ContainerLifetime): Promise<PostgresServerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, lifetime };
         const result = await this._client.invokeCapability<PostgresServerResourceHandle>(
             'Aspire.Hosting/withLifetime',
@@ -3268,7 +3295,7 @@ export class PostgresServerResource extends ResourceBuilderBase<PostgresServerRe
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: string): PostgresServerResourcePromise {
+    withLifetime(lifetime: ContainerLifetime): PostgresServerResourcePromise {
         return new PostgresServerResourcePromise(this._withLifetimeInternal(lifetime));
     }
 
@@ -3586,7 +3613,7 @@ export class PostgresServerResourcePromise implements PromiseLike<PostgresServer
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: string): PostgresServerResourcePromise {
+    withLifetime(lifetime: ContainerLifetime): PostgresServerResourcePromise {
         return new PostgresServerResourcePromise(this._promise.then(obj => obj.withLifetime(lifetime)));
     }
 
@@ -4102,7 +4129,7 @@ export class RedisCommanderResource extends ResourceBuilderBase<RedisCommanderRe
     }
 
     /** @internal */
-    async _withLifetimeInternal(lifetime: string): Promise<RedisCommanderResource> {
+    async _withLifetimeInternal(lifetime: ContainerLifetime): Promise<RedisCommanderResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, lifetime };
         const result = await this._client.invokeCapability<RedisCommanderResourceHandle>(
             'Aspire.Hosting/withLifetime',
@@ -4112,7 +4139,7 @@ export class RedisCommanderResource extends ResourceBuilderBase<RedisCommanderRe
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: string): RedisCommanderResourcePromise {
+    withLifetime(lifetime: ContainerLifetime): RedisCommanderResourcePromise {
         return new RedisCommanderResourcePromise(this._withLifetimeInternal(lifetime));
     }
 
@@ -4413,7 +4440,7 @@ export class RedisCommanderResourcePromise implements PromiseLike<RedisCommander
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: string): RedisCommanderResourcePromise {
+    withLifetime(lifetime: ContainerLifetime): RedisCommanderResourcePromise {
         return new RedisCommanderResourcePromise(this._promise.then(obj => obj.withLifetime(lifetime)));
     }
 
@@ -4556,7 +4583,7 @@ export class RedisInsightResource extends ResourceBuilderBase<RedisInsightResour
     }
 
     /** @internal */
-    async _withLifetimeInternal(lifetime: string): Promise<RedisInsightResource> {
+    async _withLifetimeInternal(lifetime: ContainerLifetime): Promise<RedisInsightResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, lifetime };
         const result = await this._client.invokeCapability<RedisInsightResourceHandle>(
             'Aspire.Hosting/withLifetime',
@@ -4566,7 +4593,7 @@ export class RedisInsightResource extends ResourceBuilderBase<RedisInsightResour
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: string): RedisInsightResourcePromise {
+    withLifetime(lifetime: ContainerLifetime): RedisInsightResourcePromise {
         return new RedisInsightResourcePromise(this._withLifetimeInternal(lifetime));
     }
 
@@ -4867,7 +4894,7 @@ export class RedisInsightResourcePromise implements PromiseLike<RedisInsightReso
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: string): RedisInsightResourcePromise {
+    withLifetime(lifetime: ContainerLifetime): RedisInsightResourcePromise {
         return new RedisInsightResourcePromise(this._promise.then(obj => obj.withLifetime(lifetime)));
     }
 
@@ -5010,7 +5037,7 @@ export class RedisResource extends ResourceBuilderBase<RedisResourceHandle> {
     }
 
     /** @internal */
-    async _withLifetimeInternal(lifetime: string): Promise<RedisResource> {
+    async _withLifetimeInternal(lifetime: ContainerLifetime): Promise<RedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, lifetime };
         const result = await this._client.invokeCapability<RedisResourceHandle>(
             'Aspire.Hosting/withLifetime',
@@ -5020,7 +5047,7 @@ export class RedisResource extends ResourceBuilderBase<RedisResourceHandle> {
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: string): RedisResourcePromise {
+    withLifetime(lifetime: ContainerLifetime): RedisResourcePromise {
         return new RedisResourcePromise(this._withLifetimeInternal(lifetime));
     }
 
@@ -5441,7 +5468,7 @@ export class RedisResourcePromise implements PromiseLike<RedisResource> {
     }
 
     /** Sets the lifetime behavior of the container resource */
-    withLifetime(lifetime: string): RedisResourcePromise {
+    withLifetime(lifetime: ContainerLifetime): RedisResourcePromise {
         return new RedisResourcePromise(this._promise.then(obj => obj.withLifetime(lifetime)));
     }
 

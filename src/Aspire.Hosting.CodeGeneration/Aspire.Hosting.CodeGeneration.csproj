@@ -22,6 +22,7 @@
     <Compile Include="..\Aspire.Hosting\Ats\IAtsReflection.cs" Link="Ats\IAtsReflection.cs" />
     <Compile Include="..\Aspire.Hosting\Ats\AtsCapabilityScanner.cs" Link="Ats\AtsCapabilityScanner.cs" />
     <Compile Include="..\Aspire.Hosting\Ats\AtsCapabilityInfo.cs" Link="Ats\AtsCapabilityInfo.cs" />
+    <Compile Include="..\Aspire.Hosting\Ats\AtsContext.cs" Link="Ats\AtsContext.cs" />
     <Compile Include="..\Aspire.Hosting\Ats\AtsTypeMapping.cs" Link="Ats\AtsTypeMapping.cs" />
     <Compile Include="..\Aspire.Hosting\Ats\AtsConstants.cs" Link="Ats\AtsConstants.cs" />
   </ItemGroup>

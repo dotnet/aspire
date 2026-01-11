@@ -366,3 +366,25 @@ internal sealed class AtsDtoPropertyInfo
     /// </summary>
     public bool IsOptional { get; init; }
 }
+
+/// <summary>
+/// Represents an enum type discovered during scanning.
+/// Used for generating TypeScript enums.
+/// </summary>
+internal sealed class AtsEnumTypeInfo
+{
+    /// <summary>
+    /// Gets or sets the ATS type ID for this enum (e.g., "enum:Aspire.Hosting.ApplicationModel.ContainerLifetime").
+    /// </summary>
+    public required string TypeId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the simple type name (for enum name generation).
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets or sets the enum member names.
+    /// </summary>
+    public required IReadOnlyList<string> Values { get; init; }
+}

@@ -54,6 +54,45 @@ type ReferenceExpressionHandle = Handle<'Aspire.Hosting/Aspire.Hosting.Applicati
 type IDistributedApplicationBuilderHandle = Handle<'Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder'>;
 
 // ============================================================================
+// Enum Types
+// ============================================================================
+
+/** Enum type for TestPersistenceMode */
+export enum TestPersistenceMode {
+    None = "None",
+    Volume = "Volume",
+    Bind = "Bind",
+}
+
+/** Enum type for TestResourceStatus */
+export enum TestResourceStatus {
+    Pending = "Pending",
+    Running = "Running",
+    Stopped = "Stopped",
+    Failed = "Failed",
+}
+
+// ============================================================================
+// DTO Interfaces
+// ============================================================================
+
+/** DTO interface for TestConfigDto */
+export interface TestConfigDto {
+    name?: string;
+    port?: number;
+    enabled?: boolean;
+    optionalField?: string;
+}
+
+/** DTO interface for TestNestedDto */
+export interface TestNestedDto {
+    id?: string;
+    config?: TestConfigDto;
+    tags?: AspireList<string>;
+    counts?: AspireDict<string, number>;
+}
+
+// ============================================================================
 // Options Interfaces
 // ============================================================================
 
@@ -71,7 +110,7 @@ export interface WithOptionalStringOptions {
 }
 
 export interface WithPersistenceOptions {
-    mode?: string;
+    mode?: TestPersistenceMode;
 }
 
 // ============================================================================
@@ -501,7 +540,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
-    async _withPersistenceInternal(mode?: string): Promise<TestRedisResource> {
+    async _withPersistenceInternal(mode?: TestPersistenceMode): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle };
         if (mode !== undefined) rpcArgs.mode = mode;
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -657,7 +696,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** @internal */
-    async _withStatusInternal(status: string): Promise<TestRedisResource> {
+    async _withStatusInternal(status: TestResourceStatus): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, status };
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withStatus',
@@ -667,7 +706,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** Sets the resource status */
-    withStatus(status: string): TestRedisResourcePromise {
+    withStatus(status: TestResourceStatus): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withStatusInternal(status));
     }
 
@@ -858,7 +897,7 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     }
 
     /** Sets the resource status */
-    withStatus(status: string): TestRedisResourcePromise {
+    withStatus(status: TestResourceStatus): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._promise.then(obj => obj.withStatus(status)));
     }
 
@@ -1000,7 +1039,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** @internal */
-    async _withStatusInternal(status: string): Promise<Resource> {
+    async _withStatusInternal(status: TestResourceStatus): Promise<Resource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, status };
         const result = await this._client.invokeCapability<IResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withStatus',
@@ -1010,7 +1049,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
     }
 
     /** Sets the resource status */
-    withStatus(status: string): ResourcePromise {
+    withStatus(status: TestResourceStatus): ResourcePromise {
         return new ResourcePromise(this._withStatusInternal(status));
     }
 
@@ -1122,7 +1161,7 @@ export class ResourcePromise implements PromiseLike<Resource> {
     }
 
     /** Sets the resource status */
-    withStatus(status: string): ResourcePromise {
+    withStatus(status: TestResourceStatus): ResourcePromise {
         return new ResourcePromise(this._promise.then(obj => obj.withStatus(status)));
     }
 

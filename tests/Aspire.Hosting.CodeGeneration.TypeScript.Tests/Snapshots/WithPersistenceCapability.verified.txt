@@ -8,6 +8,7 @@
       Name: mode,
       Type: {
         TypeId: enum:Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes.TestPersistenceMode,
+        Category: Enum,
         IsInterface: false,
         IsReadOnly: false
       },

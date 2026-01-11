@@ -400,6 +400,20 @@ internal static class AtsMarshaller
     {
         var underlyingType = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
+        // Handle enums - they come as string names
+        if (underlyingType.IsEnum)
+        {
+            if (value.TryGetValue<string>(out var enumName))
+            {
+                return Enum.Parse(underlyingType, enumName, ignoreCase: true);
+            }
+            // Also support numeric enum values
+            if (value.TryGetValue<int>(out var enumValue))
+            {
+                return Enum.ToObject(underlyingType, enumValue);
+            }
+        }
+
         if (underlyingType == typeof(string))
         {
             return value.GetValue<string>();

@@ -10,9 +10,14 @@ internal enum AtsTypeCategory
 {
     /// <summary>
     /// Primitive types that serialize directly to JSON values.
-    /// Examples: string, number, boolean, datetime, guid, enum.
+    /// Examples: string, number, boolean, datetime, guid.
     /// </summary>
     Primitive,
+
+    /// <summary>
+    /// Enum types that serialize as string values.
+    /// </summary>
+    Enum,
 
     /// <summary>
     /// Handle types that are opaque references to .NET objects.
@@ -343,9 +348,14 @@ internal static class AtsConstants
             return AtsTypeCategory.Callback;
         }
 
-        if (IsPrimitive(typeId) || IsEnum(typeId))
+        if (IsPrimitive(typeId))
         {
             return AtsTypeCategory.Primitive;
+        }
+
+        if (IsEnum(typeId))
+        {
+            return AtsTypeCategory.Enum;
         }
 
         if (IsArray(typeId))

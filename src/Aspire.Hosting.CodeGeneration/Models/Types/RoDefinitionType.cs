@@ -261,8 +261,23 @@ public sealed class RoDefinitionType : RoType
     private bool LoadIsEnum()
     {
         // Check if the base type is System.Enum
+        // First try resolved type (if runtime types are loaded)
         var baseType = BaseType;
-        return baseType?.FullName == "System.Enum";
+        if (baseType?.FullName == "System.Enum")
+        {
+            return true;
+        }
+
+        // If base type resolution failed, check directly from metadata
+        // This handles cases where System.Enum isn't loaded in the context
+        var baseTypeHandle = TypeDefinition.BaseType;
+        if (!baseTypeHandle.IsNil &&
+            AssemblyLoaderContext.TryGetFullName(baseTypeHandle, _reader, out var baseTypeFullName))
+        {
+            return baseTypeFullName == "System.Enum";
+        }
+
+        return false;
     }
 
     private List<RoDefinitionMethod> LoadMethods()

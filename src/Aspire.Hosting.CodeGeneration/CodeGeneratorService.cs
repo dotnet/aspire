@@ -42,11 +42,21 @@ internal sealed class CodeGeneratorService
         var searchPaths = assemblySearchPaths.ToList();
 
         // Scan assemblies for capabilities and DTO types
-        using var context = new AssemblyLoaderContext();
-        var scanResult = ScanCapabilities(context, packagesList, searchPaths);
+        using var loaderContext = new AssemblyLoaderContext();
+        var scanResult = ScanCapabilities(loaderContext, packagesList, searchPaths);
+
+        // Create AtsContext from scan result
+        var atsContext = new AtsContext
+        {
+            Capabilities = scanResult.Capabilities,
+            TypeInfos = scanResult.TypeInfos,
+            DtoTypes = scanResult.DtoTypes,
+            EnumTypes = scanResult.EnumTypes,
+            Diagnostics = scanResult.Diagnostics
+        };
 
         // Generate the code using the language-specific generator
-        var files = generator.GenerateDistributedApplication(scanResult.Capabilities, scanResult.DtoTypes);
+        var files = generator.GenerateDistributedApplication(atsContext);
 
         // Write the files to the generated folder
         var generatedPath = Path.Combine(appPath, outputFolderName);

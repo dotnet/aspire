@@ -1068,6 +1068,86 @@ public class CapabilityDispatcherTests
         Assert.Equal(2, result.GetValue<int>());
     }
 
+    [Fact]
+    public void Invoke_AcceptEnum_DispatchesEnumFromString()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, [typeof(TestEnumCapabilities).Assembly]);
+
+        var args = new JsonObject
+        {
+            ["value"] = "ValueB" // Enum as string
+        };
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/acceptEnum", args);
+
+        Assert.NotNull(result);
+        Assert.Equal("Received: ValueB", result.GetValue<string>());
+    }
+
+    [Fact]
+    public void Invoke_AcceptEnum_DispatchesEnumFromStringCaseInsensitive()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, [typeof(TestEnumCapabilities).Assembly]);
+
+        var args = new JsonObject
+        {
+            ["value"] = "valuec" // lowercase
+        };
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/acceptEnum", args);
+
+        Assert.NotNull(result);
+        Assert.Equal("Received: ValueC", result.GetValue<string>());
+    }
+
+    [Fact]
+    public void Invoke_ReturnEnum_ReturnsEnumAsString()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, [typeof(TestEnumCapabilities).Assembly]);
+
+        var args = new JsonObject
+        {
+            ["name"] = "ValueA"
+        };
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/returnEnum", args);
+
+        Assert.NotNull(result);
+        Assert.Equal("ValueA", result.GetValue<string>());
+    }
+
+    [Fact]
+    public void Invoke_AcceptOptionalEnum_WithValue()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, [typeof(TestEnumCapabilities).Assembly]);
+
+        var args = new JsonObject
+        {
+            ["value"] = "ValueB"
+        };
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/acceptOptionalEnum", args);
+
+        Assert.NotNull(result);
+        Assert.Equal("Received: ValueB", result.GetValue<string>());
+    }
+
+    [Fact]
+    public void Invoke_AcceptOptionalEnum_WithoutValue()
+    {
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, [typeof(TestEnumCapabilities).Assembly]);
+
+        var result = dispatcher.Invoke("Aspire.Hosting.RemoteHost.Tests/acceptOptionalEnum", new JsonObject());
+
+        Assert.NotNull(result);
+        Assert.Equal("No value", result.GetValue<string>());
+    }
+
     private static CapabilityDispatcher CreateDispatcher(params System.Reflection.Assembly[] assemblies)
     {
         var handles = new HandleRegistry();
@@ -1289,5 +1369,39 @@ internal static class TestTypeCategoryCapabilities
             ["key1"] = "value1",
             ["key2"] = 42
         };
+    }
+}
+
+/// <summary>
+/// Test enum for enum dispatch tests.
+/// </summary>
+internal enum TestDispatchEnum
+{
+    ValueA,
+    ValueB,
+    ValueC
+}
+
+/// <summary>
+/// Test capabilities for enum dispatch.
+/// </summary>
+internal static class TestEnumCapabilities
+{
+    [AspireExport("acceptEnum", Description = "Accepts an enum parameter")]
+    public static string AcceptEnum(TestDispatchEnum value)
+    {
+        return $"Received: {value}";
+    }
+
+    [AspireExport("returnEnum", Description = "Returns an enum value")]
+    public static TestDispatchEnum ReturnEnum(string name)
+    {
+        return Enum.Parse<TestDispatchEnum>(name);
+    }
+
+    [AspireExport("acceptOptionalEnum", Description = "Accepts an optional enum parameter")]
+    public static string AcceptOptionalEnum(TestDispatchEnum? value = null)
+    {
+        return value.HasValue ? $"Received: {value.Value}" : "No value";
     }
 }

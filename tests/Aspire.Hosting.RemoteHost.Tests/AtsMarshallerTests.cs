@@ -532,6 +532,60 @@ public class AtsMarshallerTests
         Assert.Equal(10, jsonObj["count"]?.GetValue<int>());
     }
 
+    [Fact]
+    public void UnmarshalFromJson_UnmarshalsEnumFromString()
+    {
+        var context = CreateContext();
+        var json = JsonValue.Create("ValueB");
+
+        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(TestEnum), context);
+
+        Assert.Equal(TestEnum.ValueB, result);
+    }
+
+    [Fact]
+    public void UnmarshalFromJson_UnmarshalsEnumFromStringCaseInsensitive()
+    {
+        var context = CreateContext();
+        var json = JsonValue.Create("valueb"); // lowercase
+
+        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(TestEnum), context);
+
+        Assert.Equal(TestEnum.ValueB, result);
+    }
+
+    [Fact]
+    public void UnmarshalFromJson_UnmarshalsEnumFromNumericValue()
+    {
+        var context = CreateContext();
+        var json = JsonValue.Create(1); // ValueB is index 1
+
+        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(TestEnum), context);
+
+        Assert.Equal(TestEnum.ValueB, result);
+    }
+
+    [Fact]
+    public void UnmarshalFromJson_UnmarshalsNullableEnumFromString()
+    {
+        var context = CreateContext();
+        var json = JsonValue.Create("ValueA");
+
+        var result = AtsMarshaller.UnmarshalFromJson(json, typeof(TestEnum?), context);
+
+        Assert.Equal(TestEnum.ValueA, result);
+    }
+
+    [Fact]
+    public void UnmarshalFromJson_UnmarshalsNullableEnumFromNull()
+    {
+        var context = CreateContext();
+
+        var result = AtsMarshaller.UnmarshalFromJson(null, typeof(TestEnum?), context);
+
+        Assert.Null(result);
+    }
+
     private static AtsMarshaller.UnmarshalContext CreateContext(HandleRegistry? registry = null)
     {
         return new AtsMarshaller.UnmarshalContext
