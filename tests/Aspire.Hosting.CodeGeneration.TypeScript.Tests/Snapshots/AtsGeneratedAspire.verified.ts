@@ -481,7 +481,6 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         super(handle, client);
     }
 
-    /** Configures the Redis resource with persistence */
     /** @internal */
     async _withPersistenceInternal(mode?: string): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -491,11 +490,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Configures the Redis resource with persistence */
     withPersistence(mode?: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withPersistenceInternal(mode));
     }
 
-    /** Adds an optional string parameter */
     /** @internal */
     async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -505,11 +504,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Adds an optional string parameter */
     withOptionalString(value?: string, enabled?: boolean): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withOptionalStringInternal(value, enabled));
     }
 
-    /** Gets the tags for the resource */
     /** Gets the tags for the resource */
     async getTags(): Promise<AspireList<string>> {
         return await this._client.invokeCapability<AspireList<string>>(
@@ -519,7 +518,6 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
     }
 
     /** Gets the metadata for the resource */
-    /** Gets the metadata for the resource */
     async getMetadata(): Promise<AspireDict<string, string>> {
         return await this._client.invokeCapability<AspireDict<string, string>>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/getMetadata',
@@ -527,7 +525,6 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         );
     }
 
-    /** Sets the connection string using a reference expression */
     /** @internal */
     async _withConnectionStringInternal(connectionString: ReferenceExpression): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -537,11 +534,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Sets the connection string using a reference expression */
     withConnectionString(connectionString: ReferenceExpression): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withConnectionStringInternal(connectionString));
     }
 
-    /** Configures environment with callback (test version) */
     /** @internal */
     async _testWithEnvironmentCallbackInternal(callback: (arg0: TestEnvironmentContext) => Promise<void>): Promise<TestRedisResource> {
         const callbackId = registerCallback(async (arg0Data: unknown) => {
@@ -556,11 +553,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Configures environment with callback (test version) */
     testWithEnvironmentCallback(callback: (arg0: TestEnvironmentContext) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._testWithEnvironmentCallbackInternal(callback));
     }
 
-    /** Sets the created timestamp */
     /** @internal */
     async _withCreatedAtInternal(createdAt: string): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -570,11 +567,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Sets the created timestamp */
     withCreatedAt(createdAt: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withCreatedAtInternal(createdAt));
     }
 
-    /** Sets the modified timestamp */
     /** @internal */
     async _withModifiedAtInternal(modifiedAt: string): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -584,11 +581,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Sets the modified timestamp */
     withModifiedAt(modifiedAt: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withModifiedAtInternal(modifiedAt));
     }
 
-    /** Sets the correlation ID */
     /** @internal */
     async _withCorrelationIdInternal(correlationId: string): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -598,11 +595,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Sets the correlation ID */
     withCorrelationId(correlationId: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withCorrelationIdInternal(correlationId));
     }
 
-    /** Configures with optional callback */
     /** @internal */
     async _withOptionalCallbackInternal(callback?: (arg0: TestCallbackContext) => Promise<void>): Promise<TestRedisResource> {
         const callbackId = callback ? registerCallback(async (arg0Data: unknown) => {
@@ -617,11 +614,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Configures with optional callback */
     withOptionalCallback(callback?: (arg0: TestCallbackContext) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withOptionalCallbackInternal(callback));
     }
 
-    /** Sets the resource status */
     /** @internal */
     async _withStatusInternal(status: string): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -631,11 +628,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Sets the resource status */
     withStatus(status: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withStatusInternal(status));
     }
 
-    /** Adds validation callback */
     /** @internal */
     async _withValidatorInternal(validator: (arg0: TestResourceContext) => Promise<boolean>): Promise<TestRedisResource> {
         const validatorId = registerCallback(async (arg0Data: unknown) => {
@@ -650,11 +647,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Adds validation callback */
     withValidator(validator: (arg0: TestResourceContext) => Promise<boolean>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withValidatorInternal(validator));
     }
 
-    /** Waits for another resource (test version) */
     /** @internal */
     async _testWaitForInternal(dependency: ResourceBuilderBase): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -664,11 +661,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Waits for another resource (test version) */
     testWaitFor(dependency: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._testWaitForInternal(dependency));
     }
 
-    /** Gets the endpoints */
     /** Gets the endpoints */
     async getEndpoints(): Promise<string[]> {
         return await this._client.invokeCapability<string[]>(
@@ -677,7 +674,6 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         );
     }
 
-    /** Sets connection string using direct interface target */
     /** @internal */
     async _withConnectionStringDirectInternal(connectionString: string): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -687,11 +683,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Sets connection string using direct interface target */
     withConnectionStringDirect(connectionString: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withConnectionStringDirectInternal(connectionString));
     }
 
-    /** Redis-specific configuration */
     /** @internal */
     async _withRedisSpecificInternal(option: string): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -701,11 +697,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Redis-specific configuration */
     withRedisSpecific(option: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withRedisSpecificInternal(option));
     }
 
-    /** Adds a dependency on another resource */
     /** @internal */
     async _withDependencyInternal(dependency: ResourceBuilderBase): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -715,11 +711,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Adds a dependency on another resource */
     withDependency(dependency: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withDependencyInternal(dependency));
     }
 
-    /** Sets the endpoints */
     /** @internal */
     async _withEndpointsInternal(endpoints: string[]): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -729,11 +725,11 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Sets the endpoints */
     withEndpoints(endpoints: string[]): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withEndpointsInternal(endpoints));
     }
 
-    /** Sets environment variables */
     /** @internal */
     async _withEnvironmentVariablesInternal(variables: Record<string, string>): Promise<TestRedisResource> {
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
@@ -743,6 +739,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         return new TestRedisResource(result, this._client);
     }
 
+    /** Sets environment variables */
     withEnvironmentVariables(variables: Record<string, string>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(this._withEnvironmentVariablesInternal(variables));
     }
@@ -902,7 +899,6 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         super(handle, client);
     }
 
-    /** Adds an optional string parameter */
     /** @internal */
     async _withOptionalStringInternal(value?: string, enabled?: boolean): Promise<Resource> {
         const result = await this._client.invokeCapability<IResourceHandle>(
@@ -912,11 +908,11 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         return new Resource(result, this._client);
     }
 
+    /** Adds an optional string parameter */
     withOptionalString(value?: string, enabled?: boolean): ResourcePromise {
         return new ResourcePromise(this._withOptionalStringInternal(value, enabled));
     }
 
-    /** Sets the created timestamp */
     /** @internal */
     async _withCreatedAtInternal(createdAt: string): Promise<Resource> {
         const result = await this._client.invokeCapability<IResourceHandle>(
@@ -926,11 +922,11 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         return new Resource(result, this._client);
     }
 
+    /** Sets the created timestamp */
     withCreatedAt(createdAt: string): ResourcePromise {
         return new ResourcePromise(this._withCreatedAtInternal(createdAt));
     }
 
-    /** Sets the modified timestamp */
     /** @internal */
     async _withModifiedAtInternal(modifiedAt: string): Promise<Resource> {
         const result = await this._client.invokeCapability<IResourceHandle>(
@@ -940,11 +936,11 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         return new Resource(result, this._client);
     }
 
+    /** Sets the modified timestamp */
     withModifiedAt(modifiedAt: string): ResourcePromise {
         return new ResourcePromise(this._withModifiedAtInternal(modifiedAt));
     }
 
-    /** Sets the correlation ID */
     /** @internal */
     async _withCorrelationIdInternal(correlationId: string): Promise<Resource> {
         const result = await this._client.invokeCapability<IResourceHandle>(
@@ -954,11 +950,11 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         return new Resource(result, this._client);
     }
 
+    /** Sets the correlation ID */
     withCorrelationId(correlationId: string): ResourcePromise {
         return new ResourcePromise(this._withCorrelationIdInternal(correlationId));
     }
 
-    /** Configures with optional callback */
     /** @internal */
     async _withOptionalCallbackInternal(callback?: (arg0: TestCallbackContext) => Promise<void>): Promise<Resource> {
         const callbackId = callback ? registerCallback(async (arg0Data: unknown) => {
@@ -973,11 +969,11 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         return new Resource(result, this._client);
     }
 
+    /** Configures with optional callback */
     withOptionalCallback(callback?: (arg0: TestCallbackContext) => Promise<void>): ResourcePromise {
         return new ResourcePromise(this._withOptionalCallbackInternal(callback));
     }
 
-    /** Sets the resource status */
     /** @internal */
     async _withStatusInternal(status: string): Promise<Resource> {
         const result = await this._client.invokeCapability<IResourceHandle>(
@@ -987,11 +983,11 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         return new Resource(result, this._client);
     }
 
+    /** Sets the resource status */
     withStatus(status: string): ResourcePromise {
         return new ResourcePromise(this._withStatusInternal(status));
     }
 
-    /** Adds validation callback */
     /** @internal */
     async _withValidatorInternal(validator: (arg0: TestResourceContext) => Promise<boolean>): Promise<Resource> {
         const validatorId = registerCallback(async (arg0Data: unknown) => {
@@ -1006,11 +1002,11 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         return new Resource(result, this._client);
     }
 
+    /** Adds validation callback */
     withValidator(validator: (arg0: TestResourceContext) => Promise<boolean>): ResourcePromise {
         return new ResourcePromise(this._withValidatorInternal(validator));
     }
 
-    /** Waits for another resource (test version) */
     /** @internal */
     async _testWaitForInternal(dependency: ResourceBuilderBase): Promise<Resource> {
         const result = await this._client.invokeCapability<IResourceHandle>(
@@ -1020,11 +1016,11 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         return new Resource(result, this._client);
     }
 
+    /** Waits for another resource (test version) */
     testWaitFor(dependency: ResourceBuilderBase): ResourcePromise {
         return new ResourcePromise(this._testWaitForInternal(dependency));
     }
 
-    /** Adds a dependency on another resource */
     /** @internal */
     async _withDependencyInternal(dependency: ResourceBuilderBase): Promise<Resource> {
         const result = await this._client.invokeCapability<IResourceHandle>(
@@ -1034,11 +1030,11 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         return new Resource(result, this._client);
     }
 
+    /** Adds a dependency on another resource */
     withDependency(dependency: ResourceBuilderBase): ResourcePromise {
         return new ResourcePromise(this._withDependencyInternal(dependency));
     }
 
-    /** Sets the endpoints */
     /** @internal */
     async _withEndpointsInternal(endpoints: string[]): Promise<Resource> {
         const result = await this._client.invokeCapability<IResourceHandle>(
@@ -1048,6 +1044,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         return new Resource(result, this._client);
     }
 
+    /** Sets the endpoints */
     withEndpoints(endpoints: string[]): ResourcePromise {
         return new ResourcePromise(this._withEndpointsInternal(endpoints));
     }
@@ -1182,7 +1179,7 @@ export async function connect(): Promise<AspireClientRpc> {
  * Creates a new distributed application builder.
  * This is the entry point for building Aspire applications.
  *
- * @param args - Optional command-line arguments to pass to the builder
+ * @param options - Optional configuration options for the builder
  * @returns A DistributedApplicationBuilder instance
  *
  * @example
@@ -1192,11 +1189,19 @@ export async function connect(): Promise<AspireClientRpc> {
  * const app = await builder.build();
  * await app.run();
  */
-export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
+export async function createBuilder(options?: CreateBuilderOptions): Promise<DistributedApplicationBuilder> {
     const client = await connect();
+
+    // Default args and projectDirectory if not provided
+    const effectiveOptions: CreateBuilderOptions = {
+        ...options,
+        args: options?.args ?? process.argv.slice(2),
+        projectDirectory: options?.projectDirectory ?? process.env.ASPIRE_PROJECT_DIRECTORY ?? process.cwd()
+    };
+
     const handle = await client.invokeCapability<IDistributedApplicationBuilderHandle>(
-        'Aspire.Hosting/createBuilder',
-        { args }
+        'Aspire.Hosting/createBuilderWithOptions',
+        { options: effectiveOptions }
     );
     return new DistributedApplicationBuilder(handle, client);
 }
