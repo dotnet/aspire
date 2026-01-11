@@ -1,3 +1,13 @@
+# This workflow identifies open PRs that need review and updates a tracking issue with the list.
+#
+# A PR is considered "needing review" when:
+# - It is not a draft
+# - It has not been approved (or approval was superseded by changes requested/dismissed)
+# - The last activity (comment, review, or commit) was from the PR author or prompter (for bot PRs)
+#
+# The workflow runs on demand and updates issue #13834 with a table of PRs needing review,
+# sorted by last updated date (most recent first).
+
 name: Update PRs Needing Review
 
 on:
