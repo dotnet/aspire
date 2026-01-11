@@ -41,12 +41,12 @@ internal sealed class CodeGeneratorService
         var packagesList = packages.ToList();
         var searchPaths = assemblySearchPaths.ToList();
 
-        // Scan assemblies for capabilities
+        // Scan assemblies for capabilities and DTO types
         using var context = new AssemblyLoaderContext();
-        var capabilities = ScanCapabilities(context, packagesList, searchPaths);
+        var scanResult = ScanCapabilities(context, packagesList, searchPaths);
 
         // Generate the code using the language-specific generator
-        var files = generator.GenerateDistributedApplication(capabilities);
+        var files = generator.GenerateDistributedApplication(scanResult.Capabilities, scanResult.DtoTypes);
 
         // Write the files to the generated folder
         var generatedPath = Path.Combine(appPath, outputFolderName);
@@ -104,13 +104,11 @@ internal sealed class CodeGeneratorService
         return savedHash != currentHash;
     }
 
-    private static List<AtsCapabilityInfo> ScanCapabilities(
+    private static AtsCapabilityScanner.ScanResult ScanCapabilities(
         AssemblyLoaderContext assemblyLoaderContext,
         List<(string PackageId, string Version)> packages,
         List<string> searchPaths)
     {
-        var allCapabilities = new List<AtsCapabilityInfo>();
-
         // Load core runtime assemblies first
         assemblyLoaderContext.LoadAssembly("System.Private.CoreLib", searchPaths, loadDependencies: true);
         assemblyLoaderContext.LoadAssembly("System.Runtime", searchPaths, loadDependencies: true);
@@ -119,7 +117,11 @@ internal sealed class CodeGeneratorService
         var hostingAssembly = assemblyLoaderContext.LoadAssembly("Aspire.Hosting", searchPaths, loadDependencies: true);
         if (hostingAssembly is null)
         {
-            return allCapabilities;
+            return new AtsCapabilityScanner.ScanResult
+            {
+                Capabilities = [],
+                TypeInfos = []
+            };
         }
 
         // Create well-known types resolver
@@ -144,12 +146,9 @@ internal sealed class CodeGeneratorService
         // Scan capabilities from all assemblies using 2-pass scanning
         // This ensures cross-assembly type expansion works correctly
         // (e.g., withEnvironment from Aspire.Hosting expands to RedisResource from Aspire.Hosting.Redis)
-        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
+        return AtsCapabilityScannerExtensions.ScanAssembliesWithTypeInfo(
             assembliesToScan,
             typeMapping);
-        allCapabilities.AddRange(capabilities);
-
-        return allCapabilities;
     }
 
     private static RoAssembly? TryLoadPackageAssembly(

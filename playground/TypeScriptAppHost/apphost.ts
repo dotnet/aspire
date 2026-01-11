@@ -11,6 +11,13 @@ const builder = await createBuilder();
 
 var ec = await builder.executionContext.get();
 
+console.log(`isRunMode: ${await ec.isRunMode.get()}`);
+console.log(`isPublishMode: ${await ec.isPublishMode.get()}`);
+
+var dir = await builder.appHostDirectory.get();
+
+console.log(`AppHost directory: ${dir}`);
+
 console.log("Created builder");
 
 // Add resources using fluent chaining
@@ -42,11 +49,6 @@ const api = await builder
     .withEnvironmentCallback(async (ctx: EnvironmentCallbackContext) => {
         console.log(`  Environment callback invoked for API container`);
 
-        // Use property-like object pattern to get execution context
-        const execContext = await ctx.executionContext.get();
-        const isRunMode = await execContext.isRunMode.get();
-        console.log(`    Running in ${isRunMode ? 'run' : 'publish'} mode`);
-
         // Set environment variables using AspireDict
         // ctx.environmentVariables is a direct AspireDict<string, string | ReferenceExpression> field
         await ctx.environmentVariables.set("MY_CONSTANT", "hello from TypeScript");
@@ -56,10 +58,9 @@ const api = await builder
 
         console.log(`    Set environment variables: MY_CONSTANT, REDIS_URL`);
     })
-    .waitFor(cache)        // Union type fix: accepts RedisResource wrapper directly!
-    .withReference(cache); // Now generated from internal CoreExports class!
+    .waitFor(cache)
+    .withReference(cache);
+
 console.log("Added API container with environment callback, waitFor, and withReference");
 
-// Build and run - fully fluent!
-console.log("\nBuilding and running...\n");
 await builder.build().run();

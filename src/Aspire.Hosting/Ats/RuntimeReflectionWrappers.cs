@@ -138,7 +138,7 @@ internal sealed class RuntimeTypeInfo : IAtsTypeInfo
 
     public IEnumerable<IAtsMethodInfo> GetMethods()
     {
-        foreach (var method in _type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance))
+        foreach (var method in _type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance))
         {
             yield return new RuntimeMethodInfo(method);
         }
@@ -146,7 +146,7 @@ internal sealed class RuntimeTypeInfo : IAtsTypeInfo
 
     public IEnumerable<IAtsPropertyInfo> GetProperties()
     {
-        foreach (var prop in _type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+        foreach (var prop in _type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
         {
             yield return new RuntimePropertyInfo(prop);
         }
@@ -290,6 +290,7 @@ internal sealed class RuntimePropertyInfo : IAtsPropertyInfo
     public bool CanRead => _prop.CanRead;
     public bool CanWrite => _prop.CanWrite;
     public bool IsStatic => _prop.GetMethod?.IsStatic ?? _prop.SetMethod?.IsStatic ?? false;
+    public bool IsPublic => _prop.GetMethod?.IsPublic == true;
 
     public IEnumerable<IAtsAttributeInfo> GetCustomAttributes()
     {

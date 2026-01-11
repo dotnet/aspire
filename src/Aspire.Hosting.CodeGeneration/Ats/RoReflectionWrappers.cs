@@ -350,6 +350,7 @@ internal sealed class RoPropertyInfoWrapper : IAtsPropertyInfo
     public bool CanRead => _prop.CanRead;
     public bool CanWrite => _prop.CanWrite;
     public bool IsStatic => _prop.IsStatic;
+    public bool IsPublic => _prop.IsPublic;
 
     public IEnumerable<IAtsAttributeInfo> GetCustomAttributes()
     {

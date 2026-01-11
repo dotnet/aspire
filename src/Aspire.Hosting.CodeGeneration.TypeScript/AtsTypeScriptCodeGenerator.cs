@@ -250,7 +250,9 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     public string Language => "TypeScript";
 
     /// <inheritdoc />
-    public Dictionary<string, string> GenerateDistributedApplication(IReadOnlyList<AtsCapabilityInfo> capabilities)
+    public Dictionary<string, string> GenerateDistributedApplication(
+        IReadOnlyList<AtsCapabilityInfo> capabilities,
+        IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
     {
         var files = new Dictionary<string, string>();
 
@@ -259,7 +261,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         files["base.ts"] = GetEmbeddedResource("base.ts");
 
         // Generate the capability-based aspire.ts SDK
-        files["aspire.ts"] = GenerateAspireSdk(capabilities.ToList());
+        files["aspire.ts"] = GenerateAspireSdk(capabilities.ToList(), dtoTypes);
 
         return files;
     }
@@ -288,7 +290,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// <summary>
     /// Generates the aspire.ts SDK file with capability-based API.
     /// </summary>
-    private string GenerateAspireSdk(List<AtsCapabilityInfo> capabilities)
+    private string GenerateAspireSdk(List<AtsCapabilityInfo> capabilities, IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
     {
         using var stringWriter = new StringWriter(CultureInfo.InvariantCulture);
         _writer = stringWriter;
@@ -368,6 +370,9 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Generate handle type aliases
         GenerateHandleTypeAliases(typeIds);
+
+        // Generate DTO interfaces
+        GenerateDtoInterfaces(dtoTypes);
 
         // Separate builders into categories:
         // 1. Resource builders: IResource*, ContainerResource, etc.
@@ -458,6 +463,58 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             WriteLine($"type {handleName} = Handle<'{typeId}'>;");
             WriteLine();
         }
+    }
+
+    /// <summary>
+    /// Generates TypeScript interfaces for DTO types marked with [AspireDto].
+    /// </summary>
+    private void GenerateDtoInterfaces(IReadOnlyList<AtsDtoTypeInfo> dtoTypes)
+    {
+        if (dtoTypes.Count == 0)
+        {
+            return;
+        }
+
+        WriteLine("// ============================================================================");
+        WriteLine("// DTO Interfaces");
+        WriteLine("// ============================================================================");
+        WriteLine();
+
+        foreach (var dto in dtoTypes.OrderBy(d => d.Name))
+        {
+            var interfaceName = GetDtoInterfaceName(dto.TypeId);
+
+            WriteLine($"/** DTO interface for {dto.Name} */");
+            WriteLine($"export interface {interfaceName} {{");
+
+            foreach (var prop in dto.Properties)
+            {
+                var tsType = MapTypeRefToTypeScript(prop.Type);
+                // All DTO properties are optional in TypeScript to allow partial objects
+                // Convert PascalCase to camelCase for TypeScript
+                var propName = ToCamelCase(prop.Name);
+                WriteLine($"    {propName}?: {tsType};");
+            }
+
+            WriteLine("}");
+            WriteLine();
+        }
+    }
+
+    /// <summary>
+    /// Converts a PascalCase name to camelCase.
+    /// </summary>
+    private static string ToCamelCase(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return name;
+        }
+        if (char.IsLower(name[0]))
+        {
+            return name;
+        }
+        return char.ToLowerInvariant(name[0]) + name[1..];
     }
 
     private static string GetTypeDescription(string typeId)
@@ -996,7 +1053,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
              * Creates a new distributed application builder.
              * This is the entry point for building Aspire applications.
              *
-             * @param args - Optional command-line arguments to pass to the builder
+             * @param options - Optional configuration options for the builder
              * @returns A DistributedApplicationBuilder instance
              *
              * @example
@@ -1006,11 +1063,19 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
              * const app = await builder.build();
              * await app.run();
              */
-            export async function createBuilder(args: string[] = process.argv.slice(2)): Promise<DistributedApplicationBuilder> {
+            export async function createBuilder(options?: CreateBuilderOptions): Promise<DistributedApplicationBuilder> {
                 const client = await connect();
+
+                // Default args and projectDirectory if not provided
+                const effectiveOptions: CreateBuilderOptions = {
+                    ...options,
+                    args: options?.args ?? process.argv.slice(2),
+                    projectDirectory: options?.projectDirectory ?? process.env.ASPIRE_PROJECT_DIRECTORY ?? process.cwd()
+                };
+
                 const handle = await client.invokeCapability<{{builderHandle}}>(
-                    '{{AtsConstants.CreateBuilderCapability}}',
-                    { args }
+                    'Aspire.Hosting/createBuilderWithOptions',
+                    { options: effectiveOptions }
                 );
                 return new DistributedApplicationBuilder(handle, client);
             }

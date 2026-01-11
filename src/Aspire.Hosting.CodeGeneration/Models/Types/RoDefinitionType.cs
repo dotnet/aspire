@@ -282,14 +282,6 @@ public sealed class RoDefinitionType : RoType
 
             // Extract method attributes to filter
             var attributes = methodDefinition.Attributes;
-            var memberAccess = attributes & MethodAttributes.MemberAccessMask;
-            var isPublic = memberAccess == MethodAttributes.Public;
-
-            // Skip non-public methods for now (could be configurable later)
-            if (!isPublic)
-            {
-                continue;
-            }
 
             if (accessorHandles.Contains(methodHandle))
             {
@@ -345,12 +337,6 @@ public sealed class RoDefinitionType : RoType
                     }
                 }
 
-                // Skip if neither getter nor setter is public
-                if (!hasPublicGetter && !hasPublicSetter)
-                {
-                    continue;
-                }
-
                 // Decode property signature to get type name
                 var signature = propertyDef.DecodeSignature(displayTypeProvider, genericContext: null);
                 var propertyTypeName = signature.ReturnType;
@@ -375,6 +361,7 @@ public sealed class RoDefinitionType : RoType
                     CanRead = hasPublicGetter,
                     CanWrite = hasPublicSetter,
                     IsStatic = isStatic,
+                    IsPublic = hasPublicGetter,
                     CustomAttributes = customAttributes
                 });
             }

@@ -16,6 +16,7 @@ internal static class AtsCapabilityScanner
     {
         public required List<AtsCapabilityInfo> Capabilities { get; init; }
         public required List<AtsTypeInfo> TypeInfos { get; init; }
+        public List<AtsDtoTypeInfo> DtoTypes { get; init; } = [];
         public List<AtsDiagnostic> Diagnostics { get; init; } = [];
     }
 
@@ -35,9 +36,11 @@ internal static class AtsCapabilityScanner
     {
         var allCapabilities = new List<AtsCapabilityInfo>();
         var allTypeInfos = new List<AtsTypeInfo>();
+        var allDtoTypes = new List<AtsDtoTypeInfo>();
         var allDiagnostics = new List<AtsDiagnostic>();
         var seenCapabilityIds = new HashSet<string>();
         var seenTypeIds = new HashSet<string>();
+        var seenDtoTypeIds = new HashSet<string>();
 
         // Pass 1: Collect capabilities and types from all assemblies (no expansion)
         foreach (var assembly in assemblies)
@@ -59,6 +62,15 @@ internal static class AtsCapabilityScanner
                 if (seenTypeIds.Add(typeInfo.AtsTypeId))
                 {
                     allTypeInfos.Add(typeInfo);
+                }
+            }
+
+            // Merge DTO types, avoiding duplicates
+            foreach (var dtoType in result.DtoTypes)
+            {
+                if (seenDtoTypeIds.Add(dtoType.TypeId))
+                {
+                    allDtoTypes.Add(dtoType);
                 }
             }
 
@@ -85,6 +97,7 @@ internal static class AtsCapabilityScanner
         {
             Capabilities = allCapabilities,
             TypeInfos = allTypeInfos,
+            DtoTypes = allDtoTypes,
             Diagnostics = allDiagnostics
         };
     }
@@ -130,6 +143,7 @@ internal static class AtsCapabilityScanner
     {
         var capabilities = new List<AtsCapabilityInfo>();
         var typeInfos = new List<AtsTypeInfo>();
+        var dtoTypes = new List<AtsDtoTypeInfo>();
         var diagnostics = new List<AtsDiagnostic>();
 
         // Also collect resource types discovered from capability parameters
@@ -138,6 +152,16 @@ internal static class AtsCapabilityScanner
 
         foreach (var type in assembly.GetTypes())
         {
+            // Check for [AspireDto] attribute - scan DTO types for code generation
+            if (HasAspireDtoAttribute(type))
+            {
+                var dtoInfo = CreateDtoTypeInfo(type, typeMapping, typeResolver);
+                if (dtoInfo != null)
+                {
+                    dtoTypes.Add(dtoInfo);
+                }
+            }
+
             // Check for [AspireExport(AtsTypeId = "...")] on types
             var typeExportAttr = GetAspireExportAttribute(type);
             if (typeExportAttr != null)
@@ -168,13 +192,23 @@ internal static class AtsCapabilityScanner
             // Note: Instance methods are scanned via CreateContextTypeCapabilities when type has [AspireExport]
             foreach (var method in type.GetMethods())
             {
-                if (!method.IsStatic || !method.IsPublic)
+                if (!method.IsStatic)
                 {
                     continue;
                 }
 
                 var exportAttr = GetAspireExportAttribute(method);
-                if (exportAttr == null)
+
+                // Static methods require explicit [AspireExport] (no auto-expose)
+                // Explicit [AspireExport] allows both public and internal methods
+                if (!ShouldExportMember(method.IsPublic, exposeAll: false, exportAttr))
+                {
+                    continue;
+                }
+
+                // For static methods, exportAttr is guaranteed non-null here since we passed exposeAll: false
+                // and ShouldExportMember only returns true if exportAttr != null in that case
+                if (exportAttr is null)
                 {
                     continue;
                 }
@@ -241,6 +275,7 @@ internal static class AtsCapabilityScanner
         {
             Capabilities = capabilities,
             TypeInfos = typeInfos,
+            DtoTypes = dtoTypes,
             Diagnostics = diagnostics
         };
     }
@@ -591,6 +626,50 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
+    /// Creates DTO type info for a type with [AspireDto] attribute.
+    /// </summary>
+    private static AtsDtoTypeInfo? CreateDtoTypeInfo(
+        IAtsTypeInfo type,
+        AtsTypeMapping typeMapping,
+        IAtsTypeResolver? typeResolver)
+    {
+        var typeId = InferResourceTypeId(type) ?? type.FullName ?? "unknown";
+        var typeName = type.Name;
+
+        // Collect public properties for the DTO interface
+        var properties = new List<AtsDtoPropertyInfo>();
+
+        foreach (var prop in type.GetProperties())
+        {
+            // Only include public readable properties (DTOs are public API)
+            if (!prop.IsPublic || !prop.CanRead)
+            {
+                continue;
+            }
+
+            var propTypeRef = CreateTypeRef(prop.PropertyType, typeMapping, typeResolver);
+            if (propTypeRef == null)
+            {
+                continue;
+            }
+
+            properties.Add(new AtsDtoPropertyInfo
+            {
+                Name = prop.Name,
+                Type = propTypeRef,
+                IsOptional = !prop.CanWrite // If no setter, it's likely init-only and required
+            });
+        }
+
+        return new AtsDtoTypeInfo
+        {
+            TypeId = typeId,
+            Name = typeName,
+            Properties = properties
+        };
+    }
+
+    /// <summary>
     /// Result of creating context type capabilities, including any member-level diagnostics.
     /// </summary>
     internal sealed class ContextTypeCapabilitiesResult
@@ -634,9 +713,10 @@ internal static class AtsCapabilityScanner
                 continue;
             }
 
-            // Check if property should be exported (either via ExposeProperties=true or member-level [AspireExport])
+            // Check if property should be exported
+            // ExposeProperties=true exports public only; explicit [AspireExport] can export internal too
             var memberExportAttr = GetAspireExportAttribute(property);
-            if (!exposeAllProperties && memberExportAttr == null)
+            if (!ShouldExportMember(property.IsPublic, exposeAllProperties, memberExportAttr))
             {
                 continue;
             }
@@ -821,8 +901,8 @@ internal static class AtsCapabilityScanner
 
         foreach (var method in contextType.GetMethods())
         {
-            // Skip static methods, non-public, and special methods
-            if (method.IsStatic || !method.IsPublic)
+            // Skip static methods
+            if (method.IsStatic)
             {
                 continue;
             }
@@ -848,9 +928,10 @@ internal static class AtsCapabilityScanner
                 continue;
             }
 
-            // Check if method should be exported (either via ExposeMethods=true or member-level [AspireExport])
+            // Check if method should be exported
+            // ExposeMethods=true exports public only; explicit [AspireExport] can export internal too
             var memberExportAttr = GetAspireExportAttribute(method);
-            if (!exposeAllMethods && memberExportAttr == null)
+            if (!ShouldExportMember(method.IsPublic, exposeAllMethods, memberExportAttr))
             {
                 continue;
             }
@@ -1880,12 +1961,21 @@ internal static class AtsCapabilityScanner
             }
         }
 
+        // Check for [AspireDto] attribute - DTOs are serialized as JSON objects
+        if (HasAspireDtoAttribute(type))
+        {
+            return new AtsTypeRef
+            {
+                TypeId = InferResourceTypeId(type) ?? type.FullName ?? "unknown",
+                Category = AtsTypeCategory.Dto,
+                IsInterface = type.IsInterface
+            };
+        }
+
         // Try explicit mapping for other types
         var mappedTypeId = typeMapping.GetTypeId(typeFullName);
         if (mappedTypeId != null)
         {
-            // Determine if it's a DTO or Handle based on type mapping metadata
-            // For now, assume explicitly mapped types are Handles
             return new AtsTypeRef
             {
                 TypeId = mappedTypeId,
@@ -2279,6 +2369,23 @@ internal static class AtsCapabilityScanner
     }
 
     /// <summary>
+    /// Determines if a member should be exported based on visibility and attributes.
+    /// Explicit [AspireExport] can export public + internal members.
+    /// Auto-expose (ExposeMethods/ExposeProperties=true) only exports public members.
+    /// </summary>
+    private static bool ShouldExportMember(bool isPublic, bool exposeAll, IAtsAttributeInfo? exportAttr)
+    {
+        // Explicit [AspireExport] can export public + internal members
+        if (exportAttr != null)
+        {
+            return true;
+        }
+
+        // Auto-expose only exports public members
+        return exposeAll && isPublic;
+    }
+
+    /// <summary>
     /// Gets [AspireExport] attribute from a property (for member-level export).
     /// </summary>
     private static IAtsAttributeInfo? GetAspireExportAttribute(IAtsPropertyInfo property)
@@ -2303,6 +2410,15 @@ internal static class AtsCapabilityScanner
     {
         return property.GetCustomAttributes()
             .FirstOrDefault(a => a.AttributeTypeFullName == AspireExportAttributeNames.UnionFullName);
+    }
+
+    /// <summary>
+    /// Checks if a type has [AspireDto] attribute.
+    /// </summary>
+    private static bool HasAspireDtoAttribute(IAtsTypeInfo type)
+    {
+        return type.GetCustomAttributes()
+            .Any(a => a.AttributeTypeFullName == AspireExportAttributeNames.DtoFullName);
     }
 
     /// <summary>

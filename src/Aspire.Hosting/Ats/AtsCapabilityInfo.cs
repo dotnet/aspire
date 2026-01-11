@@ -323,3 +323,46 @@ internal sealed class AtsTypeInfo
     /// </summary>
     public bool HasExposeMethods { get; init; }
 }
+
+/// <summary>
+/// Represents a DTO type discovered from [AspireDto] attributes.
+/// Used for generating TypeScript interfaces for DTOs.
+/// </summary>
+internal sealed class AtsDtoTypeInfo
+{
+    /// <summary>
+    /// Gets or sets the ATS type ID for this DTO.
+    /// </summary>
+    public required string TypeId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the simple type name (for interface name generation).
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets or sets the properties of this DTO.
+    /// </summary>
+    public required IReadOnlyList<AtsDtoPropertyInfo> Properties { get; init; }
+}
+
+/// <summary>
+/// Represents a property of a DTO type.
+/// </summary>
+internal sealed class AtsDtoPropertyInfo
+{
+    /// <summary>
+    /// Gets or sets the property name.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets or sets the property type reference.
+    /// </summary>
+    public required AtsTypeRef Type { get; init; }
+
+    /// <summary>
+    /// Gets or sets whether this property is optional (nullable or has default).
+    /// </summary>
+    public bool IsOptional { get; init; }
+}

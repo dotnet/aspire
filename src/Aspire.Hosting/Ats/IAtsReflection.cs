@@ -76,10 +76,10 @@ internal interface IAtsTypeInfo
     /// <summary>Gets all custom attributes on this type.</summary>
     IEnumerable<IAtsAttributeInfo> GetCustomAttributes();
 
-    /// <summary>Gets all public methods on this type.</summary>
+    /// <summary>Gets all methods on this type (public and non-public).</summary>
     IEnumerable<IAtsMethodInfo> GetMethods();
 
-    /// <summary>Gets all public properties on this type.</summary>
+    /// <summary>Gets all properties on this type (public and non-public).</summary>
     IEnumerable<IAtsPropertyInfo> GetProperties();
 
     /// <summary>Gets the enum value names if this is an enum type.</summary>
@@ -168,6 +168,9 @@ internal interface IAtsPropertyInfo
 
     /// <summary>Gets whether this is a static property.</summary>
     bool IsStatic { get; }
+
+    /// <summary>Gets whether this is a public property (based on getter visibility).</summary>
+    bool IsPublic { get; }
 
     /// <summary>Gets all custom attributes on this property.</summary>
     IEnumerable<IAtsAttributeInfo> GetCustomAttributes();

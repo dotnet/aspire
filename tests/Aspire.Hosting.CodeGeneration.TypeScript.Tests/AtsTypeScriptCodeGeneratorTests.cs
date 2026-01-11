@@ -71,7 +71,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var capabilities = ScanCapabilitiesFromTestAssembly(context);
 
         // Act
-        var files = _generator.GenerateDistributedApplication(capabilities);
+        var files = _generator.GenerateDistributedApplication(capabilities, []);
 
         // Assert
         Assert.Contains("aspire.ts", files.Keys);
@@ -621,7 +621,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var capabilities = ScanCapabilitiesFromTestAssembly(context);
 
         // Generate the TypeScript output
-        var files = _generator.GenerateDistributedApplication(capabilities);
+        var files = _generator.GenerateDistributedApplication(capabilities, []);
         var aspireTs = files["aspire.ts"];
 
         // The withDependency method should have its dependency parameter as a union type:
@@ -866,7 +866,7 @@ public class AtsTypeScriptCodeGeneratorTests
             typeMapping);
 
         // Generate TypeScript
-        var files = _generator.GenerateDistributedApplication(capabilities);
+        var files = _generator.GenerateDistributedApplication(capabilities, []);
         var aspireTs = files["aspire.ts"];
 
         // Verify withEnvironment appears on TestRedisResource class
@@ -1155,7 +1155,7 @@ public class AtsTypeScriptCodeGeneratorTests
         var (hostingAssembly, _, testAssembly, typeMapping) = LoadTestAssemblies(context);
         var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
             [hostingAssembly, testAssembly], typeMapping);
-        var files = _generator.GenerateDistributedApplication(capabilities);
+        var files = _generator.GenerateDistributedApplication(capabilities, []);
         return files["aspire.ts"];
     }
 }

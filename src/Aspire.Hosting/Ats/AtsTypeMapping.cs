@@ -13,6 +13,7 @@ internal static class AspireExportAttributeNames
     public const string FullName = "Aspire.Hosting.AspireExportAttribute";
     public const string IgnoreFullName = "Aspire.Hosting.AspireExportIgnoreAttribute";
     public const string UnionFullName = "Aspire.Hosting.AspireUnionAttribute";
+    public const string DtoFullName = "Aspire.Hosting.AspireDtoAttribute";
 }
 
 /// <summary>
