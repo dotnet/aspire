@@ -1052,4 +1052,83 @@ public class AtsTypeScriptCodeGeneratorTests
         // Second type should be ReferenceExpression
         Assert.Contains("ReferenceExpression", typeName2);
     }
+
+    // ===== CapabilityKind Tests =====
+
+    [Fact]
+    public void Scanner_InstanceMethod_HasCorrectCapabilityKind()
+    {
+        // TestResourceContext has ExposeMethods=true - its methods should be CapabilityKind.InstanceMethod
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, _, testAssembly, typeMapping) = LoadTestAssemblies(context);
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
+            [hostingAssembly, testAssembly], typeMapping);
+
+        var getValueAsync = capabilities.First(c =>
+            c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes/TestResourceContext.getValueAsync");
+
+        Assert.Equal(AtsCapabilityKind.InstanceMethod, getValueAsync.CapabilityKind);
+    }
+
+    [Fact]
+    public void Scanner_ExtensionMethod_HasCorrectCapabilityKind()
+    {
+        // Extension methods should be CapabilityKind.Method
+        using var context = new AssemblyLoaderContext();
+        var capabilities = ScanCapabilitiesFromTestAssembly(context);
+
+        var addTestRedis = capabilities.First(c =>
+            c.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis");
+
+        Assert.Equal(AtsCapabilityKind.Method, addTestRedis.CapabilityKind);
+    }
+
+    // ===== Thenable Pattern Code Generation Tests =====
+
+    [Fact]
+    public void Generate_TypeWithMethods_CreatesThenableWrapper()
+    {
+        var code = GenerateTwoPassCode();
+
+        // TestResourceContext has ExposeMethods=true - gets Promise wrapper
+        Assert.Contains("export class TestResourceContextPromise", code);
+        Assert.Contains("implements PromiseLike<TestResourceContext>", code);
+    }
+
+    [Fact]
+    public void Generate_TypeWithOnlyProperties_NoThenableWrapper()
+    {
+        var code = GenerateTwoPassCode();
+
+        // TestEnvironmentContext has only ExposeProperties=true - no Promise wrapper
+        Assert.DoesNotContain("TestEnvironmentContextPromise", code);
+    }
+
+    [Fact]
+    public void Generate_VoidInstanceMethod_ReturnsContainingTypePromise()
+    {
+        var code = GenerateTwoPassCode();
+
+        // setValueAsync returns void but chains as TestResourceContextPromise
+        Assert.Contains("setValueAsync(value: string): TestResourceContextPromise", code);
+    }
+
+    [Fact]
+    public void Generate_PrimitiveReturningMethod_ReturnsPlainPromise()
+    {
+        var code = GenerateTwoPassCode();
+
+        // getValueAsync returns string - plain Promise, not a wrapper
+        Assert.Contains("getValueAsync(): Promise<string>", code);
+    }
+
+    private string GenerateTwoPassCode()
+    {
+        using var context = new AssemblyLoaderContext();
+        var (hostingAssembly, _, testAssembly, typeMapping) = LoadTestAssemblies(context);
+        var capabilities = AtsCapabilityScannerExtensions.ScanAssemblies(
+            [hostingAssembly, testAssembly], typeMapping);
+        var files = _generator.GenerateDistributedApplication(capabilities);
+        return files["aspire.ts"];
+    }
 }
