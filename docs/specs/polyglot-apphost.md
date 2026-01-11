@@ -214,6 +214,19 @@ ATS categorizes types for serialization and code generation using `AtsTypeCatego
 | `List` | Mutable `List<T>` | Handle when exposed as property; JSON array when passed as parameter |
 | `Dict` | Mutable `Dictionary<K,V>` | Handle when exposed as property; JSON object when passed as parameter |
 
+### Type System Notes (Compatibility and Semantics)
+
+This section captures expectations that keep guest runtimes stable and APIs evolvable.
+
+- **Type identity stability:** ATS type IDs are derived from `{AssemblyName}/{FullTypeName}`. Renames or namespace moves are breaking changes. Prefer additive changes or introduce new types.
+- **Nullability and optional parameters:** Use nullable types or optional parameters to express optionality. Guests should treat missing values and explicit `null` as equivalent only when the parameter is declared nullable.
+- **DTO evolution:** DTOs are structural JSON objects. Additive changes (new optional fields) are safer than renames/removals. Guests should ignore unknown DTO fields to remain forward-compatible.
+- **Enum evolution:** New enum members are non-breaking for hosts, but older guests may not recognize them. Guests should handle unknown enum strings defensively.
+- **Capabilities and versioning:** Capability IDs are stable and globally unique. Rename by adding a new capability ID and keeping the old one for compatibility.
+- **Handle lifetime:** Handles are valid only while the host process runs. Guests must handle `HANDLE_NOT_FOUND` when a handle is stale or disposed.
+- **Callbacks and errors:** Exceptions thrown by guest callbacks surface as `CALLBACK_ERROR` on the host. Guests should treat callback results like normal capability results.
+- **Concurrency:** JSON-RPC responses can arrive out of order. Guests should not assume request/response ordering beyond matching `id`.
+
 ### Type Exporting and Polymorphism Flattening
 
 ATS doesn't have a closed set of primitive types. Instead, any .NET type can be exported using `[AspireExport]`, and the scanner automatically expands capabilities based on type relationships.
@@ -453,7 +466,7 @@ public class EnvironmentCallbackContext
 
 For mutable .NET collections exposed to TypeScript, the SDK provides wrapper classes with capability-based operations.
 
-#### AspireDict<K, V>
+#### `AspireDict<K, V>`
 
 Wrapper for `IDictionary<K, V>`:
 
@@ -702,8 +715,8 @@ Fields starting with `$` are reserved for ATS protocol metadata:
 | Handle | `{ "$handle": "42", "$type": "Assembly/Namespace.Type" }` | Always handle |
 | DTO | Plain object (requires `[AspireDto]`) | Copied by value |
 | Array/IReadOnlyList | JSON array | Copied by value |
-| List<T> | JSON array (parameter) or Handle (return/property) | Handle if returned |
-| Dictionary<K,V> | JSON object (parameter) or Handle (return/property) | Handle if returned |
+| `List<T>` | JSON array (parameter) or Handle (return/property) | Handle if returned |
+| `Dictionary<K,V>` | JSON object (parameter) or Handle (return/property) | Handle if returned |
 | Nullable | Value or `null` | Same as inner type |
 | ReferenceExpression | `{ "$expr": { "format": "...", "valueProviders": [...] } }` | Special structure |
 
