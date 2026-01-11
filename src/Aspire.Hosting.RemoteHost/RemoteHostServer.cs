@@ -84,18 +84,14 @@ public static class RemoteHostServer
             socketPath = Path.Combine(tempDir, "aspire", "remote-app-host.sock");
         }
 
-        // Read auth token from environment variable (set by CLI)
-        var authToken = Environment.GetEnvironmentVariable("ASPIRE_RPC_AUTH_TOKEN");
-
         // Check for hot reload mode
         var enableHotReload = args.Contains("--hot-reload");
 
         Console.WriteLine($"Starting RemoteAppHost JsonRpc Server on {socketPath}...");
-        Console.WriteLine(authToken != null ? "Authentication is enabled." : "Authentication is disabled.");
         Console.WriteLine(enableHotReload ? "Hot reload is enabled - server will wait for client reconnections." : "Hot reload is disabled.");
         Console.WriteLine("This server will continue running until stopped with Ctrl+C");
 
-        var server = new JsonRpcServer(socketPath, atsAssemblies, authToken);
+        var server = new JsonRpcServer(socketPath, atsAssemblies);
         try
         {
             // In hot reload mode, don't shutdown when clients disconnect

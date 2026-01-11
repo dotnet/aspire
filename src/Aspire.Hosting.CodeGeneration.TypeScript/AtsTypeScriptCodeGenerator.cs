@@ -1278,17 +1278,8 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                     );
                 }
 
-                const authToken = process.env.ASPIRE_RPC_AUTH_TOKEN;
-                if (!authToken) {
-                    throw new Error(
-                        'ASPIRE_RPC_AUTH_TOKEN environment variable not set. ' +
-                        'Run this application using `aspire run`.'
-                    );
-                }
-
                 const client = new AspireClientRpc(socketPath);
                 await client.connect();
-                await client.authenticate(authToken);
 
                 // Exit cleanly when the server disconnects (graceful shutdown)
                 client.onDisconnect(() => {

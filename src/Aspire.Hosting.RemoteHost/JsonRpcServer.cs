@@ -6,7 +6,6 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
-using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Ats;
@@ -19,8 +18,6 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
 {
     private readonly JsonRpcCallbackInvoker _callbackInvoker;
     private readonly CancellationTokenSource _cts = new();
-    private readonly string? _authToken;
-    private bool _isAuthenticated;
 
     // ATS (Aspire Type System) components
     private readonly HandleRegistry _handleRegistry;
@@ -31,33 +28,14 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     /// Creates a new RemoteAppHostService.
     /// </summary>
     /// <param name="assemblies">The assemblies to scan for ATS capabilities and handles.</param>
-    /// <param name="authToken">
-    /// Optional authentication token. If provided, clients must call authenticate()
-    /// with this token before any other RPC methods are allowed.
-    /// If null, authentication is disabled.
-    /// </param>
-    public RemoteAppHostService(IEnumerable<Assembly> assemblies, string? authToken = null)
+    public RemoteAppHostService(IEnumerable<Assembly> assemblies)
     {
-        _authToken = authToken;
-        _isAuthenticated = authToken == null; // If no token, auto-authenticate
         _callbackInvoker = new JsonRpcCallbackInvoker();
 
         // Initialize ATS components with provided assemblies
         _handleRegistry = new HandleRegistry();
         _callbackProxyFactory = new AtsCallbackProxyFactory(_callbackInvoker, _handleRegistry);
         _capabilityDispatcher = new CapabilityDispatcher(_handleRegistry, assemblies, _callbackProxyFactory);
-
-        // Diagnostic logging for security configuration
-        Console.WriteLine("[RPC] Security Configuration:");
-        if (authToken == null)
-        {
-            Console.WriteLine("[RPC]   Authentication: DISABLED - no token configured");
-        }
-        else
-        {
-            var tokenPreview = authToken.Length > 8 ? authToken[..8] + "..." : authToken;
-            Console.WriteLine($"[RPC]   Authentication: ENABLED - token starts with: {tokenPreview}");
-        }
     }
 
     /// <summary>
@@ -71,49 +49,6 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     public void SetClientConnection(JsonRpc clientRpc)
     {
         _callbackInvoker.SetConnection(clientRpc);
-    }
-
-    /// <summary>
-    /// Authenticates the client with the server.
-    /// Must be called before any other RPC methods if the server was started with an auth token.
-    /// </summary>
-    /// <param name="token">The authentication token.</param>
-    /// <returns>True if authentication succeeded.</returns>
-    /// <exception cref="UnauthorizedAccessException">Thrown if the token is invalid.</exception>
-    [JsonRpcMethod("authenticate")]
-    public bool Authenticate(string token)
-    {
-        if (_authToken == null)
-        {
-            // No auth required
-            _isAuthenticated = true;
-            return true;
-        }
-
-        // Use constant-time comparison to prevent timing attacks
-        if (CryptographicOperations.FixedTimeEquals(
-            System.Text.Encoding.UTF8.GetBytes(token),
-            System.Text.Encoding.UTF8.GetBytes(_authToken)))
-        {
-            _isAuthenticated = true;
-            Console.WriteLine("[RPC] Client authenticated successfully");
-            return true;
-        }
-
-        Console.WriteLine("[RPC] SECURITY: Authentication failed - invalid token");
-        throw new UnauthorizedAccessException("Access denied.");
-    }
-
-    /// <summary>
-    /// Throws if the client is not authenticated.
-    /// </summary>
-    private void RequireAuthentication()
-    {
-        if (!_isAuthenticated)
-        {
-            Console.WriteLine("[RPC] SECURITY: Blocked unauthenticated RPC call");
-            throw new UnauthorizedAccessException("Access denied.");
-        }
     }
 
     [JsonRpcMethod("ping")]
@@ -135,7 +70,6 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
     [JsonRpcMethod("invokeCapability")]
     public async Task<JsonNode?> InvokeCapabilityAsync(string capabilityId, JsonObject? args)
     {
-        RequireAuthentication();
         Console.WriteLine($"[RPC] >> invokeCapability({capabilityId})");
         Console.WriteLine($"[RPC]    args: {args?.ToJsonString() ?? "null"}");
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -180,30 +114,6 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// Gets all registered ATS capability IDs.
-    /// </summary>
-    /// <returns>An array of capability IDs.</returns>
-    [JsonRpcMethod("getCapabilities")]
-    public JsonArray GetCapabilities()
-    {
-        RequireAuthentication();
-        Console.WriteLine("[RPC] >> getCapabilities()");
-        try
-        {
-            var result = new JsonArray();
-            foreach (var capabilityId in _capabilityDispatcher.GetCapabilityIds())
-            {
-                result.Add(capabilityId);
-            }
-            return result;
-        }
-        finally
-        {
-            Console.WriteLine("[RPC] << getCapabilities() completed");
-        }
-    }
-
     #endregion
 
     public async ValueTask DisposeAsync()
@@ -220,7 +130,6 @@ internal sealed class RemoteAppHostService : IAsyncDisposable
 internal sealed class JsonRpcServer : IAsyncDisposable
 {
     private readonly string _socketPath;
-    private readonly string? _authToken;
     private readonly IEnumerable<Assembly> _atsAssemblies;
     private Socket? _listenSocket;
     private bool _disposed;
@@ -237,15 +146,10 @@ internal sealed class JsonRpcServer : IAsyncDisposable
     /// </summary>
     /// <param name="socketPath">Path to the Unix domain socket.</param>
     /// <param name="atsAssemblies">The assemblies to scan for ATS capabilities and handles.</param>
-    /// <param name="authToken">
-    /// Optional authentication token. If provided, clients must call authenticate()
-    /// with this token before any other RPC methods are allowed.
-    /// </param>
-    public JsonRpcServer(string socketPath, IEnumerable<Assembly> atsAssemblies, string? authToken = null)
+    public JsonRpcServer(string socketPath, IEnumerable<Assembly> atsAssemblies)
     {
         _socketPath = socketPath;
         _atsAssemblies = atsAssemblies;
-        _authToken = authToken;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -389,9 +293,9 @@ internal sealed class JsonRpcServer : IAsyncDisposable
         var disconnectReason = "unknown";
 
         // Create a dedicated service instance for this client connection
-        // Each client has its own authentication state and handle registry
+        // Each client has its own handle registry
         Console.WriteLine($"[RPC] Creating new RemoteAppHostService for client {clientId}");
-        var clientService = new RemoteAppHostService(_atsAssemblies, _authToken);
+        var clientService = new RemoteAppHostService(_atsAssemblies);
         // Discard pattern to satisfy CA2007 while ensuring disposal
         await using var _ = clientService.ConfigureAwait(false);
 

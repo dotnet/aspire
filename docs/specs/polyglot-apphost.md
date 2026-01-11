@@ -20,21 +20,28 @@ This document describes how the Aspire CLI supports non-.NET app hosts using the
 
 ## Overview
 
-The polyglot apphost feature allows developers to write Aspire app hosts in non-.NET languages. The **Aspire Type System (ATS)** is the foundation—a portable type system that maps .NET types to a unified representation any language can work with.
+The polyglot apphost feature allows developers to write Aspire app hosts in non-.NET languages. The **Aspire Type System (ATS)** is the foundation—a portable subset of the .NET type system that can be mapped to any language.
 
-Integration authors expose their existing extension methods to ATS by adding `[AspireExport]` attributes. No wrapper code needed.
+**No IDL required.** Unlike gRPC/protobuf or OpenAPI, ATS doesn't introduce a separate interface definition language. The .NET type system is already expressive enough. Integration authors simply add `[AspireExport]` attributes to existing extension methods—their C# code *is* the schema. The scanner extracts everything it needs from the compiled assemblies.
 
 **Key Concepts:**
 - **ATS Type ID** - A portable type identifier derived from assembly and type name (e.g., `Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource`)
 - **Capability** - A named operation (e.g., `Aspire.Hosting.Redis/addRedis`)
 - **Handle** - An opaque typed reference to a .NET object
-- **DTO** - A serializable data transfer object
+- **DTO** - A serializable data transfer object (marked with `[AspireDto]`)
+- **Enum** - A .NET enum type that serializes as its string name
 
 ---
 
 ## Design Philosophy
 
-ATS flattens .NET's polymorphism into a simple, portable model that any language can work with:
+ATS leverages .NET's rich type system rather than replacing it. The `[AspireExport]` and `[AspireDto]` attributes mark what should be exposed—the rest is inferred from the C# signatures. This means:
+
+- Integration authors write **normal C# extension methods**
+- The scanner **extracts types, parameters, and relationships** at build time
+- Code generators produce **idiomatic APIs** in each target language
+
+ATS then flattens .NET's polymorphism into a simple, portable model that any language can work with:
 
 | .NET Concept | ATS Approach |
 |--------------|--------------|
@@ -110,9 +117,25 @@ flowchart TB
 2. CLI adds required hosting packages (Redis, Postgres, etc.)
 3. CLI builds the .NET project
 4. Code generation scans assemblies for `[AspireExport]` and generates SDK
-5. CLI starts the AppHost server with socket path and auth token
+5. CLI starts the AppHost server with socket path
 6. CLI starts the Guest runtime
-7. Guest connects, authenticates, and invokes capabilities
+7. Guest connects and invokes capabilities
+
+### Guest Runtime Contract
+
+The CLI passes the connection path via **environment variable**:
+
+| Environment Variable | Description | Example |
+|---------------------|-------------|---------|
+| `REMOTE_APP_HOST_SOCKET_PATH` | Unix socket path (or named pipe name on Windows) | `/tmp/aspire/host.sock` |
+
+**Security:** The socket is protected by file system permissions (Unix: `0600`, Windows: current user ACL). Only processes running as the same user can connect.
+
+**Guest startup requirements:**
+1. Read `REMOTE_APP_HOST_SOCKET_PATH` from environment
+2. Connect to the Unix socket (or `\\.\pipe\{name}` on Windows)
+3. Invoke capabilities via JSON-RPC
+4. Exit cleanly when the connection closes (server shutdown)
 
 ```mermaid
 sequenceDiagram
@@ -120,20 +143,17 @@ sequenceDiagram
     participant Host as AppHost Server
     participant Guest as Guest (TypeScript)
 
-    CLI->>Host: Start (socket path, auth token)
-    CLI->>Guest: Start (socket path, auth token)
-
-    Guest->>Host: authenticate(token)
-    Host-->>Guest: true
+    CLI->>Host: Start (socket path)
+    CLI->>Guest: Start (socket path via env var)
 
     Guest->>Host: invokeCapability("Aspire.Hosting/createBuilder", {})
-    Host-->>Guest: { $handle: "1", $type: "Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder" }
+    Host-->>Guest: { $handle: "1", $type: "Aspire.Hosting/..." }
 
     Guest->>Host: invokeCapability("Aspire.Hosting.Redis/addRedis", {builder, name})
-    Host-->>Guest: { $handle: "2", $type: "Aspire.Hosting.Redis/Aspire.Hosting.ApplicationModel.RedisResource" }
+    Host-->>Guest: { $handle: "2", $type: "Aspire.Hosting.Redis/..." }
 
     Guest->>Host: invokeCapability("Aspire.Hosting/build", {builder})
-    Host-->>Guest: { $handle: "3", $type: "Aspire.Hosting/Aspire.Hosting.DistributedApplication" }
+    Host-->>Guest: { $handle: "3", $type: "Aspire.Hosting/..." }
 
     Guest->>Host: invokeCapability("Aspire.Hosting/run", {app})
     Host-->>Guest: Started (orchestration running)
@@ -175,6 +195,21 @@ public class RedisResource : ContainerResource { }
 [assembly: AspireExport(typeof(IDistributedApplicationBuilder))]
 // Type ID = Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder
 ```
+
+### Type Categories
+
+ATS categorizes types for serialization and code generation using `AtsTypeCategory`:
+
+| Category | Description | Serialization |
+|----------|-------------|---------------|
+| `Primitive` | Built-in scalar types | JSON primitive (string, number, boolean) |
+| `Enum` | .NET enum types | String (enum member name) |
+| `Handle` | Opaque object references | `{ "$handle": "42", "$type": "..." }` |
+| `Dto` | Data transfer objects with `[AspireDto]` | JSON object |
+| `Callback` | Guest-provided delegate functions | String (callback ID) |
+| `Array` | Immutable arrays/readonly collections | JSON array (copied by value) |
+| `List` | Mutable `List<T>` | Handle when exposed as property; JSON array when passed as parameter |
+| `Dict` | Mutable `Dictionary<K,V>` | Handle when exposed as property; JSON object when passed as parameter |
 
 ### Type Exporting and Polymorphism Flattening
 
@@ -310,6 +345,41 @@ public sealed class ContainerMountOptions
 | Input (JSON → .NET) | Deserialized | **Error** |
 | Output (.NET → JSON) | Serialized | Marshaled as Handle |
 
+### Enums
+
+.NET enum types are fully supported and generate typed enums in guest languages. Enums serialize as their string member names:
+
+```csharp
+// Define enum in .NET
+public enum ContainerLifetime
+{
+    Session,
+    Persistent
+}
+
+// Use in capability
+[AspireExport("withLifetime")]
+public static IResourceBuilder<T> WithLifetime<T>(
+    this IResourceBuilder<T> builder,
+    ContainerLifetime lifetime) where T : ContainerResource
+```
+
+Generated TypeScript:
+
+```typescript
+export enum ContainerLifetime {
+    Session = "Session",
+    Persistent = "Persistent",
+}
+
+// Usage - fully typed
+const cache = await builder
+    .addRedis("cache")
+    .withLifetime(ContainerLifetime.Persistent);
+```
+
+The scanner automatically discovers enum types used in capability parameters and return types, adding them to `AtsContext.EnumTypes` for code generation.
+
 ### Callbacks
 
 Guest-provided functions the host can invoke during execution. Callbacks are automatically inferred from delegate parameters:
@@ -436,7 +506,7 @@ Guest and host communicate via JSON-RPC 2.0 over Unix domain sockets (named pipe
 
 ### Wire Format
 
-Messages use the LSP/vscode-jsonrpc header format:
+Messages use the LSP-style header format (same as vscode-jsonrpc):
 
 ```text
 Content-Length: 123\r\n
@@ -444,28 +514,33 @@ Content-Length: 123\r\n
 {"jsonrpc":"2.0","id":1,"method":"ping","params":[]}
 ```
 
+**Framing rules:**
+- `Content-Length` is the **byte count** of the JSON body (not character count)
+- Body is encoded as **UTF-8**
+- Headers end with `\r\n\r\n` (CRLF CRLF)
+- `Content-Type` header is optional (defaults to `application/vscode-jsonrpc; charset=utf-8`)
+
+**Implementation note:** Use the `vscode-jsonrpc` npm package or equivalent LSP transport library.
+
 ### Methods
 
 | Method | Direction | Purpose |
 |--------|-----------|---------|
-| `authenticate` | Guest → Host | Authenticate with secret token |
 | `ping` | Guest → Host | Health check |
 | `invokeCapability` | Guest → Host | Call a capability |
-| `getCapabilities` | Guest → Host | List available capabilities |
-| `createCancellationToken` | Guest → Host | Create cancellation token |
-| `cancel` | Guest → Host | Cancel operation |
+| `cancelToken` | Guest → Host | Cancel a cancellation token |
 | `invokeCallback` | Host → Guest | Invoke guest callback |
 
-### authenticate
+### ping
 
-Must be called first (except for `ping`):
+Simple health check.
 
 ```json
 // Request
-{"jsonrpc":"2.0","id":1,"method":"authenticate","params":["<secret-token>"]}
+{"jsonrpc":"2.0","id":1,"method":"ping","params":[]}
 
 // Response
-{"jsonrpc":"2.0","id":1,"result":true}
+{"jsonrpc":"2.0","id":1,"result":"pong"}
 ```
 
 ### invokeCapability
@@ -494,14 +569,45 @@ Must be called first (except for `ping`):
 // Request
 {"jsonrpc":"2.0","id":100,"method":"invokeCallback","params":[
     "callback_1_1234567890",
-    {"context": {"$handle": "5", "$type": "Aspire.Hosting/EnvironmentCallbackContext"}}
+    {"context": {"$handle": "5", "$type": "Aspire.Hosting/Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext"}}
 ]}
 
 // Response
 {"jsonrpc":"2.0","id":100,"result":null}
 ```
 
+### Cancellation
+
+Cancellation tokens enable cooperative cancellation of long-running callbacks.
+
+**Token flow:**
+1. Host creates token when invoking a callback that accepts `CancellationToken`
+2. Host passes token ID in callback args as `$cancellationToken`
+3. Guest can cancel by calling `cancelToken` RPC method
+4. Host disposes token when callback completes
+
+```json
+// Callback request with cancellation token
+{"jsonrpc":"2.0","id":100,"method":"invokeCallback","params":[
+    "callback_1_1234567890",
+    {
+        "context": {"$handle": "5", "$type": "Aspire.Hosting/..."},
+        "$cancellationToken": "ct_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    }
+]}
+
+// Guest cancels the operation
+{"jsonrpc":"2.0","id":101,"method":"cancelToken","params":["ct_a1b2c3d4-e5f6-7890-abcd-ef1234567890"]}
+
+// Response (true if token found and cancelled)
+{"jsonrpc":"2.0","id":101,"result":true}
+```
+
+**Token ID format:** Opaque string (treat as identifier, do not parse)
+
 ### Error Responses
+
+> **Non-standard format:** ATS uses `result.$error` instead of the JSON-RPC `error` field. This simplifies client error handling—check for `$error` in every result.
 
 ```json
 {
@@ -517,6 +623,13 @@ Must be called first (except for `ping`):
 }
 ```
 
+**Client handling:**
+1. Check if `result.$error` exists
+2. If present, **throw an exception** with the error details (code, message)
+3. If absent, process `result` as the success value
+
+**Note:** ATS does not return partial results—`$error` means complete failure. The error object is always the only content when present.
+
 | Code | Description |
 |------|-------------|
 | `CAPABILITY_NOT_FOUND` | Unknown capability ID |
@@ -525,6 +638,20 @@ Must be called first (except for `ping`):
 | `INVALID_ARGUMENT` | Missing/invalid argument |
 | `CALLBACK_ERROR` | Callback invocation failed |
 | `INTERNAL_ERROR` | Unexpected error |
+
+### Reserved Fields
+
+Fields starting with `$` are reserved for ATS protocol metadata:
+
+| Field | Purpose |
+|-------|---------|
+| `$handle` | Handle instance ID |
+| `$type` | ATS type ID |
+| `$error` | Error response |
+| `$expr` | Reference expression |
+| `$cancellationToken` | Cancellation token ID |
+
+**DTO authors must not use `$`-prefixed field names.** The host may misinterpret such fields as protocol metadata.
 
 ### Supported Types
 
@@ -535,11 +662,13 @@ Must be called first (except for `ping`):
 | `string` | string | |
 | `char` | string | Single character |
 | `bool` | boolean | |
-| `int`, `long` | number | |
-| `float`, `double`, `decimal` | number | |
+| `int` | number | 32-bit, safe in JavaScript |
+| `long` | number | 64-bit; **precision loss** in JavaScript for values > 2^53 |
+| `float`, `double` | number | IEEE 754 double precision |
+| `decimal` | number | **Precision loss** in JavaScript; avoid for currency in guest |
 | `DateTime` | string | ISO 8601 |
 | `DateTimeOffset` | string | ISO 8601 |
-| `TimeSpan` | number | **Total milliseconds** |
+| `TimeSpan` | number | **Total milliseconds** (safe for durations < 285 years) |
 | `DateOnly` | string | YYYY-MM-DD |
 | `TimeOnly` | string | HH:mm:ss |
 | `Guid` | string | |
@@ -547,16 +676,21 @@ Must be called first (except for `ping`):
 | `enum` | string | Enum name |
 | `object` | any | Accepts any supported ATS type |
 
+> **Numeric precision:** JavaScript's `number` type uses IEEE 754 double-precision, which can only represent integers exactly up to 2^53-1 (9,007,199,254,740,991). `long` values exceeding this range and `decimal` values may lose precision. Aspire capabilities avoid exposing such values to guests.
+
 **Complex Types:**
 
-| Type | JSON Shape |
-|------|------------|
-| Handle | `{ "$handle": "type:id", "$type": "type" }` |
-| DTO | Plain object (requires `[AspireDto]`) |
-| Array/List | JSON array |
-| Dictionary | JSON object |
-| Nullable | Value or `null` |
-| ReferenceExpression | `{ "$expr": { "format": "...", "valueProviders": [...] } }` |
+| Type | JSON Shape | When Returned |
+|------|------------|---------------|
+| Handle | `{ "$handle": "42", "$type": "Assembly/Namespace.Type" }` | Always handle |
+| DTO | Plain object (requires `[AspireDto]`) | Copied by value |
+| Array/IReadOnlyList | JSON array | Copied by value |
+| List<T> | JSON array (parameter) or Handle (return/property) | Handle if returned |
+| Dictionary<K,V> | JSON object (parameter) or Handle (return/property) | Handle if returned |
+| Nullable | Value or `null` | Same as inner type |
+| ReferenceExpression | `{ "$expr": { "format": "...", "valueProviders": [...] } }` | Special structure |
+
+**Collection return semantics:** When a capability returns `List<T>` or `Dictionary<K,V>`, it's returned as a **handle** so the caller can mutate it (e.g., `AspireList.add()`, `AspireDict.set()`). Arrays and read-only collections are always copied by value.
 
 **TimeSpan Example:**
 
@@ -734,6 +868,27 @@ const connectionString = refExpr`redis://${endpoint}`;
 await api.withEnvironment("REDIS_URL", connectionString);
 ```
 
+### Enum Usage
+
+Enums are generated as TypeScript enums with string values matching the C# member names:
+
+```typescript
+import { createBuilder, ContainerLifetime } from './.modules/aspire.js';
+
+const builder = await createBuilder();
+
+// Use typed enum values instead of strings
+const cache = await builder
+    .addRedis("cache")
+    .withLifetime(ContainerLifetime.Persistent);
+
+// Generated enum definition in aspire.ts:
+// export enum ContainerLifetime {
+//     Session = "Session",
+//     Persistent = "Persistent",
+// }
+```
+
 ### Type Hierarchy
 
 TypeScript uses three layers to bridge the wire format and user API:
@@ -871,19 +1026,36 @@ Implement `ICodeGenerator`:
 public interface ICodeGenerator
 {
     string Language { get; }
-    Dictionary<string, string> GenerateDistributedApplication(
-        IReadOnlyList<AtsCapabilityInfo> capabilities);
+    Dictionary<string, string> GenerateDistributedApplication(AtsContext context);
 }
 ```
 
-The generator receives a list of `AtsCapabilityInfo` with:
+The generator receives an `AtsContext` containing all scanned data:
+
+```csharp
+public sealed class AtsContext
+{
+    public IReadOnlyList<AtsCapabilityInfo> Capabilities { get; init; }
+    public IReadOnlyList<AtsTypeInfo> TypeInfos { get; init; }
+    public IReadOnlyList<AtsDtoTypeInfo> DtoTypes { get; init; }
+    public IReadOnlyList<AtsEnumTypeInfo> EnumTypes { get; init; }
+    public IReadOnlyList<AtsDiagnostic> Diagnostics { get; init; }
+}
+```
+
+**AtsCapabilityInfo** contains:
 - `CapabilityId` - Unique ID (e.g., `Aspire.Hosting.Redis/addRedis`)
 - `MethodName` - Method name (e.g., `addRedis`)
 - `TargetTypeId` - Original declared target (e.g., `Aspire.Hosting/Aspire.Hosting.IDistributedApplicationBuilder`)
 - `ExpandedTargetTypeIds` - Concrete types for interface targets
-- `ReturnTypeId` - Return type ID
+- `ReturnType` - Return type reference with category
 - `Parameters` - List of parameter info
 - `Description` - Documentation
+
+**AtsEnumTypeInfo** contains:
+- `TypeId` - Enum type ID
+- `Name` - Simple enum name (e.g., `ContainerLifetime`)
+- `Values` - List of enum member names
 
 **Generation steps:**
 

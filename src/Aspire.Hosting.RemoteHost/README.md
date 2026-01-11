@@ -100,7 +100,14 @@ Handles serialization between .NET types and JSON:
 |----------|-------------|
 | `REMOTE_APP_HOST_SOCKET_PATH` | Path to the Unix domain socket. Defaults to `{temp}/aspire/remote-app-host.sock` |
 | `REMOTE_APP_HOST_PID` | Parent process ID for orphan detection. If set, the server shuts down when the parent exits |
-| `ASPIRE_RPC_AUTH_TOKEN` | Authentication token required for client connections |
+
+## Security
+
+The server uses file system permissions for security:
+- On Unix/macOS: The socket file is created with mode 0600 (owner read/write only)
+- On Windows: Named pipe ACLs restrict access to the current user only
+
+This ensures only the user who started the AppHost can connect to the RPC server.
 
 ## Usage
 
@@ -128,9 +135,8 @@ The server loads each assembly listed in `AtsAssemblies` and scans them for `[As
 | Method | Description |
 |--------|-------------|
 | `ping` | Health check, returns "pong" |
-| `authenticate` | Authenticate with the server using the auth token |
 | `invokeCapability` | Invoke a capability by ID with arguments |
-| `getCapabilities` | Get list of all available capability IDs |
+| `invokeCallback` | Invoke a TypeScript callback from .NET (server→client) |
 
 ### invokeCapability
 

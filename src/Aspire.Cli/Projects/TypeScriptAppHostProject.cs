@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
@@ -317,9 +316,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var socketPath = appHostServerProject.GetSocketPath();
 
-            // Generate a secure random auth token for RPC authentication
-            var authToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-
             var buildResult = await _interactionService.ShowStatusAsync(
                 ":hammer_and_wrench:  Building app host...",
                 async () =>
@@ -387,9 +383,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Pass the backchannel socket path to AppHost server so it opens a server for CLI communication
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
-            // Pass the auth token to the AppHost server for RPC authentication
-            launchSettingsEnvVars["ASPIRE_RPC_AUTH_TOKEN"] = authToken;
-
             // Check if hot reload (watch mode) is enabled
             var enableHotReload = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
 
@@ -417,11 +410,10 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             // Step 5: Execute the TypeScript apphost
 
-            // Pass the socket path and auth token to the TypeScript process
+            // Pass the socket path to the TypeScript process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
             {
-                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath,
-                ["ASPIRE_RPC_AUTH_TOKEN"] = authToken
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath
             };
 
             // Start TypeScript apphost - it will connect to AppHost server, define resources
@@ -838,9 +830,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
             var jsonRpcSocketPath = appHostServerProject.GetSocketPath();
 
-            // Generate a secure random auth token for RPC authentication
-            var authToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-
             // Build the AppHost server
             var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
             if (!buildSuccess)
@@ -875,9 +864,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Pass the backchannel socket path to AppHost server so it opens a server
             launchSettingsEnvVars[KnownConfigNames.UnixSocketPath] = backchannelSocketPath;
 
-            // Pass the auth token to the AppHost server for RPC authentication
-            launchSettingsEnvVars["ASPIRE_RPC_AUTH_TOKEN"] = authToken;
-
             // Start the AppHost server process (it opens the backchannel for progress reporting)
             var currentPid = Environment.ProcessId;
 
@@ -900,11 +886,10 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            // Pass the socket path and auth token to the TypeScript process
+            // Pass the socket path to the TypeScript process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
             {
-                ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath,
-                ["ASPIRE_RPC_AUTH_TOKEN"] = authToken
+                ["REMOTE_APP_HOST_SOCKET_PATH"] = jsonRpcSocketPath
             };
 
             // Execute the TypeScript apphost - this defines resources and triggers the publish

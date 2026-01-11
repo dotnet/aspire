@@ -393,12 +393,6 @@ export class AspireClient {
         return this.connection.sendRequest('ping');
     }
 
-    /** Authenticate with the server using the provided token */
-    authenticate(token: string): Promise<boolean> {
-        if (!this.connection) return Promise.reject(new Error('Not connected to AppHost'));
-        return this.connection.sendRequest('authenticate', token);
-    }
-
     /**
      * Invoke an ATS capability by ID.
      *
@@ -431,18 +425,6 @@ export class AspireClient {
 
         // Wrap handles automatically
         return wrapIfHandle(result, this) as T;
-    }
-
-    /**
-     * Get the list of available capability IDs from the server.
-     *
-     * @returns Array of capability IDs (e.g., ["Aspire.Hosting/createBuilder", "Aspire.Hosting.Redis/addRedis"])
-     */
-    async getCapabilities(): Promise<string[]> {
-        if (!this.connection) {
-            throw new Error('Not connected to AppHost');
-        }
-        return await this.connection.sendRequest('getCapabilities');
     }
 
     disconnect(): void {
