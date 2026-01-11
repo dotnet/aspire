@@ -59,6 +59,15 @@ logging.basicConfig(
 logger = logging.getLogger("bilingual_weekend_planner")
 tracer = trace.get_tracer(__name__)
 
+# Explicitly check for required environment variables
+if "AZURE_AI_PROJECT_ENDPOINT" not in os.environ:
+    raise ValueError("AZURE_AI_PROJECT_ENDPOINT is required")
+project_client = AIProjectClient(
+    endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
+    credential=DefaultAzureCredential(),
+)
+client = project_client.get_openai_client()
+set_default_openai_client(client)
 
 def _get_model(client: AsyncOpenAI) -> OpenAIResponsesModel:
     """Return the chat model configuration for the requested host."""
@@ -69,20 +78,6 @@ def _get_model(client: AsyncOpenAI) -> OpenAIResponsesModel:
         model=os.environ["AZURE_AI_DEPLOYMENT_NAME"],
         openai_client=client,
     )
-
-
-def _get_openai_client() -> AsyncOpenAI:
-    """Return the client configuration for the requested host."""
-
-    # Explicitly check for required environment variables
-    if "AZURE_AI_PROJECT_ENDPOINT" not in os.environ:
-        raise ValueError("AZURE_AI_PROJECT_ENDPOINT is required")
-    project_client = AIProjectClient(
-        endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-        credential=DefaultAzureCredential(),
-    )
-    openai_client = project_client.get_openai_client()
-    return openai_client
 
 
 def _configure_otel(base_url: str) -> None:
@@ -123,7 +118,7 @@ def _configure_otel(base_url: str) -> None:
         if default_otlp_endpoint and protocol == "grpc":
             grpc_endpoint = default_otlp_endpoint
 
-    conn = os.getenv("APPLICATION_INSIGHTS_CONNECTION_STRING")
+    conn = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
     resource = Resource.create(
         {
             "service.name": "weekend-planner-service",
@@ -159,7 +154,7 @@ def _configure_otel(base_url: str) -> None:
         tracer_provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
         print("[otel] Console span exporter configured")
         print(
-            "[otel] Set APPLICATION_INSIGHTS_CONNECTION_STRING to export to Application Insights "
+            "[otel] Set APPLICATIONINSIGHTS_CONNECTION_STRING to export to Application Insights "
             "instead of the console",
         )
 
@@ -173,13 +168,8 @@ def _configure_otel(base_url: str) -> None:
         system='azure.ai.openai',
     )
 
-
-client = _get_openai_client()
 _configure_otel(client.base_url)
-
-set_default_openai_client(client)
 set_tracing_disabled(False)
-
 model = _get_model(client)
 
 SUNNY_WEATHER_PROBABILITY = 0.05
@@ -358,6 +348,6 @@ class WeekendPlannerContainer(FoundryCBAgent):
 if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     try:
-        WeekendPlannerContainer(client=client, model=model).run()
+        WeekendPlannerContainer(client=client, model=model).run(int(os.getenv("PORT", "8088")))
     finally:
         trace.get_tracer_provider().shutdown()

@@ -275,7 +275,7 @@ public static class AzureCognitiveServicesProjectExtensions
         // Project needs this to pull hosted agent images and run them
         var pullRa = containerRegistry.CreateRoleAssignment(ContainerRegistryBuiltInRole.AcrPull, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
         // There's a bug in the CDK, see https://github.com/Azure/azure-sdk-for-net/issues/47265
-        pullRa.Name = BicepFunction.CreateGuid(containerRegistry.Id, projectPrincipalId, pullRa.RoleDefinitionId);
+        pullRa.Name = BicepFunction.CreateGuid(containerRegistry.Id, project.Id, pullRa.RoleDefinitionId);
         infra.Add(pullRa);
         infra.Add(containerRegistry);
         infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_ENDPOINT", typeof(string))
@@ -303,7 +303,7 @@ public static class AzureCognitiveServicesProjectExtensions
         {
             var keyVault = (KeyVaultService)aspireResource.KeyVault.AddAsExistingResource(infra);
             var kvRa = keyVault.CreateRoleAssignment(KeyVaultBuiltInRole.KeyVaultSecretsUser, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            kvRa.Name = BicepFunction.CreateGuid(keyVault.Id, projectPrincipalId, kvRa.RoleDefinitionId);
+            kvRa.Name = BicepFunction.CreateGuid(keyVault.Id, project.Id, kvRa.RoleDefinitionId);
             infra.Add(kvRa);
             infra.Add(new CognitiveServicesProjectConnection($"{aspireResource.GetBicepIdentifier()}_kv_conn")
             {
@@ -339,7 +339,7 @@ public static class AzureCognitiveServicesProjectExtensions
             infra.Add(appInsights);
         }
         var pubRoleRa = appInsights.CreateRoleAssignment(ApplicationInsightsBuiltInRole.MonitoringMetricsPublisher, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-        pubRoleRa.Name = BicepFunction.CreateGuid(appInsights.Id, projectPrincipalId, pubRoleRa.RoleDefinitionId);
+        pubRoleRa.Name = BicepFunction.CreateGuid(appInsights.Id, project.Id, pubRoleRa.RoleDefinitionId);
         infra.Add(pubRoleRa);
         // This is for passing into hosted agent application code
         infra.Add(new ProvisioningOutput("APPLICATION_INSIGHTS_CONNECTION_STRING", typeof(string))
@@ -398,7 +398,7 @@ public static class AzureCognitiveServicesProjectExtensions
                 storageConn.DependsOn.Add(dep);
             }
             var storageRoleRa = storage.CreateRoleAssignment(StorageBuiltInRole.StorageBlobDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            storageRoleRa.Name = BicepFunction.CreateGuid(storage.Id, projectPrincipalId, storageRoleRa.RoleDefinitionId);
+            storageRoleRa.Name = BicepFunction.CreateGuid(storage.Id, project.Id, storageRoleRa.RoleDefinitionId);
             infra.Add(storageRoleRa);
             capHostDeps.Add(storage);
             capHostDeps.Add(storageRoleRa);
@@ -434,7 +434,7 @@ public static class AzureCognitiveServicesProjectExtensions
                 cosmosDbConn.DependsOn.Add(dep);
             }
             var cosmosDbRoleRa = cosmosDb.CreateRoleAssignment(CosmosDBBuiltInRole.CosmosDBOperator, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            cosmosDbRoleRa.Name = BicepFunction.CreateGuid(cosmosDb.Id, projectPrincipalId, cosmosDbRoleRa.RoleDefinitionId);
+            cosmosDbRoleRa.Name = BicepFunction.CreateGuid(cosmosDb.Id, project.Id, cosmosDbRoleRa.RoleDefinitionId);
             infra.Add(cosmosDbRoleRa);
             // TODO: add role 00000000-0000-0000-0000-000000000002 (Cosmos DB Built-in Data Contributor) for data plane access
             // like this:
@@ -486,10 +486,10 @@ public static class AzureCognitiveServicesProjectExtensions
                 searchConn.DependsOn.Add(dep);
             }
             var contributor = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchServiceContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            contributor.Name = BicepFunction.CreateGuid(searchService.Id, projectPrincipalId, contributor.RoleDefinitionId);
+            contributor.Name = BicepFunction.CreateGuid(searchService.Id, project.Id, contributor.RoleDefinitionId);
             infra.Add(contributor);
             var indexDataContrib = searchService.CreateRoleAssignment(SearchBuiltInRole.SearchIndexDataContributor, RoleManagementPrincipalType.ServicePrincipal, projectPrincipalId);
-            indexDataContrib.Name = BicepFunction.CreateGuid(searchService.Id, projectPrincipalId, indexDataContrib.RoleDefinitionId);
+            indexDataContrib.Name = BicepFunction.CreateGuid(searchService.Id, project.Id, indexDataContrib.RoleDefinitionId);
             infra.Add(indexDataContrib);
             capHostDeps.Add(searchService);
             capHostDeps.Add(contributor);
