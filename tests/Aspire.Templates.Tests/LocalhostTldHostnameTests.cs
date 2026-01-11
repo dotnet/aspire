@@ -21,7 +21,9 @@ public partial class LocalhostTldHostnameTests(ITestOutputHelper testOutput) : T
         { "aspire", "My..Test__Project", "my-test-project" },
         { "aspire", "Project123.Test456", "project123-test456" },
         { "aspire-apphost", "my.service.name", "my-service-name" },
+        { "aspire-apphost-singlefile", "-my.service..name-", "my-service-name" },
         { "aspire-starter", "Test_App.1", "test-app-1" },
+        { "aspire-py-starter", "xn--Test_App_1", "xn-test-app-1" },
         { "aspire-ts-cs-starter", "My-App.Test", "my-app-test" }
     };
 
@@ -32,13 +34,19 @@ public partial class LocalhostTldHostnameTests(ITestOutputHelper testOutput) : T
     {
         var id = GetNewProjectId(prefix: $"localhost_tld_{templateName}");
 
+        var targetFramework = templateName switch
+        {
+            "aspire-apphost-singlefile" or "aspire-py-starter" => TestTargetFramework.None, // These templates do not support -f argument
+            _ => TestTargetFramework.Next // LocalhostTld only available on net10.0
+        };
+
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,
             templateName,
             _testOutput,
             buildEnvironment: BuildEnvironment.ForNextSdkOnly, // Need Next SDK for net10.0
             extraArgs: $"--localhost-tld -n \"{projectName}\"",
-            targetFramework: TestTargetFramework.Next, // LocalhostTld only available on net10.0
+            targetFramework,
             addEndpointsHook: false); // Don't add endpoint hook since we're just checking file generation
 
         // When using -n, the template still outputs to the -o directory (id),
@@ -49,10 +57,11 @@ public partial class LocalhostTldHostnameTests(ITestOutputHelper testOutput) : T
             "aspire-ts-cs-starter" or "aspire-starter" => Path.Combine(project.RootDir, $"{projectName}.AppHost", "Properties", "launchSettings.json"),
             "aspire" => Path.Combine(project.RootDir, $"{projectName}.AppHost", "Properties", "launchSettings.json"),
             "aspire-apphost" => Path.Combine(project.RootDir, "Properties", "launchSettings.json"),
+            "aspire-apphost-singlefile" or "aspire-py-starter" => Path.Combine(project.RootDir, "apphost.run.json"),
             _ => throw new ArgumentException($"Unknown template: {templateName}")
         };
 
-        Assert.True(File.Exists(launchSettingsPath), $"launchSettings.json file not found at {launchSettingsPath}");
+        Assert.True(File.Exists(launchSettingsPath), $"launchSettings.json/apphost.run.json file not found at {launchSettingsPath}");
 
         var launchSettingsContent = await File.ReadAllTextAsync(launchSettingsPath);
         using var launchSettings = JsonDocument.Parse(launchSettingsContent);

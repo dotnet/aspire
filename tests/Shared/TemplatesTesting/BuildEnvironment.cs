@@ -299,7 +299,8 @@ public enum TestTargetFramework
     // Current is default
     Current,
     Previous,
-    Next
+    Next,
+    None
 }
 
 public static class TestTargetFrameworkExtensions
