@@ -8,26 +8,17 @@ permissions:
   pull-requests: read
 
 jobs:
-  update-pr-review-list:
+  get-prs-needing-review:
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'dotnet' }}
+    outputs:
+      prs: ${{ steps.get-prs.outputs.prs }}
     steps:
-      - name: Update PRs needing review issue
+      - name: Get PRs needing review
+        id: get-prs
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
         with:
           script: |
-            // Issue number to update with the PR list
-            // TODO: Create the issue and update this number
-            const TRACKING_ISSUE_NUMBER = 13834;
-            
-            if (TRACKING_ISSUE_NUMBER === 0) {
-              core.setFailed('Please create a tracking issue and update TRACKING_ISSUE_NUMBER in this workflow');
-              return;
-            }
-            
-            // Unique marker to identify the automated content
-            const marker = '<!-- pr-review-needed-list -->';
-            
             // Get all open PRs
             const { data: pullRequests } = await github.rest.pulls.list({
               owner: context.repo.owner,
@@ -35,7 +26,7 @@ jobs:
               state: 'open',
               sort: 'updated',
               direction: 'desc',
-              per_page: 100
+              per_page: 1000
             });
             
             const prsNeedingReview = [];
@@ -53,8 +44,24 @@ jobs:
                 pull_number: pr.number
               });
               
-              // Check if there's an approval
-              const isApproved = reviews.some(review => review.state === 'APPROVED');
+              // Check if there's a current approval by looking at each reviewer's most recent review
+              // A reviewer might approve, then later request changes - we need the latest state
+              const reviewerStates = new Map();
+              for (const review of reviews) {
+                // Only consider meaningful review states (not COMMENTED or PENDING)
+                if (['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state)) {
+                  const reviewer = review.user.login.toLowerCase();
+                  const existingReview = reviewerStates.get(reviewer);
+                  const reviewDate = new Date(review.submitted_at);
+                  
+                  if (!existingReview || reviewDate > existingReview.date) {
+                    reviewerStates.set(reviewer, { state: review.state, date: reviewDate });
+                  }
+                }
+              }
+              
+              // PR is approved if at least one reviewer's latest state is APPROVED
+              const isApproved = Array.from(reviewerStates.values()).some(r => r.state === 'APPROVED');
               if (isApproved) {
                 continue;
               }
@@ -63,12 +70,12 @@ jobs:
               const prAuthor = pr.user.login;
               
               // For Copilot-created PRs, check if there's a prompter
-              // Copilot PRs typically have 'github-actions[bot]' or 'copilot' in the author
-              const isCopilotPr = prAuthor.includes('[bot]') || prAuthor.toLowerCase().includes('copilot');
+              // Bot accounts have '[bot]' suffix in their username
+              const isBotPr = prAuthor.endsWith('[bot]');
               
-              // Get the prompter from the PR body if it's a Copilot PR
+              // Get the prompter from the PR body if it's a bot PR
               let prompter = null;
-              if (isCopilotPr && pr.body) {
+              if (isBotPr && pr.body) {
                 // Look for patterns like "Triggered by @username" or "Requested by @username"
                 const prompterMatch = pr.body.match(/(?:triggered|requested|prompted)\s+by\s+@(\w+)/i);
                 if (prompterMatch) {
@@ -91,7 +98,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: pr.number,
-                per_page: 100
+                per_page: 1000
               });
               
               // Get review comments (inline code comments)
@@ -99,7 +106,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pr.number,
-                per_page: 100
+                per_page: 1000
               });
               
               // Get commits to check the last pusher
@@ -107,7 +114,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pr.number,
-                per_page: 100
+                per_page: 1000
               });
               
               // Check comments for last external activity
@@ -152,11 +159,14 @@ jobs:
               // Check commits for activity from author/prompter
               if (commits.length > 0) {
                 const lastCommit = commits[commits.length - 1];
-                const commitAuthor = lastCommit.author?.login?.toLowerCase() || '';
-                const commitCommitter = lastCommit.committer?.login?.toLowerCase() || '';
+                const commitAuthor = lastCommit.author?.login?.toLowerCase();
+                const commitCommitter = lastCommit.committer?.login?.toLowerCase();
                 const commitDate = new Date(lastCommit.commit.committer.date);
                 
-                if (cannotApprove.has(commitAuthor) || cannotApprove.has(commitCommitter)) {
+                const isAuthorInternal = commitAuthor && cannotApprove.has(commitAuthor);
+                const isCommitterInternal = commitCommitter && cannotApprove.has(commitCommitter);
+                
+                if (isAuthorInternal || isCommitterInternal) {
                   lastInternalActivity = commitDate;
                 }
               }
@@ -204,16 +214,37 @@ jobs:
                   author: pr.user.login,
                   url: pr.html_url,
                   authorUrl: pr.user.html_url,
-                  updatedAt: new Date(pr.updated_at)
+                  updatedAt: pr.updated_at
                 });
               }
             }
             
             // Sort by updated date descending
-            prsNeedingReview.sort((a, b) => b.updatedAt - a.updatedAt);
+            prsNeedingReview.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+            
+            console.log('Found ' + prsNeedingReview.length + ' PRs needing review');
+            core.setOutput('prs', JSON.stringify(prsNeedingReview));
+
+  update-tracking-issue:
+    runs-on: ubuntu-latest
+    needs: get-prs-needing-review
+    steps:
+      - name: Update tracking issue
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          script: |
+            // Issue number to update with the PR list
+            const TRACKING_ISSUE_NUMBER = 13834;
+            
+            // Unique marker to identify the automated content
+            const marker = '<!-- pr-review-needed-list -->';
+            
+            // Get PRs from previous job
+            const prsNeedingReview = JSON.parse('${{ needs.get-prs-needing-review.outputs.prs }}');
             
             // Format time since last update
-            function formatTimeSince(date) {
+            function formatTimeSince(dateStr) {
+              const date = new Date(dateStr);
               const now = new Date();
               const diffMs = now - date;
               const diffMins = Math.floor(diffMs / (1000 * 60));
@@ -221,11 +252,11 @@ jobs:
               const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
               
               if (diffDays > 0) {
-                return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+                return diffDays + ' day' + (diffDays === 1 ? '' : 's') + ' ago';
               } else if (diffHours > 0) {
-                return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+                return diffHours + ' hour' + (diffHours === 1 ? '' : 's') + ' ago';
               } else {
-                return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+                return diffMins + ' minute' + (diffMins === 1 ? '' : 's') + ' ago';
               }
             }
             
@@ -248,7 +279,7 @@ jobs:
               }
             }
             
-            tableContent += `\n_This list is automatically updated every hour._`;
+            tableContent += '\n_This list is automatically updated every hour._';
             
             // Get the current issue
             const { data: issue } = await github.rest.issues.get({
@@ -276,4 +307,4 @@ jobs:
               body: newBody
             });
             
-            console.log(`Updated issue #${TRACKING_ISSUE_NUMBER} with ${prsNeedingReview.length} PRs needing review`);
+            console.log('Updated issue #' + TRACKING_ISSUE_NUMBER + ' with ' + prsNeedingReview.length + ' PRs needing review');
