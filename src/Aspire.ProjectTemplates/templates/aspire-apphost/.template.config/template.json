@@ -268,6 +268,7 @@
       "steps": [
         "lowerCaseInvariant",
         "replaceDnsInvalidCharsWithHyphens",
+        "replaceRepeatedHyphens",
         "trimLeadingHyphens",
         "trimTrailingHyphens"
       ]
@@ -275,6 +276,11 @@
     "replaceDnsInvalidCharsWithHyphens": {
       "identifier": "replace",
       "pattern": "[^a-z0-9-]",
+      "replacement": "-"
+    },
+    "replaceRepeatedHyphens": {
+      "identifier": "replace",
+      "pattern": "-{2,}",
       "replacement": "-"
     },
     "trimLeadingHyphens": {
