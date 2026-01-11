@@ -686,7 +686,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 Write($"    {methodName}(");
                 Write(paramsString);
                 WriteLine($"): Promise<{returnType}> {{");
-                Write($"        return this._promise.then(b => b.{methodName}(");
+                Write($"        return this._promise.then(obj => obj.{methodName}(");
                 Write(argsString);
                 WriteLine("));");
                 WriteLine("    }");
@@ -699,7 +699,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 Write($"): {promiseClass} {{");
                 WriteLine();
                 WriteLine($"        return new {promiseClass}(");
-                Write($"            this._promise.then(b => b.{internalMethodName}(");
+                Write($"            this._promise.then(obj => obj.{internalMethodName}(");
                 Write(argsString);
                 WriteLine("))");
                 WriteLine("        );");
@@ -884,10 +884,15 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     {
         var callbackName = callbackParam.Name;
 
+        // Check if callback has a return type - if so, we need to return the value
+        var hasReturnType = callbackParam.CallbackReturnType != null
+            && callbackParam.CallbackReturnType.TypeId != AtsConstants.Void;
+        var returnPrefix = hasReturnType ? "return " : "";
+
         if (callbackParameters is null || callbackParameters.Count == 0)
         {
             // No parameters - just call the callback
-            WriteLine($"            await {callbackName}();");
+            WriteLine($"            {returnPrefix}await {callbackName}();");
         }
         else if (callbackParameters.Count == 1)
         {
@@ -909,7 +914,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 WriteLine($"            const {cbParam.Name} = wrapIfHandle({cbParam.Name}Data) as {tsType};");
             }
 
-            WriteLine($"            await {callbackName}({cbParam.Name});");
+            WriteLine($"            {returnPrefix}await {callbackName}({cbParam.Name});");
         }
         else
         {
@@ -941,7 +946,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 callArgs.Add(cbParam.Name);
             }
 
-            WriteLine($"            await {callbackName}({string.Join(", ", callArgs)});");
+            WriteLine($"            {returnPrefix}await {callbackName}({string.Join(", ", callArgs)});");
         }
     }
 

@@ -641,7 +641,7 @@ export class TestRedisResource extends ResourceBuilderBase<TestRedisResourceHand
         const validatorId = registerCallback(async (arg0Data: unknown) => {
             const arg0Handle = wrapIfHandle(arg0Data) as TestResourceContextHandle;
             const arg0 = new TestResourceContext(arg0Handle, this._client);
-            await validator(arg0);
+            return await validator(arg0);
         });
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
@@ -767,127 +767,127 @@ export class TestRedisResourcePromise implements PromiseLike<TestRedisResource> 
     /** Configures the Redis resource with persistence */
     withPersistence(mode?: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withPersistenceInternal(mode))
+            this._promise.then(obj => obj._withPersistenceInternal(mode))
         );
     }
 
     /** Adds an optional string parameter */
     withOptionalString(value?: string, enabled?: boolean): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withOptionalStringInternal(value, enabled))
+            this._promise.then(obj => obj._withOptionalStringInternal(value, enabled))
         );
     }
 
     /** Gets the tags for the resource */
     getTags(): Promise<AspireList<string>> {
-        return this._promise.then(b => b.getTags());
+        return this._promise.then(obj => obj.getTags());
     }
 
     /** Gets the metadata for the resource */
     getMetadata(): Promise<AspireDict<string, string>> {
-        return this._promise.then(b => b.getMetadata());
+        return this._promise.then(obj => obj.getMetadata());
     }
 
     /** Sets the connection string using a reference expression */
     withConnectionString(connectionString: ReferenceExpression): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withConnectionStringInternal(connectionString))
+            this._promise.then(obj => obj._withConnectionStringInternal(connectionString))
         );
     }
 
     /** Configures environment with callback (test version) */
     testWithEnvironmentCallback(callback: (arg0: TestEnvironmentContext) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._testWithEnvironmentCallbackInternal(callback))
+            this._promise.then(obj => obj._testWithEnvironmentCallbackInternal(callback))
         );
     }
 
     /** Sets the created timestamp */
     withCreatedAt(createdAt: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withCreatedAtInternal(createdAt))
+            this._promise.then(obj => obj._withCreatedAtInternal(createdAt))
         );
     }
 
     /** Sets the modified timestamp */
     withModifiedAt(modifiedAt: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withModifiedAtInternal(modifiedAt))
+            this._promise.then(obj => obj._withModifiedAtInternal(modifiedAt))
         );
     }
 
     /** Sets the correlation ID */
     withCorrelationId(correlationId: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withCorrelationIdInternal(correlationId))
+            this._promise.then(obj => obj._withCorrelationIdInternal(correlationId))
         );
     }
 
     /** Configures with optional callback */
     withOptionalCallback(callback?: (arg0: TestCallbackContext) => Promise<void>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withOptionalCallbackInternal(callback))
+            this._promise.then(obj => obj._withOptionalCallbackInternal(callback))
         );
     }
 
     /** Sets the resource status */
     withStatus(status: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withStatusInternal(status))
+            this._promise.then(obj => obj._withStatusInternal(status))
         );
     }
 
     /** Adds validation callback */
     withValidator(validator: (arg0: TestResourceContext) => Promise<boolean>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withValidatorInternal(validator))
+            this._promise.then(obj => obj._withValidatorInternal(validator))
         );
     }
 
     /** Waits for another resource (test version) */
     testWaitFor(dependency: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._testWaitForInternal(dependency))
+            this._promise.then(obj => obj._testWaitForInternal(dependency))
         );
     }
 
     /** Gets the endpoints */
     getEndpoints(): Promise<string[]> {
-        return this._promise.then(b => b.getEndpoints());
+        return this._promise.then(obj => obj.getEndpoints());
     }
 
     /** Sets connection string using direct interface target */
     withConnectionStringDirect(connectionString: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withConnectionStringDirectInternal(connectionString))
+            this._promise.then(obj => obj._withConnectionStringDirectInternal(connectionString))
         );
     }
 
     /** Redis-specific configuration */
     withRedisSpecific(option: string): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withRedisSpecificInternal(option))
+            this._promise.then(obj => obj._withRedisSpecificInternal(option))
         );
     }
 
     /** Adds a dependency on another resource */
     withDependency(dependency: ResourceBuilderBase): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withDependencyInternal(dependency))
+            this._promise.then(obj => obj._withDependencyInternal(dependency))
         );
     }
 
     /** Sets the endpoints */
     withEndpoints(endpoints: string[]): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withEndpointsInternal(endpoints))
+            this._promise.then(obj => obj._withEndpointsInternal(endpoints))
         );
     }
 
     /** Sets environment variables */
     withEnvironmentVariables(variables: Record<string, string>): TestRedisResourcePromise {
         return new TestRedisResourcePromise(
-            this._promise.then(b => b._withEnvironmentVariablesInternal(variables))
+            this._promise.then(obj => obj._withEnvironmentVariablesInternal(variables))
         );
     }
 
@@ -997,7 +997,7 @@ export class Resource extends ResourceBuilderBase<IResourceHandle> {
         const validatorId = registerCallback(async (arg0Data: unknown) => {
             const arg0Handle = wrapIfHandle(arg0Data) as TestResourceContextHandle;
             const arg0 = new TestResourceContext(arg0Handle, this._client);
-            await validator(arg0);
+            return await validator(arg0);
         });
         const result = await this._client.invokeCapability<IResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/withValidator',
@@ -1072,70 +1072,70 @@ export class ResourcePromise implements PromiseLike<Resource> {
     /** Adds an optional string parameter */
     withOptionalString(value?: string, enabled?: boolean): ResourcePromise {
         return new ResourcePromise(
-            this._promise.then(b => b._withOptionalStringInternal(value, enabled))
+            this._promise.then(obj => obj._withOptionalStringInternal(value, enabled))
         );
     }
 
     /** Sets the created timestamp */
     withCreatedAt(createdAt: string): ResourcePromise {
         return new ResourcePromise(
-            this._promise.then(b => b._withCreatedAtInternal(createdAt))
+            this._promise.then(obj => obj._withCreatedAtInternal(createdAt))
         );
     }
 
     /** Sets the modified timestamp */
     withModifiedAt(modifiedAt: string): ResourcePromise {
         return new ResourcePromise(
-            this._promise.then(b => b._withModifiedAtInternal(modifiedAt))
+            this._promise.then(obj => obj._withModifiedAtInternal(modifiedAt))
         );
     }
 
     /** Sets the correlation ID */
     withCorrelationId(correlationId: string): ResourcePromise {
         return new ResourcePromise(
-            this._promise.then(b => b._withCorrelationIdInternal(correlationId))
+            this._promise.then(obj => obj._withCorrelationIdInternal(correlationId))
         );
     }
 
     /** Configures with optional callback */
     withOptionalCallback(callback?: (arg0: TestCallbackContext) => Promise<void>): ResourcePromise {
         return new ResourcePromise(
-            this._promise.then(b => b._withOptionalCallbackInternal(callback))
+            this._promise.then(obj => obj._withOptionalCallbackInternal(callback))
         );
     }
 
     /** Sets the resource status */
     withStatus(status: string): ResourcePromise {
         return new ResourcePromise(
-            this._promise.then(b => b._withStatusInternal(status))
+            this._promise.then(obj => obj._withStatusInternal(status))
         );
     }
 
     /** Adds validation callback */
     withValidator(validator: (arg0: TestResourceContext) => Promise<boolean>): ResourcePromise {
         return new ResourcePromise(
-            this._promise.then(b => b._withValidatorInternal(validator))
+            this._promise.then(obj => obj._withValidatorInternal(validator))
         );
     }
 
     /** Waits for another resource (test version) */
     testWaitFor(dependency: ResourceBuilderBase): ResourcePromise {
         return new ResourcePromise(
-            this._promise.then(b => b._testWaitForInternal(dependency))
+            this._promise.then(obj => obj._testWaitForInternal(dependency))
         );
     }
 
     /** Adds a dependency on another resource */
     withDependency(dependency: ResourceBuilderBase): ResourcePromise {
         return new ResourcePromise(
-            this._promise.then(b => b._withDependencyInternal(dependency))
+            this._promise.then(obj => obj._withDependencyInternal(dependency))
         );
     }
 
     /** Sets the endpoints */
     withEndpoints(endpoints: string[]): ResourcePromise {
         return new ResourcePromise(
-            this._promise.then(b => b._withEndpointsInternal(endpoints))
+            this._promise.then(obj => obj._withEndpointsInternal(endpoints))
         );
     }
 

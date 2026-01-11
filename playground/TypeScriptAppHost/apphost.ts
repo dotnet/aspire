@@ -23,6 +23,8 @@ const cache = await builder
         await c.withEnvironment("hello", "thre");
     });
 
+var param = await builder.addParameter("p");
+
 var ep = await cache.getEndpoint("tcp");
 console.log("Added Redis with Commander and environment variable");
 
@@ -36,6 +38,7 @@ console.log(`Created reference expression: ${redisUrl}`);
 const api = await builder
     .addContainer("api", "mcr.microsoft.com/dotnet/samples:aspnetapp")
     .withHttpEndpoint(undefined, 8080)
+    .withEnvironmentExpression("Expr", refExpr`${param}`)
     .withEnvironmentCallback(async (ctx: EnvironmentCallbackContext) => {
         console.log(`  Environment callback invoked for API container`);
 
