@@ -54,6 +54,7 @@ public sealed class RoDefinitionMethod : RoMethod
         IsStatic = (flags & MethodAttributes.Static) != 0;
 
         IsPublic = (flags & MethodAttributes.Public) != 0;
+        IsSpecialName = (flags & MethodAttributes.SpecialName) != 0;
 
         MetadataToken = MetadataTokens.GetToken(methodDefinitionHandle);
 
@@ -99,6 +100,7 @@ public sealed class RoDefinitionMethod : RoMethod
     public override IReadOnlyList<RoParameterInfo> Parameters { get; }
     public override bool IsStatic { get; protected set; }
     public override bool IsPublic { get; protected set; }
+    public override bool IsSpecialName { get; protected set; }
 
     /// <summary>
     /// Gets a value indicating whether the current method is a generic method definition.

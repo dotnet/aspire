@@ -18,6 +18,7 @@ public sealed class RoConstructedGenericMethod : RoMethod
 
         IsStatic = genericMethodDefinition.IsStatic;
         IsPublic = genericMethodDefinition.IsPublic;
+        IsSpecialName = genericMethodDefinition.IsSpecialName;
 
         _constructedReturnType = genericMethodDefinition.ReturnType;
 
@@ -77,6 +78,7 @@ public sealed class RoConstructedGenericMethod : RoMethod
 
     public override bool IsStatic { get; protected set; }
     public override bool IsPublic { get; protected set; }
+    public override bool IsSpecialName { get; protected set; }
 
     public override RoMethod MakeGenericMethod(params RoType[] typeArguments) => throw new InvalidOperationException("Already a constructed generic method.");
     public override IEnumerable<RoCustomAttributeData> GetCustomAttributes() => GenericMethodDefinition.GetCustomAttributes();

@@ -100,6 +100,9 @@ internal interface IAtsMethodInfo
     /// <summary>Gets whether this is a public method.</summary>
     bool IsPublic { get; }
 
+    /// <summary>Gets whether this method has a special name (e.g., property accessor, operator).</summary>
+    bool IsSpecialName { get; }
+
     /// <summary>Gets the full name of the return type.</summary>
     string ReturnTypeFullName { get; }
 

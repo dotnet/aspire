@@ -908,7 +908,8 @@ internal static class AtsCapabilityScanner
             }
 
             // Skip property accessors and special runtime methods
-            if (method.Name.StartsWith("get_") || method.Name.StartsWith("set_") ||
+            // IsSpecialName catches property accessors (get_/set_), operators, etc.
+            if (method.IsSpecialName ||
                 method.Name == "GetType" || method.Name == "ToString" ||
                 method.Name == "Equals" || method.Name == "GetHashCode")
             {

@@ -1,5 +1,5 @@
-// Aspire TypeScript AppHost - Capability-based API Demo
-// This demonstrates the new ATS capability-based API with fluent builder pattern.
+// Aspire TypeScript AppHost - E2E Demo with PostgreSQL and Express
+// This demonstrates compute, databases, and references working together.
 // Run with: aspire run
 
 import { createBuilder, refExpr, EnvironmentCallbackContext } from './.modules/aspire.js';
@@ -15,52 +15,37 @@ console.log(`isRunMode: ${await ec.isRunMode.get()}`);
 console.log(`isPublishMode: ${await ec.isPublishMode.get()}`);
 
 var dir = await builder.appHostDirectory.get();
-
 console.log(`AppHost directory: ${dir}`);
 
-console.log("Created builder");
+// Add PostgreSQL server and database
+const postgres = await builder.addPostgres("postgres");
+const db = await postgres.addDatabase("db");
 
-// Add resources using fluent chaining
-// Note: .withEnvironment() on Redis demonstrates 2-pass scanning fix
-// (withEnvironment is defined in Aspire.Hosting, RedisResource in Aspire.Hosting.Redis)
+console.log("Added PostgreSQL server with database 'db'");
+
+// Add Express API that connects to PostgreSQL (uses npm run dev with tsx)
+const api = await builder
+    .addNodeApp("api", "./express-api", "src/server.ts")
+    .withRunScript("dev")
+    .withHttpEndpoint(undefined, undefined, undefined, "PORT")
+    .withReference(db)
+    .waitFor(db);
+
+console.log("Added Express API with reference to PostgreSQL database");
+
+// Also keep Redis as an example of another service
 const cache = await builder
     .addRedis("cache")
-    .withEnvironment("x", "y")
-    .withRedisCommander(async c => {
-        await c.withEnvironment("hello", "thre");
-    });
+    .withEnvironment("CUSTOM_ENV", "value");
 
-var param = await builder.addParameter("p");
+console.log("Added Redis cache");
 
-var ep = await cache.getEndpoint("tcp");
-console.log("Added Redis with Commander and environment variable");
+// Add Vite frontend that connects to the API (using withServiceReference for endpoints)
+await builder
+    .addViteApp("frontend", "./vite-frontend")
+    .withServiceReference(api)
+    .waitFor(api);
 
-// Demonstrate reference expression creation using tagged template literal
-// This creates a dynamic connection string that references the endpoint at runtime
-const redisUrl = refExpr`redis://${ep}`;
-console.log(`Created reference expression: ${redisUrl}`);
-
-// Add container with environment callback to demonstrate the new property-like object API
-// Note: .waitFor(cache) and .withReference(cache) demonstrate the union type fix
-const api = await builder
-    .addContainer("api", "mcr.microsoft.com/dotnet/samples:aspnetapp")
-    .withHttpEndpoint(undefined, 8080)
-    .withEnvironmentExpression("Expr", refExpr`${param}`)
-    .withEnvironmentCallback(async (ctx: EnvironmentCallbackContext) => {
-        console.log(`  Environment callback invoked for API container`);
-
-        // Set environment variables using AspireDict
-        // ctx.environmentVariables is a direct AspireDict<string, string | ReferenceExpression> field
-        await ctx.environmentVariables.set("MY_CONSTANT", "hello from TypeScript");
-        await ctx.environmentVariables.set("REDIS_URL", redisUrl);
-
-        await ctx.environmentVariables.set("ANOTHER_VARIABLE", await ep.url.get());
-
-        console.log(`    Set environment variables: MY_CONSTANT, REDIS_URL`);
-    })
-    .waitFor(cache)
-    .withReference(cache);
-
-console.log("Added API container with environment callback, waitFor, and withReference");
+console.log("Added Vite frontend with reference to API");
 
 await builder.build().run();

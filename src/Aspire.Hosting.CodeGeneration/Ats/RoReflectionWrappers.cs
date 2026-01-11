@@ -208,6 +208,7 @@ internal sealed class RoMethodInfoWrapper : IAtsMethodInfo
     public string Name => _method.Name;
     public bool IsStatic => _method.IsStatic;
     public bool IsPublic => _method.IsPublic;
+    public bool IsSpecialName => _method.IsSpecialName;
     public string ReturnTypeFullName => _method.ReturnType.FullName;
     public IAtsTypeInfo ReturnType => new RoTypeInfoWrapper(_method.ReturnType);
 

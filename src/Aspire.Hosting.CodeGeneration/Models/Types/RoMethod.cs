@@ -14,6 +14,7 @@ public abstract class RoMethod
     public abstract RoType ReturnType { get; }
     public abstract bool IsStatic { get; protected set; }
     public abstract bool IsPublic { get; protected set; }
+    public abstract bool IsSpecialName { get; protected set; }
     public abstract IReadOnlyList<RoType> GetGenericArguments();
     public abstract bool IsGenericMethodDefinition { get; protected set; }
     public abstract bool IsGenericMethod { get; protected set; }

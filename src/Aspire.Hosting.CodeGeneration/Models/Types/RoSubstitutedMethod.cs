@@ -45,6 +45,7 @@ internal sealed class RoSubstitutedMethod : RoMethod
         Name = underlyingMethod.Name;
         IsStatic = underlyingMethod.IsStatic;
         IsPublic = underlyingMethod.IsPublic;
+        IsSpecialName = underlyingMethod.IsSpecialName;
         IsGenericMethodDefinition = underlyingMethod.IsGenericMethodDefinition;
         IsGenericMethod = underlyingMethod.IsGenericMethod;
     }
@@ -56,6 +57,7 @@ internal sealed class RoSubstitutedMethod : RoMethod
     public override RoType ReturnType => _substitutedReturnType.Value;
     public override bool IsStatic { get; protected set; }
     public override bool IsPublic { get; protected set; }
+    public override bool IsSpecialName { get; protected set; }
     public override bool IsGenericMethodDefinition { get; protected set; }
     public override bool IsGenericMethod { get; protected set; }
     public override int MetadataToken => _underlyingMethod.MetadataToken;

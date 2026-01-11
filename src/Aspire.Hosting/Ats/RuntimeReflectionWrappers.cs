@@ -176,6 +176,7 @@ internal sealed class RuntimeMethodInfo : IAtsMethodInfo
     public string Name => _method.Name;
     public bool IsStatic => _method.IsStatic;
     public bool IsPublic => _method.IsPublic;
+    public bool IsSpecialName => _method.IsSpecialName;
     public string ReturnTypeFullName => _method.ReturnType.FullName ?? _method.ReturnType.Name;
     public IAtsTypeInfo ReturnType => new RuntimeTypeInfo(_method.ReturnType);
 

@@ -543,7 +543,10 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Generate internal methods and public fluent methods
         // Capabilities are already flattened - no need to collect from parents
-        foreach (var capability in builder.Capabilities)
+        // Filter out property getters and setters - they are not methods
+        foreach (var capability in builder.Capabilities.Where(c =>
+            c.CapabilityKind != AtsCapabilityKind.PropertyGetter &&
+            c.CapabilityKind != AtsCapabilityKind.PropertySetter))
         {
             GenerateBuilderMethod(builder, capability);
         }
@@ -559,12 +562,6 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     {
         var methodName = capability.MethodName;
         var internalMethodName = $"_{methodName}Internal";
-
-        // Generate JSDoc
-        if (!string.IsNullOrEmpty(capability.Description))
-        {
-            WriteLine($"    /** {capability.Description} */");
-        }
 
         // Build parameter list
         var paramDefs = new List<string>();
@@ -677,6 +674,10 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Generate public fluent method (returns thenable wrapper)
         // Both concrete builders AND interface wrappers get fluent methods
+        if (!string.IsNullOrEmpty(capability.Description))
+        {
+            WriteLine($"    /** {capability.Description} */");
+        }
         var promiseClass = $"{builder.BuilderClassName}Promise";
         Write($"    {methodName}(");
         Write(paramsString);
@@ -713,7 +714,10 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Generate fluent methods that chain via .then()
         // Capabilities are already flattened - no need to collect from parents
-        foreach (var capability in builder.Capabilities)
+        // Filter out property getters and setters - they are not methods
+        foreach (var capability in builder.Capabilities.Where(c =>
+            c.CapabilityKind != AtsCapabilityKind.PropertyGetter &&
+            c.CapabilityKind != AtsCapabilityKind.PropertySetter))
         {
             var methodName = capability.MethodName;
             var internalMethodName = $"_{methodName}Internal";
