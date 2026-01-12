@@ -74,22 +74,19 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.Success, exitCode);
 
-        // Find the JSON output from captured logs (it should be the line containing valid JSON)
-        var jsonOutput = capturedOutput.Logs.FirstOrDefault(log => log.TrimStart().StartsWith('{'));
-        Assert.NotNull(jsonOutput);
+        // Join all captured output and deserialize
+        var allOutput = string.Join(string.Empty, capturedOutput.Logs);
 
         // Verify JSON is valid and deserializable
         AppHostProjectSearchResultPoco? searchResult;
         try
         {
-            searchResult = JsonSerializer.Deserialize<AppHostProjectSearchResultPoco>(
-                jsonOutput,
-                BackchannelJsonSerializerContext.Default.AppHostProjectSearchResultPoco);
+            searchResult = JsonSerializer.Deserialize(allOutput, BackchannelJsonSerializerContext.Default.AppHostProjectSearchResultPoco);
         }
         catch (JsonException ex)
         {
-            outputHelper.WriteLine($"Failed to deserialize JSON. Raw output: {jsonOutput}");
-            throw new JsonException($"Failed to deserialize JSON: {jsonOutput}", ex);
+            outputHelper.WriteLine($"Failed to deserialize JSON. Raw output: {allOutput}");
+            throw new JsonException($"Failed to deserialize JSON: {allOutput}", ex);
         }
 
         Assert.NotNull(searchResult);
@@ -120,22 +117,19 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.Success, exitCode);
 
-        // Find the JSON output from captured logs (it should be the line containing valid JSON)
-        var jsonOutput = capturedOutput.Logs.FirstOrDefault(log => log.TrimStart().StartsWith('{'));
-        Assert.NotNull(jsonOutput);
+        // Join all captured output and deserialize
+        var allOutput = string.Join(string.Empty, capturedOutput.Logs);
 
         // Verify JSON is valid and deserializable
         AppHostProjectSearchResultPoco? searchResult;
         try
         {
-            searchResult = JsonSerializer.Deserialize<AppHostProjectSearchResultPoco>(
-                jsonOutput,
-                BackchannelJsonSerializerContext.Default.AppHostProjectSearchResultPoco);
+            searchResult = JsonSerializer.Deserialize(allOutput, BackchannelJsonSerializerContext.Default.AppHostProjectSearchResultPoco);
         }
         catch (JsonException ex)
         {
-            outputHelper.WriteLine($"Failed to deserialize JSON. Raw output: {jsonOutput}");
-            throw new JsonException($"Failed to deserialize JSON: {jsonOutput}", ex);
+            outputHelper.WriteLine($"Failed to deserialize JSON. Raw output: {allOutput}");
+            throw new JsonException($"Failed to deserialize JSON: {allOutput}", ex);
         }
 
         Assert.NotNull(searchResult);
