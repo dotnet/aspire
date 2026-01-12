@@ -211,13 +211,17 @@ public class SchemaTests
 
     private static JsonSchema? s_schema;
 
+    // Use Draft07 dialect to support the 'definitions' keyword used in aspire-8.0.json.
+    // The newer V1 dialect only supports '$defs' and disallows unknown keywords like 'definitions'.
+    private static readonly BuildOptions s_buildOptions = new() { Dialect = Dialect.Draft07 };
+
     private static JsonSchema GetSchema()
     {
         if (s_schema == null)
         {
             var relativePath = Path.Combine("Schema", "aspire-8.0.json");
             var schemaPath = Path.GetFullPath(relativePath);
-            s_schema = JsonSchema.FromFile(schemaPath);
+            s_schema = JsonSchema.FromFile(schemaPath, s_buildOptions);
         }
 
         return s_schema;

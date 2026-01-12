@@ -23,6 +23,10 @@ public abstract class ConformanceTests<TService, TOptions>
 {
     protected static readonly EvaluationOptions DefaultEvaluationOptions = new() { RequireFormatValidation = true, OutputFormat = OutputFormat.List };
 
+    // Use Draft07 dialect to support the 'definitions' keyword used in ConfigurationSchema.json files.
+    // The newer V1 dialect only supports '$defs' and disallows unknown keywords like 'definitions'.
+    protected static readonly BuildOptions DefaultBuildOptions = new() { Dialect = Dialect.Draft07 };
+
     /// <summary>
     /// Optional ITestOutputHelper for capturing diagnostic logs during test execution.
     /// When provided, all logs will be output to xUnit test results for easier debugging.
@@ -388,7 +392,7 @@ public abstract class ConformanceTests<TService, TOptions>
     [Fact]
     public void ConfigurationSchemaValidJsonConfigTest()
     {
-        var schema = JsonSchema.FromFile(JsonSchemaPath);
+        var schema = JsonSchema.FromFile(JsonSchemaPath, DefaultBuildOptions);
         var config = JsonSerializer.Deserialize<JsonElement>(ValidJsonConfig);
 
         var results = schema.Evaluate(config);
@@ -399,7 +403,7 @@ public abstract class ConformanceTests<TService, TOptions>
     [Fact]
     public void ConfigurationSchemaInvalidJsonConfigTest()
     {
-        var schema = JsonSchema.FromFile(JsonSchemaPath);
+        var schema = JsonSchema.FromFile(JsonSchemaPath, DefaultBuildOptions);
 
         foreach ((string json, string error) in InvalidJsonToErrorMessage)
         {
