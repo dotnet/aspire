@@ -1366,23 +1366,6 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Collects dependencies from resource relationship annotations.
-    /// </summary>
-    private static void CollectRelationshipAnnotationDependencies(IResource resource, HashSet<IResource> dependencies, HashSet<IResource> newDependencies)
-    {
-        if (resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationshipAnnotations))
-        {
-            foreach (var relationshipAnnotation in relationshipAnnotations)
-            {
-                if (dependencies.Add(relationshipAnnotation.Resource))
-                {
-                    newDependencies.Add(relationshipAnnotation.Resource);
-                }
-            }
-        }
-    }
-
-    /// <summary>
     /// Recursively collects resource dependencies from a value using <see cref="IValueWithReferences"/>.
     /// </summary>
     private static void CollectDependenciesFromValue(object? value, HashSet<IResource> dependencies, HashSet<IResource> newDependencies, HashSet<object> visitedValues)
