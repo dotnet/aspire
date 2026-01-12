@@ -13,6 +13,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
@@ -53,8 +54,11 @@ internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
-        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        CliExecutionContext executionContext, 
+        ICliHostEnvironment hostEnvironment,
+        ILoggerFactory loggerFactory,
+        Diagnostics.FileLoggerProvider fileLoggerProvider)
+        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService, loggerFactory, fileLoggerProvider)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);

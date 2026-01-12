@@ -3,6 +3,7 @@
 
 using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Diagnostics;
 using Aspire.Cli.Mcp;
 using Aspire.Cli.Utils.EnvironmentChecker;
 
@@ -13,6 +14,7 @@ namespace Aspire.Cli;
 [JsonSerializable(typeof(JsonObject))]
 [JsonSerializable(typeof(ListIntegrationsResponse))]
 [JsonSerializable(typeof(Integration))]
+[JsonSerializable(typeof(EnvironmentSnapshot))]
 [JsonSerializable(typeof(DoctorCheckResponse))]
 [JsonSerializable(typeof(EnvironmentCheckResult))]
 [JsonSerializable(typeof(DoctorCheckSummary))]

@@ -57,9 +57,15 @@ internal sealed class RootCommand : BaseRootCommand
 
         _interactionService = interactionService;
 
+        var logLevelOption = new Option<string>("--log-level", "-l");
+        logLevelOption.Description = "Set the logging verbosity level (Trace, Debug, Information, Warning, Error, Critical)";
+        logLevelOption.Recursive = true;
+        Options.Add(logLevelOption);
+
         var debugOption = new Option<bool>("--debug", "-d");
         debugOption.Description = RootCommandStrings.DebugArgumentDescription;
         debugOption.Recursive = true;
+        debugOption.Hidden = true; // Hide for backward compatibility
         Options.Add(debugOption);
 
         var nonInteractiveOption = new Option<bool>("--non-interactive");

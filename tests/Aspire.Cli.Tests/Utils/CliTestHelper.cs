@@ -69,6 +69,10 @@ internal static class CliTestHelper
 
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)).AddXunitLogging(outputHelper);
 
+        // Register FileLoggerProvider for diagnostics (needed by commands)
+        services.AddSingleton<Aspire.Cli.Diagnostics.FileLoggerProvider>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, Aspire.Cli.Diagnostics.FileLoggerProvider>(sp => sp.GetRequiredService<Aspire.Cli.Diagnostics.FileLoggerProvider>()));
+
         services.AddMemoryCache();
 
         services.AddSingleton(options.AnsiConsoleFactory);
@@ -148,7 +152,7 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var hivesDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "hives"));
         var cacheDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "cache"));
-        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")));
+        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")), LogLevel.Information);
     }
 
     public DirectoryInfo WorkingDirectory { get; set; }

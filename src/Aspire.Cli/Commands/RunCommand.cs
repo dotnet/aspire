@@ -56,8 +56,10 @@ internal sealed class RunCommand : BaseCommand
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment,
         ILogger<RunCommand> logger,
-        TimeProvider? timeProvider)
-        : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
+        TimeProvider? timeProvider,
+        ILoggerFactory loggerFactory,
+        Diagnostics.FileLoggerProvider fileLoggerProvider)
+        : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService, loggerFactory, fileLoggerProvider)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -378,20 +380,20 @@ internal sealed class RunCommand : BaseCommand
         }
         catch (CertificateServiceException ex)
         {
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message.EscapeMarkup()));
-            return ExitCodeConstants.FailedToTrustCertificates;
+            return await HandleExceptionAsync(ex, ExitCodeConstants.FailedToTrustCertificates, 
+                "Failed to trust development certificates. Run 'dotnet dev-certs https --trust' manually.");
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message.EscapeMarkup()));
             InteractionService.DisplayLines(runOutputCollector.GetLines());
-            return ExitCodeConstants.FailedToDotnetRunAppHost;
+            return await HandleExceptionAsync(ex, ExitCodeConstants.FailedToDotnetRunAppHost,
+                "Failed to connect to AppHost. Check the output above for build or runtime errors.");
         }
         catch (Exception ex)
         {
-            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message.EscapeMarkup()));
             InteractionService.DisplayLines(runOutputCollector.GetLines());
-            return ExitCodeConstants.FailedToDotnetRunAppHost;
+            return await HandleExceptionAsync(ex, ExitCodeConstants.FailedToDotnetRunAppHost,
+                "Unexpected error occurred. Check the output above for more details.");
         }
     }
 
