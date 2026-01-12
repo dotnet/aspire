@@ -21,7 +21,7 @@ namespace Aspire.Hosting.Yaml;
 internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
 {
     private readonly Stack<EmitterState> _state = new();
-    private readonly Func<string, bool> _shouldApply;
+    private readonly Func<string, (bool, ScalarStyle?)> _shouldApply;
    
 
     /// <summary>
@@ -34,7 +34,7 @@ internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
     /// </remarks>
     public ForceQuotedStringsEventEmitter(
         IEventEmitter nextEmitter,
-        Func<string, bool>? shouldApply = null
+        Func<string, (bool, ScalarStyle?)>? shouldApply = null
     ) : base(nextEmitter)
     {
         _state.Push(new(EmitterState.EventType.Root));
@@ -61,8 +61,8 @@ internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
             eventInfo = new(eventInfo.Source)
             {
                 Style = eventInfo.Source.Value is string value
-                        && !_shouldApply(value)
-                      ? ScalarStyle.ForcePlain
+                        && _shouldApply(value) is (false, var style)
+                      ? style ?? throw new InvalidOperationException("Style cannot be null when not applying double quotes.")
                       : ScalarStyle.DoubleQuoted
             };
         }
@@ -167,5 +167,5 @@ internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
         }
     }
 
-    private static bool AlwaysTrue(string _) => true;
+    private static (bool, ScalarStyle?) AlwaysTrue(string _) => (true, null);
 }

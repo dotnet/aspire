@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.RegularExpressions;
+using YamlDotNet.Core;
 
 namespace Aspire.Hosting.Kubernetes.Extensions;
 internal static partial class HelmExtensions
@@ -35,13 +36,13 @@ internal static partial class HelmExtensions
         => $"{StartDelimiter} {expression} {EndDelimiter}";
 
     public static string ToHelmParameterExpression(this string parameterName, string resourceName)
-        => ToHelmExpression($"{ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName());
+        => $"{ValuesSegment}.{ParametersKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName().ToHelmExpression();
 
     public static string ToHelmSecretExpression(this string parameterName, string resourceName)
-        => ToHelmExpression($"{ValuesSegment}.{SecretsKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName());
+        => $"{ValuesSegment}.{SecretsKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName().ToHelmExpression();
 
     public static string ToHelmConfigExpression(this string parameterName, string resourceName)
-        => ToHelmExpression($"{ValuesSegment}.{ConfigKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName());
+        => $"{ValuesSegment}.{ConfigKey}.{resourceName}.{parameterName}".ToHelmValuesSectionName().ToHelmExpression();
 
     public static string ToHelmChartName(this string applicationName)
         => applicationName.ToLower().Replace("_", "-").Replace(".", "-");
@@ -88,10 +89,11 @@ internal static partial class HelmExtensions
         => ExpressionPattern().IsMatch(value)
         && value.Contains($"{ValuesSegment}.{SecretsKey}.", StringComparison.Ordinal);
 
-    public static bool IsNotHelmNonStringScalarExpression(this string value)
+    public static (bool, ScalarStyle?) ShouldDoubleQuoteString(string value)
     {
-        return ScalarExpressionPattern().IsMatch(value) is false
-            || EndWithNonStringTypePattern().IsMatch(value) is false;
+        var shouldApply = ScalarExpressionPattern().IsMatch(value) is false
+                          || EndWithNonStringTypePattern().IsMatch(value) is false;
+        return (shouldApply, shouldApply is false ? ScalarStyle.ForcePlain : null);
     }
 
     [GeneratedRegex(@"\{\{[^}]*\|\s*(int|int64|float64)\s*\}\}")]
