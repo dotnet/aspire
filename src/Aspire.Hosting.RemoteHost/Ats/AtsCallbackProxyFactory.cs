@@ -19,14 +19,18 @@ internal sealed class AtsCallbackProxyFactory : IDisposable
     private readonly CancellationTokenRegistry _cancellationTokenRegistry;
     private readonly ConcurrentDictionary<(string CallbackId, Type DelegateType), Delegate> _cache = new();
 
+    /// <summary>
+    /// Creates a new AtsCallbackProxyFactory with the specified invoker and handle registry.
+    /// </summary>
+    /// <param name="invoker">The callback invoker for making remote calls.</param>
+    /// <param name="handleRegistry">The handle registry for marshalling objects.</param>
     public AtsCallbackProxyFactory(
-        ICallbackInvoker invoker,
-        HandleRegistry handleRegistry,
-        CancellationTokenRegistry? cancellationTokenRegistry = null)
+        JsonRpcCallbackInvoker invoker,
+        HandleRegistry handleRegistry)
     {
         _invoker = invoker;
         _handleRegistry = handleRegistry;
-        _cancellationTokenRegistry = cancellationTokenRegistry ?? new CancellationTokenRegistry();
+        _cancellationTokenRegistry = new CancellationTokenRegistry();
     }
 
     /// <summary>

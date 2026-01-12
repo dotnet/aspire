@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
@@ -13,8 +14,6 @@ using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
-using Aspire.Hosting.CodeGeneration;
-using Aspire.Hosting.CodeGeneration.TypeScript;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Semver;
@@ -38,7 +37,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
     private readonly IFeatures _features;
     private readonly ILogger<TypeScriptAppHostProject> _logger;
     private readonly TimeProvider _timeProvider;
-    private readonly AtsTypeScriptCodeGenerator _atsTypeScriptGenerator;
     private readonly RunningInstanceManager _runningInstanceManager;
 
     private static readonly string[] s_detectionPatterns = ["apphost.ts"];
@@ -65,7 +63,6 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         _features = features;
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
-        _atsTypeScriptGenerator = new AtsTypeScriptCodeGenerator();
         _runningInstanceManager = new RunningInstanceManager(_logger, _interactionService, _timeProvider);
     }
 
@@ -242,6 +239,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
         // Step 2: Get package references and build AppHost server
         var packages = GetPackageReferences(directory).ToList();
         var appHostServerProject = _appHostServerProjectFactory.Create(directory.FullName);
+        var socketPath = appHostServerProject.GetSocketPath();
 
         var (buildSuccess, buildOutput, _) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
         if (!buildSuccess)
@@ -251,12 +249,34 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             return;
         }
 
-        // Step 3: Generate TypeScript SDK
-        await GenerateCodeAsync(
-            directory.FullName,
-            appHostServerProject.BuildPath,
-            packages,
-            cancellationToken);
+        // Step 3: Start the AppHost server temporarily for code generation
+        var currentPid = Environment.ProcessId;
+        var (serverProcess, _) = appHostServerProject.Run(socketPath, currentPid, new Dictionary<string, string>());
+
+        try
+        {
+            // Step 4: Generate TypeScript SDK via RPC
+            await GenerateCodeViaRpcAsync(
+                directory.FullName,
+                socketPath,
+                packages,
+                cancellationToken);
+        }
+        finally
+        {
+            // Step 5: Stop the server (we were just generating code)
+            if (!serverProcess.HasExited)
+            {
+                try
+                {
+                    serverProcess.Kill(entireProcessTree: true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error killing AppHost server process after code generation");
+                }
+            }
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -327,7 +347,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                         var npmInstallResult = await RunNpmInstallAsync(directory, cancellationToken);
                         if (npmInstallResult != 0)
                         {
-                            return (Success: false, Output: new OutputCollector(), Error: "Failed to install npm dependencies.", ChannelName: (string?)null);
+                            return (Success: false, Output: new OutputCollector(), Error: "Failed to install npm dependencies.", ChannelName: (string?)null, NeedsCodeGen: false);
                         }
                     }
 
@@ -335,20 +355,10 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                     var (buildSuccess, buildOutput, channelName) = await BuildAppHostServerAsync(appHostServerProject, packages, cancellationToken);
                     if (!buildSuccess)
                     {
-                        return (Success: false, Output: buildOutput, Error: "Failed to build app host.", ChannelName: (string?)null);
+                        return (Success: false, Output: buildOutput, Error: "Failed to build app host.", ChannelName: (string?)null, NeedsCodeGen: false);
                     }
 
-                    // Generate TypeScript SDK if needed
-                    if (NeedsGeneration(directory.FullName, packages))
-                    {
-                        await GenerateCodeAsync(
-                            directory.FullName,
-                            appHostServerProject.BuildPath,
-                            packages,
-                            cancellationToken);
-                    }
-
-                    return (Success: true, Output: buildOutput, Error: (string?)null, ChannelName: channelName);
+                    return (Success: true, Output: buildOutput, Error: (string?)null, ChannelName: channelName, NeedsCodeGen: NeedsGeneration(directory.FullName, packages));
                 });
 
             // Save the channel to settings.json if available
@@ -388,8 +398,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             // Start the AppHost server process
             var currentPid = Environment.ProcessId;
-            var serverArgs = enableHotReload ? new[] { "--hot-reload" } : null;
-            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars, serverArgs);
+            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(socketPath, currentPid, launchSettingsEnvVars, debug: context.Debug);
 
             // The backchannel completion source is the contract with RunCommand
             // We signal this when the backchannel is ready, RunCommand uses it for UX
@@ -408,7 +417,17 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
 
-            // Step 5: Execute the TypeScript apphost
+            // Step 5: Generate TypeScript SDK via RPC if needed
+            if (buildResult.NeedsCodeGen)
+            {
+                await GenerateCodeViaRpcAsync(
+                    directory.FullName,
+                    socketPath,
+                    packages,
+                    cancellationToken);
+            }
+
+            // Step 6: Execute the TypeScript apphost
 
             // Pass the socket path to the TypeScript process
             var environmentVariables = new Dictionary<string, string>(context.EnvironmentVariables)
@@ -451,7 +470,20 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 return typeScriptExitCode;
             }
 
-            // Wait for the AppHost server to exit (Ctrl+C)
+            // In watch mode, wait for server to exit (Ctrl+C or orphan detection)
+            // In non-watch mode, kill the server now that TypeScript has exited
+            if (!enableHotReload && !appHostServerProcess.HasExited)
+            {
+                try
+                {
+                    appHostServerProcess.Kill(entireProcessTree: true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error killing AppHost server process");
+                }
+            }
+
             await appHostServerProcess.WaitForExitAsync(cancellationToken);
 
             return appHostServerProcess.ExitCode;
@@ -845,15 +877,8 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             // Store output collector in context for exception handling
             context.OutputCollector = buildOutput;
 
-            // Step 3: Run code generation now that assemblies are built
-            if (NeedsGeneration(directory.FullName, packages))
-            {
-                await GenerateCodeAsync(
-                    directory.FullName,
-                    appHostServerProject.BuildPath,
-                    packages,
-                    cancellationToken);
-            }
+            // Check if code generation is needed (we'll do it after server starts)
+            var needsCodeGen = NeedsGeneration(directory.FullName, packages);
 
             // Read launchSettings.json if it exists
             var launchSettingsEnvVars = ReadLaunchSettingsEnvironmentVariables(directory) ?? new Dictionary<string, string>();
@@ -866,9 +891,7 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             // Start the AppHost server process (it opens the backchannel for progress reporting)
             var currentPid = Environment.ProcessId;
-
-            // AppHost server doesn't receive publish args - those go to the TypeScript app
-            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars);
+            var (appHostServerProcess, appHostServerOutputCollector) = appHostServerProject.Run(jsonRpcSocketPath, currentPid, launchSettingsEnvVars, debug: context.Debug);
 
             // Start connecting to the backchannel
             if (context.BackchannelCompletionSource is not null)
@@ -878,6 +901,16 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
 
             // Give the server a moment to start
             await Task.Delay(500, cancellationToken);
+
+            // Step 3: Generate code via RPC now that server is running
+            if (needsCodeGen)
+            {
+                await GenerateCodeViaRpcAsync(
+                    directory.FullName,
+                    jsonRpcSocketPath,
+                    packages,
+                    cancellationToken);
+            }
 
             if (appHostServerProcess.HasExited)
             {
@@ -923,7 +956,19 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
                 return typeScriptExitCode;
             }
 
-            // Wait for the AppHost server to complete the publish pipeline
+            // Kill the server after TypeScript exits
+            if (!appHostServerProcess.HasExited)
+            {
+                try
+                {
+                    appHostServerProcess.Kill(entireProcessTree: true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error killing AppHost server process");
+                }
+            }
+
             await appHostServerProcess.WaitForExitAsync(cancellationToken);
 
             return appHostServerProcess.ExitCode;
@@ -1165,64 +1210,167 @@ internal sealed class TypeScriptAppHostProject : IAppHostProject
             return true;
         }
 
-        return CodeGeneratorService.NeedsGeneration(appPath, packages, GeneratedFolderName);
+        return CheckNeedsGeneration(appPath, packages.ToList());
     }
 
     /// <summary>
-    /// Generates TypeScript SDK code for the specified app path.
+    /// Checks if code generation is needed by comparing the hash of current packages
+    /// with the stored hash from previous generation.
     /// </summary>
-    private async Task GenerateCodeAsync(
+    private static bool CheckNeedsGeneration(string appPath, List<(string PackageId, string Version)> packages)
+    {
+        var generatedPath = Path.Combine(appPath, GeneratedFolderName);
+        var hashPath = Path.Combine(generatedPath, ".codegen-hash");
+
+        // If hash file doesn't exist, generation is needed
+        if (!File.Exists(hashPath))
+        {
+            return true;
+        }
+
+        // Compare stored hash with current packages hash
+        var storedHash = File.ReadAllText(hashPath).Trim();
+        var currentHash = ComputePackagesHash(packages);
+
+        return !string.Equals(storedHash, currentHash, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Generates TypeScript SDK code by calling the AppHost server's generateCode RPC method.
+    /// </summary>
+    private async Task GenerateCodeViaRpcAsync(
         string appPath,
-        string buildPath,
+        string socketPath,
         IEnumerable<(string PackageId, string Version)> packages,
         CancellationToken cancellationToken)
     {
         var packagesList = packages.ToList();
-        _logger.LogDebug("Generating TypeScript code for {Count} packages", packagesList.Count);
+        _logger.LogDebug("Generating TypeScript code via RPC for {Count} packages", packagesList.Count);
 
-        // Build assembly search paths
-        var searchPaths = BuildAssemblySearchPaths(buildPath);
+        // Connect to the AppHost server using platform-appropriate transport
+        Stream stream;
+        var connected = false;
+        var startTime = DateTimeOffset.UtcNow;
 
-        // Use the shared code generator service with the ATS capability-based generator
-        var fileCount = await CodeGeneratorService.GenerateAsync(
-            appPath,
-            _atsTypeScriptGenerator,
-            packagesList,
-            searchPaths,
-            GeneratedFolderName,
-            cancellationToken);
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows, use named pipes (matches JsonRpcServer behavior)
+            var pipeClient = new NamedPipeClientStream(".", socketPath, PipeDirection.InOut, PipeOptions.Asynchronous);
 
-        _logger.LogInformation("Generated {Count} TypeScript files in {Path}",
-            fileCount, Path.Combine(appPath, GeneratedFolderName));
+            // Wait for server to be ready (retry for up to 30 seconds)
+            while (!connected && (DateTimeOffset.UtcNow - startTime) < TimeSpan.FromSeconds(30))
+            {
+                try
+                {
+                    await pipeClient.ConnectAsync(cancellationToken).ConfigureAwait(false);
+                    connected = true;
+                }
+                catch (TimeoutException)
+                {
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                }
+                catch (IOException)
+                {
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            if (!connected)
+            {
+                pipeClient.Dispose();
+                throw new InvalidOperationException($"Failed to connect to AppHost server at {socketPath}");
+            }
+
+            stream = pipeClient;
+        }
+        else
+        {
+            // On Unix/macOS, use Unix domain sockets (matches JsonRpcServer behavior)
+            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            var endpoint = new UnixDomainSocketEndPoint(socketPath);
+
+            // Wait for server to be ready (retry for up to 30 seconds)
+            while (!connected && (DateTimeOffset.UtcNow - startTime) < TimeSpan.FromSeconds(30))
+            {
+                try
+                {
+                    await socket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
+                    connected = true;
+                }
+                catch (SocketException)
+                {
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            if (!connected)
+            {
+                socket.Dispose();
+                throw new InvalidOperationException($"Failed to connect to AppHost server at {socketPath}");
+            }
+
+            stream = new NetworkStream(socket, ownsSocket: true);
+        }
+
+        using (stream)
+        {
+            // Set up JSON-RPC connection with AOT-compatible JSON formatter
+            var formatter = Backchannel.BackchannelJsonSerializerContext.CreateRpcMessageFormatter();
+            var handler = new StreamJsonRpc.HeaderDelimitedMessageHandler(stream, stream, formatter);
+            using var jsonRpc = new StreamJsonRpc.JsonRpc(handler);
+            jsonRpc.StartListening();
+
+            // Call generateCode RPC method
+            _logger.LogDebug("Calling generateCode RPC method");
+            var files = await jsonRpc.InvokeWithCancellationAsync<Dictionary<string, string>>("generateCode", ["TypeScript"], cancellationToken);
+
+            // Write generated files to the output directory
+            var outputPath = Path.Combine(appPath, GeneratedFolderName);
+            Directory.CreateDirectory(outputPath);
+
+            foreach (var (fileName, content) in files)
+            {
+                var filePath = Path.Combine(outputPath, fileName);
+                var directory = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+                await File.WriteAllTextAsync(filePath, content, cancellationToken);
+            }
+
+            // Write generation hash for caching
+            SaveGenerationHash(outputPath, packagesList);
+
+            _logger.LogInformation("Generated {Count} TypeScript files in {Path}",
+                files.Count, outputPath);
+        }
     }
 
     /// <summary>
-    /// Builds the list of paths to search for assemblies.
+    /// Saves a hash of the packages to avoid regenerating code unnecessarily.
     /// </summary>
-    private static List<string> BuildAssemblySearchPaths(string buildPath)
+    private static void SaveGenerationHash(string generatedPath, List<(string PackageId, string Version)> packages)
     {
-        var searchPaths = new List<string> { buildPath };
+        var hashPath = Path.Combine(generatedPath, ".codegen-hash");
+        var hash = ComputePackagesHash(packages);
+        File.WriteAllText(hashPath, hash);
+    }
 
-        // Add NuGet cache if available
-        var nugetCache = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".nuget", "packages");
-        if (Directory.Exists(nugetCache))
+    /// <summary>
+    /// Computes a hash of the package list for caching purposes.
+    /// </summary>
+    private static string ComputePackagesHash(List<(string PackageId, string Version)> packages)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var (packageId, version) in packages.OrderBy(p => p.PackageId))
         {
-            searchPaths.Add(nugetCache);
+            sb.Append(packageId);
+            sb.Append(':');
+            sb.Append(version);
+            sb.Append(';');
         }
-
-        // Add runtime directory
-        var runtimeDirectory = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory();
-        searchPaths.Add(runtimeDirectory);
-
-        // Add ASP.NET Core shared framework directory (contains HealthChecks, etc.)
-        var aspnetCoreDirectory = runtimeDirectory.Replace("Microsoft.NETCore.App", "Microsoft.AspNetCore.App");
-        if (Directory.Exists(aspnetCoreDirectory))
-        {
-            searchPaths.Add(aspnetCoreDirectory);
-        }
-
-        return searchPaths;
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(sb.ToString()));
+        return Convert.ToHexString(bytes);
     }
 }

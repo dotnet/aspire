@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Ats;
 /// Lightweight type reference with category and interface flag.
 /// Used for parameter types and return types in capabilities.
 /// </summary>
-internal sealed class AtsTypeRef
+public sealed class AtsTypeRef
 {
     /// <summary>
     /// Gets or sets the ATS type ID (e.g., "string", "Aspire.Hosting/RedisResource").
@@ -57,7 +57,7 @@ internal sealed class AtsTypeRef
 /// <summary>
 /// Represents the severity of an ATS scanner diagnostic.
 /// </summary>
-internal enum AtsDiagnosticSeverity
+public enum AtsDiagnosticSeverity
 {
     /// <summary>
     /// Warning - the item was skipped but scanning continues.
@@ -73,7 +73,7 @@ internal enum AtsDiagnosticSeverity
 /// <summary>
 /// Represents a diagnostic message from the ATS capability scanner.
 /// </summary>
-internal sealed class AtsDiagnostic
+public sealed class AtsDiagnostic
 {
     /// <summary>
     /// Gets the severity of the diagnostic.
@@ -116,7 +116,7 @@ internal sealed class AtsDiagnostic
 /// <c>invokeCapability(capabilityId, args)</c> from polyglot clients.
 /// </para>
 /// </remarks>
-internal sealed class AtsCapabilityInfo
+public sealed class AtsCapabilityInfo
 {
     /// <summary>
     /// Gets or sets the capability ID (e.g., "aspire.redis/addRedis@1").
@@ -216,7 +216,7 @@ internal sealed class AtsCapabilityInfo
 /// <summary>
 /// Represents a parameter in an ATS capability.
 /// </summary>
-internal sealed class AtsParameterInfo
+public sealed class AtsParameterInfo
 {
     /// <summary>
     /// Gets or sets the parameter name.
@@ -265,7 +265,7 @@ internal sealed class AtsParameterInfo
 /// <summary>
 /// Represents a parameter in a callback delegate signature.
 /// </summary>
-internal sealed class AtsCallbackParameterInfo
+public sealed class AtsCallbackParameterInfo
 {
     /// <summary>
     /// Gets or sets the parameter name.
@@ -281,7 +281,7 @@ internal sealed class AtsCallbackParameterInfo
 /// <summary>
 /// Represents type information discovered from [AspireExport(AtsTypeId = "...")].
 /// </summary>
-internal sealed class AtsTypeInfo
+public sealed class AtsTypeInfo
 {
     /// <summary>
     /// Gets or sets the ATS type ID.
@@ -328,7 +328,7 @@ internal sealed class AtsTypeInfo
 /// Represents a DTO type discovered from [AspireDto] attributes.
 /// Used for generating TypeScript interfaces for DTOs.
 /// </summary>
-internal sealed class AtsDtoTypeInfo
+public sealed class AtsDtoTypeInfo
 {
     /// <summary>
     /// Gets or sets the ATS type ID for this DTO.
@@ -349,7 +349,7 @@ internal sealed class AtsDtoTypeInfo
 /// <summary>
 /// Represents a property of a DTO type.
 /// </summary>
-internal sealed class AtsDtoPropertyInfo
+public sealed class AtsDtoPropertyInfo
 {
     /// <summary>
     /// Gets or sets the property name.
@@ -371,7 +371,7 @@ internal sealed class AtsDtoPropertyInfo
 /// Represents an enum type discovered during scanning.
 /// Used for generating TypeScript enums.
 /// </summary>
-internal sealed class AtsEnumTypeInfo
+public sealed class AtsEnumTypeInfo
 {
     /// <summary>
     /// Gets or sets the ATS type ID for this enum (e.g., "enum:Aspire.Hosting.ApplicationModel.ContainerLifetime").

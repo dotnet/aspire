@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Ats;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.RemoteHost.Ats;
 
@@ -28,6 +29,7 @@ internal sealed class CapabilityDispatcher
     private readonly ConcurrentDictionary<string, CapabilityRegistration> _capabilities = new();
     private readonly HandleRegistry _handles;
     private readonly AtsCallbackProxyFactory? _callbackProxyFactory;
+    private readonly ILogger _logger;
 
     /// <summary>
     /// Represents a registered capability.
@@ -40,21 +42,24 @@ internal sealed class CapabilityDispatcher
     }
 
     /// <summary>
-    /// Creates a new CapabilityDispatcher.
+    /// Creates a new CapabilityDispatcher for DI.
     /// </summary>
     /// <param name="handles">The handle registry for resolving handle references.</param>
-    /// <param name="assemblies">The assemblies to scan for [AspireExport] attributes.</param>
-    /// <param name="callbackProxyFactory">Optional factory for creating callback proxies.</param>
+    /// <param name="assemblyLoader">The assembly loader to get assemblies from.</param>
+    /// <param name="callbackProxyFactory">Factory for creating callback proxies.</param>
+    /// <param name="logger">The logger.</param>
     public CapabilityDispatcher(
         HandleRegistry handles,
-        IEnumerable<Assembly> assemblies,
-        AtsCallbackProxyFactory? callbackProxyFactory = null)
+        AssemblyLoader assemblyLoader,
+        AtsCallbackProxyFactory callbackProxyFactory,
+        ILogger<CapabilityDispatcher> logger)
     {
         _handles = handles;
         _callbackProxyFactory = callbackProxyFactory;
+        _logger = logger;
 
         // Scan for capabilities on initialization
-        ScanAssemblies(assemblies);
+        ScanAssemblies(assemblyLoader.GetAssemblies());
     }
 
     /// <summary>
@@ -67,12 +72,12 @@ internal sealed class CapabilityDispatcher
         var assemblyList = assemblies.ToList();
         var typeMapping = AtsTypeMapping.FromAssemblies(assemblyList);
 
-        Console.WriteLine($"[ATS] Scanning {assemblyList.Count} assemblies for capabilities...");
+        _logger.LogDebug("Scanning {AssemblyCount} assemblies for capabilities...", assemblyList.Count);
 
         foreach (var assembly in assemblyList)
         {
             var assemblyName = assembly.GetName().Name ?? assembly.FullName ?? "unknown";
-            Console.WriteLine($"[ATS]   Scanning: {assemblyName}");
+            _logger.LogDebug("Scanning assembly: {AssemblyName}", assemblyName);
             try
             {
                 var wrappedAssembly = new RuntimeAssemblyInfo(assembly);
@@ -83,11 +88,13 @@ internal sealed class CapabilityDispatcher
                 // Log diagnostics from the scanner
                 foreach (var diagnostic in result.Diagnostics)
                 {
-                    var prefix = diagnostic.Severity == AtsDiagnosticSeverity.Error ? "ERROR" : "WARN";
-                    Console.WriteLine($"[ATS]     [{prefix}] {diagnostic.Message}");
-                    if (diagnostic.Location != null)
+                    if (diagnostic.Severity == AtsDiagnosticSeverity.Error)
                     {
-                        Console.WriteLine($"[ATS]            at {diagnostic.Location}");
+                        _logger.LogError("{Message} at {Location}", diagnostic.Message, diagnostic.Location);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("{Message} at {Location}", diagnostic.Message, diagnostic.Location);
                     }
                 }
 
@@ -120,17 +127,16 @@ internal sealed class CapabilityDispatcher
             catch (Exception ex)
             {
                 // Log errors scanning assemblies - these are critical for debugging ATS issues
-                Console.Error.WriteLine($"[ATS] Error scanning assembly '{assemblyName}': {ex.Message}");
-                Console.Error.WriteLine($"[ATS] Full exception: {ex}");
+                _logger.LogError(ex, "Error scanning assembly '{AssemblyName}'", assemblyName);
                 throw;
             }
         }
 
         // Log summary of all registered capabilities
-        Console.WriteLine($"[ATS] Registered {_capabilities.Count} capabilities:");
+        _logger.LogDebug("Registered {CapabilityCount} capabilities", _capabilities.Count);
         foreach (var capabilityId in _capabilities.Keys.OrderBy(k => k))
         {
-            Console.WriteLine($"[ATS]   - {capabilityId}");
+            _logger.LogTrace("  - {CapabilityId}", capabilityId);
         }
     }
 

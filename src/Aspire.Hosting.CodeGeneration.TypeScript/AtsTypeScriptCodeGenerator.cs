@@ -95,7 +95,7 @@ internal sealed class BuilderModel
 /// </list>
 /// </para>
 /// </remarks>
-internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
+public sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 {
     private TextWriter _writer = null!;
 
@@ -1280,6 +1280,12 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
                 const client = new AspireClientRpc(socketPath);
                 await client.connect();
+
+                // Exit the process if the server connection is lost
+                client.onDisconnect(() => {
+                    console.error('Connection to AppHost lost. Exiting...');
+                    process.exit(1);
+                });
 
                 return client;
             }

@@ -352,7 +352,6 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Aspire.Hosting.CodeGeneration.TypeScript/Aspire.Hosting.CodeGeneration.TypeScript.csproj" />
-    <Project Path="src/Aspire.Hosting.CodeGeneration/Aspire.Hosting.CodeGeneration.csproj" />
     <Project Path="src/Aspire.Hosting.RemoteHost/Aspire.Hosting.RemoteHost.csproj" />
   </Folder>
   <Folder Name="/Testing/">

@@ -49,11 +49,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting.CodeGeneration\Aspire.Hosting.CodeGeneration.csproj" />
-    <ProjectReference Include="..\Aspire.Hosting.CodeGeneration.TypeScript\Aspire.Hosting.CodeGeneration.TypeScript.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Utils\CircularBuffer.cs" />

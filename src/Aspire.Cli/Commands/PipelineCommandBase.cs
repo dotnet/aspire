@@ -166,7 +166,8 @@ internal abstract class PipelineCommandBase : BaseCommand
                 EnvironmentVariables = env,
                 Arguments = GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens, parseResult),
                 BackchannelCompletionSource = backchannelCompletionSource,
-                WorkingDirectory = ExecutionContext.WorkingDirectory
+                WorkingDirectory = ExecutionContext.WorkingDirectory,
+                Debug = debugMode
             };
 
             pendingRun = project.PublishAsync(publishContext, cancellationToken);

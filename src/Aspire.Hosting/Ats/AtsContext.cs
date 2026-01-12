@@ -6,7 +6,7 @@ namespace Aspire.Hosting.Ats;
 /// <summary>
 /// Contains all scanned types, capabilities, and metadata from ATS assembly scanning.
 /// </summary>
-internal sealed class AtsContext
+public sealed class AtsContext
 {
     /// <summary>
     /// Gets the capabilities discovered during scanning.

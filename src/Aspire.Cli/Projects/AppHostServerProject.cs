@@ -164,6 +164,8 @@ internal sealed class AppHostServerProject
                 atsAssemblies.Add(pkg.Name);
             }
         }
+        // Add the TypeScript code generator assembly for code generation support
+        atsAssemblies.Add("Aspire.Hosting.CodeGeneration.TypeScript");
 
         var assembliesJson = string.Join(",\n      ", atsAssemblies.Select(a => $"\"{a}\""));
         var appSettingsJson = $$"""
@@ -424,6 +426,15 @@ internal sealed class AppHostServerProject
                         new XAttribute("Include", remoteHostProject))));
             }
 
+            // Add Aspire.Hosting.CodeGeneration.TypeScript project reference for code generation
+            var typeScriptCodeGenProject = Path.Combine(repoRoot, "src", "Aspire.Hosting.CodeGeneration.TypeScript", "Aspire.Hosting.CodeGeneration.TypeScript.csproj");
+            if (File.Exists(typeScriptCodeGenProject))
+            {
+                doc.Root!.Add(new XElement("ItemGroup",
+                    new XElement("ProjectReference",
+                        new XAttribute("Include", typeScriptCodeGenProject))));
+            }
+
             // Disable Aspire SDK code generation - we don't need project metadata for the AppHost server
             // These must come after the imports to override the targets defined there
             doc.Root!.Add(new XElement("Target", new XAttribute("Name", "_CSharpWriteHostProjectMetadataSources")));
@@ -439,6 +450,11 @@ internal sealed class AppHostServerProject
             // Add Aspire.Hosting.RemoteHost package reference
             packageRefs.Add(new XElement("PackageReference",
                 new XAttribute("Include", "Aspire.Hosting.RemoteHost"),
+                new XAttribute("Version", AspireHostVersion)));
+
+            // Add Aspire.Hosting.CodeGeneration.TypeScript package for code generation
+            packageRefs.Add(new XElement("PackageReference",
+                new XAttribute("Include", "Aspire.Hosting.CodeGeneration.TypeScript"),
                 new XAttribute("Version", AspireHostVersion)));
 
             doc.Root!.Add(new XElement("ItemGroup", packageRefs));
@@ -484,8 +500,9 @@ internal sealed class AppHostServerProject
     /// <param name="hostPid">The PID of the host process for orphan detection.</param>
     /// <param name="launchSettingsEnvVars">Optional environment variables from apphost.run.json or launchSettings.json.</param>
     /// <param name="additionalArgs">Optional additional command-line arguments (e.g., for publish/deploy).</param>
+    /// <param name="debug">Whether to enable debug logging in the AppHost server.</param>
     /// <returns>A tuple containing the started process and an OutputCollector for capturing output.</returns>
-    public (Process Process, OutputCollector OutputCollector) Run(string socketPath, int hostPid, IReadOnlyDictionary<string, string>? launchSettingsEnvVars = null, string[]? additionalArgs = null)
+    public (Process Process, OutputCollector OutputCollector) Run(string socketPath, int hostPid, IReadOnlyDictionary<string, string>? launchSettingsEnvVars = null, string[]? additionalArgs = null, bool debug = false)
     {
         var assemblyPath = Path.Combine(BuildPath, ProjectDllName);
         var dotnetExe = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
@@ -523,6 +540,13 @@ internal sealed class AppHostServerProject
             {
                 startInfo.Environment[key] = value;
             }
+        }
+
+        // Enable debug logging if requested
+        if (debug)
+        {
+            startInfo.Environment["Logging__LogLevel__Default"] = "Debug";
+            _logger.LogDebug("Enabling debug logging for AppHostServer");
         }
 
         startInfo.RedirectStandardOutput = true;
