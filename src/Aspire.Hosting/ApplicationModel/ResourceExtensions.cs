@@ -1232,10 +1232,6 @@ public static class ResourceExtensions
 
         if (mode == ResourceDependencyDiscoveryMode.Recursive)
         {
-            // Relationship annotations represent both direct and indirect dependencies,
-            // we only collect dependencies from them in Recursive mode.
-            CollectRelationshipAnnotationDependencies(resource, dependencies, newDependencies);
-
             // Compute transitive closure by recursively processing dependencies
             var toProcess = new Queue<IResource>(dependencies);
             while (toProcess.Count > 0)
@@ -1244,7 +1240,6 @@ public static class ResourceExtensions
                 newDependencies.Clear();
 
                 await GatherDirectDependenciesAsync(dep, dependencies, newDependencies, executionContext, cancellationToken).ConfigureAwait(false);
-                CollectRelationshipAnnotationDependencies(dep, dependencies, newDependencies);
 
                 foreach (var newDep in newDependencies)
                 {
@@ -1366,23 +1361,6 @@ public static class ResourceExtensions
             if (dependencies.Add(redirectAnnotation.Resource))
             {
                 newDependencies.Add(redirectAnnotation.Resource);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Collects dependencies from resource relationship annotations.
-    /// </summary>
-    private static void CollectRelationshipAnnotationDependencies(IResource resource, HashSet<IResource> dependencies, HashSet<IResource> newDependencies)
-    {
-        if (resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationshipAnnotations))
-        {
-            foreach (var relationshipAnnotation in relationshipAnnotations)
-            {
-                if (dependencies.Add(relationshipAnnotation.Resource))
-                {
-                    newDependencies.Add(relationshipAnnotation.Resource);
-                }
             }
         }
     }
