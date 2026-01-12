@@ -1,11 +1,11 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.TestUtilities;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 using Aspire.Hosting;
+using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Playwright;
 using Xunit;
@@ -30,7 +30,6 @@ public class BrowserTokenAuthenticationTests : PlaywrightTestsBase<BrowserTokenA
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/7921")]
     [OuterloopTest("Resource-intensive Playwright browser test")]
     public async Task BrowserToken_LoginPage_Success_RedirectToResources()
     {
