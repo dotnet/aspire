@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
@@ -10,6 +10,7 @@ using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Aspire.Cli.Tests;
@@ -21,33 +22,35 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     {
         var configuration = new ConfigurationBuilder().Build();
 
-        var lifetime = new HostLifetimeStub(() => {});
-        var detector = new CliOrphanDetector(configuration, lifetime, TimeProvider.System);
+        var lifetime = new HostLifetimeStub(() => { });
+        var loggerFactory = CreateLoggerFactory(testOutputHelper);
+        var detector = CreateCliOrphanDetector(loggerFactory, configuration, lifetime);
 
         // The detector should complete almost immediately because there is no
         // environment variable present that indicates that it is hitched to
         // .NET Aspire lifetime.
-        await detector.StartAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
+        await detector.StartAsync(CancellationToken.None).DefaultTimeout();
     }
 
     [Fact]
     public async Task CliOrphanDetectorCallsStopIfEnvironmentVariablePresentAndProcessNotRunning()
     {
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { { "ASPIRE_CLI_PID", "1111" } })    
+            .AddInMemoryCollection(new Dictionary<string, string?> { { "ASPIRE_CLI_PID", "1111" } })
             .Build();
 
-        var stopSignalChannel = Channel.CreateUnbounded<bool>();
-        var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
+        var stopSignalTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var lifetime = new HostLifetimeStub(() => stopSignalTcs.TrySetResult());
 
-        var detector = new CliOrphanDetector(configuration, lifetime, TimeProvider.System);
+        var loggerFactory = CreateLoggerFactory(testOutputHelper);
+        var detector = CreateCliOrphanDetector(loggerFactory, configuration, lifetime);
         detector.IsProcessRunning = _ => false;
 
         // The detector should complete almost immediately because there is no
         // environment variable present that indicates that it is hitched to
         // .NET Aspire lifetime.
-        await detector.StartAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.True(await stopSignalChannel.Reader.WaitToReadAsync());
+        await detector.StartAsync(CancellationToken.None).DefaultTimeout();
+        await stopSignalTcs.Task.DefaultTimeout();
     }
 
     [Fact]
@@ -56,42 +59,44 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         var expectedStartTime = DateTime.Now.AddMinutes(-5);
         var expectedStartTimeUnixSeconds = ((DateTimeOffset)expectedStartTime).ToUnixTimeSeconds();
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> 
-            { 
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
                 { "ASPIRE_CLI_PID", "1111" },
                 { "ASPIRE_CLI_STARTED", expectedStartTimeUnixSeconds.ToString() }
-            })    
+            })
             .Build();
 
-        var stopSignalChannel = Channel.CreateUnbounded<bool>();
-        var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
+        var stopSignalTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var lifetime = new HostLifetimeStub(() => stopSignalTcs.TrySetResult());
 
-        var detector = new CliOrphanDetector(configuration, lifetime, TimeProvider.System);
+        var loggerFactory = CreateLoggerFactory(testOutputHelper);
+        var detector = CreateCliOrphanDetector(loggerFactory, configuration, lifetime);
         detector.IsProcessRunningWithStartTime = (pid, startTime) => false;
 
-        await detector.StartAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.True(await stopSignalChannel.Reader.WaitToReadAsync());
+        await detector.StartAsync(CancellationToken.None).DefaultTimeout();
+        await stopSignalTcs.Task.DefaultTimeout();
     }
 
     [Fact]
     public async Task CliOrphanDetectorFallsBackToPidOnlyWhenStartTimeInvalid()
     {
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> 
-            { 
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
                 { "ASPIRE_CLI_PID", "1111" },
                 { "ASPIRE_CLI_STARTED", "invalid_start_time" }
-            })    
+            })
             .Build();
 
-        var stopSignalChannel = Channel.CreateUnbounded<bool>();
-        var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
+        var stopSignalTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var lifetime = new HostLifetimeStub(() => stopSignalTcs.TrySetResult());
 
-        var detector = new CliOrphanDetector(configuration, lifetime, TimeProvider.System);
+        var loggerFactory = CreateLoggerFactory(testOutputHelper);
+        var detector = CreateCliOrphanDetector(loggerFactory, configuration, lifetime);
         detector.IsProcessRunning = _ => false;
 
-        await detector.StartAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.True(await stopSignalChannel.Reader.WaitToReadAsync());
+        await detector.StartAsync(CancellationToken.None).DefaultTimeout();
+        await stopSignalTcs.Task.DefaultTimeout();
     }
 
     [Fact]
@@ -101,42 +106,44 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         var expectedStartTime = DateTime.Now.AddMinutes(-5);
         var expectedStartTimeUnix = ((DateTimeOffset)expectedStartTime).ToUnixTimeSeconds();
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> 
-            { 
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
                 { "ASPIRE_CLI_PID", "1111" },
                 { "ASPIRE_CLI_STARTED", expectedStartTimeUnix.ToString() }
-            })    
+            })
             .Build();
         var fakeTimeProvider = new FakeTimeProvider(DateTimeOffset.Now);
 
-        var stopSignalChannel = Channel.CreateUnbounded<bool>();
+        var stopSignalTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var processRunningChannel = Channel.CreateUnbounded<int>();
 
-        var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
-        var detector = new CliOrphanDetector(configuration, lifetime, fakeTimeProvider);
-        
+        var lifetime = new HostLifetimeStub(() => stopSignalTcs.TrySetResult());
+        var loggerFactory = CreateLoggerFactory(testOutputHelper);
+        var detector = CreateCliOrphanDetector(loggerFactory, configuration, lifetime, fakeTimeProvider);
+
         var processRunningCallCounter = 0;
-        detector.IsProcessRunningWithStartTime = (pid, startTime) => {
+        detector.IsProcessRunningWithStartTime = (pid, startTime) =>
+        {
             Assert.True(processRunningChannel.Writer.TryWrite(++processRunningCallCounter));
             return processRunningCallCounter < 3; // Process dies after 3 checks
         };
 
-        await detector.StartAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
+        await detector.StartAsync(CancellationToken.None).DefaultTimeout();
 
         // Verify process is checked first time
-        Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        Assert.Equal(1, await processRunningChannel.Reader.ReadAsync().DefaultTimeout());
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         // Second check
-        Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        Assert.Equal(2, await processRunningChannel.Reader.ReadAsync().DefaultTimeout());
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
         // Third check (process dies)
-        Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
-        Assert.Equal(3, processRunningCallCounter);
+        Assert.Equal(3, await processRunningChannel.Reader.ReadAsync().DefaultTimeout());
 
-        // Should stop the application
-        Assert.True(await stopSignalChannel.Reader.WaitToReadAsync());
+        // Should have exited.
+        await detector.ExecuteTask!.DefaultTimeout();
+        await stopSignalTcs.Task.DefaultTimeout();
     }
 
     [Fact]
@@ -145,26 +152,28 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         var expectedStartTime = DateTime.Now.AddMinutes(-5);
         var expectedStartTimeUnixString = ((DateTimeOffset)expectedStartTime).ToUnixTimeSeconds().ToString();
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> 
-            { 
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
                 { "ASPIRE_CLI_PID", "1111" },
                 { "ASPIRE_CLI_STARTED", expectedStartTimeUnixString }
-            })    
+            })
             .Build();
 
-        var stopSignalChannel = Channel.CreateUnbounded<bool>();
-        var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
+        var stopSignalTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var lifetime = new HostLifetimeStub(() => stopSignalTcs.TrySetResult());
 
-        var detector = new CliOrphanDetector(configuration, lifetime, TimeProvider.System);
-        
+        var loggerFactory = CreateLoggerFactory(testOutputHelper);
+        var detector = CreateCliOrphanDetector(loggerFactory, configuration, lifetime);
+
         // Simulate process with different start time (PID reuse scenario)
-        detector.IsProcessRunningWithStartTime = (pid, startTime) => {
+        detector.IsProcessRunningWithStartTime = (pid, startTime) =>
+        {
             // Process exists but has different start time - indicates PID reuse
             return false;
         };
 
-        await detector.StartAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.True(await stopSignalChannel.Reader.WaitToReadAsync());
+        await detector.StartAsync(CancellationToken.None).DefaultTimeout();
+        await stopSignalTcs.Task.DefaultTimeout();
     }
 
     [Fact]
@@ -172,42 +181,49 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     public async Task CliOrphanDetectorAfterTheProcessWasRunningForAWhileThenStops()
     {
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { { "ASPIRE_CLI_PID", "1111" } })    
+            .AddInMemoryCollection(new Dictionary<string, string?> { { "ASPIRE_CLI_PID", "1111" } })
             .Build();
         var fakeTimeProvider = new FakeTimeProvider(DateTimeOffset.Now);
 
-        var stopSignalChannel = Channel.CreateUnbounded<bool>();
+        var stopSignalTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var processRunningChannel = Channel.CreateUnbounded<int>();
 
-        var lifetime = new HostLifetimeStub(() => stopSignalChannel.Writer.TryWrite(true));
-        var detector = new CliOrphanDetector(configuration, lifetime, fakeTimeProvider);
-        
+        var lifetime = new HostLifetimeStub(() => stopSignalTcs.TrySetResult());
+        var loggerFactory = CreateLoggerFactory(testOutputHelper);
+        var testLogger = loggerFactory.CreateLogger<CliOrphanDetectorTests>();
+        var detector = CreateCliOrphanDetector(loggerFactory, configuration, lifetime, fakeTimeProvider);
+
         var processRunningCallCounter = 0;
-        detector.IsProcessRunning = pid => {
+        detector.IsProcessRunning = pid =>
+        {
             Assert.True(processRunningChannel.Writer.TryWrite(++processRunningCallCounter));
-            return processRunningCallCounter < 5;
+
+            var isProcessRunning = processRunningCallCounter < 5;
+            testLogger.LogDebug($"IsProcessRunning called. Running count: {processRunningCallCounter}. IsProcessRunning: {isProcessRunning}");
+            return isProcessRunning;
         };
 
         // The detector should complete after about 5 seconds
 
-        await detector.StartAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
+        await detector.StartAsync(CancellationToken.None).DefaultTimeout();
 
-        Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        Assert.Equal(1, await processRunningChannel.Reader.ReadAsync().DefaultTimeout());
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
-        Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        Assert.Equal(2, await processRunningChannel.Reader.ReadAsync().DefaultTimeout());
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
-        Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        Assert.Equal(3, await processRunningChannel.Reader.ReadAsync().DefaultTimeout());
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
-        Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
+        Assert.Equal(4, await processRunningChannel.Reader.ReadAsync().DefaultTimeout());
         fakeTimeProvider.Advance(TimeSpan.FromSeconds(1));
 
-        Assert.True(await processRunningChannel.Reader.WaitToReadAsync());
-        Assert.Equal(5, processRunningCallCounter);
+        Assert.Equal(5, await processRunningChannel.Reader.ReadAsync().DefaultTimeout());
 
-        Assert.True(await stopSignalChannel.Reader.WaitToReadAsync());
+        // Should have exited.
+        await detector.ExecuteTask!.DefaultTimeout();
+        await stopSignalTcs.Task.DefaultTimeout();
     }
 
     [Fact]
@@ -241,10 +257,29 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         // Wait until the apphost is spun up and then kill off the stub
         // process so everything is torn down.
         await resourcesCreatedTcs.Task.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
-        fakeCliProcess.Kill();
-        fakeCliProcess.WaitForExit();
+        fakeCliProcess.Process.Kill();
 
         await pendingRun.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+    }
+
+    private static CliOrphanDetector CreateCliOrphanDetector(
+        ILoggerFactory loggerFactory,
+        IConfiguration configuration,
+        IHostApplicationLifetime lifetime,
+        TimeProvider? timeProvider = null)
+    {
+        timeProvider ??= new FakeTimeProvider(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        var logger = loggerFactory.CreateLogger<CliOrphanDetector>();
+        return new CliOrphanDetector(configuration, lifetime, timeProvider, logger);
+    }
+
+    private static ILoggerFactory CreateLoggerFactory(ITestOutputHelper testOutputHelper)
+    {
+        return LoggerFactory.Create(builder =>
+        {
+            builder.SetMinimumLevel(LogLevel.Debug);
+            builder.AddXunit(testOutputHelper);
+        });
     }
 }
 
