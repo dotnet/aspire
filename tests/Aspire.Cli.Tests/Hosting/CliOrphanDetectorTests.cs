@@ -222,7 +222,8 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         psi.RedirectStandardOutput = true;
         psi.RedirectStandardError = true;
 
-        using var fakeCliProcess = Process.Start(psi)!;
+        using var fakeCliProcess = Process.Start(psi);
+        Assert.NotNull(fakeCliProcess);
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         builder.Configuration["ASPIRE_CLI_PID"] = fakeCliProcess.Id.ToString();
@@ -241,6 +242,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         // process so everything is torn down.
         await resourcesCreatedTcs.Task.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         fakeCliProcess.Kill();
+        fakeCliProcess.WaitForExit();
 
         await pendingRun.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
