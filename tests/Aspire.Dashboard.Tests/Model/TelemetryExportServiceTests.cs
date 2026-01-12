@@ -497,7 +497,7 @@ public sealed class TelemetryExportServiceTests
         // Verify the content of the exported structured logs for resource1
         var resource1LogsEntry = archive.Entries.First(e => e.FullName.Contains("structuredlogs") && e.FullName.Contains("resource1"));
         using var logStream = resource1LogsEntry.Open();
-        var logsData = await JsonSerializer.DeserializeAsync<OtlpTelemetryDataJson>(logStream);
+        var logsData = await JsonSerializer.DeserializeAsync(logStream, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
         var logRecord = logsData?.ResourceLogs?.FirstOrDefault()?.ScopeLogs?.FirstOrDefault()?.LogRecords?.FirstOrDefault();
         Assert.NotNull(logRecord);
         Assert.Equal("log-resource1-111", logRecord.Body?.StringValue);
@@ -505,7 +505,7 @@ public sealed class TelemetryExportServiceTests
         // Verify the content of the exported traces for resource2
         var resource2TracesEntry = archive.Entries.First(e => e.FullName.Contains("traces") && e.FullName.Contains("resource2"));
         using var traceStream = resource2TracesEntry.Open();
-        var tracesData = await JsonSerializer.DeserializeAsync<OtlpTelemetryDataJson>(traceStream);
+        var tracesData = await JsonSerializer.DeserializeAsync(traceStream, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
         var span = tracesData?.ResourceSpans?.FirstOrDefault()?.ScopeSpans?.FirstOrDefault()?.Spans?.FirstOrDefault();
         Assert.NotNull(span);
         Assert.Contains("resource2-222", span.Name);
@@ -513,7 +513,7 @@ public sealed class TelemetryExportServiceTests
         // Verify the content of the exported metrics for resource3
         var resource3MetricsEntry = archive.Entries.First(e => e.FullName.Contains("metrics") && e.FullName.Contains("resource3"));
         using var metricsStream = resource3MetricsEntry.Open();
-        var metricsData = await JsonSerializer.DeserializeAsync<OtlpTelemetryDataJson>(metricsStream);
+        var metricsData = await JsonSerializer.DeserializeAsync(metricsStream, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
         var metric = metricsData?.ResourceMetrics?.FirstOrDefault()?.ScopeMetrics?.FirstOrDefault()?.Metrics?.FirstOrDefault();
         Assert.NotNull(metric);
         Assert.Equal("metric-resource3-333", metric.Name);
@@ -678,7 +678,7 @@ public sealed class TelemetryExportServiceTests
         Assert.Contains(japaneseEventName, jsonContent);
 
         // Deserialize the JSON to verify the content is correct after round-trip
-        var logsData = System.Text.Json.JsonSerializer.Deserialize<OtlpLogsDataJson>(jsonContent, OtlpJsonSerializerContext.Default.OtlpLogsDataJson);
+        var logsData = JsonSerializer.Deserialize(jsonContent, OtlpJsonSerializerContext.Default.OtlpTelemetryDataJson);
 
         Assert.NotNull(logsData);
         Assert.NotNull(logsData.ResourceLogs);
