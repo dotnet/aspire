@@ -397,6 +397,11 @@
         <target state="new">Failed to export data</target>
         <note />
       </trans-unit>
+      <trans-unit id="ManageDataImportErrorMessage">
+        <source>Failed to import data</source>
+        <target state="new">Failed to import data</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ManageDataManageButtonText">
         <source>Manage</source>
         <target state="new">Manage</target>
