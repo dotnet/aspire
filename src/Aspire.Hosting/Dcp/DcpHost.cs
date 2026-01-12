@@ -62,6 +62,13 @@ internal sealed class DcpHost
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        // Check if DCP is externally managed (CLI-owned mode)
+        if (_locations.IsExternalDcp)
+        {
+            _logger.LogInformation("Using CLI-owned DCP instance at {KubeconfigPath}", _locations.DcpKubeconfigPath);
+            return; // Skip DCP launch - CLI owns it
+        }
+
         await EnsureDcpContainerRuntimeAsync(cancellationToken).ConfigureAwait(false);
         EnsureDcpHostRunning();
     }

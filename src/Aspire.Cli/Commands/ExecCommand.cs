@@ -130,7 +130,7 @@ internal class ExecCommand : BaseCommand
         Task<int>? pendingRun = null;
         int? commandExitCode = null;
 
-        (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
+        (bool IsCompatibleAppHost, bool SupportsBackchannel, AppHostInfo? Info)? appHostCompatibilityCheck = null;
         try
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
@@ -286,7 +286,7 @@ internal class ExecCommand : BaseCommand
         {
             return InteractionService.DisplayIncompatibleVersionError(
                 ex,
-                appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
+                appHostCompatibilityCheck?.Info?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
                 );
         }
         catch (CertificateServiceException ex)

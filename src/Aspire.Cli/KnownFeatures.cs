@@ -19,4 +19,5 @@ internal static class KnownFeatures
     public static string PolyglotSupportEnabled => "polyglotSupportEnabled";
     public static string DotNetSdkInstallationEnabled => "dotnetSdkInstallationEnabled";
     public static string RunningInstanceDetectionEnabled => "runningInstanceDetectionEnabled";
+    public static string DcpEnabled => "dcpEnabled";
 }

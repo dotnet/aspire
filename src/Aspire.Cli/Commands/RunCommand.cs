@@ -6,6 +6,7 @@ using System.Globalization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Certificates;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Dcp;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
@@ -36,6 +37,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<RunCommand> _logger;
     private readonly IAppHostProjectFactory _projectFactory;
+    private readonly IDcpLauncher _dcpLauncher;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -51,6 +53,7 @@ internal sealed class RunCommand : BaseCommand
         IServiceProvider serviceProvider,
         CliExecutionContext executionContext,
         ICliHostEnvironment hostEnvironment,
+        IDcpLauncher dcpLauncher,
         ILogger<RunCommand> logger,
         IAppHostProjectFactory projectFactory,
         TimeProvider? timeProvider)
@@ -65,6 +68,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(dcpLauncher);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(projectFactory);
 
@@ -79,6 +83,7 @@ internal sealed class RunCommand : BaseCommand
         _sdkInstaller = sdkInstaller;
         _features = features;
         _hostEnvironment = hostEnvironment;
+        _dcpLauncher = dcpLauncher;
         _logger = logger;
         _projectFactory = projectFactory;
         _timeProvider = timeProvider ?? TimeProvider.System;

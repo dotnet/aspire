@@ -35,6 +35,7 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Dcp;
 using Aspire.Cli.Packaging;
 
 #if DEBUG
@@ -171,6 +172,11 @@ public class Program
         builder.Services.AddSingleton<AuxiliaryBackchannelMonitor>();
         builder.Services.AddSingleton<IAuxiliaryBackchannelMonitor>(sp => sp.GetRequiredService<AuxiliaryBackchannelMonitor>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<AuxiliaryBackchannelMonitor>());
+
+        // DCP services for CLI-owned DCP mode
+        builder.Services.AddSingleton<IDcpSessionManager, DcpSessionManager>();
+        builder.Services.AddSingleton<IDcpLauncher, DcpLauncher>();
+
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddSingleton<IAppHostServerProjectFactory, AppHostServerProjectFactory>();

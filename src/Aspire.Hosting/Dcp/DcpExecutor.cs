@@ -273,13 +273,21 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             }
 
-            // The app orchestrator (represented by kubernetesService here) will perform a resource cleanup
-            // (if not done already) when the app host process exits.
-            // This is just a perf optimization, so we do not care that much if this call fails.
-            // There is not much difference for single app run, but for tests that tend to launch multiple instances
-            // of app host from the same process, the gain from programmatic orchestrator shutdown is significant
-            // See https://github.com/dotnet/aspire/issues/6561 for more info.
-            await _kubernetesService.StopServerAsync(Model.ResourceCleanup.Full, cancellationToken).ConfigureAwait(false);
+            // Only stop DCP server if we own it (not CLI-owned mode)
+            if (!_locations.IsExternalDcp)
+            {
+                // The app orchestrator (represented by kubernetesService here) will perform a resource cleanup
+                // (if not done already) when the app host process exits.
+                // This is just a perf optimization, so we do not care that much if this call fails.
+                // There is not much difference for single app run, but for tests that tend to launch multiple instances
+                // of app host from the same process, the gain from programmatic orchestrator shutdown is significant
+                // See https://github.com/dotnet/aspire/issues/6561 for more info.
+                await _kubernetesService.StopServerAsync(Model.ResourceCleanup.Full, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                _logger.LogDebug("Skipping DCP server shutdown - CLI owns DCP lifecycle");
+            }
         }
         catch (OperationCanceledException)
         {

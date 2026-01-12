@@ -9,15 +9,29 @@ internal sealed class Locations
 {
     private readonly IFileSystemService _directoryService;
     private string? _dcpSessionDir;
+    private readonly string? _externalKubeconfigPath;
 
     public Locations(IFileSystemService directoryService)
     {
         _directoryService = directoryService;
+
+        // Check for CLI-owned DCP mode via environment variable
+        var externalKubeconfig = Environment.GetEnvironmentVariable("DCP_KUBECONFIG_PATH");
+        if (!string.IsNullOrEmpty(externalKubeconfig))
+        {
+            _externalKubeconfigPath = externalKubeconfig;
+        }
     }
+
+    /// <summary>
+    /// Gets whether DCP is externally managed (CLI-owned mode).
+    /// When true, AppHost should not launch or stop DCP - the CLI owns the DCP lifecycle.
+    /// </summary>
+    public bool IsExternalDcp => _externalKubeconfigPath != null;
 
     public string DcpSessionDir => GetOrCreateDcpSessionDir();
 
-    public string DcpKubeconfigPath => Path.Combine(DcpSessionDir, "kubeconfig");
+    public string DcpKubeconfigPath => _externalKubeconfigPath ?? Path.Combine(DcpSessionDir, "kubeconfig");
 
     public string DcpLogSocket => Path.Combine(DcpSessionDir, "output.sock");
 
