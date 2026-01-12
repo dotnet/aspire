@@ -1,0 +1,54 @@
+# Configuration for conditional test execution based on changed files
+# See docs/design/conditional-test-execution.md for design details
+
+fallback:
+  # Changes to these paths trigger ALL tests
+  - eng/**
+  - Directory.Build.props
+  - Directory.Build.targets
+  - Directory.Packages.props
+  - global.json
+  - NuGet.config
+  - .github/workflows/**
+  - .github/actions/**
+  - tests/Shared/**
+  - "*.sln"
+  - "*.slnx"
+
+categories:
+  # Listed in order of skip priority (most expensive first)
+
+  templates:
+    description: "Template tests - runs on 3 platforms"
+    include:
+      - src/Aspire.ProjectTemplates/**
+      - tests/Aspire.Templates.Tests/**
+
+  cli_e2e:
+    description: "CLI end-to-end tests"
+    include:
+      - src/Aspire.Cli/**
+      - tests/Aspire.Cli.EndToEndTests/**
+
+  endtoend:
+    description: "General E2E tests"
+    include:
+      - tests/Aspire.EndToEnd.Tests/**
+      - playground/**
+
+  integrations:
+    description: "Integration tests - 3 platforms x ~20 projects"
+    include:
+      - src/Aspire.*/**
+      - tests/Aspire.*.Tests/**
+    exclude:
+      - src/Aspire.ProjectTemplates/**
+      - src/Aspire.Cli/**
+      - tests/Aspire.Templates.Tests/**
+      - tests/Aspire.EndToEnd.Tests/**
+      - tests/Aspire.Cli.EndToEndTests/**
+
+  extension:
+    description: "VS Code extension tests"
+    include:
+      - extension/**

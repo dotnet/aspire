@@ -32,8 +32,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: ./.github/actions/detect-test-scope
+      - name: Evaluate changed paths
         id: detect
+        run: |
+          chmod +x eng/pipelines/evaluate-paths.sh
+
+          # For PRs: evaluate changed files
+          # For push/scheduled: run everything
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            eng/pipelines/evaluate-paths.sh \
+              --config .github/test-filters.yml \
+              --base ${{ github.event.pull_request.base.sha }} \
+              --head ${{ github.event.pull_request.head.sha }}
+          else
+            echo "::notice::Non-PR event (${{ github.event_name }}) - running all tests"
+            echo "run_templates=true" >> "$GITHUB_OUTPUT"
+            echo "run_cli_e2e=true" >> "$GITHUB_OUTPUT"
+            echo "run_endtoend=true" >> "$GITHUB_OUTPUT"
+            echo "run_integrations=true" >> "$GITHUB_OUTPUT"
+            echo "run_extension=true" >> "$GITHUB_OUTPUT"
+          fi
 
   # Duplicated jobs so their dependencies are not blocked on both the
   # setup jobs
