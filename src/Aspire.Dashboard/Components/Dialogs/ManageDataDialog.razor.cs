@@ -547,6 +547,7 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
     private void OnInputFileProgressChange(FluentInputFileEventArgs args)
     {
         _isImporting = true;
+        _errorMessage = null;
     }
 
     private async Task OnInputFileCompleted(IEnumerable<FluentInputFileEventArgs> args)
@@ -564,6 +565,11 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
                     await OnTelemetryChangedAsync();
                 }
             }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"{Loc[nameof(Resources.Dialogs.ManageDataImportErrorMessage)]}: {ex.Message}";
+            ErrorRecorder.RecordError("Failed to import data", ex, writeToLogging: true);
         }
         finally
         {

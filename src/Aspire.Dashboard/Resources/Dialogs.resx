@@ -280,6 +280,9 @@
   <data name="ManageDataExportErrorMessage" xml:space="preserve">
     <value>Failed to export data</value>
   </data>
+  <data name="ManageDataImportErrorMessage" xml:space="preserve">
+    <value>Failed to import data</value>
+  </data>
   <data name="ManageDataRemoveErrorMessage" xml:space="preserve">
     <value>Failed to remove data</value>
   </data>

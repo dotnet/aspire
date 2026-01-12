@@ -772,6 +772,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed to import data.
+        /// </summary>
+        public static string ManageDataImportErrorMessage {
+            get {
+                return ResourceManager.GetString("ManageDataImportErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Manage.
         /// </summary>
         public static string ManageDataManageButtonText {
