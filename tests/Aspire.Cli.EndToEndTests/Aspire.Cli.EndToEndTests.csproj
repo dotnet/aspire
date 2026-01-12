@@ -43,4 +43,8 @@
     <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
   </ItemGroup>
 
+  <ItemGroup>
+      <Compile Include="$(TestsSharedDir)TemporaryRepo.cs" Link="shared\TemporaryRepo.cs" />
+  </ItemGroup>
+
 </Project>
