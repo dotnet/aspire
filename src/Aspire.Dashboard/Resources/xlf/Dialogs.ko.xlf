@@ -639,7 +639,7 @@
       </trans-unit>
       <trans-unit id="SettingsImportButtonText">
         <source>Import logs and telemetry</source>
-        <target state="new">Import logs and telemetry</target>
+        <target state="translated">로그 및 원격 분석 가져오기</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsRemoveAllButtonText">
