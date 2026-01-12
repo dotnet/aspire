@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
@@ -6,6 +6,7 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.TestUtilities;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Cli.Utils;
 
@@ -23,7 +24,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
         var result = command.Parse("publish --help");
 
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
         Assert.Equal(0, exitCode);
     }
 
@@ -50,7 +51,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("publish --project invalid.csproj");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode); // Ensure the command fails
@@ -81,7 +82,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("publish --project valid.csproj");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(ExitCodeConstants.AppHostIncompatible, exitCode); // Ensure the command fails
@@ -112,7 +113,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("publish --project valid.csproj");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(ExitCodeConstants.FailedToBuildArtifacts, exitCode); // Ensure the command fails
@@ -155,14 +156,14 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("publish --project valid.csproj");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(ExitCodeConstants.FailedToBuildArtifacts, exitCode); // Ensure the command fails
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9999")]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/13837")]
     public async Task PublishCommandWithoutOutputPathUsesDefaultSubdirectory()
     {
         // Arrange
@@ -226,7 +227,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode); // Ensure the command succeeds
@@ -296,7 +297,7 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("publish");
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        var exitCode = await result.InvokeAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(0, exitCode); // Ensure the command succeeds
