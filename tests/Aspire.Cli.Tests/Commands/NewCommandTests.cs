@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Backchannel;
@@ -12,7 +12,6 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
-using Aspire.TestUtilities;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
@@ -37,7 +36,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11099")]
     public async Task NewCommandInteractiveFlowSmokeTest()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -81,7 +79,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10987")]
     // Quarantined due to flakiness. See linked issue for details.
     public async Task NewCommandDerivesOutputPathFromProjectNameForStarterTemplate()
     {
@@ -139,7 +136,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11034")]
     public async Task NewCommandDoesNotPromptForProjectNameIfSpecifiedOnCommandLine()
     {
         var promptedForName = false;
@@ -194,7 +190,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11222")]
     public async Task NewCommandDoesNotPromptForOutputPathIfSpecifiedOnCommandLine()
     {
         bool promptedForPath = false;
@@ -250,7 +245,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10979")]
     public async Task NewCommandWithChannelOptionUsesSpecifiedChannel()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -332,7 +326,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10979")]
     public async Task NewCommandWithChannelOptionAutoSelectsHighestVersion()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -410,7 +403,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/10979")]
     // Quarantined due to flakiness. See linked issue for details.
     public async Task NewCommandDoesNotPromptForTemplateIfSpecifiedOnCommandLine()
     {
@@ -466,7 +458,6 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/11172")]
     public async Task NewCommandDoesNotPromptForTemplateVersionIfSpecifiedOnCommandLine()
     {
         bool promptedForTemplateVersion = false;

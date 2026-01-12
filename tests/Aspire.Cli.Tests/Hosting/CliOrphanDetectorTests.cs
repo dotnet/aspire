@@ -210,7 +210,6 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("Disabled due to Verify, needs investigation.")]
     public async Task AppHostExitsWhenCliProcessPidDies()
     {
         using var fakeCliProcess = RemoteExecutor.Invoke(
