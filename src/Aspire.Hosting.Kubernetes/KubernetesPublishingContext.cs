@@ -33,7 +33,7 @@ internal sealed class KubernetesPublishingContext(
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .WithTypeConverter(new ByteArrayStringYamlConverter())
         .WithTypeConverter(new IntOrStringYamlConverter())
-        .WithEventEmitter(nextEmitter => new ForceQuotedStringsEventEmitter(nextEmitter))
+        .WithEventEmitter(nextEmitter => new ForceQuotedStringsEventEmitter(nextEmitter, HelmExtensions.IsNotHelmNonStringScalarExpression))
         .WithEventEmitter(e => new FloatEmitter(e))
         .WithEmissionPhaseObjectGraphVisitor(args => new YamlIEnumerableSkipEmptyObjectGraphVisitor(args.InnerVisitor))
         .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)

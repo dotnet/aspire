@@ -21,6 +21,8 @@ namespace Aspire.Hosting.Yaml;
 internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
 {
     private readonly Stack<EmitterState> _state = new();
+    private readonly Func<string, bool> _shouldApply;
+   
 
     /// <summary>
     /// A custom event emitter that forces string scalar values to use double-quoted style when serialized in YAML.
@@ -31,10 +33,12 @@ internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
     /// or compatibility with specific YAML consumers.
     /// </remarks>
     public ForceQuotedStringsEventEmitter(
-        IEventEmitter nextEmitter
+        IEventEmitter nextEmitter,
+        Func<string, bool>? shouldApply = null
     ) : base(nextEmitter)
     {
         _state.Push(new(EmitterState.EventType.Root));
+        _shouldApply = shouldApply ?? AlwaysTrue;
     }
 
     /// <summary>
@@ -56,16 +60,10 @@ internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
         {
             eventInfo = new(eventInfo.Source)
             {
-
-#if KUBERNETES // This check is only needed in the Kubernetes integration
-
                 Style = eventInfo.Source.Value is string value
-                        && value.IsHelmNonStringScalarExpression()
+                        && !_shouldApply(value)
                       ? ScalarStyle.ForcePlain
-                      : ScalarStyle.DoubleQuoted,
-#else
-                Style = ScalarStyle.DoubleQuoted,
-#endif
+                      : ScalarStyle.DoubleQuoted
             };
         }
 
@@ -168,4 +166,6 @@ internal sealed class ForceQuotedStringsEventEmitter : ChainedEventEmitter
             Sequence,
         }
     }
+
+    private static bool AlwaysTrue(string _) => true;
 }

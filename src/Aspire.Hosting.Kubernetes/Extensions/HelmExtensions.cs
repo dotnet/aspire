@@ -88,10 +88,10 @@ internal static partial class HelmExtensions
         => ExpressionPattern().IsMatch(value)
         && value.Contains($"{ValuesSegment}.{SecretsKey}.", StringComparison.Ordinal);
 
-    public static bool IsHelmNonStringScalarExpression(this string value)
+    public static bool IsNotHelmNonStringScalarExpression(this string value)
     {
-        return ScalarExpressionPattern().IsMatch(value)
-            && EndWithNonStringTypePattern().IsMatch(value);
+        return ScalarExpressionPattern().IsMatch(value) is false
+            || EndWithNonStringTypePattern().IsMatch(value) is false;
     }
 
     [GeneratedRegex(@"\{\{[^}]*\|\s*(int|int64|float64)\s*\}\}")]
