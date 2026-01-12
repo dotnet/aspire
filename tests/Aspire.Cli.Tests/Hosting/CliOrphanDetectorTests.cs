@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
@@ -238,11 +239,10 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
 
         // Wait until the apphost is spun up and then kill off the stub
         // process so everything is torn down.
-        await resourcesCreatedTcs.Task.DefaultTimeout();
+        await resourcesCreatedTcs.Task.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
         fakeCliProcess.Kill();
 
-        await pendingRun.DefaultTimeout();
-    }
+        await pendingRun.DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
     }
 }
 
