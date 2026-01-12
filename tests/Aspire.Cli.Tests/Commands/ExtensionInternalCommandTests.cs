@@ -1,7 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
@@ -61,42 +60,42 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "MyApp.AppHost.csproj"));
         
+        var capturedOutput = new TestOutputTextWriter(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = _ => new SingleProjectFileProjectLocator(projectFile);
+            options.OutputTextWriter = capturedOutput;
         });
         var provider = services.BuildServiceProvider();
 
-        var output = new StringBuilder();
-        var outputWriter = new StringWriter(output);
-        Console.SetOut(outputWriter);
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("extension get-apphosts");
 
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+
+        // Find the JSON output from captured logs (it should be the line containing valid JSON)
+        var jsonOutput = capturedOutput.Logs.FirstOrDefault(log => log.TrimStart().StartsWith('{'));
+        Assert.NotNull(jsonOutput);
+
+        // Verify JSON is valid and deserializable
+        AppHostProjectSearchResultPoco? searchResult;
         try
         {
-            var command = provider.GetRequiredService<RootCommand>();
-            var result = command.Parse("extension get-apphosts");
-
-            var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-            Assert.Equal(ExitCodeConstants.Success, exitCode);
-
-            var outputStr = output.ToString().Trim();
-            Assert.NotEmpty(outputStr);
-
-            // Verify JSON is valid and deserializable
-            var searchResult = JsonSerializer.Deserialize<AppHostProjectSearchResultPoco>(
-                outputStr, 
+            searchResult = JsonSerializer.Deserialize<AppHostProjectSearchResultPoco>(
+                jsonOutput,
                 BackchannelJsonSerializerContext.Default.AppHostProjectSearchResultPoco);
-            
-            Assert.NotNull(searchResult);
-            Assert.Equal(projectFile.FullName, searchResult.SelectedProjectFile);
-            Assert.Single(searchResult.AllProjectFileCandidates);
-            Assert.Equal(projectFile.FullName, searchResult.AllProjectFileCandidates[0]);
         }
-        finally
+        catch (JsonException ex)
         {
-            var standardOutput = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
-            Console.SetOut(standardOutput);
+            outputHelper.WriteLine($"Failed to deserialize JSON. Raw output: {jsonOutput}");
+            throw new JsonException($"Failed to deserialize JSON: {jsonOutput}", ex);
         }
+
+        Assert.NotNull(searchResult);
+        Assert.Equal(projectFile.FullName, searchResult.SelectedProjectFile);
+        Assert.Single(searchResult.AllProjectFileCandidates);
+        Assert.Equal(projectFile.FullName, searchResult.AllProjectFileCandidates[0]);
     }
 
     [Fact]
@@ -106,44 +105,44 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var projectFile1 = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "App1.AppHost.csproj"));
         var projectFile2 = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "App2.AppHost.csproj"));
-        
+
+        var capturedOutput = new TestOutputTextWriter(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = _ => new MultipleProjectsProjectLocator([projectFile1, projectFile2]);
+            options.OutputTextWriter = capturedOutput;
         });
         var provider = services.BuildServiceProvider();
 
-        var output = new StringBuilder();
-        var outputWriter = new StringWriter(output);
-        Console.SetOut(outputWriter);
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("extension get-apphosts");
 
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(ExitCodeConstants.Success, exitCode);
+
+        // Find the JSON output from captured logs (it should be the line containing valid JSON)
+        var jsonOutput = capturedOutput.Logs.FirstOrDefault(log => log.TrimStart().StartsWith('{'));
+        Assert.NotNull(jsonOutput);
+
+        // Verify JSON is valid and deserializable
+        AppHostProjectSearchResultPoco? searchResult;
         try
         {
-            var command = provider.GetRequiredService<RootCommand>();
-            var result = command.Parse("extension get-apphosts");
-
-            var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-            Assert.Equal(ExitCodeConstants.Success, exitCode);
-
-            var outputStr = output.ToString().Trim();
-            Assert.NotEmpty(outputStr);
-
-            // Verify JSON is valid and deserializable
-            var searchResult = JsonSerializer.Deserialize<AppHostProjectSearchResultPoco>(
-                outputStr, 
+            searchResult = JsonSerializer.Deserialize<AppHostProjectSearchResultPoco>(
+                jsonOutput,
                 BackchannelJsonSerializerContext.Default.AppHostProjectSearchResultPoco);
-            
-            Assert.NotNull(searchResult);
-            Assert.Null(searchResult.SelectedProjectFile);
-            Assert.Equal(2, searchResult.AllProjectFileCandidates.Count);
-            Assert.Contains(projectFile1.FullName, searchResult.AllProjectFileCandidates);
-            Assert.Contains(projectFile2.FullName, searchResult.AllProjectFileCandidates);
         }
-        finally
+        catch (JsonException ex)
         {
-            var standardOutput = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
-            Console.SetOut(standardOutput);
+            outputHelper.WriteLine($"Failed to deserialize JSON. Raw output: {jsonOutput}");
+            throw new JsonException($"Failed to deserialize JSON: {jsonOutput}", ex);
         }
+
+        Assert.NotNull(searchResult);
+        Assert.Null(searchResult.SelectedProjectFile);
+        Assert.Equal(2, searchResult.AllProjectFileCandidates.Count);
+        Assert.Contains(projectFile1.FullName, searchResult.AllProjectFileCandidates);
+        Assert.Contains(projectFile2.FullName, searchResult.AllProjectFileCandidates);
     }
 
     [Fact]

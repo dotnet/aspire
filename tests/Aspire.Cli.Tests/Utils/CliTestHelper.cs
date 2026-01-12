@@ -160,14 +160,17 @@ internal sealed class CliServiceCollectionTestOptions
     public string[] EnabledFeatures { get; set; } = Array.Empty<string>();
     public string[] DisabledFeatures { get; set; } = Array.Empty<string>();
 
+    public TestOutputTextWriter? OutputTextWriter { get; set; }
+
     public Func<IServiceProvider, IAnsiConsole> AnsiConsoleFactory => (IServiceProvider serviceProvider) =>
     {
+        var textWriter = OutputTextWriter ?? new TestOutputTextWriter(_outputHelper);
         AnsiConsoleSettings settings = new AnsiConsoleSettings()
         {
             Ansi = AnsiSupport.Yes,
             Interactive = InteractionSupport.Yes,
             ColorSystem = ColorSystemSupport.Standard,
-            Out = new AnsiConsoleOutput(new TestOutputTextWriter(_outputHelper))
+            Out = new AnsiConsoleOutput(textWriter)
         };
         var ansiConsole = AnsiConsole.Create(settings);
         return ansiConsole;

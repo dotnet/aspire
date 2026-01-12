@@ -423,6 +423,7 @@ public class DotNetTemplateFactoryTests
         public void DisplayCancellationMessage() { }
         public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
         public void DisplayPlainText(string text) { }
+        public void DisplayRawText(string text) { }
         public void DisplayMarkdown(string markdown) { }
         public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
         public void DisplayEmptyLine() { }
