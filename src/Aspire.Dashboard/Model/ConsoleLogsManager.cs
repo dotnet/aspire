@@ -45,7 +45,7 @@ public sealed class ConsoleLogsManager
         if (!_hasInitialized)
         {
             var filtersResult = await _sessionStorage.GetAsync<ConsoleLogsFilters>(BrowserStorageKeys.ConsoleLogFilters).ConfigureAwait(false);
-            _filters = filtersResult.Success ? filtersResult.Value : new();
+            _filters = filtersResult.Success ? filtersResult.Value : ConsoleLogsFilters.Default;
 
             _hasInitialized = true;
         }
@@ -115,7 +115,7 @@ public sealed class ConsoleLogsManager
         }
 
         // Check for resource-specific filter first
-        if (_filters.FilterResourceLogsDates.TryGetValue(resourceName, out var resourceFilterDate))
+        if (_filters.TryGetResourceFilterDate(resourceName, out var resourceFilterDate))
         {
             return resourceFilterDate;
         }

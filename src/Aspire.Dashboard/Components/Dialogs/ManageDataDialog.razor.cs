@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.ManageData;
@@ -521,12 +520,11 @@ public partial class ManageDataDialog : IDialogContentComponent, IAsyncDisposabl
             if (consoleLogResourcesToFilter.Count > 0)
             {
                 var filterDate = TimeProvider.GetUtcNow().UtcDateTime;
-                var filters = new ConsoleLogsFilters
+                var filters = ConsoleLogsManager.Filters;
+                foreach (var resourceName in consoleLogResourcesToFilter)
                 {
-                    FilterResourceLogsDates = consoleLogResourcesToFilter
-                        .ToDictionary(r => r, _ => filterDate, StringComparers.ResourceName)
-                        .ToImmutableDictionary()
-                };
+                    filters = filters.WithResourceCleared(resourceName, filterDate);
+                }
                 await ConsoleLogsManager.UpdateFiltersAsync(filters);
             }
         }
