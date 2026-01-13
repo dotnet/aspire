@@ -522,7 +522,7 @@ jobs:
                 
                 # Upload to asciinema and capture URL
                 UPLOAD_OUTPUT=$(asciinema upload "$castfile" 2>&1) || true
-                ASCIINEMA_URL=$(echo "$UPLOAD_OUTPUT" | grep -oP 'https://asciinema\.org/a/[a-zA-Z0-9]+' | head -1) || true
+                ASCIINEMA_URL=$(echo "$UPLOAD_OUTPUT" | grep -oP 'https://asciinema\.org/a/[a-zA-Z0-9_-]+' | head -1) || true
                 
                 if [ -n "$ASCIINEMA_URL" ]; then
                   COMMENT_BODY="${COMMENT_BODY}- **${filename}**: [View Recording](${ASCIINEMA_URL})\n"

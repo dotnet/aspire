@@ -65,9 +65,6 @@ public sealed class EmptyAppHostTemplateTests : IAsyncDisposable
         var waitingForUrlsPrompt = new CellPatternSearcher()
             .Find($"Use *.dev.localhost URLs");
 
-        var waitForProjectCreatedSuccessfullyMessage = new CellPatternSearcher()
-            .Find("Project created successfully.");
-
         // The purpose of this is to keep track of the number of actual shell commands we have
         // executed. This is important because we customize the shell prompt to show either
         // "[n OK] $ " or "[n ERR:exitcode] $ ". This allows us to deterministically wait for a
