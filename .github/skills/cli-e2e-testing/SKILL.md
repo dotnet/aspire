@@ -13,198 +13,258 @@ CLI E2E tests use the Hex1b library to automate terminal sessions, simulating re
 
 **Location**: `tests/Aspire.Cli.EndToEndTests/`
 
-**Supported Platforms**: Linux, macOS, and Windows. The automation builder automatically uses the appropriate shell and commands for each platform.
+**Supported Platforms**: Linux only. Hex1b requires a Linux terminal environment. Tests are configured to skip on Windows and macOS in CI.
 
 ## Key Components
 
-### Helper Classes
+### Core Classes
 
-- **`AspireCliAutomationBuilder`** (`Helpers/AspireCliAutomationBuilder.cs`): Main builder class that encapsulates terminal session lifecycle and automation methods
-- **`CliE2ETestHelpers`** (`Helpers/CliE2ETestHelpers.cs`): Factory methods for terminal sessions and environment variable helpers
+- **`Hex1bTerminal`**: The main terminal class from the Hex1b library for terminal automation
+- **`Hex1bTerminalInputSequenceBuilder`**: Fluent API for building sequences of terminal input/output operations
+- **`CellPatternSearcher`**: Pattern matching for terminal cell content
+- **`SequenceCounter`** (`Helpers/SequenceCounter.cs`): Tracks command execution count for deterministic prompt detection
+- **`CliE2ETestHelpers`** (`Helpers/CliE2ETestHelpers.cs`): Extension methods and environment variable helpers
+- **`TemporaryWorkspace`**: Creates isolated temporary directories for test execution
 
-### AspireCliAutomationBuilder
+### Test Architecture
 
-The builder owns the terminal session and provides a fluent API for CLI automation:
+Each test:
+1. Creates a `TemporaryWorkspace` for isolation
+2. Builds a `Hex1bTerminal` with headless mode and asciinema recording
+3. Creates a `Hex1bTerminalInputSequenceBuilder` with operations
+4. Applies the sequence to the terminal and awaits completion
 
-```csharp
-await using var builder = await AspireCliAutomationBuilder.CreateAsync(
-    workingDirectory: _workDirectory,
-    recordingName: "my-test",
-    output: _output,
-    prNumber: prNumber);
-
-await builder
-    .PrepareEnvironment()
-    .InstallAspireCliFromPullRequest(prNumber)
-    .SourceAspireCliEnvironment()
-    .VerifyAspireCliVersion(commitSha)
-    .ExitTerminal()
-    .ExecuteAsync();
-```
-
-### AspireCliAutomationContext
-
-For custom operations, use `AddSequence()` with a callback that receives the context:
+## Test Structure
 
 ```csharp
-public sealed record AspireCliAutomationContext(
-    Hex1bTerminalInputSequenceBuilder SequenceBuilder,
-    AspireTerminalSession Session);
-```
-
-## DO: Use AspireCliAutomationBuilder for Tests
-
-Create tests using the builder pattern which handles:
-- Recording path configuration (CI vs local)
-- Session lifecycle management
-- Error handling with terminal snapshots
-
-```csharp
-[Fact]
-public async Task MyCliTest()
+public sealed class SmokeTests : IAsyncDisposable
 {
-    var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
-    var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+    private readonly ITestOutputHelper _output;
+    private readonly string _workDirectory;
 
-    await using var builder = await AspireCliAutomationBuilder.CreateAsync(
-        workingDirectory: _workDirectory,
-        recordingName: "my-test",
-        output: _output,
-        prNumber: prNumber);
+    public SmokeTests(ITestOutputHelper output)
+    {
+        _output = output;
+        _workDirectory = Path.Combine(Path.GetTempPath(), "aspire-cli-e2e", Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(_workDirectory);
+    }
 
-    await builder
-        .PrepareEnvironment()
-        .InstallAspireCliFromPullRequest(prNumber)
-        .SourceAspireCliEnvironment()
-        .VerifyAspireCliVersion(commitSha)
-        .ExitTerminal()
-        .ExecuteAsync();
+    [Fact]
+    public async Task MyCliTest()
+    {
+        var workspace = TemporaryWorkspace.Create(_output);
+
+        var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();
+        var commitSha = CliE2ETestHelpers.GetRequiredCommitSha();
+        var isCI = CliE2ETestHelpers.IsRunningInCI;
+        var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath(nameof(MyCliTest));
+        
+        var builder = Hex1bTerminal.CreateBuilder()
+            .WithHeadless()
+            .WithAsciinemaRecording(recordingPath)
+            .WithPtyProcess("/bin/bash", ["--norc"]);
+
+        using var terminal = builder.Build();
+
+        var pendingRun = terminal.RunAsync(TestContext.Current.CancellationToken);
+
+        // Define pattern searchers for expected output
+        var waitingForExpectedOutput = new CellPatternSearcher()
+            .Find("Expected output text");
+
+        // Create a sequence counter for tracking command prompts
+        var counter = new SequenceCounter();
+        var sequenceBuilder = new Hex1bTerminalInputSequenceBuilder();
+
+        // Build the input sequence
+        sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+        if (isCI)
+        {
+            sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
+            sequenceBuilder.SourceAspireCliEnvironment(counter);
+        }
+
+        sequenceBuilder
+            .Type("aspire --version")
+            .Enter()
+            .WaitForSuccessPrompt(counter)
+            .Type("exit")
+            .Enter();
+
+        var sequence = sequenceBuilder.Build();
+
+        await sequence.ApplyAsync(terminal, TestContext.Current.CancellationToken);
+        await pendingRun;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Clean up work directory
+        if (Directory.Exists(_workDirectory))
+        {
+            Directory.Delete(_workDirectory, recursive: true);
+        }
+        await ValueTask.CompletedTask;
+    }
 }
 ```
 
-## DO: Use AddSequence() for Custom Operations
+## SequenceCounter and Prompt Detection
 
-When you need to run custom commands not covered by built-in methods, use `AddSequence()`:
+The `SequenceCounter` class tracks the number of shell commands executed. This enables deterministic waiting for command completion via a custom shell prompt.
 
-```csharp
-await builder
-    .PrepareEnvironment()
-    .AddSequence(ctx =>
-    {
-        ctx.SequenceBuilder
-            .WriteTestLog(_output, "Creating new Aspire project...")
-            .Type("aspire new starter --name MyApp")
-            .Enter()
-            .WaitUntil(
-                snapshot => snapshot.GetScreenText().Contains("Created project"),
-                TimeSpan.FromMinutes(2));
-    })
-    .ExitTerminal()
-    .ExecuteAsync();
-```
+### How It Works
 
-The context provides access to:
-- `SequenceBuilder`: The underlying `Hex1bTerminalInputSequenceBuilder`
-- `Session`: The `AspireTerminalSession` for direct terminal access if needed
-
-Use `WaitUntil()` to wait for specific output patterns in the terminal.
-
-## DO: Use WriteTestLog() for Deferred Logging
-
-The `WriteTestLog()` extension method writes log messages during sequence execution (not build time),
-including the current terminal snapshot:
+1. `PrepareEnvironment()` configures the shell with a custom prompt: `[N OK] $ ` or `[N ERR:code] $ `
+2. Each command increments the counter
+3. `WaitForSuccessPrompt(counter)` waits for a prompt showing the current count with `OK`
 
 ```csharp
-ctx.SequenceBuilder
-    .WriteTestLog(_output, "About to run command...")
-    .Type("my-command")
+var counter = new SequenceCounter();
+
+sequenceBuilder.PrepareEnvironment(workspace, counter)  // Sets up prompt, counter starts at 1
+    .Type("echo hello")
     .Enter()
-    .WriteTestLog(_output, "Command completed");
+    .WaitForSuccessPrompt(counter)  // Waits for "[1 OK] $ ", then increments to 2
+    .Type("ls -la")
+    .Enter()
+    .WaitForSuccessPrompt(counter)  // Waits for "[2 OK] $ ", then increments to 3
+    .Type("exit")
+    .Enter();
 ```
 
-This outputs:
-```
-[LOG] About to run command...
-[TERMINAL]
-<current terminal screen content>
---------------------------------------------------------------------------------
-```
+This approach is more reliable than arbitrary timeouts because it deterministically waits for each command to complete.
 
-Use `Callback()` for arbitrary deferred actions:
+## Pattern Searching with CellPatternSearcher
+
+Use `CellPatternSearcher` to find text patterns in terminal output:
 
 ```csharp
-ctx.SequenceBuilder.Callback(() => _output?.WriteLine("Simple message"));
+// Simple text search
+var waitingForPrompt = new CellPatternSearcher()
+    .Find("Enter the project name");
+
+// Pattern with wildcards
+var waitingForTemplate = new CellPatternSearcher()
+    .FindPattern("> Starter App");
+
+// Chained patterns (find "b", then scan right until "$", then right of " ")
+var waitingForShell = new CellPatternSearcher()
+    .Find("b").RightUntil("$").Right(' ').Right(' ');
+
+// Use in WaitUntil
+sequenceBuilder.WaitUntil(
+    snapshot => waitingForPrompt.Search(snapshot).Count > 0,
+    TimeSpan.FromSeconds(30));
 ```
 
-## DO: Always Call ExecuteAsync() at the End
+## Extension Methods
 
-`ExecuteAsync()` runs the built sequence and handles:
-- Applying the input sequence to the terminal
-- Catching `TimeoutException`
-- Logging terminal content on failure
-- Failing the test with descriptive messages
-- Cleaning up resources
-
-```csharp
-await builder
-    .PrepareEnvironment()
-    // ... operations ...
-    .ExitTerminal()
-    .ExecuteAsync();  // Always end with this
-```
-
-## DO: Always Call PrepareEnvironment() First
-
-`PrepareEnvironment()` sets up a custom prompt that tracks command count and exit status:
-- Success: `[N ✔] $ `
-- Failure: `[N ✘:code] $ `
-
-This prompt is useful for debugging recordings - you can see which command failed by looking at the prompt.
-
-## DO: Use Built-in Methods When Available
-
-The builder provides high-level methods that handle command sequencing automatically.
-All methods are cross-platform and use appropriate shell commands for each OS.
+### CliE2ETestHelpers Extensions on Hex1bTerminalInputSequenceBuilder
 
 | Method | Description |
 |--------|-------------|
-| `PrepareEnvironment()` | Sets up debug prompt (bash on Linux/macOS, PowerShell on Windows) |
-| `InstallAspireCliFromPullRequest(prNumber, timeout?)` | Installs CLI from PR artifacts (uses appropriate script per OS) |
-| `SourceAspireCliEnvironment()` | Sources ~/.bashrc on Linux/macOS (no-op on Windows), sets DOTNET_CLI env vars |
-| `RunDiagnostics(timeout?)` | Runs `dotnet nuget list source` and `dotnet --list-sdks` for debugging |
-| `VerifyAspireCliVersion(commitSha, timeout?)` | Runs `aspire --version` and verifies SHA |
-| `ExitTerminal()` | Types `exit` to close the shell |
-| `AddSequence(ctx => ...)` | Custom operations using the underlying Hex1b builder |
+| `PrepareEnvironment(workspace, counter)` | Sets up custom prompt with command tracking, changes to workspace directory |
+| `InstallAspireCliFromPullRequest(prNumber, counter)` | Downloads and installs CLI from PR artifacts |
+| `SourceAspireCliEnvironment(counter)` | Adds `~/.aspire/bin` to PATH (Linux only) |
 
-### Extension Methods for Hex1bTerminalInputSequenceBuilder
+### SequenceCounterExtensions
 
 | Method | Description |
 |--------|-------------|
-| `WriteTestLog(output, message)` | Logs message with terminal snapshot during execution |
-| `Callback(action)` | Executes arbitrary action during sequence execution |
-| `WaitUntil(predicate, timeout)` | Waits for terminal content to match predicate |
+| `WaitForSuccessPrompt(counter, timeout?)` | Waits for `[N OK] $ ` prompt and increments counter |
+| `IncrementSequence(counter)` | Manually increments the counter |
+
+## DO: Use CellPatternSearcher for Output Detection
+
+Wait for specific output patterns rather than arbitrary delays:
+
+```csharp
+var waitingForMessage = new CellPatternSearcher()
+    .Find("Project created successfully.");
+
+sequenceBuilder
+    .Type("aspire new")
+    .Enter()
+    .WaitUntil(s => waitingForMessage.Search(s).Count > 0, TimeSpan.FromMinutes(2));
+```
+
+## DO: Use WaitForSuccessPrompt After Commands
+
+After running shell commands, use `WaitForSuccessPrompt()` to wait for the command to complete:
+
+```csharp
+sequenceBuilder
+    .Type("dotnet build")
+    .Enter()
+    .WaitForSuccessPrompt(counter)  // Waits for prompt, verifies success
+    .Type("dotnet run")
+    .Enter()
+    .WaitForSuccessPrompt(counter);
+```
+
+## DO: Handle Interactive Prompts
+
+For CLI commands with interactive prompts, wait for each prompt before responding:
+
+```csharp
+var waitingForTemplatePrompt = new CellPatternSearcher()
+    .FindPattern("> Starter App");
+
+var waitingForProjectNamePrompt = new CellPatternSearcher()
+    .Find("Enter the project name");
+
+sequenceBuilder
+    .Type("aspire new")
+    .Enter()
+    .WaitUntil(s => waitingForTemplatePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+    .Enter()  // Select first template
+    .WaitUntil(s => waitingForProjectNamePrompt.Search(s).Count > 0, TimeSpan.FromSeconds(10))
+    .Type("MyProject")
+    .Enter();
+```
+
+## DO: Use Ctrl+C to Stop Long-Running Processes
+
+For processes like `aspire run` that don't exit on their own:
+
+```csharp
+sequenceBuilder
+    .Type("aspire run")
+    .Enter()
+    .WaitUntil(s => waitForCtrlCMessage.Search(s).Count > 0, TimeSpan.FromSeconds(30))
+    .Ctrl().Key(Hex1bKey.C)  // Send Ctrl+C
+    .WaitForSuccessPrompt(counter);
+```
+
+## DO: Check IsRunningInCI for CI-Only Operations
+
+Some operations only apply in CI (like installing CLI from PR artifacts):
+
+```csharp
+var isCI = CliE2ETestHelpers.IsRunningInCI;
+
+sequenceBuilder.PrepareEnvironment(workspace, counter);
+
+if (isCI)
+{
+    sequenceBuilder.InstallAspireCliFromPullRequest(prNumber, counter);
+    sequenceBuilder.SourceAspireCliEnvironment(counter);
+}
+
+// Continue with test commands...
+```
 
 ## DO: Get Environment Variables Using Helpers
 
-Use `CliE2ETestHelpers` for CI environment variables with built-in assertions:
+Use `CliE2ETestHelpers` for CI environment variables:
 
 ```csharp
-var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();   // GITHUB_PR_NUMBER
-var commitSha = CliE2ETestHelpers.GetRequiredCommitSha(); // GITHUB_PR_HEAD_SHA
-```
-
-## DON'T: Manually Manage Terminal Sessions
-
-Let the builder handle session lifecycle:
-
-```csharp
-// DON'T: Manual session management
-await using var session = await CliE2ETestHelpers.CreateTerminalSessionAsync(...);
-var sequence = new Hex1bTerminalInputSequenceBuilder()...
-
-// DO: Use the builder
-await using var builder = await AspireCliAutomationBuilder.CreateAsync(...);
-await builder.PrepareEnvironment()...ExecuteAsync();
+var prNumber = CliE2ETestHelpers.GetRequiredPrNumber();   // GITHUB_PR_NUMBER (0 when local)
+var commitSha = CliE2ETestHelpers.GetRequiredCommitSha(); // GITHUB_PR_HEAD_SHA ("local0000" when local)
+var isCI = CliE2ETestHelpers.IsRunningInCI;               // true when both env vars set
+var recordingPath = CliE2ETestHelpers.GetTestResultsRecordingPath("test-name"); // Appropriate path for CI vs local
 ```
 
 ## DON'T: Use Hard-coded Delays
@@ -217,70 +277,64 @@ Use `WaitUntil()` with specific output patterns instead of arbitrary delays:
 
 // DO: Wait for specific output
 .WaitUntil(
-    snapshot => snapshot.GetScreenText().Contains("Successfully installed"),
-    TimeSpan.FromMinutes(5))
+    snapshot => pattern.Search(snapshot).Count > 0,
+    TimeSpan.FromSeconds(30))
 ```
 
-## DON'T: Catch Exceptions from ExecuteAsync()
+## DON'T: Hard-code Prompt Sequence Numbers
 
-Let `ExecuteAsync()` handle errors - it logs terminal state and fails the test appropriately:
+Don't hard-code the sequence numbers in `WaitForSuccessPrompt` calls. Use the counter:
 
 ```csharp
-// DON'T: Wrap in try-catch
-try { await builder...ExecuteAsync(); }
-catch (Exception ex) { /* custom handling */ }
+// DON'T: Hard-coded sequence numbers
+.WaitUntil(s => s.GetScreenText().Contains("[3 OK] $ "), timeout)
 
-// DO: Let ExecuteAsync handle it
-await builder...ExecuteAsync();
+// DO: Use the counter
+.WaitForSuccessPrompt(counter)
 ```
 
-## DON'T: Skip Tests When Environment Variables Are Missing
+The counter automatically tracks which command you're waiting for, even if command sequences change.
 
-Tests should fail explicitly, not skip silently:
+## Adding New Extension Methods
 
-```csharp
-// DON'T: Skip.If(string.IsNullOrEmpty(...))
-// DO: Use GetRequiredPrNumber() which asserts
-```
-
-## Adding New Builder Methods
-
-When adding new CLI operations to the builder:
+When adding new CLI operations as extension methods:
 
 ```csharp
-public AspireCliAutomationBuilder MyNewOperation(
+internal static Hex1bTerminalInputSequenceBuilder MyNewOperation(
+    this Hex1bTerminalInputSequenceBuilder builder,
     string arg,
+    SequenceCounter counter,
     TimeSpan? timeout = null)
 {
-    return AddSequence(ctx =>
-    {
-        ctx.SequenceBuilder
-            .WriteTestLog(_output, $"Running my-command with {arg}...")
-            .Type($"aspire my-command {arg}")
-            .Enter()
-            .WaitUntil(
-                snapshot => snapshot.GetScreenText().Contains("Expected output"),
-                timeout ?? TimeSpan.FromSeconds(30));
-    });
+    var expectedOutput = new CellPatternSearcher()
+        .Find("Expected output");
+
+    return builder
+        .Type($"aspire my-command {arg}")
+        .Enter()
+        .WaitUntil(
+            snapshot => expectedOutput.Search(snapshot).Count > 0,
+            timeout ?? TimeSpan.FromSeconds(30))
+        .WaitForSuccessPrompt(counter);
 }
 ```
 
 Key points:
-1. Use `AddSequence()` to add the operation
-2. Use `WriteTestLog()` for deferred logging with terminal snapshots
-3. Type the command and press Enter
-4. Use `WaitUntil()` with a specific output pattern
+1. Define as extension method on `Hex1bTerminalInputSequenceBuilder`
+2. Accept `SequenceCounter` parameter for prompt tracking
+3. Use `CellPatternSearcher` for output detection
+4. Call `WaitForSuccessPrompt(counter)` after command completion
 5. Return the builder for fluent chaining
 
 ## CI Configuration
 
-Environment variables set in `run-tests.yml`:
+Environment variables set in CI:
 - `GITHUB_PR_NUMBER`: PR number for downloading CLI artifacts
 - `GITHUB_PR_HEAD_SHA`: PR head commit SHA for version verification (not the merge commit)
 - `GH_TOKEN`: GitHub token for API access
 - `GITHUB_WORKSPACE`: Workspace root for artifact paths
 
-The `cli_e2e_tests` job depends on `build_packages` to ensure CLI packages are built before tests run.
+Each test class runs as a separate CI job via `CliEndToEndTestRunsheetBuilder` for parallel execution.
 
 ## CI Troubleshooting
 
@@ -304,8 +358,7 @@ Check which specific CLI E2E test jobs failed. Job names follow this pattern:
 `Tests / Cli E2E <Platform> (<TestClass>) / <TestClass> (<os>-latest)`
 
 For example:
-- `Tests / Cli E2E Linux (RunTests) / RunTests (ubuntu-latest)`
-- `Tests / Cli E2E Windows (RunTests) / RunTests (windows-latest)`
+- `Tests / Cli E2E Linux (SmokeTests) / SmokeTests (ubuntu-latest)`
 
 ```bash
 # Replace <run-id> with the actual run ID
@@ -321,9 +374,9 @@ CLI E2E tests upload artifacts with names like `logs-Cli.EndToEnd.<TestClass>-ub
 gh api --paginate "repos/dotnet/aspire/actions/runs/<run-id>/artifacts" \
   --jq '.artifacts[].name' | grep -E "Cli\.EndToEnd|cli-e2e"
 
-# Download a specific test artifact (e.g., RunTests)
+# Download a specific test artifact (e.g., SmokeTests)
 mkdir -p /tmp/cli-e2e-debug && cd /tmp/cli-e2e-debug
-gh run download <run-id> -n logs-Cli.EndToEnd.RunTests-ubuntu-latest -R dotnet/aspire
+gh run download <run-id> -n logs-Cli.EndToEnd.SmokeTests-ubuntu-latest -R dotnet/aspire
 ```
 
 ### Step 4: Examine Downloaded Artifacts
@@ -337,8 +390,7 @@ testresults/
 ├── *.crash.dmp                        # Crash dump (if test crashed)
 ├── test.binlog                        # MSBuild binary log
 └── recordings/
-    ├── run-aspire-starter.cast        # Asciinema recording for each test
-    ├── run-aspire-py-starter.cast
+    ├── CreateAndRunAspireStarterProject.cast   # Asciinema recording for each test
     └── ...
 ```
 
@@ -359,10 +411,10 @@ testresults/
    ls -la testresults/recordings/
    
    # Play a recording (requires asciinema installed)
-   asciinema play testresults/recordings/run-aspire-starter.cast
+   asciinema play testresults/recordings/CreateAndRunAspireStarterProject.cast
    
    # Or view as text for AI analysis
-   head -100 testresults/recordings/run-aspire-starter.cast
+   head -100 testresults/recordings/CreateAndRunAspireStarterProject.cast
    ```
 
 3. **Test results XML** - Parse for specific failures:
@@ -375,10 +427,10 @@ testresults/
 
 | Symptom | Likely Cause | Solution |
 |---------|--------------|----------|
-| "Interactive input is not supported" | `ASPIRE_PLAYGROUND=true` not set | Ensure `SourceAspireCliEnvironment()` is called |
-| Test hangs at "Creating new Aspire project..." | npm hanging on interactive prompt | Set `CI=true` environment variable |
-| "No command prompts found" | `PrepareEnvironment()` not called or prompt not rendered | Ensure `PrepareEnvironment()` is first in chain |
-| Command verification fails | Previous command exited with non-zero | Check terminal recording to see which command failed |
+| Timeout waiting for prompt | Command failed or hung | Check recording to see terminal output at timeout |
+| `[N ERR:code] $ ` in prompt | Previous command exited with non-zero | Check recording to see which command failed |
+| Pattern not found | Output format changed | Update `CellPatternSearcher` patterns |
+| Test hangs indefinitely | Waiting for wrong prompt number | Verify `SequenceCounter` usage matches commands |
 | Timeout waiting for dashboard URL | Project failed to build/run | Check recording for build errors |
 
 ### One-Liner: Download and Examine Latest Failed Run
@@ -387,7 +439,6 @@ testresults/
 # Get the latest failed run ID and download CLI E2E logs
 RUN_ID=$(gh run list --branch $(git branch --show-current) --status failure --limit 1 --json databaseId --jq '.[0].databaseId') && \
   mkdir -p /tmp/cli-e2e-debug && cd /tmp/cli-e2e-debug && \
-  gh run download $RUN_ID -n logs-Cli.EndToEnd.RunTests-ubuntu-latest -R dotnet/aspire 2>/dev/null || \
-  gh run download $RUN_ID -n logs-Cli.EndToEnd.AcquisitionTests-ubuntu-latest -R dotnet/aspire && \
+  gh run download $RUN_ID -n logs-Cli.EndToEnd.SmokeTests-ubuntu-latest -R dotnet/aspire 2>/dev/null && \
   echo "=== Downloaded to /tmp/cli-e2e-debug ===" && ls -la testresults/
 ```
