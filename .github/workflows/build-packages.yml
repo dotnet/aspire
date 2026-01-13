@@ -15,6 +15,7 @@ jobs:
   build_packages:
     name: Build packages
     runs-on: 16-core-ubuntu-latest
+    
     outputs:
       arch_rids: ${{ steps.stage_rid_specific.outputs.rids }}
     steps:
