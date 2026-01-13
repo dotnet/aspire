@@ -150,6 +150,7 @@ jobs:
 
       - name: Create issue on aspire.dev repo
         if: steps.docs_check.outputs.docs_needed == 'true'
+        id: create_issue
         run: |
           ISSUE_BODY="## Documentation Update Required
 
@@ -164,10 +165,32 @@ jobs:
           $(cat analysis.txt)
           "
 
-          gh issue create \
+          ISSUE_URL=$(gh issue create \
             --repo microsoft/aspire.dev \
             --title "Docs update for dotnet/aspire#${{ steps.pr.outputs.number }}: ${{ steps.pr_details.outputs.title }}" \
             --body "$ISSUE_BODY" \
-            --label "docs-from-code"
+            --label "docs-from-code")
+          
+          echo "issue_url=$ISSUE_URL" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Comment on PR
+        if: steps.docs_check.outputs.docs_needed == 'true'
+        run: |
+          COMMENT="## 📝 Documentation Update Needed
+
+          Hey @${{ steps.pr_details.outputs.author }}! This PR requires documentation updates.
+
+          An issue has been created to track the documentation work: ${{ steps.create_issue.outputs.issue_url }}
+
+          <details>
+          <summary>Recommended Updates</summary>
+
+          $(cat analysis.txt)
+
+          </details>"
+
+          gh pr comment ${{ steps.pr.outputs.number }} --body "$COMMENT"
         env:
           GH_TOKEN: ${{ github.token }}
