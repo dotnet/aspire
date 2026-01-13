@@ -180,7 +180,16 @@ internal abstract class PipelineCommandBase : BaseCommand
 
             var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench:  {GetProgressMessage(parseResult)}", async () =>
             {
-                return await backchannelCompletionSource.Task.ConfigureAwait(false);
+                var completedTask = await Task.WhenAny(backchannelCompletionSource.Task, pendingRun);
+                if (completedTask == backchannelCompletionSource.Task)
+                {
+                    return await backchannelCompletionSource.Task;
+                }
+
+                // Throw an error if the run completed without returning a backchannel.
+                // Include possible error if the run task faulted.
+                var innerException = completedTask.IsFaulted ? completedTask.Exception : null;
+                throw new InvalidOperationException("Run completed without returning a backchannel.", innerException);
             });
 
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
