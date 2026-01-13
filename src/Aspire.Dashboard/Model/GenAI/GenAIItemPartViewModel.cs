@@ -63,11 +63,26 @@ public sealed class GenAIItemPartViewModel
         }
         if (p is ToolCallRequestPart toolCallRequestPart)
         {
-            return new TextVisualizerViewModel($"{toolCallRequestPart.Name}({toolCallRequestPart.Arguments?.ToJsonString()})", indentText: true, knownFormat: DashboardUIHelpers.JavascriptFormat);
+            var argumentsText = toolCallRequestPart.Arguments switch
+            {
+                null => string.Empty,
+                JsonObject obj when obj.Count == 0 => string.Empty,
+                JsonArray arr when arr.Count == 0 => string.Empty,
+                _ => toolCallRequestPart.Arguments.ToJsonString()
+            };
+
+            return new TextVisualizerViewModel($"{toolCallRequestPart.Name}({argumentsText})", indentText: true, knownFormat: DashboardUIHelpers.JavascriptFormat);
         }
         if (p is ToolCallResponsePart toolCallResponsePart)
         {
-            return new TextVisualizerViewModel(toolCallResponsePart.Response?.ToJsonString() ?? string.Empty, indentText: true);
+            // If a tool response is a string then decode it.
+            // This handles situations where telemetry is reported incorrectly, i.e. a structured JSON response is encoded inside a string.
+            // And it allows possible Markdown content inside the string to be formatted.
+            var toolResponseContent = (toolCallResponsePart.Response?.GetValueKind() == JsonValueKind.String)
+                ? toolCallResponsePart.Response.GetValue<string>()
+                : toolCallResponsePart.Response?.ToJsonString() ?? string.Empty;
+
+            return new TextVisualizerViewModel(toolResponseContent, indentText: true, fallbackFormat: DashboardUIHelpers.MarkdownFormat);
         }
 
         var additionalProperties = p is GenericPart genericPart ? genericPart.AdditionalProperties ?? [] : [];

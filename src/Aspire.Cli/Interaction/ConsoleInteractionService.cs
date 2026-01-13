@@ -15,6 +15,7 @@ internal class ConsoleInteractionService : IInteractionService
     private static readonly Style s_infoMessageStyle = new Style(foreground: Color.Green, background: null, decoration: Decoration.None);
     private static readonly Style s_waitingMessageStyle = new Style(foreground: Color.Yellow, background: null, decoration: Decoration.None);
     private static readonly Style s_errorMessageStyle = new Style(foreground: Color.Red, background: null, decoration: Decoration.Bold);
+    private static readonly Style s_searchHighlightStyle = new Style(foreground: Color.Black, background: Color.Cyan1, decoration: Decoration.None);
 
     private readonly IAnsiConsole _ansiConsole;
     private readonly CliExecutionContext _executionContext;
@@ -112,6 +113,8 @@ internal class ConsoleInteractionService : IInteractionService
             .AddChoices(choices)
             .PageSize(10)
             .EnableSearch();
+        
+        prompt.SearchHighlightStyle = s_searchHighlightStyle;
 
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
@@ -164,7 +167,12 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplayMessage(string emoji, string message)
     {
-        _ansiConsole.MarkupLine($":{emoji}:  {message}");
+        // This is a hack to deal with emoji of different size. We write the emoji then move the cursor to aboslute column 4
+        // on the same line before writing the message. This ensures that the message starts at the same position regardless
+        // of the emoji used. I'm not OCD .. you are!
+        _ansiConsole.Markup($":{emoji}:");
+        _ansiConsole.Write("\u001b[4G");
+        _ansiConsole.MarkupLine(message);
     }
 
     public void DisplayPlainText(string message)

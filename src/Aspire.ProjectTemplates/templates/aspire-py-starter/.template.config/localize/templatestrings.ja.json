@@ -1,9 +1,9 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aspire Python スターター アプリ",
-  "description": "Vite と React を使用して Python バックエンド API サービスと JavaScript フロントエンドを使用して Aspire アプリを作成するためのプロジェクト テンプレートです。",
+  "name": "Aspire スターター アプリ (FastAPI/React)",
+  "description": "React フロントエンドと Python バックエンド API サービスを使用して Aspire アプリを作成するためのプロジェクト テンプレート。必要に応じて、Redis キャッシュを使用します。",
   "symbols/UseRedisCache/displayName": "キャッシュ用に Redis を使用する (サポートされているコンテナー ランタイムが必要) (_U)",
-  "symbols/UseRedisCache/description": "Redis をキャッシュに使用するようにアプリケーションを設定するかどうかを構成します。ローカルで実行するには、サポートされているコンテナー ランタイムが必要です。詳細については、https://aka.ms/dotnet/aspire/containers を参照してください。",
+  "symbols/UseRedisCache/description": "Redis をキャッシュに使用するようにアプリケーションを設定するかどうかを構成します。ローカルで実行するには、サポートされているコンテナー ランタイムが必要です。詳細については、https://aka.ms/aspire/containers を参照してください。",
   "symbols/appHostHttpPort/description": "AppHost プロジェクトの launchSettings.json の HTTP エンドポイントに使用するポート番号。",
   "symbols/appHostOtlpHttpPort/description": "AppHost プロジェクトの launchSettings.json で OTLP HTTP エンドポイントに使用するポート番号。",
   "symbols/appHostMcpHttpPort/description": "AppHost プロジェクトの launchSettings.json で MCP HTTP エンドポイント向けに使用するポート番号。",

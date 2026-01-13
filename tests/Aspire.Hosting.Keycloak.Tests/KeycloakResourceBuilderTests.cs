@@ -124,7 +124,8 @@ public class KeycloakResourceBuilderTests
               "env": {
                 "KC_BOOTSTRAP_ADMIN_USERNAME": "admin",
                 "KC_BOOTSTRAP_ADMIN_PASSWORD": "{keycloak-password.value}",
-                "KC_HEALTH_ENABLED": "true"
+                "KC_HEALTH_ENABLED": "true",
+                "KC_FEATURES": "opentelemetry"
               },
               "bindings": {
                 "http": {

@@ -115,9 +115,11 @@ public partial class AspireProject : IAsyncDisposable
         cmd.WithWorkingDirectory(Path.GetDirectoryName(projectDir)!)
            .WithTimeout(TimeSpan.FromMinutes(5));
 
-        var tfmToUseString = tfmToUse.ToTFMString();
-        var cmdString = $"{template} {extraArgs} -o \"{id}\" -f {tfmToUseString}";
-
+        var cmdString = $"{template} {extraArgs} -o \"{id}\"";
+        if (tfmToUse != TestTargetFramework.None)
+        {
+            cmdString = $"{cmdString} -f {tfmToUse.ToTFMString()}";
+        }
         var res = await cmd.ExecuteAsync(cmdString).ConfigureAwait(false);
         res.EnsureSuccessful();
         if (res.Output.Contains("Restore failed", StringComparison.OrdinalIgnoreCase) ||
@@ -139,9 +141,9 @@ public partial class AspireProject : IAsyncDisposable
                 throw new XunitException($"Expected to find exactly one <TargetFramework> element in {csprojPath}: {csprojContent}");
             }
 
-            if (matches[0].Groups["tfm"].Value != tfmToUseString)
+            if (matches[0].Groups["tfm"].Value != tfmToUse.ToTFMString())
             {
-                throw new XunitException($"Expected to find {tfmToUseString} but found '{matches[0].Groups["tfm"].Value}' in {csprojPath}: {csprojContent}");
+                throw new XunitException($"Expected to find {tfmToUse.ToTFMString()} but found '{matches[0].Groups["tfm"].Value}' in {csprojPath}: {csprojContent}");
             }
         }
 

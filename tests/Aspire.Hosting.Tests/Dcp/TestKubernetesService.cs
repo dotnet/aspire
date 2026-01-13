@@ -35,7 +35,7 @@ internal sealed class TestKubernetesService : IKubernetesService
         _ignoreDeletes = ignoreDeletes;
     }
 
-    public Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken _ = default) where T : CustomResource
+    public Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken _ = default) where T : CustomResource, IKubernetesStaticMetadata
     {
         if (DeletedResources.Contains(name))
         {
@@ -56,7 +56,7 @@ internal sealed class TestKubernetesService : IKubernetesService
         return Task.FromResult(res);
     }
 
-    public Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default) where T : CustomResource
+    public Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default) where T : CustomResource, IKubernetesStaticMetadata
     {
         static T Clone(T r)
         {
@@ -101,7 +101,7 @@ internal sealed class TestKubernetesService : IKubernetesService
         }
     }
 
-    public async Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
+    public async Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource, IKubernetesStaticMetadata
     {
         try
         {
@@ -121,7 +121,7 @@ internal sealed class TestKubernetesService : IKubernetesService
         }
     }
 
-    public Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
+    public Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource, IKubernetesStaticMetadata
     {
         var res = CreatedResources.OfType<T>().Where(r =>
             string.Equals(r.Metadata.NamespaceProperty ?? string.Empty, namespaceParameter ?? string.Empty)
@@ -129,7 +129,7 @@ internal sealed class TestKubernetesService : IKubernetesService
         return Task.FromResult(res.ToList());
     }
 
-    public async IAsyncEnumerable<(WatchEventType, T)> WatchAsync<T>(string? namespaceParameter = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : CustomResource
+    public async IAsyncEnumerable<(WatchEventType, T)> WatchAsync<T>(string? namespaceParameter = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : CustomResource, IKubernetesStaticMetadata
     {
         var chan = Channel.CreateUnbounded<(WatchEventType, CustomResource)>();
 
@@ -172,12 +172,12 @@ internal sealed class TestKubernetesService : IKubernetesService
         long? limit = null,
         long? tail = null,
         long? skip = null
-    ) where T : CustomResource
+    ) where T : CustomResource, IKubernetesStaticMetadata
     {
         return Task.FromResult(_startStream(obj, logStreamType));
     }
 
-    public Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default) where T : CustomResource
+    public Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default) where T : CustomResource, IKubernetesStaticMetadata
     {
         // Not a complete implementation, but Aspire is using patching only to stop resources,
         // so this is good enough.

@@ -12,6 +12,11 @@
         <target state="translated">AppHost a výchozí nastavení služby</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireJsFrontendStarter_Description">
+        <source>Starter App (ASP.NET Core/React)</source>
+        <target state="translated">Úvodní aplikace (ASP.NET Core/React)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireMSTest_Description">
         <source>MSTest</source>
         <target state="translated">MSTest</target>
@@ -23,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AspirePyStarter_Description">
-        <source>React (Vite) &amp; FastAPI starter</source>
-        <target state="translated">Úvodní projekt React (Vite) &amp; FastAPI</target>
+        <source>Starter App (FastAPI/React)</source>
+        <target state="translated">Úvodní aplikace (FastAPI/React)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
@@ -38,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Blazor &amp; Minimal API starter</source>
-        <target state="translated">Úvodní projekt Blazor &amp; Minimal API</target>
+        <source>Starter App (ASP.NET Core/Blazor)</source>
+        <target state="translated">Úvodní aplikace (ASP.NET Core/Blazor)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">

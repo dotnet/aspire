@@ -257,7 +257,7 @@ internal sealed record ContainerNetworkTunnelProxyStatus : V1Status
     public int ServerProxyControlPort { get; set; }
 }
 
-internal sealed class ContainerNetworkTunnelProxy : CustomResource<ContainerNetworkTunnelProxySpec, ContainerNetworkTunnelProxyStatus>
+internal sealed class ContainerNetworkTunnelProxy : CustomResource<ContainerNetworkTunnelProxySpec, ContainerNetworkTunnelProxyStatus>, IKubernetesStaticMetadata
 {
     [JsonConstructor]
     public ContainerNetworkTunnelProxy(ContainerNetworkTunnelProxySpec spec) : base(spec) { }
@@ -273,4 +273,6 @@ internal sealed class ContainerNetworkTunnelProxy : CustomResource<ContainerNetw
 
         return tp;
     }
+
+    public static string ObjectKind => Dcp.ContainerNetworkTunnelProxyKind;
 }

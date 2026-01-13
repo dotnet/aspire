@@ -21,6 +21,8 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> ConfigureComposeFile(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, System.Action<Docker.Resources.ComposeFile> configure) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> ConfigureEnvFile(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, System.Action<System.Collections.Generic.IDictionary<string, Docker.CapturedEnvironmentVariable>> configure) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> WithDashboard(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, System.Action<ApplicationModel.IResourceBuilder<Docker.DockerComposeAspireDashboardResource>> configure) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> WithDashboard(this ApplicationModel.IResourceBuilder<Docker.DockerComposeEnvironmentResource> builder, bool enabled = true) { throw null; }
@@ -43,6 +45,19 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Docker
 {
+    public sealed partial class CapturedEnvironmentVariable
+    {
+        public string? DefaultValue { get { throw null; } set { } }
+
+        public string? Description { get { throw null; } set { } }
+
+        public required string Name { get { throw null; } init { } }
+
+        public ApplicationModel.IResource? Resource { get { throw null; } set { } }
+
+        public object? Source { get { throw null; } set { } }
+    }
+
     public partial class DockerComposeAspireDashboardResource : ApplicationModel.ContainerResource
     {
         public DockerComposeAspireDashboardResource(string name) : base(default!, default) { }
@@ -56,13 +71,11 @@ namespace Aspire.Hosting.Docker
     {
         public DockerComposeEnvironmentResource(string name) : base(default!) { }
 
-        public bool BuildContainerImages { get { throw null; } set { } }
-
         public bool DashboardEnabled { get { throw null; } set { } }
 
-        public string? DefaultContainerRegistry { get { throw null; } set { } }
-
         public string? DefaultNetworkName { get { throw null; } set { } }
+
+        ApplicationModel.ReferenceExpression ApplicationModel.IComputeEnvironmentResource.GetHostAddressExpression(ApplicationModel.EndpointReference endpointReference) { throw null; }
     }
 
     public sealed partial class DockerComposeServiceCustomizationAnnotation : ApplicationModel.IResourceAnnotation

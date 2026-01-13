@@ -35,19 +35,19 @@ internal enum DcpApiOperationType
 internal interface IKubernetesService
 {
     Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
-        where T : CustomResource;
+        where T : CustomResource, IKubernetesStaticMetadata;
     Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
-        where T : CustomResource;
+        where T : CustomResource, IKubernetesStaticMetadata;
     Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default)
-        where T : CustomResource;
+        where T : CustomResource, IKubernetesStaticMetadata;
     Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default)
-        where T : CustomResource;
+        where T : CustomResource, IKubernetesStaticMetadata;
     Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
-        where T : CustomResource;
+        where T : CustomResource, IKubernetesStaticMetadata;
     IAsyncEnumerable<(WatchEventType, T)> WatchAsync<T>(
         string? namespaceParameter = null,
         CancellationToken cancellationToken = default)
-        where T : CustomResource;
+        where T : CustomResource, IKubernetesStaticMetadata;
 
     /// <summary>
     /// Returns a log stream for the specified resource.
@@ -71,7 +71,7 @@ internal interface IKubernetesService
         long? limit = null,
         long? tail = null,
         long? skip = null
-    ) where T : CustomResource;
+    ) where T : CustomResource, IKubernetesStaticMetadata;
     Task StopServerAsync(string resourceCleanup = ResourceCleanup.Full, CancellationToken cancellation = default);
     Task CleanupResourcesAsync(CancellationToken cancellationToken = default);
 }
@@ -92,13 +92,13 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     public TimeSpan MaxRetryDuration { get; set; } = TimeSpan.FromSeconds(20);
 
     public Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
-        where T : CustomResource
+        where T : CustomResource, IKubernetesStaticMetadata
     {
         var resourceType = GetResourceFor<T>();
 
         return ExecuteWithRetry(
             DcpApiOperationType.Get,
-            resourceType,
+            T.ObjectKind,
             async (kubernetes) =>
             {
                 var response = string.IsNullOrEmpty(namespaceParameter)
@@ -123,7 +123,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     }
 
     public Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
-        where T : CustomResource
+        where T : CustomResource, IKubernetesStaticMetadata
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var resourceType = GetResourceFor<T>();
@@ -131,7 +131,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
         return ExecuteWithRetry(
            DcpApiOperationType.Create,
-           resourceType,
+           T.ObjectKind,
            async (kubernetes) =>
            {
                var response = string.IsNullOrEmpty(namespaceParameter)
@@ -156,7 +156,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     }
 
     public Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default)
-        where T : CustomResource
+        where T : CustomResource, IKubernetesStaticMetadata
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var resourceType = GetResourceFor<T>();
@@ -164,7 +164,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
         return ExecuteWithRetry(
            DcpApiOperationType.Patch,
-           resourceType,
+           T.ObjectKind,
            async (kubernetes) =>
            {
                var response = string.IsNullOrEmpty(namespaceParameter)
@@ -191,14 +191,14 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     }
 
     public Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default)
-        where T : CustomResource
+        where T : CustomResource, IKubernetesStaticMetadata
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var resourceType = GetResourceFor<T>();
 
         return ExecuteWithRetry(
             DcpApiOperationType.List,
-            resourceType,
+            T.ObjectKind,
             async (kubernetes) =>
             {
                 var response = string.IsNullOrEmpty(namespaceParameter)
@@ -221,14 +221,14 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     }
 
     public Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
-        where T : CustomResource
+        where T : CustomResource, IKubernetesStaticMetadata
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var resourceType = GetResourceFor<T>();
 
         return ExecuteWithRetry(
             DcpApiOperationType.Delete,
-            resourceType,
+            T.ObjectKind,
             async (kubernetes) =>
             {
                 var response = string.IsNullOrEmpty(namespaceParameter)
@@ -255,7 +255,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     public async IAsyncEnumerable<(WatchEventType, T)> WatchAsync<T>(
         string? namespaceParameter = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        where T : CustomResource
+        where T : CustomResource, IKubernetesStaticMetadata
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var resourceType = GetResourceFor<T>();
@@ -266,7 +266,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         {
             return ExecuteWithRetry(
                 DcpApiOperationType.Watch,
-                resourceType,
+                T.ObjectKind,
                 (kubernetes) =>
                 {
                     var responseTask = string.IsNullOrEmpty(namespaceParameter)
@@ -310,7 +310,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         bool? lineNumbers = false,
         long? limit = null,
         long? tail = null,
-        long? skip = null) where T : CustomResource
+        long? skip = null) where T : CustomResource, IKubernetesStaticMetadata
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var resourceType = GetResourceFor<T>();
@@ -339,7 +339,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
         return ExecuteWithRetry(
             DcpApiOperationType.GetLogSubresource,
-            resourceType,
+            T.ObjectKind,
             async (kubernetes) =>
             {
                 var response = await kubernetes.ReadSubResourceAsStreamAsync(

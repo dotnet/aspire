@@ -1,6 +1,7 @@
 ﻿@page "/"
 @using Microsoft.Extensions.AI
 @using System.Diagnostics
+@using System.ComponentModel
 @inject IChatClient chatClient
 @inject ILogger<Home> logger
 
@@ -25,13 +26,25 @@
         "Richard", "Susan", "Joseph", "Jessica", "Thomas", "Sarah",
         "Charles", "Karen"
     };
+    private static readonly string[] s_plotTwists = [
+        "The mentor is actually the villain in disguise.",
+        "The protagonist’s memories were fabricated to hide the truth.",
+        "The supposed enemy has been protecting the hero all along.",
+        "A trusted ally betrays the group for personal gain.",
+        "The artifact everyone seeks never existed — it was a myth to test them.",
+        "The villain is revealed to be a future version of the protagonist.",
+        "The world the characters live in is a simulation.",
+        "The prophecy was mistranslated — the hero is not the savior but the destroyer.",
+        "The character believed dead returns with no memory of their past.",
+        "The conflict was orchestrated by a third unseen force manipulating both sides."
+    ];
 
     private List<ChatMessage> chatMessages = new List<ChatMessage>
     {
         new(ChatRole.System, "You are a story generator. Format stories in Markdown. Use bold and italics for emphasis. Each sentence must include a Markdown formatted link to Wikipedia about a topic in the sentence.")
     };
 
-    public Task<List<string>> GenerateNamesAsync(int number)
+    public Task<List<string>> GenerateNamesAsync([Description("The number of fictional names to generate.")] int number)
     {
         // Note that this could randomly select the same name multiple times.
         var names = Enumerable.Range(1, number)
@@ -41,11 +54,19 @@
         return Task.FromResult(names);
     }
 
+    public Task<string> GeneratePlotTwist()
+    {
+        return Task.FromResult(s_plotTwists[Random.Shared.Next(0, s_plotTwists.Length)]);
+    }
+
     private async Task GenerateNextParagraph()
     {
         var chatOptions = new ChatOptions
         {
-            Tools = [AIFunctionFactory.Create(GenerateNamesAsync, name: "generate_names", description: "Generates a list of fictional names for the story.")]
+            Tools = [
+                AIFunctionFactory.Create(GenerateNamesAsync, name: "generate_names", description: "Generates a list of fictional names for the story."),
+                AIFunctionFactory.Create(GeneratePlotTwist, name: "generate_plot_twist", description: "Generates a plot twist for the story.")
+            ]
         };
 
         if (chatMessages.Count > 1)

@@ -249,3 +249,41 @@ internal class PublishingPromptInputAnswer
     public string? Name { get; set; }
     public string? Value { get; set; }
 }
+
+/// <summary>
+/// Represents the connection information for the Dashboard MCP server.
+/// </summary>
+internal sealed class DashboardMcpConnectionInfo
+{
+    /// <summary>
+    /// Gets or sets the endpoint URL for the Dashboard MCP server.
+    /// </summary>
+    public required string EndpointUrl { get; init; }
+
+    /// <summary>
+    /// Gets or sets the API token for authenticating with the Dashboard MCP server.
+    /// </summary>
+    public required string ApiToken { get; init; }
+}
+
+/// <summary>
+/// Represents information about the AppHost for the MCP server.
+/// </summary>
+internal sealed class AppHostInformation
+{
+    /// <summary>
+    /// Gets or sets the fully qualified path to the AppHost project.
+    /// </summary>
+    public required string AppHostPath { get; init; }
+
+    /// <summary>
+    /// Gets or sets the process ID of the AppHost.
+    /// </summary>
+    public required int ProcessId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the process ID of the CLI that launched the AppHost, if applicable.
+    /// This value is only set when the AppHost is launched via the Aspire CLI.
+    /// </summary>
+    public int? CliProcessId { get; init; }
+}

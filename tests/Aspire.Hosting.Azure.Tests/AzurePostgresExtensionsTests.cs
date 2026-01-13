@@ -190,6 +190,12 @@ public class AzurePostgresExtensionsTests
         Assert.Equal("Host=localhost;Port=12455;Username=user1;Password=p@ssw0rd1", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
 
         // Test the new reference properties
+        Assert.NotNull(postgres.Resource.Host);
+        Assert.Equal("localhost", await postgres.Resource.Host.GetValueAsync(CancellationToken.None));
+
+        Assert.NotNull(postgres.Resource.Port);
+        Assert.Equal("12455", await postgres.Resource.Port.GetValueAsync(CancellationToken.None));
+
         Assert.NotNull(postgres.Resource.HostName);
         Assert.Equal("localhost:12455", await postgres.Resource.HostName.GetValueAsync(CancellationToken.None));
 
@@ -578,5 +584,36 @@ public class AzurePostgresExtensionsTests
 
         await Verify(manifest.ToString(), "json")
              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("mykeyvault")]
+    public void WithPasswordAuthentication_SetsSecretOwner(string? kvName)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var postgres = builder.AddAzurePostgresFlexibleServer("postgres-data");
+
+        // Act
+        if (kvName is null)
+        {
+            postgres.WithPasswordAuthentication();
+        }
+        else
+        {
+            var keyVault = builder.AddAzureKeyVault(kvName);
+            postgres.WithPasswordAuthentication(keyVault);
+        }
+
+        // Assert - Verify that the SecretOwner is set to the Postgres resource
+        Assert.NotNull(postgres.Resource.ConnectionStringSecretOutput);
+        Assert.Same(postgres.Resource, postgres.Resource.ConnectionStringSecretOutput.SecretOwner);
+        
+        // Also verify that References includes both the KeyVault and the Postgres resource
+        var references = ((IValueWithReferences)postgres.Resource.ConnectionStringSecretOutput).References.ToList();
+        Assert.Contains(postgres.Resource, references);
+        Assert.Contains(postgres.Resource.ConnectionStringSecretOutput.Resource, references);
     }
 }

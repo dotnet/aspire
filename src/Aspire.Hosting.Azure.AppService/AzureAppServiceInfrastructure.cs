@@ -32,11 +32,21 @@ internal sealed class AzureAppServiceInfrastructure(
 
         foreach (var appServiceEnvironment in appServiceEnvironments)
         {
+            // Remove the default container registry from the model if an explicit registry is configured
+            if (appServiceEnvironment.HasAnnotationOfType<ContainerRegistryReferenceAnnotation>() &&
+                appServiceEnvironment.DefaultContainerRegistry is not null)
+            {
+                @event.Model.Resources.Remove(appServiceEnvironment.DefaultContainerRegistry);
+            }
+
             var appServiceEnvironmentContext = new AzureAppServiceEnvironmentContext(
                 logger,
                 executionContext,
                 appServiceEnvironment,
                 @event.Services);
+
+            // Annotate the environment with its context
+            appServiceEnvironment.Annotations.Add(new AzureAppServiceEnvironmentContextAnnotation(appServiceEnvironmentContext));
 
             foreach (var resource in @event.Model.GetComputeResources())
             {
