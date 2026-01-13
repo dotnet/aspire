@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.EndToEndTests.Helpers;
@@ -30,6 +30,7 @@ public sealed class SmokeTests : IAsyncDisposable
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/13876")]
     public async Task CreateAndRunAspireStarterProject()
     {
         var workspace = TemporaryWorkspace.Create(_output);
