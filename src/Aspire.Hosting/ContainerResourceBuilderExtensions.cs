@@ -1064,7 +1064,7 @@ public static class ContainerResourceBuilderExtensions
 
         if (value.Resource.Secret)
         {
-            throw new InvalidOperationException("Cannot add secret parameter as a build argument. Use WithSecretBuildArg instead.");
+            throw new InvalidOperationException("Cannot add secret parameter as a build argument. Use WithBuildSecret instead.");
         }
 
         return builder.WithBuildArg(name, value.Resource);
@@ -1113,7 +1113,7 @@ public static class ContainerResourceBuilderExtensions
 
         if (annotation is null)
         {
-            throw new InvalidOperationException("The resource does not have a Dockerfile build annotation. Call WithDockerfile before calling WithSecretBuildArg.");
+            throw new InvalidOperationException("The resource does not have a Dockerfile build annotation. Call WithDockerfile before calling WithBuildSecret.");
         }
 
         annotation.BuildSecrets[name] = value.Resource;
