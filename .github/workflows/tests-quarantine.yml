@@ -14,8 +14,8 @@ on:
   workflow_dispatch:
 
   schedule:
-    # Run every 4 hours
-    - cron: '0 */4 * * *'
+    # Run every 2 hours
+    - cron: '0 */2 * * *'
 
   # TEMPORARILY DISABLED pull_request trigger due to #12143 (disk space issues): https://github.com/dotnet/aspire/issues/12143
   # pull_request:
